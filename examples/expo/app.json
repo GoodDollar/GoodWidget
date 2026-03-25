@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "GoodWidget Expo Example",
+    "slug": "goodwidget-expo-example",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "goodwidget-expo",
+    "platforms": ["ios", "android"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "org.gooddollar.widget.expo.example"
+    },
+    "android": {
+      "package": "org.gooddollar.widget.expo.example",
+      "adaptiveIcon": {
+        "backgroundColor": "#00AEFF"
+      }
+    },
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}

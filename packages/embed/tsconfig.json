@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "paths": {
+      "@goodwidget/core": ["../core/src/index.ts"],
+      "@goodwidget/ui": ["../ui/src/index.ts"]
+    }
+  },
+  "include": ["src"]
+}

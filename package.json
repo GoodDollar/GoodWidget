@@ -1,0 +1,19 @@
+{
+  "name": "goodwidget",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean"
+  },
+  "devDependencies": {
+    "turbo": "^2.4.0",
+    "typescript": "^5.7.0",
+    "eslint": "^9.20.0",
+    "prettier": "^3.5.0",
+    "@typescript-eslint/eslint-plugin": "^8.25.0",
+    "@typescript-eslint/parser": "^8.25.0"
+  },
+  "packageManager": "pnpm@9.15.0"
+}

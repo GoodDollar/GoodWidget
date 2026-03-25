@@ -1,0 +1,39 @@
+{
+  "name": "@goodwidget/core",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./wagmi": {
+      "types": "./dist/wagmi.d.ts",
+      "import": "./dist/wagmi.js",
+      "require": "./dist/wagmi.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint src/",
+    "clean": "rm -rf dist .turbo"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0"
+  },
+  "dependencies": {
+    "@goodwidget/ui": "workspace:*",
+    "tamagui": "^1.121.0"
+  },
+  "devDependencies": {
+    "react": "^18.3.0",
+    "@types/react": "^18.3.0",
+    "tsup": "^8.4.0",
+    "typescript": "^5.7.0"
+  }
+}

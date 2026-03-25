@@ -1,0 +1,27 @@
+{
+  "name": "@goodwidget/example-expo",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web"
+  },
+  "dependencies": {
+    "@goodwidget/core": "workspace:*",
+    "@goodwidget/ui": "workspace:*",
+    "@goodwidget/claim-widget": "workspace:*",
+    "expo": "~52.0.0",
+    "expo-router": "~4.0.0",
+    "react": "^18.3.0",
+    "react-native": "0.76.9",
+    "tamagui": "^1.121.0",
+    "@tamagui/config": "^1.121.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "typescript": "^5.7.0"
+  }
+}
