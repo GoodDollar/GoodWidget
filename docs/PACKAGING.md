@@ -605,3 +605,49 @@ Consumers of this package:
 | `examples/react-web/` | React web app importing `ClaimWidget` component |
 | `examples/html/` | Plain HTML page using `<gw-claim-widget>` element |
 | `examples/expo/` | Expo React Native app importing GoodWidget components |
+
+---
+
+## Enabling Iframe/WebView Embedding
+
+If your widget will be loaded inside an iframe or WebView by a host app, you need to
+opt in to bridge communication so the host's wallet provider is accessible.
+
+### 1. Add `@goodwidget/bridge` as a dependency
+
+```bash
+pnpm add @goodwidget/bridge
+```
+
+### 2. Call `enableIframeBridge()` in your entrypoint
+
+```ts
+// src/main.ts or src/index.ts
+import { enableIframeBridge } from '@goodwidget/bridge/child'
+
+const bridge = await enableIframeBridge({
+  allowedParents: ['https://host1.app', 'https://host2.app'],
+  appId: 'my-widget',
+})
+
+if (bridge) {
+  // Running in an iframe — bridge.provider is a full EIP-1193 provider
+  // Also injected as window.ethereum and announced via EIP-6963
+  console.log('Connected to host, session:', bridge.sessionId)
+}
+
+// Then render your app as normal — GoodWidgetProvider will auto-detect the provider
+```
+
+### 3. Security considerations
+
+- Always specify `allowedParents` — don't use `['*']` in production.
+- The bridge only exposes JSON-RPC request/response envelopes; private keys never
+  leave the host wallet.
+- The host controls which origins can communicate; both sides must agree.
+
+### 4. EIP-6963 compatibility
+
+The bridge provider is announced via EIP-6963 with `rdns: 'org.gooddollar.goodwidget.bridge'`.
+This means any dapp that uses the standard multi-provider discovery flow (e.g. wagmi, web3-onboard)
+will automatically detect it, even without reading `window.ethereum` directly.

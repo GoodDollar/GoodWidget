@@ -4,12 +4,13 @@ A cross-platform mini app framework for building web3 widgets that run inside wa
 
 ## Packages
 
-| Package | Description |
-|---------|-------------|
-| `@goodwidget/core` | EIP-1193 provider normalization, host detection, wallet hooks, React context |
-| `@goodwidget/ui` | Tamagui-based themeable component library (React + React Native Web) |
-| `@goodwidget/embed` | Web Component wrapper for embedding mini apps in any HTML page |
-| `@goodwidget/claim-widget` | Sample publishable widget — React component + Web Component |
+| Package                    | Description                                                                  |
+| -------------------------- | ---------------------------------------------------------------------------- |
+| `@goodwidget/core`         | EIP-1193 provider normalization, host detection, wallet hooks, React context |
+| `@goodwidget/ui`           | Tamagui-based themeable component library (React + React Native Web)         |
+| `@goodwidget/embed`        | Web Component wrapper for embedding mini apps in any HTML page               |
+| `@goodwidget/bridge`       | Iframe/WebView EIP-1193 bridge, EmbeddedWidget component, EIP-6963 support   |
+| `@goodwidget/claim-widget` | Sample publishable widget — React component + Web Component                  |
 
 ## Quick Start
 
@@ -91,9 +92,9 @@ const config = createGoodWidgetConfig({
 
 ```css
 good-miniapp {
-  --gw-color-primary: #FF6B00;
-  --gw-Card-background: #FFF3E0;
-  --gw-Button-background: #FF6B00;
+  --gw-color-primary: #ff6b00;
+  --gw-Card-background: #fff3e0;
+  --gw-Button-background: #ff6b00;
 }
 ```
 
@@ -119,6 +120,45 @@ customElements.define('my-miniapp', Element)
   el.provider = window.ethereum
   el.themeOverrides = { tokens: { color: { primary: '#7B61FF' } } }
 </script>
+```
+
+## Embedding Third-Party Widgets (Iframe/WebView)
+
+### As a host (React)
+
+```tsx
+import { EmbeddedWidget } from '@goodwidget/bridge'
+
+;<EmbeddedWidget
+  src="https://widget.example.com"
+  provider={walletProvider}
+  allowedOrigins={['https://widget.example.com']}
+  themeOverrides={{ tokens: { color: { primary: '#E91E63' } } }}
+  onReady={() => console.log('connected')}
+  style={{ width: '100%', height: 400, border: 'none' }}
+/>
+```
+
+### As a host (WebView / React Native)
+
+```ts
+import { createWebViewBridgeScript } from '@goodwidget/bridge/host'
+
+const injectedJS = createWebViewBridgeScript({ eip6963: true })
+// Pass to <WebView injectedJavaScript={injectedJS} onMessage={...} />
+```
+
+### As the embedded widget (opt-in)
+
+```ts
+import { enableIframeBridge } from '@goodwidget/bridge/child'
+
+const result = await enableIframeBridge({
+  allowedParents: ['https://host.app'],
+  appId: 'my-widget',
+})
+// result.provider is window.ethereum (bridged to host wallet)
+// Also announced via EIP-6963 (rdns: org.gooddollar.goodwidget.bridge)
 ```
 
 ## Creating Custom Components
@@ -165,6 +205,7 @@ GoodWidget/
     core/           → @goodwidget/core          (provider, hooks, EIP-1193, host detection)
     ui/             → @goodwidget/ui            (component library, theme system)
     embed/          → @goodwidget/embed         (Web Component wrapper)
+    bridge/         → @goodwidget/bridge        (iframe/WebView EIP-1193 bridge)
     claim-widget/   → @goodwidget/claim-widget  (sample publishable widget)
   examples/
     react-web/      → React demo with style override showcase

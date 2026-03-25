@@ -39,6 +39,29 @@ The app shows four override strategies applied to the **same** ClaimWidget:
 
 - **`app/index.tsx`** — Main screen showing all four override levels vertically
 - **`app/theme-demo.tsx`** — Side-by-side comparison of the same widget with different themes
+- **`app/webview-bridge.tsx`** — Live WebView bridge demo using `createWebViewBridgeConfig()` from `@goodwidget/bridge/host`
+
+### WebView bridge helper
+
+This example includes a real end-to-end WebView host setup using a single helper:
+
+```ts
+import { createWebViewBridgeConfig } from '@goodwidget/bridge/host'
+
+const bridge = createWebViewBridgeConfig({
+  provider, // host EIP-1193 provider
+  sendToWebView: (message) => webViewRef.current?.postMessage(message),
+})
+
+<WebView
+  injectedJavaScript={bridge.injectedJavaScript}
+  onMessage={(event) => void bridge.onMessage(event)}
+/>
+```
+
+The helper bundles both:
+- injected script creation (`window.ethereum` + `window.goodWidget.provider` + EIP-6963)
+- host-side request/response callback (`onMessage`) for forwarding RPC to the real provider
 
 ## Notes
 

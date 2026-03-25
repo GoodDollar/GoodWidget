@@ -8,6 +8,8 @@
       "@goodwidget/ui": ["../../packages/ui/src/index.ts"],
       "@goodwidget/embed": ["../../packages/embed/src/index.ts"],
       "@goodwidget/claim-widget": ["../../packages/claim-widget/src/index.ts"],
+      "@goodwidget/bridge": ["../../packages/bridge/src/index.ts"],
+      "@goodwidget/bridge/*": ["../../packages/bridge/src/*"],
       "react-native": ["./node_modules/react-native-web"]
     }
   },

@@ -1,7 +1,7 @@
 import type { EIP1193Provider } from './eip1193'
 import type { ReactNode } from 'react'
 
-export type HostEnvironment = 'farcaster' | 'minipay' | 'worldapp' | 'injected' | 'custom'
+export type HostEnvironment = 'farcaster' | 'minipay' | 'worldapp' | 'injected' | 'custom' | 'goodwidget-bridge'
 
 export interface HostCapabilities {
   batchTransactions: boolean

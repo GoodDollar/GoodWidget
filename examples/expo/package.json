@@ -13,10 +13,12 @@
     "@goodwidget/core": "workspace:*",
     "@goodwidget/ui": "workspace:*",
     "@goodwidget/claim-widget": "workspace:*",
+    "@goodwidget/bridge": "workspace:*",
     "expo": "~52.0.0",
     "expo-router": "~4.0.0",
     "react": "^18.3.0",
     "react-native": "0.76.9",
+    "react-native-webview": "^13.12.5",
     "tamagui": "^1.121.0",
     "@tamagui/config": "^1.121.0"
   },

@@ -1,5 +1,6 @@
 import React from 'react'
 import { SafeAreaView, StyleSheet } from 'react-native'
+import { Link } from 'expo-router'
 import { ClaimWidget } from '@goodwidget/claim-widget'
 import {
   Card,
@@ -7,6 +8,8 @@ import {
   Text,
   Alert,
   Separator,
+  Button,
+  ButtonText,
   YStack,
 } from '@goodwidget/ui'
 
@@ -108,6 +111,21 @@ export default function HomeScreen() {
             },
           }}
         />
+
+        <Separator />
+
+        <Card>
+          <Heading level={5}>WebView Bridge Demo</Heading>
+          <Text secondary>
+            Open a real WebView demo where a child page calls
+            window.ethereum through the bridge host helper.
+          </Text>
+          <Link href="/webview-bridge" asChild>
+            <Button fullWidth>
+              <ButtonText>Open WebView Bridge Screen</ButtonText>
+            </Button>
+          </Link>
+        </Card>
       </YStack>
     </SafeAreaView>
   )

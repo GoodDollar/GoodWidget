@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react'
 import { TamaguiProvider } from 'tamagui'
 import { createGoodWidgetConfig, mergeThemeOverrides } from '@goodwidget/ui'
 import { detectHost } from './detect'
+import { tryBridgeHandshake } from './iframeBridge'
 import type { EIP1193Provider } from './eip1193'
 import type {
   GoodWidgetProviderProps,
@@ -70,12 +71,22 @@ export function GoodWidgetProvider({
 
   useEffect(() => {
     let cancelled = false
-    detectHost(explicitProvider).then((result) => {
+
+    async function resolve() {
+      // Always try bridge handshake first — if we're in an iframe/WebView
+      // and a host is listening, the bridge provider takes priority over everything.
+      await tryBridgeHandshake().catch(() => null)
+
+      // detectHost will now find the bridge provider in window.goodWidget.provider
+      // (set by tryBridgeHandshake) and prefer it, even over explicitProvider.
+      const result = await detectHost(explicitProvider)
       if (cancelled || !result) return
       setResolvedProvider(result.provider)
       setHost(result.host)
       setCapabilities(result.capabilities)
-    })
+    }
+
+    resolve()
     return () => {
       cancelled = true
     }

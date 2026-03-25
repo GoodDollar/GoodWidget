@@ -16,7 +16,9 @@
       "@goodwidget/core": ["../../packages/core/src/index.ts"],
       "@goodwidget/core/*": ["../../packages/core/src/*"],
       "@goodwidget/ui": ["../../packages/ui/src/index.ts"],
-      "@goodwidget/claim-widget": ["../../packages/claim-widget/src/index.ts"]
+      "@goodwidget/claim-widget": ["../../packages/claim-widget/src/index.ts"],
+      "@goodwidget/bridge": ["../../packages/bridge/src/index.ts"],
+      "@goodwidget/bridge/*": ["../../packages/bridge/src/*"]
     }
   },
   "include": ["app", "components"],
