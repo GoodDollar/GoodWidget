@@ -36,9 +36,7 @@ const DEFAULT_CAPABILITIES: HostCapabilities = {
   signin: false,
 }
 
-async function detectFarcaster(
-  win: WindowWithProviders,
-): Promise<HostDetectionResult | null> {
+async function detectFarcaster(win: WindowWithProviders): Promise<HostDetectionResult | null> {
   if (!win.farcaster?.sdk?.wallet) return null
 
   try {
@@ -93,7 +91,8 @@ function detectMiniPay(win: WindowWithProviders): HostDetectionResult | null {
 }
 
 function detectGoodWidgetBridge(win: WindowWithProviders): HostDetectionResult | null {
-  const provider = win.goodWidget?.provider ?? (win.ethereum?.isGoodWidgetBridge ? win.ethereum : undefined)
+  const provider =
+    win.goodWidget?.provider ?? (win.ethereum?.isGoodWidgetBridge ? win.ethereum : undefined)
   if (!provider) return null
 
   return {
@@ -113,7 +112,8 @@ async function detectEIP6963(): Promise<HostDetectionResult | null> {
     }, 1000)
 
     const handler = (event: Event) => {
-      const detail = (event as CustomEvent<{ info: { rdns: string }; provider: EIP1193Provider }>).detail
+      const detail = (event as CustomEvent<{ info: { rdns: string }; provider: EIP1193Provider }>)
+        .detail
       if (!detail?.provider) return
 
       if (detail.info.rdns === 'org.gooddollar.goodwidget.bridge') {

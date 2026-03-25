@@ -4,13 +4,13 @@ A cross-platform mini app framework for building web3 widgets that run inside wa
 
 ## Packages
 
-| Package | Description |
-|---------|-------------|
-| `@goodwidget/core` | EIP-1193 provider normalization, host detection, wallet hooks, React context |
-| `@goodwidget/ui` | Tamagui-based themeable component library (React + React Native Web) |
-| `@goodwidget/embed` | Web Component wrapper for embedding mini apps in any HTML page |
-| `@goodwidget/bridge` | Iframe/WebView EIP-1193 bridge, EmbeddedWidget component, EIP-6963 support |
-| `@goodwidget/claim-widget` | Sample publishable widget — React component + Web Component |
+| Package                    | Description                                                                  |
+| -------------------------- | ---------------------------------------------------------------------------- |
+| `@goodwidget/core`         | EIP-1193 provider normalization, host detection, wallet hooks, React context |
+| `@goodwidget/ui`           | Tamagui-based themeable component library (React + React Native Web)         |
+| `@goodwidget/embed`        | Web Component wrapper for embedding mini apps in any HTML page               |
+| `@goodwidget/bridge`       | Iframe/WebView EIP-1193 bridge, EmbeddedWidget component, EIP-6963 support   |
+| `@goodwidget/claim-widget` | Sample publishable widget — React component + Web Component                  |
 
 ## Quick Start
 
@@ -92,9 +92,9 @@ const config = createGoodWidgetConfig({
 
 ```css
 good-miniapp {
-  --gw-color-primary: #FF6B00;
-  --gw-Card-background: #FFF3E0;
-  --gw-Button-background: #FF6B00;
+  --gw-color-primary: #ff6b00;
+  --gw-Card-background: #fff3e0;
+  --gw-Button-background: #ff6b00;
 }
 ```
 
@@ -129,7 +129,7 @@ customElements.define('my-miniapp', Element)
 ```tsx
 import { EmbeddedWidget } from '@goodwidget/bridge'
 
-<EmbeddedWidget
+;<EmbeddedWidget
   src="https://widget.example.com"
   provider={walletProvider}
   allowedOrigins={['https://widget.example.com']}
