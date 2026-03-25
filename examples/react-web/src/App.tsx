@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { GoodWidgetProvider, useWallet, useHost } from '@goodwidget/core'
 import { ClaimWidget } from '@goodwidget/claim-widget'
+import { EmbeddedWidget } from '@goodwidget/bridge'
 import {
   createGoodWidgetConfig,
   getThemeManifest,
@@ -28,7 +29,7 @@ import {
 
 function OverrideShowcase() {
   const [activeTab, setActiveTab] = useState<
-    'default' | 'tokens' | 'component' | 'host' | 'inline'
+    'default' | 'tokens' | 'component' | 'host' | 'inline' | 'iframe'
   >('default')
   const { address, chainId } = useWallet()
   const { host } = useHost()
@@ -45,6 +46,7 @@ function OverrideShowcase() {
     { key: 'component', label: 'Component' },
     { key: 'host', label: 'Host' },
     { key: 'inline', label: 'Inline' },
+    { key: 'iframe', label: 'Iframe' },
   ]
 
   return (
@@ -468,6 +470,69 @@ function OverrideShowcase() {
                 </Text>
               </XStack>
             </YStack>
+          </Card>
+        </YStack>
+      )}
+
+      {/* ==============================================================
+          IFRAME — Embed a third-party widget via <EmbeddedWidget />
+          ============================================================== */}
+      {activeTab === 'iframe' && (
+        <YStack gap="$4">
+          <Alert
+            type="info"
+            title="Iframe Embedding via Bridge"
+            message="Use <EmbeddedWidget> to embed a third-party GoodWidget app in an iframe. The host's wallet provider is bridged via postMessage."
+          />
+          <Card>
+            <Heading level={5}>How it works</Heading>
+            <Text variant="caption">
+              {`import { EmbeddedWidget } from '@goodwidget/bridge'
+
+<EmbeddedWidget
+  src="https://widget.example.com"
+  provider={walletProvider}
+  allowedOrigins={['https://widget.example.com']}
+  themeOverrides={{
+    tokens: { color: { primary: '#E91E63' } },
+    themes: { light_ClaimCard: { background: '#FCE4EC' } },
+  }}
+  onReady={() => console.log('widget connected')}
+  style={{ width: '100%', height: 400 }}
+/>`}
+            </Text>
+          </Card>
+
+          <Card>
+            <Heading level={5}>Bridge Protocol</Heading>
+            <Text secondary>
+              The host creates a HostRouter that listens for postMessage
+              from the iframe. The child app calls enableIframeBridge()
+              to initiate a handshake. Once connected, EIP-1193 requests
+              flow through the postMessage channel and the host forwards
+              them to the real wallet provider.
+            </Text>
+            <Separator marginVertical="$2" />
+            <Text variant="caption">
+              {`// In the embedded widget's entrypoint:
+import { enableIframeBridge } from '@goodwidget/bridge/child'
+
+const result = await enableIframeBridge({
+  allowedParents: ['https://host.app'],
+  appId: 'claim-widget',
+})
+// result.provider is now window.ethereum (bridged)
+// Also announced via EIP-6963`}
+            </Text>
+          </Card>
+
+          <Card>
+            <Heading level={5}>EIP-6963 Discovery</Heading>
+            <Text secondary>
+              The bridge provider is announced via EIP-6963 so modern dapps
+              can discover it through the standard multi-provider flow
+              (rdns: org.gooddollar.goodwidget.bridge).
+            </Text>
           </Card>
         </YStack>
       )}

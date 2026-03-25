@@ -4,6 +4,7 @@ import type { HostEnvironment, HostCapabilities, HostDetectionResult } from './t
 interface WindowWithProviders {
   ethereum?: EIP1193Provider & {
     isMiniPay?: boolean
+    isGoodWidgetBridge?: boolean
   }
   farcaster?: {
     sdk?: {
@@ -14,6 +15,9 @@ interface WindowWithProviders {
   }
   MiniKit?: {
     isInWorldApp(): boolean
+  }
+  goodWidget?: {
+    provider?: EIP1193Provider
   }
 }
 
@@ -88,6 +92,46 @@ function detectMiniPay(win: WindowWithProviders): HostDetectionResult | null {
   }
 }
 
+function detectGoodWidgetBridge(win: WindowWithProviders): HostDetectionResult | null {
+  const provider = win.goodWidget?.provider ?? (win.ethereum?.isGoodWidgetBridge ? win.ethereum : undefined)
+  if (!provider) return null
+
+  return {
+    host: 'goodwidget-bridge' as HostEnvironment,
+    provider,
+    capabilities: { ...DEFAULT_CAPABILITIES },
+  }
+}
+
+async function detectEIP6963(): Promise<HostDetectionResult | null> {
+  if (typeof window === 'undefined') return null
+
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      window.removeEventListener('eip6963:announceProvider', handler as EventListener)
+      resolve(null)
+    }, 1000)
+
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ info: { rdns: string }; provider: EIP1193Provider }>).detail
+      if (!detail?.provider) return
+
+      if (detail.info.rdns === 'org.gooddollar.goodwidget.bridge') {
+        clearTimeout(timer)
+        window.removeEventListener('eip6963:announceProvider', handler as EventListener)
+        resolve({
+          host: 'goodwidget-bridge' as HostEnvironment,
+          provider: detail.provider,
+          capabilities: { ...DEFAULT_CAPABILITIES },
+        })
+      }
+    }
+
+    window.addEventListener('eip6963:announceProvider', handler as EventListener)
+    window.dispatchEvent(new Event('eip6963:requestProvider'))
+  })
+}
+
 function detectInjected(win: WindowWithProviders): HostDetectionResult | null {
   if (!win.ethereum) return null
 
@@ -100,11 +144,33 @@ function detectInjected(win: WindowWithProviders): HostDetectionResult | null {
 
 /**
  * Detect the host environment and resolve the EIP-1193 provider.
- * If an explicit provider is passed, it takes highest priority and the host is 'custom'.
+ *
+ * Bridge always wins — if a bridge provider is already established
+ * (e.g. from enableIframeBridge() or auto-bridge in GoodWidgetProvider),
+ * it takes priority over everything including the explicit provider prop.
+ *
+ * Priority:
+ * 1. GoodWidget bridge globals (window.goodWidget.provider / isGoodWidgetBridge)
+ * 2. EIP-6963 discovered bridge provider
+ * 3. Explicit provider prop
+ * 4. Farcaster SDK
+ * 5. World App MiniKit
+ * 6. MiniPay (Celo)
+ * 7. Generic injected (window.ethereum)
  */
 export async function detectHost(
   explicitProvider?: EIP1193Provider,
 ): Promise<HostDetectionResult | null> {
+  const win = getWindow()
+
+  if (win) {
+    const bridge = detectGoodWidgetBridge(win)
+    if (bridge) return bridge
+
+    const eip6963 = await detectEIP6963()
+    if (eip6963) return eip6963
+  }
+
   if (explicitProvider) {
     return {
       host: 'custom',
@@ -113,10 +179,8 @@ export async function detectHost(
     }
   }
 
-  const win = getWindow()
   if (!win) return null
 
-  // Priority: Farcaster > World App > MiniPay > generic injected
   const farcaster = await detectFarcaster(win)
   if (farcaster) return farcaster
 

@@ -34,6 +34,7 @@ GoodWidget/
     core/                   # @goodwidget/core  — provider, hooks, EIP-1193, host detection
     ui/                     # @goodwidget/ui    — Tamagui component library, theme system
     embed/                  # @goodwidget/embed — Web Component wrapper + CSS bridge
+    bridge/                 # @goodwidget/bridge — iframe/WebView EIP-1193 bridge + EmbeddedWidget
     claim-widget/           # @goodwidget/claim-widget — sample publishable widget (React + Web Component)
 
   examples/
@@ -55,6 +56,9 @@ GoodWidget/
       ^
       |
 @goodwidget/core        (depends on @goodwidget/ui for createGoodWidgetConfig, mergeThemeOverrides)
+      ^
+      |
+@goodwidget/bridge      (depends on core — iframe/WebView provider bridge)
       ^
       |
 @goodwidget/embed       (depends on core + ui, plus @r2wc/react-to-web-component)
@@ -234,6 +238,7 @@ custom element before being passed to `GoodWidgetProvider`.
 | `@goodwidget/core` | tsup | ESM + CJS + `.d.ts` (two entry points: index, wagmi) |
 | `@goodwidget/ui` | tsup | ESM + CJS + `.d.ts` |
 | `@goodwidget/embed` | tsup | ESM + CJS + `.d.ts` |
+| `@goodwidget/bridge` | tsup | ESM + CJS + `.d.ts` (four entry points: index, child, host, inject) |
 | `@goodwidget/claim-widget` | tsup | ESM + CJS + `.d.ts` (three entry points: index, element, register) |
 | `examples/react-web` | Vite + @vitejs/plugin-react | Static site |
 | `examples/html` | Vite | Static site (bundles widget + React into a single JS file) |
@@ -343,6 +348,117 @@ points:
 | `register.ts` | Side-effect import that auto-registers the custom element |
 
 See `packages/claim-widget/` for a complete working example.
+
+---
+
+## Package: `@goodwidget/bridge`
+
+**NPM name:** `@goodwidget/bridge`
+**Entry points:** `index.ts` (all), `child.ts` (embedded app), `host.ts` (embedding app), `inject.ts` (provider injection)
+**Build:** tsup -> ESM + CJS + `.d.ts`
+
+### Purpose
+
+Bridges an EIP-1193 wallet provider from a host application to a third-party widget
+running inside an **iframe** or **WebView**. The host's real wallet provider stays in
+the parent context; the child receives a proxy provider that routes requests over
+`postMessage`.
+
+### Key files
+
+| File | Responsibility |
+|------|----------------|
+| `src/protocol.ts` | Message envelope types (`init`, `init-ack`, `request`, `response`, `event`), namespace guard, version |
+| `src/childProvider.ts` | `BridgeProvider` — EIP-1193-compatible class that sends requests via postMessage to the host |
+| `src/hostRouter.ts` | `HostRouter` — listens for child messages, validates origins, forwards to real provider, broadcasts events |
+| `src/inject.ts` | `injectBridgeProvider()` — sets `window.ethereum`, `window.goodWidget.provider`, announces via EIP-6963 |
+| `src/enableIframeBridge.ts` | `enableIframeBridge()` — child opt-in helper: creates provider, performs handshake, injects |
+| `src/createIframeBridgeHost.ts` | `createIframeBridgeHost()` — host-side convenience for a single iframe |
+| `src/webviewInjection.ts` | `createWebViewBridgeScript()` — generates self-contained JS to inject into React Native WebView |
+| `src/EmbeddedWidget.tsx` | `<EmbeddedWidget>` — React component that renders an iframe with auto-configured bridge |
+
+### Bridge protocol (v1)
+
+All messages carry `ns: 'gw-bridge'` and `version: '1.0.0'`. Messages without the
+namespace are silently ignored.
+
+**Handshake:**
+1. Child sends `init` with optional `appId` and `capabilities`.
+2. Host validates `event.origin` against its allowlist.
+3. Host responds `init-ack` with a `sessionId` and optional `initialState` (accounts, chainId).
+
+**RPC flow:**
+1. Child sends `request` with `method`, `params`, `sessionId`.
+2. Host calls `provider.request()` and sends `response` with `result` or `error`.
+
+**Events:**
+Host forwards `accountsChanged`, `chainChanged`, `connect`, `disconnect` as `event` messages.
+
+### EIP-6963 integration
+
+The bridge provider is announced via the standard EIP-6963 multi-provider discovery mechanism:
+
+- **RDNS:** `org.gooddollar.goodwidget.bridge`
+- **Name:** GoodWidget Bridge
+- **Behavior:** `injectBridgeProvider()` dispatches `eip6963:announceProvider` and listens for
+  `eip6963:requestProvider` to re-announce.
+- **Detection:** `discoverEIP6963Provider()` listens for announcements and resolves the first matching provider.
+- **Scope:** Browser/iframe contexts. For React Native WebView, direct injection (`window.ethereum`) is canonical.
+
+### Security model (medium)
+
+- **Origin allowlist:** Host specifies `allowedOrigins`; child specifies `allowedParents`.
+  Messages from unknown origins are silently dropped.
+- **Handshake gating:** No RPC requests are processed until the handshake completes.
+- **Session binding:** Each child gets a unique `sessionId`; responses are scoped to the session.
+- **No secret material crosses the bridge:** Private keys stay in the host wallet.
+  Only JSON-RPC request/response envelopes are exchanged.
+
+### Iframe opt-in contract
+
+A third-party widget opts in to iframe communication by calling `enableIframeBridge()` in
+its entrypoint:
+
+```ts
+import { enableIframeBridge } from '@goodwidget/bridge/child'
+
+const result = await enableIframeBridge({
+  allowedParents: ['https://host.app'],
+  appId: 'my-widget',
+})
+// result.provider is a full EIP-1193 provider
+// Also injected as window.ethereum and announced via EIP-6963
+```
+
+If the widget is not in an iframe (`window.parent === window`), the call returns `null`.
+
+### Auto-bridge in GoodWidgetProvider
+
+`GoodWidgetProvider` automatically detects iframe/WebView contexts and attempts a
+bridge handshake before any other provider detection:
+
+1. On mount, calls `tryBridgeHandshake()` which sends a `gw-bridge` init message to `window.parent`.
+2. If a host responds within 3 seconds, the bridge provider is installed as `window.goodWidget.provider`.
+3. `detectHost()` then finds the bridge provider and uses it — **even if an explicit `provider` prop was also passed** (bridge always wins because the host is the source of truth when embedding).
+4. If no host responds (not in an iframe, or host doesn't have the bridge), the timeout expires silently and detection falls through to other methods.
+
+This means GoodWidget-based apps work in iframes **without any additional code** —
+just using `<GoodWidgetProvider>` is enough. The `enableIframeBridge()` helper remains
+available for non-GoodWidget apps or when you need manual control over injection/EIP-6963.
+
+### Host detection priority
+
+`detectHost()` in `@goodwidget/core` checks (in order):
+1. GoodWidget bridge globals (`window.goodWidget.provider`, `window.ethereum.isGoodWidgetBridge`)
+2. EIP-6963 discovered bridge provider (`rdns === 'org.gooddollar.goodwidget.bridge'`)
+3. Explicit `provider` prop
+4. Farcaster SDK
+5. World App MiniKit
+6. MiniPay (Celo)
+7. Generic `window.ethereum`
+
+**Bridge always wins:** if both a bridge and an explicit provider are available, the bridge
+takes priority because the host embedding the iframe is the authoritative wallet source.
 
 ---
 

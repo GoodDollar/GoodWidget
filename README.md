@@ -9,6 +9,7 @@ A cross-platform mini app framework for building web3 widgets that run inside wa
 | `@goodwidget/core` | EIP-1193 provider normalization, host detection, wallet hooks, React context |
 | `@goodwidget/ui` | Tamagui-based themeable component library (React + React Native Web) |
 | `@goodwidget/embed` | Web Component wrapper for embedding mini apps in any HTML page |
+| `@goodwidget/bridge` | Iframe/WebView EIP-1193 bridge, EmbeddedWidget component, EIP-6963 support |
 | `@goodwidget/claim-widget` | Sample publishable widget — React component + Web Component |
 
 ## Quick Start
@@ -121,6 +122,45 @@ customElements.define('my-miniapp', Element)
 </script>
 ```
 
+## Embedding Third-Party Widgets (Iframe/WebView)
+
+### As a host (React)
+
+```tsx
+import { EmbeddedWidget } from '@goodwidget/bridge'
+
+<EmbeddedWidget
+  src="https://widget.example.com"
+  provider={walletProvider}
+  allowedOrigins={['https://widget.example.com']}
+  themeOverrides={{ tokens: { color: { primary: '#E91E63' } } }}
+  onReady={() => console.log('connected')}
+  style={{ width: '100%', height: 400, border: 'none' }}
+/>
+```
+
+### As a host (WebView / React Native)
+
+```ts
+import { createWebViewBridgeScript } from '@goodwidget/bridge/host'
+
+const injectedJS = createWebViewBridgeScript({ eip6963: true })
+// Pass to <WebView injectedJavaScript={injectedJS} onMessage={...} />
+```
+
+### As the embedded widget (opt-in)
+
+```ts
+import { enableIframeBridge } from '@goodwidget/bridge/child'
+
+const result = await enableIframeBridge({
+  allowedParents: ['https://host.app'],
+  appId: 'my-widget',
+})
+// result.provider is window.ethereum (bridged to host wallet)
+// Also announced via EIP-6963 (rdns: org.gooddollar.goodwidget.bridge)
+```
+
 ## Creating Custom Components
 
 Use `createComponent()` to ensure your components are theme-overridable by hosts:
@@ -165,6 +205,7 @@ GoodWidget/
     core/           → @goodwidget/core          (provider, hooks, EIP-1193, host detection)
     ui/             → @goodwidget/ui            (component library, theme system)
     embed/          → @goodwidget/embed         (Web Component wrapper)
+    bridge/         → @goodwidget/bridge        (iframe/WebView EIP-1193 bridge)
     claim-widget/   → @goodwidget/claim-widget  (sample publishable widget)
   examples/
     react-web/      → React demo with style override showcase

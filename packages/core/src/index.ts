@@ -2,6 +2,7 @@ export { GoodWidgetProvider } from './provider'
 export type { WalletContextValue, HostContextValue, GoodWidgetContextValue } from './provider'
 export { useWallet, useHost, useGoodWidget } from './hooks'
 export { detectHost } from './detect'
+export { tryBridgeHandshake } from './iframeBridge'
 
 export type {
   EIP1193Provider,

@@ -160,6 +160,35 @@ el.provider = window.ethereum</pre>
       <gw-claim-widget id="wallet-widget"></gw-claim-widget>
     </div>
 
+    <!-- 7. Iframe embedding via bridge -->
+    <div class="card" style="grid-column: 1 / -1;">
+      <h2>Iframe Embedding (Bridge)</h2>
+      <p>
+        Embed a third-party GoodWidget app in an iframe. The host's wallet
+        is bridged via postMessage using <code>@goodwidget/bridge</code>.
+      </p>
+      <pre>import { createIframeBridgeHost } from '@goodwidget/bridge/host'
+
+const cleanup = createIframeBridgeHost({
+  iframe: document.getElementById('widget-iframe'),
+  provider: window.ethereum,
+  allowedOrigins: ['https://widget.example.com'],
+})
+
+// In the embedded app's entrypoint:
+import { enableIframeBridge } from '@goodwidget/bridge/child'
+await enableIframeBridge({
+  allowedParents: ['https://yourhost.com'],
+  appId: 'claim-widget',
+})
+// window.ethereum is now a bridge provider
+// Also discoverable via EIP-6963</pre>
+      <p style="color: #888; font-size: 12px; margin-top: 12px;">
+        The bridge supports EIP-6963 announcements so modern dapps
+        can discover the provider without relying on <code>window.ethereum</code>.
+      </p>
+    </div>
+
   </div>
 
   <!-- Register the web component -->
