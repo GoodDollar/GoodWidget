@@ -4,7 +4,7 @@ import { GoodWidgetProvider } from '@goodwidget/core'
 import type { EIP1193Provider, GoodWidgetThemeOverrides, GoodWidgetConfig } from '@goodwidget/core'
 import { getThemeManifest } from '@goodwidget/ui'
 import type { ThemeManifest } from '@goodwidget/ui'
-import { injectStylesIntoShadow, getResetCSS } from './shadowStyles'
+import { injectStylesIntoShadow, getResetCSS, syncRuntimeStylesIntoShadow } from './shadowStyles'
 import { readCSSOverrides, observeCSSChanges } from './cssPropertyBridge'
 import { normalizePropDefs, toKebabCase, toCamelCase, emitEvent } from './bridge'
 import type { PropDefinitions } from './bridge'
@@ -14,6 +14,7 @@ export interface MiniAppElementOptions {
   props?: PropDefinitions
   events?: string[]
   defaultTheme?: 'light' | 'dark'
+  defaultConfig?: GoodWidgetConfig
 }
 
 function deepMergeOverrides(
@@ -54,12 +55,26 @@ export function createMiniAppElement(
   App: React.ComponentType<Record<string, unknown>>,
   options: MiniAppElementOptions = {},
 ) {
-  const { shadow = true, props: propDefs = {}, events = [], defaultTheme = 'light' } = options
+  const HTMLElementBase =
+    typeof globalThis !== 'undefined' && 'HTMLElement' in globalThis
+      ? (globalThis as { HTMLElement: typeof HTMLElement }).HTMLElement
+      : undefined
+  if (!HTMLElementBase) {
+    throw new Error('createMiniAppElement is only supported in DOM environments')
+  }
+
+  const {
+    shadow = true,
+    props: propDefs = {},
+    events = [],
+    defaultTheme = 'light',
+    defaultConfig,
+  } = options
   const normalizedProps = normalizePropDefs(propDefs)
 
   const manifest = getThemeManifest()
 
-  class GoodWidgetElement extends HTMLElement {
+  class GoodWidgetElement extends HTMLElementBase {
     static themeManifest: ThemeManifest = manifest
 
     #root: ReactDOM.Root | null = null
@@ -70,6 +85,7 @@ export function createMiniAppElement(
     #config: GoodWidgetConfig | undefined = undefined
     #cssOverrides: GoodWidgetThemeOverrides | undefined = undefined
     #disconnectObserver: (() => void) | null = null
+    #disconnectStyleSync: (() => void) | null = null
     #extraProps: Record<string, unknown> = {}
 
     static get observedAttributes(): string[] {
@@ -106,12 +122,23 @@ export function createMiniAppElement(
     }
 
     connectedCallback() {
+      this.#disconnectObserver?.()
+      this.#disconnectObserver = null
+      this.#disconnectStyleSync?.()
+      this.#disconnectStyleSync = null
+
       if (shadow) {
-        this.#shadow = this.attachShadow({ mode: 'open' })
-        injectStylesIntoShadow(this.#shadow, getResetCSS())
-        this.#mountPoint = document.createElement('div')
-        this.#mountPoint.id = 'gw-root'
-        this.#shadow.appendChild(this.#mountPoint)
+        this.#shadow = this.shadowRoot ?? this.attachShadow({ mode: 'open' })
+        if (!this.#shadow.querySelector('style[data-goodwidget-reset]')) {
+          injectStylesIntoShadow(this.#shadow, getResetCSS())
+        }
+        this.#disconnectStyleSync = syncRuntimeStylesIntoShadow(this.#shadow)
+        this.#mountPoint = this.#shadow.querySelector<HTMLElement>('#gw-root')
+        if (!this.#mountPoint) {
+          this.#mountPoint = document.createElement('div')
+          this.#mountPoint.id = 'gw-root'
+          this.#shadow.appendChild(this.#mountPoint)
+        }
       } else {
         this.#mountPoint = this
       }
@@ -130,6 +157,8 @@ export function createMiniAppElement(
     disconnectedCallback() {
       this.#disconnectObserver?.()
       this.#disconnectObserver = null
+      this.#disconnectStyleSync?.()
+      this.#disconnectStyleSync = null
       this.#root?.unmount()
       this.#root = null
     }
@@ -166,7 +195,7 @@ export function createMiniAppElement(
       this.#root.render(
         <GoodWidgetProvider
           provider={this.#provider ?? undefined}
-          config={this.#config}
+          config={this.#config ?? defaultConfig}
           themeOverrides={mergedOverrides}
           defaultTheme={defaultTheme}
         >

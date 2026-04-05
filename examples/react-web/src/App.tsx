@@ -65,7 +65,7 @@ function OverrideShowcase() {
             variant={activeTab === tab.key ? 'primary' : 'secondary'}
             onPress={() => setActiveTab(tab.key)}
           >
-            <ButtonText>{tab.label}</ButtonText>
+            <ButtonText color={activeTab === tab.key ? 'white' : 'black'}>{tab.label}</ButtonText>
           </Button>
         ))}
       </XStack>
@@ -105,16 +105,8 @@ function OverrideShowcase() {
               onValueChange={setSelectVal}
               placeholder="Select chain..."
             />
-            <Checkbox
-              checked={checked}
-              onCheckedChange={setChecked}
-              label="I agree to terms"
-            />
-            <Switch
-              checked={switchOn}
-              onCheckedChange={setSwitchOn}
-              label="Auto-claim"
-            />
+            <Checkbox checked={checked} onCheckedChange={setChecked} label="I agree to terms" />
+            <Switch checked={switchOn} onCheckedChange={setSwitchOn} label="Auto-claim" />
             <Separator />
             <XStack gap="$2" alignItems="center">
               <Text variant="caption">Loading:</Text>
@@ -152,8 +144,8 @@ function OverrideShowcase() {
 />`}
             </Text>
             <Text secondary>
-              The purple token propagates to every component inside the
-              ClaimWidget — Button, Badge, etc.
+              The purple token propagates to every component inside the ClaimWidget — Button, Badge,
+              etc.
             </Text>
           </Card>
 
@@ -207,8 +199,8 @@ function OverrideShowcase() {
 />`}
             </Text>
             <Text secondary>
-              Only Card and Button change. Heading, Text, Badge etc. keep
-              defaults. ClaimCard extends Card so it inherits the override too.
+              Only Card and Button change. Heading, Text, Badge etc. keep defaults. ClaimCard
+              extends Card so it inherits the override too.
             </Text>
           </Card>
 
@@ -257,10 +249,9 @@ function OverrideShowcase() {
           <Card>
             <Heading level={5}>The Scenario</Heading>
             <Text secondary>
-              The ClaimWidget comes from @goodwidget/claim-widget (an npm
-              package). You embed it in your wallet and pass themeOverrides to
-              restyle it — targeting both the widget's custom ClaimCard component
-              and the basic Card element.
+              The ClaimWidget comes from @goodwidget/claim-widget (an npm package). You embed it in
+              your wallet and pass themeOverrides to restyle it — targeting both the widget's custom
+              ClaimCard component and the basic Card element.
             </Text>
             <Text variant="caption">
               {`<ClaimWidget
@@ -278,12 +269,7 @@ function OverrideShowcase() {
 
           <YStack gap="$4">
             <Text variant="label">Original (no host overrides):</Text>
-            <YStack
-              padding="$3"
-              borderRadius="$3"
-              borderWidth={1}
-              borderColor="$borderColor"
-            >
+            <YStack padding="$3" borderRadius="$3" borderWidth={1} borderColor="$borderColor">
               <ClaimWidget />
             </YStack>
 
@@ -361,11 +347,10 @@ function OverrideShowcase() {
           <Card>
             <Heading level={5}>Why This Works</Heading>
             <Text secondary>
-              ClaimWidget wraps itself in GoodWidgetProvider and accepts
-              themeOverrides. The host always wins. The widget's ClaimCard (name:
-              'ClaimCard') is targetable because createComponent() enforced a
-              name, creating the light_ClaimCard theme segment. The basic Card
-              element is targetable via light_Card.
+              ClaimWidget wraps itself in GoodWidgetProvider and accepts themeOverrides. The host
+              always wins. The widget's ClaimCard (name: 'ClaimCard') is targetable because
+              createComponent() enforced a name, creating the light_ClaimCard theme segment. The
+              basic Card element is targetable via light_Card.
             </Text>
           </Card>
         </YStack>
@@ -399,25 +384,19 @@ function OverrideShowcase() {
               Dark Card via Inline Props
             </Heading>
             <Text color="#B0B0D0">
-              This single Card instance is dark-styled via inline props. Other
-              Cards on this page remain unaffected.
+              This single Card instance is dark-styled via inline props. Other Cards on this page
+              remain unaffected.
             </Text>
             <Button backgroundColor="#7B61FF" fullWidth>
               <ButtonText color="#FFFFFF">Purple Action</ButtonText>
             </Button>
           </Card>
 
-          <Card
-            backgroundColor="#F3E5F5"
-            borderColor="#CE93D8"
-            shadowColor="rgba(156,39,176,0.2)"
-          >
+          <Card backgroundColor="#F3E5F5" borderColor="#CE93D8" shadowColor="rgba(156,39,176,0.2)">
             <Heading level={4} color="#6A1B9A">
               Lavender Card
             </Heading>
-            <Text color="#4A148C">
-              Inline props give each instance a unique look.
-            </Text>
+            <Text color="#4A148C">Inline props give each instance a unique look.</Text>
             <XStack gap="$2">
               <Button backgroundColor="#AB47BC" size="sm">
                 <ButtonText color="#FFF">Option A</ButtonText>
@@ -441,9 +420,7 @@ function OverrideShowcase() {
                 <Badge type="default">
                   <BadgeText>2</BadgeText>
                 </Badge>
-                <Text variant="caption">
-                  Author's config (tokens + component themes)
-                </Text>
+                <Text variant="caption">Author's config (tokens + component themes)</Text>
               </XStack>
               <XStack gap="$2" alignItems="center">
                 <Badge type="default">
@@ -455,9 +432,7 @@ function OverrideShowcase() {
                 <Badge type="default">
                   <BadgeText>4</BadgeText>
                 </Badge>
-                <Text variant="caption">
-                  Host's CSS custom properties (web only)
-                </Text>
+                <Text variant="caption">Host's CSS custom properties (web only)</Text>
               </XStack>
               <XStack gap="$2" alignItems="center">
                 <Badge type="info">
@@ -472,11 +447,7 @@ function OverrideShowcase() {
         </YStack>
       )}
 
-      <ActionSheet
-        open={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        title="Theme Manifest"
-      >
+      <ActionSheet open={sheetOpen} onClose={() => setSheetOpen(false)} title="Theme Manifest">
         <Text variant="caption">
           Registered components: {Object.keys(manifest.components).join(', ')}
         </Text>

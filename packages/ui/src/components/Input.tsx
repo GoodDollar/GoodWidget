@@ -36,7 +36,7 @@ const InputFrame = createComponent(Stack, {
     },
     error: {
       true: {
-        borderColor: '$red8',
+        borderColor: '$error',
       },
     },
     disabled: {
@@ -62,7 +62,7 @@ const InputError = styled(TamaguiText, {
   name: 'InputError',
   fontFamily: '$body',
   fontSize: '$1',
-  color: '$red8',
+  color: '$error',
   marginTop: '$1',
 })
 

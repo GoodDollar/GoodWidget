@@ -1,11 +1,5 @@
 import { createFont, createTamagui } from 'tamagui'
-import {
-  tokens,
-  lightTheme,
-  darkTheme,
-  lightComponentThemes,
-  darkComponentThemes,
-} from './theme'
+import { tokens, lightTheme, darkTheme, lightComponentThemes, darkComponentThemes } from './theme'
 import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from './configTypes'
 
 const defaultFont = createFont({
