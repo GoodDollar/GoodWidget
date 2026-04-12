@@ -1,4 +1,5 @@
 import { createFont, createTamagui } from 'tamagui'
+import { createAnimations } from '@tamagui/animations-react-native'
 import type {
   GoodWidgetConfig,
   GoodWidgetThemes,
@@ -6,10 +7,16 @@ import type {
   GoodWidgetThemeValues,
   GoodWidgetTokenOverrides,
   GoodWidgetTokenValues,
+  WidgetAnimationConfig,
+  WidgetAnimationsPreset,
+  WidgetFontDefinition,
 } from './configTypes'
+import { goodWalletV2Preset } from './presets'
 import { createGoodWidgetTokens, createThemeValues, defaultTokenValues } from './theme'
 
-const defaultFont = createFont({
+export const defaultPreset = goodWalletV2Preset
+
+const defaultBodyFont = {
   family: 'System',
   size: {
     1: 12,
@@ -63,7 +70,40 @@ const defaultFont = createFont({
     10: -1.5,
     true: 0,
   },
-})
+} satisfies WidgetFontDefinition
+
+const defaultAnimations = {
+  quick: { type: 'timing', duration: 150 },
+  medium: { type: 'timing', duration: 400 },
+  slow: { type: 'timing', duration: 520 },
+  exit: { type: 'timing', duration: 280 },
+} satisfies Required<WidgetAnimationsPreset>
+
+/**
+ * Builds a single Tamagui font by layering a preset font definition onto the shared
+ * GoodWidget font defaults. This stays close to Tamagui's documented `createFont` flow.
+ */
+function createWidgetFont(overrides?: WidgetFontDefinition) {
+  return createFont({
+    family: overrides?.family ?? defaultBodyFont.family,
+    size: {
+      ...defaultBodyFont.size,
+      ...overrides?.size,
+    },
+    lineHeight: {
+      ...defaultBodyFont.lineHeight,
+      ...overrides?.lineHeight,
+    },
+    weight: {
+      ...defaultBodyFont.weight,
+      ...overrides?.weight,
+    },
+    letterSpacing: {
+      ...defaultBodyFont.letterSpacing,
+      ...overrides?.letterSpacing,
+    },
+  })
+}
 
 /**
  * Merges token overrides into a full token set.
@@ -130,28 +170,71 @@ function mergeThemes(
 }
 
 /**
+ * Merges a preset-provided animation map on top of the shared GoodWidget defaults.
+ * The React Native animation driver expects config objects, not CSS animation strings.
+ */
+function mergeAnimations(override?: WidgetAnimationsPreset) {
+  const mergeAnimation = (
+    base: WidgetAnimationConfig,
+    next?: WidgetAnimationConfig,
+  ): WidgetAnimationConfig => ({
+    ...base,
+    ...next,
+  })
+
+  return {
+    quick: mergeAnimation(defaultAnimations.quick, override?.quick),
+    medium: mergeAnimation(defaultAnimations.medium, override?.medium),
+    slow: mergeAnimation(defaultAnimations.slow, override?.slow),
+    exit: mergeAnimation(defaultAnimations.exit, override?.exit),
+  }
+}
+
+/**
+ * Resolves the shipped preset and any direct config overrides into the same native merge
+ * layers already used by the GoodWidget config flow.
+ */
+function resolveConfigLayers(overrides?: GoodWidgetConfig) {
+  const preset = overrides?.preset ?? defaultPreset
+
+  return {
+    preset,
+    animations: mergeAnimations(preset?.animations),
+    tokens: mergeTokenOverrides(preset?.tokens, overrides?.tokens),
+    themes: mergeOverrideMaps(preset?.themes, overrides?.themes),
+  }
+}
+
+/**
  * Creates the effective plain theme map from config-level overrides.
  * Flow: merge token overrides -> derive base themes from tokens -> apply theme overrides.
  */
 export function createGoodWidgetThemes(overrides?: GoodWidgetConfig): GoodWidgetThemes {
-  const mergedTokenValues = mergeTokenValues(defaultTokenValues, overrides?.tokens)
+  const resolvedConfig = resolveConfigLayers(overrides)
+  const mergedTokenValues = mergeTokenValues(defaultTokenValues, resolvedConfig.tokens)
   const baseThemes = createThemeValues(mergedTokenValues)
-  return mergeThemes(baseThemes, overrides?.themes)
+  return mergeThemes(baseThemes, resolvedConfig.themes)
 }
 
 /**
  * Creates the final Tamagui config consumed by `TamaguiProvider`.
  */
 export function createGoodWidgetConfig(overrides?: GoodWidgetConfig) {
-  const mergedTokenValues = mergeTokenValues(defaultTokenValues, overrides?.tokens)
-  const themes = mergeThemes(createThemeValues(mergedTokenValues), overrides?.themes)
+  const resolvedConfig = resolveConfigLayers(overrides)
+  const mergedTokenValues = mergeTokenValues(defaultTokenValues, resolvedConfig.tokens)
+  const themes = mergeThemes(createThemeValues(mergedTokenValues), resolvedConfig.themes)
+  const bodyFont = createWidgetFont(resolvedConfig.preset?.typography?.body)
+  const headingFont = createWidgetFont(
+    resolvedConfig.preset?.typography?.heading ?? resolvedConfig.preset?.typography?.body,
+  )
 
   return createTamagui({
     tokens: createGoodWidgetTokens(mergedTokenValues),
     themes,
+    animations: createAnimations(resolvedConfig.animations),
     fonts: {
-      heading: defaultFont,
-      body: defaultFont,
+      heading: headingFont,
+      body: bodyFont,
     },
     defaultFont: 'body',
   })
@@ -196,6 +279,7 @@ export function mergeThemeOverrides(
   }
 
   return {
+    preset: baseConfig.preset,
     tokens: mergeTokenOverrides(baseConfig.tokens, hostOverrides.tokens),
     themes: mergeOverrideMaps(baseConfig.themes, hostOverrides.themes),
   }
