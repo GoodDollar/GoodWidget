@@ -15,10 +15,10 @@ export const Badge = createComponent(Stack, {
   variants: {
     type: {
       default: {},
-      success: { backgroundColor: '#E8F5E9' },
-      error: { backgroundColor: '#FFEBEE' },
-      warning: { backgroundColor: '#FFF8E1' },
-      info: { backgroundColor: '#E3F2FD' },
+      success: { backgroundColor: '$successMuted' },
+      error: { backgroundColor: '$errorMuted' },
+      warning: { backgroundColor: '$warningMuted' },
+      info: { backgroundColor: '$infoMuted' },
     },
   } as const,
 

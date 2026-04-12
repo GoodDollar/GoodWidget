@@ -14,20 +14,20 @@ const AlertFrame = createComponent(Stack, {
   variants: {
     type: {
       success: {
-        backgroundColor: '#E8F5E9',
-        borderColor: '#4CAF50',
+        backgroundColor: '$successMuted',
+        borderColor: '$success',
       },
       error: {
-        backgroundColor: '#FFEBEE',
-        borderColor: '#E53935',
+        backgroundColor: '$errorMuted',
+        borderColor: '$error',
       },
       warning: {
-        backgroundColor: '#FFF8E1',
-        borderColor: '#F5A623',
+        backgroundColor: '$warningMuted',
+        borderColor: '$warning',
       },
       info: {
-        backgroundColor: '#E3F2FD',
-        borderColor: '#2196F3',
+        backgroundColor: '$infoMuted',
+        borderColor: '$primary',
       },
     },
   } as const,
