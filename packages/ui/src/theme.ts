@@ -13,9 +13,13 @@ export const defaultTokenValues = {
     secondary: '#00C3AE',
     secondaryDark: '#009A89',
     success: '#00B0AD',
+    successMuted: 'rgba(0, 176, 173, 0.15)',
     warning: '#F5A623',
+    warningMuted: 'rgba(245, 166, 35, 0.16)',
     error: '#E53935',
     errorLight: '#FFCDD2',
+    errorMuted: 'rgba(229, 57, 53, 0.15)',
+    infoMuted: 'rgba(0, 174, 255, 0.16)',
 
     white: '#FFFFFF',
     black: '#000000',
@@ -48,6 +52,7 @@ export const defaultTokenValues = {
     12: 56,
     13: 64,
     14: 80,
+    maxContentWidth: 768,
     true: 40,
   },
   space: {
@@ -107,6 +112,7 @@ export function createThemeValues(
       backgroundPress: color.border,
       backgroundFocus: color.surface,
       backgroundTransparent: color.transparent,
+      backgroundOverlay: color.overlay,
 
       color: color.text,
       colorHover: color.text,
@@ -125,6 +131,7 @@ export function createThemeValues(
       shadowColorHover: 'rgba(0,0,0,0.15)',
       shadowColorPress: 'rgba(0,0,0,0.05)',
       shadowColorFocus: 'rgba(0,0,0,0.15)',
+      elevationShadowColor: 'rgba(0,0,0,0.2)',
     },
 
     dark: {
@@ -133,6 +140,7 @@ export function createThemeValues(
       backgroundPress: color.borderDark,
       backgroundFocus: color.surfaceDark,
       backgroundTransparent: color.transparent,
+      backgroundOverlay: color.overlay,
 
       color: color.textDark,
       colorHover: color.textDark,
@@ -151,6 +159,7 @@ export function createThemeValues(
       shadowColorHover: 'rgba(0,0,0,0.4)',
       shadowColorPress: 'rgba(0,0,0,0.2)',
       shadowColorFocus: 'rgba(0,0,0,0.4)',
+      elevationShadowColor: 'rgba(0,0,0,0.5)',
     },
 
     light_Button: {
@@ -243,9 +252,9 @@ export function createThemeValues(
 
     dark_Card: {
       background: color.surfaceDark,
-      backgroundHover: '#252525',
-      backgroundPress: '#1A1A1A',
-      backgroundFocus: '#252525',
+      backgroundHover: color.surfaceDark,
+      backgroundPress: color.borderDark,
+      backgroundFocus: color.surfaceDark,
       backgroundTransparent: color.transparent,
       color: color.textDark,
       colorHover: color.textDark,
@@ -261,6 +270,18 @@ export function createThemeValues(
       shadowColorHover: 'rgba(0,0,0,0.3)',
       shadowColorPress: 'rgba(0,0,0,0.1)',
       shadowColorFocus: 'rgba(0,0,0,0.3)',
+    },
+
+    light_GlowCard: {
+      background: color.surface,
+      borderColor: color.primary,
+      shadowColor: 'rgba(0,174,255,0.8)',
+    },
+
+    dark_GlowCard: {
+      background: color.surfaceDark,
+      borderColor: color.primary,
+      shadowColor: 'rgba(0,174,255,0.8)',
     },
 
     dark_Input: {
