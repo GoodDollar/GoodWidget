@@ -1,202 +1,244 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GoodWidget — Plain HTML Alternative Demo</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #f5f5f5;
-      color: #333;
-      padding: 24px;
-    }
-
-    main {
-      max-width: 980px;
-      margin: 0 auto;
-      display: grid;
-      gap: 20px;
-    }
-
-    .panel {
-      background: #fff;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-      border: 1px solid #ececec;
-    }
-
-    h1 {
-      font-size: 28px;
-      margin-bottom: 8px;
-    }
-
-    .subtitle {
-      color: #666;
-      line-height: 1.5;
-    }
-
-    .controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 12px;
-    }
-
-    button {
-      border: 1px solid #d4d4d4;
-      background: #fff;
-      border-radius: 8px;
-      padding: 8px 12px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-
-    button.active {
-      border-color: #0f68e6;
-      color: #0f68e6;
-      background: #eef5ff;
-    }
-
-    pre {
-      margin-top: 12px;
-      background: #f8f8f8;
-      border-radius: 8px;
-      padding: 12px;
-      font-size: 12px;
-      overflow-x: auto;
-      border: 1px solid #ececec;
-    }
-
-    gw-claim-widget {
-      display: block;
-    }
-
-    .pink-widget {
-      --gw-token-color-primary: #E91E63;
-      --gw-token-color-primaryDark: #AD1457;
-    }
-
-    .teal-widget {
-      --gw-token-color-primary: #00897B;
-      --gw-token-color-primaryDark: #00695C;
-    }
-  </style>
-</head>
-<body>
-  <main>
-    <section class="panel">
-      <h1>GoodWidget HTML Demo (Alternative)</h1>
-      <p class="subtitle">
-        Single-widget demo to avoid cross-instance theme collisions in one document.
-        Choose a variant and inspect behavior/theming on one mounted widget.
-      </p>
-      <div class="controls" id="variant-controls">
-        <button data-variant="default" class="active">Default</button>
-        <button data-variant="pink">Pink (CSS vars)</button>
-        <button data-variant="teal">Teal (CSS vars)</button>
-        <button data-variant="js">JS override</button>
-        <button data-variant="card">Card+Button override</button>
-        <button data-variant="wallet">Wallet provider</button>
-      </div>
-      <pre id="variant-code"></pre>
-    </section>
-
-    <section class="panel">
-      <gw-claim-widget id="widget"></gw-claim-widget>
-    </section>
-  </main>
-
-  <script type="module" src="/src/register-widgets.ts"></script>
-  <script type="module">
-    const widget = document.getElementById('widget')
-    const controls = document.getElementById('variant-controls')
-    const code = document.getElementById('variant-code')
-
-    const snippets = {
-      default: `<gw-claim-widget></gw-claim-widget>`,
-      pink: `.pink-widget {\n  --gw-token-color-primary: #E91E63;\n  --gw-token-color-primaryDark: #AD1457;\n}`,
-      teal: `.teal-widget {\n  --gw-token-color-primary: #00897B;\n  --gw-token-color-primaryDark: #00695C;\n}`,
-      js: `widget.themeOverrides = {\n  tokens: { color: { primary: '#7B61FF', primaryDark: '#5A3FDB' } },\n  themes: { light_ClaimCard: { background: '#F3E5F5', borderColor: '#CE93D8' } }\n}`,
-      card: `widget.themeOverrides = {\n  tokens: { color: { primary: '#FF6D00', primaryDark: '#E65100' } },\n  themes: {\n    light_Card: { background: '#FFF8E1', borderColor: '#FFB300' },\n    light_Button: { background: '#FF6D00', color: '#FFFFFF' }\n  }\n}`,
-      wallet: `widget.provider = window.ethereum`,
-    }
-
-    function setActive(variant) {
-      controls.querySelectorAll('button').forEach((btn) => {
-        btn.classList.toggle('active', btn.dataset.variant === variant)
-      })
-    }
-
-    function resetWidgetState() {
-      widget.classList.remove('pink-widget', 'teal-widget')
-      widget.themeOverrides = undefined
-      widget.provider = null
-    }
-
-    function applyVariant(variant) {
-      resetWidgetState()
-
-      if (variant === 'pink') {
-        widget.classList.add('pink-widget')
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GoodWidget — Plain HTML Alternative Demo</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
       }
 
-      if (variant === 'teal') {
-        widget.classList.add('teal-widget')
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #f5f5f5;
+        color: #333;
+        padding: 24px;
       }
 
-      if (variant === 'js') {
-        widget.themeOverrides = {
-          tokens: { color: { primary: '#7B61FF', primaryDark: '#5A3FDB' } },
-          themes: {
-            light_ClaimCard: {
-              background: '#F3E5F5',
-              borderColor: '#CE93D8',
-            },
-          },
+      main {
+        max-width: 980px;
+        margin: 0 auto;
+        display: grid;
+        gap: 20px;
+      }
+
+      .panel {
+        background: #fff;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border: 1px solid #ececec;
+      }
+
+      h1 {
+        font-size: 28px;
+        margin-bottom: 8px;
+      }
+
+      .subtitle {
+        color: #666;
+        line-height: 1.5;
+      }
+
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      button {
+        border: 1px solid #d4d4d4;
+        background: #fff;
+        border-radius: 8px;
+        padding: 8px 12px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      button.active {
+        border-color: #0f68e6;
+        color: #0f68e6;
+        background: #eef5ff;
+      }
+
+      pre {
+        margin-top: 12px;
+        background: #f8f8f8;
+        border-radius: 8px;
+        padding: 12px;
+        font-size: 12px;
+        overflow-x: auto;
+        border: 1px solid #ececec;
+      }
+
+      gw-claim-widget {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="panel">
+        <h1>GoodWidget HTML Demo (Alternative)</h1>
+        <p class="subtitle">
+          Single-widget demo to avoid cross-instance theme collisions in one document. Choose a
+          variant and inspect behavior/theming on one mounted widget.
+        </p>
+        <div class="controls" id="variant-controls">
+          <button data-variant="default" class="active">Default</button>
+          <button data-variant="pink">Pink (CSS vars)</button>
+          <button data-variant="teal">Teal (CSS vars)</button>
+          <button data-variant="js">Pink (ThemeOverrides)</button>
+          <button data-variant="card">Orange (ThemeOverrides)</button>
+          <button data-variant="wallet">Wallet provider</button>
+        </div>
+        <pre id="variant-code"></pre>
+      </section>
+
+      <section class="panel">
+        <div id="widget-slot">
+          <gw-claim-widget id="widget"></gw-claim-widget>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/src/register-widgets.ts"></script>
+    <script type="module">
+      const widgetSlot = document.getElementById('widget-slot')
+      let widget = document.getElementById('widget')
+      const controls = document.getElementById('variant-controls')
+      const code = document.getElementById('variant-code')
+
+      const snippets = {
+        default: `<gw-claim-widget></gw-claim-widget>`,
+        pink: `widget.style.setProperty('--gw-token-color-primary', '#E91E63')\nwidget.style.setProperty('--gw-token-color-primaryDark', '#AD1457')\nwidget.style.setProperty('--gw-token-color-primaryLight', '#F06292')`,
+        teal: `widget.style.setProperty('--gw-token-color-primary', '#00897B')\nwidget.style.setProperty('--gw-token-color-primaryDark', '#00695C')\nwidget.style.setProperty('--gw-token-color-primaryLight', '#26A69A')`,
+        js: `widget.themeOverrides = {\n  tokens: { color: { primary: '#7B61FF', primaryDark: '#5A3FDB', primaryLight: '#9B8CFF' } },\n  themes: {\n    light_ClaimCard: { borderColor: '#7B61FF' },\n    light_ClaimActionInner: { backgroundDark: '#2A234A' },\n    light_TokenAmountText: { secondaryColor: '#CFC5FF' }\n  }\n}`,
+        card: `widget.themeOverrides = {\n  tokens: { color: { primary: '#FF6D00', primaryDark: '#E65100', primaryLight: '#FFB74D' } },\n  themes: {\n    light_ClaimCard: { borderColor: '#FFB300' },\n    light_ClaimActionGlow: { primary: '#FFB74D', primaryLight: '#FFD180' },\n    light_ClaimActionRing: { primary: '#FF6D00', primaryLight: '#FFB74D' },\n    light_ClaimActionInner: { backgroundDark: '#3A1F00' }\n  }\n}`,
+        wallet: `widget.provider = window.ethereum`,
+      }
+
+      function setActive(variant) {
+        controls.querySelectorAll('button').forEach((btn) => {
+          btn.classList.toggle('active', btn.dataset.variant === variant)
+        })
+      }
+
+      function remountWidget() {
+        const next = document.createElement('gw-claim-widget')
+        next.id = 'widget'
+        widgetSlot.replaceChildren(next)
+        widget = next
+        return next
+      }
+
+      const cssTokenVars = [
+        '--gw-token-color-primary',
+        '--gw-token-color-primaryDark',
+        '--gw-token-color-primaryLight',
+      ]
+
+      function clearTokenCssVars(target) {
+        cssTokenVars.forEach((name) => target.style.removeProperty(name))
+      }
+
+      function applyTokenCssVars(target, values) {
+        Object.entries(values).forEach(([name, value]) => {
+          target.style.setProperty(name, value)
+        })
+      }
+
+      function resetWidgetState(target) {
+        clearTokenCssVars(target)
+        target.themeOverrides = undefined
+        target.provider = null
+      }
+
+      function applyVariant(variant) {
+        const currentWidget = remountWidget()
+        resetWidgetState(currentWidget)
+
+        if (variant === 'pink') {
+          applyTokenCssVars(currentWidget, {
+            '--gw-token-color-primary': '#E91E63',
+            '--gw-token-color-primaryDark': '#AD1457',
+            '--gw-token-color-primaryLight': '#F06292',
+          })
         }
-      }
 
-      if (variant === 'card') {
-        widget.themeOverrides = {
-          tokens: { color: { primary: '#FF6D00', primaryDark: '#E65100' } },
-          themes: {
-            light_Card: {
-              background: '#FFF8E1',
-              borderColor: '#FFB300',
-              shadowColor: 'rgba(255,179,0,0.15)',
-            },
-            light_Button: {
-              background: '#FF6D00',
-              backgroundHover: '#E65100',
-              backgroundPress: '#BF360C',
-              color: '#FFFFFF',
-            },
-          },
+        if (variant === 'teal') {
+          applyTokenCssVars(currentWidget, {
+            '--gw-token-color-primary': '#00897B',
+            '--gw-token-color-primaryDark': '#00695C',
+            '--gw-token-color-primaryLight': '#26A69A',
+          })
         }
+
+        if (variant === 'js') {
+          currentWidget.themeOverrides = {
+            tokens: {
+              color: { primary: '#7B61FF', primaryDark: '#5A3FDB', primaryLight: '#9B8CFF' },
+            },
+            themes: {
+              light_ClaimCard: {
+                borderColor: '#7B61FF',
+              },
+              light_ClaimActionInner: {
+                backgroundDark: '#2A234A',
+              },
+              light_TokenAmountText: {
+                secondaryColor: '#CFC5FF',
+              },
+            },
+          }
+        }
+
+        if (variant === 'card') {
+          currentWidget.themeOverrides = {
+            tokens: {
+              color: { primary: '#FF6D00', primaryDark: '#E65100', primaryLight: '#FFB74D' },
+            },
+            themes: {
+              light_ClaimCard: {
+                borderColor: '#FFB300',
+              },
+              light_ClaimActionGlow: {
+                primary: '#FFB74D',
+                primaryLight: '#FFD180',
+              },
+              light_ClaimActionRing: {
+                primary: '#FF6D00',
+                primaryLight: '#FFB74D',
+              },
+              light_ClaimActionInner: {
+                backgroundDark: '#3A1F00',
+              },
+            },
+          }
+        }
+
+        if (variant === 'wallet' && window.ethereum) {
+          currentWidget.provider = window.ethereum
+        }
+
+        code.textContent = snippets[variant] ?? snippets.default
+        setActive(variant)
       }
 
-      if (variant === 'wallet' && window.ethereum) {
-        widget.provider = window.ethereum
-      }
+      customElements.whenDefined('gw-claim-widget').then(() => {
+        applyVariant('default')
 
-      code.textContent = snippets[variant] ?? snippets.default
-      setActive(variant)
-    }
-
-    customElements.whenDefined('gw-claim-widget').then(() => {
-      applyVariant('default')
-
-      controls.addEventListener('click', (event) => {
-        const target = event.target
-        if (!(target instanceof HTMLButtonElement)) return
-        const variant = target.dataset.variant || 'default'
-        applyVariant(variant)
+        controls.addEventListener('click', (event) => {
+          const target = event.target
+          if (!(target instanceof HTMLButtonElement)) return
+          const variant = target.dataset.variant || 'default'
+          applyVariant(variant)
+        })
       })
-    })
-  </script>
-</body>
+    </script>
+  </body>
 </html>
