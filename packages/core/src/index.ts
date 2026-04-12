@@ -21,6 +21,5 @@ export type {
   HostState,
   GoodWidgetState,
   GoodWidgetProviderProps,
-  GoodWidgetThemeOverrides,
-  GoodWidgetConfig,
 } from './types'
+export type { GoodWidgetThemeOverrides, GoodWidgetConfig } from '@goodwidget/ui'

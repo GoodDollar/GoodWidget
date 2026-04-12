@@ -28,8 +28,9 @@ function deepMergeOverrides(
   if (a.tokens || b.tokens) {
     result.tokens = { ...a.tokens }
     if (b.tokens) {
+      const tokenMap = result.tokens as Record<string, Record<string, string | number>>
       for (const [cat, vals] of Object.entries(b.tokens)) {
-        result.tokens![cat] = { ...(result.tokens![cat] ?? {}), ...vals }
+        tokenMap[cat] = { ...(tokenMap[cat] ?? {}), ...vals } as Record<string, string | number>
       }
     }
   }

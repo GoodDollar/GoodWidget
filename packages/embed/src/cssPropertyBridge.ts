@@ -21,7 +21,7 @@ export function readCSSOverrides(
 ): GoodWidgetThemeOverrides {
   const computed = getComputedStyle(element)
   const tokenOverrides: Record<string, Record<string, string | number>> = {}
-  const themeOverrides: Record<string, Record<string, string | number>> = {}
+  const themeOverrides: Record<string, Record<string, string>> = {}
 
   const tokenCategories = manifest?.tokens
     ? Object.keys(manifest.tokens)
@@ -52,9 +52,8 @@ export function readCSSOverrides(
         const darkKey = `dark_${componentName}`
         if (!themeOverrides[lightKey]) themeOverrides[lightKey] = {}
         if (!themeOverrides[darkKey]) themeOverrides[darkKey] = {}
-        const parsed = isNumericValue(value) ? parseFloat(value) : value
-        themeOverrides[lightKey][themeKey] = parsed
-        themeOverrides[darkKey][themeKey] = parsed
+        themeOverrides[lightKey][themeKey] = value
+        themeOverrides[darkKey][themeKey] = value
       }
     }
   }

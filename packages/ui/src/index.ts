@@ -1,10 +1,22 @@
 // Config
-export { createGoodWidgetConfig, mergeThemeOverrides, defaultConfig } from './config'
+export {
+  createGoodWidgetConfig,
+  createGoodWidgetThemes,
+  mergeThemeOverrides,
+  defaultConfig,
+} from './config'
 export type { TamaguiConfig } from './config'
-export type { GoodWidgetConfig, GoodWidgetThemeOverrides } from './configTypes'
+export type {
+  GoodWidgetConfig,
+  GoodWidgetThemeOverrides,
+  GoodWidgetThemes,
+  GoodWidgetThemeValues,
+  GoodWidgetTokenOverrides,
+  GoodWidgetTokenValues,
+} from './configTypes'
 
 // Theme
-export { tokens, lightTheme, darkTheme, lightComponentThemes, darkComponentThemes } from './theme'
+export { defaultTokenValues, createGoodWidgetTokens, createThemeValues } from './theme'
 
 // createComponent + Manifest
 export { createComponent } from './createComponent'

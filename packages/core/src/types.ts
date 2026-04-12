@@ -1,5 +1,6 @@
 import type { EIP1193Provider } from './eip1193'
 import type { ReactNode } from 'react'
+import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
 
 export type HostEnvironment = 'farcaster' | 'minipay' | 'worldapp' | 'injected' | 'custom'
 
@@ -32,16 +33,6 @@ export interface HostState {
 export interface GoodWidgetState extends WalletState {
   host: HostEnvironment
   capabilities: HostCapabilities
-}
-
-export interface GoodWidgetThemeOverrides {
-  tokens?: Record<string, Record<string, string | number>>
-  themes?: Record<string, Record<string, string | number>>
-}
-
-export interface GoodWidgetConfig {
-  tokens?: Record<string, Record<string, string | number>>
-  themes?: Record<string, Record<string, string | number>>
 }
 
 export interface GoodWidgetProviderProps {

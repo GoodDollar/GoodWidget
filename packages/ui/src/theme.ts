@@ -1,6 +1,11 @@
-import { createTokens, createTheme } from 'tamagui'
+import { createTokens } from 'tamagui'
+import type { GoodWidgetThemes, GoodWidgetTokenValues } from './configTypes'
 
-export const tokens = createTokens({
+/**
+ * Base design-token seed values for the GoodWidget design system.
+ * These are plain values so token overrides can be merged before creating Tamagui tokens.
+ */
+export const defaultTokenValues = {
   color: {
     primary: '#00AEFF',
     primaryDark: '#0085C5',
@@ -77,192 +82,207 @@ export const tokens = createTokens({
     4: 400,
     5: 500,
   },
-})
+} satisfies GoodWidgetTokenValues
 
-export const lightTheme = createTheme({
-  background: tokens.color.background,
-  backgroundHover: tokens.color.surface,
-  backgroundPress: tokens.color.border,
-  backgroundFocus: tokens.color.surface,
-  backgroundTransparent: tokens.color.transparent,
-
-  color: tokens.color.text,
-  colorHover: tokens.color.text,
-  colorPress: tokens.color.textSecondary,
-  colorFocus: tokens.color.text,
-  colorTransparent: tokens.color.transparent,
-
-  borderColor: tokens.color.border,
-  borderColorHover: tokens.color.primary,
-  borderColorPress: tokens.color.primaryDark,
-  borderColorFocus: tokens.color.primary,
-
-  placeholderColor: tokens.color.textSecondary,
-
-  shadowColor: 'rgba(0,0,0,0.1)',
-  shadowColorHover: 'rgba(0,0,0,0.15)',
-  shadowColorPress: 'rgba(0,0,0,0.05)',
-  shadowColorFocus: 'rgba(0,0,0,0.15)',
-})
-
-export const darkTheme = createTheme({
-  background: tokens.color.backgroundDark,
-  backgroundHover: tokens.color.surfaceDark,
-  backgroundPress: tokens.color.borderDark,
-  backgroundFocus: tokens.color.surfaceDark,
-  backgroundTransparent: tokens.color.transparent,
-
-  color: tokens.color.textDark,
-  colorHover: tokens.color.textDark,
-  colorPress: tokens.color.textSecondaryDark,
-  colorFocus: tokens.color.textDark,
-  colorTransparent: tokens.color.transparent,
-
-  borderColor: tokens.color.borderDark,
-  borderColorHover: tokens.color.primary,
-  borderColorPress: tokens.color.primaryDark,
-  borderColorFocus: tokens.color.primary,
-
-  placeholderColor: tokens.color.textSecondaryDark,
-
-  shadowColor: 'rgba(0,0,0,0.3)',
-  shadowColorHover: 'rgba(0,0,0,0.4)',
-  shadowColorPress: 'rgba(0,0,0,0.2)',
-  shadowColorFocus: 'rgba(0,0,0,0.4)',
-})
-
-export const lightComponentThemes = {
-  light_Button: createTheme({
-    background: tokens.color.primary,
-    backgroundHover: tokens.color.primaryDark,
-    backgroundPress: tokens.color.primaryDark,
-    backgroundFocus: tokens.color.primaryDark,
-    backgroundTransparent: tokens.color.transparent,
-    color: tokens.color.white,
-    colorHover: tokens.color.white,
-    colorPress: tokens.color.white,
-    colorFocus: tokens.color.white,
-    colorTransparent: tokens.color.transparent,
-    borderColor: tokens.color.transparent,
-    borderColorHover: tokens.color.transparent,
-    borderColorPress: tokens.color.transparent,
-    borderColorFocus: tokens.color.primary,
-    placeholderColor: tokens.color.white,
-    shadowColor: 'rgba(0,174,255,0.3)',
-    shadowColorHover: 'rgba(0,174,255,0.4)',
-    shadowColorPress: 'rgba(0,174,255,0.2)',
-    shadowColorFocus: 'rgba(0,174,255,0.4)',
-  }),
-
-  light_Card: createTheme({
-    background: tokens.color.white,
-    backgroundHover: tokens.color.surface,
-    backgroundPress: tokens.color.surface,
-    backgroundFocus: tokens.color.surface,
-    backgroundTransparent: tokens.color.transparent,
-    color: tokens.color.text,
-    colorHover: tokens.color.text,
-    colorPress: tokens.color.textSecondary,
-    colorFocus: tokens.color.text,
-    colorTransparent: tokens.color.transparent,
-    borderColor: tokens.color.border,
-    borderColorHover: tokens.color.border,
-    borderColorPress: tokens.color.border,
-    borderColorFocus: tokens.color.primary,
-    placeholderColor: tokens.color.textSecondary,
-    shadowColor: 'rgba(0,0,0,0.08)',
-    shadowColorHover: 'rgba(0,0,0,0.12)',
-    shadowColorPress: 'rgba(0,0,0,0.04)',
-    shadowColorFocus: 'rgba(0,0,0,0.12)',
-  }),
-
-  light_Input: createTheme({
-    background: tokens.color.white,
-    backgroundHover: tokens.color.white,
-    backgroundPress: tokens.color.white,
-    backgroundFocus: tokens.color.white,
-    backgroundTransparent: tokens.color.transparent,
-    color: tokens.color.text,
-    colorHover: tokens.color.text,
-    colorPress: tokens.color.text,
-    colorFocus: tokens.color.text,
-    colorTransparent: tokens.color.transparent,
-    borderColor: tokens.color.border,
-    borderColorHover: tokens.color.primary,
-    borderColorPress: tokens.color.primaryDark,
-    borderColorFocus: tokens.color.primary,
-    placeholderColor: tokens.color.textSecondary,
-    shadowColor: 'rgba(0,0,0,0.05)',
-    shadowColorHover: 'rgba(0,174,255,0.1)',
-    shadowColorPress: 'rgba(0,0,0,0.05)',
-    shadowColorFocus: 'rgba(0,174,255,0.15)',
-  }),
+/**
+ * Creates Tamagui tokens from plain token values.
+ */
+export function createGoodWidgetTokens(tokenValues: GoodWidgetTokenValues = defaultTokenValues) {
+  return createTokens(tokenValues as Parameters<typeof createTokens>[0])
 }
 
-export const darkComponentThemes = {
-  dark_Button: createTheme({
-    background: tokens.color.primary,
-    backgroundHover: tokens.color.primaryLight,
-    backgroundPress: tokens.color.primaryDark,
-    backgroundFocus: tokens.color.primaryLight,
-    backgroundTransparent: tokens.color.transparent,
-    color: tokens.color.white,
-    colorHover: tokens.color.white,
-    colorPress: tokens.color.white,
-    colorFocus: tokens.color.white,
-    colorTransparent: tokens.color.transparent,
-    borderColor: tokens.color.transparent,
-    borderColorHover: tokens.color.transparent,
-    borderColorPress: tokens.color.transparent,
-    borderColorFocus: tokens.color.primary,
-    placeholderColor: tokens.color.white,
-    shadowColor: 'rgba(0,174,255,0.2)',
-    shadowColorHover: 'rgba(0,174,255,0.3)',
-    shadowColorPress: 'rgba(0,174,255,0.1)',
-    shadowColorFocus: 'rgba(0,174,255,0.3)',
-  }),
+/**
+ * Derives the full semantic theme map (base + component sub-themes) from token values.
+ * Output is plain objects accepted directly by `createTamagui({ themes })`.
+ */
+export function createThemeValues(
+  tokenValues: GoodWidgetTokenValues = defaultTokenValues,
+): GoodWidgetThemes {
+  const { color } = tokenValues
 
-  dark_Card: createTheme({
-    background: tokens.color.surfaceDark,
-    backgroundHover: '#252525',
-    backgroundPress: '#1A1A1A',
-    backgroundFocus: '#252525',
-    backgroundTransparent: tokens.color.transparent,
-    color: tokens.color.textDark,
-    colorHover: tokens.color.textDark,
-    colorPress: tokens.color.textSecondaryDark,
-    colorFocus: tokens.color.textDark,
-    colorTransparent: tokens.color.transparent,
-    borderColor: tokens.color.borderDark,
-    borderColorHover: tokens.color.borderDark,
-    borderColorPress: tokens.color.borderDark,
-    borderColorFocus: tokens.color.primary,
-    placeholderColor: tokens.color.textSecondaryDark,
-    shadowColor: 'rgba(0,0,0,0.2)',
-    shadowColorHover: 'rgba(0,0,0,0.3)',
-    shadowColorPress: 'rgba(0,0,0,0.1)',
-    shadowColorFocus: 'rgba(0,0,0,0.3)',
-  }),
+  return {
+    light: {
+      background: color.background,
+      backgroundHover: color.surface,
+      backgroundPress: color.border,
+      backgroundFocus: color.surface,
+      backgroundTransparent: color.transparent,
 
-  dark_Input: createTheme({
-    background: tokens.color.surfaceDark,
-    backgroundHover: tokens.color.surfaceDark,
-    backgroundPress: tokens.color.surfaceDark,
-    backgroundFocus: tokens.color.surfaceDark,
-    backgroundTransparent: tokens.color.transparent,
-    color: tokens.color.textDark,
-    colorHover: tokens.color.textDark,
-    colorPress: tokens.color.textDark,
-    colorFocus: tokens.color.textDark,
-    colorTransparent: tokens.color.transparent,
-    borderColor: tokens.color.borderDark,
-    borderColorHover: tokens.color.primary,
-    borderColorPress: tokens.color.primaryDark,
-    borderColorFocus: tokens.color.primary,
-    placeholderColor: tokens.color.textSecondaryDark,
-    shadowColor: 'rgba(0,0,0,0.1)',
-    shadowColorHover: 'rgba(0,174,255,0.1)',
-    shadowColorPress: 'rgba(0,0,0,0.1)',
-    shadowColorFocus: 'rgba(0,174,255,0.15)',
-  }),
+      color: color.text,
+      colorHover: color.text,
+      colorPress: color.textSecondary,
+      colorFocus: color.text,
+      colorTransparent: color.transparent,
+
+      borderColor: color.border,
+      borderColorHover: color.primary,
+      borderColorPress: color.primaryDark,
+      borderColorFocus: color.primary,
+
+      placeholderColor: color.textSecondary,
+
+      shadowColor: 'rgba(0,0,0,0.1)',
+      shadowColorHover: 'rgba(0,0,0,0.15)',
+      shadowColorPress: 'rgba(0,0,0,0.05)',
+      shadowColorFocus: 'rgba(0,0,0,0.15)',
+    },
+
+    dark: {
+      background: color.backgroundDark,
+      backgroundHover: color.surfaceDark,
+      backgroundPress: color.borderDark,
+      backgroundFocus: color.surfaceDark,
+      backgroundTransparent: color.transparent,
+
+      color: color.textDark,
+      colorHover: color.textDark,
+      colorPress: color.textSecondaryDark,
+      colorFocus: color.textDark,
+      colorTransparent: color.transparent,
+
+      borderColor: color.borderDark,
+      borderColorHover: color.primary,
+      borderColorPress: color.primaryDark,
+      borderColorFocus: color.primary,
+
+      placeholderColor: color.textSecondaryDark,
+
+      shadowColor: 'rgba(0,0,0,0.3)',
+      shadowColorHover: 'rgba(0,0,0,0.4)',
+      shadowColorPress: 'rgba(0,0,0,0.2)',
+      shadowColorFocus: 'rgba(0,0,0,0.4)',
+    },
+
+    light_Button: {
+      background: color.primary,
+      backgroundHover: color.primaryDark,
+      backgroundPress: color.primaryDark,
+      backgroundFocus: color.primaryDark,
+      backgroundTransparent: color.transparent,
+      color: color.white,
+      colorHover: color.white,
+      colorPress: color.white,
+      colorFocus: color.white,
+      colorTransparent: color.transparent,
+      borderColor: color.transparent,
+      borderColorHover: color.transparent,
+      borderColorPress: color.transparent,
+      borderColorFocus: color.primary,
+      placeholderColor: color.white,
+      shadowColor: 'rgba(0,174,255,0.3)',
+      shadowColorHover: 'rgba(0,174,255,0.4)',
+      shadowColorPress: 'rgba(0,174,255,0.2)',
+      shadowColorFocus: 'rgba(0,174,255,0.4)',
+    },
+
+    light_Card: {
+      background: color.white,
+      backgroundHover: color.surface,
+      backgroundPress: color.surface,
+      backgroundFocus: color.surface,
+      backgroundTransparent: color.transparent,
+      color: color.text,
+      colorHover: color.text,
+      colorPress: color.textSecondary,
+      colorFocus: color.text,
+      colorTransparent: color.transparent,
+      borderColor: color.border,
+      borderColorHover: color.border,
+      borderColorPress: color.border,
+      borderColorFocus: color.primary,
+      placeholderColor: color.textSecondary,
+      shadowColor: 'rgba(0,0,0,0.08)',
+      shadowColorHover: 'rgba(0,0,0,0.12)',
+      shadowColorPress: 'rgba(0,0,0,0.04)',
+      shadowColorFocus: 'rgba(0,0,0,0.12)',
+    },
+
+    light_Input: {
+      background: color.white,
+      backgroundHover: color.white,
+      backgroundPress: color.white,
+      backgroundFocus: color.white,
+      backgroundTransparent: color.transparent,
+      color: color.text,
+      colorHover: color.text,
+      colorPress: color.text,
+      colorFocus: color.text,
+      colorTransparent: color.transparent,
+      borderColor: color.border,
+      borderColorHover: color.primary,
+      borderColorPress: color.primaryDark,
+      borderColorFocus: color.primary,
+      placeholderColor: color.textSecondary,
+      shadowColor: 'rgba(0,0,0,0.05)',
+      shadowColorHover: 'rgba(0,174,255,0.1)',
+      shadowColorPress: 'rgba(0,0,0,0.05)',
+      shadowColorFocus: 'rgba(0,174,255,0.15)',
+    },
+
+    dark_Button: {
+      background: color.primary,
+      backgroundHover: color.primaryLight,
+      backgroundPress: color.primaryDark,
+      backgroundFocus: color.primaryLight,
+      backgroundTransparent: color.transparent,
+      color: color.white,
+      colorHover: color.white,
+      colorPress: color.white,
+      colorFocus: color.white,
+      colorTransparent: color.transparent,
+      borderColor: color.transparent,
+      borderColorHover: color.transparent,
+      borderColorPress: color.transparent,
+      borderColorFocus: color.primary,
+      placeholderColor: color.white,
+      shadowColor: 'rgba(0,174,255,0.2)',
+      shadowColorHover: 'rgba(0,174,255,0.3)',
+      shadowColorPress: 'rgba(0,174,255,0.1)',
+      shadowColorFocus: 'rgba(0,174,255,0.3)',
+    },
+
+    dark_Card: {
+      background: color.surfaceDark,
+      backgroundHover: '#252525',
+      backgroundPress: '#1A1A1A',
+      backgroundFocus: '#252525',
+      backgroundTransparent: color.transparent,
+      color: color.textDark,
+      colorHover: color.textDark,
+      colorPress: color.textSecondaryDark,
+      colorFocus: color.textDark,
+      colorTransparent: color.transparent,
+      borderColor: color.borderDark,
+      borderColorHover: color.borderDark,
+      borderColorPress: color.borderDark,
+      borderColorFocus: color.primary,
+      placeholderColor: color.textSecondaryDark,
+      shadowColor: 'rgba(0,0,0,0.2)',
+      shadowColorHover: 'rgba(0,0,0,0.3)',
+      shadowColorPress: 'rgba(0,0,0,0.1)',
+      shadowColorFocus: 'rgba(0,0,0,0.3)',
+    },
+
+    dark_Input: {
+      background: color.surfaceDark,
+      backgroundHover: color.surfaceDark,
+      backgroundPress: color.surfaceDark,
+      backgroundFocus: color.surfaceDark,
+      backgroundTransparent: color.transparent,
+      color: color.textDark,
+      colorHover: color.textDark,
+      colorPress: color.textDark,
+      colorFocus: color.textDark,
+      colorTransparent: color.transparent,
+      borderColor: color.borderDark,
+      borderColorHover: color.primary,
+      borderColorPress: color.primaryDark,
+      borderColorFocus: color.primary,
+      placeholderColor: color.textSecondaryDark,
+      shadowColor: 'rgba(0,0,0,0.15)',
+      shadowColorHover: 'rgba(0,174,255,0.08)',
+      shadowColorPress: 'rgba(0,0,0,0.15)',
+      shadowColorFocus: 'rgba(0,174,255,0.12)',
+    },
+  }
 }
