@@ -19,8 +19,8 @@ This is the right execution model for the current codebase.
 
 This document is intended to subsume the important content from:
 
-- [use-tamagui-primitives.md](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/agent-next-steps/use-tamagui-primitives.md)
-- [theme-propagation-consistency-task.md](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/agent-next-steps/theme-propagation-consistency-task.md)
+- [use-tamagui-primitives.md](../agent-next-steps/use-tamagui-primitives.md)
+- [theme-propagation-consistency-task.md](../agent-next-steps/theme-propagation-consistency-task.md)
 
 That means it must preserve all of the important detail from those documents, not just their headline idea.
 
@@ -91,11 +91,11 @@ It is to make individual primitives conform to that architecture.
 
 Relevant current files:
 
-- [packages/ui/src/config.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/config.ts)
-- [packages/ui/src/theme.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/theme.ts)
-- [packages/ui/src/presets.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/presets.ts)
-- [packages/ui/src/createComponent.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/createComponent.ts)
-- [packages/ui/src/manifest.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/manifest.ts)
+- [packages/ui/src/config.ts](../packages/ui/src/config.ts)
+- [packages/ui/src/theme.ts](../packages/ui/src/theme.ts)
+- [packages/ui/src/presets.ts](../packages/ui/src/presets.ts)
+- [packages/ui/src/createComponent.ts](../packages/ui/src/createComponent.ts)
+- [packages/ui/src/manifest.ts](../packages/ui/src/manifest.ts)
 
 ## Execution Model
 
@@ -291,20 +291,20 @@ More specifically:
 
 These are the best current candidates for this workflow:
 
-1. [packages/ui/src/components-test/Checkbox.tsx](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/components-test/Checkbox.tsx)
-2. [packages/ui/src/components-test/Switch.tsx](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/components-test/Switch.tsx)
-3. [packages/ui/src/components-test/Select.tsx](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/components-test/Select.tsx)
-4. [packages/ui/src/components-test/Input.tsx](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/components-test/Input.tsx)
-5. [packages/ui/src/components-test/Button.tsx](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/components-test/Button.tsx)
+1. [packages/ui/src/components-test/Checkbox.tsx](../packages/ui/src/components-test/Checkbox.tsx)
+2. [packages/ui/src/components-test/Switch.tsx](../packages/ui/src/components-test/Switch.tsx)
+3. [packages/ui/src/components-test/Select.tsx](../packages/ui/src/components-test/Select.tsx)
+4. [packages/ui/src/components-test/Input.tsx](../packages/ui/src/components-test/Input.tsx)
+5. [packages/ui/src/components-test/Button.tsx](../packages/ui/src/components-test/Button.tsx)
 
 Secondary candidates after those:
 
-1. [packages/ui/src/components-test/ActionSheet.tsx](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/components-test/ActionSheet.tsx)
-2. [packages/ui/src/components-test/Toast.tsx](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/components-test/Toast.tsx)
+1. [packages/ui/src/components-test/ActionSheet.tsx](../packages/ui/src/components-test/ActionSheet.tsx)
+2. [packages/ui/src/components-test/Toast.tsx](../packages/ui/src/components-test/Toast.tsx)
 
 Already partially aligned reference:
 
-1. [packages/ui/src/components/Drawer.tsx](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/components/Drawer.tsx)
+1. [packages/ui/src/components/Drawer.tsx](../packages/ui/src/components/Drawer.tsx)
 
 `Drawer` should be treated as the current reference implementation for the combined pattern:
 
