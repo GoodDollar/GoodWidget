@@ -1,10 +1,31 @@
 // Config
-export { createGoodWidgetConfig, mergeThemeOverrides, defaultConfig } from './config'
+export {
+  createGoodWidgetConfig,
+  createGoodWidgetThemes,
+  mergeThemeOverrides,
+  defaultConfig,
+  defaultPreset,
+} from './config'
 export type { TamaguiConfig } from './config'
-export type { GoodWidgetConfig, GoodWidgetThemeOverrides } from './configTypes'
+export type {
+  GoodWidgetConfig,
+  GoodWidgetThemeOverrides,
+  GoodWidgetThemes,
+  GoodWidgetThemeValues,
+  GoodWidgetTokenOverrides,
+  GoodWidgetTokenValues,
+  WidgetAnimationConfig,
+  WidgetAnimationsPreset,
+  WidgetComponentTheme,
+  WidgetDesignPreset,
+  WidgetDesignSemantics,
+  WidgetFontDefinition,
+  WidgetTypographyPreset,
+} from './configTypes'
 
 // Theme
-export { tokens, lightTheme, darkTheme, lightComponentThemes, darkComponentThemes } from './theme'
+export { defaultTokenValues, createGoodWidgetTokens, createThemeValues } from './theme'
+export { goodWalletV2Preset } from './presets'
 
 // createComponent + Manifest
 export { createComponent } from './createComponent'
@@ -12,40 +33,42 @@ export { getThemeManifest, getComponentManifest, registerComponent } from './man
 export type { ThemeManifest, ComponentManifestEntry } from './manifest'
 
 // Layout
-export { Container } from './components/Container'
+export { Container } from './components-test/Container'
 export { Card } from './components/Card'
-export { XStack, YStack, ZStack } from './components/Stacks'
-export { Separator } from './components/Separator'
-export { ScrollArea } from './components/ScrollArea'
+export { GlowCard } from './components/GlowCard'
+export { XStack, YStack, ZStack } from './components-test/Stacks'
+export { Separator } from './components-test/Separator'
+export { ScrollArea } from './components-test/ScrollArea'
 
 // Typography
-export { Heading } from './components/Heading'
-export { Text } from './components/Text'
+export { Heading } from './components-test/Heading'
+export { Text } from './components-test/Text'
 
 // Inputs
-export { Button, ButtonFrame, ButtonText } from './components/Button'
-export type { ButtonProps } from './components/Button'
-export { Input, InputFrame, InputLabel, InputError } from './components/Input'
-export type { InputProps } from './components/Input'
-export { Select } from './components/Select'
-export type { SelectOption } from './components/Select'
-export { Checkbox } from './components/Checkbox'
-export { Switch } from './components/Switch'
+export { Button, ButtonFrame, ButtonText } from './components-test/Button'
+export type { ButtonProps } from './components-test/Button'
+export { Input, InputFrame, InputLabel, InputError } from './components-test/Input'
+export type { InputProps } from './components-test/Input'
+export { Select } from './components-test/Select'
+export type { SelectOption } from './components-test/Select'
+export { Checkbox } from './components-test/Checkbox'
+export { Switch } from './components-test/Switch'
 
 // Feedback
-export { Spinner } from './components/Spinner'
-export { Toast } from './components/Toast'
-export { Alert } from './components/Alert'
-export { Badge, BadgeText } from './components/Badge'
+export { Spinner } from './components-test/Spinner'
+export { Toast } from './components-test/Toast'
+export { Alert } from './components-test/Alert'
+export { Badge, BadgeText } from './components-test/Badge'
+export { Drawer } from './components/Drawer'
 
 // Web3
-export { AddressDisplay } from './components/AddressDisplay'
+export { AddressDisplay } from './components-test/AddressDisplay'
 export { TokenAmount } from './components/TokenAmount'
-export { TransactionButton } from './components/TransactionButton'
-export { ChainBadge } from './components/ChainBadge'
-export { WalletInfo } from './components/WalletInfo'
+export { TransactionButton } from './components-test/TransactionButton'
+export { ChainBadge } from './components-test/ChainBadge'
+export { WalletInfo } from './components-test/WalletInfo'
 
 // Patterns / Composites
-export { MiniAppShell } from './components/MiniAppShell'
-export { ActionSheet } from './components/ActionSheet'
-export { TokenInput } from './components/TokenInput'
+export { MiniAppShell } from './components-test/MiniAppShell'
+export { ActionSheet } from './components-test/ActionSheet'
+export { TokenInput } from './components-test/TokenInput'

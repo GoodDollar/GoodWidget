@@ -1,14 +1,22 @@
 import { createFont, createTamagui } from 'tamagui'
-import {
-  tokens,
-  lightTheme,
-  darkTheme,
-  lightComponentThemes,
-  darkComponentThemes,
-} from './theme'
-import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from './configTypes'
+import { createAnimations } from '@tamagui/animations-react-native'
+import type {
+  GoodWidgetConfig,
+  GoodWidgetThemes,
+  GoodWidgetThemeOverrides,
+  GoodWidgetThemeValues,
+  GoodWidgetTokenOverrides,
+  GoodWidgetTokenValues,
+  WidgetAnimationConfig,
+  WidgetAnimationsPreset,
+  WidgetFontDefinition,
+} from './configTypes'
+import { goodWalletV2Preset } from './presets'
+import { createGoodWidgetTokens, createThemeValues, defaultTokenValues } from './theme'
 
-const defaultFont = createFont({
+export const defaultPreset = goodWalletV2Preset
+
+const defaultBodyFont = {
   family: 'System',
   size: {
     1: 12,
@@ -62,67 +70,202 @@ const defaultFont = createFont({
     10: -1.5,
     true: 0,
   },
-})
+} satisfies WidgetFontDefinition
 
-function deepMerge<T extends Record<string, unknown>>(base: T, override?: Partial<T>): T {
-  if (!override) return base
-  const result = { ...base }
-  for (const key of Object.keys(override) as Array<keyof T>) {
-    const val = override[key]
-    if (val && typeof val === 'object' && !Array.isArray(val) && typeof base[key] === 'object') {
-      result[key] = deepMerge(
-        base[key] as Record<string, unknown>,
-        val as Record<string, unknown>,
-      ) as T[keyof T]
-    } else if (val !== undefined) {
-      result[key] = val as T[keyof T]
-    }
-  }
-  return result
+const defaultAnimations = {
+  quick: { type: 'timing', duration: 150 },
+  medium: { type: 'timing', duration: 400 },
+  slow: { type: 'timing', duration: 520 },
+  exit: { type: 'timing', duration: 280 },
+} satisfies Required<WidgetAnimationsPreset>
+
+/**
+ * Builds a single Tamagui font by layering a preset font definition onto the shared
+ * GoodWidget font defaults. This stays close to Tamagui's documented `createFont` flow.
+ */
+function createWidgetFont(overrides?: WidgetFontDefinition) {
+  return createFont({
+    family: overrides?.family ?? defaultBodyFont.family,
+    size: {
+      ...defaultBodyFont.size,
+      ...overrides?.size,
+    },
+    lineHeight: {
+      ...defaultBodyFont.lineHeight,
+      ...overrides?.lineHeight,
+    },
+    weight: {
+      ...defaultBodyFont.weight,
+      ...overrides?.weight,
+    },
+    letterSpacing: {
+      ...defaultBodyFont.letterSpacing,
+      ...overrides?.letterSpacing,
+    },
+  })
 }
 
+/**
+ * Merges token overrides into a full token set.
+ * This runs before theme derivation so themes always track effective token values.
+ */
+function mergeTokenValues(
+  base: GoodWidgetTokenValues,
+  override?: GoodWidgetTokenOverrides,
+): GoodWidgetTokenValues {
+  if (!override) return base
+
+  return {
+    color: { ...base.color, ...override.color } as GoodWidgetTokenValues['color'],
+    size: { ...base.size, ...override.size } as GoodWidgetTokenValues['size'],
+    space: { ...base.space, ...override.space } as GoodWidgetTokenValues['space'],
+    radius: { ...base.radius, ...override.radius } as GoodWidgetTokenValues['radius'],
+    zIndex: { ...base.zIndex, ...override.zIndex } as GoodWidgetTokenValues['zIndex'],
+  }
+}
+
+/**
+ * Merges token override objects without expanding them to full token sets.
+ * Used when carrying user-provided override intent through provider layers.
+ */
+function mergeTokenOverrides(
+  base?: GoodWidgetTokenOverrides,
+  override?: GoodWidgetTokenOverrides,
+): GoodWidgetTokenOverrides | undefined {
+  if (!base && !override) return undefined
+
+  const merged: GoodWidgetTokenOverrides = {
+    ...(base ?? {}),
+  }
+
+  if (override?.color) merged.color = { ...(base?.color ?? {}), ...override.color }
+  if (override?.size) merged.size = { ...(base?.size ?? {}), ...override.size }
+  if (override?.space) merged.space = { ...(base?.space ?? {}), ...override.space }
+  if (override?.radius) merged.radius = { ...(base?.radius ?? {}), ...override.radius }
+  if (override?.zIndex) merged.zIndex = { ...(base?.zIndex ?? {}), ...override.zIndex }
+
+  return merged
+}
+
+/**
+ * Merges a full theme map with optional partial theme overrides.
+ */
+function mergeThemes(
+  base: GoodWidgetThemes,
+  override?: GoodWidgetConfig['themes'],
+): GoodWidgetThemes {
+  if (!override) return base
+
+  const merged: GoodWidgetThemes = {}
+
+  for (const [name, definition] of Object.entries(base)) {
+    merged[name] = { ...definition }
+  }
+
+  for (const [name, definition] of Object.entries(override)) {
+    merged[name] = { ...(merged[name] ?? {}), ...definition } as GoodWidgetThemeValues
+  }
+
+  return merged
+}
+
+/**
+ * Merges a preset-provided animation map on top of the shared GoodWidget defaults.
+ * The React Native animation driver expects config objects, not CSS animation strings.
+ */
+function mergeAnimations(override?: WidgetAnimationsPreset) {
+  const mergeAnimation = (
+    base: WidgetAnimationConfig,
+    next?: WidgetAnimationConfig,
+  ): WidgetAnimationConfig => ({
+    ...base,
+    ...next,
+  })
+
+  return {
+    quick: mergeAnimation(defaultAnimations.quick, override?.quick),
+    medium: mergeAnimation(defaultAnimations.medium, override?.medium),
+    slow: mergeAnimation(defaultAnimations.slow, override?.slow),
+    exit: mergeAnimation(defaultAnimations.exit, override?.exit),
+  }
+}
+
+/**
+ * Resolves the shipped preset and any direct config overrides into the same native merge
+ * layers already used by the GoodWidget config flow.
+ */
+function resolveConfigLayers(overrides?: GoodWidgetConfig) {
+  const preset = overrides?.preset ?? defaultPreset
+
+  return {
+    preset,
+    animations: mergeAnimations(preset?.animations),
+    tokens: mergeTokenOverrides(preset?.tokens, overrides?.tokens),
+    themes: mergeOverrideMaps(preset?.themes, overrides?.themes),
+  }
+}
+
+/**
+ * Creates the effective plain theme map from config-level overrides.
+ * Flow: merge token overrides -> derive base themes from tokens -> apply theme overrides.
+ */
+export function createGoodWidgetThemes(overrides?: GoodWidgetConfig): GoodWidgetThemes {
+  const resolvedConfig = resolveConfigLayers(overrides)
+  const mergedTokenValues = mergeTokenValues(defaultTokenValues, resolvedConfig.tokens)
+  const baseThemes = createThemeValues(mergedTokenValues)
+  return mergeThemes(baseThemes, resolvedConfig.themes)
+}
+
+/**
+ * Creates the final Tamagui config consumed by `TamaguiProvider`.
+ */
 export function createGoodWidgetConfig(overrides?: GoodWidgetConfig) {
-  const mergedTokens = overrides?.tokens
-    ? {
-        ...tokens,
-        color: { ...tokens.color, ...overrides.tokens.color },
-        size: { ...tokens.size, ...overrides.tokens.size },
-        space: { ...tokens.space, ...overrides.tokens.space },
-        radius: { ...tokens.radius, ...overrides.tokens.radius },
-      }
-    : tokens
-
-  const allThemes: Record<string, ReturnType<typeof import('tamagui').createTheme>> = {
-    light: lightTheme,
-    dark: darkTheme,
-    ...lightComponentThemes,
-    ...darkComponentThemes,
-  }
-
-  if (overrides?.themes) {
-    for (const [name, themeOverride] of Object.entries(overrides.themes)) {
-      if (allThemes[name]) {
-        allThemes[name] = deepMerge(
-          allThemes[name] as Record<string, unknown>,
-          themeOverride as Record<string, unknown>,
-        ) as (typeof allThemes)[string]
-      } else {
-        allThemes[name] = themeOverride as (typeof allThemes)[string]
-      }
-    }
-  }
+  const resolvedConfig = resolveConfigLayers(overrides)
+  const mergedTokenValues = mergeTokenValues(defaultTokenValues, resolvedConfig.tokens)
+  const themes = mergeThemes(createThemeValues(mergedTokenValues), resolvedConfig.themes)
+  const bodyFont = createWidgetFont(resolvedConfig.preset?.typography?.body)
+  const headingFont = createWidgetFont(
+    resolvedConfig.preset?.typography?.heading ?? resolvedConfig.preset?.typography?.body,
+  )
 
   return createTamagui({
-    tokens: mergedTokens,
-    themes: allThemes,
+    tokens: createGoodWidgetTokens(mergedTokenValues),
+    themes,
+    animations: createAnimations(resolvedConfig.animations),
     fonts: {
-      heading: defaultFont,
-      body: defaultFont,
+      heading: headingFont,
+      body: bodyFont,
     },
     defaultFont: 'body',
   })
 }
 
+/**
+ * Merges partial theme override maps by theme name.
+ */
+function mergeOverrideMaps(
+  base?: Record<string, Partial<GoodWidgetThemeValues>>,
+  override?: Record<string, Partial<GoodWidgetThemeValues>>,
+): Record<string, Partial<GoodWidgetThemeValues>> | undefined {
+  if (!base && !override) return undefined
+
+  const merged: Record<string, Partial<GoodWidgetThemeValues>> = {
+    ...(base ?? {}),
+  }
+
+  if (override) {
+    for (const [name, values] of Object.entries(override)) {
+      merged[name] = { ...(merged[name] ?? {}), ...values } as Partial<GoodWidgetThemeValues>
+    }
+  }
+
+  return merged
+}
+
+/**
+ * Merges host overrides on top of author config.
+ * Precedence: base config < host overrides.
+ */
 export function mergeThemeOverrides(
   baseConfig: GoodWidgetConfig | undefined,
   hostOverrides: GoodWidgetThemeOverrides | undefined,
@@ -134,15 +277,11 @@ export function mergeThemeOverrides(
       themes: hostOverrides.themes,
     }
   }
+
   return {
-    tokens: deepMerge(
-      (baseConfig.tokens ?? {}) as Record<string, Record<string, string | number>>,
-      hostOverrides.tokens as Record<string, Record<string, string | number>> | undefined,
-    ),
-    themes: deepMerge(
-      (baseConfig.themes ?? {}) as Record<string, Record<string, string | number>>,
-      hostOverrides.themes as Record<string, Record<string, string | number>> | undefined,
-    ),
+    preset: baseConfig.preset,
+    tokens: mergeTokenOverrides(baseConfig.tokens, hostOverrides.tokens),
+    themes: mergeOverrideMaps(baseConfig.themes, hostOverrides.themes),
   }
 }
 

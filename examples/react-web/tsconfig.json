@@ -2,13 +2,11 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
+    "strict": false,
+    "baseUrl": ".",
     "paths": {
-      "@goodwidget/core": ["../../packages/core/src/index.ts"],
-      "@goodwidget/core/*": ["../../packages/core/src/*"],
-      "@goodwidget/ui": ["../../packages/ui/src/index.ts"],
-      "@goodwidget/embed": ["../../packages/embed/src/index.ts"],
-      "@goodwidget/claim-widget": ["../../packages/claim-widget/src/index.ts"],
-      "react-native": ["./node_modules/react-native-web"]
+      "react-native": ["react-native-web"],
+      "tamagui": ["src/types/tamagui-shim.d.ts"] // This is temporary shim to avoid transpiling tamagui source. its expected to be resolved after upgrading tamagui version to a more recent one.
     }
   },
   "include": ["src"]

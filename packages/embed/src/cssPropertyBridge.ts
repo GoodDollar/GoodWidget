@@ -2,14 +2,18 @@ import type { GoodWidgetThemeOverrides } from '@goodwidget/core'
 import type { ThemeManifest } from '@goodwidget/ui'
 
 const GW_PREFIX = '--gw-'
+const GW_TOKEN_PREFIX = `${GW_PREFIX}token-`
 
 /**
  * Read CSS custom properties from a host element and convert them into
  * a GoodWidgetThemeOverrides object that can be merged into the provider.
  *
  * Naming convention:
- * - Global tokens:    --gw-color-primary, --gw-space-md, --gw-radius-lg
+ * - Global tokens:    --gw-token-color-primary, --gw-token-space-md, --gw-token-radius-lg
  * - Component themes: --gw-Card-background, --gw-GlassCard-borderColor
+ *
+ * Token parsing keeps backward compatibility with the previous undocumented
+ * `--gw-{category}-{name}` fallback so existing embeds do not break.
  */
 export function readCSSOverrides(
   element: HTMLElement,
@@ -17,7 +21,7 @@ export function readCSSOverrides(
 ): GoodWidgetThemeOverrides {
   const computed = getComputedStyle(element)
   const tokenOverrides: Record<string, Record<string, string | number>> = {}
-  const themeOverrides: Record<string, Record<string, string | number>> = {}
+  const themeOverrides: Record<string, Record<string, string>> = {}
 
   const tokenCategories = manifest?.tokens
     ? Object.keys(manifest.tokens)
@@ -26,8 +30,10 @@ export function readCSSOverrides(
   for (const category of tokenCategories) {
     const tokenNames = manifest?.tokens?.[category] ?? []
     for (const tokenName of tokenNames) {
-      const varName = `${GW_PREFIX}${category}-${tokenName}`
-      const value = computed.getPropertyValue(varName).trim()
+      const varName = `${GW_TOKEN_PREFIX}${category}-${tokenName}`
+      const legacyVarName = `${GW_PREFIX}${category}-${tokenName}`
+      const value =
+        computed.getPropertyValue(varName).trim() || computed.getPropertyValue(legacyVarName).trim()
       if (value) {
         if (!tokenOverrides[category]) tokenOverrides[category] = {}
         tokenOverrides[category][tokenName] = isNumericValue(value) ? parseFloat(value) : value
@@ -46,9 +52,8 @@ export function readCSSOverrides(
         const darkKey = `dark_${componentName}`
         if (!themeOverrides[lightKey]) themeOverrides[lightKey] = {}
         if (!themeOverrides[darkKey]) themeOverrides[darkKey] = {}
-        const parsed = isNumericValue(value) ? parseFloat(value) : value
-        themeOverrides[lightKey][themeKey] = parsed
-        themeOverrides[darkKey][themeKey] = parsed
+        themeOverrides[lightKey][themeKey] = value
+        themeOverrides[darkKey][themeKey] = value
       }
     }
   }

@@ -137,10 +137,7 @@ export function GoodWidgetProvider({
     [address, chainId, resolvedProvider, connect],
   )
 
-  const hostValue = useMemo<HostContextValue>(
-    () => ({ host, capabilities }),
-    [host, capabilities],
-  )
+  const hostValue = useMemo<HostContextValue>(() => ({ host, capabilities }), [host, capabilities])
 
   const goodWidgetValue = useMemo<GoodWidgetContextValue>(
     () => ({

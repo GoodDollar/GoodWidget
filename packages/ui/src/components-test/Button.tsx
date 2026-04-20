@@ -94,11 +94,7 @@ export interface ButtonProps {
  * transparent, so we reset the theme so that children (ButtonText) pick up
  * the parent theme's dark text color instead.
  */
-export function Button({
-  variant = 'primary',
-  children,
-  ...props
-}: ButtonProps) {
+export function Button({ variant = 'primary', children, ...props }: ButtonProps) {
   const needsReset = variant !== 'primary'
   return (
     <ButtonFrame variant={variant} {...props}>

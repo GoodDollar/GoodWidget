@@ -1,3 +1,5 @@
+import { defaultTokenValues } from './theme'
+
 export interface ComponentManifestEntry {
   name: string
   extends?: string
@@ -28,25 +30,8 @@ export function getThemeManifest(): ThemeManifest {
 
   return {
     components,
-    tokens: {
-      color: [
-        'primary',
-        'primaryDark',
-        'primaryLight',
-        'secondary',
-        'secondaryDark',
-        'success',
-        'warning',
-        'error',
-        'background',
-        'surface',
-        'text',
-        'textSecondary',
-        'border',
-      ],
-      space: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
-      size: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14'],
-      radius: ['0', '1', '2', '3', '4', '5', '6'],
-    },
+    tokens: Object.fromEntries(
+      Object.entries(defaultTokenValues).map(([category, values]) => [category, Object.keys(values)]),
+    ),
   }
 }

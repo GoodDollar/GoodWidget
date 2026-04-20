@@ -2,16 +2,15 @@ import React, { useState } from 'react'
 import { GoodWidgetProvider, useWallet, useHost } from '@goodwidget/core'
 import { ClaimWidget } from '@goodwidget/claim-widget'
 import {
-  createGoodWidgetConfig,
   getThemeManifest,
   MiniAppShell,
   Card,
+  GlowCard,
   Heading,
   Text,
   Button,
   ButtonText,
   Input,
-  TokenAmount,
   WalletInfo,
   Alert,
   Badge,
@@ -21,15 +20,16 @@ import {
   Checkbox,
   Switch,
   Select,
-  ActionSheet,
   XStack,
   YStack,
+  Drawer,
 } from '@goodwidget/ui'
 
 function OverrideShowcase() {
   const [activeTab, setActiveTab] = useState<
     'default' | 'tokens' | 'component' | 'host' | 'inline'
   >('default')
+  const [hostVariant, setHostVariant] = useState<'cobalt' | 'teal'>('cobalt')
   const { address, chainId } = useWallet()
   const { host } = useHost()
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -46,6 +46,77 @@ function OverrideShowcase() {
     { key: 'host', label: 'Host' },
     { key: 'inline', label: 'Inline' },
   ]
+
+  const hostThemeOverrides =
+    hostVariant === 'cobalt'
+      ? {
+          tokens: {
+            color: {
+              primary: '#2E5DE8',
+              primaryDark: '#1D3EB2',
+              primaryLight: '#6E8DFF',
+            },
+          },
+          themes: {
+            light_ClaimCard: {
+              borderColor: '#2E5DE8',
+              shadowColor: 'rgba(46,93,232,0.7)',
+            },
+            light_Card: {
+              borderColor: '#2E5DE8',
+            },
+            light_ClaimActionGlow: {
+              primary: '#4F7DFF',
+              primaryLight: '#9DB4FF',
+            },
+            light_ClaimActionRing: {
+              primary: '#2E5DE8',
+              primaryLight: '#6E8DFF',
+            },
+            light_ClaimActionInner: {
+              backgroundDark: '#0E1A3A',
+              backgroundDarkHover: '#172B60',
+            },
+            light_TokenAmountText: {
+              color: '#BBD0FF',
+              secondaryColor: '#7FA2FF',
+            },
+          },
+        }
+      : {
+          tokens: {
+            color: {
+              primary: '#00A884',
+              primaryDark: '#007A61',
+              primaryLight: '#33C9AA',
+            },
+          },
+          themes: {
+            light_ClaimCard: {
+              borderColor: '#00A884',
+              shadowColor: 'rgba(0,168,132,0.65)',
+            },
+            light_Card: {
+              borderColor: '#00A884',
+            },
+            light_ClaimActionGlow: {
+              primary: '#33C9AA',
+              primaryLight: '#78E0CB',
+            },
+            light_ClaimActionRing: {
+              primary: '#00A884',
+              primaryLight: '#33C9AA',
+            },
+            light_ClaimActionInner: {
+              backgroundDark: '#062A23',
+              backgroundDarkHover: '#0B3B31',
+            },
+            light_TokenAmountText: {
+              color: '#BFF5E7',
+              secondaryColor: '#66D5BB',
+            },
+          },
+        }
 
   return (
     <MiniAppShell
@@ -65,30 +136,29 @@ function OverrideShowcase() {
             variant={activeTab === tab.key ? 'primary' : 'secondary'}
             onPress={() => setActiveTab(tab.key)}
           >
-            <ButtonText>{tab.label}</ButtonText>
+            <ButtonText color={activeTab === tab.key ? 'white' : 'grey'}>{tab.label}</ButtonText>
           </Button>
         ))}
       </XStack>
 
       {/* ==============================================================
-          DEFAULT — No overrides, framework defaults + ClaimWidget
+          DEFAULT — No overrides, preset baseline + ClaimWidget
           ============================================================== */}
       {activeTab === 'default' && (
-        <YStack gap="$4">
+        <YStack gap="$6">
           <Alert
             type="info"
-            title="Level 0: Framework Defaults"
-            message="No overrides applied. The ClaimWidget and all components use the GoodDollar blue (#00AEFF) theme."
+            title="Preset Baseline"
+            message="No runtime overrides. The GoodWalletV2 preset drives tokens, themes, and component sub-themes. "
           />
 
-          <Card>
+          <GlowCard>
             <Heading level={4}>Wallet</Heading>
             <WalletInfo address={address} chainId={chainId} />
-          </Card>
+          </GlowCard>
 
-          {/* ClaimWidget from @goodwidget/claim-widget — default look */}
           <YStack gap="$2">
-            <Text variant="label">ClaimWidget (default):</Text>
+            <Text variant="label">ClaimWidget (preset only):</Text>
             <ClaimWidget />
           </YStack>
 
@@ -105,16 +175,8 @@ function OverrideShowcase() {
               onValueChange={setSelectVal}
               placeholder="Select chain..."
             />
-            <Checkbox
-              checked={checked}
-              onCheckedChange={setChecked}
-              label="I agree to terms"
-            />
-            <Switch
-              checked={switchOn}
-              onCheckedChange={setSwitchOn}
-              label="Auto-claim"
-            />
+            <Checkbox checked={checked} onCheckedChange={setChecked} label="I agree to terms" />
+            <Switch checked={switchOn} onCheckedChange={setSwitchOn} label="Auto-claim" />
             <Separator />
             <XStack gap="$2" alignItems="center">
               <Text variant="caption">Loading:</Text>
@@ -122,38 +184,49 @@ function OverrideShowcase() {
             </XStack>
           </Card>
 
-          <Card>
-            <Heading level={5}>Theme Manifest</Heading>
-            <Text variant="caption">
-              {Object.keys(manifest.components).length} registered components:{' '}
-              {Object.keys(manifest.components).join(', ')}
+          <Button onPress={() => setSheetOpen(true)}>
+            <ButtonText>View Theme Manifest</ButtonText>
+          </Button>
+
+          <Drawer open={sheetOpen} onClose={() => setSheetOpen(false)}>
+            <Text variant="caption" style={{ marginBottom: 16 }}>
+              Registered components: {Object.keys(manifest.components).join(', ')}
             </Text>
-          </Card>
+            <Button fullWidth onPress={() => setSheetOpen(false)}>
+              <ButtonText>Close</ButtonText>
+            </Button>
+          </Drawer>
         </YStack>
       )}
 
       {/* ==============================================================
-          TOKEN OVERRIDE — Change primary color globally
+          TOKEN OVERRIDE — Broad token-layer changes
           ============================================================== */}
       {activeTab === 'tokens' && (
-        <YStack gap="$4">
+        <YStack gap="$6">
           <Alert
             type="warning"
-            title="Level 1: Token Override"
-            message="Primary color changed from #00AEFF (blue) to #7B61FF (purple) via config.tokens."
+            title="Token Override"
+            message="Tokens are broad inputs. Updating primary colors cascades through derived theme values and components that consume those semantics. In our example below the changes are subtle but visible on the claim button and glow, which consume `primary` and `primaryLight`, as well as border colors (like the tab). primary semantic follows token principle and should be applied for branding and accent colors that cascade widely. For more targeted overrides, use component sub-themes or host overrides."
           />
           <Card>
             <Heading level={5}>How it works</Heading>
             <Text variant="caption">
               {`<ClaimWidget
-  config={{
-    tokens: { color: { primary: '#7B61FF', primaryDark: '#5A3FDB' } }
-  }}
-/>`}
+                  config={{
+                    tokens: {
+                      color: {
+                        primary: '#4F7DFF',
+                        primaryDark: '#2E5DE8',
+                        primaryLight: '#7FA4FF'
+                      }
+                    }
+                  }}
+                />`}
             </Text>
             <Text secondary>
-              The purple token propagates to every component inside the
-              ClaimWidget — Button, Badge, etc.
+              This changes action and focus semantics globally for that widget tree, not just one
+              component.
             </Text>
           </Card>
 
@@ -162,16 +235,20 @@ function OverrideShowcase() {
             padding="$3"
             borderRadius="$3"
             borderWidth={2}
-            borderColor="#7B61FF"
+            borderColor="#4F7DFF"
             borderStyle="dashed"
           >
-            <Text variant="label" color="#7B61FF">
-              ClaimWidget with purple tokens:
+            <Text variant="label" color="#4F7DFF">
+              ClaimWidget with token override:
             </Text>
             <ClaimWidget
               config={{
                 tokens: {
-                  color: { primary: '#7B61FF', primaryDark: '#5A3FDB' },
+                  color: {
+                    primary: '#4F7DFF',
+                    primaryDark: '#2E5DE8',
+                    primaryLight: '#7FA4FF',
+                  },
                 },
               }}
             />
@@ -180,35 +257,32 @@ function OverrideShowcase() {
       )}
 
       {/* ==============================================================
-          COMPONENT THEME OVERRIDE — Target Card + Button specifically
+          COMPONENT THEME OVERRIDE — Target specific component sub-themes
           ============================================================== */}
       {activeTab === 'component' && (
-        <YStack gap="$4">
+        <YStack gap="$6">
           <Alert
             type="warning"
-            title="Level 2: Component Theme Override"
-            message="Card gets amber background, Button gets orange — via themes: { light_Card, light_Button }."
+            title="Component Theme Override"
+            message="Targeted visual changes should use named component sub-themes (light_*/dark_*). We show this as example but should mainly be used by authors of widgets and not being exposed after publishing. To expose overriding theming of the widget to hosts/integrators themeOverrides should be used."
           />
           <Card>
             <Heading level={5}>How it works</Heading>
             <Text variant="caption">
               {`<ClaimWidget
-  config={{
-    themes: {
-      light_Card: {
-        background: '#FFF8E1',
-        borderColor: '#FFB300',
-      },
-      light_Button: {
-        background: '#FF6D00',
-      },
-    }
-  }}
-/>`}
+                  config={{
+                    themes: {
+                      light_ClaimActionGlow: { primary: '#12cb31', primaryLight: '#9A4DFF' },
+                      light_ClaimActionRing: { primary: '#ff3333', primaryLight: '#9A4DFF' },
+                      light_ClaimActionInner: { backgroundDark: 'orange' },
+                      light_TokenAmountText: { color: 'red', secondaryColor: '#3fbdf2' }
+                    }
+                  }}
+                />`}
             </Text>
             <Text secondary>
-              Only Card and Button change. Heading, Text, Badge etc. keep
-              defaults. ClaimCard extends Card so it inherits the override too.
+              Hover the claim button to see `primaryLight` apply from component-level theme
+              overrides.
             </Text>
           </Card>
 
@@ -217,25 +291,33 @@ function OverrideShowcase() {
             padding="$3"
             borderRadius="$3"
             borderWidth={2}
-            borderColor="#FFB300"
+            borderColor="#52A6FF"
             borderStyle="dashed"
           >
-            <Text variant="label" color="#FF6D00">
-              ClaimWidget with component theme overrides:
+            <Text variant="label" color="#52A6FF">
+              ClaimWidget with component overrides:
             </Text>
             <ClaimWidget
               config={{
                 themes: {
-                  light_Card: {
-                    background: '#FFF8E1',
-                    borderColor: '#FFB300',
-                    shadowColor: 'rgba(255,179,0,0.15)',
+                  light_ClaimActionGlow: {
+                    primary: '#12cb31',
+                    primaryLight: '#9A4DFF',
                   },
-                  light_Button: {
-                    background: '#FF6D00',
-                    backgroundHover: '#E65100',
-                    backgroundPress: '#BF360C',
-                    color: '#FFFFFF',
+                  light_ClaimActionRing: {
+                    primary: '#ff3333',
+                    primaryLight: '#9A4DFF',
+                  },
+                  light_ClaimActionButton: {
+                    backgroundTransparent: 'transparent',
+                  },
+                  light_ClaimActionInner: {
+                    backgroundDark: 'orange',
+                    backgroundDarkHover: 'red',
+                  },
+                  light_TokenAmountText: {
+                    color: 'red',
+                    secondaryColor: '#3fbdf2',
                   },
                 },
               }}
@@ -245,141 +327,94 @@ function OverrideShowcase() {
       )}
 
       {/* ==============================================================
-          HOST OVERRIDE — themeOverrides on ClaimWidget
+          HOST OVERRIDE — themeOverrides merged last
           ============================================================== */}
       {activeTab === 'host' && (
-        <YStack gap="$4">
+        <YStack gap="$6">
           <Alert
-            type="error"
+            type="warning"
             title="Host Override (themeOverrides)"
-            message="Simulates a host embedding the ClaimWidget and overriding its ClaimCard + Card + Button themes."
+            message="Host `themeOverrides` are merged last and win over preset + author config. Mixing different widgets on the same page and using theme-overrides will conflict if trying to target high-level tokens or themes. mixing widgets can be done but should be focussed on component-level theming"
           />
           <Card>
             <Heading level={5}>The Scenario</Heading>
             <Text secondary>
-              The ClaimWidget comes from @goodwidget/claim-widget (an npm
-              package). You embed it in your wallet and pass themeOverrides to
-              restyle it — targeting both the widget's custom ClaimCard component
-              and the basic Card element.
+              The host app embeds ClaimWidget and applies `themeOverrides` for runtime brand
+              targeting.
             </Text>
             <Text variant="caption">
               {`<ClaimWidget
-  themeOverrides={{
-    tokens: { color: { primary: '#E91E63' } },
-    themes: {
-      light_ClaimCard: { background: 'rgba(233,30,99,0.08)' },
-      light_Card: { borderColor: '#E91E63' },
-      light_Button: { background: '#E91E63' },
-    },
-  }}
-/>`}
+                  themeOverrides={{
+                    tokens: {
+                      color: {
+                        primary: '#2E5DE8',
+                        primaryDark: '#1D3EB2',
+                        primaryLight: '#6E8DFF'
+                      }
+                    },
+                    themes: {
+                      light_ClaimCard: { borderColor: '#2E5DE8' },
+                      light_ClaimActionGlow: { primary: '#4F7DFF', primaryLight: '#9DB4FF' },
+                      light_ClaimActionRing: { primary: '#2E5DE8', primaryLight: '#6E8DFF' },
+                      light_ClaimActionInner: { backgroundDark: '#0E1A3A' }
+                    }
+                  }}
+                />`}
             </Text>
           </Card>
 
           <YStack gap="$4">
-            <Text variant="label">Original (no host overrides):</Text>
-            <YStack
-              padding="$3"
-              borderRadius="$3"
-              borderWidth={1}
-              borderColor="$borderColor"
-            >
-              <ClaimWidget />
-            </YStack>
+            <XStack gap="$2" flexWrap="wrap">
+              <Button
+                size="sm"
+                variant={hostVariant === 'cobalt' ? 'primary' : 'secondary'}
+                onPress={() => setHostVariant('cobalt')}
+              >
+                <ButtonText color={hostVariant === 'cobalt' ? 'white' : 'grey'}>Cobalt</ButtonText>
+              </Button>
+              <Button
+                size="sm"
+                variant={hostVariant === 'teal' ? 'primary' : 'secondary'}
+                onPress={() => setHostVariant('teal')}
+              >
+                <ButtonText color={hostVariant === 'teal' ? 'white' : 'grey'}>Teal</ButtonText>
+              </Button>
+            </XStack>
 
-            <Separator />
-
-            <Text variant="label" color="#E91E63">
-              Host-overridden (pink brand):
+            <Text variant="label" color={hostVariant === 'cobalt' ? '#2E5DE8' : '#00A884'}>
+              Host-overridden ({hostVariant}):
             </Text>
             <YStack
               padding="$3"
               borderRadius="$3"
               borderWidth={2}
-              borderColor="#E91E63"
+              borderColor={hostVariant === 'cobalt' ? '#2E5DE8' : '#00A884'}
               borderStyle="dashed"
             >
-              <ClaimWidget
-                themeOverrides={{
-                  tokens: {
-                    color: { primary: '#E91E63', primaryDark: '#AD1457' },
-                  },
-                  themes: {
-                    light_ClaimCard: {
-                      background: 'rgba(233,30,99,0.08)',
-                      shadowColor: 'rgba(233,30,99,0.2)',
-                    },
-                    light_Card: {
-                      borderColor: '#F48FB1',
-                    },
-                    light_Button: {
-                      background: '#E91E63',
-                      backgroundHover: '#AD1457',
-                      backgroundPress: '#880E4F',
-                    },
-                  },
-                }}
-              />
-            </YStack>
-
-            <Separator />
-
-            <Text variant="label" color="#00897B">
-              Host-overridden (teal brand):
-            </Text>
-            <YStack
-              padding="$3"
-              borderRadius="$3"
-              borderWidth={2}
-              borderColor="#00897B"
-              borderStyle="dashed"
-            >
-              <ClaimWidget
-                themeOverrides={{
-                  tokens: {
-                    color: { primary: '#00897B', primaryDark: '#00695C' },
-                  },
-                  themes: {
-                    light_ClaimCard: {
-                      background: 'rgba(0,137,123,0.06)',
-                      shadowColor: 'rgba(0,137,123,0.2)',
-                    },
-                    light_Card: {
-                      borderColor: '#80CBC4',
-                    },
-                    light_Button: {
-                      background: '#00897B',
-                      backgroundHover: '#00695C',
-                      backgroundPress: '#004D40',
-                    },
-                  },
-                }}
-              />
+              <ClaimWidget key={hostVariant} themeOverrides={hostThemeOverrides} />
             </YStack>
           </YStack>
 
           <Card>
             <Heading level={5}>Why This Works</Heading>
             <Text secondary>
-              ClaimWidget wraps itself in GoodWidgetProvider and accepts
-              themeOverrides. The host always wins. The widget's ClaimCard (name:
-              'ClaimCard') is targetable because createComponent() enforced a
-              name, creating the light_ClaimCard theme segment. The basic Card
-              element is targetable via light_Card.
+              `ClaimWidget` wraps with `GoodWidgetProvider`, and host `themeOverrides` merge last.
+              Named components (`ClaimCard`, `GlowCard`, `ClaimActionButton`, `TokenAmountText`)
+              make targeted overrides stable.
             </Text>
           </Card>
         </YStack>
       )}
 
       {/* ==============================================================
-          INLINE PROPS — One-off overrides directly on JSX
+          INLINE PROPS — Instance-level styling with highest specificity
           ============================================================== */}
       {activeTab === 'inline' && (
-        <YStack gap="$4">
+        <YStack gap="$6">
           <Alert
             type="info"
-            title="Level 3: Inline Style Props"
-            message="Override styles directly on individual component instances — highest specificity."
+            title="Inline Style Props"
+            message="Per-instance styling has highest specificity and should be used sparingly."
           />
 
           <Card>
@@ -392,6 +427,10 @@ function OverrideShowcase() {
   </Button>
 </Card>`}
             </Text>
+            <Text secondary>
+              Inline props are local instance styling. Use these for one-offs, not as your main
+              theming API.
+            </Text>
           </Card>
 
           <Card backgroundColor="#1A1A2E" borderColor="#7B61FF" borderWidth={2}>
@@ -399,25 +438,19 @@ function OverrideShowcase() {
               Dark Card via Inline Props
             </Heading>
             <Text color="#B0B0D0">
-              This single Card instance is dark-styled via inline props. Other
-              Cards on this page remain unaffected.
+              This single Card instance is dark-styled via inline props. Other Cards on this page
+              remain unaffected.
             </Text>
             <Button backgroundColor="#7B61FF" fullWidth>
               <ButtonText color="#FFFFFF">Purple Action</ButtonText>
             </Button>
           </Card>
 
-          <Card
-            backgroundColor="#F3E5F5"
-            borderColor="#CE93D8"
-            shadowColor="rgba(156,39,176,0.2)"
-          >
+          <Card backgroundColor="#F3E5F5" borderColor="#CE93D8" shadowColor="rgba(156,39,176,0.2)">
             <Heading level={4} color="#6A1B9A">
               Lavender Card
             </Heading>
-            <Text color="#4A148C">
-              Inline props give each instance a unique look.
-            </Text>
+            <Text color="#4A148C">Inline props give each instance a unique look.</Text>
             <XStack gap="$2">
               <Button backgroundColor="#AB47BC" size="sm">
                 <ButtonText color="#FFF">Option A</ButtonText>
@@ -435,29 +468,25 @@ function OverrideShowcase() {
                 <Badge type="default">
                   <BadgeText>1</BadgeText>
                 </Badge>
-                <Text variant="caption">GoodWidget defaults (lowest)</Text>
+                <Text variant="caption">GoodWidget defaults / preset</Text>
               </XStack>
               <XStack gap="$2" alignItems="center">
                 <Badge type="default">
                   <BadgeText>2</BadgeText>
                 </Badge>
-                <Text variant="caption">
-                  Author's config (tokens + component themes)
-                </Text>
+                <Text variant="caption">Author config (`tokens` + `themes`)</Text>
               </XStack>
               <XStack gap="$2" alignItems="center">
                 <Badge type="default">
                   <BadgeText>3</BadgeText>
                 </Badge>
-                <Text variant="caption">Host's themeOverrides prop</Text>
+                <Text variant="caption">Host `themeOverrides`</Text>
               </XStack>
               <XStack gap="$2" alignItems="center">
                 <Badge type="default">
                   <BadgeText>4</BadgeText>
                 </Badge>
-                <Text variant="caption">
-                  Host's CSS custom properties (web only)
-                </Text>
+                <Text variant="caption">Host CSS custom properties (web only)</Text>
               </XStack>
               <XStack gap="$2" alignItems="center">
                 <Badge type="info">
@@ -471,19 +500,6 @@ function OverrideShowcase() {
           </Card>
         </YStack>
       )}
-
-      <ActionSheet
-        open={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        title="Theme Manifest"
-      >
-        <Text variant="caption">
-          Registered components: {Object.keys(manifest.components).join(', ')}
-        </Text>
-        <Button fullWidth onPress={() => setSheetOpen(false)}>
-          <ButtonText>Close</ButtonText>
-        </Button>
-      </ActionSheet>
     </MiniAppShell>
   )
 }

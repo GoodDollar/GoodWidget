@@ -19,17 +19,25 @@
     "clean": "rm -rf dist .turbo"
   },
   "peerDependencies": {
-    "react": ">=18.0.0"
+    "react": ">=18.0.0",
+    "react-native": ">=0.76.0"
+  },
+  "peerDependenciesMeta": {
+    "react-native": {
+      "optional": true
+    }
   },
   "dependencies": {
-    "tamagui": "^1.121.0",
-    "@tamagui/core": "^1.121.0",
-    "@tamagui/themes": "^1.121.0"
+    "@tamagui/animations-react-native": "^1.121.0",
+    "@tamagui/core": "1.121.0",
+    "@tamagui/themes": "1.121.0",
+    "tamagui": "1.121.0"
   },
   "devDependencies": {
-    "react": "^18.3.0",
-    "react-native-web": "^0.19.13",
     "@types/react": "^18.3.0",
+    "react": "^18.3.0",
+    "react-native": "0.76.9",
+    "react-native-web": "^0.19.13",
     "tsup": "^8.4.0",
     "typescript": "^5.7.0"
   }

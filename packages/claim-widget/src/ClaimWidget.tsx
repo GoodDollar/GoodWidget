@@ -9,6 +9,7 @@ import {
   Heading,
   Text,
   Button,
+  ButtonFrame,
   ButtonText,
   TokenAmount,
   Badge,
@@ -33,6 +34,74 @@ const StreakCard = createComponent(Card, {
   padding: '$3',
 })
 
+const ClaimActionButton = createComponent(ButtonFrame, {
+  name: 'ClaimActionButton',
+  extends: 'Button',
+  width: 160,
+  height: 160,
+  borderRadius: 9999,
+  backgroundColor: '$backgroundTransparent',
+  borderWidth: 0,
+  shadowOpacity: 0,
+  overflow: 'visible',
+  position: 'relative',
+  paddingHorizontal: 0,
+  hoverStyle: {
+    backgroundColor: '$backgroundTransparent',
+  },
+  pressStyle: {
+    backgroundColor: '$backgroundTransparent',
+    opacity: 0.95,
+  },
+  focusStyle: {
+    backgroundColor: '$backgroundTransparent',
+    outlineStyle: 'none',
+  },
+})
+
+const ClaimActionGlow = createComponent(YStack, {
+  name: 'ClaimActionGlow',
+  position: 'absolute',
+  top: -16,
+  right: -16,
+  bottom: -16,
+  left: -16,
+  borderRadius: 9999,
+  backgroundColor: '$primary',
+  hoverStyle: {
+    backgroundColor: '$primaryLight',
+  },
+  opacity: 0.45,
+})
+
+const ClaimActionRing = createComponent(YStack, {
+  name: 'ClaimActionRing',
+  position: 'absolute',
+  top: 0,
+  right: 0,
+  bottom: 0,
+  left: 0,
+  borderRadius: 9999,
+  backgroundColor: '$primary',
+  hoverStyle: {
+    backgroundColor: '$primaryLight',
+  },
+})
+
+const ClaimActionInner = createComponent(YStack, {
+  name: 'ClaimActionInner',
+  position: 'absolute',
+  top: 2,
+  right: 2,
+  bottom: 2,
+  left: 2,
+  borderRadius: 9999,
+  backgroundColor: '$backgroundDark',
+  hoverStyle: {
+    backgroundColor: '$backgroundDarkHover',
+  },
+})
+
 function ClaimInner() {
   const { address, connect } = useWallet()
   const { host } = useHost()
@@ -48,51 +117,96 @@ function ClaimInner() {
   }, [])
 
   return (
-    <YStack gap="$3" padding="$2">
+    <YStack gap="$5" padding="$4">
+      <XStack justifyContent="space-between" alignItems="center" paddingHorizontal="$1">
+        <Heading level={4}>GoodDollar</Heading>
+        <Badge type="info">
+          <BadgeText>{host}</BadgeText>
+        </Badge>
+      </XStack>
+
+      <XStack borderBottomWidth={1} borderColor="$borderColor" alignItems="center">
+        <YStack
+          flex={1}
+          alignItems="center"
+          paddingVertical="$2"
+          borderBottomWidth={2}
+          borderColor="$borderColorFocus"
+        >
+          <Text variant="label" color="$primary">
+            Claim
+          </Text>
+        </YStack>
+        <YStack flex={1} alignItems="center" paddingVertical="$2">
+          <Text variant="label" secondary>
+            Invite Rewards
+          </Text>
+        </YStack>
+        <YStack flex={1} alignItems="center" paddingVertical="$2">
+          <Text variant="label" secondary>
+            News
+          </Text>
+        </YStack>
+      </XStack>
+
       <ClaimCard>
-        <YStack gap="$3">
-          <XStack justifyContent="space-between" alignItems="center">
-            <Heading level={5}>Claim G$</Heading>
-            <Badge type="info">
-              <BadgeText>{host}</BadgeText>
-            </Badge>
-          </XStack>
+        <YStack gap="$9" paddingVertical="$6">
+          <YStack alignItems="center" gap="$4">
+            <Text secondary>Ready to claim</Text>
+            <TokenAmount token="G$" amount="193.84" size="xl" />
+            <XStack gap="$2" alignItems="center">
+              <TokenAmount token="G$" amount="193.84" size="sm" variant="secondary" />
+              <TokenAmount token="G$" amount="144.13" size="sm" variant="secondary" />
+              <TokenAmount token="G$" amount="48.06" size="sm" variant="secondary" />
+            </XStack>
+          </YStack>
 
-          <Text secondary>Daily UBI available</Text>
-
-          <TokenAmount token="G$" amount="142.50" size="lg" />
-
-          {claimed ? (
-            <YStack gap="$2" alignItems="center">
-              <Text color="$success" fontWeight="700">
-                Claimed successfully!
-              </Text>
-              <Button
-                variant="secondary"
-                fullWidth
-                onPress={() => setClaimed(false)}
+          <YStack alignItems="center" gap="$4">
+            <ClaimActionButton onPress={address ? handleClaim : connect} disabled={claiming}>
+              <ClaimActionGlow
+                // GoodWalletV2 claim button uses a blurred halo around the ring.
+                style={{ filter: 'blur(20px)' }}
+              />
+              <ClaimActionRing>
+                <ClaimActionInner />
+              </ClaimActionRing>
+              <YStack
+                position="absolute"
+                top={0}
+                right={0}
+                bottom={0}
+                left={0}
+                alignItems="center"
+                justifyContent="center"
+                zIndex={1}
+                pointerEvents="none"
               >
-                <ButtonText>Reset Demo</ButtonText>
-              </Button>
-            </YStack>
-          ) : (
-            <Button
-              fullWidth
-              onPress={address ? handleClaim : connect}
-              disabled={claiming}
-            >
-              {claiming ? (
-                <XStack gap="$2" alignItems="center">
-                  <Spinner size="sm" />
-                  <ButtonText>Claiming...</ButtonText>
-                </XStack>
-              ) : (
-                <ButtonText>
-                  {address ? 'Claim Now' : 'Connect to Claim'}
-                </ButtonText>
-              )}
-            </Button>
-          )}
+                {claiming ? (
+                  <XStack gap="$2" alignItems="center">
+                    <Spinner size="sm" color="$grey600" />
+                    <ButtonText color="$grey600">Claiming...</ButtonText>
+                  </XStack>
+                ) : (
+                  <ButtonText color="$primary">{address ? 'Claim' : 'Connect'}</ButtonText>
+                )}
+              </YStack>
+            </ClaimActionButton>
+
+            {claimed && (
+              <Text color="$success" fontWeight="700">
+                Claimed successfully
+              </Text>
+            )}
+          </YStack>
+
+          <YStack alignItems="center" gap="$1" paddingTop="$6">
+            <Text secondary>Today:</Text>
+            <XStack>
+              <Text variant="caption" center secondary>
+                11.71K claimers received 2.08M G$ out of 3.2M G$ available
+              </Text>
+            </XStack>
+          </YStack>
         </YStack>
       </ClaimCard>
 
@@ -113,9 +227,15 @@ function ClaimInner() {
         <Separator marginVertical="$2" />
         <XStack justifyContent="space-between" alignItems="center">
           <Text variant="label">Total claimed</Text>
-          <TokenAmount token="G$" amount="4,280.00" size="sm" />
+          <TokenAmount token="G$" amount="2.08M" size="sm" variant="secondary" />
         </XStack>
       </StreakCard>
+
+      {claimed && (
+        <Button variant="secondary" fullWidth onPress={() => setClaimed(false)}>
+          <ButtonText>Reset Demo</ButtonText>
+        </Button>
+      )}
     </YStack>
   )
 }
@@ -137,8 +257,8 @@ export interface ClaimWidgetProps {
  */
 export function ClaimWidget({
   provider,
-  config,
   themeOverrides,
+  config, // We are exposing it to our demo apps but ideally config overrides should be done by widget authors and any host-level overrides done through themeOverrides
   defaultTheme = 'light',
 }: ClaimWidgetProps) {
   return (

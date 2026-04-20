@@ -1,114 +1,209 @@
-import React from 'react'
-import { SafeAreaView, StyleSheet } from 'react-native'
+import React, { useMemo, useState } from 'react'
+import { SafeAreaView, StyleSheet, ScrollView } from 'react-native'
 import { ClaimWidget } from '@goodwidget/claim-widget'
-import {
-  Card,
-  Heading,
-  Text,
-  Alert,
-  Separator,
-  YStack,
-} from '@goodwidget/ui'
+import { Card, Heading, Text, Button, ButtonText, Separator, XStack, YStack } from '@goodwidget/ui'
+
+function Section({
+  title,
+  description,
+  borderColor,
+  children,
+}: {
+  title: string
+  description: string
+  borderColor: string
+  children: React.ReactNode
+}) {
+  return (
+    <YStack
+      gap="$3"
+      padding="$3"
+      borderRadius="$3"
+      borderWidth={2}
+      borderColor={borderColor}
+      borderStyle="dashed"
+    >
+      <Text variant="label" color={borderColor}>
+        {title}
+      </Text>
+      <Text variant="caption">{description}</Text>
+      {children}
+    </YStack>
+  )
+}
 
 /**
- * Home screen — embeds the ClaimWidget from @goodwidget/claim-widget
- * and demonstrates overriding its theme in several ways.
+ * Side-by-side theme override demo.
+ *
+ * Each section embeds the real ClaimWidget from @goodwidget/claim-widget
+ * with different override strategies applied.
  */
-export default function HomeScreen() {
-  return (
-    <SafeAreaView style={styles.container}>
-      <YStack gap="$4" padding="$3">
-        <Heading level={3}>GoodWidget Expo Example</Heading>
-        <Text secondary>
-          This app imports ClaimWidget from @goodwidget/claim-widget and shows
-          how to override its theme at different levels.
-        </Text>
+export default function ThemeDemoScreen() {
+  const [variant, setVariant] = useState<'default' | 'tokens' | 'component' | 'host'>('default')
 
-        {/* ---- 1. Default widget — no overrides ---- */}
-        <Alert
-          type="info"
-          title="Default ClaimWidget"
-          message="No overrides — uses the GoodDollar blue (#00AEFF) theme."
-        />
-        <ClaimWidget />
+  const selection = useMemo(() => {
+    //   Why web does seem to work for token overrides:
+    // - web path is more CSS-variable/runtime friendly, so token changes can appear to propagate.
+    // - native path is more pre-resolved/static for tokens.
 
-        <Separator />
+    // Practical rule for demos/integrators:
 
-        {/* ---- 2. Token override — purple brand ---- */}
-        <Alert
-          type="warning"
-          title="Token Override (purple)"
-          message="config.tokens.color.primary = '#7B61FF'"
-        />
-        <ClaimWidget
-          config={{
+    // - Use tokens for shipped design primitives/defaults.
+    // - Use themes (base/component themes) for runtime overrides in Expo/native.
+    if (variant === 'tokens') {
+      return {
+        title: 'Token Override — Purple (Does not work on native)',
+        description:
+          'Token overrides can work for web-components and react-web. for some unknown reason on native the token override is not applied as expected an for native-facing compatible widgets only theme and component-level overrides should be used.',
+        borderColor: '#7B61FF',
+        widgetProps: {
+          config: {
             tokens: {
-              color: { primary: '#7B61FF', primaryDark: '#5A3FDB' },
+              color: {
+                primary: '#7B61FF',
+                primaryDark: '#5A3FDB',
+                primaryLight: '#9B8CFF',
+              },
             },
-          }}
-        />
+          },
+        },
+      }
+    }
 
-        <Separator />
-
-        {/* ---- 3. Component theme override — amber Card + orange Button ---- */}
-        <Alert
-          type="warning"
-          title="Component Theme Override"
-          message="light_Card → amber, light_Button → orange"
-        />
-        <ClaimWidget
-          config={{
+    if (variant === 'component') {
+      return {
+        title: 'Component Theme — Claim Action',
+        description: 'config.themes targets light_ClaimAction* and light_ClaimCard',
+        borderColor: '#FFB300',
+        widgetProps: {
+          config: {
             themes: {
-              light_Card: {
-                background: '#FFF8E1',
+              light_ClaimCard: {
                 borderColor: '#FFB300',
-                shadowColor: 'rgba(255,179,0,0.15)',
               },
-              light_Button: {
-                background: '#FF6D00',
-                backgroundHover: '#E65100',
-                backgroundPress: '#BF360C',
-                color: '#FFFFFF',
+              light_ClaimActionGlow: {
+                primary: '#FFB74D',
+                primaryLight: '#FFD180',
+              },
+              light_ClaimActionRing: {
+                primary: '#FF6D00',
+                primaryLight: '#FFB74D',
+              },
+              light_ClaimActionInner: {
+                backgroundDark: '#3A1F00',
               },
             },
-          }}
-        />
+          },
+        },
+      }
+    }
 
-        <Separator />
-
-        {/* ---- 4. Host override — pink brand ---- */}
-        <Alert
-          type="error"
-          title="Host Override (themeOverrides)"
-          message="Simulates a host wallet rebranding the embedded ClaimWidget."
-        />
-        <Card padding="$2" borderWidth={2} borderColor="#E91E63" borderStyle="dashed">
-          <Text variant="label" color="#E91E63">
-            Host passes themeOverrides targeting ClaimCard + Card + Button:
-          </Text>
-        </Card>
-        <ClaimWidget
-          themeOverrides={{
+    if (variant === 'host') {
+      return {
+        title: 'Host Override — Pink',
+        description: 'themeOverrides targets tokens + claim-specific component themes',
+        borderColor: '#E91E63',
+        widgetProps: {
+          themeOverrides: {
             tokens: {
-              color: { primary: '#E91E63', primaryDark: '#AD1457' },
+              color: { primary: '#E91E63', primaryDark: '#AD1457', primaryLight: '#F06292' },
             },
             themes: {
               light_ClaimCard: {
-                background: 'rgba(233,30,99,0.08)',
-                shadowColor: 'rgba(233,30,99,0.2)',
-              },
-              light_Card: {
                 borderColor: '#F48FB1',
               },
-              light_Button: {
-                background: '#E91E63',
-                backgroundHover: '#AD1457',
-                backgroundPress: '#880E4F',
+              light_ClaimActionGlow: {
+                primary: '#EC407A',
+                primaryLight: '#F48FB1',
+              },
+              light_ClaimActionRing: {
+                primary: '#E91E63',
+                primaryLight: '#EC407A',
+              },
+              light_ClaimActionInner: {
+                backgroundDark: '#3D1326',
+              },
+              light_TokenAmountText: {
+                secondaryColor: '#F8BBD0',
               },
             },
-          }}
-        />
-      </YStack>
+          },
+        },
+      }
+    }
+
+    return {
+      title: 'Default',
+      description: 'No overrides — GoodWidget default preset',
+      borderColor: '#00AEFF',
+      widgetProps: {},
+    }
+  }, [variant])
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <Heading level={3}>Theme Override Comparison</Heading>
+        <Text secondary>
+          Single mounted ClaimWidget preview. Switch variants to avoid cross-instance config bleed
+          in Expo.
+        </Text>
+
+        <YStack gap="$4" marginTop="$4">
+          <XStack gap="$2" flexWrap="wrap">
+            <Button
+              size="sm"
+              variant={variant === 'default' ? 'primary' : 'secondary'}
+              onPress={() => setVariant('default')}
+            >
+              <ButtonText color={variant === 'default' ? 'white' : 'grey'}>Default</ButtonText>
+            </Button>
+            <Button
+              size="sm"
+              variant={variant === 'tokens' ? 'primary' : 'secondary'}
+              onPress={() => setVariant('tokens')}
+            >
+              <ButtonText color={variant === 'tokens' ? 'white' : 'grey'}>Tokens</ButtonText>
+            </Button>
+            <Button
+              size="sm"
+              variant={variant === 'component' ? 'primary' : 'secondary'}
+              onPress={() => setVariant('component')}
+            >
+              <ButtonText color={variant === 'component' ? 'white' : 'grey'}>Component</ButtonText>
+            </Button>
+            <Button
+              size="sm"
+              variant={variant === 'host' ? 'primary' : 'secondary'}
+              onPress={() => setVariant('host')}
+            >
+              <ButtonText color={variant === 'host' ? 'white' : 'grey'}>Host</ButtonText>
+            </Button>
+          </XStack>
+
+          <Section
+            title={selection.title}
+            description={selection.description}
+            borderColor={selection.borderColor}
+          >
+            <ClaimWidget key={variant} {...selection.widgetProps} />
+          </Section>
+
+          <Separator />
+
+          <Card>
+            <Heading level={5}>Override Precedence</Heading>
+            <YStack gap="$2">
+              <Text variant="caption">1. GoodWidget defaults (lowest)</Text>
+              <Text variant="caption">2. Author's config (tokens + component themes)</Text>
+              <Text variant="caption">3. Host's themeOverrides (always wins)</Text>
+              <Text variant="caption">
+                4. Inline style props (highest, only if host owns the JSX)
+              </Text>
+            </YStack>
+          </Card>
+        </YStack>
+      </ScrollView>
     </SafeAreaView>
   )
 }
@@ -117,5 +212,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  scroll: {
+    padding: 16,
+    paddingBottom: 48,
   },
 })

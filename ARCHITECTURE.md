@@ -1,364 +1,391 @@
 # GoodWidget Architecture
 
-This document is the authoritative reference for agents and developers working on GoodWidget.
-It covers the project purpose, design decisions, package structure, data flow, and conventions.
+This document is the authoritative reference for the current GoodWidget codebase.
+It is aligned to the `basic-tests` branch and the current Tamagui architecture used in
+`packages/ui`, `packages/core`, `packages/embed`, and `packages/claim-widget`.
 
 ---
 
 ## Purpose
 
-GoodWidget is a framework for building **mini apps** (small web3 widgets) that run inside
-wallets and dapps. Think Farcaster mini apps, MiniPay apps, or Worldcoin mini apps, but
-cross-platform. A mini app built with GoodWidget can render as:
+GoodWidget is a framework for building cross-platform mini apps that can render as:
 
-- A **React web** application
-- A **React Native** application (via react-native-web compatibility)
-- A **Web Component** (`<good-miniapp>` custom element) embeddable in any HTML page
+- a React web application
+- a React Native / Expo application
+- a Web Component embeddable in a host page
 
-The framework provides an EIP-1193 wallet adapter, a fully themeable component library,
-and a host-override system so that anyone embedding a third-party mini app can restyle it
-without touching the source.
+The framework provides:
+
+- an EIP-1193 wallet integration layer
+- a Tamagui-based UI system
+- a preset-driven design system with constrained token/theme overrides
+- widget-level and host-level theming boundaries
 
 ---
 
 ## Monorepo Layout
 
-```
+```text
 GoodWidget/
-  package.json              # Root workspace (pnpm + Turborepo)
-  pnpm-workspace.yaml       # Declares packages/* and examples/* as workspaces
-  turbo.json                # Build task graph (build depends on ^build)
-  tsconfig.base.json        # Shared TS config extended by all packages
+  ARCHITECTURE.md
+  AGENTS.md
+  package.json
+  pnpm-workspace.yaml
+  turbo.json
+  tsconfig.base.json
 
   packages/
-    core/                   # @goodwidget/core  — provider, hooks, EIP-1193, host detection
-    ui/                     # @goodwidget/ui    — Tamagui component library, theme system
-    embed/                  # @goodwidget/embed — Web Component wrapper + CSS bridge
-    claim-widget/           # @goodwidget/claim-widget — sample publishable widget (React + Web Component)
+    core/           # GoodWidgetProvider, hooks, host detection, wallet context
+    ui/             # Tamagui tokens, preset, themes, config assembly, manifest, primitives
+    embed/          # Web Component wrapper + CSS custom property bridge
+    claim-widget/   # Example widget package using core + ui + embed
 
   examples/
-    react-web/              # Vite + React demo showing all override levels
-    html/                   # Plain HTML page consuming a widget as a Web Component
-    expo/                   # Expo (React Native) app (standalone, not in workspace)
+    react-web/      # override and theming demo
+    html/           # web component demo
+    expo/           # Expo demo app
 
-  templates/
-    mini-app/               # Scaffolding template for new mini apps
-
-  docs/
-    PACKAGING.md            # Guide: package your widget for React, RN, and HTML
+  agent-next-steps/
+    theme-propagation-consistency-task.md
+    use-tamagui-primitives.md
 ```
 
 ### Dependency graph
 
-```
-@goodwidget/ui          (no internal deps — leaf package)
+```text
+@goodwidget/ui
       ^
       |
-@goodwidget/core        (depends on @goodwidget/ui for createGoodWidgetConfig, mergeThemeOverrides)
+@goodwidget/core
       ^
       |
-@goodwidget/embed       (depends on core + ui, plus @r2wc/react-to-web-component)
+@goodwidget/embed
+
+@goodwidget/claim-widget -> depends on core + ui + embed
 ```
 
-**Important:** `@goodwidget/ui` must NOT depend on `@goodwidget/core` (would create a cycle).
-Any shared types between them live in `ui/src/configTypes.ts` and are re-exported by both.
+`@goodwidget/ui` is still the leaf design-system package and must not depend on `@goodwidget/core`.
 
 ---
 
-## Package: `@goodwidget/core`
+## Design-System Ownership
 
-**NPM name:** `@goodwidget/core`
-**Entry points:** `index.ts`, `wagmi.ts` (secondary export `@goodwidget/core/wagmi`)
-**Build:** tsup -> ESM + CJS + `.d.ts`
+### `packages/ui` owns
 
-### Key files
+- plain token seed values in [theme.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/theme.ts)
+- the GoodWalletV2 preset in [presets.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/presets.ts)
+- theme derivation from effective token values
+- `createTamagui()` assembly in [config.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/config.ts)
+- `createComponent()` and the runtime theme manifest
+- exported primitives and composite UI building blocks
 
-| File | Responsibility |
-|------|----------------|
-| `src/eip1193.ts` | `EIP1193Provider` interface, `RequestArguments`, event map, error codes |
-| `src/types.ts` | `HostEnvironment`, `HostCapabilities`, `GoodWidgetProviderProps`, `GoodWidgetConfig`, `GoodWidgetThemeOverrides` |
-| `src/detect.ts` | `detectHost()` — auto-detects Farcaster / World App / MiniPay / injected and returns a resolved EIP-1193 provider |
-| `src/provider.tsx` | `GoodWidgetProvider` — the root component. Wraps `TamaguiProvider`, provides wallet context, performs the 3-layer theme merge |
-| `src/hooks.ts` | `useWallet()`, `useHost()`, `useGoodWidget()` |
-| `src/wagmi.ts` | `goodWidgetConnector()` — a wagmi-compatible connector descriptor |
+### `packages/core` owns
 
-### Host detection priority
+- [GoodWidgetProvider](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/core/src/provider.tsx)
+- host/provider detection
+- wallet and host React context
+- author `config` + host `themeOverrides` plumbing into `TamaguiProvider`
 
-1. Explicit `provider` prop (highest — type becomes `'custom'`)
-2. Farcaster: `window.farcaster?.sdk?.wallet` -> `getEthereumProvider()`
-3. World App: `window.MiniKit?.isInWorldApp()` -> `window.ethereum`
-4. MiniPay: `window.ethereum?.isMiniPay` -> `window.ethereum`
-5. Generic injected: `window.ethereum`
+### `packages/embed` owns
 
-### Theme merge chain
+- the Web Component shell
+- Shadow DOM style setup
+- CSS custom property reading and observation
+- merging JS `themeOverrides` with CSS-derived overrides before rendering the provider
 
-`GoodWidgetProvider` accepts three theme-related props and merges them in this order
-(each layer wins over the previous):
+This separation is important: `packages/core` does not author tokens or themes, and
+`packages/ui` does not own runtime host detection.
 
+---
+
+## Current Theming Pipeline
+
+GoodWidget no longer treats the provider as the authoring layer for Tamagui config objects.
+The current flow is:
+
+1. Start from plain token seed values in `defaultTokenValues`.
+2. Layer preset token overrides on top.
+3. Layer author token overrides on top.
+4. Layer host token overrides on top.
+5. Derive the full semantic theme map from the effective token set.
+6. Apply preset, author, and host theme overrides by theme name.
+7. Build one Tamagui config from that single effective source.
+
+The implementation lives in:
+
+- [packages/ui/src/theme.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/theme.ts)
+- [packages/ui/src/presets.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/presets.ts)
+- [packages/ui/src/config.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/config.ts)
+
+### Important correction from older architecture
+
+The system is not doing a deep merge of already-created Tamagui token/theme objects.
+
+Instead:
+
+- token seeds remain plain objects until config creation
+- `createThemeValues()` derives semantic themes from the effective token set
+- `createGoodWidgetConfig()` calls `createTamagui()` once for that effective config
+
+This is the core architectural guardrail for keeping token overrides and theme derivation aligned.
+
+---
+
+## Override Layers
+
+There are three main override inputs in the runtime pipeline:
+
+1. preset defaults from `packages/ui`
+2. author configuration via `config`
+3. host overrides via `themeOverrides`
+
+For the Web Component path there is an additional web-only host layer:
+
+4. CSS custom properties read by `packages/embed`
+
+And finally there are local component-instance props:
+
+5. one-off inline style props on JSX usage
+
+### Effective precedence
+
+```text
+1. GoodWidget preset defaults
+2. Author config (`config`)
+3. Host theme overrides (`themeOverrides`)
+4. Host CSS custom properties (`--gw-*`, web component path only)
+5. Inline instance props
 ```
-Layer 1: GoodWidget defaults          (built-in tokens + light/dark themes)
-Layer 2: config prop                   (mini app author's createGoodWidgetConfig overrides)
-Layer 3: themeOverrides prop           (host's overrides — always wins)
-```
 
-The merge happens in `provider.tsx` via:
-
-```ts
-const finalConfig = mergeThemeOverrides(authorConfig, themeOverrides)
-const tamaguiConfig = createGoodWidgetConfig(finalConfig)
-```
-
-Both `mergeThemeOverrides` and `createGoodWidgetConfig` live in `@goodwidget/ui` and do
-recursive deep-merge of tokens and theme objects.
+`packages/embed` merges JS host overrides with CSS-derived overrides before rendering
+`GoodWidgetProvider`, so CSS wins over the host JS prop in that path.
 
 ---
 
 ## Package: `@goodwidget/ui`
 
-**NPM name:** `@goodwidget/ui`
-**Build:** tsup -> ESM + CJS + `.d.ts`
+### Key files
+
+| File | Responsibility |
+|------|----------------|
+| [configTypes.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/configTypes.ts) | Public config, token, theme, preset, typography, animation types |
+| [theme.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/theme.ts) | Plain token seeds + `createGoodWidgetTokens()` + `createThemeValues()` |
+| [presets.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/presets.ts) | GoodWalletV2 preset tokens and partial theme overrides |
+| [config.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/config.ts) | Config resolution, token override merge, theme derivation, `createGoodWidgetConfig()` |
+| [createComponent.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/createComponent.ts) | Named styled-component wrapper + manifest registration |
+| [manifest.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/manifest.ts) | Runtime manifest for named override targets |
+| [index.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/index.ts) | Public exports |
+
+### Theme model
+
+- tokens are static primitives and scales
+- themes are semantic/contextual values
+- named components opt into `light_Component` / `dark_Component` sub-themes through `name`
+- `$foo` resolves theme-first, token-second
+
+Examples:
+
+- `backgroundColor="$background"` means semantic theme usage
+- `borderRadius="$3"` means shared token-scale usage
+- `light_Card` and `dark_Card` are component sub-themes for the `Card` component
+
+### `createComponent()`
+
+`createComponent()` wraps Tamagui `styled()` and does two things:
+
+1. requires a stable `name`
+2. registers the component in the runtime manifest
+
+That `name` is the contract Tamagui uses for component sub-themes and the contract
+GoodWidget uses for host-facing manifest discovery.
+
+### Current component layout
+
+The public UI surface is exported from [packages/ui/src/index.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/index.ts).
+
+At the moment there are two implementation areas:
+
+- `packages/ui/src/components/`
+  - current production-aligned components such as `Card`, `GlowCard`, `Drawer`, `TokenAmount`
+- `packages/ui/src/components-test/`
+  - many still-exported primitives and composites such as `Button`, `Input`, `Checkbox`, `Switch`, `Select`, `Alert`, `Badge`, `Text`, `MiniAppShell`
+
+This split is real and intentional for the current branch state. The next-step documents
+cover how to reduce that transitional surface.
+
+---
+
+## Package: `@goodwidget/core`
 
 ### Key files
 
 | File | Responsibility |
 |------|----------------|
-| `src/configTypes.ts` | `GoodWidgetConfig`, `GoodWidgetThemeOverrides` interfaces (shared with core) |
-| `src/theme.ts` | `tokens` (createTokens), `lightTheme`, `darkTheme`, component themes (`light_Button`, `light_Card`, `light_Input` + dark variants) |
-| `src/config.ts` | `createGoodWidgetConfig()`, `mergeThemeOverrides()`, `defaultConfig` |
-| `src/createComponent.ts` | `createComponent()` — wraps Tamagui `styled()`, enforces `name`, auto-registers in manifest |
-| `src/manifest.ts` | Runtime component registry, `getThemeManifest()`, `registerComponent()` |
-| `src/components/` | One file per component |
+| [eip1193.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/core/src/eip1193.ts) | EIP-1193 types |
+| [detect.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/core/src/detect.ts) | Host/provider detection |
+| [types.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/core/src/types.ts) | Provider props and host/wallet state types |
+| [provider.tsx](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/core/src/provider.tsx) | `GoodWidgetProvider` |
+| [hooks.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/core/src/hooks.ts) | `useWallet()`, `useHost()`, `useGoodWidget()` |
+| [wagmi.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/core/src/wagmi.ts) | wagmi integration surface |
 
-### Theme architecture
+### Provider flow
 
-Tamagui themes are the foundation. Every style value in a component references a **theme key**
-(e.g. `$background`, `$borderColor`). Tamagui resolves these from the nearest `<Theme>` ancestor,
-walking: component theme segment -> parent theme -> tokens.
+`GoodWidgetProvider`:
 
-**Component theme segments** are the key mechanism for host overrides. When a component is created
-with `name: 'Card'`, Tamagui looks for themes named `light_Card`, `dark_Card`, etc. Hosts can
-inject overrides into these segments via `themeOverrides: { themes: { light_Card: { ... } } }`.
+1. resolves the wallet provider
+2. subscribes to account and chain changes
+3. merges author `config` with host `themeOverrides`
+4. rebuilds the effective Tamagui config through `createGoodWidgetConfig()`
+5. renders `TamaguiProvider`
 
-### `createComponent()` design decision
-
-We wrap `styled()` to **require** a `name` prop. Without a name, Tamagui cannot create
-component-level theme segments, making the component un-targetable by hosts. The wrapper
-also auto-registers the component in a runtime `Map<string, ComponentManifestEntry>` for
-discoverability via `getThemeManifest()`.
-
-The function returns `any` because Tamagui's `styled()` encodes variant information via deep
-conditional generics that cannot be preserved through a generic wrapper function. The trade-off:
-consumers don't get false "property does not exist" type errors for variant props, but lose
-autocomplete on custom variants. Components with complex prop interfaces (Button, Input) define
-explicit `interface ButtonProps` / `interface InputProps` types for better DX.
-
-### Component inventory
-
-**Layout:** Container, Card, XStack/YStack/ZStack (re-export), Separator, ScrollArea
-**Typography:** Heading (level 1-6), Text (body/caption/label/large variants)
-**Inputs:** Button + ButtonText, Input + InputLabel + InputError, Select, Checkbox, Switch
-**Feedback:** Spinner, Toast, Alert, Badge + BadgeText
-**Web3:** AddressDisplay, TokenAmount, TransactionButton, ChainBadge, WalletInfo
-**Composites:** MiniAppShell, ActionSheet, TokenInput
-
-### Token reference
-
-Default primary color: `#00AEFF` (GoodDollar blue).
-Token categories: `color` (28 values), `size` (0-14 + true), `space` (0-10 + true),
-`radius` (0-6 + true), `zIndex` (0-5).
+This means per-instance widget theming is a first-class runtime behavior at the provider boundary.
 
 ---
 
 ## Package: `@goodwidget/embed`
 
-**NPM name:** `@goodwidget/embed`
-**Build:** tsup -> ESM + CJS + `.d.ts`
-
 ### Key files
 
 | File | Responsibility |
 |------|----------------|
-| `src/createMiniAppElement.tsx` | `createMiniAppElement()` — Web Component factory. Returns an `HTMLElement` subclass |
-| `src/shadowStyles.ts` | `injectStylesIntoShadow()`, `getResetCSS()` — inject Tamagui CSS into Shadow DOM |
-| `src/cssPropertyBridge.ts` | `readCSSOverrides()`, `observeCSSChanges()` — read `--gw-*` CSS custom properties from host, convert to `GoodWidgetThemeOverrides` |
-| `src/bridge.ts` | `normalizePropDefs()`, `toKebabCase()`, `toCamelCase()`, `emitEvent()` |
+| [createMiniAppElement.tsx](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/embed/src/createMiniAppElement.tsx) | Web Component factory |
+| [cssPropertyBridge.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/embed/src/cssPropertyBridge.ts) | Reads `--gw-*` overrides from the host |
+| [shadowStyles.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/embed/src/shadowStyles.ts) | Shadow DOM reset and runtime style syncing |
+| [bridge.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/embed/src/bridge.ts) | attribute/prop/event bridging |
 
-### How the Web Component works
+### Web Component behavior
 
-1. `connectedCallback()` creates a Shadow DOM, injects reset CSS, creates a React root
-2. Reads CSS custom properties from the host element via `readCSSOverrides()`
-3. Sets up a MutationObserver to re-read CSS vars when `style` or `class` changes
-4. Renders `<GoodWidgetProvider>` inside the shadow root with merged overrides
-5. Public setters (`provider`, `themeOverrides`, `config`) trigger re-render
+The custom element:
 
-### CSS custom property naming convention
+1. creates a shadow root
+2. injects reset/runtime styles
+3. reads CSS custom property overrides from the host element
+4. merges those CSS overrides with any JS `themeOverrides`
+5. renders `GoodWidgetProvider`
 
-- Global tokens: `--gw-{category}-{tokenName}` (e.g. `--gw-color-primary`)
-- Component themes: `--gw-{ComponentName}-{themeKey}` (e.g. `--gw-Card-background`, `--gw-GlassCard-borderColor`)
+### CSS custom property convention
 
-CSS custom properties cascade into Shadow DOM (one of few things that cross the boundary),
-making them the most powerful zero-JS override mechanism for web hosts.
+- token overrides: `--gw-{category}-{tokenName}`
+- component theme overrides: `--gw-{ComponentName}-{themeKey}`
 
-### Theme manifest
+Examples:
 
-Every Web Component class exposes `static themeManifest` so hosts can discover what is
-overridable at runtime:
+- `--gw-color-primary`
+- `--gw-Card-borderColor`
 
-```js
-document.querySelector('good-miniapp').constructor.themeManifest
-// => { components: { Card: { themeKeys: [...], variants: [...] }, ... }, tokens: { ... } }
-```
+The manifest exposed on the custom element constructor is generated from the runtime
+component registry in `packages/ui`.
 
 ---
 
-## Override Precedence (full stack, lowest to highest)
+## Package: `@goodwidget/claim-widget`
 
-```
-1. GoodWidget framework defaults (theme.ts)
-2. Mini app author's createGoodWidgetConfig() (config prop)
-3. Mini app author's styled()/createComponent() inline defaults
-4. Host's themeOverrides (JS prop on provider or Web Component)
-5. Host's CSS custom properties (--gw-*, web only, cascades into Shadow DOM)
-6. Inline style props on individual JSX elements (only if host owns the JSX)
-```
+`packages/claim-widget` is the example publishable widget package and the best current
+reference for how a widget author is expected to use the system.
 
-For the embed path (Web Component), layers 4 and 5 are read and merged inside the
-custom element before being passed to `GoodWidgetProvider`.
+Key patterns in [ClaimWidget.tsx](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/claim-widget/src/ClaimWidget.tsx):
+
+- widget-local named components such as `ClaimCard` and `ClaimActionButton`
+- `extends` relationships for manifest lineage
+- author-level `config` support
+- host-level `themeOverrides` support
+- direct use of shared primitives from `@goodwidget/ui`
 
 ---
 
-## Build System
+## Current Examples
 
-| Package | Tool | Output |
-|---------|------|--------|
-| `@goodwidget/core` | tsup | ESM + CJS + `.d.ts` (two entry points: index, wagmi) |
-| `@goodwidget/ui` | tsup | ESM + CJS + `.d.ts` |
-| `@goodwidget/embed` | tsup | ESM + CJS + `.d.ts` |
-| `@goodwidget/claim-widget` | tsup | ESM + CJS + `.d.ts` (three entry points: index, element, register) |
-| `examples/react-web` | Vite + @vitejs/plugin-react | Static site |
-| `examples/html` | Vite | Static site (bundles widget + React into a single JS file) |
+### React web demo
 
-**Platform aliasing:** On web builds, `react-native` is aliased to `react-native-web`
-(configured in `vite.config.ts` for apps, and via `tsconfig.json` `paths` for packages).
-For native builds, no alias is needed — Tamagui handles `.native.ts` file extensions.
+[examples/react-web/src/App.tsx](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/examples/react-web/src/App.tsx) demonstrates:
 
-**Turborepo tasks:** `build` depends on `^build` (packages build before dependents).
-`dev`, `clean` are not cached.
+- preset baseline rendering
+- token overrides
+- component theme overrides
+- host `themeOverrides`
+- local inline overrides
 
-**External dependencies in tsup:** React, react-dom, react-native, react-native-web,
-tamagui, @tamagui/core, wagmi, viem are all marked external — they are peer deps the
-consumer provides.
+This is the most useful reference for understanding actual current override behavior.
+
+### Expo demo
+
+The Expo example is a real consumer of the current packages and validates the current
+Expo 52 / React 18 / React Native 0.76 / Tamagui 1.121 compatibility set.
 
 ---
 
 ## Conventions
 
-### Creating new components
+### Creating new themed primitives
 
-Always use `createComponent()` from `@goodwidget/ui`, never bare `styled()`:
+Use `createComponent()` when the component owns a theme contract or should be discoverable
+as a named override target.
 
-```ts
-import { createComponent } from '../createComponent'
-import { YStack } from 'tamagui'
+Use plain React composition when the component is mostly orchestration or state.
 
-export const MyWidget = createComponent(YStack, {
-  name: 'MyWidget',               // REQUIRED — enables theme targeting
-  extends: 'Card',                // optional — for manifest lineage
-  backgroundColor: '$background',  // use theme keys, not raw colors
-  variants: { ... } as const,
-})
-```
+### Styling rules
 
-### File naming
+- prefer semantic theme keys for reusable visual styling
+- use token scale references for spacing, sizing, and radius
+- avoid hardcoded colors in shared primitives unless they are deliberate exceptions
+- treat component names and sub-theme names as API surface once exposed to hosts
 
-- Components: `PascalCase.ts` or `PascalCase.tsx` (use `.tsx` only if the file contains JSX)
-- Non-component modules: `camelCase.ts`
-- One component per file in `packages/ui/src/components/`
+### File placement
 
-### Style values
+- `packages/ui/src/components/` should hold stable production-aligned primitives
+- `packages/ui/src/components-test/` currently still contains many exported primitives in transition
 
-- Always reference Tamagui theme keys (`$background`, `$color`, `$borderColor`) rather than
-  hardcoded colors in component definitions. This is what makes the theme override chain work.
-- Use token references (`$3`, `$4`) for spacing and sizing, not raw numbers.
-
-### Avoiding circular deps
-
-`@goodwidget/ui` is the leaf. `@goodwidget/core` depends on it. Never add core as a dep of ui.
-Shared types live in `ui/src/configTypes.ts`. The `TransactionButton` component in ui defines
-its own minimal `EIP1193Provider` interface rather than importing from core.
-
-### Exports
-
-Every package has a barrel `src/index.ts`. All public API must be re-exported from there.
-Types used by other packages should be explicitly exported with `export type`.
+That second point is not ideal, but it is the current truth and the docs should reflect it honestly.
 
 ---
 
 ## Data Flow
 
-```
-Host wallet/dapp
+```text
+Host / wallet / app
   |
-  |-- sets .provider (EIP-1193)
-  |-- sets .themeOverrides or CSS custom properties
-  |
-  v
-[Web Component shell]  (packages/embed)
-  |
-  |-- readCSSOverrides() reads --gw-* vars
-  |-- deepMergeOverrides(themeOverrides, cssOverrides)
+  |-- provider
+  |-- config
+  |-- themeOverrides
+  |-- CSS custom properties (web component path)
   |
   v
-[GoodWidgetProvider]  (packages/core)
+Web Component shell (optional)
   |
-  |-- detectHost() resolves wallet provider
-  |-- mergeThemeOverrides(authorConfig, hostOverrides)
-  |-- createGoodWidgetConfig(merged) -> createTamagui(...)
-  |
-  v
-[TamaguiProvider]  (with merged config)
+  |-- read CSS overrides
+  |-- merge CSS overrides with JS host overrides
   |
   v
-[UI Components]  (packages/ui)
+GoodWidgetProvider
   |
-  |-- useWallet() for address, chainId, connect
-  |-- useHost() for host environment, capabilities
-  |-- provider.request() for EIP-1193 calls
+  |-- detect host/provider
+  |-- merge author config with host overrides
+  |-- createGoodWidgetConfig()
   |
   v
-Blockchain
+TamaguiProvider
+  |
+  v
+Named GoodWidget components
+  |
+  v
+Wallet / chain interactions
 ```
 
 ---
 
-## Packaging Widgets for Distribution
+## Known Limitations
 
-See `docs/PACKAGING.md` for the full guide. In summary, a publishable widget has three entry
-points:
-
-| Entry | Purpose |
-|-------|---------|
-| `index.ts` | React component + types (used by React and RN consumers) |
-| `element.ts` | Web Component class (for hosts that register it themselves) |
-| `register.ts` | Side-effect import that auto-registers the custom element |
-
-See `packages/claim-widget/` for a complete working example.
+- Many exported primitives still live under `packages/ui/src/components-test/`.
+- `Checkbox`, `Switch`, `Select`, `Input`, `Button`, `Alert`, and several composites still use custom `Stack`-based behavior rather than Tamagui-native primitives.
+- The runtime manifest is generated in memory rather than from a build-time extracted artifact.
+- `createComponent()` still returns `any` because Tamagui variant generics do not survive the current wrapper cleanly.
+- Multi-widget theming is supported through provider boundaries, but broad token overrides are still broad design-system inputs and should not be described as narrowly targeted styling.
 
 ---
 
-## Known Limitations and Future Work
+## Related docs
 
-- **No SSR support yet.** Tamagui CSS injection and Shadow DOM setup are client-only.
-- **React Native target is via react-native-web aliasing only.** A true RN build with
-  Metro/Expo would need `.native.ts` file variants for components that diverge.
-- **`createComponent()` returns `any`.** Tamagui's `styled()` generics encode variant types
-  via deep conditional types that can't survive a wrapper function. Explicit prop interfaces
-  (see `ButtonProps`, `InputProps`) are the workaround for components with complex APIs.
-- **Theme manifest is runtime-only.** A build-time extraction step (e.g. Vite plugin) could
-  generate a static JSON manifest for better DX.
-- **wagmi connector is a descriptor, not a full createConnector() wrapper.** Consumers need
-  to adapt it with wagmi's `createConnector()` for full integration.
-- **No Tamagui compiler optimization.** The `@tamagui/vite-plugin` is not yet wired into
-  the tsup builds. Adding it would extract static styles to CSS at build time.
-- **Peer dependency warnings.** Tamagui pulls in `react-native` 0.84 which expects React 19;
-  we use React 18. These are harmless for web-only usage but should be resolved for RN builds.
+- [AGENTS.md](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/AGENTS.md)
+- [agent-next-steps/theme-propagation-consistency-task.md](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/agent-next-steps/theme-propagation-consistency-task.md)
+- [agent-next-steps/use-tamagui-primitives.md](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/agent-next-steps/use-tamagui-primitives.md)
