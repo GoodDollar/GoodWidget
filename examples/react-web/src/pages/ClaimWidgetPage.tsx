@@ -91,7 +91,7 @@ export function ClaimWidgetPage() {
           </Text>
           {/* data-testid used by Playwright smoke test */}
           <YStack data-testid="ClaimWidget-default">
-            <ClaimWidget />
+            <ClaimWidget provider={mockProvider} />
           </YStack>
         </Card>
 
@@ -102,7 +102,7 @@ export function ClaimWidgetPage() {
           </Heading>
           <Text secondary>Token + component theme overrides applied via `themeOverrides`.</Text>
           <YStack data-testid="ClaimWidget-cobalt">
-            <ClaimWidget themeOverrides={cobaltOverrides} />
+            <ClaimWidget provider={mockProvider} themeOverrides={cobaltOverrides} />
           </YStack>
         </Card>
 
@@ -113,7 +113,7 @@ export function ClaimWidgetPage() {
           </Heading>
           <Text secondary>Demonstrates per-instance isolation — each widget has its own branding.</Text>
           <YStack data-testid="ClaimWidget-teal">
-            <ClaimWidget themeOverrides={tealOverrides} />
+            <ClaimWidget provider={mockProvider} themeOverrides={tealOverrides} />
           </YStack>
         </Card>
 
