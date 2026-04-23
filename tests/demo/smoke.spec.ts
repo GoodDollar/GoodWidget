@@ -91,15 +91,26 @@ for (const { path, testId } of COMPONENT_SMOKE_CASES) {
 
 // ─── ClaimWidget route ────────────────────────────────────────────────────────
 
-test('/widget/claim renders ClaimWidget in mock-connected state', async ({ page }) => {
+test('/widget/claim — default tab renders ClaimWidget in mock-connected state', async ({ page }) => {
   await goto(page, '/widget/claim')
 
-  // The default ClaimWidget instance must be visible
+  // Default tab is active by default — its ClaimWidget must be visible
   await expect(page.getByTestId('ClaimWidget-default')).toBeVisible()
+  await page.screenshot({ path: 'test-results/widget-claim-default.png' })
+})
 
-  // The cobalt and teal override instances must also render
+test('/widget/claim — cobalt tab renders ClaimWidget with cobalt overrides', async ({ page }) => {
+  await goto(page, '/widget/claim')
+
+  await page.getByTestId('tab-cobalt').click()
   await expect(page.getByTestId('ClaimWidget-cobalt')).toBeVisible()
-  await expect(page.getByTestId('ClaimWidget-teal')).toBeVisible()
+  await page.screenshot({ path: 'test-results/widget-claim-cobalt.png' })
+})
 
-  await page.screenshot({ path: 'test-results/widget-claim.png' })
+test('/widget/claim — teal tab renders ClaimWidget with teal overrides', async ({ page }) => {
+  await goto(page, '/widget/claim')
+
+  await page.getByTestId('tab-teal').click()
+  await expect(page.getByTestId('ClaimWidget-teal')).toBeVisible()
+  await page.screenshot({ path: 'test-results/widget-claim-teal.png' })
 })

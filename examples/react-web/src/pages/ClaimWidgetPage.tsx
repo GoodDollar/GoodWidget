@@ -6,15 +6,16 @@
  * This page uses the mock EIP-1193 provider so the ClaimWidget renders in
  * a visibly "connected" state without requiring a real browser wallet.
  *
- * The page shows:
- *   1. Default ClaimWidget (preset baseline)
- *   2. ClaimWidget with a cobalt token override
- *   3. ClaimWidget with a teal host override
+ * Each tab renders exactly one ClaimWidget at a time to avoid Tamagui theme
+ * clashing that occurs when multiple GoodWidgetProviders with different
+ * themeOverrides are mounted simultaneously on the same page.
  *
- * All three instances are isolated at the GoodWidgetProvider boundary,
- * demonstrating per-instance widget theming.
+ * Tabs:
+ *   Default  — no overrides, preset baseline
+ *   Cobalt   — cobalt brand themeOverrides
+ *   Teal     — teal brand themeOverrides
  */
-import React from 'react'
+import React, { useState } from 'react'
 import { GoodWidgetProvider } from '@goodwidget/core'
 import { ClaimWidget } from '@goodwidget/claim-widget'
 import {
@@ -23,8 +24,11 @@ import {
   Heading,
   Text,
   Alert,
+  Button,
+  ButtonText,
   Badge,
   BadgeText,
+  XStack,
   YStack,
 } from '@goodwidget/ui'
 import { createMockEip1193Provider, MOCK_ADDRESS, MOCK_CHAIN_ID } from '../mock/mockEip1193'
@@ -68,12 +72,23 @@ const tealOverrides = {
   },
 }
 
+type TabKey = 'default' | 'cobalt' | 'teal'
+
+const tabs: { key: TabKey; label: string }[] = [
+  { key: 'default', label: 'Default' },
+  { key: 'cobalt', label: 'Cobalt' },
+  { key: 'teal', label: 'Teal' },
+]
+
 export function ClaimWidgetPage() {
+  const [activeTab, setActiveTab] = useState<TabKey>('default')
+
   return (
     /*
      * Outer provider: supplies the mock wallet and base theme for the page shell.
-     * Each ClaimWidget below wraps its own GoodWidgetProvider at its boundary
-     * (that is the ClaimWidget contract — see packages/claim-widget/src/ClaimWidget.tsx).
+     * The active-tab ClaimWidget mounts its own inner GoodWidgetProvider, so only
+     * one set of themeOverrides is active in the tree at any time — this avoids
+     * Tamagui theme clashing when multiple providers share the same page.
      */
     <GoodWidgetProvider provider={mockProvider} defaultTheme="light">
       <MiniAppShell title="ClaimWidget Demo">
@@ -83,49 +98,87 @@ export function ClaimWidgetPage() {
           message={`Demo uses stable mock address ${MOCK_ADDRESS.slice(0, 8)}… on chain ${MOCK_CHAIN_ID} (Celo).`}
         />
 
+        {/* Tab bar — data-testid attributes for Playwright navigation */}
+        <XStack gap="$1" flexWrap="wrap">
+          {tabs.map((tab) => (
+            <Button
+              key={tab.key}
+              size="sm"
+              variant={activeTab === tab.key ? 'primary' : 'secondary'}
+              onPress={() => setActiveTab(tab.key)}
+              data-testid={`tab-${tab.key}`}
+            >
+              <ButtonText color={activeTab === tab.key ? 'white' : 'grey'}>
+                {tab.label}
+              </ButtonText>
+            </Button>
+          ))}
+        </XStack>
+
         {/* ---------------------------------------------------------------- Default */}
-        <Card>
-          <Heading level={4}>Default Preset</Heading>
-          <Text secondary>
-            No runtime overrides — the GoodWalletV2 preset drives all tokens and themes.
-          </Text>
-          {/* data-testid used by Playwright smoke test */}
-          <YStack data-testid="ClaimWidget-default">
-            <ClaimWidget provider={mockProvider} />
+        {activeTab === 'default' && (
+          <YStack gap="$4">
+            <Card>
+              <Heading level={4}>Default Preset</Heading>
+              <Text secondary>
+                No runtime overrides — the GoodWalletV2 preset drives all tokens and themes.
+              </Text>
+            </Card>
+            {/* data-testid used by Playwright smoke test */}
+            <YStack data-testid="ClaimWidget-default">
+              <ClaimWidget provider={mockProvider} />
+            </YStack>
           </YStack>
-        </Card>
+        )}
 
         {/* ---------------------------------------------------------------- Cobalt */}
-        <Card borderColor="#2E5DE8" borderWidth={2}>
-          <Heading level={4} color="#2E5DE8">
-            Cobalt Host Override
-          </Heading>
-          <Text secondary>Token + component theme overrides applied via `themeOverrides`.</Text>
-          <YStack data-testid="ClaimWidget-cobalt">
-            <ClaimWidget provider={mockProvider} themeOverrides={cobaltOverrides} />
+        {activeTab === 'cobalt' && (
+          <YStack gap="$4">
+            <Card>
+              <Heading level={4} color="#2E5DE8">
+                Cobalt Host Override
+              </Heading>
+              <Text secondary>
+                Token + component theme overrides applied via `themeOverrides`. Only this widget is
+                mounted so its theme does not clash with other instances.
+              </Text>
+            </Card>
+            {/* key forces a clean remount when the tab changes */}
+            <YStack data-testid="ClaimWidget-cobalt">
+              <ClaimWidget key="cobalt" provider={mockProvider} themeOverrides={cobaltOverrides} />
+            </YStack>
           </YStack>
-        </Card>
+        )}
 
         {/* ----------------------------------------------------------------- Teal */}
-        <Card borderColor="#00A884" borderWidth={2}>
-          <Heading level={4} color="#00A884">
-            Teal Host Override
-          </Heading>
-          <Text secondary>Demonstrates per-instance isolation — each widget has its own branding.</Text>
-          <YStack data-testid="ClaimWidget-teal">
-            <ClaimWidget provider={mockProvider} themeOverrides={tealOverrides} />
+        {activeTab === 'teal' && (
+          <YStack gap="$4">
+            <Card>
+              <Heading level={4} color="#00A884">
+                Teal Host Override
+              </Heading>
+              <Text secondary>
+                A different brand palette applied via `themeOverrides`. Switching tabs unmounts the
+                previous widget before mounting this one, keeping the Tamagui theme registry clean.
+              </Text>
+            </Card>
+            <YStack data-testid="ClaimWidget-teal">
+              <ClaimWidget key="teal" provider={mockProvider} themeOverrides={tealOverrides} />
+            </YStack>
           </YStack>
-        </Card>
+        )}
 
         {/* ----------------------------------------------------------------- Info */}
         <Card>
-          <Heading level={5}>Instance isolation</Heading>
+          <Heading level={5}>Why tabs?</Heading>
           <Text secondary>
-            All three ClaimWidget instances above are isolated at the GoodWidgetProvider boundary.
-            Each computes its own Tamagui config from the effective token + theme set.
+            Tamagui resolves theme tokens at mount time. Rendering multiple
+            `GoodWidgetProvider` trees with different `themeOverrides` simultaneously causes the
+            last-mounted provider to win for shared theme keys. Tabs ensure only one widget is
+            active at a time, giving each instance a clean, isolated theme context.
           </Text>
           <Badge type="info" style={{ alignSelf: 'flex-start' }}>
-            <BadgeText>See /theme-overrides for a tabbed walkthrough</BadgeText>
+            <BadgeText>See /theme-overrides for override precedence details</BadgeText>
           </Badge>
         </Card>
       </MiniAppShell>
