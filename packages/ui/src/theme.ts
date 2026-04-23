@@ -32,11 +32,15 @@ export const defaultTokenValues = {
     textSecondary: '#71727A',
     textSecondaryDark: '#A0A0A0',
     // Mid-level soft text — between primary text and muted/secondary text
-    textSoft: '#AAAAAA',
-    textSoftDark: '#AAAAAA',
+    // Light mode: medium gray readable on white backgrounds
+    textSoft: '#888888',
+    // Dark mode: lighter gray for readability on dark backgrounds
+    textSoftDark: '#BBBBBB',
     // Dim text — below secondary, used for tertiary labels
-    textDim: '#666666',
-    textDimDark: '#666666',
+    // Light mode: readable but subdued on white backgrounds
+    textDim: '#555555',
+    // Dark mode: mid-level gray on dark backgrounds
+    textDimDark: '#888888',
     border: '#E0E0E0',
     borderDark: '#333333',
     overlay: 'rgba(0,0,0,0.5)',

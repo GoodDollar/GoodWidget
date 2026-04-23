@@ -171,7 +171,7 @@ export function GoodWidgetDialog({ renderAccept, renderReject }: GoodWidgetDialo
   async function handleAccept() {
     if (!state.onAccept) return
     const result = state.onAccept()
-    if (result && typeof result.then === 'function') {
+    if (result instanceof Promise) {
       updateDialogStatus('pending')
       try {
         await result

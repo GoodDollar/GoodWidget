@@ -54,25 +54,26 @@ export const ButtonFrame = createComponent(Stack, {
 
   variants: {
     variant: {
-      // Solid filled — driven by light_Button / dark_Button component theme
+      // Solid filled — driven by light_Button / dark_Button component theme.
+      // Inherits the $full pill radius from ButtonFrame default.
       primary: {},
-      // Transparent with border — resets theme so border uses parent text color
+      // Transparent with border — inherits $full pill radius for brand consistency.
       secondary: {
         backgroundColor: '$backgroundTransparent',
         borderWidth: 1,
         borderColor: '$borderColor',
       },
-      // Transparent with colored border
+      // Transparent with colored border — inherits $full pill radius.
       outline: {
         backgroundColor: '$backgroundTransparent',
         borderWidth: 1,
         borderColor: '$color',
       },
-      // Transparent, no border — hover changes bg only
+      // Transparent, no border — inherits $full pill radius; hover changes bg only.
       ghost: {
         backgroundColor: '$backgroundTransparent',
       },
-      // Badge/chip style — pill shape, muted bg, colored text, uppercase 11px
+      // Badge/chip style — explicit $full radius, muted bg, colored text
       pill: {
         height: 35,
         borderRadius: '$full',
@@ -81,24 +82,25 @@ export const ButtonFrame = createComponent(Stack, {
         borderWidth: 0,
         gap: '$1',
       },
-      // Full-width text link — no bg change on hover, opacity instead
+      // Full-width text link — no bg change on hover; no visible radius needed.
       text: {
         backgroundColor: '$backgroundTransparent',
         borderWidth: 0,
+        borderRadius: 0,
         paddingHorizontal: 0,
         height: 'auto',
         hoverStyle: { opacity: 0.7, backgroundColor: '$backgroundTransparent' },
         pressStyle: { opacity: 0.5, backgroundColor: '$backgroundTransparent' },
       },
-      // Icon + label row — full width, left-aligned, 42px min height
+      // Icon + label row — smaller $2 radius for a rectangular row appearance.
       list: {
         backgroundColor: '$backgroundTransparent',
         borderWidth: 0,
+        borderRadius: '$2',
         justifyContent: 'flex-start',
         width: '100%',
         minHeight: 42,
         paddingHorizontal: '$3',
-        borderRadius: '$2',
         gap: '$3',
         hoverStyle: { backgroundColor: '$backgroundHover' },
         pressStyle: { backgroundColor: '$backgroundPress', opacity: 1 },

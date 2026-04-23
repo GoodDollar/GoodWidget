@@ -186,9 +186,10 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
       colorPress: color.textDark,
       colorFocus: color.textDark,
       colorTransparent: color.transparent,
-      // Soft text — same as light for dark-only GW preset
+      // GoodWalletV2 is dark-only; soft/dim text must remain readable against
+      // the dark background (#13151C). grey350 (#CCC) and grey600 (#4B5563)
+      // provide the correct contrast levels for soft and dim content respectively.
       colorSoft: color.grey350,
-      // Dim text — same as light for dark-only GW preset
       colorDim: color.grey600,
 
       borderColor: color.borderDark,

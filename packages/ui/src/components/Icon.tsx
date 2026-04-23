@@ -101,6 +101,17 @@ const COLOR_THEME_KEY: Record<IconColor, string> = {
   inherit: 'currentColor',
 }
 
+// Inject the spin keyframe once at module load (web only)
+let _spinStyleInjected = false
+function _ensureSpinStyle() {
+  if (_spinStyleInjected || typeof document === 'undefined') return
+  _spinStyleInjected = true
+  const style = document.createElement('style')
+  style.id = 'gw-icon-spin'
+  style.textContent = '@keyframes gw-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }'
+  document.head.appendChild(style)
+}
+
 export interface IconProps {
   /** Icon name from the built-in SVG registry */
   name: IconName
@@ -122,7 +133,7 @@ export interface IconProps {
  * with the rest of the design system. Color resolves through the active
  * Tamagui theme so icons adapt automatically to theme and preset changes.
  *
- * Spin: uses a CSS keyframe animation injected once on first render (web only).
+ * Spin: uses a CSS keyframe animation injected once at module load time (web only).
  * Round: adds a $full borderRadius and light background pad for icon-in-badge use.
  */
 export function Icon({
@@ -149,16 +160,8 @@ export function Icon({
     }
   }
 
-  // Inject the spin keyframe once into the document head (web only)
-  if (spin && typeof document !== 'undefined') {
-    const styleId = 'gw-icon-spin'
-    if (!document.getElementById(styleId)) {
-      const style = document.createElement('style')
-      style.id = styleId
-      style.textContent = '@keyframes gw-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }'
-      document.head.appendChild(style)
-    }
-  }
+  // Inject the spin keyframe once (module-level flag avoids repeated DOM lookups)
+  if (spin) _ensureSpinStyle()
 
   const pathArray = Array.isArray(paths) ? paths : paths ? [paths] : []
 

@@ -30,6 +30,8 @@ type ToastListener = (toasts: ToastItem[]) => void
 
 let _toasts: ToastItem[] = []
 const _listeners: Set<ToastListener> = new Set()
+// Monotonically increasing counter — avoids Math.random() collisions
+let _toastCounter = 0
 
 function _notify() {
   const snapshot = [..._toasts]
@@ -38,7 +40,7 @@ function _notify() {
 
 /** Add a new toast to the queue. Returns the toast id for later updates. */
 export function createToast(config: ToastConfig): string {
-  const id = Math.random().toString(36).slice(2, 9)
+  const id = String(++_toastCounter)
   _toasts = [..._toasts, { duration: 4000, ...config, id }]
   _notify()
   return id
@@ -117,30 +119,26 @@ const ToastFrame = createComponent(Stack, {
 // ProgressBar — animated bottom bar for auto-close toasts
 // ---------------------------------------------------------------------------
 
+// Inject the progress keyframe once at module load (web only)
+let _progressStyleInjected = false
+function _ensureProgressStyle() {
+  if (_progressStyleInjected || typeof document === 'undefined') return
+  _progressStyleInjected = true
+  const style = document.createElement('style')
+  style.id = 'gw-toast-progress'
+  style.textContent = '@keyframes gw-toast-progress { from { width: 100%; } to { width: 0%; } }'
+  document.head.appendChild(style)
+}
+
 interface ProgressBarProps {
   duration: number
 }
 
 /**
  * ProgressBar — thin bottom bar that shrinks from 100% to 0% over `duration` ms.
- * Uses CSS animation via a style tag injected once into the document head.
  */
 function ProgressBar({ duration }: ProgressBarProps) {
-  // Inject the shrink keyframe once
-  if (typeof document !== 'undefined') {
-    const styleId = 'gw-toast-progress'
-    if (!document.getElementById(styleId)) {
-      const style = document.createElement('style')
-      style.id = styleId
-      style.textContent = [
-        '@keyframes gw-toast-progress {',
-        '  from { width: 100%; }',
-        '  to   { width: 0%; }',
-        '}',
-      ].join(' ')
-      document.head.appendChild(style)
-    }
-  }
+  _ensureProgressStyle()
 
   return (
     <Stack
@@ -328,3 +326,5 @@ export function Toast({ message, status, duration = 3000, onDismiss, visible = t
     </ToastFrame>
   )
 }
+
+
