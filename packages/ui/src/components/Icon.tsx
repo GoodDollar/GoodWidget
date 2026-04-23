@@ -101,6 +101,24 @@ const COLOR_THEME_KEY: Record<IconColor, string> = {
   inherit: 'currentColor',
 }
 
+/**
+ * Resolves a semantic icon color role to a concrete CSS color string by
+ * looking up the corresponding key in the active Tamagui theme.
+ * Falls back to 'currentColor' if the theme value cannot be determined.
+ */
+function resolveIconStrokeColor(
+  theme: ReturnType<typeof useTheme>,
+  color: IconColor,
+): string {
+  if (color === 'inherit') return 'currentColor'
+  const themeKey = COLOR_THEME_KEY[color].replace('$', '')
+  const themeVal = theme[themeKey as keyof typeof theme]
+  if (themeVal && typeof themeVal === 'object' && 'val' in themeVal) {
+    return String(themeVal.val)
+  }
+  return 'currentColor'
+}
+
 // Inject the spin keyframe once at module load (web only)
 let _spinStyleInjected = false
 function _ensureSpinStyle() {
@@ -148,17 +166,7 @@ export function Icon({
   const px = SIZE_PX[size]
   const paths = SVG_PATHS[name]
 
-  // Resolve the stroke color: prefer theme value, fall back to currentColor
-  let strokeColor = 'currentColor'
-  if (color === 'inherit') {
-    strokeColor = 'currentColor'
-  } else {
-    const themeKey = COLOR_THEME_KEY[color].replace('$', '')
-    const themeVal = theme[themeKey as keyof typeof theme]
-    if (themeVal && typeof themeVal === 'object' && 'val' in themeVal) {
-      strokeColor = String(themeVal.val)
-    }
-  }
+  const strokeColor = resolveIconStrokeColor(theme, color)
 
   // Inject the spin keyframe once (module-level flag avoids repeated DOM lookups)
   if (spin) _ensureSpinStyle()

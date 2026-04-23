@@ -16,7 +16,7 @@ import { createComponent } from '../createComponent'
  *   - noWrap     → prevent text from wrapping
  */
 export const Text = createComponent(TamaguiText, {
-  name: 'GWText',
+  name: 'Text',
   fontFamily: '$body',
   color: '$color',
   fontSize: '$3',

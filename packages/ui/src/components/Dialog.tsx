@@ -17,6 +17,8 @@ export interface DialogConfig {
   body?: string
   /** Optional image URL displayed above the title */
   image?: string
+  /** Accessible alt text for the image — required when image is provided */
+  imageAlt?: string
   acceptLabel?: string
   rejectLabel?: string
   onAccept?: () => void | Promise<void>
@@ -171,7 +173,9 @@ export function GoodWidgetDialog({ renderAccept, renderReject }: GoodWidgetDialo
   async function handleAccept() {
     if (!state.onAccept) return
     const result = state.onAccept()
-    if (result instanceof Promise) {
+    // Use Promise.resolve() identity check to reliably detect thenables
+    // across realms (iframes, different execution contexts)
+    if (result !== undefined && result !== null && Promise.resolve(result) === result) {
       updateDialogStatus('pending')
       try {
         await result
@@ -212,12 +216,12 @@ export function GoodWidgetDialog({ renderAccept, renderReject }: GoodWidgetDialo
             </Stack>
           )}
 
-          {/* Optional image */}
+          {/* Optional image — provide imageAlt in DialogConfig for accessibility */}
           {state.image ? (
             <Stack alignItems="center">
               <img
                 src={state.image}
-                alt=""
+                alt={state.imageAlt ?? ''}
                 style={{ maxWidth: '100%', borderRadius: 8 }}
               />
             </Stack>

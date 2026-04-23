@@ -201,13 +201,13 @@ export interface ButtonProps {
 }
 
 /**
- * The light_Button theme sets color to white for primary buttons on a colored
- * background. For secondary/outline/ghost/text variants the background is
- * transparent, so we reset the theme so children (ButtonText) pick up the
- * parent theme's text color instead.
- *
- * Loading state: GoodWidget uses Spinner rather than V2's shimmer overlay.
- * Pass a Spinner as children when showing a loading state.
+ * The light_Button / dark_Button component theme sets `color: white` for
+ * primary buttons rendered on the brand-colored background. Non-primary
+ * variants (secondary, outline, ghost, text, list) use transparent or no
+ * background, so the inherited white would be invisible. `Theme reset`
+ * discards the Button component theme, letting children (ButtonText) pick
+ * up the parent theme's text color — which is the correct readable color
+ * for transparent-background buttons.
  */
 export function Button({ variant = 'primary', children, ...props }: ButtonProps) {
   const needsReset = variant !== 'primary'
