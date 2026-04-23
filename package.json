@@ -5,9 +5,11 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
-    "clean": "turbo run clean"
+    "clean": "turbo run clean",
+    "test:demo": "playwright test tests/demo"
   },
   "devDependencies": {
+    "@playwright/test": "^1.44.0",
     "turbo": "^2.4.0",
     "typescript": "^5.7.0",
     "eslint": "^9.20.0",

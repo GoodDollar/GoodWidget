@@ -8,3 +8,5 @@ dist/
 coverage/
 .vite/
 .codex
+test-results/
+playwright-report/
