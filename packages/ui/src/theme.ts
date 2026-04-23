@@ -31,6 +31,12 @@ export const defaultTokenValues = {
     textDark: '#E0E0E0',
     textSecondary: '#71727A',
     textSecondaryDark: '#A0A0A0',
+    // Mid-level soft text — between primary text and muted/secondary text
+    textSoft: '#AAAAAA',
+    textSoftDark: '#AAAAAA',
+    // Dim text — below secondary, used for tertiary labels
+    textDim: '#666666',
+    textDimDark: '#666666',
     border: '#E0E0E0',
     borderDark: '#333333',
     overlay: 'rgba(0,0,0,0.5)',
@@ -53,6 +59,14 @@ export const defaultTokenValues = {
     13: 64,
     14: 80,
     maxContentWidth: 768,
+    // Icon sizes — mirrors the preset icon token scale
+    icon2xs: 12,
+    iconXs: 16,
+    iconSm: 20,
+    iconMd: 24,
+    iconLg: 32,
+    iconXl: 48,
+    icon2xl: 64,
     true: 40,
   },
   space: {
@@ -77,6 +91,8 @@ export const defaultTokenValues = {
     4: 16,
     5: 20,
     6: 24,
+    // Full pill radius — used by Button default and round variants
+    full: 9999,
     true: 8,
   },
   zIndex: {
@@ -119,6 +135,10 @@ export function createThemeValues(
       colorPress: color.textSecondary,
       colorFocus: color.text,
       colorTransparent: color.transparent,
+      // Soft text — between primary text and muted; for secondary labels
+      colorSoft: color.textSoft,
+      // Dim text — below secondary; for tertiary/helper labels
+      colorDim: color.textDim,
 
       borderColor: color.border,
       borderColorHover: color.primary,
@@ -147,6 +167,10 @@ export function createThemeValues(
       colorPress: color.textSecondaryDark,
       colorFocus: color.textDark,
       colorTransparent: color.transparent,
+      // Soft text — between primary text and muted; for secondary labels
+      colorSoft: color.textSoftDark ?? color.textSoft,
+      // Dim text — below secondary; for tertiary/helper labels
+      colorDim: color.textDimDark ?? color.textDim,
 
       borderColor: color.borderDark,
       borderColorHover: color.primary,
@@ -304,6 +328,34 @@ export function createThemeValues(
       shadowColorHover: 'rgba(0,174,255,0.08)',
       shadowColorPress: 'rgba(0,0,0,0.15)',
       shadowColorFocus: 'rgba(0,174,255,0.12)',
+    },
+
+    // Toast component theme — inherits from Card but scoped to notification context
+    light_Toast: {
+      background: color.surface ?? color.white,
+      color: color.text,
+      borderColor: color.border,
+      shadowColor: 'rgba(0,0,0,0.12)',
+    },
+    dark_Toast: {
+      background: color.surfaceDark,
+      color: color.textDark,
+      borderColor: color.borderDark,
+      shadowColor: 'rgba(0,0,0,0.32)',
+    },
+
+    // Dialog component theme — modal overlay container
+    light_Dialog: {
+      background: color.surface ?? color.white,
+      color: color.text,
+      borderColor: color.border,
+      shadowColor: 'rgba(0,0,0,0.16)',
+    },
+    dark_Dialog: {
+      background: color.surfaceDark,
+      color: color.textDark,
+      borderColor: color.borderDark,
+      shadowColor: 'rgba(0,0,0,0.4)',
     },
   }
 }

@@ -155,6 +155,10 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
       colorPress: color.white,
       colorFocus: color.white,
       colorTransparent: color.transparent,
+      // Soft text — between primary text and muted (#CCC / grey350)
+      colorSoft: color.grey350,
+      // Dim text — below secondary; tertiary labels (#4B5563 / grey600)
+      colorDim: color.grey600,
 
       borderColor: color.border,
       borderColorHover: color.borderLight,
@@ -182,6 +186,10 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
       colorPress: color.textDark,
       colorFocus: color.textDark,
       colorTransparent: color.transparent,
+      // Soft text — same as light for dark-only GW preset
+      colorSoft: color.grey350,
+      // Dim text — same as light for dark-only GW preset
+      colorDim: color.grey600,
 
       borderColor: color.borderDark,
       borderColorHover: color.borderLight,
@@ -305,6 +313,34 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
     light_TokenAmountText: {
       color: color.white,
       secondaryColor: color.grey350,
+    },
+
+    // Toast — elevated notification surface inheriting from the surface token
+    light_Toast: {
+      background: color.surface,
+      color: color.white,
+      borderColor: color.border,
+      shadowColor: 'rgba(5, 10, 24, 0.45)',
+    },
+    dark_Toast: {
+      background: color.surface,
+      color: color.white,
+      borderColor: color.border,
+      shadowColor: 'rgba(3, 7, 18, 0.6)',
+    },
+
+    // Dialog — modal container surface
+    light_Dialog: {
+      background: color.backgroundRaised,
+      color: color.white,
+      borderColor: color.border,
+      shadowColor: 'rgba(5, 10, 24, 0.7)',
+    },
+    dark_Dialog: {
+      background: color.backgroundRaised,
+      color: color.white,
+      borderColor: color.border,
+      shadowColor: 'rgba(3, 7, 18, 0.8)',
     },
   },
   typography: {
