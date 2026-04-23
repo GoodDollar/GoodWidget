@@ -37,17 +37,14 @@ export { Container } from './components-test/Container'
 export { Card } from './components/Card'
 export { GlowCard } from './components/GlowCard'
 export { XStack, YStack, ZStack } from './components-test/Stacks'
-// Separator — now in components/ with size and color variants
 export { Separator } from './components/Separator'
 export { ScrollArea } from './components-test/ScrollArea'
 
 // Typography
 export { Heading } from './components-test/Heading'
-// Text — now in components/ with truncate, noWrap, colorSoft, colorDim variants
 export { Text } from './components/Text'
 
 // Inputs
-// Button — now in components/ with pill, icon, text, list variants
 export { Button, ButtonFrame, ButtonText, PillText } from './components/Button'
 export type { ButtonProps } from './components/Button'
 export { Input, InputFrame, InputLabel, InputError } from './components-test/Input'
@@ -59,7 +56,6 @@ export { Switch } from './components-test/Switch'
 
 // Feedback
 export { Spinner } from './components-test/Spinner'
-// Toast — now in components/ with ToastContainer, toastStore, status variant
 export {
   Toast,
   ToastContainer,
