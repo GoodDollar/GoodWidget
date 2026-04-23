@@ -556,3 +556,45 @@ When reviewing or changing this repo:
 - treat multi-widget isolation as a product requirement, not an edge case
 - treat public override target names as API, not implementation trivia
 - if a change makes examples easier but weakens the architecture, reject that change
+
+## Demo Environment (for agents and reviewers)
+
+`examples/react-web` is the primary demo lab for inspecting components and widget flows.
+
+**Starting the demo:**
+
+```sh
+pnpm install && pnpm build
+pnpm --filter @goodwidget/example-react-web dev
+# → http://localhost:3000
+```
+
+**Route map:**
+
+| Route | What it shows |
+|-------|--------------|
+| `/` | Link grid to all routes |
+| `/components/:name` | Per-primitive demo (Button, Input, Alert, Badge, …) |
+| `/widget/claim` | ClaimWidget with default, cobalt, and teal overrides |
+| `/theme-overrides` | 5-tab OverrideShowcase (Default / Tokens / Component / Host / Inline) |
+
+**Wallet-aware pages** (WalletInfo, AddressDisplay, ChainBadge, ClaimWidget) use a mock
+EIP-1193 provider defined in `examples/react-web/src/mock/mockEip1193.ts` that returns:
+- address: `0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045`
+- chain: `42220` (Celo mainnet)
+
+**Running Playwright smoke tests:**
+
+```sh
+pnpm test:demo
+```
+
+**Full documentation:** [docs/demo-environment.md](docs/demo-environment.md)
+
+**data-testid convention:**
+- `ComponentName-variant`  e.g. `Button-primary`, `Alert-error`
+- `tab-<key>`  e.g. `tab-default`, `tab-host`  (theme override tabs)
+- `nav-<Name>`  e.g. `nav-Button`  (index page nav links)
+
+**Cloud agent bootstrap** is in `.github/workflows/copilot-setup-steps.yml`.
+It installs pnpm, dependencies, builds packages, and installs the Playwright Chromium browser.

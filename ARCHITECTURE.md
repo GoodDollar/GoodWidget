@@ -33,6 +33,7 @@ GoodWidget/
   pnpm-workspace.yaml
   turbo.json
   tsconfig.base.json
+  playwright.config.ts   # Playwright config targeting localhost:3000
 
   packages/
     core/           # GoodWidgetProvider, hooks, host detection, wallet context
@@ -41,9 +42,28 @@ GoodWidget/
     claim-widget/   # Example widget package using core + ui + embed
 
   examples/
-    react-web/      # override and theming demo
+    react-web/      # route-based demo lab (primary demo environment)
+      src/
+        App.tsx             # React Router root (router shell)
+        mock/               # Mock EIP-1193 provider for wallet-aware demo pages
+        pages/
+          IndexPage.tsx     # / — link grid to all routes
+          ThemeOverridesPage.tsx  # /theme-overrides — 5-tab OverrideShowcase
+          ClaimWidgetPage.tsx     # /widget/claim — ClaimWidget demo
+          components/       # /components/:name — per-primitive demo pages
     html/           # web component demo
     expo/           # Expo demo app
+
+  docs/
+    demo-environment.md  # how to run the demo and Playwright tests
+
+  tests/
+    demo/
+      smoke.spec.ts   # Playwright smoke tests for all demo routes
+
+  .github/
+    workflows/
+      copilot-setup-steps.yml  # cloud agent bootstrap
 
   agent-next-steps/
     theme-propagation-consistency-task.md
@@ -295,17 +315,27 @@ Key patterns in [ClaimWidget.tsx](/home/lewisb/active_repos/gd-ecosystem/GoodWid
 
 ## Current Examples
 
-### React web demo
+### React web demo lab
 
-[examples/react-web/src/App.tsx](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/examples/react-web/src/App.tsx) demonstrates:
+`examples/react-web` is a route-based Vite + React + RN-web SPA that serves as
+the canonical review and Playwright test environment.
 
-- preset baseline rendering
-- token overrides
-- component theme overrides
-- host `themeOverrides`
-- local inline overrides
+Routes:
 
-This is the most useful reference for understanding actual current override behavior.
+| Route | Content |
+|-------|---------|
+| `/` | Link grid to all demo routes |
+| `/components/:name` | Per-primitive demo page for each UI component |
+| `/widget/claim` | ClaimWidget full-flow demo with token, component, and host override examples |
+| `/theme-overrides` | The original 5-tab OverrideShowcase (Default / Tokens / Component / Host / Inline) |
+
+Wallet-aware pages (`WalletInfo`, `AddressDisplay`, `ChainBadge`, `ClaimWidget`) use a
+lightweight mock EIP-1193 provider (`src/mock/mockEip1193.ts`) that provides a stable
+address and chain ID without requiring a real browser wallet.
+
+Start with: `pnpm --filter @goodwidget/example-react-web dev` → `http://localhost:3000`
+
+See [docs/demo-environment.md](docs/demo-environment.md) for full documentation.
 
 ### Expo demo
 

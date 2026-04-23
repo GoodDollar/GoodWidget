@@ -50,7 +50,9 @@ function WalletInfoPageInner() {
 
         <Card>
           <Heading level={5}>Disconnected State</Heading>
-          <WalletInfo address={null} chainId={null} data-testid="WalletInfo-disconnected" />
+          <YStack data-testid="WalletInfo-disconnected">
+            <WalletInfo address={null} chainId={null} />
+          </YStack>
         </Card>
       </YStack>
 

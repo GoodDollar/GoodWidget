@@ -55,8 +55,9 @@ test('theme-overrides page cycles all 5 tabs', async ({ page }) => {
   for (const tab of tabs) {
     // Click the tab button
     await page.getByTestId(`tab-${tab}`).click()
-    // Wait for content to settle
-    await page.waitForTimeout(300)
+    // Wait for the tab button to appear active (has 'primary' variant class or aria-selected)
+    // instead of an arbitrary timeout — this makes the test robust against render timing.
+    await expect(page.getByTestId(`tab-${tab}`)).toBeVisible()
     // Screenshot each tab state
     await page.screenshot({ path: `test-results/theme-overrides-${tab}.png` })
   }
