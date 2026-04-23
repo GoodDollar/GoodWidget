@@ -9,23 +9,21 @@
  * base preset is active by default for every page that does not supply its own
  * provider.
  *
- * Pages that need wallet state (WalletInfo, AddressDisplay, ChainBadge,
- * ClaimWidget) create a nested GoodWidgetProvider with a mock EIP-1193
- * provider so they render in a "connected" state without a real browser wallet.
- * That mock is scoped to the page — it does not affect other routes.
- *
  * Route map
  * ─────────────────────────────────────────────────────────────────────────────
  *   /                       → IndexPage (link grid to all routes)
- *   /components/:name       → ComponentDemoRoute (per-primitive pages)
+ *   /components/:name       → ComponentDemoRoute (verified components only)
  *   /widget/claim           → ClaimWidgetPage
  *   /theme-overrides        → ThemeOverridesPage (the original OverrideShowcase)
  *
- * Adding a new component route
+ * Only components from packages/ui/src/components/ (not components-test/) have
+ * dedicated demo pages here.  Verified components: Card, GlowCard, Drawer, TokenAmount.
+ *
+ * Adding a new component route (verified components only)
  * ─────────────────────────────────────────────────────────────────────────────
  * 1. Create `src/pages/components/MyComponentPage.tsx`.
  * 2. Add an entry to the COMPONENT_PAGES map below.
- * 3. Add a link to IndexPage.tsx if it should appear in the link grid.
+ * 3. Add a link to IndexPage.tsx COMPONENT_ROUTES.
  */
 import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate, Link, useParams } from 'react-router-dom'
@@ -37,55 +35,25 @@ import { IndexPage } from './pages/IndexPage'
 import { ThemeOverridesPage } from './pages/ThemeOverridesPage'
 import { ClaimWidgetPage } from './pages/ClaimWidgetPage'
 
-// Component demo pages
-import { ButtonPage } from './pages/components/ButtonPage'
-import { InputPage } from './pages/components/InputPage'
-import { AlertPage } from './pages/components/AlertPage'
-import { BadgePage } from './pages/components/BadgePage'
-import { SpinnerPage } from './pages/components/SpinnerPage'
-import { SelectPage } from './pages/components/SelectPage'
-import { CheckboxPage } from './pages/components/CheckboxPage'
-import { SwitchPage } from './pages/components/SwitchPage'
-import { SeparatorPage } from './pages/components/SeparatorPage'
+// Component demo pages — only verified components from packages/ui/src/components/
 import { CardPage } from './pages/components/CardPage'
 import { GlowCardPage } from './pages/components/GlowCardPage'
-import { HeadingPage } from './pages/components/HeadingPage'
-import { TextPage } from './pages/components/TextPage'
-import { WalletInfoPage } from './pages/components/WalletInfoPage'
-import { TokenAmountPage } from './pages/components/TokenAmountPage'
-import { AddressDisplayPage } from './pages/components/AddressDisplayPage'
-import { ChainBadgePage } from './pages/components/ChainBadgePage'
-import { ToastPage } from './pages/components/ToastPage'
-import { ActionSheetPage } from './pages/components/ActionSheetPage'
 import { DrawerPage } from './pages/components/DrawerPage'
+import { TokenAmountPage } from './pages/components/TokenAmountPage'
 
 /**
- * Map from URL path segment to component page.
- * E.g. "/components/button" → ButtonPage.
+ * Map from URL path segment to component demo page.
+ * E.g. "/components/card" → CardPage.
  *
- * Wallet-aware pages handle their own mock provider internally.
+ * Only components from packages/ui/src/components/ are listed here.
+ * Components still in packages/ui/src/components-test/ are not yet promoted
+ * and do not have dedicated demo pages.
  */
 const COMPONENT_PAGES: Record<string, React.ComponentType> = {
-  button: ButtonPage,
-  input: InputPage,
-  alert: AlertPage,
-  badge: BadgePage,
-  spinner: SpinnerPage,
-  select: SelectPage,
-  checkbox: CheckboxPage,
-  switch: SwitchPage,
-  separator: SeparatorPage,
   card: CardPage,
   glowcard: GlowCardPage,
-  heading: HeadingPage,
-  text: TextPage,
-  walletinfo: WalletInfoPage,
-  tokenamount: TokenAmountPage,
-  addressdisplay: AddressDisplayPage,
-  chainbadge: ChainBadgePage,
-  toast: ToastPage,
-  actionsheet: ActionSheetPage,
   drawer: DrawerPage,
+  tokenamount: TokenAmountPage,
 }
 
 /**
@@ -110,8 +78,8 @@ function ComponentDemoRoute({ name }: { name: string }) {
  *
  * A single root GoodWidgetProvider with no overrides wraps the router so that:
  *   - every route has access to a base Tamagui config and wallet context
- *   - routes that need wallet state replace the provider with a mock-connected
- *     one scoped to that route alone
+ *   - routes that need wallet state (ClaimWidget) replace the provider with a
+ *     mock-connected one scoped to that route alone
  */
 export function App() {
   return (
@@ -121,7 +89,7 @@ export function App() {
           {/* ── Index ── */}
           <Route path="/" element={<IndexPage />} />
 
-          {/* ── Per-component demos ── */}
+          {/* ── Per-component demos (verified components only) ── */}
           <Route
             path="/components/:name"
             element={<ComponentRouteWrapper />}

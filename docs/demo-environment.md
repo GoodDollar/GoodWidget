@@ -2,7 +2,11 @@
 
 This document describes the GoodWidget demo lab (`examples/react-web`) — a
 route-based Vite + React + RN-web SPA that serves as the canonical review
-environment for all GoodWidget UI components and widget flows.
+environment for verified GoodWidget UI components and widget flows.
+
+> **Component demo scope:** Only components from `packages/ui/src/components/`
+> have dedicated demo pages.  Components still in `packages/ui/src/components-test/`
+> are not yet promoted and do not appear in the `/components/:name` routes.
 
 ---
 
@@ -52,43 +56,32 @@ npx playwright show-trace test-results/<test-name>/trace.zip
 | Route | Description |
 |-------|-------------|
 | `/` | Index page — link grid to all demo routes |
-| `/components/:name` | Per-primitive demo page (see table below) |
+| `/components/:name` | Per-primitive demo page (verified components only — see table below) |
 | `/widget/claim` | ClaimWidget full-flow demo with three override examples |
 | `/theme-overrides` | Original OverrideShowcase with all 5 tabs |
 
-### Component routes
+### Component routes (verified components only)
 
-| Route | Component | Mock wallet? |
-|-------|-----------|:------------:|
-| `/components/button` | Button | |
-| `/components/input` | Input | |
-| `/components/alert` | Alert | |
-| `/components/badge` | Badge | |
-| `/components/spinner` | Spinner | |
-| `/components/select` | Select | |
-| `/components/checkbox` | Checkbox | |
-| `/components/switch` | Switch | |
-| `/components/separator` | Separator | |
-| `/components/card` | Card | |
-| `/components/glowcard` | GlowCard | |
-| `/components/heading` | Heading | |
-| `/components/text` | Text | |
-| `/components/walletinfo` | WalletInfo | ✅ |
-| `/components/tokenamount` | TokenAmount | |
-| `/components/addressdisplay` | AddressDisplay | ✅ |
-| `/components/chainbadge` | ChainBadge | ✅ |
-| `/components/toast` | Toast | |
-| `/components/actionsheet` | ActionSheet | |
-| `/components/drawer` | Drawer | |
+Only components from `packages/ui/src/components/` have dedicated demo pages:
+
+| Route | Component |
+|-------|-----------|
+| `/components/card` | Card |
+| `/components/glowcard` | GlowCard |
+| `/components/drawer` | Drawer |
+| `/components/tokenamount` | TokenAmount |
+
+Components in `packages/ui/src/components-test/` (Button, Input, Alert, Badge, etc.) are
+not yet promoted and do not have demo pages at this time.
 
 ---
 
 ## `data-testid` naming convention
 
 ```
-ComponentName-variant   →  e.g. Button-primary, Alert-error, WalletInfo-connected
+ComponentName-variant   →  e.g. Card-default, GlowCard-default, ClaimWidget-default
 tab-<key>               →  e.g. tab-default, tab-tokens  (theme override tabs)
-nav-<Name>              →  e.g. nav-Button, nav-ClaimWidget  (index nav links)
+nav-<Name>              →  e.g. nav-Card, nav-ClaimWidget  (index nav links)
 ```
 
 Rules:
@@ -102,11 +95,7 @@ Rules:
 
 ## wagmi mock connector
 
-Wallet-aware components (`WalletInfo`, `AddressDisplay`, `ChainBadge`,
-`ClaimWidget`) need a connected wallet state to be useful in a demo.
-
-Rather than requiring a real browser wallet, those pages use a lightweight mock
-EIP-1193 provider defined in:
+The `/widget/claim` page uses a lightweight mock EIP-1193 provider defined in:
 
 ```
 examples/react-web/src/mock/mockEip1193.ts
@@ -123,25 +112,8 @@ The mock is passed as the `provider` prop to `GoodWidgetProvider`.
 `detectHost()` in `@goodwidget/core` treats an explicit provider as `host: 'custom'`
 and skips browser wallet detection entirely.
 
-**Scope:** the mock is instantiated once per page file and passed to a route-local
-`GoodWidgetProvider`.  It does not affect other routes.
-
-**Determinism:** because the address and chain ID are hardcoded, Playwright
-screenshots of wallet-aware pages are repeatable across runs.
-
----
-
-## Which routes use the wagmi mock and why
-
-| Route | Reason |
-|-------|--------|
-| `/components/walletinfo` | WalletInfo shows address + chain — meaningless without a connected wallet |
-| `/components/addressdisplay` | AddressDisplay formats an Ethereum address — needs a real-looking address |
-| `/components/chainbadge` | ChainBadge maps chain ID to a label — the mock supplies the chain ID |
-| `/widget/claim` | ClaimWidget's UX is primarily about claiming — renders correctly only when connected |
-
-Pages without a mock (Button, Input, Alert, etc.) have no wallet dependency and
-work fine with no provider context.
+**Scope:** scoped to the `/widget/claim` route only.  
+**Determinism:** hardcoded values make Playwright screenshots repeatable.
 
 ---
 
@@ -162,7 +134,7 @@ Or navigate directly with Playwright MCP:
 
 ```
 http://localhost:3000/                  → index
-http://localhost:3000/components/button → Button demo
+http://localhost:3000/components/card   → Card demo
 http://localhost:3000/widget/claim      → ClaimWidget demo
 http://localhost:3000/theme-overrides   → OverrideShowcase
 ```
@@ -171,12 +143,16 @@ http://localhost:3000/theme-overrides   → OverrideShowcase
 
 ## Adding a new component demo page
 
-1. Create `examples/react-web/src/pages/components/MyComponentPage.tsx`.
-2. Export a single component named `MyComponentPage`.
-3. Add a `data-testid="MyComponent-default"` to the primary rendered element.
-4. Register it in `App.tsx` → `COMPONENT_PAGES` map.
-5. Add a nav link in `IndexPage.tsx` → `COMPONENT_ROUTES`.
-6. Add a smoke test case in `tests/demo/smoke.spec.ts`.
+A component must be in `packages/ui/src/components/` (not `components-test/`)
+before adding a demo page for it.
+
+1. Confirm the component lives in `packages/ui/src/components/`.
+2. Create `examples/react-web/src/pages/components/MyComponentPage.tsx`.
+3. Export a single component named `MyComponentPage`.
+4. Add a `data-testid="MyComponent-default"` to the primary rendered element.
+5. Register it in `App.tsx` → `COMPONENT_PAGES` map.
+6. Add a nav link in `IndexPage.tsx` → `COMPONENT_ROUTES`.
+7. Add a smoke test case in `tests/demo/smoke.spec.ts`.
 
 ---
 
