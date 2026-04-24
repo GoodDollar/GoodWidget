@@ -1,19 +1,21 @@
 # Copilot cloud agent bootstrap
 # This file runs once when a Copilot cloud agent task starts. It installs all
 # dependencies, builds the monorepo packages, and installs the Playwright browser
-# so the demo app can be started and tested immediately without extra setup.
+# so Storybook can be started and tested immediately without extra setup.
 #
-# After these steps complete, the demo server can be started with:
-#   pnpm --filter @goodwidget/example-react-web dev
-# which starts on http://localhost:3000 (as configured in vite.config.ts).
+# After these steps complete, Storybook can be started with:
+#   pnpm storybook
+# which starts on http://localhost:6006.
 #
-# Playwright smoke tests can then be run with:
-#   pnpm test:demo
+# The @storybook/test-runner interaction tests can then be run with:
+#   pnpm test:storybook
+#
+# Playwright screenshot/trace tests can be run with:
+#   pnpm test:demo  (if kept)
 
 name: Copilot setup steps
 
 on:
-  # Allows workflow_call so Copilot cloud agent can invoke it
   workflow_call: {}
 
 jobs:
@@ -28,10 +30,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      # 3. Build all workspace packages so examples can import them
+      # 3. Build all workspace packages so Storybook can import them
       - name: Build packages
         run: pnpm build
 
-      # 4. Install the Chromium browser and its OS-level deps for Playwright
+      # 4. Install the Chromium browser and its OS-level deps for Playwright / test-runner
       - name: Install Playwright browsers
         run: pnpm exec playwright install chromium --with-deps

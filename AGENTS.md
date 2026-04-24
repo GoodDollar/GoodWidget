@@ -559,42 +559,49 @@ When reviewing or changing this repo:
 
 ## Demo Environment (for agents and reviewers)
 
-`examples/react-web` is the primary demo lab for inspecting components and widget flows.
+`examples/storybook` is the canonical GoodWidget demo/docs environment.
 
-**Starting the demo:**
+**Starting Storybook:**
 
 ```sh
 pnpm install && pnpm build
-pnpm --filter @goodwidget/example-react-web dev
-# → http://localhost:3000
+pnpm storybook
+# → http://localhost:6006
 ```
 
-**Route map:**
+**Story map:**
 
-| Route | What it shows |
+| Story | What it shows |
 |-------|--------------|
-| `/` | Link grid to all routes |
-| `/components/:name` | Per-primitive demo (Button, Input, Alert, Badge, …) |
-| `/widget/claim` | ClaimWidget with default, cobalt, and teal overrides |
-| `/theme-overrides` | 5-tab OverrideShowcase (Default / Tokens / Component / Host / Inline) |
+| `Primitives/Card` | Card primitive with default, with-action, and inline-styled variants |
+| `Primitives/GlowCard` | GlowCard with animated glow border |
+| `Primitives/Drawer` | Drawer with interaction test (play function) |
+| `Primitives/TokenAmount` | Token amount display with args/controls |
+| `Widgets/ClaimWidget` | ClaimWidget: Default, CobaltBrand, TealBrand |
+| `Theme/ThemePlayground` | Override layer exploration: DefaultPreset, TokenOverride, ComponentThemeOverride, HostOverrideCobalt, HostOverrideTeal |
 
-**Wallet-aware pages** (WalletInfo, AddressDisplay, ChainBadge, ClaimWidget) use a mock
-EIP-1193 provider defined in `examples/react-web/src/mock/mockEip1193.ts` that returns:
+**Wallet-aware stories** (ClaimWidget, ThemePlayground) use a mock EIP-1193 provider defined in
+`examples/storybook/src/fixtures/mockEip1193.ts` that returns:
 - address: `0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045`
 - chain: `42220` (Celo mainnet)
 
-**Running Playwright smoke tests:**
+**Running Storybook interaction + play function tests:**
 
 ```sh
+pnpm test:storybook
+```
+
+**Running Playwright screenshot/trace tests:**
+
+```sh
+# Start Storybook first, then:
 pnpm test:demo
 ```
 
 **Full documentation:** [docs/demo-environment.md](docs/demo-environment.md)
 
 **data-testid convention:**
-- `ComponentName-variant`  e.g. `Button-primary`, `Alert-error`
-- `tab-<key>`  e.g. `tab-default`, `tab-host`  (theme override tabs)
-- `nav-<Name>`  e.g. `nav-Button`  (index page nav links)
+- `ComponentName-variant`  e.g. `Card-default`, `ClaimWidget-cobalt`
 
 **Cloud agent bootstrap** is in `.github/workflows/copilot-setup-steps.yml`.
 It installs pnpm, dependencies, builds packages, and installs the Playwright Chromium browser.

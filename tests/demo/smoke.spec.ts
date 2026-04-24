@@ -1,116 +1,93 @@
 /**
- * smoke.spec.ts — Playwright smoke tests for the GoodWidget demo lab.
+ * smoke.spec.ts — Playwright smoke tests for the GoodWidget Storybook.
  *
- * These tests verify that each demo route renders without JavaScript errors
- * and that at least one key element is visible by its data-testid.  They
- * are intentionally broad ("smoke") rather than exhaustive unit tests.
+ * Tests navigate to Storybook story URLs and verify key elements render.
+ * Storybook story URLs follow the pattern:
+ *   http://localhost:6006/?path=/story/<story-id>
+ *
+ * Story IDs are derived from the story title and story name:
+ *   title: 'Primitives/Card' + name: 'Default' → primitives-card--default
  *
  * Running:
- *   pnpm test:demo
+ *   pnpm test:storybook   (uses @storybook/test-runner — interaction + play tests)
  *
- * Prerequisites:
- *   - Demo server is running on http://localhost:3000  (or Playwright starts it).
- *   - Playwright Chromium browser is installed: pnpm exec playwright install chromium
+ *   For Playwright screenshot/trace tests:
+ *   pnpm test:demo        (if kept in root package.json)
  *
  * Artifact output:
  *   test-results/  — screenshots, traces, optional video (gitignored)
  *
  * data-testid naming convention:
  *   ComponentName-variant   e.g. Card-default, GlowCard-default, ClaimWidget-default
- *   tab-<key>               e.g. tab-default, tab-tokens  (theme override tabs)
- *   nav-<Name>              e.g. nav-Card, nav-ClaimWidget  (index nav links)
- *
- * Note: Only verified components from packages/ui/src/components/ have demo pages.
- * Components still in packages/ui/src/components-test/ are not demoed here.
  */
 import { test, expect, Page } from '@playwright/test'
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/**
- * Navigate to a route, wait for the page to be network-idle, and take a
- * labelled screenshot.  Returns the page so callers can make further assertions.
- */
-async function goto(page: Page, path: string): Promise<void> {
-  await page.goto(path)
+/** Navigate to a Storybook story URL and wait for the canvas to render. */
+async function gotoStory(page: Page, storyId: string): Promise<void> {
+  await page.goto(`/?path=/story/${storyId}`)
+  // Wait for Storybook to finish loading the story (the canvas iframe appears)
+  await page.waitForSelector('#storybook-preview-iframe', { timeout: 30_000 })
   await page.waitForLoadState('networkidle')
 }
 
-// ─── Index page ───────────────────────────────────────────────────────────────
-
-test('index page renders navigation links', async ({ page }) => {
-  await goto(page, '/')
-
-  // Verified component nav links must be visible
-  await expect(page.getByTestId('nav-Card')).toBeVisible()
-  await expect(page.getByTestId('nav-GlowCard')).toBeVisible()
-  await expect(page.getByTestId('nav-ClaimWidget')).toBeVisible()
-
-  await page.screenshot({ path: 'test-results/index.png' })
-})
-
-// ─── Theme overrides page (all 5 tabs) ────────────────────────────────────────
-
-test('theme-overrides page cycles all 5 tabs', async ({ page }) => {
-  await goto(page, '/theme-overrides')
-
-  const tabs = ['default', 'tokens', 'component', 'host', 'inline'] as const
-
-  for (const tab of tabs) {
-    // Click the tab button
-    await page.getByTestId(`tab-${tab}`).click()
-    // Wait for the tab button to remain visible (content has settled)
-    await expect(page.getByTestId(`tab-${tab}`)).toBeVisible()
-    // Screenshot each tab state
-    await page.screenshot({ path: `test-results/theme-overrides-${tab}.png` })
-  }
-})
-
-// ─── Verified component routes ────────────────────────────────────────────────
-
-/**
- * Only components from packages/ui/src/components/ have demo pages.
- * Map of route path → expected testid that must be visible.
- */
-const COMPONENT_SMOKE_CASES: { path: string; testId: string }[] = [
-  { path: '/components/card', testId: 'Card-default' },
-  { path: '/components/glowcard', testId: 'GlowCard-default' },
-  { path: '/components/drawer', testId: 'Drawer-trigger' },
-  { path: '/components/tokenamount', testId: 'TokenAmount-default' },
-]
-
-for (const { path, testId } of COMPONENT_SMOKE_CASES) {
-  const name = path.replace('/components/', '')
-
-  test(`/components/${name} — ${testId} is visible`, async ({ page }) => {
-    await goto(page, path)
-    await expect(page.getByTestId(testId)).toBeVisible()
-    await page.screenshot({ path: `test-results/component-${name}.png` })
-  })
+/** Get the content frame inside the Storybook canvas iframe. */
+async function getStoryFrame(page: Page) {
+  const frame = page.frameLocator('#storybook-preview-iframe')
+  return frame
 }
 
-// ─── ClaimWidget route ────────────────────────────────────────────────────────
-
-test('/widget/claim — default tab renders ClaimWidget in mock-connected state', async ({ page }) => {
-  await goto(page, '/widget/claim')
-
-  // Default tab is active by default — its ClaimWidget must be visible
-  await expect(page.getByTestId('ClaimWidget-default')).toBeVisible()
-  await page.screenshot({ path: 'test-results/widget-claim-default.png' })
+test('Card/Default story renders', async ({ page }) => {
+  await gotoStory(page, 'primitives-card--default')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByTestId('Card-default')).toBeVisible()
+  await page.screenshot({ path: 'test-results/story-card-default.png', fullPage: true })
 })
 
-test('/widget/claim — cobalt tab renders ClaimWidget with cobalt overrides', async ({ page }) => {
-  await goto(page, '/widget/claim')
-
-  await page.getByTestId('tab-cobalt').click()
-  await expect(page.getByTestId('ClaimWidget-cobalt')).toBeVisible()
-  await page.screenshot({ path: 'test-results/widget-claim-cobalt.png' })
+test('GlowCard/Default story renders', async ({ page }) => {
+  await gotoStory(page, 'primitives-glowcard--default')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByTestId('GlowCard-default')).toBeVisible()
+  await page.screenshot({ path: 'test-results/story-glowcard-default.png', fullPage: true })
 })
 
-test('/widget/claim — teal tab renders ClaimWidget with teal overrides', async ({ page }) => {
-  await goto(page, '/widget/claim')
+test('Drawer/Default story renders trigger', async ({ page }) => {
+  await gotoStory(page, 'primitives-drawer--default')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByTestId('Drawer-trigger')).toBeVisible()
+  await page.screenshot({ path: 'test-results/story-drawer-default.png', fullPage: true })
+})
 
-  await page.getByTestId('tab-teal').click()
-  await expect(page.getByTestId('ClaimWidget-teal')).toBeVisible()
-  await page.screenshot({ path: 'test-results/widget-claim-teal.png' })
+test('TokenAmount/Default story renders', async ({ page }) => {
+  await gotoStory(page, 'primitives-tokenamount--default')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByTestId('TokenAmount-default')).toBeVisible()
+  await page.screenshot({ path: 'test-results/story-tokenamount-default.png', fullPage: true })
+})
+
+test('ClaimWidget/Default story renders in mock-connected state', async ({ page }) => {
+  await gotoStory(page, 'widgets-claimwidget--default')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByTestId('ClaimWidget-default')).toBeVisible()
+  await page.screenshot({ path: 'test-results/story-claimwidget-default.png', fullPage: true })
+})
+
+test('ClaimWidget/CobaltBrand story renders', async ({ page }) => {
+  await gotoStory(page, 'widgets-claimwidget--cobalt-brand')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByTestId('ClaimWidget-cobalt')).toBeVisible()
+  await page.screenshot({ path: 'test-results/story-claimwidget-cobalt.png', fullPage: true })
+})
+
+test('ClaimWidget/TealBrand story renders', async ({ page }) => {
+  await gotoStory(page, 'widgets-claimwidget--teal-brand')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByTestId('ClaimWidget-teal')).toBeVisible()
+  await page.screenshot({ path: 'test-results/story-claimwidget-teal.png', fullPage: true })
+})
+
+test('ThemePlayground/DefaultPreset story renders', async ({ page }) => {
+  await gotoStory(page, 'theme-themeplayground--default-preset')
+  const frame = getStoryFrame(page)
+  await expect(frame.locator('text=Preset Baseline')).toBeVisible()
+  await page.screenshot({ path: 'test-results/story-theme-default.png', fullPage: true })
 })

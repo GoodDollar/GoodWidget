@@ -6,6 +6,9 @@
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "clean": "turbo run clean",
+    "storybook": "pnpm --filter @goodwidget/storybook storybook",
+    "build-storybook": "pnpm --filter @goodwidget/storybook build-storybook",
+    "test:storybook": "pnpm --filter @goodwidget/storybook test:storybook",
     "test:demo": "playwright test tests/demo"
   },
   "devDependencies": {
