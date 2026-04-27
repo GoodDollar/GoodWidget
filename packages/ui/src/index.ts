@@ -69,6 +69,6 @@ export { ChainBadge } from './components-test/ChainBadge'
 export { WalletInfo } from './components-test/WalletInfo'
 
 // Patterns / Composites
-export { MiniAppShell } from './components-test/MiniAppShell'
+export { MiniAppShell } from './components/MiniAppShell'
 export { ActionSheet } from './components-test/ActionSheet'
 export { TokenInput } from './components-test/TokenInput'

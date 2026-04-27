@@ -5,6 +5,7 @@
 import React from 'react'
 import type { Preview } from '@storybook/react'
 import { GoodWidgetProvider } from '@goodwidget/core'
+import { MiniAppShell } from '@goodwidget/ui'
 
 const preview: Preview = {
   parameters: {
@@ -17,7 +18,9 @@ const preview: Preview = {
   decorators: [
     (Story) => (
       <GoodWidgetProvider defaultTheme="light">
-        <Story />
+        <MiniAppShell>
+          <Story />
+        </MiniAppShell>
       </GoodWidgetProvider>
     ),
   ],
