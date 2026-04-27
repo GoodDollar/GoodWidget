@@ -10,4 +10,4 @@ coverage/
 .codex
 test-results/
 playwright-report/
-storybook-static/
+**/storybook-static/

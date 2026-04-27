@@ -1,1 +1,0 @@
-import{j as e}from"./index-eshTaYxd.js";import{G as o}from"./index-CeZYpCY0.js";import"./index-CracEMlZ.js";import"./index-C1DqdAOE.js";import"./index-BhFQl1yt.js";const d={parameters:{layout:"centered",docs:{source:{type:"dynamic"}}},decorators:[r=>e.jsx(o,{defaultTheme:"light",children:e.jsx(r,{})})]};export{d as default};
