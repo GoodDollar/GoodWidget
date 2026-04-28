@@ -1,5 +1,8 @@
+// Integration metadata (links this widget to the citizen-sdk capability manifest)
 export { citizenClaimIntegration } from './integration'
 export type { CitizenClaimIntegration } from './integration'
+
+// Adapter contract types
 export type {
   CitizenClaimWidgetAdapterActions,
   CitizenClaimWidgetAdapterResult,
@@ -14,3 +17,13 @@ export type {
   CitizenClaimWidgetStatus,
   CitizenClaimWidgetSuccessDetail,
 } from './widgetRuntimeContract'
+
+// Adapter hook
+export { useCitizenClaimAdapter } from './adapter'
+export type { UseCitizenClaimAdapterOptions } from './adapter'
+
+// Widget component
+export { CitizenClaimWidget } from './CitizenClaimWidget'
+
+// Web Component element class (for manual customElements.define)
+export { CitizenClaimWidgetElement } from './element'

@@ -1,3 +1,5 @@
+import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
+
 export type CitizenClaimWidgetEnvironment =
   | 'production'
   | 'staging'
@@ -37,11 +39,14 @@ export interface CitizenClaimWidgetAdapterState {
   status: CitizenClaimWidgetStatus
   address: string | null
   chainId: number | null
+  /** Claimable amount formatted for display (e.g. "193.84"). Null when not applicable. */
   amount: string | null
   token: 'G$'
   primaryAction: CitizenClaimWidgetPrimaryAction
   primaryLabel: string
   error: string | null
+  /** When already_claimed, the date when the next claim becomes available. */
+  nextClaimTime?: Date | null
 }
 
 export interface CitizenClaimWidgetAdapterActions {
@@ -78,5 +83,12 @@ export interface CitizenClaimWidgetProps {
   clientFactory?: CitizenClaimWidgetClientFactory
   onClaimSuccess?: (detail: CitizenClaimWidgetSuccessDetail) => void
   onClaimError?: (detail: CitizenClaimWidgetErrorDetail) => void
+  // ---- Theming (optional, passed through to GoodWidgetProvider) ----
+  /** Token and theme overrides applied at the widget boundary. */
+  themeOverrides?: GoodWidgetThemeOverrides
+  /** Full Tamagui config override; prefer themeOverrides for typical integrators. */
+  config?: GoodWidgetConfig
+  /** Starting color scheme. Defaults to 'light'. */
+  defaultTheme?: 'light' | 'dark'
 }
 
