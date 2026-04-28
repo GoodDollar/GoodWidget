@@ -11,6 +11,8 @@ const THEME_KEY_NAMES = [
   'colorHover',
   'colorPress',
   'colorFocus',
+  'colorSoft',
+  'colorDim',
   'borderColor',
   'borderColorHover',
   'borderColorPress',
