@@ -196,11 +196,6 @@ function CitizenClaimInner({ environment, onClaimSuccess, onClaimError }: Citize
             {status === 'not_connected' && (
               <>
                 <Text secondary>Connect your wallet to claim G$</Text>
-                {chainId !== null && !state.chainId && (
-                  <Text center secondary>
-                    Switch to a supported network (Fuse, Celo, or XDC)
-                  </Text>
-                )}
               </>
             )}
 
@@ -246,9 +241,7 @@ function CitizenClaimInner({ environment, onClaimSuccess, onClaimError }: Citize
               <ClaimActionButton onPress={handlePrimaryAction} disabled={isPending}>
                 {/* Blurred glow halo matching GoodWalletV2 claim button */}
                 <ClaimActionGlow
-                  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                  // @ts-ignore — web-only style prop not in RN types
-                  style={{ filter: 'blur(20px)' }}
+                  style={{ filter: 'blur(20px)' } as React.CSSProperties}
                 />
                 <ClaimActionRing>
                   <ClaimActionInner />

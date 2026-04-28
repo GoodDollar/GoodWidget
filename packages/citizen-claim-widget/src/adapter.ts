@@ -267,7 +267,7 @@ export function useCitizenClaimAdapter(
         }
       ).request({
         method: 'wallet_switchEthereumChain',
-        params: [{ chainId: '0x' + targetChainId.toString(16) }],
+        params: [{ chainId: `0x${targetChainId.toString(16)}` }],
       })
     },
     [provider],
