@@ -13,4 +13,4 @@ export type {
   CitizenClaimWidgetProps,
   CitizenClaimWidgetStatus,
   CitizenClaimWidgetSuccessDetail,
-} from './adapterContract'
+} from './widgetRuntimeContract'

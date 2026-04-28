@@ -1,5 +1,5 @@
 {
-  "name": "@goodwidget/claim-widget",
+  "name": "@goodwidget/claim-widget-theme-demo",
   "version": "0.1.0",
   "description": "Sample GoodDollar claim widget — works in React, React Native, and as a Web Component",
   "type": "module",

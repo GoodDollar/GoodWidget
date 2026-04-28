@@ -6,7 +6,7 @@ const TAG_NAME = 'gw-claim-widget'
  * Register the <gw-claim-widget> custom element.
  *
  * Call once at the top of your app or in a <script> tag:
- *   import '@goodwidget/claim-widget/register'
+ *   import '@goodwidget/claim-widget-theme-demo/register'
  *
  * Then use in HTML:
  *   <gw-claim-widget></gw-claim-widget>
