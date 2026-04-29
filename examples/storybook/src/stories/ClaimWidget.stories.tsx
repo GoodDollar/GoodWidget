@@ -10,7 +10,7 @@
  */
 import React from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
-import { ClaimWidget } from '@goodwidget/claim-widget'
+import { ClaimWidget } from '@goodwidget/claim-widget-theme-demo'
 import { YStack } from '@goodwidget/ui'
 import { createMockEip1193Provider } from '../fixtures/mockEip1193'
 

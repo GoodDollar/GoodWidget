@@ -11,3 +11,5 @@ coverage/
 test-results/
 playwright-report/
 **/storybook-static/
+**/.yalc
+**/yalc.lock
