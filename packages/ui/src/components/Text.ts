@@ -18,19 +18,18 @@ import { createComponent } from '../createComponent'
 export const Text = createComponent(TamaguiText, {
   name: 'Text',
   fontFamily: '$body',
-  color: '$color',
+  color: '$textColor',
   fontSize: '$3',
   lineHeight: '$3',
 
   variants: {
     variant: {
-      body: { fontSize: '$3', lineHeight: '$3' },
       caption: { fontSize: '$1', lineHeight: '$1', color: '$placeholderColor' },
       label: { fontSize: '$2', lineHeight: '$2', fontWeight: '500' },
       large: { fontSize: '$5', lineHeight: '$5' },
     },
-    // Named color levels, all resolved against the active theme
-    color: {
+    // Named tone levels, all resolved against the active theme
+    tone: {
       default: { color: '$color' },
       secondary: { color: '$placeholderColor' },
       soft: { color: '$colorSoft' },

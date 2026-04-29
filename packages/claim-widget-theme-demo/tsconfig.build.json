@@ -4,6 +4,7 @@
     "outDir": "dist",
     "rootDir": "src",
     "paths": {
+      "@goodwidget/ui": ["../ui/src/index.ts"],
       "react-native": ["./node_modules/react-native-web"]
     }
   },

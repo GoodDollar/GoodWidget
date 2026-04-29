@@ -43,6 +43,7 @@ export { ScrollArea } from './components-test/ScrollArea'
 // Typography
 export { Heading } from './components-test/Heading'
 export { Text } from './components/Text'
+export { Anchor } from './components/Anchor'
 
 // Inputs
 export { Button, ButtonFrame, ButtonText, PillText } from './components/Button'
@@ -92,5 +93,6 @@ export { WalletInfo } from './components-test/WalletInfo'
 
 // Patterns / Composites
 export { MiniAppShell } from './components/MiniAppShell'
+export { WidgetTabs } from './components/WidgetTabs'
 export { ActionSheet } from './components-test/ActionSheet'
 export { TokenInput } from './components-test/TokenInput'
