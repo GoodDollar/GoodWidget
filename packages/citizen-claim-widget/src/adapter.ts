@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useWallet } from '@goodwidget/core'
-import { createPublicClient, createWalletClient, custom, formatUnits, http, type Chain, type Address } from 'viem'
+import { createPublicClient, createWalletClient, custom, formatUnits, http, type Chain } from 'viem'
 import {
   ClaimSDK,
   IdentitySDK,
+  citizenSdkCapabilities,
+  checkGenericDailyStats,
+  checkGenericEntitlement,
   isSupportedChain,
   SupportedChains,
   CHAIN_DECIMALS,
-  chainConfigs,
-  ubiSchemeV2ABI,
-  identityV2ABI,
 } from '@goodsdks/citizen-sdk'
 import type {
   CitizenClaimWidgetAdapterActions,
@@ -44,16 +44,8 @@ const CHAIN_CONFIGS: Record<number, Chain> = {
   } as Chain,
 }
 
-// Supported chains and environments are defined by citizen-sdk's chainConfigs.
-// citizenSdkCapabilities (from PR #42 / @goodsdks/citizen-sdk@1.2.4) exports
-// these as a capability manifest; we replicate the values here from the
-// published 1.2.3 constants until that version is released.
-const SUPPORTED_CHAINS: SupportedChains[] = [
-  SupportedChains.CELO,
-  SupportedChains.FUSE,
-  SupportedChains.XDC,
-]
-const AVAILABLE_ENVIRONMENTS = ['production', 'staging', 'development'] as const
+const SUPPORTED_CHAINS = citizenSdkCapabilities.chains
+const AVAILABLE_ENVIRONMENTS = citizenSdkCapabilities.environments
 
 export interface UseCitizenClaimAdapterOptions {
   environment?: CitizenClaimWidgetEnvironment
@@ -205,52 +197,28 @@ export function useCitizenClaimAdapter(
   /**
    * Collects claimable UBI amounts for all citizen-sdk supported chains.
    * This mirrors GoodWalletV2's claim breakdown model (eligible amounts per chain).
-   *
-   * Uses read-only public clients for each chain so no wallet connection is needed.
-   * For each chain:
-   *   1. Resolve the whitelisted root via the identity contract (may differ per chain)
-   *   2. Call checkEntitlement(root) on the UBI contract
    */
   const loadClaimablesByChain = useCallback(async (): Promise<void> => {
-    if (!address) return
     const eligible: Array<{ chainId: number; amount: string }> = []
 
     await Promise.all(
-      SUPPORTED_CHAINS.map(async (supportedChainId: SupportedChains) => {
+      SUPPORTED_CHAINS.map(async (supportedChainId) => {
         try {
           const chain = CHAIN_CONFIGS[supportedChainId]
-          const rpcUrl = chain?.rpcUrls.default.http[0]
+          const rpcUrl = chain.rpcUrls.default.http[0]
           if (!rpcUrl) return
-          const contracts = chainConfigs[supportedChainId]?.contracts[env]
-          if (!contracts) return
-
           const publicClient = createPublicClient({ chain, transport: http(rpcUrl) })
-
-          // Resolve the whitelisted root for the connected address on this chain.
-          // The UBI checkEntitlement uses the root, not the address directly.
-          const rootAddress = await publicClient.readContract({
-            address: contracts.identityContract as Address,
-            abi: identityV2ABI,
-            functionName: 'getWhitelistedRoot',
-            args: [address as Address],
+          const entitlement = await checkGenericEntitlement({
+            publicClient,
+            chainId: supportedChainId,
+            env,
           })
-
-          // Zero address means not whitelisted on this chain
-          if (rootAddress === '0x0000000000000000000000000000000000000000') return
-
-          const entitlement = await publicClient.readContract({
-            address: contracts.ubiContract as Address,
-            abi: ubiSchemeV2ABI,
-            functionName: 'checkEntitlement',
-            args: [rootAddress],
-          })
-
-          if ((entitlement as bigint) <= 0n) return
+          if (entitlement <= 0n) return
 
           const decimals = CHAIN_DECIMALS[supportedChainId] ?? 18
           eligible.push({
             chainId: supportedChainId,
-            amount: formatUnits(entitlement as bigint, decimals),
+            amount: formatUnits(entitlement, decimals),
           })
         } catch {
           // Keep per-chain reads best-effort: one RPC/SDK failure should not block the widget.
@@ -261,32 +229,28 @@ export function useCitizenClaimAdapter(
     if (!mountedRef.current) return
     eligible.sort((a, b) => b.chainId - a.chainId)
     setClaimablesByChain(eligible)
-  }, [env, address])
+  }, [env])
 
   const loadDailyStats = useCallback(async (): Promise<void> => {
     let maxClaimers = 0
     let totalClaimed = 0
 
     await Promise.all(
-      SUPPORTED_CHAINS.map(async (supportedChainId: SupportedChains) => {
+      SUPPORTED_CHAINS.map(async (supportedChainId) => {
         try {
           const chain = CHAIN_CONFIGS[supportedChainId]
-          const rpcUrl = chain?.rpcUrls.default.http[0]
+          const rpcUrl = chain.rpcUrls.default.http[0]
           if (!rpcUrl) return
-          const contracts = chainConfigs[supportedChainId]?.contracts[env]
-          if (!contracts) return
-
           const publicClient = createPublicClient({ chain, transport: http(rpcUrl) })
-          const [claimers, amount] = await publicClient.readContract({
-            address: contracts.ubiContract as Address,
-            abi: ubiSchemeV2ABI,
-            functionName: 'getDailyStats',
-          }) as [bigint, bigint]
-
-          const claimersNum = Number(claimers)
-          if (claimersNum > maxClaimers) maxClaimers = claimersNum
+          const stats = await checkGenericDailyStats({
+            publicClient,
+            chainId: supportedChainId,
+            env,
+          })
+          const claimers = Number(stats.claimers)
+          if (claimers > maxClaimers) maxClaimers = claimers
           const decimals = CHAIN_DECIMALS[supportedChainId] ?? 18
-          totalClaimed += Number(formatUnits(amount, decimals))
+          totalClaimed += Number(formatUnits(stats.amount, decimals))
         } catch {
           // Best effort aggregation.
         }
