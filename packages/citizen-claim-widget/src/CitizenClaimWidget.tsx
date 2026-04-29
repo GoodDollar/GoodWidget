@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { GoodWidgetProvider } from '@goodwidget/core'
 import type { EIP1193Provider } from '@goodwidget/core'
 import {
@@ -6,21 +6,26 @@ import {
   Card,
   Heading,
   Text,
+  Anchor,
+  Button,
   ButtonFrame,
   ButtonText,
   TokenAmount,
-  Badge,
-  BadgeText,
   Spinner,
   Separator,
+  ToastContainer,
+  createToast,
+  updateToast,
   XStack,
   YStack,
 } from '@goodwidget/ui'
+import { SupportedChains } from '@goodsdks/citizen-sdk'
 import { useCitizenClaimAdapter } from './adapter'
 import type {
   CitizenClaimWidgetProps,
   CitizenClaimWidgetSuccessDetail,
   CitizenClaimWidgetErrorDetail,
+  CitizenClaimWidgetEnvironment,
 } from './widgetRuntimeContract'
 
 // ---------------------------------------------------------------------------
@@ -91,6 +96,72 @@ const ClaimActionInner = createComponent(YStack, {
   backgroundColor: '$backgroundDark',
 })
 
+/** Vertical container for the per-chain claim breakdown area. */
+const ClaimChainBreakdown = createComponent(YStack, {
+  name: 'ClaimChainBreakdown',
+  alignItems: 'center' as const,
+  gap: '$2',
+})
+
+/** Row wrapping all chain entries (allows wrapping on smaller widths). */
+const ClaimChainList = createComponent(XStack, {
+  name: 'ClaimChainList',
+  flexWrap: 'wrap' as const,
+  justifyContent: 'center' as const,
+  alignItems: 'center' as const,
+  columnGap: '$2',
+  rowGap: '$1',
+  paddingHorizontal: '$4',
+})
+
+/** Single chain entry: amount + chain label (+ separator rendered externally). */
+const ClaimChainItem = createComponent(XStack, {
+  name: 'ClaimChainItem',
+  alignItems: 'center' as const,
+  gap: '$1',
+})
+
+/** Footer wrapper for daily claim stats block. */
+const ClaimDailyStats = createComponent(YStack, {
+  name: 'ClaimDailyStats',
+  alignItems: 'center' as const,
+  gap: '$1',
+  paddingTop: '$3',
+})
+
+/** Single centered stats row (matches GoodWalletV2 footer row behavior). */
+const ClaimDailyStatsRow = createComponent(Text, {
+  name: 'ClaimDailyStatsRow',
+  width: '100%' as const,
+  justifyContent: 'center' as const,
+  alignItems: 'center' as const,
+  gap: '$2',
+  display: 'flex' as const,
+})
+
+function getChainName(chainId: number): string {
+  switch (chainId) {
+    case SupportedChains.FUSE:
+      return 'Fuse'
+    case SupportedChains.CELO:
+      return 'Celo'
+    case SupportedChains.XDC:
+      return 'XDC'
+    default:
+      return `Chain ${chainId}`
+  }
+}
+
+function formatCompactNumber(value: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'decimal',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+    useGrouping: true,
+    notation: 'compact',
+  }).format(value)
+}
+
 // ---------------------------------------------------------------------------
 // Countdown — shows HH:MM:SS until the next claimable period.
 // ---------------------------------------------------------------------------
@@ -119,15 +190,45 @@ function Countdown({ nextClaim }: { nextClaim: Date }) {
 // Inner component — must live inside GoodWidgetProvider so it can use useWallet.
 // ---------------------------------------------------------------------------
 interface CitizenClaimInnerProps {
-  environment?: string
+  environment?: CitizenClaimWidgetEnvironment
+  walletMode: 'custodial' | 'injected'
   onClaimSuccess?: (detail: CitizenClaimWidgetSuccessDetail) => void
   onClaimError?: (detail: CitizenClaimWidgetErrorDetail) => void
 }
 
-function CitizenClaimInner({ environment, onClaimSuccess, onClaimError }: CitizenClaimInnerProps) {
+function CitizenClaimInner({
+  environment,
+  walletMode,
+  onClaimSuccess,
+  onClaimError,
+}: CitizenClaimInnerProps) {
   const { state, actions } = useCitizenClaimAdapter({ environment })
-  const { status, address, chainId, amount, primaryAction, primaryLabel, error, nextClaimTime } =
-    state
+  const {
+    status,
+    address,
+    chainId,
+    amount,
+    primaryAction,
+    primaryLabel,
+    error,
+    nextClaimTime,
+    claimablesByChain,
+    dailyStats,
+  } = state
+
+  const isPending = status === 'claiming' || status === 'loading' || status === 'connecting'
+  const totalClaimableAmount = claimablesByChain.reduce(
+    (sum, item) => sum + (Number.parseFloat(item.amount) || 0),
+    0,
+  )
+  const displayAmount = claimablesByChain.length > 0 ? totalClaimableAmount.toFixed(2) : amount
+  const chainNameById = useMemo(() => {
+    const map = new Map<number, string>()
+    for (const entry of claimablesByChain) {
+      map.set(entry.chainId, getChainName(entry.chainId))
+    }
+    return map
+  }, [claimablesByChain])
 
   /** Dispatch the primary action and surface callbacks for claim outcomes. */
   const handlePrimaryAction = useCallback(async () => {
@@ -140,13 +241,83 @@ function CitizenClaimInner({ environment, onClaimSuccess, onClaimError }: Citize
           await actions.startVerification()
           break
         case 'claim': {
-          const receipt = await actions.claim()
-          onClaimSuccess?.({
-            address: address!,
-            chainId: chainId!,
-            transactionHash: (receipt as { transactionHash?: string } | undefined)
-              ?.transactionHash,
-          })
+          const claimPlan = [...claimablesByChain]
+          if (claimPlan.length === 0) {
+            const singleChainName = chainId ? getChainName(chainId) : 'active chain'
+            const toastId = createToast({
+              message: `Claim initiated on ${singleChainName}`,
+              status: 'pending',
+              duration: 0,
+            })
+
+            try {
+              const receipt = await actions.claim()
+              updateToast(toastId, {
+                message: `Claim succeeded on ${singleChainName}`,
+                status: 'success',
+                duration: 3200,
+              })
+              onClaimSuccess?.({
+                address: address!,
+                chainId: chainId!,
+                transactionHash: (receipt as { transactionHash?: string } | undefined)
+                  ?.transactionHash,
+              })
+            } catch (singleClaimError: unknown) {
+              updateToast(toastId, {
+                message: `Claim failed on ${singleChainName}`,
+                status: 'error',
+                duration: 0,
+              })
+              onClaimError?.({
+                address: address ?? null,
+                chainId: chainId ?? null,
+                message:
+                  singleClaimError instanceof Error ? singleClaimError.message : 'Claim failed',
+              })
+            }
+            break
+          }
+
+          for (const claimEntry of claimPlan) {
+            const entryChainName =
+              chainNameById.get(claimEntry.chainId) ?? getChainName(claimEntry.chainId)
+            const toastId = createToast({
+              message: `Claim initiated on ${entryChainName}`,
+              status: 'pending',
+              duration: 0,
+            })
+
+            try {
+              const receipt = await actions.claimOnChain(claimEntry.chainId)
+              updateToast(toastId, {
+                message: `Claim succeeded on ${entryChainName}`,
+                status: 'success',
+                duration: 3200,
+              })
+              onClaimSuccess?.({
+                address: address!,
+                chainId: claimEntry.chainId,
+                transactionHash: (receipt as { transactionHash?: string } | undefined)
+                  ?.transactionHash,
+              })
+            } catch (multiClaimError: unknown) {
+              updateToast(toastId, {
+                message: `Claim failed on ${entryChainName}`,
+                status: 'error',
+                duration: 0,
+              })
+              onClaimError?.({
+                address: address ?? null,
+                chainId: claimEntry.chainId,
+                message:
+                  multiClaimError instanceof Error ? multiClaimError.message : 'Claim failed',
+              })
+            } finally {
+            }
+          }
+
+          await actions.refresh()
           break
         }
         case 'refresh':
@@ -166,111 +337,135 @@ function CitizenClaimInner({ environment, onClaimSuccess, onClaimError }: Citize
         })
       }
     }
-  }, [primaryAction, actions, address, chainId, onClaimSuccess, onClaimError])
-
-  const isPending = status === 'claiming' || status === 'loading'
+  }, [
+    primaryAction,
+    actions,
+    address,
+    chainId,
+    chainNameById,
+    claimablesByChain,
+    onClaimSuccess,
+    onClaimError,
+  ])
 
   return (
     <YStack gap="$5" padding="$4">
-      {/* ------------------------------------------------------------------ */}
-      {/* Header                                                               */}
-      {/* ------------------------------------------------------------------ */}
-      <XStack justifyContent="space-between" alignItems="center" paddingHorizontal="$1">
-        <Heading level={4}>GoodDollar</Heading>
-        {chainId && (
-          <Badge type="info">
-            <BadgeText>Chain {chainId}</BadgeText>
-          </Badge>
-        )}
-      </XStack>
-
+      {status === 'not_whitelisted' && (
+        <ClaimCard>
+          <YStack gap="$4" padding="$6" alignItems="center" width="100%">
+            <Heading level={3} textAlign="center">
+              Whitelisting Required
+            </Heading>
+            <Text center secondary>
+              Face verification is required before you can claim.
+            </Text>
+            <Button fullWidth onPress={actions.startVerification}>
+              <ButtonText>Verify</ButtonText>
+            </Button>
+            <Text center flexDirection="row">
+              We take your privacy seriously. We only store some particularities/relief data in our
+              database, not the photo of your face itself.{' '}
+            </Text>
+            <Anchor href="https://www.facetec.com/#page-blk-security">Learn more</Anchor>
+          </YStack>
+        </ClaimCard>
+      )}
       {/* ------------------------------------------------------------------ */}
       {/* Main claim card                                                      */}
       {/* ------------------------------------------------------------------ */}
-      <ClaimCard>
-        <YStack gap="$9" paddingVertical="$6">
-          {/* Status content */}
-          <YStack alignItems="center" gap="$4">
-            {status === 'loading' && <Spinner size="lg" />}
+      {status !== 'not_whitelisted' && (
+        <ClaimCard>
+          <YStack gap="$5" paddingVertical="$6">
+            {/* Status content */}
+            <YStack alignItems="center" gap="$4">
+              {status === 'loading' && <Spinner size="lg" />}
 
-            {status === 'not_connected' && (
-              <>
-                <Text secondary>Connect your wallet to claim G$</Text>
-              </>
-            )}
+              {status === 'not_connected' && (
+                <>
+                  <Text secondary>Connect your wallet to claim daily G$</Text>
+                </>
+              )}
 
-            {status === 'not_whitelisted' && (
-              <>
-                <Text secondary>Identity verification required</Text>
-                <Text center secondary>
-                  Verify your identity with GoodID to receive UBI.
+              {(status === 'eligible' || status === 'claiming') && (
+                <>
+                  <Text secondary>Ready to claim</Text>
+                  {displayAmount && <TokenAmount token="G$" amount={displayAmount} size="xl" />}
+                </>
+              )}
+
+              {status === 'success' && (
+                <Text color="$success" fontWeight="700">
+                  Claimed successfully! 🎉
                 </Text>
-              </>
+              )}
+
+              {status === 'already_claimed' && (
+                <>
+                  <Text secondary>Just a little longer…</Text>
+                  <Text secondary>More G$ coming soon</Text>
+                </>
+              )}
+
+              {status === 'error' && error && (
+                <Text color="$error" center>
+                  {error}
+                </Text>
+              )}
+            </YStack>
+
+            {status !== 'loading' && claimablesByChain.length > 0 && (
+              <ClaimChainBreakdown>
+                <ClaimChainList>
+                  {claimablesByChain.map((entry, index) => (
+                    <ClaimChainItem key={entry.chainId}>
+                      <TokenAmount token="G$" amount={entry.amount} size="sm" variant="secondary" />
+                      <Text secondary>{getChainName(entry.chainId)}</Text>
+                      {index < claimablesByChain.length - 1 && (
+                        <Text variant="caption" secondary>
+                          ·
+                        </Text>
+                      )}
+                    </ClaimChainItem>
+                  ))}
+                </ClaimChainList>
+              </ClaimChainBreakdown>
             )}
 
-            {(status === 'eligible' || status === 'claiming') && (
-              <>
-                <Text secondary>Ready to claim</Text>
-                {amount && <TokenAmount token="G$" amount={amount} size="xl" />}
-              </>
-            )}
-
-            {status === 'success' && (
-              <Text color="$success" fontWeight="700">
-                Claimed successfully! 🎉
-              </Text>
-            )}
-
-            {status === 'already_claimed' && (
-              <>
-                <Text secondary>Just a little longer…</Text>
-                <Text secondary>More G$ coming soon</Text>
-              </>
-            )}
-
-            {status === 'error' && error && (
-              <Text color="$error" center>
-                {error}
-              </Text>
+            {/* Action button — shown whenever there is a meaningful primary action */}
+            {primaryAction !== 'none' && (
+              <YStack alignItems="center" gap="$4">
+                <ClaimActionButton onPress={handlePrimaryAction} disabled={isPending}>
+                  {/* Blurred glow halo matching GoodWalletV2 claim button */}
+                  <ClaimActionGlow style={{ filter: 'blur(20px)' } as React.CSSProperties} />
+                  <ClaimActionRing>
+                    <ClaimActionInner />
+                  </ClaimActionRing>
+                  <YStack
+                    position="absolute"
+                    top={0}
+                    right={0}
+                    bottom={0}
+                    left={0}
+                    alignItems="center"
+                    justifyContent="center"
+                    zIndex={1}
+                    pointerEvents="none"
+                  >
+                    {isPending ? (
+                      <XStack gap="$2" alignItems="center">
+                        <ButtonText color="$grey600">{primaryLabel}</ButtonText>
+                        <Spinner size="sm" color="$grey600" />
+                      </XStack>
+                    ) : (
+                      <ButtonText color="$primary">{primaryLabel}</ButtonText>
+                    )}
+                  </YStack>
+                </ClaimActionButton>
+              </YStack>
             )}
           </YStack>
-
-          {/* Action button — shown whenever there is a meaningful primary action */}
-          {primaryAction !== 'none' && (
-            <YStack alignItems="center" gap="$4">
-              <ClaimActionButton onPress={handlePrimaryAction} disabled={isPending}>
-                {/* Blurred glow halo matching GoodWalletV2 claim button */}
-                <ClaimActionGlow
-                  style={{ filter: 'blur(20px)' } as React.CSSProperties}
-                />
-                <ClaimActionRing>
-                  <ClaimActionInner />
-                </ClaimActionRing>
-                <YStack
-                  position="absolute"
-                  top={0}
-                  right={0}
-                  bottom={0}
-                  left={0}
-                  alignItems="center"
-                  justifyContent="center"
-                  zIndex={1}
-                  pointerEvents="none"
-                >
-                  {isPending ? (
-                    <XStack gap="$2" alignItems="center">
-                      <Spinner size="sm" color="$grey600" />
-                      <ButtonText color="$grey600">{primaryLabel}</ButtonText>
-                    </XStack>
-                  ) : (
-                    <ButtonText color="$primary">{primaryLabel}</ButtonText>
-                  )}
-                </YStack>
-              </ClaimActionButton>
-            </YStack>
-          )}
-        </YStack>
-      </ClaimCard>
+        </ClaimCard>
+      )}
 
       {/* ------------------------------------------------------------------ */}
       {/* Next-claim footer (already_claimed state)                            */}
@@ -291,6 +486,23 @@ function CitizenClaimInner({ environment, onClaimSuccess, onClaimError }: Citize
           </YStack>
         </ClaimCard>
       )}
+
+      <ClaimDailyStats>
+        <Text variant="caption" secondary>
+          Today
+        </Text>
+        <ClaimDailyStatsRow variant="caption" center secondary>
+          <Text color="$colorSoft">{formatCompactNumber(dailyStats.dailyNumberOfClaimers)}</Text>{' '}
+          claimers received
+          <TokenAmount
+            amount={dailyStats.dailyClaimedAmount}
+            token="G$"
+            size="sm"
+            variant="secondary"
+            useAbbreviations
+          />
+        </ClaimDailyStatsRow>
+      </ClaimDailyStats>
     </YStack>
   )
 }
@@ -321,6 +533,13 @@ export function CitizenClaimWidget({
   onClaimSuccess,
   onClaimError,
 }: CitizenClaimWidgetProps) {
+  const walletMode =
+    provider &&
+    typeof provider === 'object' &&
+    (provider as { __gwWalletMode?: string }).__gwWalletMode === 'custodial'
+      ? 'custodial'
+      : 'injected'
+
   return (
     <GoodWidgetProvider
       provider={provider as EIP1193Provider | undefined}
@@ -330,9 +549,11 @@ export function CitizenClaimWidget({
     >
       <CitizenClaimInner
         environment={environment}
+        walletMode={walletMode}
         onClaimSuccess={onClaimSuccess}
         onClaimError={onClaimError}
       />
+      <ToastContainer />
     </GoodWidgetProvider>
   )
 }

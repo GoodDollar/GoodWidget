@@ -24,6 +24,3 @@ export type { UseCitizenClaimAdapterOptions } from './adapter'
 
 // Widget component
 export { CitizenClaimWidget } from './CitizenClaimWidget'
-
-// Web Component element class (for manual customElements.define)
-export { CitizenClaimWidgetElement } from './element'

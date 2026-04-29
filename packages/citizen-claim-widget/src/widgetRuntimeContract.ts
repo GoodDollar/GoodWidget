@@ -1,12 +1,10 @@
 import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
 
-export type CitizenClaimWidgetEnvironment =
-  | 'production'
-  | 'staging'
-  | 'development'
+export type CitizenClaimWidgetEnvironment = 'production' | 'staging' | 'development'
 
 export type CitizenClaimWidgetStatus =
   | 'loading'
+  | 'connecting'
   | 'not_connected'
   | 'not_whitelisted'
   | 'eligible'
@@ -47,6 +45,18 @@ export interface CitizenClaimWidgetAdapterState {
   error: string | null
   /** When already_claimed, the date when the next claim becomes available. */
   nextClaimTime?: Date | null
+  /**
+   * Per-chain claimables for the connected wallet.
+   * Mirrors GoodWalletV2's "ready to claim per chain" behavior for UBI.
+   */
+  claimablesByChain: Array<{
+    chainId: number
+    amount: string
+  }>
+  dailyStats: {
+    dailyNumberOfClaimers: number
+    dailyClaimedAmount: number
+  }
 }
 
 export interface CitizenClaimWidgetAdapterActions {
@@ -54,6 +64,7 @@ export interface CitizenClaimWidgetAdapterActions {
   refresh: () => Promise<void>
   startVerification: () => Promise<void>
   claim: () => Promise<unknown>
+  claimOnChain: (chainId: number) => Promise<unknown>
   switchChain?: (chainId: number) => Promise<void>
 }
 
@@ -79,7 +90,7 @@ export type CitizenClaimWidgetClientFactory = (
 
 export interface CitizenClaimWidgetProps {
   provider?: unknown
-  environment?: CitizenClaimWidgetEnvironment | string
+  environment?: CitizenClaimWidgetEnvironment
   clientFactory?: CitizenClaimWidgetClientFactory
   onClaimSuccess?: (detail: CitizenClaimWidgetSuccessDetail) => void
   onClaimError?: (detail: CitizenClaimWidgetErrorDetail) => void
@@ -91,4 +102,3 @@ export interface CitizenClaimWidgetProps {
   /** Starting color scheme. Defaults to 'light'. */
   defaultTheme?: 'light' | 'dark'
 }
-

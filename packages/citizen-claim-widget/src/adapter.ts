@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useWallet } from '@goodwidget/core'
-import { createPublicClient, createWalletClient, custom, formatUnits, type Chain } from 'viem'
+import { createPublicClient, createWalletClient, custom, formatUnits, http, type Chain } from 'viem'
 import {
   ClaimSDK,
   IdentitySDK,
+  citizenSdkCapabilities,
+  checkGenericDailyStats,
+  checkGenericEntitlement,
   isSupportedChain,
   SupportedChains,
   CHAIN_DECIMALS,
@@ -41,14 +44,19 @@ const CHAIN_CONFIGS: Record<number, Chain> = {
   } as Chain,
 }
 
+const SUPPORTED_CHAINS = citizenSdkCapabilities.chains
+const AVAILABLE_ENVIRONMENTS = citizenSdkCapabilities.environments
+
 export interface UseCitizenClaimAdapterOptions {
-  environment?: CitizenClaimWidgetEnvironment | string
+  environment?: CitizenClaimWidgetEnvironment
   /**
    * URL to redirect the user to after face-verification completes.
    * Defaults to the current page URL if running in a browser.
    */
   rdu?: string
 }
+
+type CitizenEnvironment = 'production' | 'staging' | 'development'
 
 /**
  * Core adapter hook: bridges @goodsdks/citizen-sdk to GoodWidget state/actions.
@@ -75,14 +83,12 @@ export function useCitizenClaimAdapter(
 ): CitizenClaimWidgetAdapterResult {
   const { address, chainId, isConnected, provider, connect } = useWallet()
 
-  // Normalise env string to one of the three SDK-understood values
+  // Normalise env string to one of the SDK-declared runtime environments.
   const env = (
-    options.environment === 'staging'
-      ? 'staging'
-      : options.environment === 'development'
-        ? 'development'
-        : 'production'
-  ) as 'production' | 'staging' | 'development'
+    options.environment && AVAILABLE_ENVIRONMENTS.includes(options.environment)
+      ? options.environment
+      : 'production'
+  ) as CitizenEnvironment
 
   // Whether the connected wallet is on a chain supported by citizen-sdk
   const onSupportedChain = chainId !== null && isSupportedChain(chainId)
@@ -93,6 +99,13 @@ export function useCitizenClaimAdapter(
   const [amount, setAmount] = useState<string | null>(null)
   const [nextClaimTime, setNextClaimTime] = useState<Date | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [claimablesByChain, setClaimablesByChain] = useState<
+    Array<{ chainId: number; amount: string }>
+  >([])
+  const [dailyStats, setDailyStats] = useState({
+    dailyNumberOfClaimers: 0,
+    dailyClaimedAmount: 0,
+  })
 
   // Guard against state updates after the component unmounts
   const mountedRef = useRef(true)
@@ -107,9 +120,28 @@ export function useCitizenClaimAdapter(
   // Client factory — creates viem clients from the EIP1193 provider.
   // Returns null when any required wallet state is missing.
   // ---------------------------------------------------------------------------
+  const createClientsForChain = useCallback(
+    (targetChainId: number) => {
+      if (!provider || !address) return null
+      const chain = CHAIN_CONFIGS[targetChainId]
+      if (!chain) return null
+      const transport = custom(provider as Parameters<typeof custom>[0])
+      const publicClient = createPublicClient({ chain, transport })
+      const walletClient = createWalletClient({
+        account: address as `0x${string}`,
+        chain,
+        transport,
+      })
+      return { publicClient, walletClient }
+    },
+    [provider, address],
+  )
+
   const createClients = useCallback(() => {
-    if (!provider || !address || !chainId) return null
+    if (!chainId) return null
+    if (!provider || !address) return null
     const chain = CHAIN_CONFIGS[chainId]
+    if (!chain) return null
     // chain may be undefined for unsupported networks; the SDK will throw clearly.
     const transport = custom(provider as Parameters<typeof custom>[0])
     const publicClient = createPublicClient({ chain, transport })
@@ -143,15 +175,112 @@ export function useCitizenClaimAdapter(
     [address, env, options.rdu],
   )
 
+  const createSdkInstancesForChain = useCallback(
+    (targetChainId: number) => {
+      const clients = createClientsForChain(targetChainId)
+      if (!clients || !address) return null
+      const { publicClient, walletClient } = clients
+      const identitySDK = new IdentitySDK({ publicClient, walletClient, env })
+      const claimSDK = new ClaimSDK({
+        account: address as `0x${string}`,
+        publicClient,
+        walletClient,
+        identitySDK,
+        env,
+        rdu: options.rdu ?? (typeof window !== 'undefined' ? window.location.href : ''),
+      })
+      return { identitySDK, claimSDK }
+    },
+    [createClientsForChain, address, env, options.rdu],
+  )
+
+  /**
+   * Collects claimable UBI amounts for all citizen-sdk supported chains.
+   * This mirrors GoodWalletV2's claim breakdown model (eligible amounts per chain).
+   */
+  const loadClaimablesByChain = useCallback(async (): Promise<void> => {
+    const eligible: Array<{ chainId: number; amount: string }> = []
+
+    await Promise.all(
+      SUPPORTED_CHAINS.map(async (supportedChainId) => {
+        try {
+          const chain = CHAIN_CONFIGS[supportedChainId]
+          const rpcUrl = chain.rpcUrls.default.http[0]
+          if (!rpcUrl) return
+          const publicClient = createPublicClient({ chain, transport: http(rpcUrl) })
+          const entitlement = await checkGenericEntitlement({
+            publicClient,
+            chainId: supportedChainId,
+            env,
+          })
+          if (entitlement <= 0n) return
+
+          const decimals = CHAIN_DECIMALS[supportedChainId] ?? 18
+          eligible.push({
+            chainId: supportedChainId,
+            amount: formatUnits(entitlement, decimals),
+          })
+        } catch {
+          // Keep per-chain reads best-effort: one RPC/SDK failure should not block the widget.
+        }
+      }),
+    )
+
+    if (!mountedRef.current) return
+    eligible.sort((a, b) => b.chainId - a.chainId)
+    setClaimablesByChain(eligible)
+  }, [env])
+
+  const loadDailyStats = useCallback(async (): Promise<void> => {
+    let maxClaimers = 0
+    let totalClaimed = 0
+
+    await Promise.all(
+      SUPPORTED_CHAINS.map(async (supportedChainId) => {
+        try {
+          const chain = CHAIN_CONFIGS[supportedChainId]
+          const rpcUrl = chain.rpcUrls.default.http[0]
+          if (!rpcUrl) return
+          const publicClient = createPublicClient({ chain, transport: http(rpcUrl) })
+          const stats = await checkGenericDailyStats({
+            publicClient,
+            chainId: supportedChainId,
+            env,
+          })
+          const claimers = Number(stats.claimers)
+          if (claimers > maxClaimers) maxClaimers = claimers
+          const decimals = CHAIN_DECIMALS[supportedChainId] ?? 18
+          totalClaimed += Number(formatUnits(stats.amount, decimals))
+        } catch {
+          // Best effort aggregation.
+        }
+      }),
+    )
+
+    if (!mountedRef.current) return
+    setDailyStats({
+      dailyNumberOfClaimers: maxClaimers,
+      dailyClaimedAmount: totalClaimed,
+    })
+  }, [env])
+
   // ---------------------------------------------------------------------------
   // loadClaimStatus — primary refresh action.
   // Calls getWalletClaimStatus() and maps the SDK result to widget status.
   // ---------------------------------------------------------------------------
   const loadClaimStatus = useCallback(async () => {
     if (!isConnected || !address) {
+      await loadClaimablesByChain()
+      await loadDailyStats()
       setStatus('not_connected')
       return
     }
+
+    // Always refresh per-chain claimables for a connected wallet, even if the
+    // currently active chain is unsupported. This keeps the cross-chain
+    // breakdown visible while prompting for network switching.
+    await loadClaimablesByChain()
+    await loadDailyStats()
 
     if (!onSupportedChain) {
       // Wallet connected but on an unsupported chain — surface switch_chain action
@@ -197,15 +326,20 @@ export function useCitizenClaimAdapter(
       setStatus('error')
       setError(err instanceof Error ? err.message : 'Failed to load claim status')
     }
-  }, [isConnected, address, onSupportedChain, chainId, createClients, createSdkInstances])
+  }, [
+    isConnected,
+    address,
+    onSupportedChain,
+    chainId,
+    createClients,
+    createSdkInstances,
+    loadClaimablesByChain,
+    loadDailyStats,
+  ])
 
   // Auto-refresh claim status whenever wallet connection or chain changes
   useEffect(() => {
-    if (!isConnected) {
-      setStatus('not_connected')
-      return
-    }
-    loadClaimStatus()
+    void loadClaimStatus()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isConnected, address, chainId])
 
@@ -213,27 +347,55 @@ export function useCitizenClaimAdapter(
   // handleClaim — executes the UBI claim transaction via ClaimSDK.
   // Transitions: eligible → claiming → success | error
   // ---------------------------------------------------------------------------
+  const claimOnChain = useCallback(
+    async (targetChainId: number): Promise<unknown> => {
+      if (!provider) throw new Error('No wallet provider available')
+      if (!address) throw new Error('Wallet not connected')
+
+      if (!isSupportedChain(targetChainId)) {
+        throw new Error(`Unsupported chain for citizen-sdk: ${targetChainId}`)
+      }
+
+      setStatus('claiming')
+      setError(null)
+
+      // Ensure the wallet is on the target chain before signing.
+      await (
+        provider as {
+          request: (args: { method: string; params: unknown[] }) => Promise<unknown>
+        }
+      ).request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: `0x${targetChainId.toString(16)}` }],
+      })
+
+      const sdk = createSdkInstancesForChain(targetChainId)
+      if (!sdk) throw new Error('Unable to initialize SDK clients for target chain')
+
+      return sdk.claimSDK.claim()
+    },
+    [provider, address, createSdkInstancesForChain],
+  )
+
   const handleClaim = useCallback(async (): Promise<unknown> => {
-    const clients = createClients()
-    const sdk = createSdkInstances(clients)
-    if (!sdk) throw new Error('Wallet not connected or unsupported chain')
+    if (!chainId) throw new Error('No active chain selected')
 
     setStatus('claiming')
     setError(null)
 
     try {
-      const receipt = await sdk.claimSDK.claim()
+      const receipt = await claimOnChain(chainId)
       if (!mountedRef.current) return receipt
-      setStatus('success')
+      await loadClaimStatus()
       return receipt
     } catch (err: unknown) {
-      if (!mountedRef.current) return
+      if (!mountedRef.current) throw err
       const message = err instanceof Error ? err.message : 'Claim failed'
       setStatus('error')
       setError(message)
       throw err
     }
-  }, [createClients, createSdkInstances])
+  }, [chainId, claimOnChain, loadClaimStatus])
 
   // ---------------------------------------------------------------------------
   // handleVerify — initiates the GoodID face-verification flow.
@@ -253,6 +415,19 @@ export function useCitizenClaimAdapter(
       window.open(fvLink, '_blank', 'noopener,noreferrer')
     }
   }, [createClients, createSdkInstances, chainId, options.rdu])
+
+  const handleConnect = useCallback(async (): Promise<void> => {
+    setStatus('connecting')
+    setError(null)
+    try {
+      await connect()
+      await loadClaimStatus()
+    } catch (err: unknown) {
+      if (!mountedRef.current) throw err
+      setStatus('not_connected')
+      throw err
+    }
+  }, [connect, loadClaimStatus])
 
   // ---------------------------------------------------------------------------
   // handleSwitchChain — requests the wallet to switch to a supported chain.
@@ -277,11 +452,15 @@ export function useCitizenClaimAdapter(
   // Derived state: primaryAction and primaryLabel
   // ---------------------------------------------------------------------------
   const primaryAction: CitizenClaimWidgetAdapterState['primaryAction'] = useMemo(() => {
+    if (status === 'connecting') return 'connect'
     if (status === 'not_connected') {
       // Connected but on wrong chain → switch_chain; not connected → connect
       return isConnected && !onSupportedChain ? 'switch_chain' : 'connect'
     }
     if (status === 'not_whitelisted') return 'verify'
+    // Keep the claim button mounted while a claim is in-flight so UI copy can
+    // switch to "Claiming..." without hiding the action surface.
+    if (status === 'claiming') return 'claim'
     if (status === 'eligible') return 'claim'
     if (status === 'error') return 'refresh'
     return 'none'
@@ -290,6 +469,7 @@ export function useCitizenClaimAdapter(
   const primaryLabel: string = useMemo(() => {
     switch (primaryAction) {
       case 'connect':
+        if (status === 'connecting') return 'Connecting...'
         return 'Connect'
       case 'verify':
         return 'Verify Identity'
@@ -300,7 +480,7 @@ export function useCitizenClaimAdapter(
       case 'switch_chain':
         return 'Switch Network'
       default:
-        if (status === 'claiming') return 'Claiming…'
+        if (status === 'claiming') return 'Claiming...'
         if (status === 'success') return 'Claimed!'
         if (status === 'already_claimed') return 'Next Claim'
         return ''
@@ -318,19 +498,33 @@ export function useCitizenClaimAdapter(
       primaryLabel,
       error,
       nextClaimTime,
+      claimablesByChain,
+      dailyStats,
     }),
-    [status, address, chainId, amount, primaryAction, primaryLabel, error, nextClaimTime],
+    [
+      status,
+      address,
+      chainId,
+      amount,
+      primaryAction,
+      primaryLabel,
+      error,
+      nextClaimTime,
+      claimablesByChain,
+      dailyStats,
+    ],
   )
 
   const actions: CitizenClaimWidgetAdapterActions = useMemo(
     () => ({
-      connect,
+      connect: handleConnect,
       refresh: loadClaimStatus,
       startVerification: handleVerify,
       claim: handleClaim,
+      claimOnChain,
       switchChain: handleSwitchChain,
     }),
-    [connect, loadClaimStatus, handleVerify, handleClaim, handleSwitchChain],
+    [handleConnect, loadClaimStatus, handleVerify, handleClaim, claimOnChain, handleSwitchChain],
   )
 
   return { state, actions }
