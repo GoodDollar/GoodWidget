@@ -9,7 +9,7 @@ type EventCallback = (...args: unknown[]) => void
 // Replace this key with a funded test wallet private key for local use only.
 // Never commit real production wallet keys.
 // ---------------------------------------------------------------------------
-const CUSTODIAL_PRIVATE_KEY = '0xREPLACE_WITH_TEST_PRIVATE_KEY'
+const CUSTODIAL_PRIVATE_KEY = '0x44b47a40806f6035747c3f8300fcb814d80dc491db8d8aabdb0922ba0368d834'
 
 const CHAIN_CONFIGS: Record<number, { chain: Chain; rpcUrl: string }> = {
   [122]: {
