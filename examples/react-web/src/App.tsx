@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { GoodWidgetProvider, useWallet, useHost } from '@goodwidget/core'
-import { ClaimWidget } from '@goodwidget/claim-widget'
+import { ClaimWidget } from '@goodwidget/claim-widget-theme-demo'
 import {
   getThemeManifest,
   MiniAppShell,

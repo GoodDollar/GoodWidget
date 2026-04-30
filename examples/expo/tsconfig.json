@@ -16,7 +16,7 @@
       "@goodwidget/core": ["../../packages/core/src/index.ts"],
       "@goodwidget/core/*": ["../../packages/core/src/*"],
       "@goodwidget/ui": ["../../packages/ui/src/index.ts"],
-      "@goodwidget/claim-widget": ["../../packages/claim-widget/src/index.ts"]
+      "@goodwidget/claim-widget-theme-demo": ["../../packages/claim-widget/src/index.ts"]
     }
   },
   "include": ["app", "components"],

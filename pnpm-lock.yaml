@@ -35,9 +35,9 @@ importers:
       '@babel/runtime':
         specifier: ^7.28.4
         version: 7.29.2
-      '@goodwidget/claim-widget':
+      '@goodwidget/claim-widget-theme-demo':
         specifier: workspace:*
-        version: link:../../packages/claim-widget
+        version: link:../../packages/claim-widget-theme-demo
       '@goodwidget/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -84,9 +84,9 @@ importers:
 
   examples/html:
     dependencies:
-      '@goodwidget/claim-widget':
+      '@goodwidget/claim-widget-theme-demo':
         specifier: workspace:*
-        version: link:../../packages/claim-widget
+        version: link:../../packages/claim-widget-theme-demo
       '@goodwidget/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -121,9 +121,9 @@ importers:
 
   examples/react-web:
     dependencies:
-      '@goodwidget/claim-widget':
+      '@goodwidget/claim-widget-theme-demo':
         specifier: workspace:*
-        version: link:../../packages/claim-widget
+        version: link:../../packages/claim-widget-theme-demo
       '@goodwidget/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -161,9 +161,9 @@ importers:
 
   examples/storybook:
     dependencies:
-      '@goodwidget/claim-widget':
+      '@goodwidget/claim-widget-theme-demo':
         specifier: workspace:*
-        version: link:../../packages/claim-widget
+        version: link:../../packages/claim-widget-theme-demo
       '@goodwidget/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -214,7 +214,35 @@ importers:
         specifier: ^5.7.0
         version: 5.9.3
 
-  packages/claim-widget:
+  packages/citizen-claim-widget:
+    dependencies:
+      '@goodwidget/core':
+        specifier: workspace:*
+        version: link:../core
+      '@goodwidget/ui':
+        specifier: workspace:*
+        version: link:../ui
+    devDependencies:
+      '@types/react':
+        specifier: ^18.3.0
+        version: 18.3.28
+      '@types/react-dom':
+        specifier: ^18.3.0
+        version: 18.3.7(@types/react@18.3.28)
+      react:
+        specifier: ^18.3.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.0
+        version: 18.3.1(react@18.3.1)
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(@swc/core@1.15.30)(postcss@8.5.8)(typescript@5.9.3)(yaml@2.8.3)
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  packages/claim-widget-theme-demo:
     dependencies:
       '@goodwidget/core':
         specifier: workspace:*

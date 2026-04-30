@@ -11,7 +11,7 @@
   "dependencies": {
     "@goodwidget/core": "workspace:*",
     "@goodwidget/ui": "workspace:*",
-    "@goodwidget/claim-widget": "workspace:*",
+    "@goodwidget/claim-widget-theme-demo": "workspace:*",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "react-native-web": "^0.19.13"

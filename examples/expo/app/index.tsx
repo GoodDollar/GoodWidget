@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { SafeAreaView, StyleSheet, ScrollView } from 'react-native'
-import { ClaimWidget } from '@goodwidget/claim-widget'
+import { ClaimWidget } from '@goodwidget/claim-widget-theme-demo'
 import { Card, Heading, Text, Button, ButtonText, Separator, XStack, YStack } from '@goodwidget/ui'
 
 function Section({
@@ -35,7 +35,7 @@ function Section({
 /**
  * Side-by-side theme override demo.
  *
- * Each section embeds the real ClaimWidget from @goodwidget/claim-widget
+ * Each section embeds the real ClaimWidget from @goodwidget/claim-widget-theme-demo
  * with different override strategies applied.
  */
 export default function ThemeDemoScreen() {
