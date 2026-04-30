@@ -41,7 +41,7 @@ export { Separator } from './components/Separator'
 export { ScrollArea } from './components-test/ScrollArea'
 
 // Typography
-export { Heading } from './components-test/Heading'
+export { Heading } from './components/Heading'
 export { Text } from './components/Text'
 
 // Inputs
