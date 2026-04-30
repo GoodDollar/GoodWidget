@@ -8,6 +8,7 @@ type EventCallback = (...args: unknown[]) => void
 // Local manual-testing config:
 // Replace this key with a funded test wallet private key for local use only.
 // Never commit real production wallet keys.
+// below key is randomely generated and is compromised, do not use for any real value
 // ---------------------------------------------------------------------------
 const CUSTODIAL_PRIVATE_KEY = '0x44b47a40806f6035747c3f8300fcb814d80dc491db8d8aabdb0922ba0368d834'
 
