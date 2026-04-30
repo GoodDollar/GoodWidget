@@ -34,7 +34,16 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        // Required for citizen-claim-widget tests: viem makes cross-origin POST
+        // requests to forno.celo.org / rpc.fuse.io from a localhost Storybook page.
+        // In sandboxed CI environments the browser's certificate store may not
+        // include all CA certs used by RPC providers, hence both flags are needed.
+        launchOptions: {
+          args: ['--disable-web-security', '--ignore-certificate-errors'],
+        },
+      },
     },
   ],
   webServer: {
