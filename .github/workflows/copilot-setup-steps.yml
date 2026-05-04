@@ -1,0 +1,39 @@
+# Copilot cloud agent bootstrap
+# This file runs once when a Copilot cloud agent task starts. It installs all
+# dependencies, builds the monorepo packages, and installs the Playwright browser
+# so Storybook can be started and tested immediately without extra setup.
+#
+# After these steps complete, Storybook can be started with:
+#   pnpm storybook
+# which starts on http://localhost:6006.
+#
+# The @storybook/test-runner interaction tests can then be run with:
+#   pnpm test:storybook
+#
+# Playwright screenshot/trace tests can be run with:
+#   pnpm test:demo  (if kept)
+
+name: Copilot setup steps
+
+on:
+  workflow_call: {}
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Enable corepack so the declared pnpm version (packageManager field) is used
+      - name: Enable corepack
+        run: corepack enable && corepack prepare pnpm@9.15.0 --activate
+
+      # 2. Install all monorepo dependencies via pnpm workspaces
+      - name: Install dependencies
+        run: pnpm install
+
+      # 3. Build all workspace packages so Storybook can import them
+      - name: Build packages
+        run: pnpm build
+
+      # 4. Install the Chromium browser and its OS-level deps for Playwright / test-runner
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install chromium --with-deps

@@ -1,29 +1,32 @@
 {
-  "name": "@goodwidget/example-react-web",
+  "name": "@goodwidget/storybook",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --port 3000",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "lint": "eslint src/",
-    "clean": "rm -rf dist .turbo"
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "test:storybook": "test-storybook --url http://localhost:6006"
   },
   "dependencies": {
     "@goodwidget/core": "workspace:*",
     "@goodwidget/ui": "workspace:*",
-    "@goodwidget/embed": "workspace:*",
     "@goodwidget/claim-widget-theme-demo": "workspace:*",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "react-native-web": "^0.19.13"
   },
   "devDependencies": {
+    "@storybook/addon-essentials": "^8.6.17",
+    "@storybook/addon-interactions": "^8.6.17",
+    "@storybook/react": "^8.6.17",
+    "@storybook/react-vite": "^8.6.17",
+    "@storybook/test": "^8.6.17",
+    "@storybook/test-runner": "^0.21.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.0",
-    "vite": "^6.2.0",
+    "storybook": "^8.6.17",
     "typescript": "^5.7.0"
   }
 }

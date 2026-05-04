@@ -59,12 +59,12 @@ GoodWidget/
 
 ### Package boundaries
 
-| Package | Owns |
-|---------|------|
-| `packages/ui` | UI primitives, tokens, themes, presets, config assembly, design-system exports |
-| `packages/core` | runtime/provider/context, theming boundary wiring |
-| `packages/embed` | web-component bridge behavior, CSS property reading |
-| widget packages | feature-specific UI and SDK-backed flows |
+| Package          | Owns                                                                           |
+| ---------------- | ------------------------------------------------------------------------------ |
+| `packages/ui`    | UI primitives, tokens, themes, presets, config assembly, design-system exports |
+| `packages/core`  | runtime/provider/context, theming boundary wiring                              |
+| `packages/embed` | web-component bridge behavior, CSS property reading                            |
+| widget packages  | feature-specific UI and SDK-backed flows                                       |
 
 ---
 
@@ -124,10 +124,10 @@ GoodWidget/
 
 Use the right document for each type of task:
 
-| Topic | Reference |
-|-------|-----------|
-| System overview, package responsibilities, data flow | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
-| Storybook, Playwright, demo routes, stories, fixtures, screenshots, test evidence | [`docs/demo-environment.md`](docs/demo-environment.md) |
+| Topic                                                                                            | Reference                                                                        |
+| ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| System overview, package responsibilities, data flow                                             | [`ARCHITECTURE.md`](ARCHITECTURE.md)                                             |
+| Storybook, Playwright, demo routes, stories, fixtures, screenshots, test evidence                | [`docs/demo-environment.md`](docs/demo-environment.md)                           |
 | Tamagui config, tokens, themes, presets, UI primitives, component names, public override targets | [`docs/architecture/theming-contract.md`](docs/architecture/theming-contract.md) |
-| Packaging and distribution | [`docs/PACKAGING.md`](docs/PACKAGING.md) |
-| Bounty scope, acceptance criteria, verification commands | GitHub issue body |
+| Packaging and distribution                                                                       | [`docs/PACKAGING.md`](docs/PACKAGING.md)                                         |
+| Bounty scope, acceptance criteria, verification commands                                         | GitHub issue body                                                                |

@@ -10,7 +10,7 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
-    "@goodwidget/claim-widget": "workspace:*",
+    "@goodwidget/claim-widget-theme-demo": "workspace:*",
     "@goodwidget/core": "workspace:*",
     "@goodwidget/ui": "workspace:*",
     "@goodwidget/embed": "workspace:*",

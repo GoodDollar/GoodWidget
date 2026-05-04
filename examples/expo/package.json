@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.28.4",
-    "@goodwidget/claim-widget": "workspace:*",
+    "@goodwidget/claim-widget-theme-demo": "workspace:*",
     "@goodwidget/core": "workspace:*",
     "@goodwidget/ui": "workspace:*",
     "@tamagui/babel-plugin": "2.0.0-rc.36",

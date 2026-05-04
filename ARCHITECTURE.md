@@ -34,6 +34,7 @@ GoodWidget/
   pnpm-workspace.yaml
   turbo.json
   tsconfig.base.json
+  playwright.config.ts   # Playwright config targeting localhost:3000
 
   packages/
     core/           # GoodWidgetProvider, hooks, host detection, wallet context
@@ -305,6 +306,30 @@ Key patterns in `packages/claim-widget/src/ClaimWidget.tsx`:
 
 ## Demo and Review Environment
 
+<<<<<<< HEAD
+
+### React web demo lab
+
+`examples/react-web` is a route-based Vite + React + RN-web SPA that serves as
+the canonical review and Playwright test environment.
+
+Routes:
+
+| Route               | Content                                                                            |
+| ------------------- | ---------------------------------------------------------------------------------- |
+| `/`                 | Link grid to all demo routes                                                       |
+| `/components/:name` | Per-primitive demo page for each UI component                                      |
+| `/widget/claim`     | ClaimWidget full-flow demo with token, component, and host override examples       |
+| `/theme-overrides`  | The original 5-tab OverrideShowcase (Default / Tokens / Component / Host / Inline) |
+
+Wallet-aware pages (`WalletInfo`, `AddressDisplay`, `ChainBadge`, `ClaimWidget`) use a
+lightweight mock EIP-1193 provider (`src/mock/mockEip1193.ts`) that provides a stable
+address and chain ID without requiring a real browser wallet.
+
+Start with: `pnpm --filter @goodwidget/example-react-web dev` → `http://localhost:3000`
+
+# See [docs/demo-environment.md](docs/demo-environment.md) for full documentation.
+
 Storybook is the canonical demo and review environment for UI components and widget flows.
 
 - stories live alongside their components
@@ -316,6 +341,8 @@ setup, story conventions, Playwright fixtures, screenshot evidence requirements,
 routes.
 
 The `examples/` directory contains additional integration demos:
+
+> > > > > > > 8ce5cec253701479a06652e1f6948993af9c0fa3
 
 - `examples/react-web/` — React web app demonstrating preset baseline, token overrides,
   component theme overrides, host `themeOverrides`, and local inline overrides

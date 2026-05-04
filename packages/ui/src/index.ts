@@ -41,7 +41,7 @@ export { Separator } from './components/Separator'
 export { ScrollArea } from './components-test/ScrollArea'
 
 // Typography
-export { Heading } from './components-test/Heading'
+export { Heading } from './components/Heading'
 export { Text } from './components/Text'
 
 // Inputs
@@ -91,6 +91,6 @@ export { ChainBadge } from './components-test/ChainBadge'
 export { WalletInfo } from './components-test/WalletInfo'
 
 // Patterns / Composites
-export { MiniAppShell } from './components-test/MiniAppShell'
+export { MiniAppShell } from './components/MiniAppShell'
 export { ActionSheet } from './components-test/ActionSheet'
 export { TokenInput } from './components-test/TokenInput'

@@ -1,6 +1,6 @@
 # GoodWidget — Expo (React Native) Example
 
-This is a standalone Expo app that demonstrates using `@goodwidget/claim-widget` in a React Native environment — importing the widget as an npm package and overriding its theme.
+This is a standalone Expo app that demonstrates using `@goodwidget/claim-widget-theme-demo` in a React Native environment — importing the widget as an npm package and overriding its theme.
 
 ## Prerequisites
 
@@ -18,10 +18,10 @@ npx expo start
 
 ### Importing and using an existing widget
 
-Both screens import `ClaimWidget` from `@goodwidget/claim-widget`:
+Both screens import `ClaimWidget` from `@goodwidget/claim-widget-theme-demo`:
 
 ```tsx
-import { ClaimWidget } from '@goodwidget/claim-widget'
+import { ClaimWidget } from '@goodwidget/claim-widget-theme-demo'
 ```
 
 The widget is a self-contained mini app with its own `GoodWidgetProvider`. The host app just renders it and passes override props.
