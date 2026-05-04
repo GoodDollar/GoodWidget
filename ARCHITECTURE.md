@@ -1,8 +1,6 @@
 # GoodWidget Architecture
 
 This document is the authoritative reference for the current GoodWidget codebase.
-It is aligned to the `copilot/sub-pr-6` branch and the current Tamagui architecture used in
-`packages/ui`, `packages/core`, `packages/embed`, and `packages/claim-widget`.
 
 For detailed Tamagui/theming rules, see
 [`docs/architecture/theming-contract.md`](docs/architecture/theming-contract.md).
