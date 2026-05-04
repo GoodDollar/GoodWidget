@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPublicClient, createWalletClient, custom, http } from 'viem'
 import { celo } from 'viem/chains'
 import { useWallet } from '@goodwidget/core'
@@ -82,7 +82,7 @@ export function useSavingsSDK(): SavingsSDKState {
     }
   }, [provider, isOnCelo])
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     if (!sdk) return
     setLoading(true)
     setError(null)
@@ -101,21 +101,23 @@ export function useSavingsSDK(): SavingsSDKState {
     } finally {
       setLoading(false)
     }
-  }
+  }, [sdk, address, isOnCelo])
 
-  // Refresh whenever the SDK or address changes.
-  // `refresh` is stable in intent (reads from `sdk` and `address` via closure at call time).
+  // Refresh whenever the SDK or address changes
   useEffect(() => {
     if (sdk) {
       void refresh()
     }
-  }, [sdk, address])
+  }, [sdk, address, refresh])
 
-  const stake = async (
+  const stake = useCallback(async (
     amountStr: string,
     onHash?: (hash: `0x${string}`) => void,
   ): Promise<boolean> => {
-    if (!sdk) { setError('SDK not initialized'); return false }
+    if (!sdk) {
+      setError('SDK not initialized')
+      return false
+    }
     setError(null)
     try {
       const amount = parseGDollar(amountStr)
@@ -130,13 +132,16 @@ export function useSavingsSDK(): SavingsSDKState {
       setError(err instanceof Error ? err.message : String(err))
       return false
     }
-  }
+  }, [sdk, refresh])
 
-  const unstake = async (
+  const unstake = useCallback(async (
     amountStr: string,
     onHash?: (hash: `0x${string}`) => void,
   ): Promise<boolean> => {
-    if (!sdk) { setError('SDK not initialized'); return false }
+    if (!sdk) {
+      setError('SDK not initialized')
+      return false
+    }
     setError(null)
     try {
       const amount = parseGDollar(amountStr)
@@ -151,10 +156,13 @@ export function useSavingsSDK(): SavingsSDKState {
       setError(err instanceof Error ? err.message : String(err))
       return false
     }
-  }
+  }, [sdk, refresh])
 
-  const claimReward = async (onHash?: (hash: `0x${string}`) => void): Promise<boolean> => {
-    if (!sdk) { setError('SDK not initialized'); return false }
+  const claimReward = useCallback(async (onHash?: (hash: `0x${string}`) => void): Promise<boolean> => {
+    if (!sdk) {
+      setError('SDK not initialized')
+      return false
+    }
     setError(null)
     try {
       const receipt = await sdk.claimReward(onHash)
@@ -168,7 +176,7 @@ export function useSavingsSDK(): SavingsSDKState {
       setError(err instanceof Error ? err.message : String(err))
       return false
     }
-  }
+  }, [sdk, refresh])
 
   return {
     sdk,
@@ -185,3 +193,4 @@ export function useSavingsSDK(): SavingsSDKState {
 }
 
 export { formatGDollar, toEtherNumber, parseGDollar }
+
