@@ -1,8 +1,6 @@
 # GoodWidget Architecture
 
 This document is the authoritative reference for the current GoodWidget codebase.
-It is aligned to the `copilot/sub-pr-6` branch and the current Tamagui architecture used in
-`packages/ui`, `packages/core`, `packages/embed`, and `packages/claim-widget`.
 
 For detailed Tamagui/theming rules, see
 [`docs/architecture/theming-contract.md`](docs/architecture/theming-contract.md).
@@ -179,15 +177,15 @@ And finally there are local component-instance props:
 
 ### Key files
 
-| File | Responsibility |
-|------|----------------|
-| `configTypes.ts` | Public config, token, theme, preset, typography, animation types |
-| `theme.ts` | Plain token seeds + `createGoodWidgetTokens()` + `createThemeValues()` |
-| `presets.ts` | GoodWalletV2 preset tokens and partial theme overrides |
-| `config.ts` | Config resolution, token override merge, theme derivation, `createGoodWidgetConfig()` |
-| `createComponent.ts` | Named styled-component wrapper + manifest registration |
-| `manifest.ts` | Runtime manifest for named override targets |
-| `index.ts` | Public exports |
+| File                 | Responsibility                                                                        |
+| -------------------- | ------------------------------------------------------------------------------------- |
+| `configTypes.ts`     | Public config, token, theme, preset, typography, animation types                      |
+| `theme.ts`           | Plain token seeds + `createGoodWidgetTokens()` + `createThemeValues()`                |
+| `presets.ts`         | GoodWalletV2 preset tokens and partial theme overrides                                |
+| `config.ts`          | Config resolution, token override merge, theme derivation, `createGoodWidgetConfig()` |
+| `createComponent.ts` | Named styled-component wrapper + manifest registration                                |
+| `manifest.ts`        | Runtime manifest for named override targets                                           |
+| `index.ts`           | Public exports                                                                        |
 
 ### Theme model summary
 
@@ -230,14 +228,14 @@ cover how to reduce that transitional surface.
 
 ### Key files
 
-| File | Responsibility |
-|------|----------------|
-| `eip1193.ts` | EIP-1193 types |
-| `detect.ts` | Host/provider detection |
-| `types.ts` | Provider props and host/wallet state types |
-| `provider.tsx` | `GoodWidgetProvider` |
-| `hooks.ts` | `useWallet()`, `useHost()`, `useGoodWidget()` |
-| `wagmi.ts` | wagmi integration surface |
+| File           | Responsibility                                |
+| -------------- | --------------------------------------------- |
+| `eip1193.ts`   | EIP-1193 types                                |
+| `detect.ts`    | Host/provider detection                       |
+| `types.ts`     | Provider props and host/wallet state types    |
+| `provider.tsx` | `GoodWidgetProvider`                          |
+| `hooks.ts`     | `useWallet()`, `useHost()`, `useGoodWidget()` |
+| `wagmi.ts`     | wagmi integration surface                     |
 
 ### Provider flow
 
@@ -258,12 +256,12 @@ boundary.
 
 ### Key files
 
-| File | Responsibility |
-|------|----------------|
-| `createMiniAppElement.tsx` | Web Component factory |
-| `cssPropertyBridge.ts` | Reads `--gw-*` overrides from the host |
-| `shadowStyles.ts` | Shadow DOM reset and runtime style syncing |
-| `bridge.ts` | attribute/prop/event bridging |
+| File                       | Responsibility                             |
+| -------------------------- | ------------------------------------------ |
+| `createMiniAppElement.tsx` | Web Component factory                      |
+| `cssPropertyBridge.ts`     | Reads `--gw-*` overrides from the host     |
+| `shadowStyles.ts`          | Shadow DOM reset and runtime style syncing |
+| `bridge.ts`                | attribute/prop/event bridging              |
 
 ### Web Component behavior
 
