@@ -51,10 +51,22 @@ const AVAILABLE_ENVIRONMENTS = citizenSdkCapabilities.environments
 // humanReadableError — converts a raw SDK/viem error into a short, user-friendly
 // string. The full technical error is always logged to the console for debugging.
 // ---------------------------------------------------------------------------
+/**
+ * Maps a raw error (viem RPC error, network failure, contract revert, etc.) to a
+ * short, human-readable string suitable for display in the widget UI.
+ *
+ * The full error is always logged to `console.error` so it remains available for
+ * debugging without cluttering the user-facing card.
+ *
+ * @param err - The caught error value (may be any type).
+ * @returns A concise, user-friendly error string.
+ */
 function humanReadableError(err: unknown): string {
   console.error('[CitizenClaimWidget]', err)
 
   if (!(err instanceof Error)) {
+    // Log the raw value so non-Error throws are still traceable
+    console.error('[CitizenClaimWidget] non-Error thrown:', typeof err, err)
     return 'Something went wrong. Please try again.'
   }
 
@@ -98,7 +110,11 @@ function humanReadableError(err: unknown): string {
   if (msg.includes('reverted') || msg.includes('revert')) {
     const reasonMatch = msg.match(/reason:\s*(.+?)(?:\n|$)/)
     if (reasonMatch) {
-      return `Transaction failed: ${reasonMatch[1].trim()}`
+      // Sanitize: strip control characters and cap length to avoid injection/overflow
+      const reason = reasonMatch[1].replace(/[^\x20-\x7E]/g, '').trim().slice(0, 80)
+      if (reason) {
+        return `Transaction failed: ${reason}`
+      }
     }
     return 'Transaction was reverted. Please try again.'
   }
