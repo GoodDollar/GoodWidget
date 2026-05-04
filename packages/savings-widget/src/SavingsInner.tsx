@@ -134,7 +134,8 @@ export function SavingsInner() {
   )
 
   const handleMax = useCallback(() => {
-    const maxStr = Number(maxForTab) > 0 ? formatG$(maxForTab, 6).replace(/,/g, '') : '0'
+    // Use formatEther directly to avoid precision loss from Number() conversion on large bigints
+    const maxStr = maxForTab > 0n ? formatEther(maxForTab) : '0'
     setAmount(maxStr)
     setInputError(null)
   }, [maxForTab])

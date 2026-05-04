@@ -1,5 +1,12 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { createPublicClient, createWalletClient, custom, http } from 'viem'
+import {
+  createPublicClient,
+  createWalletClient,
+  custom,
+  http,
+  type PublicClient,
+  type WalletClient,
+} from 'viem'
 import { useWallet } from '@goodwidget/core'
 import type { EIP1193Provider } from '@goodwidget/core'
 import { GooddollarSavingsSDK } from '@goodwidget/savings-sdk'
@@ -64,8 +71,9 @@ export function useSavingsSDK(): UseSavingsSdkResult {
 
     let sdk: GooddollarSavingsSDK
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      sdk = new GooddollarSavingsSDK(publicClient as any)
+      // Cast through PublicClient: createPublicClient with a custom chain type
+      // is a subtype of PublicClient but TypeScript needs an explicit assertion.
+      sdk = new GooddollarSavingsSDK(publicClient as unknown as PublicClient)
     } catch (e) {
       setStatus('error')
       setError(e instanceof Error ? e.message : 'SDK init failed')
@@ -77,8 +85,8 @@ export function useSavingsSDK(): UseSavingsSdkResult {
         chain: CELO_CHAIN,
         transport: custom(provider as EIP1193Provider),
       })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      sdk.setWalletClient(walletClient as any)
+      // Cast through WalletClient for the same reason as publicClient above.
+      sdk.setWalletClient(walletClient as unknown as WalletClient)
     }
 
     sdkRef.current = sdk
