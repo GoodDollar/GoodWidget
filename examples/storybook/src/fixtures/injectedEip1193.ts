@@ -22,4 +22,3 @@ export function isInjectedProviderUsable(
   if (!provider) return false
   return typeof provider.request === 'function'
 }
-

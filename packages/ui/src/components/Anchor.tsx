@@ -35,4 +35,3 @@ export function Anchor({ href, children, target = '_blank', rel, ...rest }: Anch
     </AnchorFrame>
   )
 }
-

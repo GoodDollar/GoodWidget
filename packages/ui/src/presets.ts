@@ -198,6 +198,7 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
       borderColorPress: color.borderLight,
       borderColorFocus: color.primary,
 
+      textColor: color.text,
       placeholderColor: color.textSecondaryDark,
 
       shadowColor: 'rgba(3, 7, 18, 0.72)',
