@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { GoodWidgetProvider, useWallet, useHost } from '@goodwidget/core'
 import { ClaimWidget } from '@goodwidget/claim-widget'
+import { SavingsWidget } from '@goodwidget/savings-widget'
 import {
   getThemeManifest,
   MiniAppShell,
@@ -27,7 +28,7 @@ import {
 
 function OverrideShowcase() {
   const [activeTab, setActiveTab] = useState<
-    'default' | 'tokens' | 'component' | 'host' | 'inline'
+    'default' | 'tokens' | 'component' | 'host' | 'inline' | 'savings'
   >('default')
   const [hostVariant, setHostVariant] = useState<'cobalt' | 'teal'>('cobalt')
   const { address, chainId } = useWallet()
@@ -45,6 +46,7 @@ function OverrideShowcase() {
     { key: 'component', label: 'Component' },
     { key: 'host', label: 'Host' },
     { key: 'inline', label: 'Inline' },
+    { key: 'savings', label: 'Savings' },
   ]
 
   const hostThemeOverrides =
@@ -498,6 +500,36 @@ function OverrideShowcase() {
               </XStack>
             </YStack>
           </Card>
+        </YStack>
+      )}
+      {/* ==============================================================
+          SAVINGS — SavingsWidget showcase
+          ============================================================== */}
+      {activeTab === 'savings' && (
+        <YStack gap="$6">
+          <Alert
+            type="info"
+            title="Savings Widget"
+            message="The SavingsWidget lets users stake G$ on Celo mainnet and earn rewards. It uses @goodwidget/savings-sdk (backed by the GoodDollar staking contract) and follows the same GoodWidget provider pattern."
+          />
+
+          <Card>
+            <Heading level={5}>Usage</Heading>
+            <Text variant="caption">
+              {`import { SavingsWidget } from '@goodwidget/savings-widget'
+
+<SavingsWidget provider={eip1193} defaultTheme="light" />`}
+            </Text>
+            <Text secondary>
+              The widget auto-detects the host wallet, shows global APR stats without a connected
+              wallet, and unlocks stake/unstake/claim actions once connected to Celo.
+            </Text>
+          </Card>
+
+          <YStack gap="$2">
+            <Text variant="label">SavingsWidget (no provider — read-only stats):</Text>
+            <SavingsWidget />
+          </YStack>
         </YStack>
       )}
     </MiniAppShell>

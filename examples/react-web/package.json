@@ -15,6 +15,7 @@
     "@goodwidget/ui": "workspace:*",
     "@goodwidget/embed": "workspace:*",
     "@goodwidget/claim-widget": "workspace:*",
+    "@goodwidget/savings-widget": "workspace:*",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "react-native-web": "^0.19.13"
