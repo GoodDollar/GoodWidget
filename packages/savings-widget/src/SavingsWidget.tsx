@@ -113,12 +113,11 @@ function SavingsWidgetInner({ connectWallet, refreshIntervalMs }: SavingsWidgetI
 
   useEffect(() => {
     try {
+      const sdkPublicClient = publicClient as SavingsSdkPublicClient
+      const sdkWalletClient = walletClient as SavingsSdkWalletClient
       const nextSdk = walletClient
-        ? new GooddollarSavingsSDK(
-            publicClient as unknown as SavingsSdkPublicClient,
-            walletClient as unknown as SavingsSdkWalletClient,
-          )
-        : new GooddollarSavingsSDK(publicClient as unknown as SavingsSdkPublicClient)
+        ? new GooddollarSavingsSDK(sdkPublicClient, sdkWalletClient)
+        : new GooddollarSavingsSDK(sdkPublicClient)
       setSdk(nextSdk)
       setSdkError(null)
     } catch (error) {
