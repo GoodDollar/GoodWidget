@@ -1,0 +1,30 @@
+{
+  "name": "@goodwidget/savings-sdk",
+  "version": "0.1.0",
+  "description": "Viem-based SDK for GoodDollar savings/staking on Celo",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint src/",
+    "clean": "rm -rf dist .turbo"
+  },
+  "peerDependencies": {
+    "viem": ">=2.0.0"
+  },
+  "devDependencies": {
+    "viem": "^2.21.58",
+    "tsup": "^8.4.0",
+    "typescript": "^5.7.0"
+  }
+}
