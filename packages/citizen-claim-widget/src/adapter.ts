@@ -47,6 +47,70 @@ const CHAIN_CONFIGS: Record<number, Chain> = {
 const SUPPORTED_CHAINS = citizenSdkCapabilities.chains
 const AVAILABLE_ENVIRONMENTS = citizenSdkCapabilities.environments
 
+// ---------------------------------------------------------------------------
+// humanReadableError — converts a raw SDK/viem error into a short, user-friendly
+// string. The full technical error is always logged to the console for debugging.
+// ---------------------------------------------------------------------------
+function humanReadableError(err: unknown): string {
+  console.error('[CitizenClaimWidget]', err)
+
+  if (!(err instanceof Error)) {
+    return 'Something went wrong. Please try again.'
+  }
+
+  const msg = err.message
+
+  // Network-level failures (fetch failed, connection refused, etc.)
+  if (
+    msg.includes('Failed to fetch') ||
+    msg.includes('HTTP request failed') ||
+    msg.includes('fetch failed') ||
+    msg.includes('NetworkError') ||
+    msg.includes('net::ERR_') ||
+    msg.includes('ECONNREFUSED') ||
+    msg.includes('ECONNRESET') ||
+    msg.includes('ETIMEDOUT')
+  ) {
+    return 'Unable to reach the network. Check your connection and try again.'
+  }
+
+  // Timeout
+  if (msg.includes('timeout') || msg.includes('Timeout') || msg.includes('timed out')) {
+    return 'The request timed out. Please try again.'
+  }
+
+  // User rejected transaction
+  if (
+    msg.includes('User rejected') ||
+    msg.includes('user rejected') ||
+    msg.includes('4001') ||
+    msg.includes('ACTION_REJECTED')
+  ) {
+    return 'Transaction rejected by wallet.'
+  }
+
+  // Insufficient funds
+  if (msg.includes('insufficient funds') || msg.includes('InsufficientFunds')) {
+    return 'Insufficient funds to complete this transaction.'
+  }
+
+  // Contract revert — try to extract just the revert reason
+  if (msg.includes('reverted') || msg.includes('revert')) {
+    const reasonMatch = msg.match(/reason:\s*(.+?)(?:\n|$)/)
+    if (reasonMatch) {
+      return `Transaction failed: ${reasonMatch[1].trim()}`
+    }
+    return 'Transaction was reverted. Please try again.'
+  }
+
+  // Unsupported chain
+  if (msg.includes('unsupported chain') || msg.includes('Unsupported chain')) {
+    return 'This network is not supported. Please switch to a supported chain.'
+  }
+
+  return 'Something went wrong. Please try again.'
+}
+
 export interface UseCitizenClaimAdapterOptions {
   environment?: CitizenClaimWidgetEnvironment
   /**
@@ -324,7 +388,7 @@ export function useCitizenClaimAdapter(
     } catch (err: unknown) {
       if (!mountedRef.current) return
       setStatus('error')
-      setError(err instanceof Error ? err.message : 'Failed to load claim status')
+      setError(humanReadableError(err))
     }
   }, [
     isConnected,
@@ -390,9 +454,8 @@ export function useCitizenClaimAdapter(
       return receipt
     } catch (err: unknown) {
       if (!mountedRef.current) throw err
-      const message = err instanceof Error ? err.message : 'Claim failed'
       setStatus('error')
-      setError(message)
+      setError(humanReadableError(err))
       throw err
     }
   }, [chainId, claimOnChain, loadClaimStatus])
