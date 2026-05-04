@@ -1,8 +1,11 @@
 # GoodWidget Architecture
 
 This document is the authoritative reference for the current GoodWidget codebase.
-It is aligned to the `basic-tests` branch and the current Tamagui architecture used in
+It is aligned to the `copilot/sub-pr-6` branch and the current Tamagui architecture used in
 `packages/ui`, `packages/core`, `packages/embed`, and `packages/claim-widget`.
+
+For detailed Tamagui/theming rules, see
+[`docs/architecture/theming-contract.md`](docs/architecture/theming-contract.md).
 
 ---
 
@@ -27,8 +30,8 @@ The framework provides:
 
 ```text
 GoodWidget/
-  ARCHITECTURE.md
-  AGENTS.md
+  ARCHITECTURE.md                    # this file — system overview
+  AGENTS.md                          # agent operating guide
   package.json
   pnpm-workspace.yaml
   turbo.json
@@ -42,32 +45,18 @@ GoodWidget/
     claim-widget/   # Example widget package using core + ui + embed
 
   examples/
-    react-web/      # route-based demo lab (primary demo environment)
-      src/
-        App.tsx             # React Router root (router shell)
-        mock/               # Mock EIP-1193 provider for wallet-aware demo pages
-        pages/
-          IndexPage.tsx     # / — link grid to all routes
-          ThemeOverridesPage.tsx  # /theme-overrides — 5-tab OverrideShowcase
-          ClaimWidgetPage.tsx     # /widget/claim — ClaimWidget demo
-          components/       # /components/:name — per-primitive demo pages
+    react-web/      # React web override and theming demo
     html/           # web component demo
     expo/           # Expo demo app
 
   docs/
-    demo-environment.md  # how to run the demo and Playwright tests
-
-  tests/
-    demo/
-      smoke.spec.ts   # Playwright smoke tests for all demo routes
-
-  .github/
-    workflows/
-      copilot-setup-steps.yml  # cloud agent bootstrap
+    PACKAGING.md                     # packaging and distribution guide
+    demo-environment.md              # Storybook, Playwright, demo routes, fixtures
+    architecture/
+      theming-contract.md            # detailed Tamagui/theming rules
 
   agent-next-steps/
-    theme-propagation-consistency-task.md
-    use-tamagui-primitives.md
+    native-primitives-design-integration-task.md
 ```
 
 ### Dependency graph
@@ -84,7 +73,7 @@ GoodWidget/
 @goodwidget/claim-widget -> depends on core + ui + embed
 ```
 
-`@goodwidget/ui` is still the leaf design-system package and must not depend on `@goodwidget/core`.
+`@goodwidget/ui` is the leaf design-system package and must not depend on `@goodwidget/core`.
 
 ---
 
@@ -92,16 +81,16 @@ GoodWidget/
 
 ### `packages/ui` owns
 
-- plain token seed values in [theme.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/theme.ts)
-- the GoodWalletV2 preset in [presets.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/presets.ts)
+- plain token seed values in `packages/ui/src/theme.ts`
+- the GoodWalletV2 preset in `packages/ui/src/presets.ts`
 - theme derivation from effective token values
-- `createTamagui()` assembly in [config.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/config.ts)
+- `createTamagui()` assembly in `packages/ui/src/config.ts`
 - `createComponent()` and the runtime theme manifest
 - exported primitives and composite UI building blocks
 
 ### `packages/core` owns
 
-- [GoodWidgetProvider](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/core/src/provider.tsx)
+- `GoodWidgetProvider` (`packages/core/src/provider.tsx`)
 - host/provider detection
 - wallet and host React context
 - author `config` + host `themeOverrides` plumbing into `TamaguiProvider`
@@ -120,7 +109,7 @@ This separation is important: `packages/core` does not author tokens or themes, 
 
 ## Current Theming Pipeline
 
-GoodWidget no longer treats the provider as the authoring layer for Tamagui config objects.
+GoodWidget does not treat the provider as the authoring layer for Tamagui config objects.
 The current flow is:
 
 1. Start from plain token seed values in `defaultTokenValues`.
@@ -133,9 +122,13 @@ The current flow is:
 
 The implementation lives in:
 
-- [packages/ui/src/theme.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/theme.ts)
-- [packages/ui/src/presets.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/presets.ts)
-- [packages/ui/src/config.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/config.ts)
+- `packages/ui/src/theme.ts`
+- `packages/ui/src/presets.ts`
+- `packages/ui/src/config.ts`
+
+For the detailed rules governing this pipeline — including token vs theme distinctions,
+component naming conventions, override surface constraints, and correction targets — see
+[`docs/architecture/theming-contract.md`](docs/architecture/theming-contract.md).
 
 ### Important correction from older architecture
 
@@ -147,7 +140,8 @@ Instead:
 - `createThemeValues()` derives semantic themes from the effective token set
 - `createGoodWidgetConfig()` calls `createTamagui()` once for that effective config
 
-This is the core architectural guardrail for keeping token overrides and theme derivation aligned.
+This is the core architectural guardrail for keeping token overrides and theme derivation
+aligned.
 
 ---
 
@@ -186,28 +180,25 @@ And finally there are local component-instance props:
 
 ### Key files
 
-| File | Responsibility |
-|------|----------------|
-| [configTypes.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/configTypes.ts) | Public config, token, theme, preset, typography, animation types |
-| [theme.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/theme.ts) | Plain token seeds + `createGoodWidgetTokens()` + `createThemeValues()` |
-| [presets.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/presets.ts) | GoodWalletV2 preset tokens and partial theme overrides |
-| [config.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/config.ts) | Config resolution, token override merge, theme derivation, `createGoodWidgetConfig()` |
-| [createComponent.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/createComponent.ts) | Named styled-component wrapper + manifest registration |
-| [manifest.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/manifest.ts) | Runtime manifest for named override targets |
-| [index.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/index.ts) | Public exports |
+| File                 | Responsibility                                                                        |
+| -------------------- | ------------------------------------------------------------------------------------- |
+| `configTypes.ts`     | Public config, token, theme, preset, typography, animation types                      |
+| `theme.ts`           | Plain token seeds + `createGoodWidgetTokens()` + `createThemeValues()`                |
+| `presets.ts`         | GoodWalletV2 preset tokens and partial theme overrides                                |
+| `config.ts`          | Config resolution, token override merge, theme derivation, `createGoodWidgetConfig()` |
+| `createComponent.ts` | Named styled-component wrapper + manifest registration                                |
+| `manifest.ts`        | Runtime manifest for named override targets                                           |
+| `index.ts`           | Public exports                                                                        |
 
-### Theme model
+### Theme model summary
 
 - tokens are static primitives and scales
 - themes are semantic/contextual values
 - named components opt into `light_Component` / `dark_Component` sub-themes through `name`
 - `$foo` resolves theme-first, token-second
 
-Examples:
-
-- `backgroundColor="$background"` means semantic theme usage
-- `borderRadius="$3"` means shared token-scale usage
-- `light_Card` and `dark_Card` are component sub-themes for the `Card` component
+See [`docs/architecture/theming-contract.md`](docs/architecture/theming-contract.md) for the
+full rules and decision checklist.
 
 ### `createComponent()`
 
@@ -221,14 +212,15 @@ GoodWidget uses for host-facing manifest discovery.
 
 ### Current component layout
 
-The public UI surface is exported from [packages/ui/src/index.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/ui/src/index.ts).
+The public UI surface is exported from `packages/ui/src/index.ts`.
 
 At the moment there are two implementation areas:
 
 - `packages/ui/src/components/`
   - current production-aligned components such as `Card`, `GlowCard`, `Drawer`, `TokenAmount`
 - `packages/ui/src/components-test/`
-  - many still-exported primitives and composites such as `Button`, `Input`, `Checkbox`, `Switch`, `Select`, `Alert`, `Badge`, `Text`, `MiniAppShell`
+  - many still-exported primitives and composites such as `Button`, `Input`, `Checkbox`,
+    `Switch`, `Select`, `Alert`, `Badge`, `Text`, `MiniAppShell`
 
 This split is real and intentional for the current branch state. The next-step documents
 cover how to reduce that transitional surface.
@@ -239,14 +231,14 @@ cover how to reduce that transitional surface.
 
 ### Key files
 
-| File | Responsibility |
-|------|----------------|
-| [eip1193.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/core/src/eip1193.ts) | EIP-1193 types |
-| [detect.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/core/src/detect.ts) | Host/provider detection |
-| [types.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/core/src/types.ts) | Provider props and host/wallet state types |
-| [provider.tsx](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/core/src/provider.tsx) | `GoodWidgetProvider` |
-| [hooks.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/core/src/hooks.ts) | `useWallet()`, `useHost()`, `useGoodWidget()` |
-| [wagmi.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/core/src/wagmi.ts) | wagmi integration surface |
+| File           | Responsibility                                |
+| -------------- | --------------------------------------------- |
+| `eip1193.ts`   | EIP-1193 types                                |
+| `detect.ts`    | Host/provider detection                       |
+| `types.ts`     | Provider props and host/wallet state types    |
+| `provider.tsx` | `GoodWidgetProvider`                          |
+| `hooks.ts`     | `useWallet()`, `useHost()`, `useGoodWidget()` |
+| `wagmi.ts`     | wagmi integration surface                     |
 
 ### Provider flow
 
@@ -258,7 +250,8 @@ cover how to reduce that transitional surface.
 4. rebuilds the effective Tamagui config through `createGoodWidgetConfig()`
 5. renders `TamaguiProvider`
 
-This means per-instance widget theming is a first-class runtime behavior at the provider boundary.
+This means per-instance widget theming is a first-class runtime behavior at the provider
+boundary.
 
 ---
 
@@ -266,12 +259,12 @@ This means per-instance widget theming is a first-class runtime behavior at the 
 
 ### Key files
 
-| File | Responsibility |
-|------|----------------|
-| [createMiniAppElement.tsx](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/embed/src/createMiniAppElement.tsx) | Web Component factory |
-| [cssPropertyBridge.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/embed/src/cssPropertyBridge.ts) | Reads `--gw-*` overrides from the host |
-| [shadowStyles.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/embed/src/shadowStyles.ts) | Shadow DOM reset and runtime style syncing |
-| [bridge.ts](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/embed/src/bridge.ts) | attribute/prop/event bridging |
+| File                       | Responsibility                             |
+| -------------------------- | ------------------------------------------ |
+| `createMiniAppElement.tsx` | Web Component factory                      |
+| `cssPropertyBridge.ts`     | Reads `--gw-*` overrides from the host     |
+| `shadowStyles.ts`          | Shadow DOM reset and runtime style syncing |
+| `bridge.ts`                | attribute/prop/event bridging              |
 
 ### Web Component behavior
 
@@ -303,7 +296,7 @@ component registry in `packages/ui`.
 `packages/claim-widget` is the example publishable widget package and the best current
 reference for how a widget author is expected to use the system.
 
-Key patterns in [ClaimWidget.tsx](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/packages/claim-widget/src/ClaimWidget.tsx):
+Key patterns in `packages/claim-widget/src/ClaimWidget.tsx`:
 
 - widget-local named components such as `ClaimCard` and `ClaimActionButton`
 - `extends` relationships for manifest lineage
@@ -313,7 +306,9 @@ Key patterns in [ClaimWidget.tsx](/home/lewisb/active_repos/gd-ecosystem/GoodWid
 
 ---
 
-## Current Examples
+## Demo and Review Environment
+
+<<<<<<< HEAD
 
 ### React web demo lab
 
@@ -322,12 +317,12 @@ the canonical review and Playwright test environment.
 
 Routes:
 
-| Route | Content |
-|-------|---------|
-| `/` | Link grid to all demo routes |
-| `/components/:name` | Per-primitive demo page for each UI component |
-| `/widget/claim` | ClaimWidget full-flow demo with token, component, and host override examples |
-| `/theme-overrides` | The original 5-tab OverrideShowcase (Default / Tokens / Component / Host / Inline) |
+| Route               | Content                                                                            |
+| ------------------- | ---------------------------------------------------------------------------------- |
+| `/`                 | Link grid to all demo routes                                                       |
+| `/components/:name` | Per-primitive demo page for each UI component                                      |
+| `/widget/claim`     | ClaimWidget full-flow demo with token, component, and host override examples       |
+| `/theme-overrides`  | The original 5-tab OverrideShowcase (Default / Tokens / Component / Host / Inline) |
 
 Wallet-aware pages (`WalletInfo`, `AddressDisplay`, `ChainBadge`, `ClaimWidget`) use a
 lightweight mock EIP-1193 provider (`src/mock/mockEip1193.ts`) that provides a stable
@@ -335,12 +330,28 @@ address and chain ID without requiring a real browser wallet.
 
 Start with: `pnpm --filter @goodwidget/example-react-web dev` → `http://localhost:3000`
 
-See [docs/demo-environment.md](docs/demo-environment.md) for full documentation.
+# See [docs/demo-environment.md](docs/demo-environment.md) for full documentation.
 
-### Expo demo
+Storybook is the canonical demo and review environment for UI components and widget flows.
 
-The Expo example is a real consumer of the current packages and validates the current
-Expo 52 / React 18 / React Native 0.76 / Tamagui 1.121 compatibility set.
+- stories live alongside their components
+- Storybook runs at `localhost:6006` during development
+- Playwright tests run against Storybook at `localhost:6006`
+
+See [`docs/demo-environment.md`](docs/demo-environment.md) for full details on Storybook
+setup, story conventions, Playwright fixtures, screenshot evidence requirements, and demo
+routes.
+
+The `examples/` directory contains additional integration demos:
+
+> > > > > > > 8ce5cec253701479a06652e1f6948993af9c0fa3
+
+- `examples/react-web/` — React web app demonstrating preset baseline, token overrides,
+  component theme overrides, host `themeOverrides`, and local inline overrides
+- `examples/html/` — plain HTML page using the claim widget as a web component
+- `examples/expo/` — Expo / React Native app validating the current compatibility set
+
+These examples are useful integration references but Storybook is the primary review tool.
 
 ---
 
@@ -363,9 +374,11 @@ Use plain React composition when the component is mostly orchestration or state.
 ### File placement
 
 - `packages/ui/src/components/` should hold stable production-aligned primitives
-- `packages/ui/src/components-test/` currently still contains many exported primitives in transition
+- `packages/ui/src/components-test/` currently still contains many exported primitives in
+  transition
 
-That second point is not ideal, but it is the current truth and the docs should reflect it honestly.
+That second point is not ideal, but it is the current truth and the docs should reflect it
+honestly.
 
 ---
 
@@ -407,15 +420,24 @@ Wallet / chain interactions
 ## Known Limitations
 
 - Many exported primitives still live under `packages/ui/src/components-test/`.
-- `Checkbox`, `Switch`, `Select`, `Input`, `Button`, `Alert`, and several composites still use custom `Stack`-based behavior rather than Tamagui-native primitives.
-- The runtime manifest is generated in memory rather than from a build-time extracted artifact.
-- `createComponent()` still returns `any` because Tamagui variant generics do not survive the current wrapper cleanly.
-- Multi-widget theming is supported through provider boundaries, but broad token overrides are still broad design-system inputs and should not be described as narrowly targeted styling.
+- `Checkbox`, `Switch`, `Select`, `Input`, `Button`, `Alert`, and several composites still
+  use custom `Stack`-based behavior rather than Tamagui-native primitives.
+- The runtime manifest is generated in memory rather than from a build-time extracted
+  artifact.
+- `createComponent()` still returns `any` because Tamagui variant generics do not survive
+  the current wrapper cleanly.
+- Multi-widget theming is supported through provider boundaries, but broad token overrides
+  are still broad design-system inputs and should not be described as narrowly targeted
+  styling.
 
 ---
 
-## Related docs
+## Related Documents
 
-- [AGENTS.md](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/AGENTS.md)
-- [agent-next-steps/theme-propagation-consistency-task.md](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/agent-next-steps/theme-propagation-consistency-task.md)
-- [agent-next-steps/use-tamagui-primitives.md](/home/lewisb/active_repos/gd-ecosystem/GoodWidget/agent-next-steps/use-tamagui-primitives.md)
+- [`AGENTS.md`](AGENTS.md) — agent operating guide (always-read before coding)
+- [`docs/demo-environment.md`](docs/demo-environment.md) — Storybook, Playwright, demo
+  routes, story conventions, fixture setup, screenshot evidence
+- [`docs/architecture/theming-contract.md`](docs/architecture/theming-contract.md) —
+  detailed Tamagui/theming rules, decision checklist, correction targets
+- [`docs/PACKAGING.md`](docs/PACKAGING.md) — packaging and distribution guide
+- `agent-next-steps/native-primitives-design-integration-task.md` — next-step task context
