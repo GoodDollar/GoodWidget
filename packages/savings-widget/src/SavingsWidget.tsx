@@ -135,8 +135,8 @@ function SavingsWidgetInner({ connectWallet, refreshIntervalMs }: SavingsWidgetI
       setGlobalStats(stats)
 
       if (connected) {
-        const nextUserStats = await sdk.getUserStats()
-        setUserStats(nextUserStats)
+        const userStatsResult = await sdk.getUserStats()
+        setUserStats(userStatsResult)
       } else {
         setUserStats(DEFAULT_USER_STATS)
       }
