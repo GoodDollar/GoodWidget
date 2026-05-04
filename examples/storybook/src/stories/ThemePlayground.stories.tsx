@@ -13,11 +13,11 @@
  */
 import React from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
-import { ClaimWidget } from '@goodwidget/claim-widget'
+import { ClaimWidget } from '@goodwidget/claim-widget-theme-demo'
 import { Card, Heading, Text, Alert, YStack } from '@goodwidget/ui'
-import { createMockEip1193Provider } from '../fixtures/mockEip1193'
+import { createCustodialEip1193Provider } from '../fixtures/custodialEip1193'
 
-const mockProvider = createMockEip1193Provider()
+const mockProvider = createCustodialEip1193Provider()
 
 const meta: Meta = {
   title: 'Theme/ThemePlayground',
