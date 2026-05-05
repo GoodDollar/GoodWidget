@@ -11,8 +11,8 @@ body:
         - Keep each answer concise but complete; prefer bullets over long prose.
         - Explicitly name in-scope targets, out-of-scope items, and verification commands.
         - Link the most relevant repo guidance when applicable: `AGENTS.md`, `ARCHITECTURE.md`, `docs/demo-environment.md`, and `docs/architecture/theming-contract.md`.
-        - Good examples of structured planning issues in this repo include #15 and #19.
-        - If a rule cannot be enforced by GitHub issue forms, state it clearly in the section text below.
+        - Use existing scoped planning issues in this repo as structure references when helpful.
+        - If a rule cannot be enforced by GitHub issue forms, state it clearly in the relevant field content.
 
   - type: dropdown
     id: primary_work_type
