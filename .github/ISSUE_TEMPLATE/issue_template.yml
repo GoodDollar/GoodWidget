@@ -1,0 +1,146 @@
+name: Scoped planning issue
+description: Create a concise, execution-ready issue for human and agent contributors.
+title: '[Plan]: '
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for narrowly scoped, execution-ready work.
+
+        Standards:
+        - Keep each answer concise but complete; prefer bullets over long prose.
+        - Explicitly name in-scope targets, out-of-scope items, and verification commands.
+        - Link the most relevant repo guidance when applicable: `AGENTS.md`, `ARCHITECTURE.md`, `docs/demo-environment.md`, and `docs/architecture/theming-contract.md`.
+        - Good examples of structured planning issues in this repo include #15 and #19.
+        - If a rule cannot be enforced by GitHub issue forms, state it clearly in the section text below.
+
+  - type: dropdown
+    id: primary_work_type
+    attributes:
+      label: Primary work type
+      description: Pick the single best match for the requested work.
+      options:
+        - Existing component or package change
+        - New package or widget
+        - Docs, process, or template change
+        - Demo, Storybook, or Playwright change
+        - Build, tooling, or CI change
+        - Other
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: spec_readiness_check
+    attributes:
+      label: Spec readiness check
+      description: These planning inputs must already be true before implementation begins.
+      options:
+        - label: Scope, non-goals, acceptance criteria, source-to-target mapping, and verification commands are all present in this issue.
+          required: true
+        - label: The task is small enough to review and execute without guessing hidden requirements.
+          required: true
+        - label: The references, flows, and acceptance criteria below all describe the same bounded scope.
+          required: true
+
+  - type: textarea
+    id: context_and_goal
+    attributes:
+      label: Context and Goal
+      description: Explain why this work matters and what the finished outcome should be.
+      placeholder: |
+        3-6 sentences or bullet points covering:
+        - the current problem or gap
+        - the desired outcome
+        - the key constraint that keeps this issue narrowly scoped
+    validations:
+      required: true
+
+  - type: textarea
+    id: relevant_references
+    attributes:
+      label: Relevant references
+      description: List the exact files, issues, PRs, docs, screenshots, or external sources needed to execute this task.
+      placeholder: |
+        Use bullets with exact paths or links, for example:
+        - ARCHITECTURE.md
+        - packages/ui/src/components/Button.tsx
+        - docs/demo-environment.md
+        - Issue #19
+
+        If a commonly expected reference does not apply, say so explicitly.
+    validations:
+      required: true
+
+  - type: textarea
+    id: component_and_flow_mapping
+    attributes:
+      label: Component and flow mapping
+      description: Map the request to the concrete packages, files, components, routes, and user/system flows that are in scope.
+      placeholder: |
+        Use bullets and keep the mapping explicit:
+        - In scope: ...
+        - Source -> target mapping: ...
+        - Main user/system flow(s): ...
+        - Out of scope: ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: required_flows_and_states
+    attributes:
+      label: Required flows and states
+      description: List the exact states the implementation must cover. Include edge cases instead of assuming them.
+      placeholder: |
+        Use bullets such as:
+        - Happy path
+        - Loading / pending
+        - Empty / missing data
+        - Error / rejection
+        - Permissions / wallet / host state
+        - Any issue-specific edge cases
+
+        If a state truly does not apply, write "N/A" and explain why.
+    validations:
+      required: true
+
+  - type: textarea
+    id: execution_plan
+    attributes:
+      label: Execution Plan
+      description: Provide the smallest complete implementation plan. End with the exact verification commands reviewers should run.
+      placeholder: |
+        Use a numbered list:
+        1. ...
+        2. ...
+        3. Verification: pnpm ..., manual QA ..., screenshots if applicable
+
+        Keep the plan specific enough for an agent or human contributor to execute without re-scoping the task.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance Criteria
+      description: Write only verifiable outcomes. Use a markdown checklist with one item per required result.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: contributor_and_reviewer_checklist
+    attributes:
+      label: Contributor and Reviewer checklist
+      description: Keep this checklist in the issue body so both contributors and reviewers can update it during execution and review.
+      value: |
+        - [ ] Scope is still limited to the targets named above
+        - [ ] References are sufficient for implementation and review
+        - [ ] Required flows and states are covered
+        - [ ] Verification commands are present and specific
+        - [ ] Human review completed
+        - [ ] Agent review completed
+    validations:
+      required: true
