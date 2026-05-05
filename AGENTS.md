@@ -120,6 +120,32 @@ GoodWidget/
 
 ---
 
+## Screenshot URLs in PR Descriptions (Private Repo)
+
+This is a **private** repository. The following URL types do NOT work for inline images in PR
+descriptions for unauthenticated or cross-session viewers:
+
+- `raw.githubusercontent.com/…` — CDN has no auth context; always 404 for private repos
+- `github.com/…/blob/…?raw=true` — requires an authenticated session; unreliable in agents
+
+**Always use the GitHub attachment CDN** (`user-attachments/assets/…`) for any screenshot that
+must be visible in a PR description or comment. These URLs are generated when you upload an
+image via GitHub's web UI (drag-and-drop into a comment box) and are publicly accessible
+regardless of repo visibility.
+
+Workflow for Playwright screenshot evidence:
+
+1. Commit the PNG files under `docs/playwright-screenshots/` (source of truth, versioned).
+2. When writing a PR description or comment that must show screenshots, **upload the PNG files
+   via the GitHub web UI** to generate `user-attachments/assets/…` CDN URLs, then embed those.
+3. Keep the committed PNGs and the CDN URLs in sync — update both whenever screenshots are
+   regenerated.
+
+Never use `raw.githubusercontent.com` or `github.com/blob/…?raw=true` for inline images in
+PR descriptions in this repository.
+
+---
+
 ## Reference Routing
 
 Use the right document for each type of task:
