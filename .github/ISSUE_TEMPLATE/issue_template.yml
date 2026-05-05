@@ -20,11 +20,11 @@ body:
       label: Primary work type
       description: Pick the single best match for the requested work.
       options:
-        - Existing component or package change
-        - New package or widget
-        - Docs, process, or template change
-        - Demo, Storybook, or Playwright change
-        - Build, tooling, or CI change
+        - Change an existing component or package
+        - Add a new package or widget
+        - Update docs, process, or templates
+        - Update demos, Storybook, or Playwright coverage
+        - Update build, tooling, or CI behavior
         - Other
     validations:
       required: true
@@ -111,12 +111,12 @@ body:
     id: execution_plan
     attributes:
       label: Execution Plan
-      description: Provide the smallest complete implementation plan. End with the exact verification commands reviewers should run.
+      description: Provide the smallest complete implementation plan. Make the final numbered step the exact verification commands reviewers should run.
       placeholder: |
         Use a numbered list:
         1. ...
         2. ...
-        3. Verification: pnpm ..., manual QA ..., screenshots if applicable
+        3. Final verification step: pnpm ..., manual QA ..., screenshots if applicable
 
         Keep the plan specific enough for an agent or human contributor to execute without re-scoping the task.
     validations:
