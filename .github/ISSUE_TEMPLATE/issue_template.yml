@@ -144,7 +144,7 @@ body:
         - [ ] References are sufficient for implementation and review
         - [ ] Required flows and states are covered
         - [ ] Verification commands are present and specific
-        - [ ] Human review completed
-        - [ ] Agent review completed
+        - [ ] Issue spec reviewed by a human
+        - [ ] Issue spec reviewed by an agent
     validations:
       required: true
