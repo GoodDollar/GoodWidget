@@ -23,7 +23,8 @@
  *   pnpm test:demo          (in another terminal)
  *
  * Artifact output:
- *   test-results/           (screenshots, traces — gitignored)
+ *   examples/storybook/src/stories/citizen-claim-widget/screenshots/   (committed evidence)
+ *   test-results/           (traces, retry debug — gitignored)
  */
 import { test, expect, Page } from '@playwright/test'
 
@@ -76,7 +77,7 @@ test('CitizenClaimWidget shows loading spinner on mount', async ({ page }) => {
   const hasSpinner = !bodyText.includes('Verify') && !bodyText.includes('Retry')
   expect(hasSpinner, 'Expected loading state before RPC resolves').toBe(true)
   await page.screenshot({
-    path: 'test-results/ccw-01-loading.png',
+    path: 'examples/storybook/src/stories/citizen-claim-widget/screenshots/ccw-01-loading.png',
     fullPage: true,
   })
 })
@@ -101,7 +102,7 @@ test('CitizenClaimWidget shows not_whitelisted for fresh wallet (live Celo RPC)'
   expect(bodyText).toMatch(/Verify|Whitelisting Required|Face/i)
 
   await page.screenshot({
-    path: 'test-results/ccw-02-not-whitelisted.png',
+    path: 'examples/storybook/src/stories/citizen-claim-widget/screenshots/ccw-02-not-whitelisted.png',
     fullPage: true,
   })
 })
@@ -123,7 +124,7 @@ test('CitizenClaimWidget shows error state when RPC is unreachable', async ({ pa
   expect(bodyText).toContain('Retry')
 
   await page.screenshot({
-    path: 'test-results/ccw-03-error.png',
+    path: 'examples/storybook/src/stories/citizen-claim-widget/screenshots/ccw-03-error.png',
     fullPage: true,
   })
 })
