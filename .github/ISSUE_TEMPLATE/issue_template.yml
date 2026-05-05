@@ -1,4 +1,4 @@
-name: Scoped planning issue
+name: Scoped Planning Issue
 description: Create a concise, execution-ready issue for human and agent contributors.
 title: '[Plan]: '
 body:
@@ -35,7 +35,11 @@ body:
       label: Spec readiness check
       description: These planning inputs must already be true before implementation begins.
       options:
-        - label: Scope, non-goals, acceptance criteria, source-to-target mapping, and verification commands are all present in this issue.
+        - label: Scope and non-goals are both stated in this issue.
+          required: true
+        - label: Source-to-target mapping is stated in this issue.
+          required: true
+        - label: Acceptance criteria and verification commands are both stated in this issue.
           required: true
         - label: The task is small enough to review and execute without guessing hidden requirements.
           required: true
