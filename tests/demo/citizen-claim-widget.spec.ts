@@ -55,9 +55,21 @@ async function waitForText(
 
 // ─── loading state ────────────────────────────────────────────────────────────
 test('CitizenClaimWidget shows loading spinner on mount', async ({ page }) => {
+  // Route all RPC calls to hang (never respond, never abort).
+  // This keeps the adapter in the `loading` state indefinitely, giving the Storybook
+  // bundle time to fully mount even on a cold first run before we screenshot.
+  await page.route('https://forno.celo.org/**', () => { /* hang — never fulfill */ })
+  await page.route('https://rpc.fuse.io/**', () => { /* hang — never fulfill */ })
+  await page.route('https://rpc.ankr.com/**', () => { /* hang — never fulfill */ })
+
   await gotoStory(page)
-  // The widget should enter the loading state immediately — capture it within 500ms
-  await page.waitForTimeout(300)
+
+  // Poll until the widget container renders its daily-stats footer text.
+  // "Today" / "G$" appear in the footer even during loading state (showing 0-values).
+  // RPC calls are hanging so we will never transition out of loading.
+  const matched = await waitForText(page, ['Today', 'claimers', 'GoodDollar'], 30_000)
+  expect(matched, 'Widget must mount and render before screenshot').toBeTruthy()
+
   // The daily-stats footer renders even during loading
   const bodyText = await page.evaluate(() => document.body.innerText)
   // Loading is indicated by the absence of a CTA button (Verify / Claim / Retry)
