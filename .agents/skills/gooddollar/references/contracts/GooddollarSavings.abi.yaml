@@ -1,0 +1,336 @@
+# GooddollarSavings (Ubeswap) — stake G$ and accrue G$ rewards with daily-rate and APR cap controls
+
+meta:
+  name: GooddollarSavings
+  version: "2"
+  source:
+    - https://raw.githubusercontent.com/Ubeswap/gooddollar-contracts/main/contracts/GooddollarSavings.sol
+    - https://raw.githubusercontent.com/Ubeswap/gooddollar-contracts/main/contracts/interfaces/IGooddollarSavings.sol
+  inherits:
+    - IGooddollarSavings
+    - Ownable
+    - ReentrancyGuard
+  note: >
+    Savings contract used for destination-chain staking. Principal is plain staked G$ in
+    internal `_balances` (not an ERC20 staking share). Reward accrual uses `updateReward` each call:
+    moves value from `remainingRewards` into `_totalSupply`-scaled `rewardPerTokenStored` and
+    `totalUnclaimedRewards`, then snapshots `earned` per user. Pool-wide payout pace is `rewardRate`
+    (per second); per-staker APR is optionally capped via `maxRewardRatePerToken`. Accrual stops when
+    `_totalSupply == 0` or `remainingRewards == 0`.
+    This is the destination savings contract interface in Fuse->CELO migration flows.
+  deployments:
+    mainnet:
+      xdc-mainnet:
+        networkId: 50
+        address: "0x3BeaaC603b445C7E8AdC46B3867404e1Bde9E047"
+  related:
+    - references/guides/migrate-fuse-staking-to-celo-savings.md
+    - references/deep-researches/fuse-to-celo-staking-migration.md
+
+rewardPerToken:
+  notes:
+    - "Matches accrual math: pending distributable rewards since `lastUpdateTime` are scaled into `rewardPerTokenStored` numerator when `_totalSupply > 0`."
+    - "When `_totalSupply == 0`, returns stored accumulator only because no share denominator exists yet."
+  mutability: view
+  inputs: []
+  outputs:
+    - value: uint256
+
+earned:
+  notes:
+    - "Pending display is linear in balance times delta `rewardPerToken() - userRewardPerTokenPaid[account]` plus stored `rewards[account]`; must run after interactions that refresh snapshots for exact on-chain parity."
+  mutability: view
+  inputs:
+    - account: address
+  outputs:
+    - amount: uint256
+
+totalSupply:
+  mutability: view
+  inputs: []
+  outputs:
+    - supply: uint256
+
+balanceOf:
+  notes:
+    - "Returns staked principal only; accrued rewards remain in `earned(account)` until `getReward`, `compound`, or full `exit` path."
+  mutability: view
+  inputs:
+    - account: address
+  outputs:
+    - balance: uint256
+
+getEffectiveRewardRate:
+  notes:
+    - "Binding rate is min(`rewardRate`, `maxRewardRatePerToken * _totalSupply / 1e18`) when cap nonzero and stake exists; otherwise `rewardRate`."
+    - "When stake is tiny, cap slows pool drain vs configured daily rewards so individuals do not spike above max APR."
+  mutability: view
+  inputs: []
+  outputs:
+    - rate: uint256
+
+getDailyRewards:
+  notes:
+    - "Returns `rewardRate * 1 days`; this is configured target daily budget, not necessarily actual paid rate when cap binds."
+  mutability: view
+  inputs: []
+  outputs:
+    - daily: uint256
+
+periodFinish:
+  notes:
+    - "When `_totalSupply == 0`: returns `remainingRewards == 0 ? lastUpdateTime : 0`."
+    - "When stake and rewards exist: estimates depletion timestamp as `lastUpdateTime + ceil(remainingRewards / effectiveRate)`; returns 0 if effective rate is 0."
+  mutability: view
+  inputs: []
+  outputs:
+    - ts: uint256
+
+stake:
+  notes:
+    - "Pulls `amount` via `transferFrom` from `msg.sender` into `address(this)`; requires prior ERC20 approval to savings contract."
+    - "Increases `_totalSupply` and `_balances[msg.sender]`; runs `updateReward(msg.sender)` so prior earned snapshot is consolidated before stake change."
+  mutability: nonpayable
+  access: anyone
+  inputs:
+    - amount: uint256
+  outputs: []
+  emits: [Staked]
+
+stakeFor:
+  notes:
+    - "Migrator path: caller funds `transferFrom(from msg.sender)`, stake credits `_balances[recipient]`; emits `StakedFor(staker=msg.sender, recipient, amount)`."
+    - "`recipient` must not be zero, `address(this)`, or the gd token address."
+    - "Runs `updateReward(recipient)` so recipient accrued rewards are finalized before stake increase."
+    - "Does not migrate Fuse stake by itself—only destination stake after bridged G$ is in caller wallet."
+  mutability: nonpayable
+  access: anyone
+  inputs:
+    - amount: uint256
+    - recipient: address
+  outputs: []
+  emits: [StakedFor]
+
+withdraw:
+  notes:
+    - "Reduces `_totalSupply` and caller balance; transfers principal G$ back to `msg.sender`."
+    - "Public so `exit` can call it internally; caller must satisfy `amount > 0` and sufficient balance."
+    - "`updateReward(msg.sender)` applies before balance change."
+  mutability: nonpayable
+  access: anyone
+  inputs:
+    - amount: uint256
+  outputs: []
+  emits: [Withdrawn]
+
+getReward:
+  notes:
+    - "If pending `rewards[msg.sender] > 0`, zeros mapping, decreases `totalUnclaimedRewards`, and `safeTransfer`s G$ to caller."
+    - "No rewards if already claimed in same checkpoint; safe to call when zero (no-op on transfer)."
+  mutability: nonpayable
+  access: anyone
+  inputs: []
+  outputs: []
+  emits: [RewardPaid]
+
+compound:
+  notes:
+    - "Claims pending rewards into principal without ERC20 allowance: clears `rewards[msg.sender]`, adjusts `totalUnclaimedRewards`, then adds reward to `_totalSupply` and `_balances[msg.sender]`."
+    - "Emits both `RewardPaid` and `Staked`; no inbound `transferFrom` because rewards were already accrued in-contract."
+    - "Reverts with `No rewards to compound` when pending is zero."
+  mutability: nonpayable
+  access: anyone
+  inputs: []
+  outputs: []
+  emits: [RewardPaid, Staked]
+
+exit:
+  notes:
+    - "If principal > 0, calls `withdraw(_balances[msg.sender])` then `getReward()`; sequential external calls inherit each function’s guards."
+    - "Use when user wants full unwind in one envelope transaction."
+  mutability: nonpayable
+  access: anyone
+  inputs: []
+  outputs: []
+
+addToReward:
+  notes:
+    - "Runs `updateReward(address(0))` first to checkpoint global pools without touching a user ledger entry."
+    - "Optional inbound: if `reward > 0`, pulls that much from caller via `transferFrom`."
+    - "Then computes `expectedBalance = _totalSupply + remainingRewards + totalUnclaimedRewards`; requires actual `balanceOf(this) > expectedBalance`; excess becomes `toAdd` and increases `remainingRewards`."
+    - "Direct G$ transfers to the contract therefore increase refillable surplus on next `addToReward`."
+    - "Reverts `No reward to add` when there is nothing to sweep."
+  mutability: nonpayable
+  access: anyone
+  inputs:
+    - reward: uint256
+  outputs: []
+  emits: [RewardAdded]
+
+setDailyRewards:
+  notes:
+    - "Owner sets `_dailyRewards` target per 1-day window; `_dailyRewards` must be zero or ≥ `1 days` wei granularity and below `uint128` max bound in implementation."
+    - "Persists `rewardRate = _dailyRewards / 1 days` seconds rate."
+    - "`updateReward(address(0))` freezes global accounting before parameter change."
+  mutability: nonpayable
+  access: owner
+  inputs:
+    - _dailyRewards: uint256
+  outputs: []
+  emits: [DailyRewardsUpdated]
+
+setMaxRewardRatePerToken:
+  notes:
+    - "Sets per-token-per-second APR cap wei; zero disables cap. Nonzero requires `_value >= 1e6` and below `uint128` bound per implementation guards."
+    - "`updateReward(address(0))` runs before mutation."
+  mutability: nonpayable
+  access: owner
+  inputs:
+    - _value: uint256
+  outputs: []
+  emits: [MaxRewardRateUpdated]
+
+recoverERC20:
+  notes:
+    - "Cannot recover the configured gdToken."
+    - "Owner rescue for stray tokens; does not bypass staked balances or accrued reward vault accounting for G$."
+  mutability: nonpayable
+  access: owner
+  inputs:
+    - tokenAddress: address
+    - tokenAmount: uint256
+  outputs: []
+  emits: [Recovered]
+
+gdToken:
+  mutability: view
+  inputs: []
+  outputs:
+    - token: address
+
+rewardRate:
+  notes:
+    - "Per-second distribution budget derived from configured daily rewards at deploy or via `setDailyRewards`."
+  mutability: view
+  inputs: []
+  outputs:
+    - rate: uint256
+
+maxRewardRatePerToken:
+  notes:
+    - "Max wei reward per second per staked wei; used with `_totalSupply` to cap instantaneous distribution below `rewardRate` when stakes are low."
+  mutability: view
+  inputs: []
+  outputs:
+    - value: uint256
+
+remainingRewards:
+  notes:
+    - "Reward tokens not yet moved into circulating `rewardPerToken` accrual and `totalUnclaimedRewards`; drains as `_pendingDistributable` advances time."
+  mutability: view
+  inputs: []
+  outputs:
+    - value: uint256
+
+totalUnclaimedRewards:
+  notes:
+    - "Sum of rewards that left `remainingRewards` but are not yet paid or compounded away by users; decreases on `getReward` and `compound`."
+  mutability: view
+  inputs: []
+  outputs:
+    - value: uint256
+
+lastUpdateTime:
+  notes:
+    - "Timestamp anchor for `_pendingDistributable` integrating `effectiveRate * (now - lastUpdateTime)` capped by remaining pool."
+  mutability: view
+  inputs: []
+  outputs:
+    - ts: uint256
+
+rewardPerTokenStored:
+  notes:
+    - "Accumulator after last checkpoint; grows when distributable slices are applied while stake is nonzero."
+  mutability: view
+  inputs: []
+  outputs:
+    - value: uint256
+
+userRewardPerTokenPaid:
+  notes:
+    - "Debt snapshot for user at last interaction; differs from Fuse governance productivity pattern but same netting idea."
+  mutability: view
+  inputs:
+    - account: address
+  outputs:
+    - value: uint256
+
+rewards:
+  notes:
+    - "Pending raw mapping used during accrual; after `updateReward`, equals `earned` at that checkpoint until further time passes."
+  mutability: view
+  inputs:
+    - account: address
+  outputs:
+    - value: uint256
+
+owner:
+  mutability: view
+  inputs: []
+  outputs:
+    - addr: address
+
+events:
+  RewardAdded:
+    indexed: []
+    data:
+      - reward: uint256
+  Staked:
+    indexed:
+      - user: address
+    data:
+      - amount: uint256
+  StakedFor:
+    indexed:
+      - staker: address
+      - recipient: address
+    data:
+      - amount: uint256
+  Withdrawn:
+    indexed:
+      - user: address
+    data:
+      - amount: uint256
+  RewardPaid:
+    indexed:
+      - user: address
+    data:
+      - reward: uint256
+  Recovered:
+    indexed: []
+    data:
+      - token: address
+      - amount: uint256
+      - receiver: address
+  MaxRewardRateUpdated:
+    indexed: []
+    data:
+      - newMaxRate: uint256
+  DailyRewardsUpdated:
+    indexed: []
+    data:
+      - rewardRate: uint256
+      - givenDailyRewards: uint256
+
+errors:
+  "GoodDollar address is zero": "Constructor gd token must be nonzero."
+  "Cannot stake 0": "Stake paths require positive amount."
+  "invalid address": "stakeFor recipient cannot be zero, this contract, or gd token."
+  "Cannot withdraw 0": "withdraw requires positive amount."
+  "No rewards to compound": "compound requires accrued reward > 0."
+  "No reward to add": "addToReward found no excess balance after expected-balance check."
+  "daily rewards too low": "setDailyRewards nonzero value must be at least 1 day of wei units per implementation."
+  "invalid amount": "setDailyRewards must be below uint128 max bound."
+  "value too low": "setMaxRewardRatePerToken nonzero cap must be >= 1e6 per implementation."
+  "value too high": "setMaxRewardRatePerToken must be below uint128 max bound."
+  "Cannot withdraw the GoodDollar token": "recoverERC20 blocks rescue of configured G$."
