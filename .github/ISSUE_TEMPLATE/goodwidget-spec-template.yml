@@ -9,101 +9,35 @@ body:
         define the specification for a new app, widget or UI based on GoodWidget framework
 
   - type: textarea
-    id: context_and_goals
+    id: description
     attributes:
-      label: Context and goals
+      label: description
       description: |
-        Why is this issue being created?
+        What new app, widget or UI component should be created based on the GoodWidget framework?
         What problem does it solve?
         How does it fit the project goals?
       placeholder: |
-        Why is this issue being created?
+        What new app, widget or UI component should be created based on the GoodWidget framework?
         What problem does it solve?
         How does it fit the project goals?
-    validations:
-      required: true
-
-  - type: textarea
-    id: reference_key_files_and_features
-    attributes:
-      label: Reference key files and features
-      description: |
-        Relevant files:
-        Relevant features:
-        Cross-repository dependencies:
-        Package or dependency assumptions:
-      placeholder: |
-        Relevant files:
-        Relevant features:
-        Cross-repository dependencies:
-        Package or dependency assumptions:
-    validations:
-      required: true
-
-  - type: textarea
-    id: new_components_and_design_references
-    attributes:
-      label: New components and design references
-      description: |
-        UX flows or screenshots:
-        Core/UI components to reuse:
-        New components to create:
-      placeholder: |
-        UX flows or screenshots:
-        Core/UI components to reuse:
-        New components to create:
-    validations:
-      required: true
-
-  - type: textarea
-    id: required_flows
-    attributes:
-      label: Required flows
-      description: |
-        Required states:
-        Expected behavior in each state:
-        Error and empty states:
-      placeholder: |
-        Required states:
-        Expected behavior in each state:
-        Error and empty states:
-    validations:
-      required: true
-
-  - type: textarea
-    id: execution_plan
-    attributes:
-      label: Execution plan
-      description: |
-        1. Implementation:
-        2. Testing and validation:
-      placeholder: |
-        1. Implementation:
-        2. Testing and validation:
     validations:
       required: true
 
   - type: markdown
     attributes:
       value: |
-        ### Acceptance criteria
+        ### Create the plan
+        Update this issue description with an execution plan.
+
+        - Map relevant files that are too be used as reference from all repos mentioned
+        - import existing @GoodDollar packages
+        - Map new components that should be created. Assess when a new component should be created in the new savings widget package or made part of the reusable packages/ui
+
+        Plan specification required sections:
+
+        - Required states, flows, and behaviors
+        - Execution plan
+        - acceptance criteria
+        - human-reviewer checklist
   - type: checkboxes
     id: acceptance_criteria
-    attributes:
-      label: Acceptance criteria
-      options:
-        - label: Criterion 1
-        - label: Criterion 2
-        - label: Criterion 3
-        - label: includes storybook examples and smoke tests using playwright
-        - label: includes screenshots from the different UI states and flows
-
-  - type: checkboxes
-    id: human_reviewer_checklist
-    attributes:
-      label: Human reviewer checklist
-      options:
-        - label: Code matches the issue scope
-        - label: Required flows are implemented
-        - label: Validation steps were run
-        - label: Documentation was updated if needed
