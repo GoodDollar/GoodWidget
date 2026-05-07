@@ -1,25 +1,44 @@
 name: GoodWidget Spec Template
 description: Define the requirements for a new GoodWidget
 body:
-  - type: markdown
+  - type: textarea
+    id: repos_and_packages
     attributes:
+      label: Which repos and packages the AI should work with
+      description: |
+        List the repositories and packages the AI should work with.
       value: |
-        # GoodWidget Spec Template
-
-        define the specification for a new app, widget or UI based on GoodWidget framework
+        List the repositories and packages the AI should work with.
+    validations:
+      required: true
 
   - type: textarea
-    id: description
+    id: ui_implementation_reference
     attributes:
-      label: description
+      label: UI implementation reference
       description: |
-        What new app, widget or UI component should be created based on the GoodWidget framework?
-        What problem does it solve?
-        How does it fit the project goals?
-      placeholder: |
-        What new app, widget or UI component should be created based on the GoodWidget framework?
-        What problem does it solve?
-        How does it fit the project goals?
+        Any of the following:
+
+        - instruction to copy from another repo
+        - provide screenshots
+      value: |
+        Any of the following:
+
+        - instruction to copy from another repo
+        - provide screenshots
+    validations:
+      required: true
+
+  - type: textarea
+    id: user_flows_states_behaviours
+    attributes:
+      label: User flows, states and behaviours
+      description: |
+        If no UI reference is given, elaborate how the UI/UX behaves.
+        Any other UI/UX instructions to the AI.
+      value: |
+        If no UI reference is given, elaborate how the UI/UX behaves.
+        Any other UI/UX instructions to the AI.
     validations:
       required: true
 
@@ -27,7 +46,12 @@ body:
     attributes:
       value: |
         ### Create the plan
-        Update this issue description with an execution plan.
+        Fixed section with the following content:
+
+        Based on the above description create an execution plan and update this issue with it while preserving the original issue content.
+        Do not execute the plan until given instructions to do so.
+
+        Instructions when creating the plan:
 
         - Map relevant files that are too be used as reference from all repos mentioned
         - import existing @GoodDollar packages
