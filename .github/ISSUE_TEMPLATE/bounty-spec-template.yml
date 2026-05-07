@@ -8,50 +8,102 @@ body:
 
         Use this as the minimal starting point for a GoodBounty issue spec.
 
-        ## Context and goals
+  - type: textarea
+    id: context_and_goals
+    attributes:
+      label: Context and goals
+      description: |
+        Why is this issue being created?
+        What problem does it solve?
+        How does it fit the project goals?
+      placeholder: |
+        Why is this issue being created?
+        What problem does it solve?
+        How does it fit the project goals?
+    validations:
+      required: true
 
-        - Why is this issue being created?
-        - What problem does it solve?
-        - How does it fit the project goals?
+  - type: textarea
+    id: reference_key_files_and_features
+    attributes:
+      label: Reference key files and features
+      description: |
+        Relevant files:
+        Relevant features:
+        Cross-repository dependencies:
+        Package or dependency assumptions:
+      placeholder: |
+        Relevant files:
+        Relevant features:
+        Cross-repository dependencies:
+        Package or dependency assumptions:
+    validations:
+      required: true
 
-        ## Reference: key files and features
+  - type: textarea
+    id: new_components_and_design_references
+    attributes:
+      label: New components and design references
+      description: |
+        UX flows or screenshots:
+        Core/UI components to reuse:
+        New components to create:
+      placeholder: |
+        UX flows or screenshots:
+        Core/UI components to reuse:
+        New components to create:
+    validations:
+      required: true
 
-        - Relevant files:
-        - Relevant features:
-        - Cross-repository dependencies:
-        - Package or dependency assumptions:
+  - type: textarea
+    id: required_flows
+    attributes:
+      label: Required flows
+      description: |
+        Required states:
+        Expected behavior in each state:
+        Error and empty states:
+      placeholder: |
+        Required states:
+        Expected behavior in each state:
+        Error and empty states:
+    validations:
+      required: true
 
-        ## New components and design references
-
-        - UX flows or screenshots:
-        - Core/UI components to reuse:
-        - New components to create:
-
-        ## Required flows
-
-        - Required states:
-        - Expected behavior in each state:
-        - Error and empty states:
-
-        ## Execution plan
-
+  - type: textarea
+    id: execution_plan
+    attributes:
+      label: Execution plan
+      description: |
         1. Implementation:
         2. Testing and validation:
+      placeholder: |
+        1. Implementation:
+        2. Testing and validation:
+    validations:
+      required: true
 
+  - type: markdown
+    attributes:
+      value: |
         ### Acceptance criteria
+  - type: checkboxes
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance criteria
+      options:
+        - label: Criterion 1
+        - label: Criterion 2
+        - label: Criterion 3
+        - label: includes storybook examples and smoke tests using playwright
+        - label: includes screenshots from the different UI states and flows
 
-        Usage/demo included
-
-        - [ ] Criterion 1
-        - [ ] Criterion 2
-        - [ ] Criterion 3
-        - [ ] includes storybook examples and smoke tests using playwright
-        - [ ] includes screenshots from the different UI states and flows
-        -
-
-        ### Human reviewer checklist
-
-        - [ ] Code matches the issue scope
-        - [ ] Required flows are implemented
-        - [ ] Validation steps were run
-        - [ ] Documentation was updated if needed
+  - type: checkboxes
+    id: human_reviewer_checklist
+    attributes:
+      label: Human reviewer checklist
+      options:
+        - label: Code matches the issue scope
+        - label: Required flows are implemented
+        - label: Validation steps were run
+        - label: Documentation was updated if needed
