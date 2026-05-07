@@ -39,5 +39,3 @@ body:
         - Execution plan
         - acceptance criteria
         - human-reviewer checklist
-  - type: checkboxes
-    id: acceptance_criteria
