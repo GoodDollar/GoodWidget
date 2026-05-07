@@ -28,5 +28,5 @@ Repository overview:
 
 ## Define a GoodBounty issue spec
 
-When asked to create or refine a GoodBounty issue make sure to follow the structure from the bounty spec template: `.github/bounty-spec-template.md` and include all the sections and details described there. Always ask for clarification if any of the sections cannot be filled with the available information or if you are not sure about any of the details.
+When asked to create or refine a GoodBounty issue make sure to follow the structure from the bounty spec template: `.github/ISSUE_TEMPLATE/bounty-spec-template.yml` and include all the sections and details described there. Always ask for clarification if any of the sections cannot be filled with the available information or if you are not sure about any of the details.
 Be as concise as possible while still providing all the necessary information for the implementation and validation of the issue. The more clear and easy to understand the spec is, the easier it will be for the implementer to understand the requirements and for the reviewer to validate the implementation.
