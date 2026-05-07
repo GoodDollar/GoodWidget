@@ -4,9 +4,9 @@ body:
   - type: markdown
     attributes:
       value: |
-        # Bounty Spec Template
+        # GoodWidget Spec Template
 
-        Use this as the minimal starting point for a GoodBounty issue spec.
+        define the specification for a new app, widget or UI based on GoodWidget framework
 
   - type: textarea
     id: context_and_goals
