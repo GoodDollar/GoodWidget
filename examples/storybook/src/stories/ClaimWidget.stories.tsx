@@ -10,12 +10,12 @@
  */
 import React from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
-import { ClaimWidget } from '@goodwidget/claim-widget'
+import { ClaimWidget } from '@goodwidget/claim-widget-theme-demo'
 import { YStack } from '@goodwidget/ui'
-import { createMockEip1193Provider } from '../fixtures/mockEip1193'
+import { createCustodialEip1193Provider } from '../fixtures/custodialEip1193'
 
 // Stable mock provider — created once at module level to prevent re-render churn.
-const mockProvider = createMockEip1193Provider()
+const mockProvider = createCustodialEip1193Provider()
 
 /** Cobalt brand overrides (matches the "Host / Cobalt" tab in ThemePlayground). */
 const cobaltOverrides = {

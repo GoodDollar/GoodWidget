@@ -1,0 +1,40 @@
+{
+  "name": "@goodwidget/savings-widget",
+  "version": "0.1.0",
+  "description": "GoodDollar savings widget powered by @goodsdks/savings-sdk",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint src/",
+    "clean": "rm -rf dist .turbo"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "dependencies": {
+    "@goodsdks/savings-sdk": "^1.0.0",
+    "@goodwidget/core": "workspace:*",
+    "@goodwidget/ui": "workspace:*",
+    "viem": "^2.31.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "tsup": "^8.4.0",
+    "typescript": "^5.7.0"
+  }
+}

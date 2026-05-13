@@ -85,6 +85,13 @@ test('ClaimWidget/TealBrand story renders', async ({ page }) => {
   await page.screenshot({ path: 'test-results/story-claimwidget-teal.png', fullPage: true })
 })
 
+test('SavingsWidget/Default story renders', async ({ page }) => {
+  await gotoStory(page, 'widgets-savingswidget--default')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByTestId('SavingsWidget-default')).toBeVisible()
+  await page.screenshot({ path: 'test-results/story-savingswidget-default.png', fullPage: true })
+})
+
 test('ThemePlayground/DefaultPreset story renders', async ({ page }) => {
   await gotoStory(page, 'theme-themeplayground--default-preset')
   const frame = getStoryFrame(page)
