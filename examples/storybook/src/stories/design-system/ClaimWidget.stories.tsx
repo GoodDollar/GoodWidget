@@ -12,7 +12,7 @@ import React from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { ClaimWidget } from '@goodwidget/claim-widget-theme-demo'
 import { YStack } from '@goodwidget/ui'
-import { createMockEip1193Provider } from '../fixtures/mockEip1193'
+import { createMockEip1193Provider } from '../../fixtures/mockEip1193'
 
 // Stable mock provider — created once at module level to prevent re-render churn.
 const mockProvider = createMockEip1193Provider()
@@ -54,7 +54,7 @@ const tealOverrides = {
 }
 
 const meta: Meta<typeof ClaimWidget> = {
-  title: 'Widgets/ClaimWidget',
+  title: 'Theme/ClaimWidgetThemeDemo',
   component: ClaimWidget,
   tags: ['autodocs'],
   parameters: { layout: 'padded' },

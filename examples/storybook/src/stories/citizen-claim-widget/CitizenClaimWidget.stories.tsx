@@ -2,8 +2,11 @@ import React, { useEffect, useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { Card, Text, WidgetTabs, YStack } from '@goodwidget/ui'
 import { CitizenClaimWidget } from '@goodwidget/citizen-claim-widget'
-import { getInjectedEip1193Provider, isInjectedProviderUsable } from '../fixtures/injectedEip1193'
-import { createCustodialEip1193Provider } from '../fixtures/custodialEip1193'
+import {
+  getInjectedEip1193Provider,
+  isInjectedProviderUsable,
+} from '../../fixtures/injectedEip1193'
+import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
 
 type CitizenClaimTab = 'claim' | 'invite-rewards' | 'news-feed'
 
