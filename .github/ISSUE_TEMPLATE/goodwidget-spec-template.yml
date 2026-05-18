@@ -2,6 +2,17 @@ name: GoodWidget Spec Template
 description: Define the requirements for a new GoodWidget
 body:
   - type: textarea
+    id: short_description
+    attributes:
+      label: Short description of the new GoodWidget
+      description: |
+        A short description of the new GoodWidget. This should be a concise summary of the widget's purpose and functionality.
+      value: |
+        A short description of the new GoodWidget. This should be a concise summary of the widget's purpose and functionality.
+    validations:
+      required: true
+
+  - type: textarea
     id: repos_and_packages
     attributes:
       label: Which repos and packages the AI should work with
