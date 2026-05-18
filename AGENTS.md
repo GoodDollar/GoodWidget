@@ -6,20 +6,14 @@ Read this document before writing any code. For deep reference on specific topic
 
 ---
 
-## Required Read Order
+## Quick Start (Read First)
 
-For any GoodBounty implementation:
-
-1. Read the GitHub issue body first.
-2. Check the issue's "Spec readiness check" section.
+1. Read the GitHub issue body.
+2. Confirm required spec inputs are present per
+   [`.github/ISSUE_TEMPLATE/goodwidget-spec-template.yml`](.github/ISSUE_TEMPLATE/goodwidget-spec-template.yml).
 3. Read [`ARCHITECTURE.md`](ARCHITECTURE.md).
-4. Read [`docs/demo-environment.md`](docs/demo-environment.md) if the task touches UI,
-   widgets, Storybook, Playwright, screenshots, or demo behavior.
-5. Read [`docs/architecture/theming-contract.md`](docs/architecture/theming-contract.md) if
-   the task touches Tamagui config, tokens, themes, presets, UI primitives, component names,
-   public override targets, or theming behavior.
-6. If required references are missing or inaccessible, stop and report what is missing before
-   coding.
+4. Open the task-specific docs from [Reference routing](#reference-routing).
+5. If required references are missing or inaccessible, stop and report what is missing before coding.
 
 ---
 
@@ -57,13 +51,8 @@ GoodWidget/
             *.stories.tsx
           design-system/          # stories not tied to a specific widget
   tests/
-    design-system/
-      smoke.spec.ts               # cross-story smoke checks
-      test-results/               # localized Playwright screenshot evidence
-    widgets/
-      <widget-name>/
-        *.spec.ts                 # widget-specific state/flow tests
-        test-results/             # localized Playwright screenshot evidence
+    design-system/                # Playwright tests mapped to design-system stories
+    widgets/<widget-name>/        # Playwright tests mapped to widget stories
   docs/
     PACKAGING.md                     # packaging and distribution guide
     demo-environment.md              # Storybook, Playwright, demo routes, fixtures
@@ -79,6 +68,18 @@ GoodWidget/
 | `packages/core`  | runtime/provider/context, theming boundary wiring                              |
 | `packages/embed` | web-component bridge behavior, CSS property reading                            |
 | widget packages  | feature-specific UI and SDK-backed flows                                       |
+
+---
+
+## Testing And QA (Summary)
+
+- Story interaction checks: `pnpm test:storybook`.
+- Playwright QA/state-flow checks: `pnpm test:demo`.
+- Root Playwright runtime artifacts (trace/video/attachments): `/test-results/` (gitignored).
+- Committable screenshot evidence: `tests/design-system/test-results/` and
+  `tests/widgets/<widget-name>/test-results/`.
+- Detailed workflow, fixture behavior, and QA reporting template live in
+  [`docs/demo-environment.md`](docs/demo-environment.md) and [`docs/qa-guide.md`](docs/qa-guide.md).
 
 ---
 
@@ -113,14 +114,15 @@ GoodWidget/
 
 ---
 
-## GoodBounty Execution Rules
+## GoodWidget Bounty Execution Rules
 
 - Treat the issue body as the execution contract.
+- If required spec inputs from the issue template are missing (repos/packages, UI reference,
+  or user flows/states/behaviors), **stop and comment on the issue before coding**.
 - If scope, non-goals, acceptance criteria, source-to-target mapping, SDK/version assumptions,
-  or verification commands are missing — **stop and comment on the issue before coding**.
+  or verification commands are missing, **stop and comment on the issue before coding**.
 - Do not infer major missing behavior from vague wording.
 - Mirror the issue checklist in the PR body.
-- The "Spec readiness check" section of the issue body must pass before implementation begins.
 
 ---
 
@@ -134,40 +136,6 @@ GoodWidget/
 
 ---
 
-## Playwright Screenshots
-
-### Where screenshots live
-
-Each widget's Playwright screenshots are stored **inside that widget's tests folder**:
-
-```
-tests/widgets/<widget-name>/test-results/
-```
-
-For example, `CitizenClaimWidget` screenshots live at:
-
-```
-tests/widgets/citizen-claim-widget/test-results/ccw-01-loading.png
-tests/widgets/citizen-claim-widget/test-results/ccw-02-not-whitelisted.png
-tests/widgets/citizen-claim-widget/test-results/ccw-03-error.png
-```
-
-The Playwright spec writes screenshots directly to these paths so that running
-`pnpm test:demo` automatically keeps the committed files up to date.
-
-### PR requirements for screenshot evidence
-
-1. **Always include the latest screenshots in the PR description** that triggered the
-   Playwright test run. Embed them as inline images so reviewers can verify the UI without
-   checking out the branch.
-2. **Re-run Playwright and update the PR description** every time screenshots are regenerated
-   (e.g. after a UI fix or a new test was added).
-3. Do not use `raw.githubusercontent.com` or `github.com/blob/…?raw=true` for inline images
-   in PR descriptions — use the GitHub attachment CDN (`user-attachments/assets/…`) URLs
-   generated by uploading via the GitHub web UI.
-
----
-
 ## Reference Routing
 
 Use the right document for each type of task:
@@ -175,7 +143,8 @@ Use the right document for each type of task:
 | Topic                                                                                            | Reference                                                                        |
 | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
 | System overview, package responsibilities, data flow                                             | [`ARCHITECTURE.md`](ARCHITECTURE.md)                                             |
-| Storybook, Playwright, demo routes, stories, fixtures, screenshots, test evidence                | [`docs/demo-environment.md`](docs/demo-environment.md)                           |
+| Storybook, Playwright, demo routes, stories, fixtures, test evidence, test folder conventions    | [`docs/demo-environment.md`](docs/demo-environment.md)                           |
+| Manual QA flow and reporting template                                                            | [`docs/qa-guide.md`](docs/qa-guide.md)                                           |
 | Tamagui config, tokens, themes, presets, UI primitives, component names, public override targets | [`docs/architecture/theming-contract.md`](docs/architecture/theming-contract.md) |
 | Packaging and distribution                                                                       | [`docs/PACKAGING.md`](docs/PACKAGING.md)                                         |
 | Bounty scope, acceptance criteria, verification commands                                         | GitHub issue body                                                                |
