@@ -60,7 +60,7 @@ body:
       description: |
         This content is persisted in the issue body and should be used by the planner/copilot flow.
       value: |
-        ### Create the plan
+        ## Create the plan
 
         Based on the above description create an execution plan in a **new sub-issue** and preserve the original issue content unchanged.
         Do not execute the plan until given instructions to do so.
