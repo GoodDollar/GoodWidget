@@ -16,13 +16,13 @@ Repository overview:
 - Always verify when to modularize large components/hooks and avoid single line helpers.
 - Any new widget related components should be added to the widget's own package and not to `packages/ui` unless they are general purpose and reusable across multiple widgets.
 
-## Define a GoodBounty issue spec
+## Define a GoodWidget issue spec
 
-When asked to create or refine a GoodBounty issue make sure to follow the structure for `### Create the plan` from the bounty spec template: `.github/ISSUE_TEMPLATE/goodwidget-spec-template.yml` and include all the sections and details described there.
+When asked to create or refine a GoodWidget issue make sure to follow the structure for `### Create the plan` from the bounty spec template: `.github/ISSUE_TEMPLATE/goodwidget-spec-template.yml` and include all the sections and details described there.
 Always ask for clarification if any of the sections cannot be filled with the available information or if you are not sure about any of the details.
 Be as concise as possible while still providing all the necessary information for the implementation and validation of the issue. The more clear and easy to understand the spec is, the easier it will be for the implementer to understand the requirements and for the reviewer to validate the implementation.
 
-The expected flow a GoodBounty issue planning should follow is:
+The expected flow a GoodWidget issue planning should follow is:
 
 1. there is a 'parent' issue/original specification defined by a human operator.
 2. there will be an assignment of the original issue to start 'planning' the implementation.

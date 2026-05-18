@@ -1,4 +1,4 @@
-# GoodWidget Agent Operating Guide
+# Agent Operating Guide
 
 This is the always-read operating contract for coding agents working in this repository.
 Read this document before writing any code. For deep reference on specific topics, see the
