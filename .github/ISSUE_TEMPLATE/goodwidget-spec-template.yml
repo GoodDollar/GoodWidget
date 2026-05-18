@@ -53,14 +53,24 @@ body:
     validations:
       required: true
 
-  - type: markdown
+  - type: textarea
+    id: create_the_plan
     attributes:
+      label: Create the plan (keep this section in the issue body)
+      description: |
+        This content is persisted in the issue body and should be used by the planner/copilot flow.
       value: |
         ### Create the plan
-        Fixed section with the following content:
 
-        Based on the above description create an execution plan and update this issue with it while preserving the original issue content.
+        Based on the above description create an execution plan in a **new sub-issue** and preserve the original issue content unchanged.
         Do not execute the plan until given instructions to do so.
+
+        Sub-issue requirements:
+
+        - Title format: `[DRAFT][PLAN] <what issue is being planned>`
+        - Type: `Task`
+        - Description must start with: `[DRAFT] <sub-issue title>`
+        - Link the sub-issue back to this parent issue.
 
         Instructions when creating the plan:
 
@@ -74,3 +84,5 @@ body:
         - Execution plan
         - acceptance criteria
         - human-reviewer checklist
+    validations:
+      required: true
