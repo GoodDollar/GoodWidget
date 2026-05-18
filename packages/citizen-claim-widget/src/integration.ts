@@ -6,12 +6,15 @@ export const citizenClaimIntegration = {
     'whitelistStatus',
     'claimStatus',
     'claimEntitlement',
+    'genericClaimEntitlement',
+    'dailyStats',
     'startVerification',
     'claim',
   ],
   chains: [122, 42220, 50],
   states: [
     'loading',
+    'connecting',
     'not_connected',
     'not_whitelisted',
     'eligible',
@@ -24,4 +27,3 @@ export const citizenClaimIntegration = {
 } as const
 
 export type CitizenClaimIntegration = typeof citizenClaimIntegration
-

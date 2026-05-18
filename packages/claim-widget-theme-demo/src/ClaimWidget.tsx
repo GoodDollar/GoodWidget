@@ -16,6 +16,7 @@ import {
   BadgeText,
   Spinner,
   Separator,
+  WidgetTabs,
   XStack,
   YStack,
 } from '@goodwidget/ui'
@@ -107,6 +108,7 @@ function ClaimInner() {
   const { host } = useHost()
   const [claiming, setClaiming] = useState(false)
   const [claimed, setClaimed] = useState(false)
+  const [activeTab, setActiveTab] = useState<'claim' | 'invite-rewards' | 'news-feed'>('claim')
 
   const handleClaim = useCallback(async () => {
     setClaiming(true)
@@ -118,123 +120,115 @@ function ClaimInner() {
 
   return (
     <YStack gap="$5" padding="$4">
-      <XStack justifyContent="space-between" alignItems="center" paddingHorizontal="$1">
-        <Heading level={4}>GoodDollar</Heading>
-        <Badge type="info">
-          <BadgeText>{host}</BadgeText>
-        </Badge>
-      </XStack>
+      <WidgetTabs
+        tabs={[
+          { id: 'claim', label: 'Claim' },
+          { id: 'invite-rewards', label: 'Invite Rewards' },
+          { id: 'news-feed', label: 'News' },
+        ]}
+        activeTab={activeTab}
+        onTabChange={(tabId: string) =>
+          setActiveTab(tabId as 'claim' | 'invite-rewards' | 'news-feed')
+        }
+        chainId={42220}
+      />
 
-      <XStack borderBottomWidth={1} borderColor="$borderColor" alignItems="center">
-        <YStack
-          flex={1}
-          alignItems="center"
-          paddingVertical="$2"
-          borderBottomWidth={2}
-          borderColor="$borderColorFocus"
-        >
-          <Text variant="label" color="$primary">
-            Claim
-          </Text>
-        </YStack>
-        <YStack flex={1} alignItems="center" paddingVertical="$2">
-          <Text variant="label" secondary>
-            Invite Rewards
-          </Text>
-        </YStack>
-        <YStack flex={1} alignItems="center" paddingVertical="$2">
-          <Text variant="label" secondary>
-            News
-          </Text>
-        </YStack>
-      </XStack>
+      {activeTab === 'claim' ? (
+        <>
+          <ClaimCard>
+            <YStack gap="$9" paddingVertical="$6">
+              <YStack alignItems="center" gap="$4">
+                <Text secondary>Ready to claim</Text>
+                <TokenAmount token="G$" amount="193.84" size="xl" />
+                <XStack gap="$2" alignItems="center">
+                  <TokenAmount token="G$" amount="193.84" size="sm" variant="secondary" />
+                  <TokenAmount token="G$" amount="144.13" size="sm" variant="secondary" />
+                  <TokenAmount token="G$" amount="48.06" size="sm" variant="secondary" />
+                </XStack>
+              </YStack>
 
-      <ClaimCard>
-        <YStack gap="$9" paddingVertical="$6">
-          <YStack alignItems="center" gap="$4">
-            <Text secondary>Ready to claim</Text>
-            <TokenAmount token="G$" amount="193.84" size="xl" />
-            <XStack gap="$2" alignItems="center">
-              <TokenAmount token="G$" amount="193.84" size="sm" variant="secondary" />
-              <TokenAmount token="G$" amount="144.13" size="sm" variant="secondary" />
-              <TokenAmount token="G$" amount="48.06" size="sm" variant="secondary" />
-            </XStack>
-          </YStack>
+              <YStack alignItems="center" gap="$4">
+                <ClaimActionButton onPress={address ? handleClaim : connect} disabled={claiming}>
+                  <ClaimActionGlow
+                    // GoodWalletV2 claim button uses a blurred halo around the ring.
+                    style={{ filter: 'blur(20px)' }}
+                  />
+                  <ClaimActionRing>
+                    <ClaimActionInner />
+                  </ClaimActionRing>
+                  <YStack
+                    position="absolute"
+                    top={0}
+                    right={0}
+                    bottom={0}
+                    left={0}
+                    alignItems="center"
+                    justifyContent="center"
+                    zIndex={1}
+                    pointerEvents="none"
+                  >
+                    {claiming ? (
+                      <XStack gap="$2" alignItems="center">
+                        <Spinner size="sm" color="$grey600" />
+                        <ButtonText color="$grey600">Claiming...</ButtonText>
+                      </XStack>
+                    ) : (
+                      <ButtonText color="$primary">{address ? 'Claim' : 'Connect'}</ButtonText>
+                    )}
+                  </YStack>
+                </ClaimActionButton>
 
-          <YStack alignItems="center" gap="$4">
-            <ClaimActionButton onPress={address ? handleClaim : connect} disabled={claiming}>
-              <ClaimActionGlow
-                // GoodWalletV2 claim button uses a blurred halo around the ring.
-                style={{ filter: 'blur(20px)' }}
-              />
-              <ClaimActionRing>
-                <ClaimActionInner />
-              </ClaimActionRing>
-              <YStack
-                position="absolute"
-                top={0}
-                right={0}
-                bottom={0}
-                left={0}
-                alignItems="center"
-                justifyContent="center"
-                zIndex={1}
-                pointerEvents="none"
-              >
-                {claiming ? (
-                  <XStack gap="$2" alignItems="center">
-                    <Spinner size="sm" color="$grey600" />
-                    <ButtonText color="$grey600">Claiming...</ButtonText>
-                  </XStack>
-                ) : (
-                  <ButtonText color="$primary">{address ? 'Claim' : 'Connect'}</ButtonText>
+                {claimed && (
+                  <Text color="$success" fontWeight="700">
+                    Claimed successfully
+                  </Text>
                 )}
               </YStack>
-            </ClaimActionButton>
 
-            {claimed && (
-              <Text color="$success" fontWeight="700">
-                Claimed successfully
-              </Text>
-            )}
-          </YStack>
+              <YStack alignItems="center" gap="$1" paddingTop="$6">
+                <Text secondary>Today:</Text>
+                <XStack>
+                  <Text variant="caption" center secondary>
+                    11.71K claimers received 2.08M G$ out of 3.2M G$ available
+                  </Text>
+                </XStack>
+              </YStack>
+            </YStack>
+          </ClaimCard>
 
-          <YStack alignItems="center" gap="$1" paddingTop="$6">
-            <Text secondary>Today:</Text>
-            <XStack>
-              <Text variant="caption" center secondary>
-                11.71K claimers received 2.08M G$ out of 3.2M G$ available
-              </Text>
+          <StreakCard>
+            <XStack justifyContent="space-between" alignItems="center">
+              <Text variant="label">Streak</Text>
+              <Badge type="success">
+                <BadgeText>12 days</BadgeText>
+              </Badge>
             </XStack>
+          </StreakCard>
+
+          <StreakCard>
+            <XStack justifyContent="space-between" alignItems="center">
+              <Text variant="label">Next claim in</Text>
+              <Text fontWeight="600">23h 14m</Text>
+            </XStack>
+            <Separator marginVertical="$2" />
+            <XStack justifyContent="space-between" alignItems="center">
+              <Text variant="label">Total claimed</Text>
+              <TokenAmount token="G$" amount="2.08M" size="sm" variant="secondary" />
+            </XStack>
+          </StreakCard>
+
+          {claimed && (
+            <Button variant="secondary" fullWidth onPress={() => setClaimed(false)}>
+              <ButtonText>Reset Demo</ButtonText>
+            </Button>
+          )}
+        </>
+      ) : (
+        <ClaimCard>
+          <YStack alignItems="center" justifyContent="center" minHeight={320}>
+            <Text variant="body">Widget coming soon</Text>
           </YStack>
-        </YStack>
-      </ClaimCard>
-
-      <StreakCard>
-        <XStack justifyContent="space-between" alignItems="center">
-          <Text variant="label">Streak</Text>
-          <Badge type="success">
-            <BadgeText>12 days</BadgeText>
-          </Badge>
-        </XStack>
-      </StreakCard>
-
-      <StreakCard>
-        <XStack justifyContent="space-between" alignItems="center">
-          <Text variant="label">Next claim in</Text>
-          <Text fontWeight="600">23h 14m</Text>
-        </XStack>
-        <Separator marginVertical="$2" />
-        <XStack justifyContent="space-between" alignItems="center">
-          <Text variant="label">Total claimed</Text>
-          <TokenAmount token="G$" amount="2.08M" size="sm" variant="secondary" />
-        </XStack>
-      </StreakCard>
-
-      {claimed && (
-        <Button variant="secondary" fullWidth onPress={() => setClaimed(false)}>
-          <ButtonText>Reset Demo</ButtonText>
-        </Button>
+        </ClaimCard>
       )}
     </YStack>
   )

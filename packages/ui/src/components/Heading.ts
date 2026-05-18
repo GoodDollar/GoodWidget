@@ -5,7 +5,7 @@ export const Heading = createComponent(TamaguiText, {
   name: 'Heading',
   fontFamily: '$heading',
   fontWeight: '700',
-  color: '$color',
+  color: '$text',
 
   variants: {
     level: {

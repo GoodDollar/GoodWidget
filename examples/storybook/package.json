@@ -12,9 +12,11 @@
     "@goodwidget/core": "workspace:*",
     "@goodwidget/ui": "workspace:*",
     "@goodwidget/claim-widget-theme-demo": "workspace:*",
+    "@goodwidget/citizen-claim-widget": "workspace:*",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "react-native-web": "^0.19.13"
+    "react-native-web": "^0.19.13",
+    "viem": "^2.0.0"
   },
   "devDependencies": {
     "@storybook/addon-essentials": "^8.6.17",

@@ -13,9 +13,9 @@
  */
 import React from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
-import { ClaimWidget } from '@goodwidget/claim-widget'
+import { ClaimWidget } from '@goodwidget/claim-widget-theme-demo'
 import { Card, Heading, Text, Alert, YStack } from '@goodwidget/ui'
-import { createMockEip1193Provider } from '../fixtures/mockEip1193'
+import { createMockEip1193Provider } from '../../fixtures/mockEip1193'
 
 const mockProvider = createMockEip1193Provider()
 
@@ -165,7 +165,9 @@ export const HostOverrideCobalt: Story = {
       <ClaimWidget
         provider={mockProvider}
         themeOverrides={{
-          tokens: { color: { primary: '#2E5DE8', primaryDark: '#1D3EB2', primaryLight: '#6E8DFF' } },
+          tokens: {
+            color: { primary: '#2E5DE8', primaryDark: '#1D3EB2', primaryLight: '#6E8DFF' },
+          },
           themes: {
             light_ClaimCard: { borderColor: '#2E5DE8', shadowColor: 'rgba(46,93,232,0.7)' },
             light_ClaimActionGlow: { primary: '#4F7DFF', primaryLight: '#9DB4FF' },
@@ -193,7 +195,9 @@ export const HostOverrideTeal: Story = {
       <ClaimWidget
         provider={mockProvider}
         themeOverrides={{
-          tokens: { color: { primary: '#00A884', primaryDark: '#007A61', primaryLight: '#33C9AA' } },
+          tokens: {
+            color: { primary: '#00A884', primaryDark: '#007A61', primaryLight: '#33C9AA' },
+          },
           themes: {
             light_ClaimCard: { borderColor: '#00A884', shadowColor: 'rgba(0,168,132,0.65)' },
             light_ClaimActionGlow: { primary: '#33C9AA', primaryLight: '#78E0CB' },
