@@ -13,8 +13,8 @@
  *   # Run Storybook's built-in test runner (interaction + play function tests):
  *   pnpm test:storybook
  *
- * Screenshots, traces, and optional video artifacts are written to test-results/
- * (gitignored).
+ * Playwright traces/videos/attachments are written to test-results/ (gitignored).
+ * Spec-authored screenshots can also be written tests/ in a widgets localized folder..
  */
 import { defineConfig, devices } from '@playwright/test'
 
@@ -54,4 +54,3 @@ export default defineConfig({
   },
   outputDir: 'test-results',
 })
-

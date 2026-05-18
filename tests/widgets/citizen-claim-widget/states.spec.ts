@@ -1,5 +1,5 @@
 /**
- * citizen-claim-widget.spec.ts — Playwright tests for CitizenClaimWidget states.
+ * states.spec.ts — Playwright tests for CitizenClaimWidget states.
  *
  * Tests use the CustodialLocalFixture story with a randomly-generated test wallet
  * (address: 0x329377cbeeF39f01b0Ea04B80465c9eB47D3ED1) that has no on-chain history,
@@ -23,8 +23,8 @@
  *   pnpm test:demo          (in another terminal)
  *
  * Artifact output:
- *   examples/storybook/src/stories/citizen-claim-widget/screenshots/   (committed evidence)
- *   test-results/           (traces, retry debug — gitignored)
+ *   tests/widgets/citizen-claim-widget/test-results/                     (widget screenshot evidence + debug)
+ *   test-results/                                                        (Playwright traces/videos/attachments)
  */
 import { test, expect, Page } from '@playwright/test'
 
@@ -77,7 +77,7 @@ test('CitizenClaimWidget shows loading spinner on mount', async ({ page }) => {
   const hasSpinner = !bodyText.includes('Verify') && !bodyText.includes('Retry')
   expect(hasSpinner, 'Expected loading state before RPC resolves').toBe(true)
   await page.screenshot({
-    path: 'examples/storybook/src/stories/citizen-claim-widget/screenshots/ccw-01-loading.png',
+    path: 'tests/widgets/citizen-claim-widget/test-results/ccw-01-loading.png',
     fullPage: true,
   })
 })
@@ -102,7 +102,7 @@ test('CitizenClaimWidget shows not_whitelisted for fresh wallet (live Celo RPC)'
   expect(bodyText).toMatch(/Verify|Whitelisting Required|Face/i)
 
   await page.screenshot({
-    path: 'examples/storybook/src/stories/citizen-claim-widget/screenshots/ccw-02-not-whitelisted.png',
+    path: 'tests/widgets/citizen-claim-widget/test-results/ccw-02-not-whitelisted.png',
     fullPage: true,
   })
 })
@@ -124,7 +124,7 @@ test('CitizenClaimWidget shows error state when RPC is unreachable', async ({ pa
   expect(bodyText).toContain('Retry')
 
   await page.screenshot({
-    path: 'examples/storybook/src/stories/citizen-claim-widget/screenshots/ccw-03-error.png',
+    path: 'tests/widgets/citizen-claim-widget/test-results/ccw-03-error.png',
     fullPage: true,
   })
 })
@@ -153,7 +153,7 @@ test('CitizenClaimWidget Retry button re-triggers the adapter', async ({ page })
   await retryBtn.click()
 
   await page.screenshot({
-    path: 'test-results/ccw-04-retry-clicked.png',
+    path: 'tests/widgets/citizen-claim-widget/test-results/ccw-04-retry-clicked.png',
     fullPage: true,
   })
 

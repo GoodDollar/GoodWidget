@@ -9,7 +9,7 @@
     "storybook": "pnpm --filter @goodwidget/storybook storybook",
     "build-storybook": "pnpm --filter @goodwidget/storybook build-storybook",
     "test:storybook": "pnpm --filter @goodwidget/storybook test:storybook",
-    "test:demo": "playwright test tests/demo"
+    "test:demo": "playwright test"
   },
   "devDependencies": {
     "@playwright/test": "^1.44.0",

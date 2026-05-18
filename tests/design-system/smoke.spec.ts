@@ -15,7 +15,8 @@
  *   pnpm test:demo        (if kept in root package.json)
  *
  * Artifact output:
- *   test-results/  — screenshots, traces, optional video (gitignored)
+ *   tests/design-system/test-results/  — local screenshots from this spec
+ *   test-results/                      — Playwright traces/videos/attachments (gitignored)
  *
  * data-testid naming convention:
  *   ComponentName-variant   e.g. Card-default, GlowCard-default, ClaimWidget-default
@@ -40,54 +41,78 @@ test('Card/Default story renders', async ({ page }) => {
   await gotoStory(page, 'primitives-card--default')
   const frame = getStoryFrame(page)
   await expect(frame.getByTestId('Card-default')).toBeVisible()
-  await page.screenshot({ path: 'test-results/story-card-default.png', fullPage: true })
+  await page.screenshot({
+    path: 'tests/design-system/test-results/story-card-default.png',
+    fullPage: true,
+  })
 })
 
 test('GlowCard/Default story renders', async ({ page }) => {
   await gotoStory(page, 'primitives-glowcard--default')
   const frame = getStoryFrame(page)
   await expect(frame.getByTestId('GlowCard-default')).toBeVisible()
-  await page.screenshot({ path: 'test-results/story-glowcard-default.png', fullPage: true })
+  await page.screenshot({
+    path: 'tests/design-system/test-results/story-glowcard-default.png',
+    fullPage: true,
+  })
 })
 
 test('Drawer/Default story renders trigger', async ({ page }) => {
   await gotoStory(page, 'primitives-drawer--default')
   const frame = getStoryFrame(page)
   await expect(frame.getByTestId('Drawer-trigger')).toBeVisible()
-  await page.screenshot({ path: 'test-results/story-drawer-default.png', fullPage: true })
+  await page.screenshot({
+    path: 'tests/design-system/test-results/story-drawer-default.png',
+    fullPage: true,
+  })
 })
 
 test('TokenAmount/Default story renders', async ({ page }) => {
   await gotoStory(page, 'primitives-tokenamount--default')
   const frame = getStoryFrame(page)
   await expect(frame.getByTestId('TokenAmount-default')).toBeVisible()
-  await page.screenshot({ path: 'test-results/story-tokenamount-default.png', fullPage: true })
+  await page.screenshot({
+    path: 'tests/design-system/test-results/story-tokenamount-default.png',
+    fullPage: true,
+  })
 })
 
 test('ClaimWidget/Default story renders in mock-connected state', async ({ page }) => {
   await gotoStory(page, 'widgets-claimwidget--default')
   const frame = getStoryFrame(page)
   await expect(frame.getByTestId('ClaimWidget-default')).toBeVisible()
-  await page.screenshot({ path: 'test-results/story-claimwidget-default.png', fullPage: true })
+  await page.screenshot({
+    path: 'tests/design-system/test-results/story-claimwidget-default.png',
+    fullPage: true,
+  })
 })
 
 test('ClaimWidget/CobaltBrand story renders', async ({ page }) => {
   await gotoStory(page, 'widgets-claimwidget--cobalt-brand')
   const frame = getStoryFrame(page)
   await expect(frame.getByTestId('ClaimWidget-cobalt')).toBeVisible()
-  await page.screenshot({ path: 'test-results/story-claimwidget-cobalt.png', fullPage: true })
+  await page.screenshot({
+    path: 'tests/design-system/test-results/story-claimwidget-cobalt.png',
+    fullPage: true,
+  })
 })
 
 test('ClaimWidget/TealBrand story renders', async ({ page }) => {
   await gotoStory(page, 'widgets-claimwidget--teal-brand')
   const frame = getStoryFrame(page)
   await expect(frame.getByTestId('ClaimWidget-teal')).toBeVisible()
-  await page.screenshot({ path: 'test-results/story-claimwidget-teal.png', fullPage: true })
+  await page.screenshot({
+    path: 'tests/design-system/test-results/story-claimwidget-teal.png',
+    fullPage: true,
+  })
 })
 
 test('ThemePlayground/DefaultPreset story renders', async ({ page }) => {
   await gotoStory(page, 'theme-themeplayground--default-preset')
   const frame = getStoryFrame(page)
   await expect(frame.locator('text=Preset Baseline')).toBeVisible()
-  await page.screenshot({ path: 'test-results/story-theme-default.png', fullPage: true })
+  await page.screenshot({
+    path: 'tests/design-system/test-results/story-theme-default.png',
+    fullPage: true,
+  })
 })
