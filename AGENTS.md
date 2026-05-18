@@ -114,18 +114,6 @@ GoodWidget/
 
 ---
 
-## GoodWidget Bounty Execution Rules
-
-- Treat the issue body as the execution contract.
-- If required spec inputs from the issue template are missing (repos/packages, UI reference,
-  or user flows/states/behaviors), **stop and comment on the issue before coding**.
-- If scope, non-goals, acceptance criteria, source-to-target mapping, SDK/version assumptions,
-  or verification commands are missing, **stop and comment on the issue before coding**.
-- Do not infer major missing behavior from vague wording.
-- Mirror the issue checklist in the PR body.
-
----
-
 ## PR Requirements
 
 - PR title and description must reference the issue number.
