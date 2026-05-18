@@ -4,6 +4,9 @@ This document describes the GoodWidget demo and documentation environment — a
 Storybook-first setup in `examples/storybook/` that serves as the canonical review
 environment for GoodWidget UI primitives and widget flows.
 
+For the reviewer workflow, fixture meanings, and a short reporting template, see
+[`docs/qa-guide.md`](qa-guide.md).
+
 ---
 
 ## Quick start
@@ -84,8 +87,11 @@ pnpm storybook &
 pnpm test:demo
 ```
 
-Test artifacts (screenshots, traces, optional video) are written to
-`test-results/` (gitignored) and an HTML report to `playwright-report/`.
+Test artifacts are split as follows:
+
+- `test-results/` (gitignored): Playwright traces, videos, and runner attachments.
+- `tests/design-system/test-results/`: design-system smoke screenshots.
+- `tests/widgets/<widget-name>/test-results/`: widget screenshot evidence and debug screenshots.
 
 To inspect a trace after a failure:
 
@@ -136,7 +142,7 @@ The mock is passed as the `provider` prop to `ClaimWidget`.
 3. Set `title: 'Primitives/MyComponent'` in the meta.
 4. Add `tags: ['autodocs']` for automatic docs generation.
 5. Add a `data-testid="MyComponent-default"` to the primary rendered element.
-6. Add a smoke test case in `tests/demo/smoke.spec.ts`.
+6. Add a smoke test case in `tests/design-system/smoke.spec.ts`.
 
 Example skeleton:
 
@@ -167,7 +173,7 @@ export const Default: Story = {
 2. Set `title: 'Widgets/MyWidget'` in the meta.
 3. Import `createMockEip1193Provider` from `../fixtures/mockEip1193` if wallet context is needed.
 4. Pass the mock provider to your widget.
-5. Add a smoke test case in `tests/demo/smoke.spec.ts`.
+5. Add a widget test under `tests/widgets/<widget-name>/` (and update `tests/design-system/smoke.spec.ts` only if shared design-system coverage also changed).
 
 ---
 
@@ -229,4 +235,3 @@ The Storybook package (`examples/storybook`) deliberately does **not** change
 It is a consumer of those packages, not a contributor to their design system.
 
 See [ARCHITECTURE.md](../ARCHITECTURE.md) for the full GoodWidget architecture.
-

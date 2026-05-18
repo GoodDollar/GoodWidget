@@ -342,8 +342,6 @@ routes.
 
 The `examples/` directory contains additional integration demos:
 
-> > > > > > > 8ce5cec253701479a06652e1f6948993af9c0fa3
-
 - `examples/react-web/` — React web app demonstrating preset baseline, token overrides,
   component theme overrides, host `themeOverrides`, and local inline overrides
 - `examples/html/` — plain HTML page using the claim widget as a web component

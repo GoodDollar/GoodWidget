@@ -55,8 +55,15 @@ GoodWidget/
         stories/
           <widget-name>/          # one subfolder per widget
             *.stories.tsx
-            screenshots/          # committed Playwright evidence PNGs
           design-system/          # stories not tied to a specific widget
+  tests/
+    design-system/
+      smoke.spec.ts               # cross-story smoke checks
+      test-results/               # localized Playwright screenshot evidence
+    widgets/
+      <widget-name>/
+        *.spec.ts                 # widget-specific state/flow tests
+        test-results/             # localized Playwright screenshot evidence
   docs/
     PACKAGING.md                     # packaging and distribution guide
     demo-environment.md              # Storybook, Playwright, demo routes, fixtures
@@ -131,18 +138,18 @@ GoodWidget/
 
 ### Where screenshots live
 
-Each widget's Playwright screenshots are stored **inside the widget's story folder**:
+Each widget's Playwright screenshots are stored **inside that widget's tests folder**:
 
 ```
-examples/storybook/src/stories/<widget-name>/screenshots/
+tests/widgets/<widget-name>/test-results/
 ```
 
 For example, `CitizenClaimWidget` screenshots live at:
 
 ```
-examples/storybook/src/stories/citizen-claim-widget/screenshots/ccw-01-loading.png
-examples/storybook/src/stories/citizen-claim-widget/screenshots/ccw-02-not-whitelisted.png
-examples/storybook/src/stories/citizen-claim-widget/screenshots/ccw-03-error.png
+tests/widgets/citizen-claim-widget/test-results/ccw-01-loading.png
+tests/widgets/citizen-claim-widget/test-results/ccw-02-not-whitelisted.png
+tests/widgets/citizen-claim-widget/test-results/ccw-03-error.png
 ```
 
 The Playwright spec writes screenshots directly to these paths so that running

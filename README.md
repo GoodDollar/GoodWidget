@@ -4,12 +4,12 @@ A cross-platform mini app framework for building web3 widgets that run inside wa
 
 ## Packages
 
-| Package | Description |
-|---------|-------------|
-| `@goodwidget/core` | EIP-1193 provider normalization, host detection, wallet hooks, React context |
-| `@goodwidget/ui` | Tamagui-based themeable component library (React + React Native Web) |
-| `@goodwidget/embed` | Web Component wrapper for embedding mini apps in any HTML page |
-| `@goodwidget/claim-widget` | Sample publishable widget — React component + Web Component |
+| Package                    | Description                                                                  |
+| -------------------------- | ---------------------------------------------------------------------------- |
+| `@goodwidget/core`         | EIP-1193 provider normalization, host detection, wallet hooks, React context |
+| `@goodwidget/ui`           | Tamagui-based themeable component library (React + React Native Web)         |
+| `@goodwidget/embed`        | Web Component wrapper for embedding mini apps in any HTML page               |
+| `@goodwidget/claim-widget` | Sample publishable widget — React component + Web Component                  |
 
 ## Quick Start
 
@@ -91,9 +91,9 @@ const config = createGoodWidgetConfig({
 
 ```css
 good-miniapp {
-  --gw-color-primary: #FF6B00;
-  --gw-Card-background: #FFF3E0;
-  --gw-Button-background: #FF6B00;
+  --gw-color-primary: #ff6b00;
+  --gw-Card-background: #fff3e0;
+  --gw-Button-background: #ff6b00;
 }
 ```
 
@@ -156,6 +156,10 @@ GoodWidget auto-detects and normalizes providers from:
 
 See **[docs/PACKAGING.md](docs/PACKAGING.md)** for the full guide on how to build, bundle,
 and publish your widget as an npm package that works in React, React Native, and plain HTML.
+
+## QA
+
+See **[docs/qa-guide.md](docs/qa-guide.md)**.
 
 ## Architecture
 
