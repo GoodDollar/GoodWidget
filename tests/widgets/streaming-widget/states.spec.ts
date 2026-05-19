@@ -130,12 +130,13 @@ test('StreamingWidget custodial fixture — Streams tab shows loading then empty
     'Live RPC test requires --disable-web-security / --ignore-certificate-errors',
   )
 
-  // Route subgraph calls to never respond — keeps widget in loading state
+  // Route subgraph calls to never respond — intentionally hangs to keep the
+  // widget in the loading state indefinitely so we can screenshot that state.
   await page.route('https://subgraph-gateway.superfluid.finance/**', () => {
-    /* hang */
+    /* intentional hang — never fulfill, never abort */
   })
   await page.route('https://gateway-arbitrum.network.thegraph.com/**', () => {
-    /* hang */
+    /* intentional hang — never fulfill, never abort */
   })
 
   await gotoStory(page, CUSTODIAL_STORY_URL)
