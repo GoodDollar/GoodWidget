@@ -69,7 +69,7 @@ body:
 
         - Title format: `[DRAFT][PLAN] <what issue is being planned>`
         - Type: `Task`
-        - Description must start with: `[DRAFT] <sub-issue title>`
+        - Description must start with: `<sub-issue title>`
         - Link the sub-issue back to this parent issue.
 
         Instructions when creating the plan:
