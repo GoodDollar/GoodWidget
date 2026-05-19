@@ -351,9 +351,12 @@ function StreamCard({ stream }: { stream: StreamListItem }) {
   )
 }
 
-// ---------------------------------------------------------------------------
-// Streams tab
-// ---------------------------------------------------------------------------
+/** Maps direction filter IDs to display labels. */
+const DIRECTION_LABELS: Record<StreamDirection, string> = {
+  all: 'All',
+  incoming: 'Incoming',
+  outgoing: 'Outgoing',
+}
 function StreamsTab({
   state,
   actions,
@@ -402,7 +405,7 @@ function StreamsTab({
             onPress={() => setDirection(d)}
             variant={direction === d ? 'primary' : 'secondary'}
           >
-            <ButtonText style={{ textTransform: 'capitalize' }}>{d}</ButtonText>
+            <ButtonText>{DIRECTION_LABELS[d]}</ButtonText>
           </Button>
         ))}
       </XStack>
