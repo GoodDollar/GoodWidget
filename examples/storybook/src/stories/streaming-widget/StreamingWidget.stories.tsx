@@ -20,7 +20,7 @@ function StreamingWidgetStoryShell({
   dataTestId: string
 }) {
   return (
-    <YStack data-testid={dataTestId} style={{ width: 400, minHeight: '100vh' }}>
+    <YStack data-testid={dataTestId} width={400} minHeight="100vh">
       <StreamingWidget provider={provider} environment="development" />
     </YStack>
   )
@@ -45,7 +45,7 @@ function InjectedWalletStory() {
 
   if (!usableProvider) {
     return (
-      <YStack data-testid="StreamingWidget-no-wallet" style={{ width: 400 }} gap="$3">
+      <YStack data-testid="StreamingWidget-no-wallet" width={400} gap="$3">
         <strong>No injected wallet found</strong>
         <span>
           Install/enable MetaMask (or another EIP-1193 wallet) in this browser, then refresh
@@ -77,7 +77,7 @@ function CustodialLocalFixtureStory() {
     )
   } catch (error: unknown) {
     return (
-      <YStack data-testid="StreamingWidget-custodial-config-error" style={{ width: 400 }}>
+      <YStack data-testid="StreamingWidget-custodial-config-error" width={400}>
         <strong>Custodial fixture not configured</strong>
         <span>
           {error instanceof Error
@@ -172,7 +172,7 @@ function LoadingStateStory() {
     )
   } catch {
     return (
-      <YStack data-testid="StreamingWidget-loading-config-error" style={{ width: 400 }}>
+      <YStack data-testid="StreamingWidget-loading-config-error" width={400}>
         <strong>Custodial fixture not configured</strong>
       </YStack>
     )
@@ -202,7 +202,7 @@ function ErrorStateStory() {
     )
   } catch {
     return (
-      <YStack data-testid="StreamingWidget-error-config-error" style={{ width: 400 }}>
+      <YStack data-testid="StreamingWidget-error-config-error" width={400}>
         <strong>Custodial fixture not configured</strong>
       </YStack>
     )
@@ -215,4 +215,103 @@ function ErrorStateStory() {
  */
 export const ErrorState: Story = {
   render: () => <ErrorStateStory />,
+}
+
+// ---------------------------------------------------------------------------
+// Pool claim story — custodial fixture on Celo showing pool memberships
+// with claimable amounts and claim action. Playwright routes can mock
+// claimable balances for deterministic screenshots.
+// ---------------------------------------------------------------------------
+function PoolClaimStory() {
+  try {
+    const provider = createCustodialEip1193Provider()
+    return (
+      <StreamingWidgetStoryShell
+        provider={provider}
+        dataTestId="StreamingWidget-pool-claim"
+      />
+    )
+  } catch {
+    return (
+      <YStack data-testid="StreamingWidget-pool-claim-config-error" width={400}>
+        <strong>Custodial fixture not configured</strong>
+      </YStack>
+    )
+  }
+}
+
+/**
+ * Pool claim scenario — shows GDA pool memberships with claimable amounts
+ * and the Claim action button. Navigate to the Pools tab to view.
+ */
+export const PoolClaim: Story = {
+  render: () => <PoolClaimStory />,
+}
+
+// ---------------------------------------------------------------------------
+// Base SUP reserve story — mock provider on Base chain (8453) to show
+// the SUP reserve balance section.
+// ---------------------------------------------------------------------------
+function BaseSupReserveStory() {
+  const mockProvider = {
+    on: () => {},
+    removeListener: () => {},
+    request: async ({ method }: { method: string }) => {
+      if (method === 'eth_accounts' || method === 'eth_requestAccounts') {
+        return ['0x1234567890123456789012345678901234567890']
+      }
+      if (method === 'eth_chainId') return '0x2105' // Base mainnet (8453)
+      if (method === 'net_version') return '8453'
+      return null
+    },
+  }
+
+  return (
+    <StreamingWidgetStoryShell
+      provider={mockProvider}
+      dataTestId="StreamingWidget-base-sup-reserve"
+    />
+  )
+}
+
+/**
+ * Base chain SUP reserve — wallet connected on Base shows the SUP Reserve
+ * (Staked) section with reserve balance. Navigate to the Balances tab.
+ */
+export const BaseSupReserve: Story = {
+  render: () => <BaseSupReserveStory />,
+}
+
+// ---------------------------------------------------------------------------
+// Base SUP balance story — mock provider on Base chain showing Super Token
+// balance for SUP on Base.
+// ---------------------------------------------------------------------------
+function BaseSupBalanceStory() {
+  const mockProvider = {
+    on: () => {},
+    removeListener: () => {},
+    request: async ({ method }: { method: string }) => {
+      if (method === 'eth_accounts' || method === 'eth_requestAccounts') {
+        return ['0xabcdefabcdefabcdefabcdefabcdefabcdefabcd']
+      }
+      if (method === 'eth_chainId') return '0x2105' // Base mainnet (8453)
+      if (method === 'net_version') return '8453'
+      return null
+    },
+  }
+
+  return (
+    <StreamingWidgetStoryShell
+      provider={mockProvider}
+      dataTestId="StreamingWidget-base-sup-balance"
+    />
+  )
+}
+
+/**
+ * Base chain SUP balance — wallet connected on Base shows the Super Token
+ * balance for SUP. Navigate to the Balances tab.
+ */
+export const BaseSupBalance: Story = {
+  render: () => <BaseSupBalanceStory />,
 }

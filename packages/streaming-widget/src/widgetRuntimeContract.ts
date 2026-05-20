@@ -63,6 +63,8 @@ export interface PoolMembershipItem {
   poolToken: Address
   totalUnits: bigint
   totalAmountClaimed: bigint
+  /** Amount currently claimable by this member (wei) */
+  claimableAmount: bigint
   /** Whether this account has actively connected to the pool distribution */
   isConnected: boolean
 }
@@ -121,6 +123,10 @@ export interface StreamingWidgetAdapterState {
   /** Pool connect/disconnect write status keyed by pool address */
   poolConnectStatus: Record<string, WriteStatus>
   poolConnectError: Record<string, string | null>
+
+  /** Pool claim write status keyed by pool address */
+  poolClaimStatus: Record<string, WriteStatus>
+  poolClaimError: Record<string, string | null>
 }
 
 // ---------------------------------------------------------------------------
@@ -144,6 +150,8 @@ export interface StreamingWidgetAdapterActions {
   connectToPool: (poolAddress: Address) => Promise<void>
   /** Disconnect wallet from a GDA pool */
   disconnectFromPool: (poolAddress: Address) => Promise<void>
+  /** Claim all available tokens from a GDA pool */
+  claimFromPool: (poolAddress: Address) => Promise<void>
 }
 
 export interface StreamingWidgetAdapterResult {

@@ -5,7 +5,6 @@ import {
   createWalletClient,
   custom,
   formatUnits,
-  http,
   parseUnits,
   type Chain,
 } from 'viem'
@@ -29,6 +28,30 @@ import type {
   SetStreamFormState,
   WriteStatus,
 } from './widgetRuntimeContract'
+
+// ---------------------------------------------------------------------------
+// Minimal GDA Pool ABI for claimAll and getClaimableNow
+// ---------------------------------------------------------------------------
+const GDA_POOL_ABI = [
+  {
+    name: 'claimAll',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'pool', type: 'address' },
+      { name: 'memberAddress', type: 'address' },
+      { name: 'userData', type: 'bytes' },
+    ],
+    outputs: [],
+  },
+  {
+    name: 'getClaimableNow',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: 'member', type: 'address' }],
+    outputs: [{ name: 'claimable', type: 'uint256' }],
+  },
+] as const
 
 // ---------------------------------------------------------------------------
 // Chain descriptors for Superfluid-supported chains (Celo and Base)
@@ -65,27 +88,62 @@ const DEFAULT_FORM_STATE: SetStreamFormState = {
 function humanReadableError(err: unknown): string {
   console.error('[StreamingWidget]', err)
 
-  if (!(err instanceof Error)) return 'Something went wrong. Please try again.'
+  if (!(err instanceof Error)) {
+    console.error('[StreamingWidget] non-Error thrown:', typeof err, err)
+    return 'Something went wrong. Please try again.'
+  }
 
   const msg = err.message
 
+  // Network-level failures
   if (
     msg.includes('Failed to fetch') ||
     msg.includes('fetch failed') ||
     msg.includes('NetworkError') ||
-    msg.includes('net::ERR_')
+    msg.includes('net::ERR_') ||
+    msg.includes('ECONNREFUSED') ||
+    msg.includes('ECONNRESET') ||
+    msg.includes('ETIMEDOUT')
   ) {
     return 'Unable to reach the network. Check your connection and try again.'
   }
 
+  // Timeout
   if (msg.includes('timeout') || msg.includes('Timeout') || msg.includes('timed out')) {
     return 'The request timed out. Please try again.'
   }
 
-  if (msg.includes('User rejected') || msg.includes('user rejected') || msg.includes('4001')) {
+  // User rejected transaction
+  if (
+    msg.includes('User rejected') ||
+    msg.includes('user rejected') ||
+    msg.includes('4001') ||
+    msg.includes('ACTION_REJECTED')
+  ) {
     return 'Transaction cancelled by wallet.'
   }
 
+  // Insufficient funds
+  if (msg.includes('insufficient funds') || msg.includes('InsufficientFunds')) {
+    return 'Insufficient funds to complete this transaction.'
+  }
+
+  // Contract revert — extract reason if available
+  if (msg.includes('reverted') || msg.includes('revert')) {
+    const reasonMatch = msg.match(/reason:\s*(.+?)(?:\n|$)/)
+    if (reasonMatch) {
+      const reason = reasonMatch[1].replace(/[^\x20-\x7E]/g, '').trim().slice(0, 80)
+      if (reason) return `Transaction failed: ${reason}`
+    }
+    return 'Transaction was reverted. Please try again.'
+  }
+
+  // Unsupported chain
+  if (msg.includes('unsupported chain') || msg.includes('Unsupported chain')) {
+    return 'This network is not supported. Please switch to a supported chain.'
+  }
+
+  // Token not available
   if (msg.includes('Token address not available')) {
     return 'This token is not available on the current chain.'
   }
@@ -123,12 +181,13 @@ function toStreamListItem(stream: StreamInfo, address: Address): StreamListItem 
 // ---------------------------------------------------------------------------
 // Derive PoolMembershipItem from the SDK GDAPool
 // ---------------------------------------------------------------------------
-function toPoolMembershipItem(pool: GDAPool): PoolMembershipItem {
+function toPoolMembershipItem(pool: GDAPool, claimableAmount = 0n): PoolMembershipItem {
   return {
     poolId: pool.id,
     poolToken: pool.token,
     totalUnits: pool.totalUnits,
     totalAmountClaimed: pool.totalAmountClaimed,
+    claimableAmount,
     isConnected: pool.isConnected ?? false,
   }
 }
@@ -204,6 +263,18 @@ export function useStreamingAdapter({
   const [poolConnectStatus, setPoolConnectStatus] = useState<Record<string, WriteStatus>>({})
   const [poolConnectError, setPoolConnectError] = useState<Record<string, string | null>>({})
 
+  // --- pool claim state keyed by pool address ---
+  const [poolClaimStatus, setPoolClaimStatus] = useState<Record<string, WriteStatus>>({})
+  const [poolClaimError, setPoolClaimError] = useState<Record<string, string | null>>({})
+  // Guard against state updates after unmount
+  const mountedRef = useRef(true)
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
+
   // Chain validity
   const isWrongChain = !!chainId && !isSupportedChain(chainId)
 
@@ -217,9 +288,8 @@ export function useStreamingAdapter({
     if (!chain) return null
 
     const transport = custom(provider as Parameters<typeof custom>[0])
-    const publicClient = createPublicClient({ chain, transport: http(chain.rpcUrls.default.http[0]) })
+    const publicClient = createPublicClient({ chain, transport })
     const walletClient = createWalletClient({ chain, transport })
-
     return { publicClient, walletClient }
   }, [provider, chainId])
 
@@ -256,7 +326,6 @@ export function useStreamingAdapter({
   // ---------------------------------------------------------------------------
   const fetchStreams = useCallback(async () => {
     if (!streamingSDK || !address) return
-
     setStreamsLoading(true)
     setStreamsError(null)
     try {
@@ -264,47 +333,68 @@ export function useStreamingAdapter({
         account: address as Address,
         direction: 'all',
       })
+      if (!mountedRef.current) return
       setStreams(result.map((s) => toStreamListItem(s, address as Address)))
     } catch (err) {
+      if (!mountedRef.current) return
       setStreamsError(humanReadableError(err))
     } finally {
-      setStreamsLoading(false)
+      if (mountedRef.current) setStreamsLoading(false)
     }
   }, [streamingSDK, address])
 
   // ---------------------------------------------------------------------------
-  // Fetch pool memberships
+  // Fetch pool memberships with claimable amounts
   // ---------------------------------------------------------------------------
   const fetchPools = useCallback(async () => {
-    if (!gdaSDK || !address) return
-
+    if (!gdaSDK || !address || !viemClients) return
     setPoolsLoading(true)
     setPoolsError(null)
     try {
       const result = await gdaSDK.getDistributionPools(address as Address)
-      setPools(result.map(toPoolMembershipItem))
+      if (!mountedRef.current) return
+
+      // Fetch claimable amounts for each pool in parallel
+      const poolsWithClaimable = await Promise.all(
+        result.map(async (pool) => {
+          try {
+            const claimable = await viemClients.publicClient.readContract({
+              address: pool.id,
+              abi: GDA_POOL_ABI,
+              functionName: 'getClaimableNow',
+              args: [address as Address],
+            })
+            return toPoolMembershipItem(pool, claimable)
+          } catch {
+            return toPoolMembershipItem(pool, 0n)
+          }
+        }),
+      )
+      setPools(poolsWithClaimable)
     } catch (err) {
+      if (!mountedRef.current) return
       setPoolsError(humanReadableError(err))
     } finally {
-      setPoolsLoading(false)
+      if (mountedRef.current) setPoolsLoading(false)
     }
-  }, [gdaSDK, address])
+  }, [gdaSDK, address, viemClients])
 
   // ---------------------------------------------------------------------------
   // Fetch Super Token balance
   // ---------------------------------------------------------------------------
   const fetchBalance = useCallback(async () => {
     if (!streamingSDK || !address) return
-
     setBalanceLoading(true)
     setBalanceError(null)
     try {
       const rawBalance = await streamingSDK.getSuperTokenBalance(address as Address)
+      if (!mountedRef.current) return
       setSuperTokenBalance(formatUnits(rawBalance, 18))
     } catch (err) {
+      if (!mountedRef.current) return
       setBalanceError(humanReadableError(err))
     } finally {
-      setBalanceLoading(false)
+      if (mountedRef.current) setBalanceLoading(false)
     }
   }, [streamingSDK, address])
 
@@ -313,20 +403,21 @@ export function useStreamingAdapter({
   // ---------------------------------------------------------------------------
   const fetchSupReserve = useCallback(async () => {
     if (!subgraphClient || !address || chainId !== SupportedChains.BASE) {
-      setSupReserveBalance(null)
+      if (mountedRef.current) setSupReserveBalance(null)
       return
     }
-
     setSupReserveLoading(true)
     setSupReserveError(null)
     try {
       const lockers = await subgraphClient.querySUPReserves(address as Address)
       const total = lockers.reduce((sum, l) => sum + l.stakedBalance, 0n)
+      if (!mountedRef.current) return
       setSupReserveBalance(formatUnits(total, 18))
     } catch (err) {
+      if (!mountedRef.current) return
       setSupReserveError(humanReadableError(err))
     } finally {
-      setSupReserveLoading(false)
+      if (mountedRef.current) setSupReserveLoading(false)
     }
   }, [subgraphClient, address, chainId])
 
@@ -417,7 +508,14 @@ export function useStreamingAdapter({
       setPoolConnectError((prev) => ({ ...prev, [poolAddress]: null }))
 
       try {
-        await gdaSDK.connectToPool({ poolAddress })
+        await gdaSDK.connectToPool({
+          poolAddress,
+          onHash: () => {
+            if (mountedRef.current) {
+              setPoolConnectStatus((prev) => ({ ...prev, [poolAddress]: 'success' }))
+            }
+          },
+        })
         setPoolConnectStatus((prev) => ({ ...prev, [poolAddress]: 'success' }))
         void fetchPools()
       } catch (err) {
@@ -439,7 +537,14 @@ export function useStreamingAdapter({
       setPoolConnectError((prev) => ({ ...prev, [poolAddress]: null }))
 
       try {
-        await gdaSDK.disconnectFromPool({ poolAddress })
+        await gdaSDK.disconnectFromPool({
+          poolAddress,
+          onHash: () => {
+            if (mountedRef.current) {
+              setPoolConnectStatus((prev) => ({ ...prev, [poolAddress]: 'success' }))
+            }
+          },
+        })
         setPoolConnectStatus((prev) => ({ ...prev, [poolAddress]: 'success' }))
         void fetchPools()
       } catch (err) {
@@ -451,6 +556,39 @@ export function useStreamingAdapter({
       }
     },
     [gdaSDK, fetchPools],
+  )
+
+  // ---------------------------------------------------------------------------
+  // Claim from pool — uses viem writeContract directly since GdaSDK lacks this
+  // ---------------------------------------------------------------------------
+  const claimFromPool = useCallback(
+    async (poolAddress: Address) => {
+      if (!viemClients || !address) return
+
+      setPoolClaimStatus((prev) => ({ ...prev, [poolAddress]: 'pending' }))
+      setPoolClaimError((prev) => ({ ...prev, [poolAddress]: null }))
+
+      try {
+        await viemClients.walletClient.writeContract({
+          account: address as Address,
+          address: poolAddress,
+          abi: GDA_POOL_ABI,
+          functionName: 'claimAll',
+          args: [poolAddress, address as Address, '0x'],
+        })
+        if (!mountedRef.current) return
+        setPoolClaimStatus((prev) => ({ ...prev, [poolAddress]: 'success' }))
+        void fetchPools()
+      } catch (err) {
+        if (!mountedRef.current) return
+        setPoolClaimStatus((prev) => ({ ...prev, [poolAddress]: 'error' }))
+        setPoolClaimError((prev) => ({
+          ...prev,
+          [poolAddress]: humanReadableError(err),
+        }))
+      }
+    },
+    [viemClients, address, fetchPools],
   )
 
   // ---------------------------------------------------------------------------
@@ -495,6 +633,8 @@ export function useStreamingAdapter({
       setStreamTxHash,
       poolConnectStatus,
       poolConnectError,
+      poolClaimStatus,
+      poolClaimError,
     }),
     [
       isConnected,
@@ -519,6 +659,8 @@ export function useStreamingAdapter({
       setStreamTxHash,
       poolConnectStatus,
       poolConnectError,
+      poolClaimStatus,
+      poolClaimError,
     ],
   )
 
@@ -534,6 +676,7 @@ export function useStreamingAdapter({
       resetSetStream,
       connectToPool,
       disconnectFromPool,
+      claimFromPool,
     }),
     [
       connect,
@@ -546,6 +689,7 @@ export function useStreamingAdapter({
       resetSetStream,
       connectToPool,
       disconnectFromPool,
+      claimFromPool,
     ],
   )
 

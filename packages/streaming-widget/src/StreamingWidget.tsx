@@ -452,16 +452,24 @@ function PoolCard({
   pool,
   connectStatus,
   connectError,
+  claimStatus,
+  claimError,
   onConnect,
   onDisconnect,
+  onClaim,
 }: {
   pool: PoolMembershipItem
   connectStatus: WriteStatus
   connectError: string | null
+  claimStatus: WriteStatus
+  claimError: string | null
   onConnect: (poolAddress: Address) => void
   onDisconnect: (poolAddress: Address) => void
+  onClaim: (poolAddress: Address) => void
 }) {
-  const isPending = connectStatus === 'pending'
+  const isConnectPending = connectStatus === 'pending'
+  const isClaimPending = claimStatus === 'pending'
+  const hasClaimable = pool.claimableAmount > 0n
 
   return (
     <PoolRow>
@@ -479,22 +487,48 @@ function PoolCard({
         <Text>{formatUnits(pool.totalAmountClaimed, 18)}</Text>
       </XStack>
 
+      {hasClaimable && (
+        <XStack justifyContent="space-between" alignItems="center">
+          <Text variant="caption" secondary>
+            Claimable
+          </Text>
+          <Text fontWeight="600">{formatUnits(pool.claimableAmount, 18)}</Text>
+        </XStack>
+      )}
+
       {connectError && (
         <Text color="$error" variant="caption">
           {connectError}
         </Text>
       )}
+      {claimError && (
+        <Text color="$error" variant="caption">
+          {claimError}
+        </Text>
+      )}
 
-      <XStack gap="$2" alignItems="center">
+      <XStack gap="$2" alignItems="center" flexWrap="wrap">
         <WriteStatusBadge status={connectStatus} />
         {pool.isConnected ? (
-          <Button disabled={isPending} onPress={() => onDisconnect(pool.poolId)}>
-            {isPending ? <Spinner size="sm" /> : <ButtonText>Disconnect</ButtonText>}
+          <Button disabled={isConnectPending} onPress={() => onDisconnect(pool.poolId)}>
+            {isConnectPending ? <Spinner size="sm" /> : <ButtonText>Disconnect</ButtonText>}
           </Button>
         ) : (
-          <Button disabled={isPending} onPress={() => onConnect(pool.poolId)}>
-            {isPending ? <Spinner size="sm" /> : <ButtonText>Connect</ButtonText>}
+          <Button disabled={isConnectPending} onPress={() => onConnect(pool.poolId)}>
+            {isConnectPending ? <Spinner size="sm" /> : <ButtonText>Connect</ButtonText>}
           </Button>
+        )}
+        {pool.isConnected && hasClaimable && (
+          <>
+            <WriteStatusBadge status={claimStatus} />
+            <Button
+              disabled={isClaimPending}
+              onPress={() => onClaim(pool.poolId)}
+              variant="secondary"
+            >
+              {isClaimPending ? <Spinner size="sm" /> : <ButtonText>Claim</ButtonText>}
+            </Button>
+          </>
         )}
       </XStack>
     </PoolRow>
@@ -548,8 +582,11 @@ function PoolsTab({
             pool={pool}
             connectStatus={state.poolConnectStatus[pool.poolId] ?? 'idle'}
             connectError={state.poolConnectError[pool.poolId] ?? null}
+            claimStatus={state.poolClaimStatus[pool.poolId] ?? 'idle'}
+            claimError={state.poolClaimError[pool.poolId] ?? null}
             onConnect={actions.connectToPool}
             onDisconnect={actions.disconnectFromPool}
+            onClaim={actions.claimFromPool}
           />
         ))}
     </StreamingTabContent>
