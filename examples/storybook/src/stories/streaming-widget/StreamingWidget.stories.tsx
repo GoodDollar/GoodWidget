@@ -123,3 +123,96 @@ export const CustodialLocalFixture: Story = {
 export const NoWallet: Story = {
   render: () => <NoWalletStory />,
 }
+
+// ---------------------------------------------------------------------------
+// Wrong-chain story — provider reports an unsupported chain (Ethereum mainnet)
+// ---------------------------------------------------------------------------
+function WrongChainStory() {
+  const mockProvider = {
+    on: () => {},
+    removeListener: () => {},
+    request: async ({ method }: { method: string }) => {
+      if (method === 'eth_accounts' || method === 'eth_requestAccounts') {
+        return ['0x1234567890123456789012345678901234567890']
+      }
+      if (method === 'eth_chainId') return '0x1' // Ethereum mainnet (unsupported)
+      if (method === 'net_version') return '1'
+      return null
+    },
+  }
+
+  return (
+    <StreamingWidgetStoryShell
+      provider={mockProvider}
+      dataTestId="StreamingWidget-wrong-chain"
+    />
+  )
+}
+
+/**
+ * Wallet connected but on an unsupported chain (Ethereum mainnet).
+ * Shows the "Unsupported network" prompt with chain-switch buttons.
+ */
+export const WrongChain: Story = {
+  render: () => <WrongChainStory />,
+}
+
+// ---------------------------------------------------------------------------
+// Loading state story — blocks all RPC/subgraph calls to keep widget loading
+// ---------------------------------------------------------------------------
+function LoadingStateStory() {
+  // Use custodial provider but block RPC in a separate story via Playwright routing
+  try {
+    const provider = createCustodialEip1193Provider()
+    return (
+      <StreamingWidgetStoryShell
+        provider={provider}
+        dataTestId="StreamingWidget-loading-state"
+      />
+    )
+  } catch {
+    return (
+      <YStack data-testid="StreamingWidget-loading-config-error" style={{ width: 400 }}>
+        <strong>Custodial fixture not configured</strong>
+      </YStack>
+    )
+  }
+}
+
+/**
+ * Widget in loading state — RPC/subgraph calls are routed to hang in Playwright tests.
+ * Shows loading spinners across all tabs.
+ */
+export const LoadingState: Story = {
+  render: () => <LoadingStateStory />,
+}
+
+// ---------------------------------------------------------------------------
+// Error state story — blocks all RPC calls to force error state
+// ---------------------------------------------------------------------------
+function ErrorStateStory() {
+  // Same as loading; Playwright routes handle the actual error forcing
+  try {
+    const provider = createCustodialEip1193Provider()
+    return (
+      <StreamingWidgetStoryShell
+        provider={provider}
+        dataTestId="StreamingWidget-error-state"
+      />
+    )
+  } catch {
+    return (
+      <YStack data-testid="StreamingWidget-error-config-error" style={{ width: 400 }}>
+        <strong>Custodial fixture not configured</strong>
+      </YStack>
+    )
+  }
+}
+
+/**
+ * Widget in error state — RPC calls are aborted in Playwright tests.
+ * Shows error messages and retry buttons.
+ */
+export const ErrorState: Story = {
+  render: () => <ErrorStateStory />,
+}

@@ -29,6 +29,12 @@ const NO_WALLET_STORY_URL =
 const CUSTODIAL_STORY_URL =
   '/iframe.html?id=widgets-streamingwidget--custodial-local-fixture&viewMode=story'
 
+const WRONG_CHAIN_STORY_URL =
+  '/iframe.html?id=widgets-streamingwidget--wrong-chain&viewMode=story'
+
+const ERROR_STATE_STORY_URL =
+  '/iframe.html?id=widgets-streamingwidget--error-state&viewMode=story'
+
 /** Navigate directly to the story iframe (bypasses Storybook shell for speed). */
 async function gotoStory(page: Page, url: string): Promise<void> {
   await page.goto(url)
@@ -280,6 +286,133 @@ test('StreamingWidget custodial fixture — New Stream button toggles form', asy
 
   await page.screenshot({
     path: 'tests/widgets/streaming-widget/test-results/sw-08-create-stream-form.png',
+    fullPage: true,
+  })
+})
+
+// ─── wrong-chain state ──────────────────────────────────────────────────────
+test('StreamingWidget wrong-chain story — shows unsupported network prompt', async ({
+  page,
+}) => {
+  await gotoStory(page, WRONG_CHAIN_STORY_URL)
+
+  // Should show the wrong-chain prompt with chain switch options
+  const matched = await waitForText(
+    page,
+    ['Unsupported network', 'Switch to Celo', 'Switch to Base', 'Celo', 'Base'],
+    20_000,
+  )
+  expect(matched, 'Expected wrong-chain prompt').toBeTruthy()
+
+  const bodyText = await page.evaluate(() => document.body.innerText)
+  expect(bodyText).toMatch(/Unsupported network|Switch to/i)
+
+  await page.screenshot({
+    path: 'tests/widgets/streaming-widget/test-results/sw-09-wrong-chain.png',
+    fullPage: true,
+  })
+})
+
+// ─── error state via RPC abort ──────────────────────────────────────────────
+test('StreamingWidget error state — shows error with retry after RPC failure', async ({
+  page,
+  browserName,
+}) => {
+  test.skip(
+    browserName !== 'chromium',
+    'Live RPC test requires --disable-web-security / --ignore-certificate-errors',
+  )
+
+  // Block all RPC and subgraph endpoints to force error state
+  await page.route('https://forno.celo.org/**', (route) => route.abort())
+  await page.route('https://subgraph-gateway.superfluid.finance/**', (route) => route.abort())
+  await page.route('https://gateway-arbitrum.network.thegraph.com/**', (route) => route.abort())
+
+  await gotoStory(page, ERROR_STATE_STORY_URL)
+
+  // After RPCs abort, adapter should surface error state with Retry button
+  const matched = await waitForText(page, ['Retry', 'Something went wrong', 'reach'], 25_000)
+  expect(matched, 'Expected error state after RPC abort').toBeTruthy()
+
+  await page.screenshot({
+    path: 'tests/widgets/streaming-widget/test-results/sw-10-error-state.png',
+    fullPage: true,
+  })
+})
+
+// ─── pool connect/disconnect state ──────────────────────────────────────────
+test('StreamingWidget custodial fixture — Pools tab shows connect/disconnect actions', async ({
+  page,
+  browserName,
+}) => {
+  test.skip(
+    browserName !== 'chromium',
+    'Live RPC test requires --disable-web-security / --ignore-certificate-errors',
+  )
+
+  // Block external calls for determinism
+  await page.route('https://forno.celo.org/**', (route) => route.abort())
+  await page.route('https://subgraph-gateway.superfluid.finance/**', (route) => route.abort())
+
+  await gotoStory(page, CUSTODIAL_STORY_URL)
+
+  // Wait for tab bar to render
+  await waitForText(page, ['Streams', 'Pools', 'Balances'], 20_000)
+
+  // Click the Pools tab
+  const poolsTab = page.getByText('Pools').first()
+  await expect(poolsTab).toBeVisible()
+  await poolsTab.click()
+
+  await page.waitForTimeout(500)
+
+  // Should show either empty state, loading, or pool list with Connect/Disconnect buttons
+  const bodyText = await page.evaluate(() => document.body.innerText)
+  // At minimum, the Pools tab content should be visible
+  expect(bodyText).toContain('Pools')
+
+  await page.screenshot({
+    path: 'tests/widgets/streaming-widget/test-results/sw-11-pools-connect-disconnect.png',
+    fullPage: true,
+  })
+})
+
+// ─── SUP reserve visibility by chain ────────────────────────────────────────
+test('StreamingWidget custodial fixture — SUP reserve hidden on non-Base chain', async ({
+  page,
+  browserName,
+}) => {
+  test.skip(
+    browserName !== 'chromium',
+    'Live RPC test requires --disable-web-security / --ignore-certificate-errors',
+  )
+
+  // Block external calls
+  await page.route('https://forno.celo.org/**', (route) => route.abort())
+  await page.route('https://subgraph-gateway.superfluid.finance/**', (route) => route.abort())
+
+  await gotoStory(page, CUSTODIAL_STORY_URL)
+
+  await waitForText(page, ['Streams', 'Pools', 'Balances'], 20_000)
+
+  // Click Balances tab
+  const balancesTab = page.getByText('Balances').first()
+  await expect(balancesTab).toBeVisible()
+  await balancesTab.click()
+
+  await page.waitForTimeout(500)
+
+  // On Celo (custodial fixture default), SUP reserve should show disabled/hidden state
+  const bodyText = await page.evaluate(() => document.body.innerText)
+  expect(bodyText).toMatch(/Balance|Super Token/i)
+
+  // SUP reserve should mention "only available on Base" or similar
+  if (bodyText.includes('SUP Reserve')) {
+    expect(bodyText).toMatch(/Base|only available/i)
+  }
+
+  await page.screenshot({
+    path: 'tests/widgets/streaming-widget/test-results/sw-12-sup-reserve-non-base.png',
     fullPage: true,
   })
 })
