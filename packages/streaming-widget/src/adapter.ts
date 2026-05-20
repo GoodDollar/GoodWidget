@@ -124,10 +124,12 @@ function toStreamListItem(stream: StreamInfo, address: Address): StreamListItem 
 // Derive PoolMembershipItem from the SDK GDAPool
 // ---------------------------------------------------------------------------
 function toPoolMembershipItem(pool: GDAPool): PoolMembershipItem {
+  const poolWithClaimable = pool as GDAPool & { claimableAmount?: bigint }
   return {
     poolId: pool.id,
     poolToken: pool.token,
     totalUnits: pool.totalUnits,
+    claimableAmount: poolWithClaimable.claimableAmount ?? 0n,
     totalAmountClaimed: pool.totalAmountClaimed,
     isConnected: pool.isConnected ?? false,
   }
@@ -148,7 +150,7 @@ function validateSetStreamForm(form: SetStreamFormState): SetStreamFormState {
     return {
       ...form,
       flowRate: null,
-      validationError: 'Recipient must be a valid Ethereum address (0x…).',
+      validationError: 'Recipient must be a valid Ethereum address (0x...).',
     }
   }
 
@@ -178,6 +180,9 @@ export function useStreamingAdapter({
   const [streams, setStreams] = useState<StreamListItem[]>([])
   const [streamsLoading, setStreamsLoading] = useState(false)
   const [streamsError, setStreamsError] = useState<string | null>(null)
+  const [streamHistory, setStreamHistory] = useState<StreamListItem[]>([])
+  const [streamHistoryLoading, setStreamHistoryLoading] = useState(false)
+  const [streamHistoryError, setStreamHistoryError] = useState<string | null>(null)
 
   // --- pools state ---
   const [pools, setPools] = useState<PoolMembershipItem[]>([])
@@ -259,16 +264,23 @@ export function useStreamingAdapter({
 
     setStreamsLoading(true)
     setStreamsError(null)
+    setStreamHistoryLoading(true)
+    setStreamHistoryError(null)
     try {
       const result = await streamingSDK.getActiveStreams({
         account: address as Address,
         direction: 'all',
       })
-      setStreams(result.map((s) => toStreamListItem(s, address as Address)))
+      const normalizedStreams = result.map((s) => toStreamListItem(s, address as Address))
+      setStreams(normalizedStreams)
+      setStreamHistory(normalizedStreams)
     } catch (err) {
-      setStreamsError(humanReadableError(err))
+      const message = humanReadableError(err)
+      setStreamsError(message)
+      setStreamHistoryError(message)
     } finally {
       setStreamsLoading(false)
+      setStreamHistoryLoading(false)
     }
   }, [streamingSDK, address])
 
@@ -344,6 +356,7 @@ export function useStreamingAdapter({
 
     if (!isConnected || !address || isWrongChain) {
       setStreams([])
+      setStreamHistory([])
       setPools([])
       setSuperTokenBalance(null)
       setSupReserveBalance(null)
@@ -480,6 +493,9 @@ export function useStreamingAdapter({
       streams,
       streamsLoading,
       streamsError,
+      streamHistory,
+      streamHistoryLoading,
+      streamHistoryError,
       pools,
       poolsLoading,
       poolsError,
@@ -504,6 +520,9 @@ export function useStreamingAdapter({
       streams,
       streamsLoading,
       streamsError,
+      streamHistory,
+      streamHistoryLoading,
+      streamHistoryError,
       pools,
       poolsLoading,
       poolsError,
@@ -527,6 +546,7 @@ export function useStreamingAdapter({
       connect,
       switchChain,
       refreshStreams: fetchStreams,
+      refreshStreamHistory: fetchStreams,
       refreshPools: fetchPools,
       refreshBalance: fetchBalance,
       updateSetStreamForm,

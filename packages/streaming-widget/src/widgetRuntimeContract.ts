@@ -62,6 +62,8 @@ export interface PoolMembershipItem {
   poolId: Address
   poolToken: Address
   totalUnits: bigint
+  /** Claimable incoming distribution amount in wei, when exposed by the data source */
+  claimableAmount: bigint
   totalAmountClaimed: bigint
   /** Whether this account has actively connected to the pool distribution */
   isConnected: boolean
@@ -96,6 +98,9 @@ export interface StreamingWidgetAdapterState {
   streams: StreamListItem[]
   streamsLoading: boolean
   streamsError: string | null
+  streamHistory: StreamListItem[]
+  streamHistoryLoading: boolean
+  streamHistoryError: string | null
 
   /** GDA pool memberships for the connected address */
   pools: PoolMembershipItem[]
@@ -130,6 +135,7 @@ export interface StreamingWidgetAdapterActions {
   connect: () => Promise<void>
   switchChain: (chainId: number) => Promise<void>
   refreshStreams: () => Promise<void>
+  refreshStreamHistory: () => Promise<void>
   refreshPools: () => Promise<void>
   refreshBalance: () => Promise<void>
 

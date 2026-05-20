@@ -31,9 +31,13 @@ import type {
   StreamListItem,
   PoolMembershipItem,
   StreamTimeUnit,
+  StreamingWidgetAdapterResult,
   WriteStatus,
 } from './widgetRuntimeContract'
 import { STREAMING_CHAINS } from './widgetRuntimeContract'
+
+type StreamingWidgetAdapterState = StreamingWidgetAdapterResult['state']
+type StreamingWidgetAdapterActions = StreamingWidgetAdapterResult['actions']
 
 // ---------------------------------------------------------------------------
 // Named styled sub-components — participate in the component sub-theme system.
@@ -116,7 +120,7 @@ function formatFlowRateDisplay(flowRate: bigint, decimals = 18): string {
 
 /** Formats a unix timestamp (seconds) to a short locale date string */
 function formatTimestamp(unixSeconds: number): string {
-  if (!unixSeconds) return '—'
+  if (!unixSeconds) return 'N/A'
   return new Date(unixSeconds * 1000).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -216,11 +220,11 @@ function SetStreamForm({
   onSubmit,
   onReset,
 }: {
-  form: ReturnType<typeof useStreamingAdapter>['state']['setStreamForm']
+  form: StreamingWidgetAdapterState['setStreamForm']
   status: WriteStatus
   error: string | null
   txHash: string | null
-  onUpdate: (partial: Partial<typeof form>) => void
+  onUpdate: (partial: Partial<StreamingWidgetAdapterState['setStreamForm']>) => void
   onSubmit: () => void
   onReset: () => void
 }) {
@@ -228,13 +232,13 @@ function SetStreamForm({
 
   return (
     <SetStreamFormCard>
-      <Heading level={4}>{form.receiver ? 'Update Stream' : 'Create Stream'}</Heading>
+      <Heading level={4}>Create / Update Stream</Heading>
 
       {/* Recipient address */}
       <YStack gap="$1">
         <Text variant="label">Recipient address</Text>
         <Input
-          placeholder="0x…"
+          placeholder="0x..."
           value={form.receiver}
           onChangeText={(v: string) => onUpdate({ receiver: v })}
           editable={!isSubmitting}
@@ -268,7 +272,7 @@ function SetStreamForm({
       {form.flowRate !== null && form.flowRate > 0n && (
         <XStack gap="$2" alignItems="center">
           <Text variant="caption" secondary>
-            ≈ {formatUnits(form.flowRate, 18)} tokens/s
+            About {formatUnits(form.flowRate, 18)} tokens/s
           </Text>
         </XStack>
       )}
@@ -284,9 +288,14 @@ function SetStreamForm({
           {error}
         </Text>
       )}
+      {status === 'pending' && (
+        <Text variant="caption" secondary>
+          Transaction pending...
+        </Text>
+      )}
       {status === 'success' && txHash && (
         <Text color="$success" variant="caption">
-          Stream set! Tx: {txHash.slice(0, 10)}…
+          Stream set! Tx: {txHash.slice(0, 10)}...
         </Text>
       )}
 
@@ -321,7 +330,7 @@ function StreamCard({ stream }: { stream: StreamListItem }) {
     <StreamRow>
       <XStack justifyContent="space-between" alignItems="center">
         <Badge type={stream.direction === 'incoming' ? 'success' : 'info'}>
-          <BadgeText>{stream.direction === 'incoming' ? '↓ Incoming' : '↑ Outgoing'}</BadgeText>
+          <BadgeText>{stream.direction === 'incoming' ? 'Incoming' : 'Outgoing'}</BadgeText>
         </Badge>
         <Text variant="caption" secondary>
           Since {formatTimestamp(stream.createdAtTimestamp)}
@@ -360,16 +369,21 @@ const DIRECTION_LABELS: Record<StreamDirection, string> = {
 function StreamsTab({
   state,
   actions,
+  initialFormOpen = false,
 }: {
-  state: ReturnType<typeof useStreamingAdapter>['state']
-  actions: ReturnType<typeof useStreamingAdapter>['actions']
+  state: StreamingWidgetAdapterState
+  actions: StreamingWidgetAdapterActions
+  initialFormOpen?: boolean
 }) {
   const [direction, setDirection] = useState<StreamDirection>('all')
-  const [showForm, setShowForm] = useState(false)
+  const [showForm, setShowForm] = useState(initialFormOpen)
 
   const filteredStreams = state.streams.filter(
     (s) => direction === 'all' || s.direction === direction,
   )
+  const emptyStreamsMessage =
+    direction === 'all' ? 'No streams found.' : `No ${direction} streams found.`
+  const recentStreams = state.streamHistory.slice(0, 4)
 
   return (
     <StreamingTabContent>
@@ -397,6 +411,8 @@ function StreamsTab({
 
       <Separator />
 
+      <Heading level={4}>Active streams</Heading>
+
       {/* Direction filter */}
       <XStack gap="$2">
         {(['all', 'incoming', 'outgoing'] as StreamDirection[]).map((d) => (
@@ -414,7 +430,7 @@ function StreamsTab({
       {state.streamsLoading && (
         <YStack alignItems="center" paddingVertical="$4">
           <Spinner size="lg" />
-          <Text secondary>Loading streams…</Text>
+          <Text secondary>Loading streams...</Text>
         </YStack>
       )}
 
@@ -430,7 +446,7 @@ function StreamsTab({
       {!state.streamsLoading && !state.streamsError && filteredStreams.length === 0 && (
         <EmptyStateCard>
           <Text secondary center>
-            No {direction === 'all' ? '' : direction} streams found.
+            {emptyStreamsMessage}
           </Text>
           <Button onPress={actions.refreshStreams}>
             <ButtonText>Refresh</ButtonText>
@@ -441,6 +457,45 @@ function StreamsTab({
       {!state.streamsLoading &&
         !state.streamsError &&
         filteredStreams.map((stream) => <StreamCard key={stream.id} stream={stream} />)}
+
+      <Separator />
+
+      <XStack justifyContent="space-between" alignItems="center">
+        <Heading level={4}>Stream history</Heading>
+        <Button variant="secondary" onPress={actions.refreshStreamHistory}>
+          <ButtonText>Refresh</ButtonText>
+        </Button>
+      </XStack>
+
+      {state.streamHistoryLoading && (
+        <YStack alignItems="center" paddingVertical="$4">
+          <Spinner size="lg" />
+          <Text secondary>Loading stream history...</Text>
+        </YStack>
+      )}
+
+      {!state.streamHistoryLoading && state.streamHistoryError && (
+        <ErrorStateCard>
+          <Text color="$error">{state.streamHistoryError}</Text>
+          <Button onPress={actions.refreshStreamHistory}>
+            <ButtonText>Retry</ButtonText>
+          </Button>
+        </ErrorStateCard>
+      )}
+
+      {!state.streamHistoryLoading &&
+        !state.streamHistoryError &&
+        recentStreams.length === 0 && (
+          <EmptyStateCard>
+            <Text secondary center>
+              No stream history found.
+            </Text>
+          </EmptyStateCard>
+        )}
+
+      {!state.streamHistoryLoading &&
+        !state.streamHistoryError &&
+        recentStreams.map((stream) => <StreamCard key={`history-${stream.id}`} stream={stream} />)}
     </StreamingTabContent>
   )
 }
@@ -474,6 +529,13 @@ function PoolCard({
 
       <XStack justifyContent="space-between" alignItems="center">
         <Text variant="caption" secondary>
+          Claimable
+        </Text>
+        <Text>{formatUnits(pool.claimableAmount, 18)}</Text>
+      </XStack>
+
+      <XStack justifyContent="space-between" alignItems="center">
+        <Text variant="caption" secondary>
           Total claimed
         </Text>
         <Text>{formatUnits(pool.totalAmountClaimed, 18)}</Text>
@@ -493,7 +555,7 @@ function PoolCard({
           </Button>
         ) : (
           <Button disabled={isPending} onPress={() => onConnect(pool.poolId)}>
-            {isPending ? <Spinner size="sm" /> : <ButtonText>Connect</ButtonText>}
+            {isPending ? <Spinner size="sm" /> : <ButtonText>Connect to claim</ButtonText>}
           </Button>
         )}
       </XStack>
@@ -508,15 +570,15 @@ function PoolsTab({
   state,
   actions,
 }: {
-  state: ReturnType<typeof useStreamingAdapter>['state']
-  actions: ReturnType<typeof useStreamingAdapter>['actions']
+  state: StreamingWidgetAdapterState
+  actions: StreamingWidgetAdapterActions
 }) {
   return (
     <StreamingTabContent>
       {state.poolsLoading && (
         <YStack alignItems="center" paddingVertical="$4">
           <Spinner size="lg" />
-          <Text secondary>Loading pool memberships…</Text>
+          <Text secondary>Loading pool memberships...</Text>
         </YStack>
       )}
 
@@ -563,8 +625,8 @@ function BalancesTab({
   state,
   actions,
 }: {
-  state: ReturnType<typeof useStreamingAdapter>['state']
-  actions: ReturnType<typeof useStreamingAdapter>['actions']
+  state: StreamingWidgetAdapterState
+  actions: StreamingWidgetAdapterActions
 }) {
   const isOnBase = state.chainId === STREAMING_CHAINS.BASE
 
@@ -575,7 +637,7 @@ function BalancesTab({
         <XStack justifyContent="space-between" alignItems="center">
           <Text variant="label">Super Token Balance</Text>
           <Button onPress={actions.refreshBalance}>
-            <ButtonText>↺ Refresh</ButtonText>
+            <ButtonText>Refresh</ButtonText>
           </Button>
         </XStack>
 
@@ -648,8 +710,24 @@ function StreamingWidgetInner({
   environment: StreamingWidgetProps['environment']
   apiKey?: string
 }) {
-  const { state, actions } = useStreamingAdapter({ environment, apiKey })
-  const [activeTab, setActiveTab] = useState<StreamingWidgetTab>('streams')
+  const adapter = useStreamingAdapter({ environment, apiKey })
+
+  return <StreamingWidgetView adapter={adapter} />
+}
+
+interface StreamingWidgetViewProps {
+  adapter: StreamingWidgetAdapterResult
+  initialTab?: StreamingWidgetTab
+  initialStreamsFormOpen?: boolean
+}
+
+function StreamingWidgetView({
+  adapter,
+  initialTab = 'streams',
+  initialStreamsFormOpen = false,
+}: StreamingWidgetViewProps) {
+  const { state, actions } = adapter
+  const [activeTab, setActiveTab] = useState<StreamingWidgetTab>(initialTab)
 
   const walletGate = (
     <WalletGate
@@ -662,7 +740,13 @@ function StreamingWidgetInner({
 
   const tabContent = !state.isConnected || state.isWrongChain ? walletGate : (
     <>
-      {activeTab === 'streams' && <StreamsTab state={state} actions={actions} />}
+      {activeTab === 'streams' && (
+        <StreamsTab
+          state={state}
+          actions={actions}
+          initialFormOpen={initialStreamsFormOpen}
+        />
+      )}
       {activeTab === 'pools' && <PoolsTab state={state} actions={actions} />}
       {activeTab === 'balances' && <BalancesTab state={state} actions={actions} />}
     </>
@@ -682,6 +766,37 @@ function StreamingWidgetInner({
       />
       {tabContent}
     </YStack>
+  )
+}
+
+export interface StreamingWidgetPreviewProps
+  extends Pick<StreamingWidgetProps, 'themeOverrides' | 'config' | 'defaultTheme'> {
+  adapter: StreamingWidgetAdapterResult
+  initialTab?: StreamingWidgetTab
+  initialStreamsFormOpen?: boolean
+}
+
+export function StreamingWidgetPreview({
+  adapter,
+  initialTab,
+  initialStreamsFormOpen,
+  themeOverrides,
+  config,
+  defaultTheme = 'light',
+}: StreamingWidgetPreviewProps) {
+  return (
+    <GoodWidgetProvider
+      config={config}
+      themeOverrides={themeOverrides}
+      defaultTheme={defaultTheme}
+    >
+      <StreamingWidgetView
+        adapter={adapter}
+        initialTab={initialTab}
+        initialStreamsFormOpen={initialStreamsFormOpen}
+      />
+      <ToastContainer />
+    </GoodWidgetProvider>
   )
 }
 
