@@ -94,7 +94,13 @@ test('StreamingWidget shows error states for streams and history', async ({ page
 test('StreamingWidget shows populated incoming and outgoing stream views', async ({ page }) => {
   await gotoStory(page, 'populated-state')
 
-  await expectBodyToContain(page, ['Active streams', 'Stream history', 'Incoming', 'Outgoing'])
+  await expectBodyToContain(page, [
+    'Active streams',
+    'Stream history',
+    'Incoming',
+    'Outgoing',
+    'Show more',
+  ])
 
   await page.getByText('Incoming').first().click()
   await expectBodyToContain(page, ['Incoming'])
@@ -103,6 +109,18 @@ test('StreamingWidget shows populated incoming and outgoing stream views', async
   await expectBodyToContain(page, ['Outgoing'])
 
   await saveScreenshot(page, 'sw-07-populated-streams')
+})
+
+test('StreamingWidget renders usable mobile and desktop layouts', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await gotoStory(page, 'populated-state')
+  await expectBodyToContain(page, ['Streams', 'Active streams', 'Stream history'])
+  await saveScreenshot(page, 'sw-18-mobile-populated')
+
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await gotoStory(page, 'populated-state')
+  await expectBodyToContain(page, ['Streams', 'Pools', 'Balances', 'Active streams'])
+  await saveScreenshot(page, 'sw-19-desktop-populated')
 })
 
 test('StreamingWidget create/update form shows invalid input feedback', async ({ page }) => {
@@ -134,11 +152,11 @@ test('StreamingWidget create/update form shows failure state', async ({ page }) 
 
 test('StreamingWidget shows pool claim amount and lifecycle states', async ({ page }) => {
   await gotoStory(page, 'pool-claim-state')
-  await expectBodyToContain(page, ['Claimable', '12.5', 'Connect to claim'])
+  await expectBodyToContain(page, ['Claimable', '12.5', 'Claim'])
   await saveScreenshot(page, 'sw-12-pool-claim')
 
   await gotoStory(page, 'pool-claim-pending')
-  await expectBodyToContain(page, ['Claimable'])
+  await expectBodyToContain(page, ['Claimable', '12.5'])
   await saveScreenshot(page, 'sw-13-pool-claim-pending')
 
   await gotoStory(page, 'pool-claim-success')

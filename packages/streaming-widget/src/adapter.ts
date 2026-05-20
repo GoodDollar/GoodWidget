@@ -30,6 +30,26 @@ import type {
   WriteStatus,
 } from './widgetRuntimeContract'
 
+const GDA_POOL_CLAIM_ABI = [
+  {
+    type: 'function',
+    name: 'getClaimableNow',
+    inputs: [{ name: 'memberAddr', type: 'address' }],
+    outputs: [
+      { name: 'claimableBalance', type: 'int256' },
+      { name: 'timestamp', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'claimAll',
+    inputs: [],
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'nonpayable',
+  },
+] as const
+
 // ---------------------------------------------------------------------------
 // Chain descriptors for Superfluid-supported chains (Celo and Base)
 // ---------------------------------------------------------------------------
@@ -208,6 +228,8 @@ export function useStreamingAdapter({
   // --- pool connect/disconnect state keyed by pool address ---
   const [poolConnectStatus, setPoolConnectStatus] = useState<Record<string, WriteStatus>>({})
   const [poolConnectError, setPoolConnectError] = useState<Record<string, string | null>>({})
+  const [poolClaimStatus, setPoolClaimStatus] = useState<Record<string, WriteStatus>>({})
+  const [poolClaimError, setPoolClaimError] = useState<Record<string, string | null>>({})
 
   // Chain validity
   const isWrongChain = !!chainId && !isSupportedChain(chainId)
@@ -294,13 +316,38 @@ export function useStreamingAdapter({
     setPoolsError(null)
     try {
       const result = await gdaSDK.getDistributionPools(address as Address)
-      setPools(result.map(toPoolMembershipItem))
+      const normalizedPools = result.map(toPoolMembershipItem)
+      if (!viemClients) {
+        setPools(normalizedPools)
+        return
+      }
+
+      const poolsWithClaimable = await Promise.all(
+        normalizedPools.map(async (pool) => {
+          try {
+            const [claimableAmount] = await viemClients.publicClient.readContract({
+              address: pool.poolId,
+              abi: GDA_POOL_CLAIM_ABI,
+              functionName: 'getClaimableNow',
+              args: [address as Address],
+            })
+
+            return {
+              ...pool,
+              claimableAmount: claimableAmount > 0n ? claimableAmount : 0n,
+            }
+          } catch {
+            return pool
+          }
+        }),
+      )
+      setPools(poolsWithClaimable)
     } catch (err) {
       setPoolsError(humanReadableError(err))
     } finally {
       setPoolsLoading(false)
     }
-  }, [gdaSDK, address])
+  }, [gdaSDK, address, viemClients])
 
   // ---------------------------------------------------------------------------
   // Fetch Super Token balance
@@ -360,6 +407,10 @@ export function useStreamingAdapter({
       setPools([])
       setSuperTokenBalance(null)
       setSupReserveBalance(null)
+      setPoolConnectStatus({})
+      setPoolConnectError({})
+      setPoolClaimStatus({})
+      setPoolClaimError({})
       return
     }
 
@@ -466,6 +517,34 @@ export function useStreamingAdapter({
     [gdaSDK, fetchPools],
   )
 
+  const claimFromPool = useCallback(
+    async (poolAddress: Address) => {
+      if (!viemClients || !address) return
+
+      setPoolClaimStatus((prev) => ({ ...prev, [poolAddress]: 'pending' }))
+      setPoolClaimError((prev) => ({ ...prev, [poolAddress]: null }))
+
+      try {
+        const hash = await viemClients.walletClient.writeContract({
+          account: address as Address,
+          address: poolAddress,
+          abi: GDA_POOL_CLAIM_ABI,
+          functionName: 'claimAll',
+        })
+        await viemClients.publicClient.waitForTransactionReceipt({ hash })
+        setPoolClaimStatus((prev) => ({ ...prev, [poolAddress]: 'success' }))
+        void fetchPools()
+      } catch (err) {
+        setPoolClaimStatus((prev) => ({ ...prev, [poolAddress]: 'error' }))
+        setPoolClaimError((prev) => ({
+          ...prev,
+          [poolAddress]: humanReadableError(err),
+        }))
+      }
+    },
+    [viemClients, address, fetchPools],
+  )
+
   // ---------------------------------------------------------------------------
   // Chain switch via EIP-1193
   // ---------------------------------------------------------------------------
@@ -511,6 +590,8 @@ export function useStreamingAdapter({
       setStreamTxHash,
       poolConnectStatus,
       poolConnectError,
+      poolClaimStatus,
+      poolClaimError,
     }),
     [
       isConnected,
@@ -538,6 +619,8 @@ export function useStreamingAdapter({
       setStreamTxHash,
       poolConnectStatus,
       poolConnectError,
+      poolClaimStatus,
+      poolClaimError,
     ],
   )
 
@@ -554,6 +637,7 @@ export function useStreamingAdapter({
       resetSetStream,
       connectToPool,
       disconnectFromPool,
+      claimFromPool,
     }),
     [
       connect,
@@ -566,6 +650,7 @@ export function useStreamingAdapter({
       resetSetStream,
       connectToPool,
       disconnectFromPool,
+      claimFromPool,
     ],
   )
 

@@ -74,6 +74,43 @@ const sampleStreams: StreamListItem[] = [
   },
 ]
 
+const sampleStreamHistory: StreamListItem[] = [
+  ...sampleStreams,
+  {
+    id: 'history-outgoing-demo-stream-2',
+    sender: DEMO_ADDRESS,
+    receiver: '0x5555555555555555555555555555555555555555',
+    token: DEMO_TOKEN,
+    flowRate: 9645061728395n,
+    streamedSoFar: 4300000000000000000n,
+    createdAtTimestamp: 1767052800,
+    updatedAtTimestamp: 1767139200,
+    direction: 'outgoing',
+  },
+  {
+    id: 'history-incoming-demo-stream-2',
+    sender: '0x6666666666666666666666666666666666666666',
+    receiver: DEMO_ADDRESS,
+    token: DEMO_TOKEN,
+    flowRate: 5787037037037n,
+    streamedSoFar: 2200000000000000000n,
+    createdAtTimestamp: 1766966400,
+    updatedAtTimestamp: 1767052800,
+    direction: 'incoming',
+  },
+  {
+    id: 'history-outgoing-demo-stream-3',
+    sender: DEMO_ADDRESS,
+    receiver: '0x7777777777777777777777777777777777777777',
+    token: DEMO_TOKEN,
+    flowRate: 3858024691358n,
+    streamedSoFar: 1400000000000000000n,
+    createdAtTimestamp: 1766880000,
+    updatedAtTimestamp: 1766966400,
+    direction: 'outgoing',
+  },
+]
+
 const samplePools: PoolMembershipItem[] = [
   {
     poolId: DEMO_POOL,
@@ -97,7 +134,7 @@ function createAdapter(
     streams: sampleStreams,
     streamsLoading: false,
     streamsError: null,
-    streamHistory: sampleStreams,
+    streamHistory: sampleStreamHistory,
     streamHistoryLoading: false,
     streamHistoryError: null,
     pools: samplePools,
@@ -115,6 +152,8 @@ function createAdapter(
     setStreamTxHash: null,
     poolConnectStatus: {},
     poolConnectError: {},
+    poolClaimStatus: {},
+    poolClaimError: {},
   }
 
   const actions: StreamingWidgetAdapterActions = {
@@ -129,6 +168,7 @@ function createAdapter(
     resetSetStream: () => {},
     connectToPool: async () => {},
     disconnectFromPool: async () => {},
+    claimFromPool: async () => {},
     ...actionOverrides,
   }
 
@@ -150,7 +190,10 @@ function PreviewStoryShell({
   initialStreamsFormOpen?: boolean
 }) {
   return (
-    <YStack data-testid={dataTestId} style={{ width: 400, minHeight: '100vh' }}>
+    <YStack
+      data-testid={dataTestId}
+      style={{ width: 'min(400px, 100vw)', minHeight: '100vh' }}
+    >
       <StreamingWidgetPreview
         adapter={adapter}
         initialTab={initialTab}
@@ -168,7 +211,10 @@ function StreamingWidgetStoryShell({
   dataTestId: string
 }) {
   return (
-    <YStack data-testid={dataTestId} style={{ width: 400, minHeight: '100vh' }}>
+    <YStack
+      data-testid={dataTestId}
+      style={{ width: 'min(400px, 100vw)', minHeight: '100vh' }}
+    >
       <StreamingWidget provider={provider} environment="development" />
     </YStack>
   )
@@ -224,7 +270,10 @@ function CustodialLocalFixtureStory() {
     )
   } catch (error: unknown) {
     return (
-      <YStack data-testid="StreamingWidget-custodial-config-error" style={{ width: 400 }}>
+      <YStack
+        data-testid="StreamingWidget-custodial-config-error"
+        style={{ width: 'min(400px, 100vw)' }}
+      >
         <strong>Custodial fixture not configured</strong>
         <span>
           {error instanceof Error
@@ -395,7 +444,9 @@ export const CreateUpdateFailure: Story = {
 export const PoolClaimState: Story = {
   render: () => (
     <PreviewStoryShell
-      adapter={createAdapter()}
+      adapter={createAdapter({
+        pools: [{ ...samplePools[0], isConnected: true }],
+      })}
       dataTestId="StreamingWidget-pool-claim"
       initialTab="pools"
     />
@@ -406,7 +457,8 @@ export const PoolClaimPending: Story = {
   render: () => (
     <PreviewStoryShell
       adapter={createAdapter({
-        poolConnectStatus: { [DEMO_POOL]: 'pending' },
+        pools: [{ ...samplePools[0], isConnected: true }],
+        poolClaimStatus: { [DEMO_POOL]: 'pending' },
       })}
       dataTestId="StreamingWidget-pool-claim-pending"
       initialTab="pools"
@@ -419,7 +471,7 @@ export const PoolClaimSuccess: Story = {
     <PreviewStoryShell
       adapter={createAdapter({
         pools: [{ ...samplePools[0], isConnected: true }],
-        poolConnectStatus: { [DEMO_POOL]: 'success' },
+        poolClaimStatus: { [DEMO_POOL]: 'success' },
       })}
       dataTestId="StreamingWidget-pool-claim-success"
       initialTab="pools"
@@ -431,8 +483,9 @@ export const PoolClaimError: Story = {
   render: () => (
     <PreviewStoryShell
       adapter={createAdapter({
-        poolConnectStatus: { [DEMO_POOL]: 'error' },
-        poolConnectError: { [DEMO_POOL]: 'Pool claim failed. Please retry.' },
+        pools: [{ ...samplePools[0], isConnected: true }],
+        poolClaimStatus: { [DEMO_POOL]: 'error' },
+        poolClaimError: { [DEMO_POOL]: 'Pool claim failed. Please retry.' },
       })}
       dataTestId="StreamingWidget-pool-claim-error"
       initialTab="pools"

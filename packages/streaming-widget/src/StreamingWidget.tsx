@@ -383,7 +383,9 @@ function StreamsTab({
   )
   const emptyStreamsMessage =
     direction === 'all' ? 'No streams found.' : `No ${direction} streams found.`
-  const recentStreams = state.streamHistory.slice(0, 4)
+  const [historyLimit, setHistoryLimit] = useState(4)
+  const recentStreams = state.streamHistory.slice(0, historyLimit)
+  const hasMoreHistory = state.streamHistory.length > historyLimit
 
   return (
     <StreamingTabContent>
@@ -496,6 +498,12 @@ function StreamsTab({
       {!state.streamHistoryLoading &&
         !state.streamHistoryError &&
         recentStreams.map((stream) => <StreamCard key={`history-${stream.id}`} stream={stream} />)}
+
+      {!state.streamHistoryLoading && !state.streamHistoryError && hasMoreHistory && (
+        <Button variant="secondary" onPress={() => setHistoryLimit((count) => count + 4)}>
+          <ButtonText>Show more</ButtonText>
+        </Button>
+      )}
     </StreamingTabContent>
   )
 }
@@ -507,16 +515,24 @@ function PoolCard({
   pool,
   connectStatus,
   connectError,
+  claimStatus,
+  claimError,
   onConnect,
   onDisconnect,
+  onClaim,
 }: {
   pool: PoolMembershipItem
   connectStatus: WriteStatus
   connectError: string | null
+  claimStatus: WriteStatus
+  claimError: string | null
   onConnect: (poolAddress: Address) => void
   onDisconnect: (poolAddress: Address) => void
+  onClaim: (poolAddress: Address) => void
 }) {
-  const isPending = connectStatus === 'pending'
+  const isConnectPending = connectStatus === 'pending'
+  const isClaimPending = claimStatus === 'pending'
+  const canClaim = pool.isConnected && pool.claimableAmount > 0n
 
   return (
     <PoolRow>
@@ -546,19 +562,33 @@ function PoolCard({
           {connectError}
         </Text>
       )}
+      {claimError && (
+        <Text color="$error" variant="caption">
+          {claimError}
+        </Text>
+      )}
 
       <XStack gap="$2" alignItems="center">
         <WriteStatusBadge status={connectStatus} />
         {pool.isConnected ? (
-          <Button disabled={isPending} onPress={() => onDisconnect(pool.poolId)}>
-            {isPending ? <Spinner size="sm" /> : <ButtonText>Disconnect</ButtonText>}
+          <Button disabled={isConnectPending} onPress={() => onDisconnect(pool.poolId)}>
+            {isConnectPending ? <Spinner size="sm" /> : <ButtonText>Disconnect</ButtonText>}
           </Button>
         ) : (
-          <Button disabled={isPending} onPress={() => onConnect(pool.poolId)}>
-            {isPending ? <Spinner size="sm" /> : <ButtonText>Connect to claim</ButtonText>}
+          <Button disabled={isConnectPending} onPress={() => onConnect(pool.poolId)}>
+            {isConnectPending ? <Spinner size="sm" /> : <ButtonText>Connect to claim</ButtonText>}
           </Button>
         )}
       </XStack>
+
+      {pool.isConnected && (
+        <XStack gap="$2" alignItems="center">
+          <WriteStatusBadge status={claimStatus} />
+          <Button disabled={!canClaim || isClaimPending} onPress={() => onClaim(pool.poolId)}>
+            {isClaimPending ? <Spinner size="sm" /> : <ButtonText>Claim</ButtonText>}
+          </Button>
+        </XStack>
+      )}
     </PoolRow>
   )
 }
@@ -610,8 +640,11 @@ function PoolsTab({
             pool={pool}
             connectStatus={state.poolConnectStatus[pool.poolId] ?? 'idle'}
             connectError={state.poolConnectError[pool.poolId] ?? null}
+            claimStatus={state.poolClaimStatus[pool.poolId] ?? 'idle'}
+            claimError={state.poolClaimError[pool.poolId] ?? null}
             onConnect={actions.connectToPool}
             onDisconnect={actions.disconnectFromPool}
+            onClaim={actions.claimFromPool}
           />
         ))}
     </StreamingTabContent>

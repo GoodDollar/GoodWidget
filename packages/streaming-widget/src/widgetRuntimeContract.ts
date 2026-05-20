@@ -126,6 +126,9 @@ export interface StreamingWidgetAdapterState {
   /** Pool connect/disconnect write status keyed by pool address */
   poolConnectStatus: Record<string, WriteStatus>
   poolConnectError: Record<string, string | null>
+  /** Pool claim write status keyed by pool address */
+  poolClaimStatus: Record<string, WriteStatus>
+  poolClaimError: Record<string, string | null>
 }
 
 // ---------------------------------------------------------------------------
@@ -150,6 +153,8 @@ export interface StreamingWidgetAdapterActions {
   connectToPool: (poolAddress: Address) => Promise<void>
   /** Disconnect wallet from a GDA pool */
   disconnectFromPool: (poolAddress: Address) => Promise<void>
+  /** Claim all currently claimable distributions from a GDA pool */
+  claimFromPool: (poolAddress: Address) => Promise<void>
 }
 
 export interface StreamingWidgetAdapterResult {
