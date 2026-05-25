@@ -19,7 +19,7 @@ import {
 } from '../../fixtures/injectedEip1193'
 import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
 
-const DEMO_ADDRESS = '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'
+const DEMO_ADDRESS = '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef'
 const DEMO_RECEIVER = '0x1111111111111111111111111111111111111111'
 const DEMO_SENDER = '0x2222222222222222222222222222222222222222'
 const DEMO_TOKEN = '0x3333333333333333333333333333333333333333'
@@ -74,6 +74,7 @@ const sampleStreams: StreamListItem[] = [
   },
 ]
 
+// Mirrors the current SDK-backed adapter; diverge this once past-stream history is fetched separately.
 const sampleStreamHistory: StreamListItem[] = [
   ...sampleStreams,
   {
@@ -117,6 +118,7 @@ const samplePools: PoolMembershipItem[] = [
     poolToken: DEMO_TOKEN,
     totalUnits: 250000000000000000000n,
     claimableAmount: 12500000000000000000n,
+    claimableAmountError: false,
     totalAmountClaimed: 48000000000000000000n,
     isConnected: false,
   },
@@ -488,6 +490,25 @@ export const PoolClaimError: Story = {
         poolClaimError: { [DEMO_POOL]: 'Pool claim failed. Please retry.' },
       })}
       dataTestId="StreamingWidget-pool-claim-error"
+      initialTab="pools"
+    />
+  ),
+}
+
+export const PoolClaimableAmountError: Story = {
+  render: () => (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        pools: [
+          {
+            ...samplePools[0],
+            isConnected: true,
+            claimableAmount: 0n,
+            claimableAmountError: true,
+          },
+        ],
+      })}
+      dataTestId="StreamingWidget-pool-claimable-amount-error"
       initialTab="pools"
     />
   ),

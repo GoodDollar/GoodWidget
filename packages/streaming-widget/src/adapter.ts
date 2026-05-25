@@ -150,6 +150,7 @@ function toPoolMembershipItem(pool: GDAPool): PoolMembershipItem {
     poolToken: pool.token,
     totalUnits: pool.totalUnits,
     claimableAmount: poolWithClaimable.claimableAmount ?? 0n,
+    claimableAmountError: false,
     totalAmountClaimed: pool.totalAmountClaimed,
     isConnected: pool.isConnected ?? false,
   }
@@ -335,9 +336,10 @@ export function useStreamingAdapter({
             return {
               ...pool,
               claimableAmount: claimableAmount > 0n ? claimableAmount : 0n,
+              claimableAmountError: false,
             }
           } catch {
-            return pool
+            return { ...pool, claimableAmountError: true }
           }
         }),
       )

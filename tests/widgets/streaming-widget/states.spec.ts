@@ -166,6 +166,10 @@ test('StreamingWidget shows pool claim amount and lifecycle states', async ({ pa
   await gotoStory(page, 'pool-claim-error')
   await expectBodyToContain(page, ['Pool claim failed. Please retry.', 'Failed'])
   await saveScreenshot(page, 'sw-15-pool-claim-error')
+
+  await gotoStory(page, 'pool-claimable-amount-error')
+  await expectBodyToContain(page, ['Could not load claimable amount.', 'Tap to retry'])
+  await saveScreenshot(page, 'sw-20-pool-claimable-amount-error')
 })
 
 test('StreamingWidget shows Base SUP reserve and disables reserve off Base', async ({ page }) => {

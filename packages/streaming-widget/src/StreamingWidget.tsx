@@ -520,6 +520,7 @@ function PoolCard({
   onConnect,
   onDisconnect,
   onClaim,
+  onRetryClaimable,
 }: {
   pool: PoolMembershipItem
   connectStatus: WriteStatus
@@ -529,10 +530,11 @@ function PoolCard({
   onConnect: (poolAddress: Address) => void
   onDisconnect: (poolAddress: Address) => void
   onClaim: (poolAddress: Address) => void
+  onRetryClaimable: () => void
 }) {
   const isConnectPending = connectStatus === 'pending'
   const isClaimPending = claimStatus === 'pending'
-  const canClaim = pool.isConnected && pool.claimableAmount > 0n
+  const canClaim = pool.isConnected && pool.claimableAmount > 0n && !pool.claimableAmountError
 
   return (
     <PoolRow>
@@ -566,6 +568,16 @@ function PoolCard({
         <Text color="$error" variant="caption">
           {claimError}
         </Text>
+      )}
+      {pool.claimableAmountError && (
+        <XStack gap="$1" alignItems="center" flexWrap="wrap">
+          <Text color="$error" variant="caption">
+            Could not load claimable amount.
+          </Text>
+          <Button variant="text" onPress={onRetryClaimable}>
+            <ButtonText>Tap to retry</ButtonText>
+          </Button>
+        </XStack>
       )}
 
       <XStack gap="$2" alignItems="center">
@@ -645,6 +657,7 @@ function PoolsTab({
             onConnect={actions.connectToPool}
             onDisconnect={actions.disconnectFromPool}
             onClaim={actions.claimFromPool}
+            onRetryClaimable={actions.refreshPools}
           />
         ))}
     </StreamingTabContent>

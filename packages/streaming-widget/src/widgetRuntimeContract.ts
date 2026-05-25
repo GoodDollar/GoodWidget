@@ -64,6 +64,8 @@ export interface PoolMembershipItem {
   totalUnits: bigint
   /** Claimable incoming distribution amount in wei, when exposed by the data source */
   claimableAmount: bigint
+  /** True when the claimable amount read fails and should be retried */
+  claimableAmountError: boolean
   totalAmountClaimed: bigint
   /** Whether this account has actively connected to the pool distribution */
   isConnected: boolean
