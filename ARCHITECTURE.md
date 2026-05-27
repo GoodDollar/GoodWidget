@@ -41,6 +41,7 @@ GoodWidget/
     ui/             # Tamagui tokens, preset, themes, config assembly, manifest, primitives
     embed/          # Web Component wrapper + CSS custom property bridge
     claim-widget/   # Example widget package using core + ui + embed
+    goodreserve-widget/ # Reserve swap widget package using core + ui + embed
 
   examples/
     react-web/      # React web override and theming demo
@@ -69,6 +70,7 @@ GoodWidget/
 @goodwidget/embed
 
 @goodwidget/claim-widget -> depends on core + ui + embed
+@goodwidget/goodreserve-widget -> depends on core + ui + embed
 ```
 
 `@goodwidget/ui` is the leaf design-system package and must not depend on `@goodwidget/core`.
