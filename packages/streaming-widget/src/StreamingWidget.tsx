@@ -155,7 +155,12 @@ function superfluidExplorerAccountUrl(chainId: number | null, address: Address):
 // ---------------------------------------------------------------------------
 function WriteStatusBadge({ status }: { status: WriteStatus }) {
   if (status === 'idle') return null
-  if (status === 'pending') return <Spinner size="sm" />
+  if (status === 'pending')
+    return (
+      <Badge type="warning">
+        <BadgeText>Pending</BadgeText>
+      </Badge>
+    )
   if (status === 'success')
     return (
       <Badge type="success">

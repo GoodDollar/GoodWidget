@@ -498,6 +498,20 @@ export const PoolClaimState: Story = {
   ),
 }
 
+export const PoolConnectedState: Story = {
+  render: () => (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        pools: [{ ...samplePools[0], isConnected: true }],
+      })}
+      dataTestId="StreamingWidget-pool-connected"
+      initialTab="pools"
+    />
+  ),
+}
+
+// Claim lifecycle stories intentionally use a disconnected, claimable pool. Connected
+// memberships should only expose Disconnect; disconnected pools expose claim lifecycle states.
 export const PoolClaimPending: Story = {
   render: () => (
     <PreviewStoryShell
