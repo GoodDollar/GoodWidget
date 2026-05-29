@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { GoodWidgetProvider, useWallet, useHost } from '@goodwidget/core'
 import { ClaimWidget } from '@goodwidget/claim-widget-theme-demo'
+import { StakingMigrationWidget } from '@goodwidget/staking-migration-widget'
 import {
   getThemeManifest,
   MiniAppShell,
@@ -160,6 +161,11 @@ function OverrideShowcase() {
           <YStack gap="$2">
             <Text variant="label">ClaimWidget (preset only):</Text>
             <ClaimWidget />
+          </YStack>
+
+          <YStack gap="$2">
+            <Text variant="label">StakingMigrationWidget:</Text>
+            <StakingMigrationWidget />
           </YStack>
 
           <Card>

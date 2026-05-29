@@ -130,6 +130,9 @@ importers:
       '@goodwidget/embed':
         specifier: workspace:*
         version: link:../../packages/embed
+      '@goodwidget/staking-migration-widget':
+        specifier: workspace:*
+        version: link:../../packages/staking-migration-widget
       '@goodwidget/ui':
         specifier: workspace:*
         version: link:../../packages/ui
