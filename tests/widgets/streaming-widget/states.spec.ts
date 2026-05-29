@@ -173,15 +173,26 @@ test('StreamingWidget shows pool claim amount and lifecycle states', async ({ pa
   await saveScreenshot(page, 'sw-23-pool-connected')
 
   await gotoStory(page, 'pool-claim-pending')
-  await expectBodyToContain(page, ['Claimable', '12.5', 'Pending'])
+  await expectBodyToContain(page, ['Connected', 'Claimable', '12.5', 'Pending', 'Disconnect'])
+  await expect(page.getByText('Claim', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('Connect', { exact: true })).toHaveCount(0)
   await saveScreenshot(page, 'sw-13-pool-claim-pending')
 
   await gotoStory(page, 'pool-claim-success')
-  await expectBodyToContain(page, ['Claimable', 'Done'])
+  await expectBodyToContain(page, ['Connected', 'Claimable', 'Done', 'Disconnect'])
+  await expect(page.getByText('Claim', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('Connect', { exact: true })).toHaveCount(0)
   await saveScreenshot(page, 'sw-14-pool-claim-success')
 
   await gotoStory(page, 'pool-claim-error')
-  await expectBodyToContain(page, ['Pool claim failed. Please retry.', 'Failed'])
+  await expectBodyToContain(page, [
+    'Connected',
+    'Pool claim failed. Please retry.',
+    'Failed',
+    'Disconnect',
+  ])
+  await expect(page.getByText('Claim', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('Connect', { exact: true })).toHaveCount(0)
   await saveScreenshot(page, 'sw-15-pool-claim-error')
 
   await gotoStory(page, 'pool-claimable-amount-error')

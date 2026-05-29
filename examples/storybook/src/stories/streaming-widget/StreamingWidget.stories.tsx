@@ -510,13 +510,13 @@ export const PoolConnectedState: Story = {
   ),
 }
 
-// Claim lifecycle stories intentionally use a disconnected, claimable pool. Connected
-// memberships should only expose Disconnect; disconnected pools expose claim lifecycle states.
+// Claim lifecycle stories stay connected to match the review fixture contract while
+// keeping connected memberships limited to the Disconnect action.
 export const PoolClaimPending: Story = {
   render: () => (
     <PreviewStoryShell
       adapter={createAdapter({
-        pools: [{ ...samplePools[0], isConnected: false }],
+        pools: [{ ...samplePools[0], isConnected: true }],
         poolClaimStatus: { [DEMO_POOL]: 'pending' },
       })}
       dataTestId="StreamingWidget-pool-claim-pending"
@@ -529,7 +529,7 @@ export const PoolClaimSuccess: Story = {
   render: () => (
     <PreviewStoryShell
       adapter={createAdapter({
-        pools: [{ ...samplePools[0], isConnected: false }],
+        pools: [{ ...samplePools[0], isConnected: true }],
         poolClaimStatus: { [DEMO_POOL]: 'success' },
       })}
       dataTestId="StreamingWidget-pool-claim-success"
@@ -542,7 +542,7 @@ export const PoolClaimError: Story = {
   render: () => (
     <PreviewStoryShell
       adapter={createAdapter({
-        pools: [{ ...samplePools[0], isConnected: false }],
+        pools: [{ ...samplePools[0], isConnected: true }],
         poolClaimStatus: { [DEMO_POOL]: 'error' },
         poolClaimError: { [DEMO_POOL]: 'Pool claim failed. Please retry.' },
       })}

@@ -630,18 +630,21 @@ function PoolCard({
 
       <XStack gap="$2" alignItems="center" flexWrap="wrap">
         {pool.isConnected ? (
-          <Button
-            variant="secondary"
-            disabled={isConnectPending}
-            borderColor="$error"
-            onPress={() => onDisconnect(pool.poolId)}
-          >
-            {isConnectPending ? (
-              <Spinner size="sm" />
-            ) : (
-              <ButtonText color="$error">Disconnect</ButtonText>
-            )}
-          </Button>
+          <>
+            <WriteStatusBadge status={claimStatus} />
+            <Button
+              variant="secondary"
+              disabled={isConnectPending}
+              borderColor="$error"
+              onPress={() => onDisconnect(pool.poolId)}
+            >
+              {isConnectPending ? (
+                <Spinner size="sm" />
+              ) : (
+                <ButtonText color="$error">Disconnect</ButtonText>
+              )}
+            </Button>
+          </>
         ) : (
           <>
             <WriteStatusBadge status={claimStatus} />
