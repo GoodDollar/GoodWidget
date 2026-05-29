@@ -4,7 +4,6 @@ import { Button, ButtonText, Heading, Text, TokenAmount, YStack } from '@goodwid
 interface MigrationSummaryCardProps {
   stakedAmount: string
   isZeroBalance: boolean
-  isCompact?: boolean
   actionLabel?: string
   actionDisabled?: boolean
   actionHint?: string
@@ -15,7 +14,6 @@ interface MigrationSummaryCardProps {
 export function MigrationSummaryCard({
   stakedAmount,
   isZeroBalance,
-  isCompact = false,
   actionLabel,
   actionDisabled,
   actionHint,
@@ -23,13 +21,11 @@ export function MigrationSummaryCard({
 }: MigrationSummaryCardProps) {
   return (
     <YStack gap="$4">
-      <Heading level={isCompact ? 4 : 3}>Migrate Fuse staking to Celo savings</Heading>
-      {!isCompact && (
-        <Text secondary>
-          Approve migration once, then the backend completes: unstake → bridge sent → bridge received →
-          stake.
-        </Text>
-      )}
+      <Heading level={3}>Migrate Fuse staking to Celo savings</Heading>
+      <Text secondary>
+        Approve migration once, then the backend completes: unstake → bridge sent → bridge received →
+        stake.
+      </Text>
 
       <YStack gap="$2" alignItems="flex-start">
         <Text variant="label" secondary>

@@ -43,12 +43,6 @@ function StakingMigrationInner({
 
   const { state, actions } = activeAdapter
   const isZeroBalance = state.stakedAmountRaw <= 0n
-  const isJourneyPrimaryState =
-    state.status === 'approval-pending' ||
-    state.status === 'migrating' ||
-    state.status === 'success' ||
-    state.status === 'error' ||
-    state.status === 'approval-failed'
 
   const summaryAction = useMemo(() => {
     if (!state.address) {
@@ -134,7 +128,6 @@ function StakingMigrationInner({
           <MigrationSummaryCard
             stakedAmount={state.stakedAmount}
             isZeroBalance={isZeroBalance}
-            isCompact={isJourneyPrimaryState}
             actionLabel={summaryAction?.label}
             actionDisabled={summaryAction?.disabled}
             actionHint={
