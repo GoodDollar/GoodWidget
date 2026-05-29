@@ -624,10 +624,26 @@ export function useStakingMigrationAdapter({
     }
   }, [resolvedConfig, startApprovalAndMigration, state.approvalTxHash, submitMigrationApproval, waitForMigrationCompletion])
 
+  const switchToFuse = useCallback(async () => {
+    if (!provider) return
+
+    try {
+      await (provider as EIP1193Provider).request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: `0x${FUSE_CHAIN_ID.toString(16)}` }],
+      })
+    } catch {
+      // no-op: wallet might not support programmatic switching
+    } finally {
+      await refreshStakeState()
+    }
+  }, [provider, refreshStakeState])
+
   return {
     state,
     actions: {
       connect,
+      switchToFuse,
       refresh: refreshStakeState,
       approveAndMigrate: startApprovalAndMigration,
       retryApproval,

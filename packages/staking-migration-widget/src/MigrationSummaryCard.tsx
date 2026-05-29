@@ -4,28 +4,32 @@ import { Button, ButtonText, Heading, Text, TokenAmount, YStack } from '@goodwid
 interface MigrationSummaryCardProps {
   stakedAmount: string
   isZeroBalance: boolean
-  isApprovalPending: boolean
-  isDisabled: boolean
-  actionLabel: string
-  onPrimaryAction: () => void
+  isCompact?: boolean
+  actionLabel?: string
+  actionDisabled?: boolean
+  actionHint?: string
+  onPrimaryAction?: () => void
 }
 
 // This summary card is the entry point for approve-and-migrate user action.
 export function MigrationSummaryCard({
   stakedAmount,
   isZeroBalance,
-  isApprovalPending,
-  isDisabled,
+  isCompact = false,
   actionLabel,
+  actionDisabled,
+  actionHint,
   onPrimaryAction,
 }: MigrationSummaryCardProps) {
   return (
     <YStack gap="$4">
-      <Heading level={3}>Migrate Fuse staking to Celo savings</Heading>
-      <Text secondary>
-        Approve migration once, then the backend completes: unstake → bridge sent → bridge received →
-        stake.
-      </Text>
+      <Heading level={isCompact ? 4 : 3}>Migrate Fuse staking to Celo savings</Heading>
+      {!isCompact && (
+        <Text secondary>
+          Approve migration once, then the backend completes: unstake → bridge sent → bridge received →
+          stake.
+        </Text>
+      )}
 
       <YStack gap="$2" alignItems="flex-start">
         <Text variant="label" secondary>
@@ -39,9 +43,16 @@ export function MigrationSummaryCard({
         )}
       </YStack>
 
-      <Button onPress={onPrimaryAction} disabled={isDisabled}>
-        <ButtonText>{isApprovalPending ? 'Approval pending…' : actionLabel}</ButtonText>
-      </Button>
+      {actionLabel && onPrimaryAction && (
+        <Button onPress={onPrimaryAction} disabled={actionDisabled}>
+          <ButtonText>{actionLabel}</ButtonText>
+        </Button>
+      )}
+      {actionHint && (
+        <Text variant="caption" secondary>
+          {actionHint}
+        </Text>
+      )}
     </YStack>
   )
 }

@@ -1,13 +1,11 @@
 import React from 'react'
-import { Badge, BadgeText, Button, ButtonText, Heading, Text, YStack } from '@goodwidget/ui'
+import { Badge, BadgeText, Heading, Text, YStack } from '@goodwidget/ui'
 
 interface MigrationStatusNoticeProps {
   title: string
   message: string
   status: 'error' | 'warning' | 'success' | 'info'
-  actionLabel?: string
-  onAction?: () => void
-  actionDisabled?: boolean
+  compact?: boolean
 }
 
 // This notice standardizes state-specific messaging and optional recovery actions.
@@ -15,12 +13,18 @@ export function MigrationStatusNotice({
   title,
   message,
   status,
-  actionLabel,
-  onAction,
-  actionDisabled,
+  compact = false,
 }: MigrationStatusNoticeProps) {
   const color =
     status === 'error' ? '$error' : status === 'warning' ? '$warning' : status === 'success' ? '$success' : '$color'
+
+  if (compact) {
+    return (
+      <Text secondary>
+        <Text color={color}>{title}:</Text> {message}
+      </Text>
+    )
+  }
 
   return (
     <YStack gap="$3">
@@ -31,11 +35,6 @@ export function MigrationStatusNotice({
         {title}
       </Heading>
       <Text secondary>{message}</Text>
-      {actionLabel && onAction && (
-        <Button onPress={onAction} disabled={actionDisabled}>
-          <ButtonText>{actionLabel}</ButtonText>
-        </Button>
-      )}
     </YStack>
   )
 }

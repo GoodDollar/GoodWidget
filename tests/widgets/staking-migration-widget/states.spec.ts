@@ -18,6 +18,7 @@ async function gotoStory(page: Page, storyUrl: string): Promise<void> {
 test('StakingMigrationWidget empty balance summary', async ({ page }) => {
   await gotoStory(page, STORY_IDS.empty)
   await expect(page.getByText('No staked sG$ found on Fuse for this wallet.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Approve and Migrate' })).toHaveCount(0)
   await page.screenshot({
     path: 'tests/widgets/staking-migration-widget/test-results/smw-01-empty-balance.png',
     fullPage: true,
@@ -27,6 +28,7 @@ test('StakingMigrationWidget empty balance summary', async ({ page }) => {
 test('StakingMigrationWidget wrong network notice', async ({ page }) => {
   await gotoStory(page, STORY_IDS.wrongNetwork)
   await expect(page.getByText('Wrong network')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Switch to Fuse' })).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/staking-migration-widget/test-results/smw-02-wrong-network.png',
     fullPage: true,
@@ -36,6 +38,7 @@ test('StakingMigrationWidget wrong network notice', async ({ page }) => {
 test('StakingMigrationWidget approval pending notice', async ({ page }) => {
   await gotoStory(page, STORY_IDS.approvalPending)
   await expect(page.getByText('Approval pending…')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Approval pending…' })).toBeDisabled()
   await page.screenshot({
     path: 'tests/widgets/staking-migration-widget/test-results/smw-03-approval-pending.png',
     fullPage: true,
@@ -55,6 +58,7 @@ test('StakingMigrationWidget migrating timeline', async ({ page }) => {
 test('StakingMigrationWidget success state', async ({ page }) => {
   await gotoStory(page, STORY_IDS.success)
   await expect(page.getByText('Migration complete')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Refresh balance' })).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/staking-migration-widget/test-results/smw-05-success.png',
     fullPage: true,
@@ -65,6 +69,7 @@ test('StakingMigrationWidget error state', async ({ page }) => {
   await gotoStory(page, STORY_IDS.error)
   await expect(page.getByText('Migration failed')).toBeVisible()
   await expect(page.getByText('Bridge finalization timeout')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Retry migration' })).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/staking-migration-widget/test-results/smw-06-error.png',
     fullPage: true,

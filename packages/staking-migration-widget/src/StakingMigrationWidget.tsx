@@ -43,14 +43,82 @@ function StakingMigrationInner({
 
   const { state, actions } = activeAdapter
   const isZeroBalance = state.stakedAmountRaw <= 0n
-  const isApprovalPending = state.status === 'approval-pending'
+  const isJourneyPrimaryState =
+    state.status === 'approval-pending' ||
+    state.status === 'migrating' ||
+    state.status === 'success' ||
+    state.status === 'error' ||
+    state.status === 'approval-failed'
 
-  const isSummaryActionDisabled =
-    isApprovalPending ||
-    !state.hasRequiredConfig ||
-    state.isWrongNetwork ||
-    state.isBalanceLoading ||
-    isZeroBalance
+  const summaryAction = useMemo(() => {
+    if (!state.address) {
+      return {
+        label: 'Connect wallet',
+        disabled: false,
+        onPress: () => {
+          void actions.connect()
+        },
+      }
+    }
+
+    if (!state.hasRequiredConfig || state.isBalanceLoading || isZeroBalance) {
+      return null
+    }
+
+    if (state.status === 'wrong-network') {
+      return {
+        label: 'Switch to Fuse',
+        disabled: false,
+        onPress: () => {
+          void actions.switchToFuse()
+        },
+      }
+    }
+
+    if (state.status === 'approval-pending') {
+      return {
+        label: 'Approval pending…',
+        disabled: true,
+        onPress: () => {},
+      }
+    }
+
+    if (state.status === 'migrating') {
+      return {
+        label: 'Migrating…',
+        disabled: true,
+        onPress: () => {},
+      }
+    }
+
+    if (state.status === 'success') {
+      return {
+        label: 'Refresh balance',
+        disabled: false,
+        onPress: () => {
+          void actions.refresh()
+        },
+      }
+    }
+
+    if (state.status === 'error' || state.status === 'approval-failed') {
+      return {
+        label: 'Retry migration',
+        disabled: false,
+        onPress: () => {
+          void actions.retryMigration()
+        },
+      }
+    }
+
+    return {
+      label: 'Approve and Migrate',
+      disabled: false,
+      onPress: () => {
+        void actions.approveAndMigrate()
+      },
+    }
+  }, [actions, isZeroBalance, state.address, state.hasRequiredConfig, state.isBalanceLoading, state.status])
 
   const shouldShowStatusNotice =
     state.status === 'missing-config' ||
@@ -66,16 +134,15 @@ function StakingMigrationInner({
           <MigrationSummaryCard
             stakedAmount={state.stakedAmount}
             isZeroBalance={isZeroBalance}
-            isApprovalPending={isApprovalPending}
-            isDisabled={isSummaryActionDisabled}
-            actionLabel={state.address ? 'Approve and migrate' : 'Connect wallet'}
-            onPrimaryAction={() => {
-              if (!state.address) {
-                void actions.connect()
-                return
-              }
-              void actions.approveAndMigrate()
-            }}
+            isCompact={isJourneyPrimaryState}
+            actionLabel={summaryAction?.label}
+            actionDisabled={summaryAction?.disabled}
+            actionHint={
+              isZeroBalance && state.address
+                ? 'No staked sG$ available to migrate from Fuse for this wallet.'
+                : undefined
+            }
+            onPrimaryAction={summaryAction?.onPress}
           />
 
           <MigrationProgressTimeline
@@ -114,28 +181,7 @@ function StakingMigrationInner({
                           ? `Failed at ${state.failedStep}: ${state.error ?? 'Unknown backend error'}`
                           : state.error ?? 'Unknown backend error'
               }
-              actionLabel={
-                state.status === 'wrong-network'
-                  ? 'Refresh'
-                  : state.status === 'approval-failed'
-                    ? 'Retry approval'
-                    : state.status === 'error'
-                      ? 'Retry migration'
-                      : state.status === 'success'
-                        ? 'Refresh balance'
-                        : undefined
-              }
-              onAction={
-                state.status === 'wrong-network'
-                  ? () => void actions.refresh()
-                  : state.status === 'approval-failed'
-                    ? () => void actions.retryApproval()
-                    : state.status === 'error'
-                      ? () => void actions.retryMigration()
-                      : state.status === 'success'
-                        ? () => void actions.refresh()
-                        : undefined
-              }
+              compact={state.status === 'success' || state.status === 'error'}
             />
           )}
         </YStack>

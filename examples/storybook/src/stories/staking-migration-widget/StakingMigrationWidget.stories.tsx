@@ -43,6 +43,7 @@ function createAdapterFactory(
     },
     actions: {
       connect: async () => {},
+      switchToFuse: async () => {},
       refresh: async () => {},
       approveAndMigrate: async () => {},
       retryApproval: async () => {},

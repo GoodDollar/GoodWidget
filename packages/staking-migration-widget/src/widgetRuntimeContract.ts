@@ -52,6 +52,7 @@ export interface StakingMigrationWidgetState {
 
 export interface StakingMigrationWidgetActions {
   connect: () => Promise<void>
+  switchToFuse: () => Promise<void>
   refresh: () => Promise<void>
   approveAndMigrate: () => Promise<void>
   retryApproval: () => Promise<void>
