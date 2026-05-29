@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
 import { GoodWidgetProvider } from '@goodwidget/core'
 import type { EIP1193Provider } from '@goodwidget/core'
-import { ToastContainer, YStack } from '@goodwidget/ui'
+import { Card, ToastContainer, YStack } from '@goodwidget/ui'
 import { MigrationProgressTimeline } from './MigrationProgressTimeline'
 import { MigrationStatusNotice } from './MigrationStatusNotice'
 import { MigrationSummaryCard } from './MigrationSummaryCard'
@@ -52,78 +52,94 @@ function StakingMigrationInner({
     state.isBalanceLoading ||
     isZeroBalance
 
+  const shouldShowStatusNotice =
+    state.status === 'missing-config' ||
+    state.status === 'wrong-network' ||
+    state.status === 'approval-failed' ||
+    state.status === 'error' ||
+    state.status === 'success'
+
   return (
     <YStack gap="$4" padding="$4">
-      {state.status === 'missing-config' && (
-        <MigrationStatusNotice
-          status="warning"
-          title="Missing migration configuration"
-          message="Provide migrationApiBaseUrl and migrationOperator in migrationConfig before enabling migration."
-        />
-      )}
+      <Card>
+        <YStack gap="$4" padding="$4">
+          <MigrationSummaryCard
+            stakedAmount={state.stakedAmount}
+            isZeroBalance={isZeroBalance}
+            isApprovalPending={isApprovalPending}
+            isDisabled={isSummaryActionDisabled}
+            actionLabel={state.address ? 'Approve and migrate' : 'Connect wallet'}
+            onPrimaryAction={() => {
+              if (!state.address) {
+                void actions.connect()
+                return
+              }
+              void actions.approveAndMigrate()
+            }}
+          />
 
-      {state.status === 'wrong-network' && (
-        <MigrationStatusNotice
-          status="warning"
-          title="Wrong network"
-          message="Switch wallet network to Fuse to approve migration."
-          actionLabel="Refresh"
-          onAction={() => void actions.refresh()}
-        />
-      )}
+          <MigrationProgressTimeline
+            status={state.status}
+            completedSteps={state.completedSteps}
+            activeStep={state.activeStep}
+            failedStep={state.failedStep}
+          />
 
-      {state.status === 'approval-failed' && (
-        <MigrationStatusNotice
-          status="error"
-          title="Approval failed"
-          message={state.error ?? 'Approval was rejected or failed. Retry to continue migration.'}
-          actionLabel="Retry approval"
-          onAction={() => void actions.retryApproval()}
-        />
-      )}
-
-      {(state.status === 'migrating' || state.status === 'error' || state.status === 'success') && (
-        <MigrationProgressTimeline completedSteps={state.completedSteps} activeStep={state.activeStep} />
-      )}
-
-      {state.status === 'error' && (
-        <MigrationStatusNotice
-          status="error"
-          title="Migration failed"
-          message={
-            state.failedStep
-              ? `Failed at ${state.failedStep}: ${state.error ?? 'Unknown backend error'}`
-              : state.error ?? 'Unknown backend error'
-          }
-          actionLabel="Retry migration"
-          onAction={() => void actions.retryMigration()}
-        />
-      )}
-
-      {state.status === 'success' && (
-        <MigrationStatusNotice
-          status="success"
-          title="Migration complete"
-          message="Your staked position has been migrated to Celo savings."
-          actionLabel="Refresh balance"
-          onAction={() => void actions.refresh()}
-        />
-      )}
-
-      <MigrationSummaryCard
-        stakedAmount={state.stakedAmount}
-        isZeroBalance={isZeroBalance}
-        isApprovalPending={isApprovalPending}
-        isDisabled={isSummaryActionDisabled}
-        actionLabel={state.address ? 'Approve and migrate' : 'Connect wallet'}
-        onPrimaryAction={() => {
-          if (!state.address) {
-            void actions.connect()
-            return
-          }
-          void actions.approveAndMigrate()
-        }}
-      />
+          {shouldShowStatusNotice && (
+            <MigrationStatusNotice
+              status={
+                state.status === 'success' ? 'success' : state.status === 'error' || state.status === 'approval-failed' ? 'error' : 'warning'
+              }
+              title={
+                state.status === 'missing-config'
+                  ? 'Missing migration configuration'
+                  : state.status === 'wrong-network'
+                    ? 'Wrong network'
+                    : state.status === 'approval-failed'
+                      ? 'Approval failed'
+                      : state.status === 'success'
+                        ? 'Migration complete'
+                        : 'Migration failed'
+              }
+              message={
+                state.status === 'missing-config'
+                  ? 'Provide migrationApiBaseUrl and migrationOperator in migrationConfig before enabling migration.'
+                  : state.status === 'wrong-network'
+                    ? 'Switch wallet network to Fuse to approve migration.'
+                    : state.status === 'approval-failed'
+                      ? state.error ?? 'Approval was rejected or failed. Retry to continue migration.'
+                      : state.status === 'success'
+                        ? 'Your staked position has been migrated to Celo savings.'
+                        : state.failedStep
+                          ? `Failed at ${state.failedStep}: ${state.error ?? 'Unknown backend error'}`
+                          : state.error ?? 'Unknown backend error'
+              }
+              actionLabel={
+                state.status === 'wrong-network'
+                  ? 'Refresh'
+                  : state.status === 'approval-failed'
+                    ? 'Retry approval'
+                    : state.status === 'error'
+                      ? 'Retry migration'
+                      : state.status === 'success'
+                        ? 'Refresh balance'
+                        : undefined
+              }
+              onAction={
+                state.status === 'wrong-network'
+                  ? () => void actions.refresh()
+                  : state.status === 'approval-failed'
+                    ? () => void actions.retryApproval()
+                    : state.status === 'error'
+                      ? () => void actions.retryMigration()
+                      : state.status === 'success'
+                        ? () => void actions.refresh()
+                        : undefined
+              }
+            />
+          )}
+        </YStack>
+      </Card>
     </YStack>
   )
 }

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Button, ButtonText, Card, Heading, Text, TokenAmount, YStack } from '@goodwidget/ui'
+import { Button, ButtonText, Heading, Text, TokenAmount, YStack } from '@goodwidget/ui'
 
 interface MigrationSummaryCardProps {
   stakedAmount: string
@@ -20,30 +20,28 @@ export function MigrationSummaryCard({
   onPrimaryAction,
 }: MigrationSummaryCardProps) {
   return (
-    <Card>
-      <YStack gap="$4" padding="$4">
-        <Heading level={3}>Migrate Fuse staking to Celo savings</Heading>
-        <Text secondary>
-          Approve migration once, then the backend completes: unstake → bridge sent → bridge received
-          → stake.
+    <YStack gap="$4">
+      <Heading level={3}>Migrate Fuse staking to Celo savings</Heading>
+      <Text secondary>
+        Approve migration once, then the backend completes: unstake → bridge sent → bridge received →
+        stake.
+      </Text>
+
+      <YStack gap="$2" alignItems="flex-start">
+        <Text variant="label" secondary>
+          Your staked amount
         </Text>
-
-        <YStack gap="$2" alignItems="flex-start">
-          <Text variant="label" secondary>
-            Your staked amount
+        <TokenAmount token="sG$" amount={stakedAmount} size="lg" />
+        {isZeroBalance && (
+          <Text variant="caption" secondary>
+            No staked sG$ found on Fuse for this wallet.
           </Text>
-          <TokenAmount token="sG$" amount={stakedAmount} size="lg" />
-          {isZeroBalance && (
-            <Text variant="caption" secondary>
-              No staked sG$ found on Fuse for this wallet.
-            </Text>
-          )}
-        </YStack>
-
-        <Button onPress={onPrimaryAction} disabled={isDisabled}>
-          <ButtonText>{isApprovalPending ? 'Approval pending…' : actionLabel}</ButtonText>
-        </Button>
+        )}
       </YStack>
-    </Card>
+
+      <Button onPress={onPrimaryAction} disabled={isDisabled}>
+        <ButtonText>{isApprovalPending ? 'Approval pending…' : actionLabel}</ButtonText>
+      </Button>
+    </YStack>
   )
 }

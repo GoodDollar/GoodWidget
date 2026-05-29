@@ -1,5 +1,5 @@
 import React from 'react'
-import { Button, ButtonText, Card, Heading, Text, YStack } from '@goodwidget/ui'
+import { Badge, BadgeText, Button, ButtonText, Heading, Text, YStack } from '@goodwidget/ui'
 
 interface MigrationStatusNoticeProps {
   title: string
@@ -23,18 +23,19 @@ export function MigrationStatusNotice({
     status === 'error' ? '$error' : status === 'warning' ? '$warning' : status === 'success' ? '$success' : '$color'
 
   return (
-    <Card>
-      <YStack gap="$3" padding="$4">
-        <Heading level={4} color={color}>
-          {title}
-        </Heading>
-        <Text secondary>{message}</Text>
-        {actionLabel && onAction && (
-          <Button onPress={onAction} disabled={actionDisabled}>
-            <ButtonText>{actionLabel}</ButtonText>
-          </Button>
-        )}
-      </YStack>
-    </Card>
+    <YStack gap="$3">
+      <Badge type={status === 'error' ? 'error' : status === 'warning' ? 'warning' : status === 'success' ? 'success' : 'info'}>
+        <BadgeText>{status}</BadgeText>
+      </Badge>
+      <Heading level={4} color={color}>
+        {title}
+      </Heading>
+      <Text secondary>{message}</Text>
+      {actionLabel && onAction && (
+        <Button onPress={onAction} disabled={actionDisabled}>
+          <ButtonText>{actionLabel}</ButtonText>
+        </Button>
+      )}
+    </YStack>
   )
 }
