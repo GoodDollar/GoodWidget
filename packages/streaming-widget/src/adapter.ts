@@ -217,6 +217,9 @@ export function useStreamingAdapter({
 
   // --- SUP reserve state (Base only) ---
   const [supReserveBalance, setSupReserveBalance] = useState<string | null>(null)
+  const [supReserveLockers, setSupReserveLockers] = useState<
+    StreamingWidgetAdapterState['supReserveLockers']
+  >([])
   const [supReserveLoading, setSupReserveLoading] = useState(false)
   const [supReserveError, setSupReserveError] = useState<string | null>(null)
 
@@ -373,8 +376,9 @@ export function useStreamingAdapter({
   // Fetch SUP reserve balance (Base only)
   // ---------------------------------------------------------------------------
   const fetchSupReserve = useCallback(async () => {
-    if (!subgraphClient || !address || chainId !== SupportedChains.BASE) {
+    if (!subgraphClient || !streamingSDK || !address || chainId !== SupportedChains.BASE) {
       setSupReserveBalance(null)
+      setSupReserveLockers([])
       return
     }
 
@@ -382,14 +386,31 @@ export function useStreamingAdapter({
     setSupReserveError(null)
     try {
       const lockers = await subgraphClient.querySUPReserves(address as Address)
-      const total = lockers.reduce((sum, l) => sum + l.stakedBalance, 0n)
+      const lockersWithBalances = await Promise.all(
+        lockers.map(async (locker) => {
+          const unstakedBalance = await streamingSDK.getSuperTokenBalance(
+            locker.id as Address,
+            'SUP',
+          )
+          return {
+            address: locker.id as Address,
+            stakedBalance: locker.stakedBalance,
+            unstakedBalance,
+            totalBalance: locker.stakedBalance + unstakedBalance,
+          }
+        }),
+      )
+      const total = lockersWithBalances.reduce((sum, locker) => sum + locker.totalBalance, 0n)
+      setSupReserveLockers(lockersWithBalances)
       setSupReserveBalance(formatUnits(total, 18))
     } catch (err) {
+      setSupReserveBalance(null)
+      setSupReserveLockers([])
       setSupReserveError(humanReadableError(err))
     } finally {
       setSupReserveLoading(false)
     }
-  }, [subgraphClient, address, chainId])
+  }, [subgraphClient, streamingSDK, address, chainId])
 
   // ---------------------------------------------------------------------------
   // Auto-fetch on wallet/chain change
@@ -409,6 +430,7 @@ export function useStreamingAdapter({
       setPools([])
       setSuperTokenBalance(null)
       setSupReserveBalance(null)
+      setSupReserveLockers([])
       setPoolConnectStatus({})
       setPoolConnectError({})
       setPoolClaimStatus({})
@@ -584,6 +606,7 @@ export function useStreamingAdapter({
       balanceLoading,
       balanceError,
       supReserveBalance,
+      supReserveLockers,
       supReserveLoading,
       supReserveError,
       setStreamForm,
@@ -613,6 +636,7 @@ export function useStreamingAdapter({
       balanceLoading,
       balanceError,
       supReserveBalance,
+      supReserveLockers,
       supReserveLoading,
       supReserveError,
       setStreamForm,

@@ -51,19 +51,31 @@ interface TokenAmountProps {
   decimals?: number
   variant?: 'secondary'
   useAbbreviations?: boolean
+  maxSignificantDigits?: number
 }
 
-const getDecimals = (value: number): number => {
-  const absValue = Math.abs(value)
-  if (absValue >= 1 || absValue === 0) return 2
-  if (absValue >= 0.1) return 3
-  if (absValue >= 0.01) return 4
-  if (absValue >= 0.001) return 5
-  if (absValue >= 0.0001) return 6
-  if (absValue >= 0.00001) return 7
-  if (absValue >= 0.000001) return 8
-  if (absValue >= 0.0000001) return 9
-  return 10
+export function formatDisplayAmount(
+  amount: string | number,
+  {
+    decimals = 2,
+    useAbbreviations = true,
+    maxSignificantDigits = 6,
+  }: {
+    decimals?: number
+    useAbbreviations?: boolean
+    maxSignificantDigits?: number
+  } = {},
+): string {
+  const amountNumber = typeof amount === 'number' ? amount : Number(amount)
+  if (!Number.isFinite(amountNumber)) return String(amount)
+  if (!useAbbreviations) return amountNumber.toFixed(decimals)
+
+  return new Intl.NumberFormat('en-US', {
+    maximumSignificantDigits: maxSignificantDigits,
+    minimumFractionDigits: 0,
+    notation: Math.abs(amountNumber) >= 1_000_000 ? 'compact' : 'standard',
+    useGrouping: true,
+  }).format(amountNumber)
 }
 
 export function TokenAmount({
@@ -73,19 +85,15 @@ export function TokenAmount({
   decimals = 2,
   variant,
   useAbbreviations = true,
+  maxSignificantDigits = 6,
 }: TokenAmountProps) {
   const fontSize = { sm: '$3', md: '$5', lg: '$7', xl: '$9' } as const
 
-  const amountNumber = typeof amount === 'number' ? amount : parseFloat(amount)
-  const formatted = useAbbreviations
-    ? new Intl.NumberFormat('en-US', {
-        style: 'decimal',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: getDecimals(amountNumber),
-        useGrouping: true,
-        notation: 'compact',
-      }).format(amountNumber)
-    : amountNumber.toFixed(decimals)
+  const formatted = formatDisplayAmount(amount, {
+    decimals,
+    useAbbreviations,
+    maxSignificantDigits,
+  })
 
   return (
     <TokenAmountFrame size={size}>

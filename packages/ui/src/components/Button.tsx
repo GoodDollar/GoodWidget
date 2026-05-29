@@ -32,8 +32,8 @@ export const ButtonFrame = createComponent(Stack, {
   backgroundColor: '$background',
   // GoodWalletV2 brand: solid buttons use pill radius by default
   borderRadius: '$full',
-  paddingHorizontal: '$4',
-  height: '$10',
+  paddingHorizontal: '$3',
+  height: '$7',
   gap: '$2',
   cursor: 'pointer',
   borderWidth: 0,
@@ -109,9 +109,9 @@ export const ButtonFrame = createComponent(Stack, {
 
     // Standard interactive sizes
     size: {
-      sm: { height: '$8', paddingHorizontal: '$3', gap: '$1' },
-      md: { height: '$10', paddingHorizontal: '$4', gap: '$2' },
-      lg: { height: '$11', paddingHorizontal: '$5', gap: '$2' },
+      sm: { height: '$6', paddingHorizontal: '$2', gap: '$1' },
+      md: { height: '$7', paddingHorizontal: '$3', gap: '$2' },
+      lg: { height: '$8', paddingHorizontal: '$4', gap: '$2' },
     },
 
     // Icon-only sizes (transparent bg, square, no padding)

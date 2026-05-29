@@ -29,7 +29,7 @@ export type StreamTimeUnit = 'second' | 'minute' | 'hour' | 'day' | 'week' | 'mo
 // ---------------------------------------------------------------------------
 // Widget tab IDs
 // ---------------------------------------------------------------------------
-export type StreamingWidgetTab = 'streams' | 'pools' | 'balances'
+export type StreamingWidgetTab = 'streams' | 'history' | 'pools' | 'balances'
 
 // ---------------------------------------------------------------------------
 // Operation lifecycle status for write actions
@@ -69,6 +69,16 @@ export interface PoolMembershipItem {
   totalAmountClaimed: bigint
   /** Whether this account has actively connected to the pool distribution */
   isConnected: boolean
+}
+
+// ---------------------------------------------------------------------------
+// SUP reserve locker displayed on Base
+// ---------------------------------------------------------------------------
+export interface SupReserveLockerItem {
+  address: Address
+  stakedBalance: bigint
+  unstakedBalance: bigint
+  totalBalance: bigint
 }
 
 // ---------------------------------------------------------------------------
@@ -116,6 +126,7 @@ export interface StreamingWidgetAdapterState {
 
   /** SUP reserve data — only populated on Base */
   supReserveBalance: string | null
+  supReserveLockers: SupReserveLockerItem[]
   supReserveLoading: boolean
   supReserveError: string | null
 

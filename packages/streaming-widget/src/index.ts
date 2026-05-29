@@ -7,6 +7,7 @@ export type {
   StreamTimeUnit,
   StreamListItem,
   PoolMembershipItem,
+  SupReserveLockerItem,
   SetStreamFormState,
   WriteStatus,
   StreamingWidgetAdapterState,

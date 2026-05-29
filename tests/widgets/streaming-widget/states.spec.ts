@@ -44,10 +44,13 @@ test('StreamingWidget shows the disconnected wallet gate', async ({ page }) => {
 test('StreamingWidget renders tab navigation and switches views', async ({ page }) => {
   await gotoStory(page, 'populated-state')
 
-  await expectBodyToContain(page, ['Streams', 'Pools', 'Balances', 'Active streams'])
+  await expectBodyToContain(page, ['Streams', 'History', 'Pools', 'Balances', 'Active streams'])
+
+  await page.getByText('History').first().click()
+  await expectBodyToContain(page, ['Stream history', 'Show more'])
 
   await page.getByText('Pools').first().click()
-  await expectBodyToContain(page, ['Claimable', 'Connect to claim'])
+  await expectBodyToContain(page, ['Claimable', 'Claim', 'Connect'])
 
   await page.getByText('Balances').first().click()
   await expectBodyToContain(page, ['Super Token Balance', 'SUP Reserve'])
@@ -69,25 +72,30 @@ test('StreamingWidget shows the unsupported network prompt', async ({ page }) =>
 test('StreamingWidget shows loading states for streams and history', async ({ page }) => {
   await gotoStory(page, 'loading-state')
 
-  await expectBodyToContain(page, ['Loading streams', 'Loading stream history'])
+  await expectBodyToContain(page, ['Loading streams'])
+
+  await page.getByText('History').first().click()
+  await expectBodyToContain(page, ['Loading stream history'])
   await saveScreenshot(page, 'sw-04-loading-state')
 })
 
 test('StreamingWidget shows empty states for streams and history', async ({ page }) => {
   await gotoStory(page, 'empty-state')
 
-  await expectBodyToContain(page, ['No streams found.', 'No stream history found.'])
+  await expectBodyToContain(page, ['No streams found.'])
+
+  await page.getByText('History').first().click()
+  await expectBodyToContain(page, ['No stream history found.'])
   await saveScreenshot(page, 'sw-05-empty-state')
 })
 
 test('StreamingWidget shows error states for streams and history', async ({ page }) => {
   await gotoStory(page, 'error-state')
 
-  await expectBodyToContain(page, [
-    'Unable to reach the network',
-    'Unable to load stream history.',
-    'Retry',
-  ])
+  await expectBodyToContain(page, ['Unable to reach the network', 'Retry'])
+
+  await page.getByText('History').first().click()
+  await expectBodyToContain(page, ['Unable to load stream history.', 'Retry'])
   await saveScreenshot(page, 'sw-06-error-state')
 })
 
@@ -96,10 +104,9 @@ test('StreamingWidget shows populated incoming and outgoing stream views', async
 
   await expectBodyToContain(page, [
     'Active streams',
-    'Stream history',
     'Incoming',
     'Outgoing',
-    'Show more',
+    /100\s+G\$\s*\/mo/,
   ])
 
   await page.getByText('Incoming').first().click()
@@ -109,17 +116,21 @@ test('StreamingWidget shows populated incoming and outgoing stream views', async
   await expectBodyToContain(page, ['Outgoing'])
 
   await saveScreenshot(page, 'sw-07-populated-streams')
+
+  await page.getByText('History').first().click()
+  await expectBodyToContain(page, ['Stream history', 'Show more'])
+  await saveScreenshot(page, 'sw-22-stream-history-tab')
 })
 
 test('StreamingWidget renders usable mobile and desktop layouts', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await gotoStory(page, 'populated-state')
-  await expectBodyToContain(page, ['Streams', 'Active streams', 'Stream history'])
+  await expectBodyToContain(page, ['Streams', 'History', 'Active streams'])
   await saveScreenshot(page, 'sw-18-mobile-populated')
 
   await page.setViewportSize({ width: 1280, height: 900 })
   await gotoStory(page, 'populated-state')
-  await expectBodyToContain(page, ['Streams', 'Pools', 'Balances', 'Active streams'])
+  await expectBodyToContain(page, ['Streams', 'History', 'Pools', 'Balances', 'Active streams'])
   await saveScreenshot(page, 'sw-19-desktop-populated')
 })
 
@@ -160,7 +171,7 @@ test('StreamingWidget shows pool claim amount and lifecycle states', async ({ pa
   await saveScreenshot(page, 'sw-13-pool-claim-pending')
 
   await gotoStory(page, 'pool-claim-success')
-  await expectBodyToContain(page, ['Connected', 'Done'])
+  await expectBodyToContain(page, ['Claimable', 'Done'])
   await saveScreenshot(page, 'sw-14-pool-claim-success')
 
   await gotoStory(page, 'pool-claim-error')
@@ -168,13 +179,25 @@ test('StreamingWidget shows pool claim amount and lifecycle states', async ({ pa
   await saveScreenshot(page, 'sw-15-pool-claim-error')
 
   await gotoStory(page, 'pool-claimable-amount-error')
-  await expectBodyToContain(page, ['Could not load claimable amount.', 'Tap to retry'])
+  await expectBodyToContain(page, ['Could not load claimable amount.', 'Retry'])
   await saveScreenshot(page, 'sw-20-pool-claimable-amount-error')
+
+  await page.getByText('Retry').first().click()
+  await expectBodyToContain(page, ['Loading pool memberships'])
+  await saveScreenshot(page, 'sw-21-pool-claimable-retry-loading')
 })
 
 test('StreamingWidget shows Base SUP reserve and disables reserve off Base', async ({ page }) => {
   await gotoStory(page, 'base-sup-balance-and-reserve')
-  await expectBodyToContain(page, ['Super Token Balance', 'SUP Reserve (Staked)', '95.25'])
+  await expectBodyToContain(page, [
+    'Super Token Balance',
+    'SUP Reserve',
+    '112.75',
+    'Reserve locker',
+    'Available',
+    'Staked',
+    'Open in Superfluid Explorer',
+  ])
   await saveScreenshot(page, 'sw-16-base-sup-reserve')
 
   await gotoStory(page, 'non-base-sup-reserve-disabled')

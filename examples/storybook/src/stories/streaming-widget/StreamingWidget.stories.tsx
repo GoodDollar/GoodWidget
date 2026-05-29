@@ -24,6 +24,7 @@ const DEMO_RECEIVER = '0x1111111111111111111111111111111111111111'
 const DEMO_SENDER = '0x2222222222222222222222222222222222222222'
 const DEMO_TOKEN = '0x3333333333333333333333333333333333333333'
 const DEMO_POOL = '0x4444444444444444444444444444444444444444'
+const DEMO_RESERVE_LOCKER = '0x8888888888888888888888888888888888888888'
 
 const defaultForm: SetStreamFormState = {
   receiver: '',
@@ -146,6 +147,7 @@ function createAdapter(
     balanceLoading: false,
     balanceError: null,
     supReserveBalance: null,
+    supReserveLockers: [],
     supReserveLoading: false,
     supReserveError: null,
     setStreamForm: defaultForm,
@@ -194,7 +196,12 @@ function PreviewStoryShell({
   return (
     <YStack
       data-testid={dataTestId}
-      style={{ width: 'min(400px, 100vw)', minHeight: '100vh' }}
+      style={{
+        width: '100%',
+        maxWidth: 400,
+        minHeight: '100vh',
+        boxSizing: 'border-box',
+      }}
     >
       <StreamingWidgetPreview
         adapter={adapter}
@@ -215,7 +222,12 @@ function StreamingWidgetStoryShell({
   return (
     <YStack
       data-testid={dataTestId}
-      style={{ width: 'min(400px, 100vw)', minHeight: '100vh' }}
+      style={{
+        width: '100%',
+        maxWidth: 400,
+        minHeight: '100vh',
+        boxSizing: 'border-box',
+      }}
     >
       <StreamingWidget provider={provider} environment="development" />
     </YStack>
@@ -285,6 +297,37 @@ function CustodialLocalFixtureStory() {
       </YStack>
     )
   }
+}
+
+function PoolClaimableAmountErrorStory() {
+  const [retrying, setRetrying] = React.useState(false)
+
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter(
+        {
+          pools: retrying
+            ? []
+            : [
+                {
+                  ...samplePools[0],
+                  isConnected: false,
+                  claimableAmount: 0n,
+                  claimableAmountError: true,
+                },
+              ],
+          poolsLoading: retrying,
+        },
+        {
+          refreshPools: async () => {
+            setRetrying(true)
+          },
+        },
+      )}
+      dataTestId="StreamingWidget-pool-claimable-amount-error"
+      initialTab="pools"
+    />
+  )
 }
 
 export const InjectedWallet: Story = {
@@ -447,7 +490,7 @@ export const PoolClaimState: Story = {
   render: () => (
     <PreviewStoryShell
       adapter={createAdapter({
-        pools: [{ ...samplePools[0], isConnected: true }],
+        pools: [{ ...samplePools[0], isConnected: false }],
       })}
       dataTestId="StreamingWidget-pool-claim"
       initialTab="pools"
@@ -459,7 +502,7 @@ export const PoolClaimPending: Story = {
   render: () => (
     <PreviewStoryShell
       adapter={createAdapter({
-        pools: [{ ...samplePools[0], isConnected: true }],
+        pools: [{ ...samplePools[0], isConnected: false }],
         poolClaimStatus: { [DEMO_POOL]: 'pending' },
       })}
       dataTestId="StreamingWidget-pool-claim-pending"
@@ -472,7 +515,7 @@ export const PoolClaimSuccess: Story = {
   render: () => (
     <PreviewStoryShell
       adapter={createAdapter({
-        pools: [{ ...samplePools[0], isConnected: true }],
+        pools: [{ ...samplePools[0], isConnected: false }],
         poolClaimStatus: { [DEMO_POOL]: 'success' },
       })}
       dataTestId="StreamingWidget-pool-claim-success"
@@ -485,7 +528,7 @@ export const PoolClaimError: Story = {
   render: () => (
     <PreviewStoryShell
       adapter={createAdapter({
-        pools: [{ ...samplePools[0], isConnected: true }],
+        pools: [{ ...samplePools[0], isConnected: false }],
         poolClaimStatus: { [DEMO_POOL]: 'error' },
         poolClaimError: { [DEMO_POOL]: 'Pool claim failed. Please retry.' },
       })}
@@ -496,22 +539,7 @@ export const PoolClaimError: Story = {
 }
 
 export const PoolClaimableAmountError: Story = {
-  render: () => (
-    <PreviewStoryShell
-      adapter={createAdapter({
-        pools: [
-          {
-            ...samplePools[0],
-            isConnected: true,
-            claimableAmount: 0n,
-            claimableAmountError: true,
-          },
-        ],
-      })}
-      dataTestId="StreamingWidget-pool-claimable-amount-error"
-      initialTab="pools"
-    />
-  ),
+  render: () => <PoolClaimableAmountErrorStory />,
 }
 
 export const BaseSupBalanceAndReserve: Story = {
@@ -520,7 +548,15 @@ export const BaseSupBalanceAndReserve: Story = {
       adapter={createAdapter({
         chainId: STREAMING_CHAINS.BASE,
         superTokenBalance: '712.10',
-        supReserveBalance: '95.25',
+        supReserveBalance: '112.75',
+        supReserveLockers: [
+          {
+            address: DEMO_RESERVE_LOCKER,
+            stakedBalance: 95250000000000000000n,
+            unstakedBalance: 17500000000000000000n,
+            totalBalance: 112750000000000000000n,
+          },
+        ],
       })}
       dataTestId="StreamingWidget-base-sup-reserve"
       initialTab="balances"

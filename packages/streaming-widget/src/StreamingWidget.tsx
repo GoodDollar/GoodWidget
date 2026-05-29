@@ -6,6 +6,7 @@ import {
   Card,
   Heading,
   Text,
+  Anchor,
   Button,
   ButtonText,
   Spinner,
@@ -20,6 +21,7 @@ import {
   AddressDisplay,
   TokenAmount,
   WidgetTabs,
+  formatDisplayAmount,
 } from '@goodwidget/ui'
 import type { Address } from 'viem'
 import { formatUnits } from 'viem'
@@ -115,7 +117,7 @@ function formatFlowRateDisplay(flowRate: bigint, decimals = 18): string {
   if (flowRate === 0n) return '0'
   // Convert wei/s → per-month amount for display
   const perMonth = flowRate * BigInt(30 * 24 * 60 * 60)
-  return formatUnits(perMonth, decimals)
+  return formatDisplayAmount(formatUnits(perMonth, decimals))
 }
 
 /** Formats a unix timestamp (seconds) to a short locale date string */
@@ -133,6 +135,19 @@ function chainName(chainId: number): string {
   if (chainId === STREAMING_CHAINS.CELO) return 'Celo'
   if (chainId === STREAMING_CHAINS.BASE) return 'Base'
   return `Chain ${chainId}`
+}
+
+function tokenSymbol(chainId: number | null): 'G$' | 'SUP' {
+  return chainId === STREAMING_CHAINS.BASE ? 'SUP' : 'G$'
+}
+
+function formatWeiAmount(amount: bigint): string {
+  return formatDisplayAmount(formatUnits(amount, 18))
+}
+
+function superfluidExplorerAccountUrl(chainId: number | null, address: Address): string {
+  const networkSlug = chainId === STREAMING_CHAINS.BASE ? 'base-mainnet' : 'celo'
+  return `https://explorer.superfluid.org/${networkSlug}/accounts/${address}`
 }
 
 // ---------------------------------------------------------------------------
@@ -213,6 +228,7 @@ function WalletGate({
 // ---------------------------------------------------------------------------
 function SetStreamForm({
   form,
+  token,
   status,
   error,
   txHash,
@@ -221,6 +237,7 @@ function SetStreamForm({
   onReset,
 }: {
   form: StreamingWidgetAdapterState['setStreamForm']
+  token: 'G$' | 'SUP'
   status: WriteStatus
   error: string | null
   txHash: string | null
@@ -248,7 +265,7 @@ function SetStreamForm({
       {/* Amount + time unit */}
       <XStack gap="$2" alignItems="flex-end">
         <YStack flex={1} gap="$1">
-          <Text variant="label">Amount</Text>
+          <Text variant="label">Amount ({token})</Text>
           <Input
             placeholder="100"
             value={form.amount}
@@ -272,7 +289,7 @@ function SetStreamForm({
       {form.flowRate !== null && form.flowRate > 0n && (
         <XStack gap="$2" alignItems="center">
           <Text variant="caption" secondary>
-            About {formatUnits(form.flowRate, 18)} tokens/s
+            About {formatWeiAmount(form.flowRate)} {token}/s
           </Text>
         </XStack>
       )}
@@ -321,7 +338,7 @@ function SetStreamForm({
 // ---------------------------------------------------------------------------
 // Single stream row
 // ---------------------------------------------------------------------------
-function StreamCard({ stream }: { stream: StreamListItem }) {
+function StreamCard({ stream, token }: { stream: StreamListItem; token: 'G$' | 'SUP' }) {
   const counterparty =
     stream.direction === 'outgoing' ? stream.receiver : stream.sender
   const flowPerMonth = formatFlowRateDisplay(stream.flowRate)
@@ -343,9 +360,12 @@ function StreamCard({ stream }: { stream: StreamListItem }) {
         <Text variant="caption" secondary>
           Flow rate
         </Text>
-        <Text fontWeight="600">
-          {flowPerMonth}/mo
-        </Text>
+        <XStack gap="$1" alignItems="baseline">
+          <TokenAmount token={token} amount={flowPerMonth} size="sm" />
+          <Text variant="caption" secondary>
+            /mo
+          </Text>
+        </XStack>
       </XStack>
 
       {stream.streamedSoFar > 0n && (
@@ -353,7 +373,7 @@ function StreamCard({ stream }: { stream: StreamListItem }) {
           <Text variant="caption" secondary>
             Streamed so far
           </Text>
-          <Text>{formatUnits(stream.streamedSoFar, 18)}</Text>
+          <TokenAmount token={token} amount={formatWeiAmount(stream.streamedSoFar)} size="sm" />
         </XStack>
       )}
     </StreamRow>
@@ -383,9 +403,7 @@ function StreamsTab({
   )
   const emptyStreamsMessage =
     direction === 'all' ? 'No streams found.' : `No ${direction} streams found.`
-  const [historyLimit, setHistoryLimit] = useState(4)
-  const recentStreams = state.streamHistory.slice(0, historyLimit)
-  const hasMoreHistory = state.streamHistory.length > historyLimit
+  const activeToken = tokenSymbol(state.chainId)
 
   return (
     <StreamingTabContent>
@@ -399,6 +417,7 @@ function StreamsTab({
       {showForm && (
         <SetStreamForm
           form={state.setStreamForm}
+          token={activeToken}
           status={state.setStreamStatus}
           error={state.setStreamError}
           txHash={state.setStreamTxHash}
@@ -458,10 +477,30 @@ function StreamsTab({
 
       {!state.streamsLoading &&
         !state.streamsError &&
-        filteredStreams.map((stream) => <StreamCard key={stream.id} stream={stream} />)}
+        filteredStreams.map((stream) => (
+          <StreamCard key={stream.id} stream={stream} token={activeToken} />
+        ))}
+    </StreamingTabContent>
+  )
+}
 
-      <Separator />
+// ---------------------------------------------------------------------------
+// Stream history tab
+// ---------------------------------------------------------------------------
+function HistoryTab({
+  state,
+  actions,
+}: {
+  state: StreamingWidgetAdapterState
+  actions: StreamingWidgetAdapterActions
+}) {
+  const [historyLimit, setHistoryLimit] = useState(4)
+  const recentStreams = state.streamHistory.slice(0, historyLimit)
+  const hasMoreHistory = state.streamHistory.length > historyLimit
+  const activeToken = tokenSymbol(state.chainId)
 
+  return (
+    <StreamingTabContent>
       <XStack justifyContent="space-between" alignItems="center">
         <Heading level={4}>Stream history</Heading>
         <Button variant="secondary" onPress={actions.refreshStreamHistory}>
@@ -497,7 +536,9 @@ function StreamsTab({
 
       {!state.streamHistoryLoading &&
         !state.streamHistoryError &&
-        recentStreams.map((stream) => <StreamCard key={`history-${stream.id}`} stream={stream} />)}
+        recentStreams.map((stream) => (
+          <StreamCard key={`history-${stream.id}`} stream={stream} token={activeToken} />
+        ))}
 
       {!state.streamHistoryLoading && !state.streamHistoryError && hasMoreHistory && (
         <Button variant="secondary" onPress={() => setHistoryLimit((count) => count + 4)}>
@@ -513,6 +554,7 @@ function StreamsTab({
 // ---------------------------------------------------------------------------
 function PoolCard({
   pool,
+  token,
   connectStatus,
   connectError,
   claimStatus,
@@ -523,6 +565,7 @@ function PoolCard({
   onRetryClaimable,
 }: {
   pool: PoolMembershipItem
+  token: 'G$' | 'SUP'
   connectStatus: WriteStatus
   connectError: string | null
   claimStatus: WriteStatus
@@ -534,7 +577,7 @@ function PoolCard({
 }) {
   const isConnectPending = connectStatus === 'pending'
   const isClaimPending = claimStatus === 'pending'
-  const canClaim = pool.isConnected && pool.claimableAmount > 0n && !pool.claimableAmountError
+  const canClaim = !pool.isConnected && pool.claimableAmount > 0n && !pool.claimableAmountError
 
   return (
     <PoolRow>
@@ -549,14 +592,14 @@ function PoolCard({
         <Text variant="caption" secondary>
           Claimable
         </Text>
-        <Text>{formatUnits(pool.claimableAmount, 18)}</Text>
+        <TokenAmount token={token} amount={formatWeiAmount(pool.claimableAmount)} size="sm" />
       </XStack>
 
       <XStack justifyContent="space-between" alignItems="center">
         <Text variant="caption" secondary>
           Total claimed
         </Text>
-        <Text>{formatUnits(pool.totalAmountClaimed, 18)}</Text>
+        <TokenAmount token={token} amount={formatWeiAmount(pool.totalAmountClaimed)} size="sm" />
       </XStack>
 
       {connectError && (
@@ -574,33 +617,46 @@ function PoolCard({
           <Text color="$error" variant="caption">
             Could not load claimable amount.
           </Text>
-          <Button variant="text" onPress={onRetryClaimable}>
-            <ButtonText>Tap to retry</ButtonText>
+          <Button variant="secondary" size="sm" onPress={onRetryClaimable}>
+            <ButtonText>Retry</ButtonText>
           </Button>
         </XStack>
       )}
 
-      <XStack gap="$2" alignItems="center">
-        <WriteStatusBadge status={connectStatus} />
+      <XStack gap="$2" alignItems="center" flexWrap="wrap">
         {pool.isConnected ? (
-          <Button disabled={isConnectPending} onPress={() => onDisconnect(pool.poolId)}>
-            {isConnectPending ? <Spinner size="sm" /> : <ButtonText>Disconnect</ButtonText>}
+          <Button
+            variant="secondary"
+            disabled={isConnectPending}
+            borderColor="$error"
+            onPress={() => onDisconnect(pool.poolId)}
+          >
+            {isConnectPending ? (
+              <Spinner size="sm" />
+            ) : (
+              <ButtonText color="$error">Disconnect</ButtonText>
+            )}
           </Button>
         ) : (
-          <Button disabled={isConnectPending} onPress={() => onConnect(pool.poolId)}>
-            {isConnectPending ? <Spinner size="sm" /> : <ButtonText>Connect to claim</ButtonText>}
-          </Button>
+          <>
+            <WriteStatusBadge status={claimStatus} />
+            <Button
+              disabled={!canClaim || isClaimPending || claimStatus === 'success'}
+              onPress={() => onClaim(pool.poolId)}
+            >
+              {isClaimPending ? <Spinner size="sm" /> : <ButtonText>Claim</ButtonText>}
+            </Button>
+            <WriteStatusBadge status={connectStatus} />
+            <Button
+              variant="secondary"
+              disabled={isConnectPending}
+              onPress={() => onConnect(pool.poolId)}
+            >
+              {isConnectPending ? <Spinner size="sm" /> : <ButtonText>Connect</ButtonText>}
+            </Button>
+          </>
         )}
       </XStack>
-
-      {pool.isConnected && (
-        <XStack gap="$2" alignItems="center">
-          <WriteStatusBadge status={claimStatus} />
-          <Button disabled={!canClaim || isClaimPending} onPress={() => onClaim(pool.poolId)}>
-            {isClaimPending ? <Spinner size="sm" /> : <ButtonText>Claim</ButtonText>}
-          </Button>
-        </XStack>
-      )}
     </PoolRow>
   )
 }
@@ -615,6 +671,8 @@ function PoolsTab({
   state: StreamingWidgetAdapterState
   actions: StreamingWidgetAdapterActions
 }) {
+  const activeToken = tokenSymbol(state.chainId)
+
   return (
     <StreamingTabContent>
       {state.poolsLoading && (
@@ -650,6 +708,7 @@ function PoolsTab({
           <PoolCard
             key={pool.poolId}
             pool={pool}
+            token={activeToken}
             connectStatus={state.poolConnectStatus[pool.poolId] ?? 'idle'}
             connectError={state.poolConnectError[pool.poolId] ?? null}
             claimStatus={state.poolClaimStatus[pool.poolId] ?? 'idle'}
@@ -675,6 +734,7 @@ function BalancesTab({
   actions: StreamingWidgetAdapterActions
 }) {
   const isOnBase = state.chainId === STREAMING_CHAINS.BASE
+  const activeToken = tokenSymbol(state.chainId)
 
   return (
     <StreamingTabContent>
@@ -697,7 +757,7 @@ function BalancesTab({
 
         {!state.balanceLoading && !state.balanceError && state.superTokenBalance !== null && (
           <TokenAmount
-            token={state.chainId === STREAMING_CHAINS.BASE ? 'SUP' : 'G$'}
+            token={activeToken}
             amount={state.superTokenBalance}
             size="xl"
           />
@@ -714,7 +774,7 @@ function BalancesTab({
       {isOnBase ? (
         <BalanceCard>
           <XStack justifyContent="space-between" alignItems="center">
-            <Text variant="label">SUP Reserve (Staked)</Text>
+            <Text variant="label">SUP Reserve</Text>
             {state.supReserveLoading && <Spinner size="sm" />}
           </XStack>
 
@@ -729,8 +789,44 @@ function BalancesTab({
           )}
 
           <Text variant="caption" secondary>
-            SUP tokens locked as reserve on Base.
+            SUP held in reserve lockers on Base.
           </Text>
+
+          {!state.supReserveLoading &&
+            !state.supReserveError &&
+            state.supReserveLockers.map((locker) => (
+              <YStack key={locker.address} gap="$2">
+                <XStack justifyContent="space-between" alignItems="center">
+                  <Text variant="caption" secondary>
+                    Reserve locker
+                  </Text>
+                  <AddressDisplay address={locker.address} size="sm" />
+                </XStack>
+                <XStack justifyContent="space-between" alignItems="center">
+                  <Text variant="caption" secondary>
+                    Available
+                  </Text>
+                  <TokenAmount
+                    token="SUP"
+                    amount={formatWeiAmount(locker.unstakedBalance)}
+                    size="sm"
+                  />
+                </XStack>
+                <XStack justifyContent="space-between" alignItems="center">
+                  <Text variant="caption" secondary>
+                    Staked
+                  </Text>
+                  <TokenAmount
+                    token="SUP"
+                    amount={formatWeiAmount(locker.stakedBalance)}
+                    size="sm"
+                  />
+                </XStack>
+                <Anchor href={superfluidExplorerAccountUrl(state.chainId, locker.address)}>
+                  Open in Superfluid Explorer
+                </Anchor>
+              </YStack>
+            ))}
         </BalanceCard>
       ) : (
         <BalanceCard>
@@ -793,16 +889,18 @@ function StreamingWidgetView({
           initialFormOpen={initialStreamsFormOpen}
         />
       )}
+      {activeTab === 'history' && <HistoryTab state={state} actions={actions} />}
       {activeTab === 'pools' && <PoolsTab state={state} actions={actions} />}
       {activeTab === 'balances' && <BalancesTab state={state} actions={actions} />}
     </>
   )
 
   return (
-    <YStack gap="$3" padding="$4">
+    <YStack gap="$3" padding="$5" width="100%" style={{ boxSizing: 'border-box' }}>
       <WidgetTabs
         tabs={[
           { id: 'streams', label: 'Streams' },
+          { id: 'history', label: 'History' },
           { id: 'pools', label: 'Pools' },
           { id: 'balances', label: 'Balances' },
         ]}
