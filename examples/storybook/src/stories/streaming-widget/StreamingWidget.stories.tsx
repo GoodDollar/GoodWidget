@@ -510,8 +510,7 @@ export const PoolConnectedState: Story = {
   ),
 }
 
-// Claim lifecycle stories stay connected to match the review fixture contract while
-// keeping connected memberships limited to the Disconnect action.
+// Claim lifecycle stories use isConnected: true so write status badges render correctly.
 export const PoolClaimPending: Story = {
   render: () => (
     <PreviewStoryShell
