@@ -48,7 +48,7 @@ test('StakingMigrationWidget approval pending notice', async ({ page }) => {
 test('StakingMigrationWidget migrating timeline', async ({ page }) => {
   await gotoStory(page, STORY_IDS.migrating)
   await expect(page.getByText('Migration journey')).toBeVisible()
-  await expect(page.getByText('bridge received')).toBeVisible()
+  await expect(page.getByText('Bridge received')).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/staking-migration-widget/test-results/smw-04-migrating.png',
     fullPage: true,

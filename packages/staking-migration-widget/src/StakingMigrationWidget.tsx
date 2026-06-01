@@ -18,6 +18,14 @@ interface StakingMigrationInnerProps {
   onMigrationError?: StakingMigrationWidgetProps['onMigrationError']
 }
 
+function formatJourneyLabel(label: string | null): string | null {
+  if (!label) return null
+  return label
+    .split(' ')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
+
 // This inner component renders all migration states while staying inside provider context.
 function StakingMigrationInner({
   migrationConfig,
@@ -70,19 +78,11 @@ function StakingMigrationInner({
     }
 
     if (state.status === 'approval-pending') {
-      return {
-        label: 'Approval pending…',
-        disabled: true,
-        onPress: () => {},
-      }
+      return null
     }
 
     if (state.status === 'migrating') {
-      return {
-        label: 'Migrating…',
-        disabled: true,
-        onPress: () => {},
-      }
+      return null
     }
 
     if (state.status === 'success') {
@@ -114,6 +114,20 @@ function StakingMigrationInner({
     }
   }, [actions, isZeroBalance, state.address, state.hasRequiredConfig, state.isBalanceLoading, state.status])
 
+  const summaryStatusMessage = useMemo(() => {
+    if (state.status === 'approval-pending') {
+      return 'Waiting for wallet approval on Fuse.'
+    }
+
+    if (state.status === 'migrating') {
+      return state.activeStep
+        ? `${formatJourneyLabel(state.activeStep)} is in progress.`
+        : 'Migration is in progress.'
+    }
+
+    return undefined
+  }, [state.activeStep, state.status])
+
   const shouldShowStatusNotice =
     state.status === 'missing-config' ||
     state.status === 'wrong-network' ||
@@ -128,6 +142,7 @@ function StakingMigrationInner({
             isZeroBalance={isZeroBalance}
             actionLabel={summaryAction?.label}
             actionDisabled={summaryAction?.disabled}
+            statusMessage={summaryStatusMessage}
             actionHint={
               isZeroBalance && state.address
                 ? 'No staked sG$ available to migrate from Fuse for this wallet.'

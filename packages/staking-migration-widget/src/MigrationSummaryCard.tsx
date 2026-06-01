@@ -8,6 +8,7 @@ interface MigrationSummaryCardProps {
   actionDisabled?: boolean
   actionHint?: string
   onPrimaryAction?: () => void
+  statusMessage?: string
 }
 
 // This summary card is the entry point for approve-and-migrate user action.
@@ -17,6 +18,7 @@ export function MigrationSummaryCard({
   actionLabel,
   actionDisabled,
   actionHint,
+  statusMessage,
   onPrimaryAction,
 }: MigrationSummaryCardProps) {
   return (
@@ -32,6 +34,11 @@ export function MigrationSummaryCard({
           Your staked amount
         </Text>
         <TokenAmount token="sG$" amount={stakedAmount} size="lg" />
+        {statusMessage && (
+          <Text color="$primary" fontWeight="700">
+            {statusMessage}
+          </Text>
+        )}
         {isZeroBalance && (
           <Text variant="caption" secondary>
             No staked sG$ found on Fuse for this wallet.
