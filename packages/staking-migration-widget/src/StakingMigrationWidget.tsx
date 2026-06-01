@@ -53,14 +53,22 @@ function StakingMigrationInner({
   const isZeroBalance = state.stakedAmountRaw <= 0n
 
   const journeyAction = useMemo(() => {
+    const defaultLabel = 'Approve and migrate'
+
     if (!state.hasRequiredConfig || state.isBalanceLoading || isZeroBalance) {
-      return null
+      return {
+        label: defaultLabel,
+        disabled: true,
+        showWarningIcon: false,
+        onPress: undefined,
+      }
     }
 
     if (!state.address) {
       return {
         label: 'Connect wallet',
         disabled: false,
+        showWarningIcon: false,
         onPress: () => {
           void actions.connect()
         },
@@ -71,6 +79,7 @@ function StakingMigrationInner({
       return {
         label: 'Switch to Fuse',
         disabled: false,
+        showWarningIcon: true,
         onPress: () => {
           void actions.switchToFuse()
         },
@@ -78,13 +87,19 @@ function StakingMigrationInner({
     }
 
     if (state.status === 'approval-pending' || state.status === 'migrating') {
-      return null
+      return {
+        label: defaultLabel,
+        disabled: true,
+        showWarningIcon: false,
+        onPress: undefined,
+      }
     }
 
     if (state.status === 'success') {
       return {
         label: 'Refresh balance',
         disabled: false,
+        showWarningIcon: false,
         onPress: () => {
           void actions.refresh()
         },
@@ -95,6 +110,7 @@ function StakingMigrationInner({
       return {
         label: 'Retry migration',
         disabled: false,
+        showWarningIcon: state.status === 'approval-failed',
         onPress: () => {
           void actions.retryMigration()
         },
@@ -102,8 +118,9 @@ function StakingMigrationInner({
     }
 
     return {
-      label: 'Approve and migrate',
+      label: defaultLabel,
       disabled: false,
+      showWarningIcon: false,
       onPress: () => {
         void actions.approveAndMigrate()
       },
@@ -129,7 +146,10 @@ function StakingMigrationInner({
         stakedAmount={state.stakedAmount}
         isZeroBalance={isZeroBalance}
         statusMessage={summaryStatusMessage}
-        statusIndicatorLabel={state.status === 'wrong-network' ? journeyAction?.label : undefined}
+        actionLabel={journeyAction.label}
+        actionDisabled={journeyAction.disabled}
+        onPrimaryAction={journeyAction.onPress}
+        showWarningIcon={journeyAction.showWarningIcon}
         actionHint={
           isZeroBalance && state.address
             ? 'No staked sG$ available to migrate from Fuse for this wallet.'
@@ -146,9 +166,9 @@ function StakingMigrationInner({
             failedStep={state.failedStep}
             error={state.error}
             hasAvailableBalance={!isZeroBalance}
-            actionLabel={journeyAction?.label}
-            actionDisabled={journeyAction?.disabled}
-            onAction={journeyAction?.onPress}
+            actionLabel={journeyAction.disabled ? undefined : journeyAction.label}
+            actionDisabled={journeyAction.disabled}
+            onAction={journeyAction.onPress}
           />
 
           {shouldShowStatusNotice && (

@@ -1,5 +1,6 @@
 import React from 'react'
-import { Button, ButtonText, Icon, Spinner, Text, XStack, YStack, ZStack } from '@goodwidget/ui'
+import { Button, ButtonText, Icon, Text, XStack, YStack } from '@goodwidget/ui'
+import { MIGRATION_STEP_MARKER_SIZE, MigrationStepMarker } from './MigrationStepMarker'
 
 interface MigrationStepRowProps {
   step: string
@@ -29,15 +30,6 @@ export function MigrationStepRow({
   isLast = false,
 }: MigrationStepRowProps) {
   const useAttentionStyle = needsAttention && (isActive || isFailed)
-  const markerBorderColor = useAttentionStyle
-    ? '$warning'
-    : isFailed
-      ? '$warning'
-      : isCompleted || isActive
-        ? '$borderColorFocus'
-        : '$borderColor'
-  const markerBackgroundColor =
-    useAttentionStyle && isActive && !isFailed ? '$background' : isCompleted || isActive ? '$backgroundPress' : '$background'
   const lineColor =
     useAttentionStyle || isCompleted || isActive ? (useAttentionStyle ? '$warning' : '$borderColorFocus') : '$borderColor'
   const titleColor = useAttentionStyle
@@ -58,13 +50,20 @@ export function MigrationStepRow({
   const showDescription = Boolean(description) && (isActive || isFailed)
   const showAction = Boolean(actionLabel && onAction) && (isActive || isFailed)
   const showPendingLabel = !isCompleted && !isActive && !isFailed
-  const markerSize = 24
   const railOffset = isActive || isFailed ? '$2' : '$1'
-  const showActiveSpinner = isActive && !isFailed && !useAttentionStyle
+  const markerVariant = isCompleted
+    ? 'completed'
+    : isFailed
+      ? 'failed'
+      : isActive && useAttentionStyle
+        ? 'attention'
+        : isActive
+          ? 'active'
+          : 'pending'
 
   return (
     <XStack alignItems="stretch" gap="$3">
-      <YStack alignItems="center" width={24} flexShrink={0} marginTop={railOffset}>
+      <YStack alignItems="center" width={MIGRATION_STEP_MARKER_SIZE} flexShrink={0} marginTop={railOffset}>
         <YStack
           width={2}
           flex={1}
@@ -72,24 +71,7 @@ export function MigrationStepRow({
           backgroundColor={isFirst ? 'transparent' : lineColor}
           opacity={isFirst ? 0 : 1}
         />
-        <ZStack
-          width={markerSize}
-          height={markerSize}
-          borderRadius="$full"
-          alignItems="center"
-          justifyContent="center"
-          borderWidth={isActive || isFailed ? 2 : 1}
-          borderColor={markerBorderColor}
-          backgroundColor={markerBackgroundColor}
-        >
-          {isCompleted ? (
-            <Icon name="check" size="xs" color="primary" />
-          ) : isFailed ? (
-            <Icon name="alert-triangle" size="xs" color="inherit" />
-          ) : showActiveSpinner ? (
-            <Spinner size="sm" />
-          ) : null}
-        </ZStack>
+        <MigrationStepMarker variant={markerVariant} />
         <YStack
           width={2}
           flex={1}

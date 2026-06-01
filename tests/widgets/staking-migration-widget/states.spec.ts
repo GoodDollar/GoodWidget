@@ -19,7 +19,7 @@ test('StakingMigrationWidget empty balance summary', async ({ page }) => {
   await gotoStory(page, STORY_IDS.empty)
   await expect(page.getByText('No staked sG$ found on Fuse for this wallet.')).toBeVisible()
   await expect(page.getByText('No migration available for this wallet yet.')).toBeVisible()
-  await expect(page.getByRole('button')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Approve and migrate' })).toBeDisabled()
   await page.screenshot({
     path: 'tests/widgets/staking-migration-widget/test-results/smw-01-empty-balance.png',
     fullPage: true,
@@ -39,7 +39,7 @@ test('StakingMigrationWidget wrong network notice', async ({ page }) => {
 test('StakingMigrationWidget approval pending notice', async ({ page }) => {
   await gotoStory(page, STORY_IDS.approvalPending)
   await expect(page.getByText('Confirm the approval transaction in your wallet.')).toBeVisible()
-  await expect(page.getByRole('button')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Approve and migrate' })).toBeDisabled()
   await page.screenshot({
     path: 'tests/widgets/staking-migration-widget/test-results/smw-03-approval-pending.png',
     fullPage: true,

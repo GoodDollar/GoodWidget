@@ -1,12 +1,15 @@
 import React from 'react'
-import { YStack, Heading, Text, TokenAmount, Icon } from '@goodwidget/ui'
+import { YStack, Heading, Text, TokenAmount, Button, ButtonText, Icon } from '@goodwidget/ui'
 
 interface MigrationSummaryCardProps {
   stakedAmount: string
   isZeroBalance: boolean
   actionHint?: string
   statusMessage?: string
-  statusIndicatorLabel?: string
+  actionLabel: string
+  actionDisabled: boolean
+  onPrimaryAction?: () => void
+  showWarningIcon?: boolean
 }
 
 export function MigrationSummaryCard({
@@ -14,10 +17,11 @@ export function MigrationSummaryCard({
   isZeroBalance,
   actionHint,
   statusMessage,
-  statusIndicatorLabel,
+  actionLabel,
+  actionDisabled,
+  onPrimaryAction,
+  showWarningIcon = false,
 }: MigrationSummaryCardProps) {
-  const shouldShowStatusIndicator = Boolean(statusIndicatorLabel)
-
   return (
     <YStack gap="$5" alignItems="center">
       <Heading level={3} textAlign="center" color="$primary">
@@ -45,25 +49,21 @@ export function MigrationSummaryCard({
         </Text>
         <TokenAmount token="sG$" amount={stakedAmount} size="lg" />
 
-        {shouldShowStatusIndicator && (
-          <YStack
-            width={126}
-            height={126}
-            borderRadius="$full"
-            borderWidth={3}
-            borderColor="$borderColorFocus"
-            backgroundColor="$background"
-            alignItems="center"
-            justifyContent="center"
-            gap="$1"
-            paddingHorizontal="$3"
-          >
-            <Icon name="alert-triangle" size="xs" color="inherit" />
-            <Text color="$primary" fontWeight="700" textAlign="center">
-              {statusIndicatorLabel}
-            </Text>
+        <Button
+          onPress={actionDisabled ? undefined : onPrimaryAction}
+          disabled={actionDisabled}
+          width={126}
+          height={126}
+          borderRadius="$full"
+          alignItems="center"
+          justifyContent="center"
+          paddingHorizontal="$3"
+        >
+          <YStack gap="$1" alignItems="center">
+            {showWarningIcon && <Icon name="alert-triangle" size="xs" color="inherit" />}
+            <ButtonText textAlign="center">{actionLabel}</ButtonText>
           </YStack>
-        )}
+        </Button>
 
         {statusMessage && (
           <Text color="$primary" fontWeight="700" textAlign="center">
