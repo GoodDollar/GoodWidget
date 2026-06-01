@@ -3,8 +3,6 @@ import { YStack, Heading, Text, TokenAmount, Button, ButtonText, Icon } from '@g
 
 interface MigrationSummaryCardProps {
   stakedAmount: string
-  isZeroBalance: boolean
-  actionHint?: string
   statusMessage?: string
   actionLabel: string
   actionDisabled: boolean
@@ -14,8 +12,6 @@ interface MigrationSummaryCardProps {
 
 export function MigrationSummaryCard({
   stakedAmount,
-  isZeroBalance,
-  actionHint,
   statusMessage,
   actionLabel,
   actionDisabled,
@@ -57,27 +53,20 @@ export function MigrationSummaryCard({
           borderRadius="$full"
           alignItems="center"
           justifyContent="center"
-          paddingHorizontal="$3"
+          paddingHorizontal="$2"
+          paddingVertical="$2"
         >
-          <YStack gap="$1" alignItems="center">
-            {showWarningIcon && <Icon name="alert-triangle" size="xs" color="inherit" />}
-            <ButtonText textAlign="center">{actionLabel}</ButtonText>
+          <YStack gap="$1" alignItems="center" justifyContent="center" maxWidth={92}>
+            {showWarningIcon && <Icon name="alert-triangle" size="2xs" color="inherit" />}
+            <ButtonText textAlign="center" fontSize="$2" lineHeight="$2" maxWidth={92}>
+              {actionLabel}
+            </ButtonText>
           </YStack>
         </Button>
 
         {statusMessage && (
           <Text color="$primary" fontWeight="700" textAlign="center">
             {statusMessage}
-          </Text>
-        )}
-        {isZeroBalance && (
-          <Text variant="caption" secondary textAlign="center">
-            No staked sG$ found on Fuse for this wallet.
-          </Text>
-        )}
-        {actionHint && (
-          <Text variant="caption" secondary textAlign="center">
-            {actionHint}
           </Text>
         )}
       </YStack>

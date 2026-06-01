@@ -1,5 +1,5 @@
 import React from 'react'
-import { Button, ButtonText, Heading, Text, YStack } from '@goodwidget/ui'
+import { Heading, Text, YStack } from '@goodwidget/ui'
 import { MigrationStepRow } from './MigrationStepRow'
 import type { MigrationStep, StakingMigrationWidgetStatus } from './widgetRuntimeContract'
 
@@ -12,9 +12,6 @@ interface MigrationProgressTimelineProps {
   failedStep: MigrationStep | null
   error: string | null
   hasAvailableBalance: boolean
-  actionLabel?: string
-  onAction?: () => void
-  actionDisabled?: boolean
 }
 
 function formatStepLabel(step: MigrationStep): string {
@@ -85,9 +82,6 @@ export function MigrationProgressTimeline({
   failedStep,
   error,
   hasAvailableBalance,
-  actionLabel,
-  onAction,
-  actionDisabled,
 }: MigrationProgressTimelineProps) {
   const approvalCompleted = status === 'migrating' || status === 'success' || status === 'error'
   const approvalActive =
@@ -96,7 +90,6 @@ export function MigrationProgressTimeline({
     status === 'approval-failed'
   const approvalFailed = status === 'approval-failed'
   const approveNeedsAttention = status === 'wrong-network' || status === 'approval-failed'
-  const showFooterAction = Boolean(actionLabel && onAction) && status === 'success'
 
   const statusColor =
     status === 'success'
@@ -127,9 +120,6 @@ export function MigrationProgressTimeline({
         <MigrationStepRow
           step="Approve on Fuse"
           description={getApproveDescription(status, error)}
-          actionLabel={approvalActive || approvalFailed ? actionLabel : undefined}
-          onAction={approvalActive || approvalFailed ? onAction : undefined}
-          actionDisabled={actionDisabled}
           needsAttention={approveNeedsAttention}
           isCompleted={approvalCompleted}
           isActive={approvalActive}
@@ -141,9 +131,6 @@ export function MigrationProgressTimeline({
             key={step}
             step={formatStepLabel(step)}
             description={getStepDescription(step, status, activeStep, failedStep, error)}
-            actionLabel={failedStep === step ? actionLabel : undefined}
-            onAction={failedStep === step ? onAction : undefined}
-            actionDisabled={actionDisabled}
             needsAttention={failedStep === step}
             isCompleted={completedSteps.includes(step)}
             isActive={activeStep === step}
@@ -152,24 +139,6 @@ export function MigrationProgressTimeline({
           />
         ))}
       </YStack>
-
-      {showFooterAction && (
-        <Button
-          variant="ghost"
-          onPress={onAction}
-          disabled={actionDisabled}
-          fullWidth
-          size="md"
-          borderRadius="$3"
-          backgroundColor="$warning"
-          hoverStyle={{ backgroundColor: '$warning', opacity: 0.92 }}
-          pressStyle={{ backgroundColor: '$warning', opacity: 0.86 }}
-        >
-          <ButtonText color="$background" fontWeight="700">
-            {actionLabel}
-          </ButtonText>
-        </Button>
-      )}
     </YStack>
   )
 }

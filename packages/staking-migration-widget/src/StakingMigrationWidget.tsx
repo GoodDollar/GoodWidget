@@ -26,7 +26,6 @@ function formatJourneyLabel(label: string | null): string | null {
     .join(' ')
 }
 
-// This inner component renders all migration states while staying inside provider context.
 function StakingMigrationInner({
   migrationConfig,
   adapterFactory,
@@ -53,11 +52,27 @@ function StakingMigrationInner({
   const isZeroBalance = state.stakedAmountRaw <= 0n
 
   const journeyAction = useMemo(() => {
-    const defaultLabel = 'Approve and migrate'
-
-    if (!state.hasRequiredConfig || state.isBalanceLoading || isZeroBalance) {
+    if (state.isBalanceLoading) {
       return {
-        label: defaultLabel,
+        label: 'Loading...',
+        disabled: true,
+        showWarningIcon: false,
+        onPress: undefined,
+      }
+    }
+
+    if (!state.hasRequiredConfig || state.status === 'missing-config') {
+      return {
+        label: 'Setup required',
+        disabled: true,
+        showWarningIcon: false,
+        onPress: undefined,
+      }
+    }
+
+    if (isZeroBalance) {
+      return {
+        label: 'No balance',
         disabled: true,
         showWarningIcon: false,
         onPress: undefined,
@@ -86,9 +101,18 @@ function StakingMigrationInner({
       }
     }
 
-    if (state.status === 'approval-pending' || state.status === 'migrating') {
+    if (state.status === 'approval-pending') {
       return {
-        label: defaultLabel,
+        label: 'Approval pending',
+        disabled: true,
+        showWarningIcon: false,
+        onPress: undefined,
+      }
+    }
+
+    if (state.status === 'migrating') {
+      return {
+        label: 'Migrating',
         disabled: true,
         showWarningIcon: false,
         onPress: undefined,
@@ -106,11 +130,22 @@ function StakingMigrationInner({
       }
     }
 
-    if (state.status === 'error' || state.status === 'approval-failed') {
+    if (state.status === 'approval-failed') {
+      return {
+        label: 'Retry approval',
+        disabled: false,
+        showWarningIcon: true,
+        onPress: () => {
+          void actions.retryMigration()
+        },
+      }
+    }
+
+    if (state.status === 'error') {
       return {
         label: 'Retry migration',
         disabled: false,
-        showWarningIcon: state.status === 'approval-failed',
+        showWarningIcon: false,
         onPress: () => {
           void actions.retryMigration()
         },
@@ -118,14 +153,21 @@ function StakingMigrationInner({
     }
 
     return {
-      label: defaultLabel,
+      label: 'Approve & Migrate',
       disabled: false,
       showWarningIcon: false,
       onPress: () => {
         void actions.approveAndMigrate()
       },
     }
-  }, [actions, isZeroBalance, state.address, state.hasRequiredConfig, state.isBalanceLoading, state.status])
+  }, [
+    actions,
+    isZeroBalance,
+    state.address,
+    state.hasRequiredConfig,
+    state.isBalanceLoading,
+    state.status,
+  ])
 
   const summaryStatusMessage = useMemo(() => {
     if (state.status === 'migrating') {
@@ -144,17 +186,11 @@ function StakingMigrationInner({
     <YStack gap="$4" padding="$4">
       <MigrationSummaryCard
         stakedAmount={state.stakedAmount}
-        isZeroBalance={isZeroBalance}
         statusMessage={summaryStatusMessage}
         actionLabel={journeyAction.label}
         actionDisabled={journeyAction.disabled}
         onPrimaryAction={journeyAction.onPress}
         showWarningIcon={journeyAction.showWarningIcon}
-        actionHint={
-          isZeroBalance && state.address
-            ? 'No staked sG$ available to migrate from Fuse for this wallet.'
-            : undefined
-        }
       />
 
       <Card>
@@ -166,9 +202,6 @@ function StakingMigrationInner({
             failedStep={state.failedStep}
             error={state.error}
             hasAvailableBalance={!isZeroBalance}
-            actionLabel={journeyAction.disabled ? undefined : journeyAction.label}
-            actionDisabled={journeyAction.disabled}
-            onAction={journeyAction.onPress}
           />
 
           {shouldShowStatusNotice && (

@@ -1,13 +1,10 @@
 import React from 'react'
-import { Button, ButtonText, Icon, Text, XStack, YStack } from '@goodwidget/ui'
+import { Icon, Text, XStack, YStack } from '@goodwidget/ui'
 import { MIGRATION_STEP_MARKER_SIZE, MigrationStepMarker } from './MigrationStepMarker'
 
 interface MigrationStepRowProps {
   step: string
   description?: string
-  actionLabel?: string
-  onAction?: () => void
-  actionDisabled?: boolean
   isCompleted: boolean
   isActive: boolean
   isFailed?: boolean
@@ -19,9 +16,6 @@ interface MigrationStepRowProps {
 export function MigrationStepRow({
   step,
   description,
-  actionLabel,
-  onAction,
-  actionDisabled = false,
   isCompleted,
   isActive,
   isFailed = false,
@@ -48,8 +42,6 @@ export function MigrationStepRow({
         ? '$borderColorFocus'
         : 'transparent'
   const showDescription = Boolean(description) && (isActive || isFailed)
-  const showAction = Boolean(actionLabel && onAction) && (isActive || isFailed)
-  const showPendingLabel = !isCompleted && !isActive && !isFailed
   const railOffset = isActive || isFailed ? '$2' : '$1'
   const markerVariant = isCompleted
     ? 'completed'
@@ -60,6 +52,20 @@ export function MigrationStepRow({
         : isActive
           ? 'active'
           : 'pending'
+  const statusLabel = isFailed
+    ? 'Needs attention'
+    : isCompleted
+      ? 'Completed'
+      : isActive
+        ? 'In progress'
+        : 'Pending'
+  const statusColor = isFailed || useAttentionStyle
+    ? '$warning'
+    : isCompleted
+      ? '$success'
+      : isActive
+        ? '$primary'
+        : undefined
 
   return (
     <XStack alignItems="stretch" gap="$3">
@@ -106,33 +112,14 @@ export function MigrationStepRow({
               <Icon name="alert-triangle" size="xs" color="inherit" />
             )}
           </XStack>
-          {showPendingLabel && (
-            <Text variant="caption" secondary>
-              Pending
-            </Text>
-          )}
+          <Text variant="caption" secondary={!statusColor} color={statusColor} fontWeight="700">
+            {statusLabel}
+          </Text>
         </XStack>
         {showDescription && (
           <Text secondary={!isActive && !isFailed} color={isFailed || useAttentionStyle ? '$warning' : undefined}>
             {description}
           </Text>
-        )}
-        {showAction && (
-          <Button
-            variant="ghost"
-            onPress={onAction}
-            disabled={actionDisabled}
-            fullWidth
-            size="md"
-            borderRadius="$3"
-            backgroundColor="$warning"
-            hoverStyle={{ backgroundColor: '$warning', opacity: 0.92 }}
-            pressStyle={{ backgroundColor: '$warning', opacity: 0.86 }}
-          >
-            <ButtonText color="$background" fontWeight="700">
-              {actionLabel}
-            </ButtonText>
-          </Button>
         )}
       </YStack>
     </XStack>

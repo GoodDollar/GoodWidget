@@ -99,6 +99,10 @@ export const EmptyBalance: Story = {
   ),
 }
 
+export const Ready: Story = {
+  render: () => <StoryShell adapterFactory={createAdapterFactory('summary')} />,
+}
+
 export const WrongNetwork: Story = {
   render: () => (
     <StoryShell
