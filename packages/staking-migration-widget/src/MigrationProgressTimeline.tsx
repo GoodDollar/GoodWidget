@@ -1,6 +1,5 @@
-import React from 'react'
-import { Heading, Text, YStack } from '@goodwidget/ui'
-import { getStepConnectorColor, MigrationStepRow } from './MigrationStepRow'
+import React, { useMemo } from 'react'
+import { Heading, Stepper, Text, YStack, type StepperStepItem } from '@goodwidget/ui'
 import type { MigrationStep, StakingMigrationWidgetStatus } from './widgetRuntimeContract'
 
 const STEP_ORDER: MigrationStep[] = ['unstake', 'bridge sent', 'bridge received', 'stake']
@@ -75,6 +74,19 @@ function getStepStatusLabel(status: StakingMigrationWidgetStatus): string | null
   return null
 }
 
+function resolveMigrationStepStatus(
+  isCompleted: boolean,
+  isActive: boolean,
+  isFailed: boolean,
+  needsAttention: boolean,
+): StepperStepItem['status'] {
+  if (isCompleted) return 'completed'
+  if (isFailed) return 'failed'
+  if (isActive && needsAttention) return 'attention'
+  if (isActive) return 'active'
+  return 'pending'
+}
+
 export function MigrationProgressTimeline({
   status,
   completedSteps,
@@ -102,77 +114,73 @@ export function MigrationProgressTimeline({
 
   const statusLabel = getStepStatusLabel(status)
 
-  const approveConnectorBelow = getStepConnectorColor(
+  const steps = useMemo<StepperStepItem[]>(() => {
+    const approveStatus = resolveMigrationStepStatus(
+      approvalCompleted,
+      approvalActive,
+      approvalFailed,
+      approveNeedsAttention,
+    )
+
+    const migrationSteps = STEP_ORDER.map((step) => {
+      const isCompleted = completedSteps.includes(step)
+      const isActive = activeStep === step
+      const isFailed = failedStep === step
+      const needsAttention = failedStep === step
+
+      return {
+        id: step,
+        title: formatStepLabel(step),
+        description: getStepDescription(step, status, activeStep, failedStep, error),
+        status: resolveMigrationStepStatus(isCompleted, isActive, isFailed, needsAttention),
+      }
+    })
+
+    return [
+      {
+        id: 'approve-on-fuse',
+        title: 'Approve on Fuse',
+        description: getApproveDescription(status, error),
+        status: approveStatus,
+      },
+      ...migrationSteps,
+    ]
+  }, [
+    activeStep,
+    approvalActive,
     approvalCompleted,
     approvalFailed,
-    approvalActive,
     approveNeedsAttention,
-  )
+    completedSteps,
+    error,
+    failedStep,
+    status,
+  ])
 
-  const migrationStepStates = STEP_ORDER.map((step) => {
-    const isCompleted = completedSteps.includes(step)
-    const isActive = activeStep === step
-    const isFailed = failedStep === step
-    const needsAttention = failedStep === step
-    return {
-      step,
-      isCompleted,
-      isActive,
-      isFailed,
-      needsAttention,
-      connectorBelow: getStepConnectorColor(isCompleted, isFailed, isActive, needsAttention),
-    }
-  })
+  const activeStepId = useMemo(() => {
+    if (approvalActive || approvalFailed) return 'approve-on-fuse'
+    if (failedStep) return failedStep
+    if (activeStep) return activeStep
+    return null
+  }, [activeStep, approvalActive, approvalFailed, failedStep])
 
   return (
-    <YStack gap="$3">
-      <YStack gap="$2">
-        <Heading level={4}>Migration journey</Heading>
-        {statusLabel && (
-          <Text variant="caption" color={statusColor} fontWeight="700">
-            {statusLabel}
-          </Text>
-        )}
-        {!hasAvailableBalance && status === 'summary' && (
-          <Text secondary>No migration available for this wallet yet.</Text>
-        )}
-      </YStack>
-
-      <YStack gap="$2">
-        <MigrationStepRow
-          step="Approve on Fuse"
-          description={getApproveDescription(status, error)}
-          needsAttention={approveNeedsAttention}
-          isCompleted={approvalCompleted}
-          isActive={approvalActive}
-          isFailed={approvalFailed}
-          isFirst
-        />
-        {migrationStepStates.map((stepState, index) => {
-          const connectorAbove =
-            index === 0 ? approveConnectorBelow : migrationStepStates[index - 1].connectorBelow
-
-          return (
-            <MigrationStepRow
-              key={stepState.step}
-              step={formatStepLabel(stepState.step)}
-              description={getStepDescription(
-                stepState.step,
-                status,
-                activeStep,
-                failedStep,
-                error,
-              )}
-              needsAttention={stepState.needsAttention}
-              isCompleted={stepState.isCompleted}
-              isActive={stepState.isActive}
-              isFailed={stepState.isFailed}
-              isLast={index === migrationStepStates.length - 1}
-              connectorAboveColor={connectorAbove}
-            />
-          )
-        })}
-      </YStack>
-    </YStack>
+    <Stepper
+      steps={steps}
+      activeStepId={activeStepId}
+      header={
+        <YStack gap="$2">
+          <Heading level={4}>Migration journey</Heading>
+          {statusLabel && (
+            <Text variant="caption" color={statusColor} fontWeight="700">
+              {statusLabel}
+            </Text>
+          )}
+          {!hasAvailableBalance && status === 'summary' && (
+            <Text secondary>No migration available for this wallet yet.</Text>
+          )}
+        </YStack>
+      }
+    />
   )
 }
