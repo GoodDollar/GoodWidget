@@ -2,6 +2,8 @@ import React from 'react'
 import { Icon, Text, XStack, YStack } from '@goodwidget/ui'
 import { MIGRATION_STEP_MARKER_SIZE, MigrationStepMarker } from './MigrationStepMarker'
 
+const TIMELINE_ROW_GAP_PX = 8
+
 interface MigrationStepRowProps {
   step: string
   description?: string
@@ -11,6 +13,18 @@ interface MigrationStepRowProps {
   needsAttention?: boolean
   isFirst?: boolean
   isLast?: boolean
+  connectorAboveColor?: string
+}
+
+export function getStepConnectorColor(
+  isCompleted: boolean,
+  isFailed: boolean,
+  isActive: boolean,
+  needsAttention: boolean,
+): string {
+  if (isCompleted) return '$borderColorFocus'
+  if (isFailed || (needsAttention && isActive)) return '$warning'
+  return '$borderColor'
 }
 
 export function MigrationStepRow({
@@ -22,10 +36,10 @@ export function MigrationStepRow({
   needsAttention = false,
   isFirst = false,
   isLast = false,
+  connectorAboveColor,
 }: MigrationStepRowProps) {
   const useAttentionStyle = needsAttention && (isActive || isFailed)
-  const lineColor =
-    useAttentionStyle || isCompleted || isActive ? (useAttentionStyle ? '$warning' : '$borderColorFocus') : '$borderColor'
+  const connectorBelowColor = getStepConnectorColor(isCompleted, isFailed, isActive, needsAttention)
   const titleColor = useAttentionStyle
     ? '$warning'
     : isFailed
@@ -70,21 +84,25 @@ export function MigrationStepRow({
   return (
     <XStack alignItems="stretch" gap="$3">
       <YStack alignItems="center" width={MIGRATION_STEP_MARKER_SIZE} flexShrink={0} marginTop={railOffset}>
-        <YStack
-          width={2}
-          flex={1}
-          minHeight={6}
-          backgroundColor={isFirst ? 'transparent' : lineColor}
-          opacity={isFirst ? 0 : 1}
-        />
+        {!isFirst && connectorAboveColor && (
+          <YStack
+            width={2}
+            flex={1}
+            minHeight={6}
+            backgroundColor={connectorAboveColor}
+            marginTop={-TIMELINE_ROW_GAP_PX}
+          />
+        )}
         <MigrationStepMarker variant={markerVariant} />
-        <YStack
-          width={2}
-          flex={1}
-          minHeight={16}
-          backgroundColor={isLast ? 'transparent' : lineColor}
-          opacity={isLast ? 0 : 1}
-        />
+        {!isLast && (
+          <YStack
+            width={2}
+            flex={1}
+            minHeight={16}
+            backgroundColor={connectorBelowColor}
+            marginBottom={-TIMELINE_ROW_GAP_PX}
+          />
+        )}
       </YStack>
 
       <YStack

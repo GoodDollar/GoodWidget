@@ -1,6 +1,6 @@
 import React from 'react'
 import { Heading, Text, YStack } from '@goodwidget/ui'
-import { MigrationStepRow } from './MigrationStepRow'
+import { getStepConnectorColor, MigrationStepRow } from './MigrationStepRow'
 import type { MigrationStep, StakingMigrationWidgetStatus } from './widgetRuntimeContract'
 
 const STEP_ORDER: MigrationStep[] = ['unstake', 'bridge sent', 'bridge received', 'stake']
@@ -102,6 +102,28 @@ export function MigrationProgressTimeline({
 
   const statusLabel = getStepStatusLabel(status)
 
+  const approveConnectorBelow = getStepConnectorColor(
+    approvalCompleted,
+    approvalFailed,
+    approvalActive,
+    approveNeedsAttention,
+  )
+
+  const migrationStepStates = STEP_ORDER.map((step) => {
+    const isCompleted = completedSteps.includes(step)
+    const isActive = activeStep === step
+    const isFailed = failedStep === step
+    const needsAttention = failedStep === step
+    return {
+      step,
+      isCompleted,
+      isActive,
+      isFailed,
+      needsAttention,
+      connectorBelow: getStepConnectorColor(isCompleted, isFailed, isActive, needsAttention),
+    }
+  })
+
   return (
     <YStack gap="$3">
       <YStack gap="$2">
@@ -126,18 +148,30 @@ export function MigrationProgressTimeline({
           isFailed={approvalFailed}
           isFirst
         />
-        {STEP_ORDER.map((step, index) => (
-          <MigrationStepRow
-            key={step}
-            step={formatStepLabel(step)}
-            description={getStepDescription(step, status, activeStep, failedStep, error)}
-            needsAttention={failedStep === step}
-            isCompleted={completedSteps.includes(step)}
-            isActive={activeStep === step}
-            isFailed={failedStep === step}
-            isLast={index === STEP_ORDER.length - 1}
-          />
-        ))}
+        {migrationStepStates.map((stepState, index) => {
+          const connectorAbove =
+            index === 0 ? approveConnectorBelow : migrationStepStates[index - 1].connectorBelow
+
+          return (
+            <MigrationStepRow
+              key={stepState.step}
+              step={formatStepLabel(stepState.step)}
+              description={getStepDescription(
+                stepState.step,
+                status,
+                activeStep,
+                failedStep,
+                error,
+              )}
+              needsAttention={stepState.needsAttention}
+              isCompleted={stepState.isCompleted}
+              isActive={stepState.isActive}
+              isFailed={stepState.isFailed}
+              isLast={index === migrationStepStates.length - 1}
+              connectorAboveColor={connectorAbove}
+            />
+          )
+        })}
       </YStack>
     </YStack>
   )
