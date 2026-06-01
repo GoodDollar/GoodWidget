@@ -18,7 +18,8 @@ async function gotoStory(page: Page, storyUrl: string): Promise<void> {
 test('StakingMigrationWidget empty balance summary', async ({ page }) => {
   await gotoStory(page, STORY_IDS.empty)
   await expect(page.getByText('No staked sG$ found on Fuse for this wallet.')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Approve and Migrate' })).toHaveCount(0)
+  await expect(page.getByText('No migration available for this wallet yet.')).toBeVisible()
+  await expect(page.getByRole('button')).toHaveCount(0)
   await page.screenshot({
     path: 'tests/widgets/staking-migration-widget/test-results/smw-01-empty-balance.png',
     fullPage: true,
@@ -27,7 +28,7 @@ test('StakingMigrationWidget empty balance summary', async ({ page }) => {
 
 test('StakingMigrationWidget wrong network notice', async ({ page }) => {
   await gotoStory(page, STORY_IDS.wrongNetwork)
-  await expect(page.getByText('Wrong network')).toBeVisible()
+  await expect(page.getByText('Approve on Fuse')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Switch to Fuse' })).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/staking-migration-widget/test-results/smw-02-wrong-network.png',
@@ -37,8 +38,8 @@ test('StakingMigrationWidget wrong network notice', async ({ page }) => {
 
 test('StakingMigrationWidget approval pending notice', async ({ page }) => {
   await gotoStory(page, STORY_IDS.approvalPending)
-  await expect(page.getByText('Approval pending…')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Approval pending…' })).toBeDisabled()
+  await expect(page.getByText('Confirm the approval transaction in your wallet.')).toBeVisible()
+  await expect(page.getByRole('button')).toHaveCount(0)
   await page.screenshot({
     path: 'tests/widgets/staking-migration-widget/test-results/smw-03-approval-pending.png',
     fullPage: true,
@@ -58,7 +59,6 @@ test('StakingMigrationWidget migrating timeline', async ({ page }) => {
 test('StakingMigrationWidget success state', async ({ page }) => {
   await gotoStory(page, STORY_IDS.success)
   await expect(page.getByText('Completed')).toBeVisible()
-  await expect(page.getByText('Current action')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Refresh balance' })).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/staking-migration-widget/test-results/smw-05-success.png',

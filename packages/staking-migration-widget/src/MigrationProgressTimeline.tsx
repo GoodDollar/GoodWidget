@@ -11,9 +11,15 @@ interface MigrationProgressTimelineProps {
   activeStep: MigrationStep | null
   failedStep: MigrationStep | null
   error: string | null
+  hasAvailableBalance: boolean
+  actionLabel?: string
+  onAction?: () => void
+  actionDisabled?: boolean
 }
 
-function formatStepLabel(step: string): string {
+function formatStepLabel(step: MigrationStep): string {
+  if (step === 'bridge sent') return 'Bridge to Celo'
+  if (step === 'stake') return 'Stake on Celo'
   return step
     .split(' ')
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
@@ -65,6 +71,13 @@ function getStepDescription(
   return 'Pending'
 }
 
+function getStepStatusLabel(status: StakingMigrationWidgetStatus): string | null {
+  if (status === 'success') return 'Completed'
+  if (status === 'error' || status === 'approval-failed') return 'Failed'
+  if (status === 'missing-config') return 'Configuration required'
+  return null
+}
+
 // This timeline preserves completed steps while advancing exactly one active spinner.
 export function MigrationProgressTimeline({
   status,
@@ -72,36 +85,17 @@ export function MigrationProgressTimeline({
   activeStep,
   failedStep,
   error,
+  hasAvailableBalance,
+  actionLabel,
+  onAction,
+  actionDisabled,
 }: MigrationProgressTimelineProps) {
   const approvalCompleted = status === 'migrating' || status === 'success' || status === 'error'
-  const approvalActive = status === 'approval-pending'
+  const approvalActive =
+    ((status === 'summary' || status === 'wrong-network') && hasAvailableBalance) ||
+    status === 'approval-pending' ||
+    status === 'approval-failed'
   const approvalFailed = status === 'approval-failed'
-
-  const statusLabel =
-    status === 'success'
-      ? 'Completed'
-      : status === 'error' || status === 'approval-failed'
-        ? 'Failed'
-        : status === 'approval-pending' || status === 'migrating'
-          ? 'In progress'
-          : status === 'wrong-network'
-            ? 'Action needed'
-            : 'Ready'
-
-  const timelineDescription =
-    status === 'success'
-      ? 'Migration completed and your position is now in Celo savings.'
-      : status === 'error'
-        ? failedStep
-          ? `Failed at ${failedStep}: ${error ?? 'Unknown backend error'}`
-          : error ?? 'Unknown backend error'
-        : status === 'approval-failed'
-          ? error ?? 'Approval did not complete. Retry approval to continue.'
-          : status === 'wrong-network'
-            ? 'Switch to Fuse to start approval.'
-            : status === 'missing-config'
-              ? 'Provide migrationApiBaseUrl and migrationOperator before enabling migration.'
-              : 'Approve on Fuse, then migration continues automatically.'
 
   const statusColor =
     status === 'success'
@@ -112,20 +106,29 @@ export function MigrationProgressTimeline({
           ? '$warning'
           : '$primary'
 
+  const statusLabel = getStepStatusLabel(status)
+
   return (
     <YStack gap="$3">
       <YStack gap="$2">
-        <Text variant="caption" color={statusColor} fontWeight="700">
-          {statusLabel}
-        </Text>
         <Heading level={4}>Migration journey</Heading>
-        <Text secondary>{timelineDescription}</Text>
+        {statusLabel && (
+          <Text variant="caption" color={statusColor} fontWeight="700">
+            {statusLabel}
+          </Text>
+        )}
+        {!hasAvailableBalance && status === 'summary' && (
+          <Text secondary>No migration available for this wallet yet.</Text>
+        )}
       </YStack>
 
       <YStack gap="$2">
         <MigrationStepRow
           step="Approve on Fuse"
           description={getApproveDescription(status, error)}
+          actionLabel={approvalActive || approvalFailed ? actionLabel : undefined}
+          onAction={approvalActive || approvalFailed ? onAction : undefined}
+          actionDisabled={actionDisabled}
           isCompleted={approvalCompleted}
           isActive={approvalActive}
           isFailed={approvalFailed}
@@ -136,6 +139,9 @@ export function MigrationProgressTimeline({
             key={step}
             step={formatStepLabel(step)}
             description={getStepDescription(step, status, activeStep, failedStep, error)}
+            actionLabel={failedStep === step ? actionLabel : undefined}
+            onAction={failedStep === step ? onAction : undefined}
+            actionDisabled={actionDisabled}
             isCompleted={completedSteps.includes(step)}
             isActive={activeStep === step}
             isFailed={failedStep === step}

@@ -1,61 +1,62 @@
 import React from 'react'
-import { Button, ButtonText, Heading, Text, TokenAmount, YStack } from '@goodwidget/ui'
+import { YStack, Heading, Text, TokenAmount } from '@goodwidget/ui'
 
 interface MigrationSummaryCardProps {
   stakedAmount: string
   isZeroBalance: boolean
-  actionLabel?: string
-  actionDisabled?: boolean
   actionHint?: string
-  onPrimaryAction?: () => void
   statusMessage?: string
 }
 
-// This summary card is the entry point for approve-and-migrate user action.
+// This summary card keeps the hero area compact and amount-led.
 export function MigrationSummaryCard({
   stakedAmount,
   isZeroBalance,
-  actionLabel,
-  actionDisabled,
   actionHint,
   statusMessage,
-  onPrimaryAction,
 }: MigrationSummaryCardProps) {
   return (
-    <YStack gap="$4">
-      <Heading level={3}>Migrate Fuse staking to Celo savings</Heading>
-      <Text secondary>
-        Approve migration once, then the backend completes: unstake → bridge sent → bridge received →
-        stake.
+    <YStack gap="$5" alignItems="center">
+      <Heading level={3} textAlign="center">
+        Migrate Fuse staking to Celo savings
+      </Heading>
+      <Text secondary textAlign="center">
+        Move your assets to the new network to continue earning rewards.
       </Text>
 
-      <YStack gap="$2" alignItems="flex-start">
-        <Text variant="label" secondary>
-          Your staked amount
+      <YStack
+        width="100%"
+        alignItems="center"
+        gap="$3"
+        padding="$5"
+        borderRadius="$4"
+        borderWidth={1}
+        borderColor="$borderColorFocus"
+        backgroundColor="$backgroundHover"
+        shadowColor="$borderColorFocus"
+        shadowOpacity={0.18}
+        shadowRadius={16}
+      >
+        <Text variant="caption" secondary fontWeight="700" textTransform="uppercase">
+          Amount to migrate
         </Text>
         <TokenAmount token="sG$" amount={stakedAmount} size="lg" />
         {statusMessage && (
-          <Text color="$primary" fontWeight="700">
+          <Text color="$primary" fontWeight="700" textAlign="center">
             {statusMessage}
           </Text>
         )}
         {isZeroBalance && (
-          <Text variant="caption" secondary>
+          <Text variant="caption" secondary textAlign="center">
             No staked sG$ found on Fuse for this wallet.
           </Text>
         )}
+        {actionHint && (
+          <Text variant="caption" secondary textAlign="center">
+            {actionHint}
+          </Text>
+        )}
       </YStack>
-
-      {actionLabel && onPrimaryAction && (
-        <Button onPress={onPrimaryAction} disabled={actionDisabled}>
-          <ButtonText>{actionLabel}</ButtonText>
-        </Button>
-      )}
-      {actionHint && (
-        <Text variant="caption" secondary>
-          {actionHint}
-        </Text>
-      )}
     </YStack>
   )
 }

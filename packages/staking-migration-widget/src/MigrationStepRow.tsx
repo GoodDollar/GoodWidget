@@ -1,9 +1,12 @@
 import React from 'react'
-import { Icon, Spinner, Text, XStack, YStack, ZStack } from '@goodwidget/ui'
+import { Button, ButtonText, Icon, Spinner, Text, XStack, YStack, ZStack } from '@goodwidget/ui'
 
 interface MigrationStepRowProps {
   step: string
   description?: string
+  actionLabel?: string
+  onAction?: () => void
+  actionDisabled?: boolean
   isCompleted: boolean
   isActive: boolean
   isFailed?: boolean
@@ -15,6 +18,9 @@ interface MigrationStepRowProps {
 export function MigrationStepRow({
   step,
   description,
+  actionLabel,
+  onAction,
+  actionDisabled = false,
   isCompleted,
   isActive,
   isFailed = false,
@@ -28,7 +34,7 @@ export function MigrationStepRow({
       : '$borderColor'
 
   const markerBackgroundColor = isCompleted || isActive ? '$backgroundPress' : '$background'
-  const lineColor = isCompleted ? '$borderColorFocus' : '$borderColor'
+  const lineColor = isCompleted || isActive ? '$borderColorFocus' : '$borderColor'
   const titleColor = isFailed ? '$warning' : isCompleted || isActive ? '$color' : '$placeholderColor'
   const contentBackgroundColor = isActive ? '$backgroundHover' : undefined
   const contentBorderColor = isFailed
@@ -36,6 +42,8 @@ export function MigrationStepRow({
     : isActive
       ? '$borderColorFocus'
       : 'transparent'
+  const showDescription = Boolean(description) && (isActive || isFailed)
+  const showAction = Boolean(actionLabel && onAction) && (isActive || isFailed)
   const statusCopy = isFailed
     ? 'Needs attention'
     : isCompleted
@@ -43,10 +51,12 @@ export function MigrationStepRow({
       : isActive
         ? 'Current step'
         : 'Pending'
+  const markerSize = 24
+  const railOffset = isActive || isFailed ? '$2' : '$1'
 
   return (
     <XStack alignItems="stretch" gap="$3">
-      <YStack alignItems="center" width={28} flexShrink={0}>
+      <YStack alignItems="center" width={24} flexShrink={0} marginTop={railOffset}>
         <YStack
           width={2}
           flex={1}
@@ -55,17 +65,14 @@ export function MigrationStepRow({
           opacity={isFirst ? 0 : 1}
         />
         <ZStack
-          width={28}
-          height={28}
+          width={markerSize}
+          height={markerSize}
           borderRadius="$full"
           alignItems="center"
           justifyContent="center"
-          borderWidth={2}
+          borderWidth={isActive ? 2 : 1}
           borderColor={markerBorderColor}
           backgroundColor={markerBackgroundColor}
-          shadowColor={isActive ? '$borderColorFocus' : undefined}
-          shadowOpacity={isActive ? 0.4 : 0}
-          shadowRadius={isActive ? 12 : 0}
         >
           {isCompleted ? (
             <Icon name="check" size="xs" color="primary" />
@@ -78,7 +85,7 @@ export function MigrationStepRow({
         <YStack
           width={2}
           flex={1}
-          minHeight={20}
+          minHeight={16}
           backgroundColor={isLast ? 'transparent' : lineColor}
           opacity={isLast ? 0 : 1}
         />
@@ -96,21 +103,30 @@ export function MigrationStepRow({
         borderColor={contentBorderColor}
         backgroundColor={contentBackgroundColor}
       >
-        <Text color={titleColor} fontWeight={isActive || isCompleted || isFailed ? '700' : '600'}>
+        <Text
+          color={titleColor}
+          fontWeight={isActive || isCompleted || isFailed ? '700' : '600'}
+          fontSize={isActive ? '$4' : undefined}
+        >
           {step}
         </Text>
-        {description && (
+        {showDescription && (
           <Text secondary={!isActive && !isFailed} color={isFailed ? '$warning' : undefined}>
             {description}
           </Text>
         )}
-        <Text
-          variant="caption"
-          color={isFailed ? '$warning' : isCompleted || isActive ? '$primary' : undefined}
-          fontWeight={isActive ? '700' : undefined}
-        >
-          {statusCopy}
-        </Text>
+        {showAction && (
+          <Button
+            onPress={onAction}
+            disabled={actionDisabled}
+            size="sm"
+            alignSelf="flex-start"
+            minWidth={132}
+            paddingHorizontal="$4"
+          >
+            <ButtonText>{actionLabel}</ButtonText>
+          </Button>
+        )}
       </YStack>
     </XStack>
   )

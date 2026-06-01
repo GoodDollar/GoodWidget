@@ -52,7 +52,11 @@ function StakingMigrationInner({
   const { state, actions } = activeAdapter
   const isZeroBalance = state.stakedAmountRaw <= 0n
 
-  const summaryAction = useMemo(() => {
+  const journeyAction = useMemo(() => {
+    if (!state.hasRequiredConfig || state.isBalanceLoading || isZeroBalance) {
+      return null
+    }
+
     if (!state.address) {
       return {
         label: 'Connect wallet',
@@ -61,10 +65,6 @@ function StakingMigrationInner({
           void actions.connect()
         },
       }
-    }
-
-    if (!state.hasRequiredConfig || state.isBalanceLoading || isZeroBalance) {
-      return null
     }
 
     if (state.status === 'wrong-network') {
@@ -77,11 +77,7 @@ function StakingMigrationInner({
       }
     }
 
-    if (state.status === 'approval-pending') {
-      return null
-    }
-
-    if (state.status === 'migrating') {
+    if (state.status === 'approval-pending' || state.status === 'migrating') {
       return null
     }
 
@@ -106,7 +102,7 @@ function StakingMigrationInner({
     }
 
     return {
-      label: 'Approve and Migrate',
+      label: 'Approve and migrate',
       disabled: false,
       onPress: () => {
         void actions.approveAndMigrate()
@@ -115,10 +111,6 @@ function StakingMigrationInner({
   }, [actions, isZeroBalance, state.address, state.hasRequiredConfig, state.isBalanceLoading, state.status])
 
   const summaryStatusMessage = useMemo(() => {
-    if (state.status === 'approval-pending') {
-      return 'Waiting for wallet approval on Fuse.'
-    }
-
     if (state.status === 'migrating') {
       return state.activeStep
         ? `${formatJourneyLabel(state.activeStep)} is in progress.`
@@ -129,9 +121,7 @@ function StakingMigrationInner({
   }, [state.activeStep, state.status])
 
   const shouldShowStatusNotice =
-    state.status === 'missing-config' ||
-    state.status === 'wrong-network' ||
-    state.status === 'approval-failed'
+    state.status === 'missing-config'
 
   return (
     <YStack gap="$4" padding="$4">
@@ -140,15 +130,12 @@ function StakingMigrationInner({
           <MigrationSummaryCard
             stakedAmount={state.stakedAmount}
             isZeroBalance={isZeroBalance}
-            actionLabel={summaryAction?.label}
-            actionDisabled={summaryAction?.disabled}
             statusMessage={summaryStatusMessage}
             actionHint={
               isZeroBalance && state.address
                 ? 'No staked sG$ available to migrate from Fuse for this wallet.'
                 : undefined
             }
-            onPrimaryAction={summaryAction?.onPress}
           />
 
           <MigrationProgressTimeline
@@ -157,6 +144,10 @@ function StakingMigrationInner({
             activeStep={state.activeStep}
             failedStep={state.failedStep}
             error={state.error}
+            hasAvailableBalance={!isZeroBalance}
+            actionLabel={journeyAction?.label}
+            actionDisabled={journeyAction?.disabled}
+            onAction={journeyAction?.onPress}
           />
 
           {shouldShowStatusNotice && (
