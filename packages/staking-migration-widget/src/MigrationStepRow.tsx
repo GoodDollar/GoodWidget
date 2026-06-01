@@ -30,6 +30,12 @@ export function MigrationStepRow({
   const markerBackgroundColor = isCompleted || isActive ? '$backgroundPress' : '$background'
   const lineColor = isCompleted ? '$borderColorFocus' : '$borderColor'
   const titleColor = isFailed ? '$warning' : isCompleted || isActive ? '$color' : '$placeholderColor'
+  const contentBackgroundColor = isActive ? '$backgroundHover' : undefined
+  const contentBorderColor = isFailed
+    ? '$warning'
+    : isActive
+      ? '$borderColorFocus'
+      : 'transparent'
   const statusCopy = isFailed
     ? 'Needs attention'
     : isCompleted
@@ -78,7 +84,18 @@ export function MigrationStepRow({
         />
       </YStack>
 
-      <YStack flex={1} gap="$1" paddingBottom={isLast ? '$0' : '$3'} paddingTop="$1">
+      <YStack
+        flex={1}
+        gap={isActive ? '$2' : '$1'}
+        paddingTop="$1"
+        paddingBottom={isLast ? '$0' : '$3'}
+        paddingHorizontal={isActive ? '$3' : '$0'}
+        paddingVertical={isActive ? '$3' : '$0'}
+        borderRadius="$3"
+        borderWidth={isActive || isFailed ? 1 : 0}
+        borderColor={contentBorderColor}
+        backgroundColor={contentBackgroundColor}
+      >
         <Text color={titleColor} fontWeight={isActive || isCompleted || isFailed ? '700' : '600'}>
           {step}
         </Text>
@@ -87,7 +104,11 @@ export function MigrationStepRow({
             {description}
           </Text>
         )}
-        <Text variant="caption" color={isFailed ? '$warning' : isCompleted ? '$primary' : undefined}>
+        <Text
+          variant="caption"
+          color={isFailed ? '$warning' : isCompleted || isActive ? '$primary' : undefined}
+          fontWeight={isActive ? '700' : undefined}
+        >
           {statusCopy}
         </Text>
       </YStack>

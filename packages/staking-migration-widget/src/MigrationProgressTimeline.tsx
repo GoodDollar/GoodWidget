@@ -1,5 +1,5 @@
 import React from 'react'
-import { Card, Heading, Text, YStack } from '@goodwidget/ui'
+import { Heading, Text, YStack } from '@goodwidget/ui'
 import { MigrationStepRow } from './MigrationStepRow'
 import type { MigrationStep, StakingMigrationWidgetStatus } from './widgetRuntimeContract'
 
@@ -103,29 +103,14 @@ export function MigrationProgressTimeline({
               ? 'Provide migrationApiBaseUrl and migrationOperator before enabling migration.'
               : 'Approve on Fuse, then migration continues automatically.'
 
-  const currentActionLabel =
-    status === 'wrong-network'
-      ? 'Switch to Fuse'
-      : status === 'approval-pending'
-        ? 'Approve on Fuse wallet'
-        : status === 'migrating'
-          ? activeStep
-            ? `${activeStep} in progress`
-            : 'Migration in progress'
-          : status === 'success'
-            ? 'Migration complete'
-            : status === 'error' || status === 'approval-failed'
-              ? 'Retry migration'
-              : 'Approve and migrate'
-
-    const statusColor =
-      status === 'success'
-        ? '$success'
-        : status === 'error' || status === 'approval-failed'
-          ? '$error'
-          : status === 'wrong-network' || status === 'missing-config'
-            ? '$warning'
-            : '$primary'
+  const statusColor =
+    status === 'success'
+      ? '$success'
+      : status === 'error' || status === 'approval-failed'
+        ? '$error'
+        : status === 'wrong-network' || status === 'missing-config'
+          ? '$warning'
+          : '$primary'
 
   return (
     <YStack gap="$3">
@@ -136,15 +121,6 @@ export function MigrationProgressTimeline({
         <Heading level={4}>Migration journey</Heading>
         <Text secondary>{timelineDescription}</Text>
       </YStack>
-
-      <Card outlined>
-        <YStack gap="$1">
-          <Text variant="caption" secondary>
-            Current action
-          </Text>
-          <Heading level={5}>{currentActionLabel}</Heading>
-        </YStack>
-      </Card>
 
       <YStack gap="$2">
         <MigrationStepRow
