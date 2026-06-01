@@ -10,11 +10,11 @@ interface MigrationStepRowProps {
   isCompleted: boolean
   isActive: boolean
   isFailed?: boolean
+  needsAttention?: boolean
   isFirst?: boolean
   isLast?: boolean
 }
 
-// This row renders a connected vertical stepper marker with stateful copy.
 export function MigrationStepRow({
   step,
   description,
@@ -24,35 +24,43 @@ export function MigrationStepRow({
   isCompleted,
   isActive,
   isFailed = false,
+  needsAttention = false,
   isFirst = false,
   isLast = false,
 }: MigrationStepRowProps) {
-  const markerBorderColor = isFailed
+  const useAttentionStyle = needsAttention && (isActive || isFailed)
+  const markerBorderColor = useAttentionStyle
     ? '$warning'
-    : isCompleted || isActive
-      ? '$borderColorFocus'
-      : '$borderColor'
-
-  const markerBackgroundColor = isCompleted || isActive ? '$backgroundPress' : '$background'
-  const lineColor = isCompleted || isActive ? '$borderColorFocus' : '$borderColor'
-  const titleColor = isFailed ? '$warning' : isCompleted || isActive ? '$color' : '$placeholderColor'
+    : isFailed
+      ? '$warning'
+      : isCompleted || isActive
+        ? '$borderColorFocus'
+        : '$borderColor'
+  const markerBackgroundColor =
+    useAttentionStyle && isActive && !isFailed ? '$background' : isCompleted || isActive ? '$backgroundPress' : '$background'
+  const lineColor =
+    useAttentionStyle || isCompleted || isActive ? (useAttentionStyle ? '$warning' : '$borderColorFocus') : '$borderColor'
+  const titleColor = useAttentionStyle
+    ? '$warning'
+    : isFailed
+      ? '$warning'
+      : isCompleted || isActive
+        ? '$color'
+        : '$placeholderColor'
   const contentBackgroundColor = isActive ? '$backgroundHover' : undefined
-  const contentBorderColor = isFailed
+  const contentBorderColor = useAttentionStyle
     ? '$warning'
-    : isActive
-      ? '$borderColorFocus'
-      : 'transparent'
+    : isFailed
+      ? '$warning'
+      : isActive
+        ? '$borderColorFocus'
+        : 'transparent'
   const showDescription = Boolean(description) && (isActive || isFailed)
   const showAction = Boolean(actionLabel && onAction) && (isActive || isFailed)
-  const statusCopy = isFailed
-    ? 'Needs attention'
-    : isCompleted
-      ? 'Completed'
-      : isActive
-        ? 'Current step'
-        : 'Pending'
+  const showPendingLabel = !isCompleted && !isActive && !isFailed
   const markerSize = 24
   const railOffset = isActive || isFailed ? '$2' : '$1'
+  const showActiveSpinner = isActive && !isFailed && !useAttentionStyle
 
   return (
     <XStack alignItems="stretch" gap="$3">
@@ -70,7 +78,7 @@ export function MigrationStepRow({
           borderRadius="$full"
           alignItems="center"
           justifyContent="center"
-          borderWidth={isActive ? 2 : 1}
+          borderWidth={isActive || isFailed ? 2 : 1}
           borderColor={markerBorderColor}
           backgroundColor={markerBackgroundColor}
         >
@@ -78,7 +86,7 @@ export function MigrationStepRow({
             <Icon name="check" size="xs" color="primary" />
           ) : isFailed ? (
             <Icon name="alert-triangle" size="xs" color="inherit" />
-          ) : isActive ? (
+          ) : showActiveSpinner ? (
             <Spinner size="sm" />
           ) : null}
         </ZStack>
@@ -96,35 +104,52 @@ export function MigrationStepRow({
         gap={isActive ? '$2' : '$1'}
         paddingTop="$1"
         paddingBottom={isLast ? '$0' : '$3'}
-        paddingHorizontal={isActive ? '$3' : '$0'}
-        paddingVertical={isActive ? '$3' : '$0'}
+        paddingHorizontal={isActive || isFailed ? '$3' : '$0'}
+        paddingVertical={isActive || isFailed ? '$3' : '$0'}
         borderRadius="$3"
         borderWidth={isActive || isFailed ? 1 : 0}
         borderColor={contentBorderColor}
         backgroundColor={contentBackgroundColor}
       >
-        <Text
-          color={titleColor}
-          fontWeight={isActive || isCompleted || isFailed ? '700' : '600'}
-          fontSize={isActive ? '$4' : undefined}
-        >
-          {step}
-        </Text>
+        <XStack alignItems="center" justifyContent="space-between" gap="$2">
+          <XStack alignItems="center" gap="$2" flex={1} flexWrap="wrap">
+            <Text
+              color={titleColor}
+              fontWeight={isActive || isCompleted || isFailed ? '700' : '600'}
+              fontSize={isActive ? '$4' : undefined}
+            >
+              {step}
+            </Text>
+            {useAttentionStyle && isActive && (
+              <Icon name="alert-triangle" size="xs" color="inherit" />
+            )}
+          </XStack>
+          {showPendingLabel && (
+            <Text variant="caption" secondary>
+              Pending
+            </Text>
+          )}
+        </XStack>
         {showDescription && (
-          <Text secondary={!isActive && !isFailed} color={isFailed ? '$warning' : undefined}>
+          <Text secondary={!isActive && !isFailed} color={isFailed || useAttentionStyle ? '$warning' : undefined}>
             {description}
           </Text>
         )}
         {showAction && (
           <Button
+            variant="ghost"
             onPress={onAction}
             disabled={actionDisabled}
-            size="sm"
-            alignSelf="flex-start"
-            minWidth={132}
-            paddingHorizontal="$4"
+            fullWidth
+            size="md"
+            borderRadius="$3"
+            backgroundColor="$warning"
+            hoverStyle={{ backgroundColor: '$warning', opacity: 0.92 }}
+            pressStyle={{ backgroundColor: '$warning', opacity: 0.86 }}
           >
-            <ButtonText>{actionLabel}</ButtonText>
+            <ButtonText color="$background" fontWeight="700">
+              {actionLabel}
+            </ButtonText>
           </Button>
         )}
       </YStack>

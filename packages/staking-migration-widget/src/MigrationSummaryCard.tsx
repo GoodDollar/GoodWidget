@@ -1,23 +1,26 @@
 import React from 'react'
-import { YStack, Heading, Text, TokenAmount } from '@goodwidget/ui'
+import { YStack, Heading, Text, TokenAmount, Icon } from '@goodwidget/ui'
 
 interface MigrationSummaryCardProps {
   stakedAmount: string
   isZeroBalance: boolean
   actionHint?: string
   statusMessage?: string
+  statusIndicatorLabel?: string
 }
 
-// This summary card keeps the hero area compact and amount-led.
 export function MigrationSummaryCard({
   stakedAmount,
   isZeroBalance,
   actionHint,
   statusMessage,
+  statusIndicatorLabel,
 }: MigrationSummaryCardProps) {
+  const shouldShowStatusIndicator = Boolean(statusIndicatorLabel)
+
   return (
     <YStack gap="$5" alignItems="center">
-      <Heading level={3} textAlign="center">
+      <Heading level={3} textAlign="center" color="$primary">
         Migrate Fuse staking to Celo savings
       </Heading>
       <Text secondary textAlign="center">
@@ -41,6 +44,27 @@ export function MigrationSummaryCard({
           Amount to migrate
         </Text>
         <TokenAmount token="sG$" amount={stakedAmount} size="lg" />
+
+        {shouldShowStatusIndicator && (
+          <YStack
+            width={126}
+            height={126}
+            borderRadius="$full"
+            borderWidth={3}
+            borderColor="$borderColorFocus"
+            backgroundColor="$background"
+            alignItems="center"
+            justifyContent="center"
+            gap="$1"
+            paddingHorizontal="$3"
+          >
+            <Icon name="alert-triangle" size="xs" color="inherit" />
+            <Text color="$primary" fontWeight="700" textAlign="center">
+              {statusIndicatorLabel}
+            </Text>
+          </YStack>
+        )}
+
         {statusMessage && (
           <Text color="$primary" fontWeight="700" textAlign="center">
             {statusMessage}

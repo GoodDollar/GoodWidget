@@ -1,5 +1,5 @@
 import React from 'react'
-import { Heading, Text, YStack } from '@goodwidget/ui'
+import { Button, ButtonText, Heading, Text, YStack } from '@goodwidget/ui'
 import { MigrationStepRow } from './MigrationStepRow'
 import type { MigrationStep, StakingMigrationWidgetStatus } from './widgetRuntimeContract'
 
@@ -78,7 +78,6 @@ function getStepStatusLabel(status: StakingMigrationWidgetStatus): string | null
   return null
 }
 
-// This timeline preserves completed steps while advancing exactly one active spinner.
 export function MigrationProgressTimeline({
   status,
   completedSteps,
@@ -96,6 +95,8 @@ export function MigrationProgressTimeline({
     status === 'approval-pending' ||
     status === 'approval-failed'
   const approvalFailed = status === 'approval-failed'
+  const approveNeedsAttention = status === 'wrong-network' || status === 'approval-failed'
+  const showFooterAction = Boolean(actionLabel && onAction) && status === 'success'
 
   const statusColor =
     status === 'success'
@@ -129,6 +130,7 @@ export function MigrationProgressTimeline({
           actionLabel={approvalActive || approvalFailed ? actionLabel : undefined}
           onAction={approvalActive || approvalFailed ? onAction : undefined}
           actionDisabled={actionDisabled}
+          needsAttention={approveNeedsAttention}
           isCompleted={approvalCompleted}
           isActive={approvalActive}
           isFailed={approvalFailed}
@@ -142,6 +144,7 @@ export function MigrationProgressTimeline({
             actionLabel={failedStep === step ? actionLabel : undefined}
             onAction={failedStep === step ? onAction : undefined}
             actionDisabled={actionDisabled}
+            needsAttention={failedStep === step}
             isCompleted={completedSteps.includes(step)}
             isActive={activeStep === step}
             isFailed={failedStep === step}
@@ -149,6 +152,24 @@ export function MigrationProgressTimeline({
           />
         ))}
       </YStack>
+
+      {showFooterAction && (
+        <Button
+          variant="ghost"
+          onPress={onAction}
+          disabled={actionDisabled}
+          fullWidth
+          size="md"
+          borderRadius="$3"
+          backgroundColor="$warning"
+          hoverStyle={{ backgroundColor: '$warning', opacity: 0.92 }}
+          pressStyle={{ backgroundColor: '$warning', opacity: 0.86 }}
+        >
+          <ButtonText color="$background" fontWeight="700">
+            {actionLabel}
+          </ButtonText>
+        </Button>
+      )}
     </YStack>
   )
 }

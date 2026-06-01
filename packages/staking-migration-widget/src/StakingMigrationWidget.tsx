@@ -125,19 +125,20 @@ function StakingMigrationInner({
 
   return (
     <YStack gap="$4" padding="$4">
-      <Card>
-        <YStack gap="$4" padding="$4">
-          <MigrationSummaryCard
-            stakedAmount={state.stakedAmount}
-            isZeroBalance={isZeroBalance}
-            statusMessage={summaryStatusMessage}
-            actionHint={
-              isZeroBalance && state.address
-                ? 'No staked sG$ available to migrate from Fuse for this wallet.'
-                : undefined
-            }
-          />
+      <MigrationSummaryCard
+        stakedAmount={state.stakedAmount}
+        isZeroBalance={isZeroBalance}
+        statusMessage={summaryStatusMessage}
+        statusIndicatorLabel={state.status === 'wrong-network' ? journeyAction?.label : undefined}
+        actionHint={
+          isZeroBalance && state.address
+            ? 'No staked sG$ available to migrate from Fuse for this wallet.'
+            : undefined
+        }
+      />
 
+      <Card>
+        <YStack gap="$4">
           <MigrationProgressTimeline
             status={state.status}
             completedSteps={state.completedSteps}
