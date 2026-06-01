@@ -57,7 +57,8 @@ test('StakingMigrationWidget migrating timeline', async ({ page }) => {
 
 test('StakingMigrationWidget success state', async ({ page }) => {
   await gotoStory(page, STORY_IDS.success)
-  await expect(page.getByText('Migration complete')).toBeVisible()
+  await expect(page.getByText('Completed')).toBeVisible()
+  await expect(page.getByText('Current action')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Refresh balance' })).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/staking-migration-widget/test-results/smw-05-success.png',
@@ -67,7 +68,7 @@ test('StakingMigrationWidget success state', async ({ page }) => {
 
 test('StakingMigrationWidget error state', async ({ page }) => {
   await gotoStory(page, STORY_IDS.error)
-  await expect(page.getByText('Migration failed')).toBeVisible()
+  await expect(page.getByText('Failed')).toBeVisible()
   await expect(page.getByText('Bridge finalization timeout')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Retry migration' })).toBeVisible()
   await page.screenshot({

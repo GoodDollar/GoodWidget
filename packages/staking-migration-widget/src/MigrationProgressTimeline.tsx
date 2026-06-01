@@ -1,5 +1,5 @@
 import React from 'react'
-import { Badge, BadgeText, Heading, Text, YStack } from '@goodwidget/ui'
+import { Badge, BadgeText, Card, Heading, Text, YStack } from '@goodwidget/ui'
 import { MigrationStepRow } from './MigrationStepRow'
 import type { MigrationStep, StakingMigrationWidgetStatus } from './widgetRuntimeContract'
 
@@ -10,6 +10,7 @@ interface MigrationProgressTimelineProps {
   completedSteps: MigrationStep[]
   activeStep: MigrationStep | null
   failedStep: MigrationStep | null
+  error: string | null
 }
 
 // This timeline preserves completed steps while advancing exactly one active spinner.
@@ -18,6 +19,7 @@ export function MigrationProgressTimeline({
   completedSteps,
   activeStep,
   failedStep,
+  error,
 }: MigrationProgressTimelineProps) {
   const approvalCompleted = status === 'migrating' || status === 'success' || status === 'error'
   const approvalActive = status === 'approval-pending'
@@ -45,16 +47,33 @@ export function MigrationProgressTimeline({
 
   const timelineDescription =
     status === 'success'
-      ? 'Your staked position was migrated from Fuse staking to Celo savings.'
+      ? 'Migration completed and your position is now in Celo savings.'
       : status === 'error'
-        ? 'Migration stopped before completion. Resolve the issue and retry.'
+        ? failedStep
+          ? `Failed at ${failedStep}: ${error ?? 'Unknown backend error'}`
+          : error ?? 'Unknown backend error'
         : status === 'approval-failed'
-          ? 'Approval did not complete. Retry approval to continue.'
+          ? error ?? 'Approval did not complete. Retry approval to continue.'
           : status === 'wrong-network'
-            ? 'Switch wallet network to Fuse to approve migration.'
+            ? 'Switch to Fuse to start approval.'
             : status === 'missing-config'
               ? 'Provide migrationApiBaseUrl and migrationOperator before enabling migration.'
-              : 'Approve migration on Fuse, then backend steps continue automatically.'
+              : 'Approve on Fuse, then migration continues automatically.'
+
+  const currentActionLabel =
+    status === 'wrong-network'
+      ? 'Switch to Fuse'
+      : status === 'approval-pending'
+        ? 'Approve on Fuse wallet'
+        : status === 'migrating'
+          ? activeStep
+            ? `${activeStep} in progress`
+            : 'Migration in progress'
+          : status === 'success'
+            ? 'Migration complete'
+            : status === 'error' || status === 'approval-failed'
+              ? 'Retry migration'
+              : 'Approve and migrate'
 
   return (
     <YStack gap="$3">
@@ -65,6 +84,15 @@ export function MigrationProgressTimeline({
         <Heading level={4}>Migration journey</Heading>
         <Text secondary>{timelineDescription}</Text>
       </YStack>
+
+      <Card outlined>
+        <YStack gap="$1">
+          <Text variant="caption" secondary>
+            Current action
+          </Text>
+          <Heading level={5}>{currentActionLabel}</Heading>
+        </YStack>
+      </Card>
 
       <YStack gap="$2">
         <MigrationStepRow

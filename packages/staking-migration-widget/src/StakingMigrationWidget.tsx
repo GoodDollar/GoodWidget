@@ -117,9 +117,7 @@ function StakingMigrationInner({
   const shouldShowStatusNotice =
     state.status === 'missing-config' ||
     state.status === 'wrong-network' ||
-    state.status === 'approval-failed' ||
-    state.status === 'error' ||
-    state.status === 'success'
+    state.status === 'approval-failed'
 
   return (
     <YStack gap="$4" padding="$4">
@@ -143,6 +141,7 @@ function StakingMigrationInner({
             completedSteps={state.completedSteps}
             activeStep={state.activeStep}
             failedStep={state.failedStep}
+            error={state.error}
           />
 
           {shouldShowStatusNotice && (

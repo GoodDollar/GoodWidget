@@ -11,7 +11,16 @@ interface MigrationStepRowProps {
 // This row keeps step visuals deterministic: completed checkmark, one active spinner, or idle bullet.
 export function MigrationStepRow({ step, isCompleted, isActive, isFailed = false }: MigrationStepRowProps) {
   return (
-    <XStack alignItems="center" gap="$3" justifyContent="space-between">
+    <XStack
+      alignItems="center"
+      gap="$3"
+      justifyContent="space-between"
+      padding="$2"
+      borderRadius="$2"
+      borderWidth={isActive || isFailed ? 1 : 0}
+      borderColor={isFailed ? '$error' : '$borderColorFocus'}
+      backgroundColor={isActive ? '$backgroundHover' : undefined}
+    >
       <XStack alignItems="center" gap="$3">
         {isCompleted ? (
           <Text color="$success" fontWeight="700">
@@ -26,7 +35,7 @@ export function MigrationStepRow({ step, isCompleted, isActive, isFailed = false
         ) : (
           <Text secondary>•</Text>
         )}
-        <Text>{step}</Text>
+        <Text fontWeight={isActive ? '700' : undefined}>{step}</Text>
       </XStack>
       {isCompleted && (
         <Text color="$success" variant="caption">
@@ -39,8 +48,8 @@ export function MigrationStepRow({ step, isCompleted, isActive, isFailed = false
         </Text>
       )}
       {isActive && (
-        <Text secondary variant="caption">
-          in progress
+        <Text color="$color" variant="caption" fontWeight="700">
+          current
         </Text>
       )}
     </XStack>
