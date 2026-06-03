@@ -1,12 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useWallet } from '@goodwidget/core'
-import { createPublicClient, createWalletClient, custom, formatUnits, parseUnits } from 'viem'
+import {
+  createPublicClient,
+  createWalletClient,
+  custom,
+  formatUnits,
+  parseUnits,
+  type Chain,
+} from 'viem'
 import type {
   ReserveSwapDirection,
   ReserveSwapWidgetAdapterResult,
   ReserveSwapWidgetAdapterState,
 } from './widgetRuntimeContract'
 import {
+  CELO_CHAIN_ID,
   DEFAULT_GD_DECIMALS,
   DEFAULT_SLIPPAGE_PERCENT,
   DEFAULT_STABLE_DECIMALS,
@@ -15,6 +23,25 @@ import {
   XDC_CHAIN_ID,
 } from './constants'
 import { mapReserveError } from './errors'
+
+// Minimal viem Chain definitions for the supported reserve chains. The
+// GoodReserve SDK constructor reads publicClient.chain.id and throws when it is
+// missing, so the public client must be chain-aware (mirrors the pattern in
+// citizen-claim-widget's adapter).
+const RESERVE_CHAINS: Record<number, Chain> = {
+  [CELO_CHAIN_ID]: {
+    id: CELO_CHAIN_ID,
+    name: 'Celo',
+    nativeCurrency: { name: 'Celo', symbol: 'CELO', decimals: 18 },
+    rpcUrls: { default: { http: ['https://forno.celo.org'] } },
+  } as Chain,
+  [XDC_CHAIN_ID]: {
+    id: XDC_CHAIN_ID,
+    name: 'XDC Network',
+    nativeCurrency: { name: 'XDC', symbol: 'XDC', decimals: 18 },
+    rpcUrls: { default: { http: ['https://rpc.ankr.com/xdc'] } },
+  } as Chain,
+}
 
 type GoodReserveSDKLike = {
   getStableTokenAddress: () => `0x${string}`
@@ -130,7 +157,19 @@ export function useGoodReserveAdapter(
   // Raw on-chain balances kept independent of direction so the in/out slots can
   // be remapped instantly when the user toggles buy/sell.
   const balancesRef = useRef({ stable: '0.00', gd: '0.00' })
+  // Latest "from" balance, read inside the quote effect without adding it to the
+  // effect deps (otherwise a post-swap balance refresh would restart the quote
+  // debounce even though the amount was just cleared).
+  const tokenInBalanceRef = useRef(state.tokenInBalance)
+  // Status to restore when an overlay (slippage sheet / confirm dialog) is
+  // dismissed, so cancelling does not lie about the underlying quote state
+  // (e.g. returning to quote_ready when the user was at insufficient_balance).
+  const previousStatusRef = useRef<ReserveSwapWidgetAdapterState['status']>('idle_buy')
   const mountedRef = useRef(true)
+
+  useEffect(() => {
+    tokenInBalanceRef.current = state.tokenInBalance
+  }, [state.tokenInBalance])
 
   useEffect(() => {
     mountedRef.current = true
@@ -182,6 +221,11 @@ export function useGoodReserveAdapter(
   const bootstrapSdk = useCallback(async () => {
     if (!provider || !address || !chainId || !chainSupported) return
 
+    // Drop any SDK/client bound to a previous chain so a Celo<->XDC switch
+    // re-initializes against the new chain instead of reusing stale clients.
+    sdkRef.current = null
+    readClientRef.current = null
+
     applyStatePatch({ status: 'sdk_initializing', hasProvider: true, error: null })
 
     const constructor = await loadGoodReserveSdkConstructor()
@@ -195,10 +239,14 @@ export function useGoodReserveAdapter(
     }
 
     try {
+      const chain = RESERVE_CHAINS[chainId]
       const transport = custom(provider as Parameters<typeof custom>[0])
-      const publicClient = createPublicClient({ transport })
+      // Pass the chain so publicClient.chain.id is populated; the SDK
+      // constructor validates it and throws on a chainless client.
+      const publicClient = createPublicClient({ chain, transport })
       const walletClient = createWalletClient({
         account: address as `0x${string}`,
+        chain,
         transport,
       })
 
@@ -277,7 +325,7 @@ export function useGoodReserveAdapter(
 
     const timeoutId = window.setTimeout(async () => {
       try {
-        const inputBalance = Number(state.tokenInBalance)
+        const inputBalance = Number(tokenInBalanceRef.current)
         if (Number.isFinite(inputBalance) && amount > inputBalance) {
           applyStatePatch({
             status: 'insufficient_balance',
@@ -330,7 +378,9 @@ export function useGoodReserveAdapter(
     }, QUOTE_DEBOUNCE_MS)
 
     return () => window.clearTimeout(timeoutId)
-  }, [applyStatePatch, mockState, state.direction, state.inputAmount, state.slippagePercent, state.tokenInBalance])
+    // Note: tokenInBalance is intentionally read via ref (not a dep) so a
+    // post-swap/direction-toggle balance update does not restart the debounce.
+  }, [applyStatePatch, mockState, state.direction, state.inputAmount, state.slippagePercent])
 
   const actions = useMemo(
     () => ({
@@ -373,16 +423,22 @@ export function useGoodReserveAdapter(
         applyStatePatch({ slippagePercent: value, status: 'idle_buy' })
       },
       openSlippage: () => {
+        if (state.status !== 'slippage_selection' && state.status !== 'confirm_dialog') {
+          previousStatusRef.current = state.status
+        }
         applyStatePatch({ status: 'slippage_selection' })
       },
       closeSlippage: () => {
-        applyStatePatch({ status: state.quote ? 'quote_ready' : 'idle_buy' })
+        applyStatePatch({ status: previousStatusRef.current })
       },
       openConfirm: () => {
+        if (state.status !== 'confirm_dialog' && state.status !== 'slippage_selection') {
+          previousStatusRef.current = state.status
+        }
         applyStatePatch({ status: 'confirm_dialog' })
       },
       closeConfirm: () => {
-        applyStatePatch({ status: state.quote ? 'quote_ready' : 'idle_buy' })
+        applyStatePatch({ status: previousStatusRef.current })
       },
       executeSwap: async () => {
         if (!sdkRef.current || !state.quote || !state.inputAmount) return

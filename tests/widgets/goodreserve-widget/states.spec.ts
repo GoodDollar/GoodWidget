@@ -51,6 +51,12 @@ test('unsupported-chain state renders the switch-network CTA', async ({ page }) 
   await page.screenshot({ path: `${SCREENSHOT_DIR}/grw-02-unsupported-chain.png` })
 })
 
+test('sdk-initializing state shows a connecting loader', async ({ page }) => {
+  await gotoStory(page, 'widgets-goodreservewidget--sdk-initializing')
+  await expect(page.getByText('Connecting to the reserve…')).toBeVisible()
+  await page.screenshot({ path: `${SCREENSHOT_DIR}/grw-13-sdk-initializing.png` })
+})
+
 test('idle-buy state shows the Enter Amount CTA', async ({ page }) => {
   await gotoStory(page, 'widgets-goodreservewidget--idle-buy')
   await expect(page.getByText('Enter Amount')).toBeVisible()

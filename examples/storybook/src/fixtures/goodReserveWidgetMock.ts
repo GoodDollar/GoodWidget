@@ -14,6 +14,12 @@ export const reserveWidgetMockStates: Record<string, Partial<ReserveSwapWidgetAd
     chainId: 8453,
     address: '0x1111111111111111111111111111111111111111',
   },
+  sdkInitializing: {
+    status: 'sdk_initializing',
+    hasProvider: true,
+    chainId: 42220,
+    address: '0x1111111111111111111111111111111111111111',
+  },
   idleBuy: {
     status: 'idle_buy',
     chainId: 42220,

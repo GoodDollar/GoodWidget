@@ -158,6 +158,24 @@ export function ReserveSwapView({ adapter }: ReserveSwapViewProps) {
                 ? 'Fetching Quote…'
                 : 'Review Swap'
 
+  // While the SDK/runtime mounts, show a centered loading state rather than a
+  // half-populated swap card.
+  if (state.status === 'sdk_initializing') {
+    return (
+      <YStack
+        testID="GoodReserveWidget-root"
+        width="100%"
+        maxWidth={390}
+        alignSelf="center"
+      >
+        <SwapShell alignItems="center" justifyContent="center" gap="$3" paddingVertical="$8">
+          <Spinner size="lg" />
+          <Text tone="soft">Connecting to the reserve…</Text>
+        </SwapShell>
+      </YStack>
+    )
+  }
+
   // Success state renders a dedicated celebration screen (Figma success frame):
   // glowing check hero → title → summary card → explorer link → primary CTA.
   if (state.status === 'swap_success') {
