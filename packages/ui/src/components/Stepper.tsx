@@ -27,7 +27,6 @@ export interface StepperProps {
 
 export function getStepperConnectorColor(status: StepperStepStatus): string {
   if (status === 'completed') return '$borderColorFocus'
-  if (status === 'failed' || status === 'attention') return '$warning'
   return '$borderColor'
 }
 
