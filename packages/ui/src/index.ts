@@ -93,7 +93,7 @@ export { WalletInfo } from './components-test/WalletInfo'
 
 // Patterns / Composites
 export { MiniAppShell } from './components/MiniAppShell'
-export { Stepper, getStepperConnectorColor, STEPPER_MARKER_SIZE } from './components/Stepper'
+export { Stepper } from './components/Stepper'
 export type { StepperProps, StepperStepItem, StepperStepStatus } from './components/Stepper'
 export { WidgetTabs } from './components/WidgetTabs'
 export { ActionSheet } from './components-test/ActionSheet'

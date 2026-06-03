@@ -55,7 +55,6 @@ export interface StakingMigrationWidgetActions {
   switchToFuse: () => Promise<void>
   refresh: () => Promise<void>
   approveAndMigrate: () => Promise<void>
-  retryApproval: () => Promise<void>
   retryMigration: () => Promise<void>
 }
 

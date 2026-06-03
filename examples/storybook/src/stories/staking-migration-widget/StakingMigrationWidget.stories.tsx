@@ -9,7 +9,6 @@ import {
 } from '@goodwidget/staking-migration-widget'
 import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
 
-// This helper builds deterministic adapter snapshots for Storybook state coverage.
 function createAdapterFactory(
   status: StakingMigrationWidgetStatus,
   overrides: {
@@ -46,7 +45,6 @@ function createAdapterFactory(
       switchToFuse: async () => {},
       refresh: async () => {},
       approveAndMigrate: async () => {},
-      retryApproval: async () => {},
       retryMigration: async () => {},
     },
   })

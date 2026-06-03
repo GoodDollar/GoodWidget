@@ -1,9 +1,8 @@
 import React, { useMemo } from 'react'
 import { GoodWidgetProvider } from '@goodwidget/core'
 import type { EIP1193Provider } from '@goodwidget/core'
-import { Card, ToastContainer, YStack } from '@goodwidget/ui'
+import { Card, Text, ToastContainer, YStack } from '@goodwidget/ui'
 import { MigrationProgressTimeline } from './MigrationProgressTimeline'
-import { MigrationStatusNotice } from './MigrationStatusNotice'
 import { MigrationSummaryCard } from './MigrationSummaryCard'
 import { useStakingMigrationAdapter } from './adapter'
 import type {
@@ -179,9 +178,6 @@ function StakingMigrationInner({
     return undefined
   }, [state.activeStep, state.status])
 
-  const shouldShowStatusNotice =
-    state.status === 'missing-config'
-
   return (
     <YStack gap="$4" padding="$4">
       <MigrationSummaryCard
@@ -204,37 +200,11 @@ function StakingMigrationInner({
             hasAvailableBalance={!isZeroBalance}
           />
 
-          {shouldShowStatusNotice && (
-            <MigrationStatusNotice
-              status={
-                state.status === 'success' ? 'success' : state.status === 'error' || state.status === 'approval-failed' ? 'error' : 'warning'
-              }
-              title={
-                state.status === 'missing-config'
-                  ? 'Missing migration configuration'
-                  : state.status === 'wrong-network'
-                    ? 'Wrong network'
-                    : state.status === 'approval-failed'
-                      ? 'Approval failed'
-                      : state.status === 'success'
-                        ? 'Migration complete'
-                        : 'Migration failed'
-              }
-              message={
-                state.status === 'missing-config'
-                  ? 'Provide migrationApiBaseUrl and migrationOperator in migrationConfig before enabling migration.'
-                  : state.status === 'wrong-network'
-                    ? 'Switch wallet network to Fuse to approve migration.'
-                    : state.status === 'approval-failed'
-                      ? state.error ?? 'Approval was rejected or failed. Retry to continue migration.'
-                      : state.status === 'success'
-                        ? 'Your staked position has been migrated to Celo savings.'
-                        : state.failedStep
-                          ? `Failed at ${state.failedStep}: ${state.error ?? 'Unknown backend error'}`
-                          : state.error ?? 'Unknown backend error'
-              }
-              compact={state.status === 'success' || state.status === 'error'}
-            />
+          {state.status === 'missing-config' && (
+            <Text secondary>
+              <Text color="$warning">Missing migration configuration:</Text> Provide migrationApiBaseUrl
+              and migrationOperator in migrationConfig before enabling migration.
+            </Text>
           )}
         </YStack>
       </Card>
@@ -242,7 +212,6 @@ function StakingMigrationInner({
   )
 }
 
-// This is the public React widget entrypoint with provider-first mounting.
 export function StakingMigrationWidget({
   provider,
   config,

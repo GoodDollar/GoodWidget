@@ -583,10 +583,6 @@ export function useStakingMigrationAdapter({
     walletClient,
   ])
 
-  const retryApproval = useCallback(async () => {
-    await startApprovalAndMigration()
-  }, [startApprovalAndMigration])
-
   const retryMigration = useCallback(async () => {
     if (!state.approvalTxHash) {
       await startApprovalAndMigration()
@@ -646,7 +642,6 @@ export function useStakingMigrationAdapter({
       switchToFuse,
       refresh: refreshStakeState,
       approveAndMigrate: startApprovalAndMigration,
-      retryApproval,
       retryMigration,
     },
   }
