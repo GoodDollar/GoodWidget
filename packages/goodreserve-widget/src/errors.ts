@@ -1,4 +1,7 @@
 // Converts low-level reserve/viem errors into concise user-facing messages.
+// Unmatched errors return a generic fallback (and are logged) so raw viem
+// output — which can leak RPC URLs, contract addresses, or revert hex — is
+// never surfaced directly in the UI.
 export function mapReserveError(err: unknown, fallback: string): string {
   const message = err instanceof Error ? err.message : String(err ?? fallback)
   const lower = message.toLowerCase()
@@ -13,5 +16,7 @@ export function mapReserveError(err: unknown, fallback: string): string {
     return 'GoodReserve SDK package is unavailable in this environment.'
   }
 
-  return message || fallback
+  // Log the raw error for diagnostics but never show it to the user.
+  console.error('Unmapped reserve error:', message)
+  return fallback
 }
