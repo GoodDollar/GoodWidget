@@ -1,22 +1,23 @@
 import React from 'react'
-import { YStack, Heading, Text, TokenAmount, Button, ButtonText, Icon } from '@goodwidget/ui'
+import { YStack, Heading, Text, TokenAmount, CircularActionButton } from '@goodwidget/ui'
+
+export interface MigrationSummaryAction {
+  label: string
+  disabled: boolean
+  pending?: boolean
+  onPress?: () => void
+}
 
 interface MigrationSummaryCardProps {
   stakedAmount: string
   statusMessage?: string
-  actionLabel: string
-  actionDisabled: boolean
-  onPrimaryAction?: () => void
-  showWarningIcon?: boolean
+  action: MigrationSummaryAction
 }
 
 export function MigrationSummaryCard({
   stakedAmount,
   statusMessage,
-  actionLabel,
-  actionDisabled,
-  onPrimaryAction,
-  showWarningIcon = false,
+  action,
 }: MigrationSummaryCardProps) {
   return (
     <YStack gap="$5" alignItems="center">
@@ -45,24 +46,12 @@ export function MigrationSummaryCard({
         </Text>
         <TokenAmount token="sG$" amount={stakedAmount} size="lg" />
 
-        <Button
-          onPress={actionDisabled ? undefined : onPrimaryAction}
-          disabled={actionDisabled}
-          width={126}
-          height={126}
-          borderRadius="$full"
-          alignItems="center"
-          justifyContent="center"
-          paddingHorizontal="$2"
-          paddingVertical="$2"
-        >
-          <YStack gap="$1" alignItems="center" justifyContent="center" maxWidth={92}>
-            {showWarningIcon && <Icon name="alert-triangle" size="2xs" color="inherit" />}
-            <ButtonText textAlign="center" fontSize="$2" lineHeight="$2" maxWidth={92}>
-              {actionLabel}
-            </ButtonText>
-          </YStack>
-        </Button>
+        <CircularActionButton
+          label={action.label}
+          disabled={action.disabled}
+          pending={action.pending}
+          onPress={action.onPress}
+        />
 
         {statusMessage && (
           <Text color="$primary" fontWeight="700" textAlign="center">

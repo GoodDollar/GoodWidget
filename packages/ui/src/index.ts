@@ -93,6 +93,8 @@ export { WalletInfo } from './components-test/WalletInfo'
 
 // Patterns / Composites
 export { MiniAppShell } from './components/MiniAppShell'
+export { CircularActionButton } from './components/CircularActionButton'
+export type { CircularActionButtonProps } from './components/CircularActionButton'
 export { Stepper } from './components/Stepper'
 export type { StepperProps, StepperStepItem, StepperStepStatus } from './components/Stepper'
 export { WidgetTabs } from './components/WidgetTabs'

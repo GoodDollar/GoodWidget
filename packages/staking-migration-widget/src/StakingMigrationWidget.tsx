@@ -55,7 +55,7 @@ function StakingMigrationInner({
       return {
         label: 'Loading...',
         disabled: true,
-        showWarningIcon: false,
+        pending: true,
         onPress: undefined,
       }
     }
@@ -64,7 +64,6 @@ function StakingMigrationInner({
       return {
         label: 'Setup required',
         disabled: true,
-        showWarningIcon: false,
         onPress: undefined,
       }
     }
@@ -73,7 +72,6 @@ function StakingMigrationInner({
       return {
         label: 'No balance',
         disabled: true,
-        showWarningIcon: false,
         onPress: undefined,
       }
     }
@@ -82,7 +80,6 @@ function StakingMigrationInner({
       return {
         label: 'Connect wallet',
         disabled: false,
-        showWarningIcon: false,
         onPress: () => {
           void actions.connect()
         },
@@ -93,7 +90,6 @@ function StakingMigrationInner({
       return {
         label: 'Switch to Fuse',
         disabled: false,
-        showWarningIcon: true,
         onPress: () => {
           void actions.switchToFuse()
         },
@@ -104,7 +100,7 @@ function StakingMigrationInner({
       return {
         label: 'Approval pending',
         disabled: true,
-        showWarningIcon: false,
+        pending: true,
         onPress: undefined,
       }
     }
@@ -113,7 +109,7 @@ function StakingMigrationInner({
       return {
         label: 'Migrating',
         disabled: true,
-        showWarningIcon: false,
+        pending: true,
         onPress: undefined,
       }
     }
@@ -122,7 +118,6 @@ function StakingMigrationInner({
       return {
         label: 'Refresh balance',
         disabled: false,
-        showWarningIcon: false,
         onPress: () => {
           void actions.refresh()
         },
@@ -133,7 +128,6 @@ function StakingMigrationInner({
       return {
         label: 'Retry approval',
         disabled: false,
-        showWarningIcon: true,
         onPress: () => {
           void actions.retryMigration()
         },
@@ -144,7 +138,6 @@ function StakingMigrationInner({
       return {
         label: 'Retry migration',
         disabled: false,
-        showWarningIcon: false,
         onPress: () => {
           void actions.retryMigration()
         },
@@ -154,7 +147,6 @@ function StakingMigrationInner({
     return {
       label: 'Approve & Migrate',
       disabled: false,
-      showWarningIcon: false,
       onPress: () => {
         void actions.approveAndMigrate()
       },
@@ -183,10 +175,7 @@ function StakingMigrationInner({
       <MigrationSummaryCard
         stakedAmount={state.stakedAmount}
         statusMessage={summaryStatusMessage}
-        actionLabel={journeyAction.label}
-        actionDisabled={journeyAction.disabled}
-        onPrimaryAction={journeyAction.onPress}
-        showWarningIcon={journeyAction.showWarningIcon}
+        action={journeyAction}
       />
 
       <Card>
