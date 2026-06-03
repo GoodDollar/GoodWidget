@@ -53,6 +53,11 @@ export const QuoteReadySell: Story = {
     renderStory(reserveWidgetMockStates.sellQuoteReady, 'GoodReserveWidget-quote-ready-sell'),
 }
 
+export const QuoteReadyXdc: Story = {
+  render: () =>
+    renderStory(reserveWidgetMockStates.xdcQuoteReady, 'GoodReserveWidget-quote-ready-xdc'),
+}
+
 export const QuoteError: Story = {
   render: () => renderStory(reserveWidgetMockStates.quoteError, 'GoodReserveWidget-quote-error'),
 }

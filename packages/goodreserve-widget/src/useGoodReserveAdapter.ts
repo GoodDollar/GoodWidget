@@ -102,6 +102,18 @@ function getStableSymbol(chainId: number | null): string {
   return chainId === XDC_CHAIN_ID ? 'USDC' : 'USDm'
 }
 
+// Maps the raw stable/G$ balances onto the in/out slots for the active direction.
+// Buy spends the stable token for G$; sell spends G$ for the stable token.
+function balancesForDirection(
+  direction: ReserveSwapDirection,
+  stableBalance: string,
+  gdBalance: string,
+): { tokenInBalance: string; tokenOutBalance: string } {
+  return direction === 'buy'
+    ? { tokenInBalance: stableBalance, tokenOutBalance: gdBalance }
+    : { tokenInBalance: gdBalance, tokenOutBalance: stableBalance }
+}
+
 export function useGoodReserveAdapter(
   mockState?: Partial<ReserveSwapWidgetAdapterState>,
 ): ReserveSwapWidgetAdapterResult {
@@ -115,6 +127,9 @@ export function useGoodReserveAdapter(
   const sdkRef = useRef<GoodReserveSDKLike | null>(null)
   const readClientRef = useRef<Erc20ReadClient | null>(null)
   const decimalsRef = useRef({ stable: DEFAULT_STABLE_DECIMALS, gd: DEFAULT_GD_DECIMALS })
+  // Raw on-chain balances kept independent of direction so the in/out slots can
+  // be remapped instantly when the user toggles buy/sell.
+  const balancesRef = useRef({ stable: '0.00', gd: '0.00' })
   const mountedRef = useRef(true)
 
   useEffect(() => {
@@ -153,11 +168,16 @@ export function useGoodReserveAdapter(
       }),
     ])
 
-    applyStatePatch({
-      tokenInBalance: formatUnits(stable, decimalsRef.current.stable),
-      tokenOutBalance: formatUnits(gd, decimalsRef.current.gd),
-    })
-  }, [address, applyStatePatch])
+    const stableBalance = formatUnits(stable, decimalsRef.current.stable)
+    const gdBalance = formatUnits(gd, decimalsRef.current.gd)
+    balancesRef.current = { stable: stableBalance, gd: gdBalance }
+
+    if (!mountedRef.current) return
+    setState((current) => ({
+      ...current,
+      ...balancesForDirection(current.direction, stableBalance, gdBalance),
+    }))
+  }, [address])
 
   const bootstrapSdk = useCallback(async () => {
     if (!provider || !address || !chainId || !chainSupported) return
@@ -193,10 +213,11 @@ export function useGoodReserveAdapter(
       }
 
       await refreshBalances()
+      const stableSymbol = getStableSymbol(chainId)
       applyStatePatch({
         status: 'idle_buy',
-        tokenInSymbol: getStableSymbol(chainId),
-        tokenOutSymbol: 'G$',
+        tokenInSymbol: state.direction === 'buy' ? stableSymbol : 'G$',
+        tokenOutSymbol: state.direction === 'buy' ? 'G$' : stableSymbol,
         warning: null,
         error: null,
       })
@@ -206,7 +227,16 @@ export function useGoodReserveAdapter(
         error: mapReserveError(err, 'Failed to initialize GoodReserve SDK.'),
       })
     }
-  }, [address, applyStatePatch, chainId, chainSupported, provider, refreshBalances, reserveEnvironment])
+  }, [
+    address,
+    applyStatePatch,
+    chainId,
+    chainSupported,
+    provider,
+    refreshBalances,
+    reserveEnvironment,
+    state.direction,
+  ])
 
   useEffect(() => {
     if (mockState) return
@@ -318,9 +348,12 @@ export function useGoodReserveAdapter(
           direction,
           tokenInSymbol: direction === 'buy' ? stableSymbol : 'G$',
           tokenOutSymbol: direction === 'buy' ? 'G$' : stableSymbol,
+          // Remap the cached on-chain balances to the new in/out slots so the
+          // "from" balance and MAX always reflect the spent token.
+          ...balancesForDirection(direction, balancesRef.current.stable, balancesRef.current.gd),
           inputAmount: '',
           quote: null,
-          status: direction === 'buy' ? 'idle_buy' : 'amount_editing',
+          status: 'idle_buy',
           error: null,
           warning: null,
         })

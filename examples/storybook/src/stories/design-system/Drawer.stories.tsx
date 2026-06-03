@@ -6,7 +6,7 @@
  */
 import React, { useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
-import { expect, within, userEvent } from '@storybook/test'
+import { expect, within, userEvent, waitFor } from '@storybook/test'
 import { Drawer, Card, Heading, Text, Button, ButtonText, YStack } from '@goodwidget/ui'
 
 const meta: Meta = {
@@ -45,7 +45,14 @@ export const Default: Story = {
     const canvas = within(canvasElement)
     const trigger = canvas.getByRole('button', { name: /open drawer/i })
     await userEvent.click(trigger)
-    // After clicking, the Close button should appear inside the Drawer
-    await expect(canvas.getByRole('button', { name: /close/i })).toBeDefined()
+    // The Sheet renders into a portal at the document root, so query the whole
+    // document (not just canvasElement) and wait for the open animation.
+    const screen = within(canvasElement.ownerDocument.body)
+    await waitFor(
+      async () => {
+        await expect(screen.getByRole('button', { name: /close/i })).toBeVisible()
+      },
+      { timeout: 5000 },
+    )
   },
 }

@@ -11,26 +11,22 @@ function GoodReserveWidgetInner({
   mockState,
 }: Pick<ReserveSwapWidgetProps, 'onSwapSuccess' | 'onSwapError' | 'mockState'>) {
   const adapter = useGoodReserveAdapter(mockState)
+  const { status, txHash, error, address, chainId } = adapter.state
 
-  // Emits swap lifecycle callbacks for host integrations.
+  // Emits swap lifecycle callbacks for host integrations. Depending on the
+  // discrete lifecycle fields (status/txHash/error) rather than the whole state
+  // object prevents the success/error callbacks from re-firing on unrelated
+  // state changes such as balance refreshes or quote updates.
   useEffect(() => {
-    if (adapter.state.status === 'swap_success' && adapter.state.txHash) {
-      onSwapSuccess?.({
-        address: adapter.state.address,
-        chainId: adapter.state.chainId,
-        transactionHash: adapter.state.txHash,
-      })
+    if (status === 'swap_success' && txHash) {
+      onSwapSuccess?.({ address, chainId, transactionHash: txHash })
       return
     }
 
-    if (adapter.state.status === 'swap_error' && adapter.state.error) {
-      onSwapError?.({
-        address: adapter.state.address,
-        chainId: adapter.state.chainId,
-        message: adapter.state.error,
-      })
+    if (status === 'swap_error' && error) {
+      onSwapError?.({ address, chainId, message: error })
     }
-  }, [adapter.state, onSwapError, onSwapSuccess])
+  }, [status, txHash, error, address, chainId, onSwapError, onSwapSuccess])
 
   return <ReserveSwapView adapter={adapter} />
 }

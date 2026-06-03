@@ -172,7 +172,7 @@ function Countdown({ nextClaim }: { nextClaim: Date }) {
   useEffect(() => {
     const id = setInterval(() => setTimeLeft(getTimeLeft()), 1000)
     return () => clearInterval(id)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // getTimeLeft reads `nextClaim` only; intentionally excluded from deps.
   }, [nextClaim])
 
   const h = Math.floor(timeLeft / 3600)
