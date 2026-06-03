@@ -7,9 +7,80 @@ import { createComponent } from '../createComponent'
 
 export const STEPPER_MARKER_SIZE = 28
 
-const STEPPER_MARKER_ICON_SIZE = 16
+const STEPPER_GLYPH_SIZE = 16
+
+const STEPPER_ACTIVE_GLYPH_SIZE = 20
 
 const STEPPER_ROW_GAP_PX = 8
+
+let stepperSpinStyleInjected = false
+
+function ensureStepperSpinStyle() {
+  if (stepperSpinStyleInjected || typeof document === 'undefined') return
+  stepperSpinStyleInjected = true
+  const style = document.createElement('style')
+  style.id = 'gw-stepper-spin'
+  style.textContent =
+    '@keyframes gw-stepper-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }'
+  document.head.appendChild(style)
+}
+
+const LOADER_GLYPH_PATHS = [
+  'M12 2v4',
+  'M12 18v4',
+  'M4.93 4.93l2.83 2.83',
+  'M16.24 16.24l2.83 2.83',
+  'M2 12h4',
+  'M18 12h4',
+  'M4.93 19.07l2.83-2.83',
+  'M16.24 7.76l2.83-2.83',
+]
+
+const STEPPER_GLYPH_STROKE = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2.25,
+  strokeLinecap: 'round' as const,
+  strokeLinejoin: 'round' as const,
+}
+
+function StepperMarkerGlyph({ variant }: { variant: 'completed' | 'failed' | 'active' }) {
+  if (variant === 'active') {
+    ensureStepperSpinStyle()
+    return (
+      <svg
+        width={STEPPER_ACTIVE_GLYPH_SIZE}
+        height={STEPPER_ACTIVE_GLYPH_SIZE}
+        viewBox="0 0 24 24"
+        aria-hidden
+        style={{ animation: 'gw-stepper-spin 1s linear infinite' }}
+      >
+        {LOADER_GLYPH_PATHS.map((d, index) => (
+          <path key={index} d={d} {...STEPPER_GLYPH_STROKE} />
+        ))}
+      </svg>
+    )
+  }
+
+  if (variant === 'completed') {
+    return (
+      <svg width={STEPPER_GLYPH_SIZE} height={STEPPER_GLYPH_SIZE} viewBox="0 0 24 24" aria-hidden>
+        <path d="M20 6L9 17L4 12" {...STEPPER_GLYPH_STROKE} />
+      </svg>
+    )
+  }
+
+  return (
+    <svg width={STEPPER_GLYPH_SIZE} height={STEPPER_GLYPH_SIZE} viewBox="0 0 24 24" aria-hidden>
+      <g transform="translate(0, -1.5)">
+        <path
+          d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4"
+          {...STEPPER_GLYPH_STROKE}
+        />
+      </g>
+    </svg>
+  )
+}
 
 export type StepperStepStatus = 'pending' | 'active' | 'completed' | 'failed' | 'attention'
 
@@ -84,10 +155,6 @@ function StepperMarker({ variant }: { variant: StepperMarkerVariant }) {
   }
 
   const fillColor = variant === 'failed' ? '$warning' : '$borderColorFocus'
-  const iconName = variant === 'completed' ? 'check' : variant === 'failed' ? 'alert-triangle' : 'loader'
-
-  const iconNudge =
-    variant === 'completed' ? { marginTop: 1 } : variant === 'failed' ? { marginTop: 2 } : undefined
 
   return (
     <YStack
@@ -97,18 +164,11 @@ function StepperMarker({ variant }: { variant: StepperMarkerVariant }) {
       backgroundColor={fillColor}
       alignItems="center"
       justifyContent="center"
-      overflow="hidden"
       color="$white"
     >
-      <YStack
-        width={STEPPER_MARKER_ICON_SIZE}
-        height={STEPPER_MARKER_ICON_SIZE}
-        alignItems="center"
-        justifyContent="center"
-        {...iconNudge}
-      >
-        <Icon name={iconName} size="xs" color="inherit" spin={variant === 'active'} />
-      </YStack>
+      <StepperMarkerGlyph
+        variant={variant === 'completed' ? 'completed' : variant === 'failed' ? 'failed' : 'active'}
+      />
     </YStack>
   )
 }
