@@ -7,6 +7,8 @@ import { createComponent } from '../createComponent'
 
 export const STEPPER_MARKER_SIZE = 28
 
+const STEPPER_MARKER_ICON_SIZE = 16
+
 const STEPPER_ROW_GAP_PX = 8
 
 export type StepperStepStatus = 'pending' | 'active' | 'completed' | 'failed' | 'attention'
@@ -84,6 +86,9 @@ function StepperMarker({ variant }: { variant: StepperMarkerVariant }) {
   const fillColor = variant === 'failed' ? '$warning' : '$borderColorFocus'
   const iconName = variant === 'completed' ? 'check' : variant === 'failed' ? 'alert-triangle' : 'loader'
 
+  const iconNudge =
+    variant === 'completed' ? { marginTop: 1 } : variant === 'failed' ? { marginTop: 2 } : undefined
+
   return (
     <YStack
       width={STEPPER_MARKER_SIZE}
@@ -92,9 +97,18 @@ function StepperMarker({ variant }: { variant: StepperMarkerVariant }) {
       backgroundColor={fillColor}
       alignItems="center"
       justifyContent="center"
+      overflow="hidden"
       color="$white"
     >
-      <Icon name={iconName} size="md" color="inherit" spin={variant === 'active'} />
+      <YStack
+        width={STEPPER_MARKER_ICON_SIZE}
+        height={STEPPER_MARKER_ICON_SIZE}
+        alignItems="center"
+        justifyContent="center"
+        {...iconNudge}
+      >
+        <Icon name={iconName} size="xs" color="inherit" spin={variant === 'active'} />
+      </YStack>
     </YStack>
   )
 }
