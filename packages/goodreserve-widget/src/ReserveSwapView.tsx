@@ -4,6 +4,7 @@ import {
   ButtonText,
   Card,
   Heading,
+  Icon,
   Input,
   Separator,
   Spinner,
@@ -60,6 +61,21 @@ const TokenBadge = createComponent(XStack, {
   backgroundColor: '$backgroundInput',
   alignItems: 'center' as const,
   justifyContent: 'center' as const,
+})
+
+/** Glowing circular success badge (Figma success hero icon). */
+const SuccessIcon = createComponent(XStack, {
+  name: 'ReserveSuccessIcon',
+  width: 96,
+  height: 96,
+  borderRadius: '$full',
+  backgroundColor: '$primary',
+  alignItems: 'center' as const,
+  justifyContent: 'center' as const,
+  shadowColor: '$primary',
+  shadowRadius: 24,
+  shadowOpacity: 1,
+  shadowOffset: { width: 0, height: 0 },
 })
 
 const NETWORK_LABELS: Record<number, string> = {
@@ -133,31 +149,55 @@ export function ReserveSwapView({ adapter }: ReserveSwapViewProps) {
                 ? 'Fetching Quote…'
                 : 'Review Swap'
 
-  // Success state renders a dedicated celebration screen (Figma success frame).
+  // Success state renders a dedicated celebration screen (Figma success frame):
+  // glowing check hero → title → summary card → explorer link → primary CTA.
   if (state.status === 'swap_success') {
     return (
-      <YStack testID="GoodReserveWidget-root" width={360} gap="$4" alignItems="center">
-        <SwapShell width="100%" alignItems="center" gap="$4" paddingVertical="$6">
-          <Heading level={4}>Swap Successful</Heading>
+      <YStack
+        testID="GoodReserveWidget-root"
+        width="100%"
+        maxWidth={390}
+        alignSelf="center"
+        gap="$6"
+        alignItems="center"
+      >
+        <SwapShell width="100%" alignItems="center" gap="$5" paddingVertical="$7">
+          <SuccessIcon>
+            <Icon name="check" size="xl" color="text" />
+          </SuccessIcon>
+
+          <Heading level={5}>Swap Successful</Heading>
+
           <Card
             testID="GoodReserveWidget-success"
             backgroundColor="$surface"
             borderWidth={0}
             width="100%"
             padding="$4"
-            gap="$1"
+            gap="$2"
+            alignItems="center"
           >
             <Text tone="soft">Final amount received</Text>
             <Text fontSize={21} fontWeight="700">
               {state.quote?.outputAmount ?? state.tokenOutBalance} {state.tokenOutSymbol}
             </Text>
           </Card>
+
           {state.txHash && (
-            <Text variant="caption" color="$primary">
-              View on Explorer ({state.txHash.slice(0, 10)}…)
-            </Text>
+            <XStack gap="$1" alignItems="center">
+              <Text variant="caption" color="$primaryLight">
+                View on Explorer
+              </Text>
+              <Icon name="external-link" size="2xs" color="primary" />
+            </XStack>
           )}
-          <Button fullWidth onPress={() => actions.setDirection(state.direction)}>
+
+          <Button
+            fullWidth
+            height={54}
+            borderRadius="$full"
+            onPress={() => actions.setDirection(state.direction)}
+          >
             <ButtonText>Do another swap</ButtonText>
           </Button>
         </SwapShell>
@@ -166,7 +206,13 @@ export function ReserveSwapView({ adapter }: ReserveSwapViewProps) {
   }
 
   return (
-    <YStack testID="GoodReserveWidget-root" width={360} gap="$3">
+    <YStack
+      testID="GoodReserveWidget-root"
+      width="100%"
+      maxWidth={390}
+      alignSelf="center"
+      gap="$3"
+    >
       <SwapShell>
         {/* Header: network pill, blue title, supporting copy */}
         <YStack alignItems="center" gap="$2">
@@ -334,6 +380,7 @@ export function ReserveSwapView({ adapter }: ReserveSwapViewProps) {
         <Button
           testID="GoodReserveWidget-primary-cta"
           fullWidth
+          height={54}
           borderRadius="$3"
           disabled={ctaDisabled}
           onPress={async () => {
