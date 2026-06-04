@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import {
+  Anchor,
   Button,
   ButtonText,
   Card,
@@ -95,6 +96,19 @@ const SwapDirectionButton = createComponent(XStack, {
   alignSelf: 'center' as const,
 })
 
+/** Circular settings/slippage button at the bottom of the swap card. */
+const SettingsButton = createComponent(XStack, {
+  name: 'ReserveSettingsButton',
+  width: 40,
+  height: 40,
+  borderRadius: '$full',
+  backgroundColor: FIGMA.badge,
+  alignItems: 'center' as const,
+  justifyContent: 'center' as const,
+  cursor: 'pointer',
+  alignSelf: 'center' as const,
+})
+
 /** Glowing circular success badge (Figma success hero icon). */
 const SuccessIcon = createComponent(XStack, {
   name: 'ReserveSuccessIcon',
@@ -129,6 +143,13 @@ const NETWORK_LABELS: Record<number, string> = {
 // Resolves the readable network name for the supported reserve chains.
 function networkLabel(chainId: number | null): string {
   return chainId !== null && NETWORK_LABELS[chainId] ? NETWORK_LABELS[chainId] : 'Unsupported'
+}
+
+// Block-explorer transaction URL for the supported reserve chains.
+function explorerTxUrl(chainId: number | null, txHash: string): string {
+  return chainId === XDC_CHAIN_ID
+    ? `https://explorer.xinfin.network/txs/${txHash}`
+    : `https://celoscan.io/tx/${txHash}`
 }
 
 // Keeps only digits and a single decimal point so the value is always safe to
@@ -283,17 +304,23 @@ export function ReserveSwapView({ adapter }: ReserveSwapViewProps) {
               Final amount received
             </Text>
             <Text fontSize={21} fontWeight="700" color="#FFFFFF">
-              {state.quote?.outputAmount ?? state.tokenOutBalance} {state.tokenOutSymbol}
+              {state.lastSwapOutput ?? state.quote?.outputAmount ?? '—'} {state.tokenOutSymbol}
             </Text>
           </Card>
 
           {state.txHash && (
-            <XStack gap="$1" alignItems="center">
-              <Text fontSize={12} fontWeight="600" color={FIGMA.accentSoft}>
-                View on Explorer
-              </Text>
-              <Icon name="external-link" size="2xs" color="primary" />
-            </XStack>
+            <Anchor
+              href={explorerTxUrl(state.chainId, state.txHash)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <XStack gap="$1" alignItems="center">
+                <Text fontSize={12} fontWeight="600" color={FIGMA.accentSoft}>
+                  View on Explorer
+                </Text>
+                <Icon name="external-link" size="2xs" color="primary" />
+              </XStack>
+            </Anchor>
           )}
 
           <SuccessIcon>
@@ -304,7 +331,8 @@ export function ReserveSwapView({ adapter }: ReserveSwapViewProps) {
             fullWidth
             height={54}
             borderRadius="$full"
-            onPress={() => actions.setDirection(state.direction)}
+            // Reset to a clean buy idle state to start another swap.
+            onPress={() => actions.setDirection('buy')}
           >
             <ButtonText>Do another swap</ButtonText>
           </Button>
@@ -508,12 +536,9 @@ export function ReserveSwapView({ adapter }: ReserveSwapViewProps) {
         </Button>
 
         {/* Settings / slippage icon button at the bottom of the card (Figma). */}
-        <SwapDirectionButton
-          testID="GoodReserveWidget-settings"
-          onPress={actions.openSlippage}
-        >
+        <SettingsButton testID="GoodReserveWidget-settings" onPress={actions.openSlippage}>
           <Icon name="settings" size="sm" color="primary" />
-        </SwapDirectionButton>
+        </SettingsButton>
       </SwapShell>
 
       {/* FAQ block — collapsible, two items (Figma). */}
@@ -570,8 +595,9 @@ export function ReserveSwapView({ adapter }: ReserveSwapViewProps) {
         </YStack>
       </Drawer>
 
-      {/* Confirmation as an anchored bottom-sheet Drawer (Figma). */}
-      <Drawer open={state.status === 'confirm_dialog'} onClose={actions.closeConfirm} height="half">
+      {/* Confirmation as an anchored bottom-sheet Drawer (Figma). Uses full
+          height so the hero + 50px highlight + details table are not clipped. */}
+      <Drawer open={state.status === 'confirm_dialog'} onClose={actions.closeConfirm} height="full">
         <YStack testID="GoodReserveWidget-confirm-dialog" gap="$4" width="100%">
           <XStack justifyContent="space-between" alignItems="center">
             <Heading level={4} color={FIGMA.text}>

@@ -44,6 +44,8 @@ export interface ReserveSwapWidgetAdapterState {
   warning: string | null
   error: string | null
   txHash: string | null
+  /** Output amount of the most recent successful swap (preserved after quote is cleared). */
+  lastSwapOutput: string | null
 }
 
 export interface ReserveSwapWidgetAdapterActions {

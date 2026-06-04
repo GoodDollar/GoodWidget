@@ -114,15 +114,12 @@ export const reserveWidgetMockStates: Record<string, Partial<ReserveSwapWidgetAd
     chainId: 42220,
     hasProvider: true,
     tokenOutSymbol: 'G$',
-    tokenOutBalance: '10,230',
+    tokenOutBalance: '12,500',
+    // Post-swap reality: quote is cleared and the received amount is preserved
+    // in lastSwapOutput (distinct from the wallet balance).
+    lastSwapOutput: '10,230',
+    quote: null,
     txHash: '0xabc1230000000000000000000000000000000000000000000000000000000000',
-    quote: {
-      outputAmount: '10,230',
-      price: '0.2310',
-      minimumReceived: '10,228',
-      priceImpactPercent: '~0.01%',
-      exitContributionPercent: '0%',
-    },
   },
   swapError: {
     status: 'swap_error',
