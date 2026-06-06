@@ -21,16 +21,20 @@ import { sanitizeAmount } from './amount'
 
 // ---------------------------------------------------------------------------
 // Named styled components participate in the component sub-theme system: each
-// resolves its surface from a registered light_/dark_Reserve* theme (defined in
-// the preset), so hosts can reskin them through the normal override chain. The
-// defaults below reference theme keys ($background/$color/$shadowColor) rather
-// than raw hex. Cross-cutting text colors use $reserve* palette tokens.
+// resolves both its surface ($background) AND its foreground ($color) from a
+// registered dark_Reserve* theme (defined in the preset), so a host override of
+// a sub-theme moves the surface and its text/icon together. No raw hex here.
+//
+// The widget is dark-only (GoodWalletV2 has no light design); see
+// widgetRuntimeContract.ts — defaultTheme is fixed to 'dark'.
 // ---------------------------------------------------------------------------
+
 /** Outer swap card matching the dark reserve panel in the Figma reference. */
 const SwapShell = createComponent(Card, {
   name: 'ReserveSwapShell',
   extends: 'Card',
   backgroundColor: '$background',
+  color: '$color',
   borderColor: '$borderColor',
   padding: '$4',
   gap: '$3',
@@ -42,11 +46,36 @@ const AmountCard = createComponent(Card, {
   name: 'ReserveAmountCard',
   extends: 'Card',
   backgroundColor: '$background',
+  color: '$color',
   borderWidth: 0,
   shadowOpacity: 0,
   padding: '$4',
   gap: '$1',
   borderRadius: '$4',
+})
+
+/** Generic raised surface (success summary card, FAQ card). */
+const ReserveSurface = createComponent(Card, {
+  name: 'ReserveSurface',
+  extends: 'Card',
+  backgroundColor: '$background',
+  color: '$color',
+  borderWidth: 0,
+  borderRadius: '$3',
+})
+
+/** Inner highlight surface (confirm "minimum received"). */
+const ReserveSurfaceInner = createComponent(YStack, {
+  name: 'ReserveSurfaceInner',
+  backgroundColor: '$background',
+  borderRadius: '$3',
+})
+
+/** Confirm details table surface. */
+const ReserveDetailsTable = createComponent(YStack, {
+  name: 'ReserveDetailsTable',
+  backgroundColor: '$background',
+  borderRadius: '$2',
 })
 
 /** Circular token badge that fronts each amount panel. */
@@ -56,6 +85,7 @@ const TokenBadge = createComponent(XStack, {
   height: 40,
   borderRadius: '$full',
   backgroundColor: '$background',
+  color: '$color',
   alignItems: 'center' as const,
   justifyContent: 'center' as const,
 })
@@ -67,6 +97,7 @@ const SwapDirectionButton = createComponent(XStack, {
   height: 40,
   borderRadius: '$full',
   backgroundColor: '$background',
+  color: '$color',
   alignItems: 'center' as const,
   justifyContent: 'center' as const,
   cursor: 'pointer',
@@ -80,6 +111,7 @@ const SettingsButton = createComponent(XStack, {
   height: 40,
   borderRadius: '$full',
   backgroundColor: '$background',
+  color: '$color',
   alignItems: 'center' as const,
   justifyContent: 'center' as const,
   cursor: 'pointer',
@@ -93,6 +125,7 @@ const SuccessIcon = createComponent(XStack, {
   height: 96,
   borderRadius: '$full',
   backgroundColor: '$background',
+  color: '$color',
   alignItems: 'center' as const,
   justifyContent: 'center' as const,
   shadowColor: '$shadowColor',
@@ -101,13 +134,15 @@ const SuccessIcon = createComponent(XStack, {
   shadowOffset: { width: 0, height: 0 },
 })
 
-/** Small blue "to" token badge used in the confirm-drawer hero (Figma). */
-const SuccessIconSmall = createComponent(XStack, {
-  name: 'ReserveSuccessIcon',
+/** Small flat "to" token badge in the confirm-drawer hero (distinct from the
+ *  glowing success hero — its own sub-theme so overrides don't collide). */
+const ConfirmToBadge = createComponent(XStack, {
+  name: 'ReserveConfirmToBadge',
   width: 40,
   height: 40,
   borderRadius: '$full',
   backgroundColor: '$background',
+  color: '$color',
   alignItems: 'center' as const,
   justifyContent: 'center' as const,
 })
@@ -261,10 +296,8 @@ export function ReserveSwapView({ adapter, preferredChainId }: ReserveSwapViewPr
             Swap Successful
           </Heading>
 
-          <Card
+          <ReserveSurface
             testID="GoodReserveWidget-success"
-            backgroundColor={'$surface'}
-            borderWidth={0}
             width="100%"
             padding="$4"
             gap="$2"
@@ -276,7 +309,7 @@ export function ReserveSwapView({ adapter, preferredChainId }: ReserveSwapViewPr
             <Text fontSize={21} fontWeight="700" color="$white">
               {state.lastSwapOutput ?? state.quote?.outputAmount ?? '—'} {state.tokenOutSymbol}
             </Text>
-          </Card>
+          </ReserveSurface>
 
           {state.txHash && (
             <Anchor
@@ -370,7 +403,7 @@ export function ReserveSwapView({ adapter, preferredChainId }: ReserveSwapViewPr
           <XStack justifyContent="space-between" alignItems="center" gap="$3">
             <XStack gap="$2" alignItems="center" flexShrink={0}>
               <TokenBadge>
-                <Text fontSize={16} fontWeight="700" color={'$reserveText'}>
+                <Text fontSize={16} fontWeight="700" color="$color">
                   $
                 </Text>
               </TokenBadge>
@@ -422,7 +455,7 @@ export function ReserveSwapView({ adapter, preferredChainId }: ReserveSwapViewPr
           <XStack justifyContent="space-between" alignItems="center" gap="$3">
             <XStack gap="$2" alignItems="center" flexShrink={0}>
               <TokenBadge>
-                <Text fontSize={16} fontWeight="700" color={'$reserveText'}>
+                <Text fontSize={16} fontWeight="700" color="$color">
                   $
                 </Text>
               </TokenBadge>
@@ -517,7 +550,7 @@ export function ReserveSwapView({ adapter, preferredChainId }: ReserveSwapViewPr
       </SwapShell>
 
       {/* FAQ block — collapsible, two items (Figma). */}
-      <Card testID="GoodReserveWidget-faq" backgroundColor={'$surface'} padding="$4" borderRadius="$2">
+      <ReserveSurface testID="GoodReserveWidget-faq" padding="$4">
         <CollapsibleSection title="FAQ">
           <YStack gap="$3">
             <YStack gap="$1">
@@ -539,7 +572,7 @@ export function ReserveSwapView({ adapter, preferredChainId }: ReserveSwapViewPr
             </YStack>
           </YStack>
         </CollapsibleSection>
-      </Card>
+      </ReserveSurface>
 
       {/* Slippage selection as a bottom-sheet Drawer. */}
       <Drawer open={state.status === 'slippage_selection'} onClose={actions.closeSlippage} height="half">
@@ -586,26 +619,20 @@ export function ReserveSwapView({ adapter, preferredChainId }: ReserveSwapViewPr
           {/* Token hero: from badge → arrow → to badge */}
           <XStack alignItems="center" justifyContent="center" gap="$3">
             <TokenBadge>
-              <Text fontSize={16} fontWeight="700" color={'$reserveText'}>
+              <Text fontSize={16} fontWeight="700" color="$color">
                 $
               </Text>
             </TokenBadge>
             <Icon name="arrow-right" size="sm" color="primary" />
-            <SuccessIconSmall>
-              <Text fontSize={16} fontWeight="700" color="$white">
+            <ConfirmToBadge>
+              <Text fontSize={16} fontWeight="700" color="$color">
                 $
               </Text>
-            </SuccessIconSmall>
+            </ConfirmToBadge>
           </XStack>
 
           {/* Minimum received highlight */}
-          <YStack
-            backgroundColor={'$reserveSurfaceInner'}
-            borderRadius="$3"
-            padding="$4"
-            alignItems="center"
-            gap="$1"
-          >
+          <ReserveSurfaceInner padding="$4" alignItems="center" gap="$1">
             <Text fontSize={14} fontWeight="400" color={'$reserveTextSecondary'}>
               Minimum Received
             </Text>
@@ -615,17 +642,17 @@ export function ReserveSwapView({ adapter, preferredChainId }: ReserveSwapViewPr
             <Text fontSize={17} fontWeight="600" color={'$reserveText'}>
               {state.tokenOutSymbol}
             </Text>
-          </YStack>
+          </ReserveSurfaceInner>
 
           {/* Details table */}
-          <YStack backgroundColor={'$reserveCard'} borderRadius="$2" padding="$4" gap="$2">
+          <ReserveDetailsTable padding="$4" gap="$2">
             <DetailRow
               label="Exchange Rate"
               value={`1 ${state.tokenInSymbol} = ${state.quote?.price ?? '0'} ${state.tokenOutSymbol}`}
             />
             <DetailRow label="Max Slippage" value={`${state.slippagePercent}%`} />
             <DetailRow label="You Pay" value={`${state.inputAmount} ${state.tokenInSymbol}`} />
-          </YStack>
+          </ReserveDetailsTable>
 
           <Separator />
 
