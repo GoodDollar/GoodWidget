@@ -23,6 +23,7 @@ import {
   XDC_CHAIN_ID,
 } from './constants'
 import { mapReserveError } from './errors'
+import { sanitizeAmount } from './amount'
 
 // Minimal viem Chain definitions for the supported reserve chains. The
 // GoodReserve SDK constructor reads publicClient.chain.id and throws when it is
@@ -162,6 +163,11 @@ export function useGoodReserveAdapter(
   // effect deps (otherwise a post-swap balance refresh would restart the quote
   // debounce even though the amount was just cleared).
   const tokenInBalanceRef = useRef(state.tokenInBalance)
+  // Latest direction, read inside bootstrapSdk without adding state.direction to
+  // its deps (which would re-initialize the SDK on every buy/sell toggle).
+  const directionRef = useRef(state.direction)
+  // Real exit contribution from the reserve stats, surfaced in the quote.
+  const exitContributionRef = useRef('0%')
   // Status to restore when an overlay (slippage sheet / confirm dialog) is
   // dismissed, so cancelling does not lie about the underlying quote state
   // (e.g. returning to quote_ready when the user was at insufficient_balance).
@@ -171,6 +177,10 @@ export function useGoodReserveAdapter(
   useEffect(() => {
     tokenInBalanceRef.current = state.tokenInBalance
   }, [state.tokenInBalance])
+
+  useEffect(() => {
+    directionRef.current = state.direction
+  }, [state.direction])
 
   useEffect(() => {
     mountedRef.current = true
@@ -260,13 +270,19 @@ export function useGoodReserveAdapter(
         stable: stats.stableTokenDecimals ?? DEFAULT_STABLE_DECIMALS,
         gd: stats.goodDollarDecimals ?? DEFAULT_GD_DECIMALS,
       }
+      // Preserve the real exit contribution so the quote can display it instead
+      // of a hardcoded 0%.
+      exitContributionRef.current =
+        stats.exitContribution != null ? `${(stats.exitContribution * 100).toFixed(2)}%` : '0%'
 
       await refreshBalances()
+      // Read direction via ref so toggling buy/sell does not re-bootstrap the SDK.
       const stableSymbol = getStableSymbol(chainId)
+      const dir = directionRef.current
       applyStatePatch({
         status: 'idle_buy',
-        tokenInSymbol: state.direction === 'buy' ? stableSymbol : 'G$',
-        tokenOutSymbol: state.direction === 'buy' ? 'G$' : stableSymbol,
+        tokenInSymbol: dir === 'buy' ? stableSymbol : 'G$',
+        tokenOutSymbol: dir === 'buy' ? 'G$' : stableSymbol,
         warning: null,
         error: null,
       })
@@ -284,7 +300,6 @@ export function useGoodReserveAdapter(
     provider,
     refreshBalances,
     reserveEnvironment,
-    state.direction,
   ])
 
   useEffect(() => {
@@ -382,8 +397,10 @@ export function useGoodReserveAdapter(
             price,
             minimumReceived: minReceivedFormatted,
             minReturnRaw: minReturn.toString(),
-            priceImpactPercent: '~0.01%',
-            exitContributionPercent: '0%',
+            // Price impact is not exposed by the SDK quote; show N/A rather than
+            // a misleading constant. Exit contribution comes from reserve stats.
+            priceImpactPercent: 'N/A',
+            exitContributionPercent: exitContributionRef.current,
           },
           error: null,
         })
@@ -433,13 +450,19 @@ export function useGoodReserveAdapter(
         })
       },
       setInputAmount: (value: string) => {
-        applyStatePatch({ inputAmount: value, status: value ? 'amount_editing' : 'idle_buy' })
+        const clean = sanitizeAmount(value)
+        applyStatePatch({ inputAmount: clean, status: clean ? 'amount_editing' : 'idle_buy' })
       },
       setMaxAmount: () => {
-        applyStatePatch({ inputAmount: state.tokenInBalance, status: 'amount_editing' })
+        // Balance is formatUnits output; sanitize so it is always parseUnits-safe.
+        applyStatePatch({
+          inputAmount: sanitizeAmount(state.tokenInBalance),
+          status: 'amount_editing',
+        })
       },
       setSlippagePercent: (value: number) => {
-        applyStatePatch({ slippagePercent: value, status: 'idle_buy' })
+        // Keep the underlying quote/idle context instead of forcing idle_buy.
+        applyStatePatch({ slippagePercent: value, status: previousStatusRef.current })
       },
       openSlippage: () => {
         if (state.status !== 'slippage_selection' && state.status !== 'confirm_dialog') {

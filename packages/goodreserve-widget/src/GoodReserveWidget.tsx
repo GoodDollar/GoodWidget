@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { GoodWidgetProvider } from '@goodwidget/core'
 import type { EIP1193Provider } from '@goodwidget/core'
 import { ReserveSwapView } from './ReserveSwapView'
@@ -13,20 +13,30 @@ function GoodReserveWidgetInner({
   const adapter = useGoodReserveAdapter(mockState)
   const { status, txHash, error, address, chainId } = adapter.state
 
-  // Emits swap lifecycle callbacks for host integrations. Depending on the
-  // discrete lifecycle fields (status/txHash/error) rather than the whole state
-  // object prevents the success/error callbacks from re-firing on unrelated
-  // state changes such as balance refreshes or quote updates.
+  // Hold the host callbacks in refs so inline arrow functions (a new reference
+  // each parent render) do not re-run the lifecycle effect and re-fire the
+  // callbacks on an unchanged swap_success / swap_error state.
+  const onSwapSuccessRef = useRef(onSwapSuccess)
+  const onSwapErrorRef = useRef(onSwapError)
+  useEffect(() => {
+    onSwapSuccessRef.current = onSwapSuccess
+  }, [onSwapSuccess])
+  useEffect(() => {
+    onSwapErrorRef.current = onSwapError
+  }, [onSwapError])
+
+  // Emits swap lifecycle callbacks for host integrations, keyed only on the
+  // discrete lifecycle fields so it fires once per real status transition.
   useEffect(() => {
     if (status === 'swap_success' && txHash) {
-      onSwapSuccess?.({ address, chainId, transactionHash: txHash })
+      onSwapSuccessRef.current?.({ address, chainId, transactionHash: txHash })
       return
     }
 
     if (status === 'swap_error' && error) {
-      onSwapError?.({ address, chainId, message: error })
+      onSwapErrorRef.current?.({ address, chainId, message: error })
     }
-  }, [status, txHash, error, address, chainId, onSwapError, onSwapSuccess])
+  }, [status, txHash, error, address, chainId])
 
   return <ReserveSwapView adapter={adapter} />
 }
