@@ -163,3 +163,35 @@ test('amount input accepts typed characters (live adapter)', async ({ page }) =>
   await input.pressSequentially('1.2.3x', { delay: 30 })
   await expect(input).toHaveValue('1.23')
 })
+
+// Full real-adapter flow against the injected fake SDK (LiveFakeSdk story):
+// type amount → live quote → review → confirm → buy → success with tx hash.
+// This is the regression net for the SDK seam — it exercises getBuyQuote arg
+// order, the onHash callback, result.hash, and the PPM exit-contribution
+// scaling, none of which the mockState stories touch.
+test('live adapter completes a buy: quote → confirm → success with tx hash', async ({ page }) => {
+  await page.goto('/iframe.html?id=widgets-goodreservewidget--live-fake-sdk&viewMode=story')
+  await page.waitForLoadState('networkidle')
+  await page.getByTestId('GoodReserveWidget-live').first().waitFor({ timeout: 30_000 })
+
+  // Enter an amount and wait for the real debounced quote to resolve.
+  const input = page.locator('input').first()
+  await input.click()
+  await input.pressSequentially('25', { delay: 30 })
+
+  // Fake getBuyQuote(25e18) → 10825 base units (2-dec G$) = "108.25".
+  await expect(page.getByText('108.25')).toBeVisible({ timeout: 15_000 })
+  // Exit contribution must render as 0.50% (5000 PPM / 10000), proving C1's fix.
+  await expect(page.getByText('0.50%')).toBeVisible()
+
+  // Review → confirm sheet → confirm the swap.
+  await expect(page.getByText('Review Swap')).toBeVisible()
+  await page.getByText('Review Swap').click()
+  await expect(page.getByText('Confirm Swap').first()).toBeVisible()
+  await page.getByTestId('GoodReserveWidget-confirm-cta').click()
+
+  // Success screen with the explorer link backed by the submitted tx hash.
+  await expect(page.getByText('Swap Successful')).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByText('View on Explorer')).toBeVisible()
+  await page.screenshot({ path: `${SCREENSHOT_DIR}/grw-16-live-buy-success.png` })
+})
