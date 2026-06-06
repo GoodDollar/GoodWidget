@@ -269,7 +269,10 @@ export function useGoodReserveAdapter(
       sdkRef.current = sdk
       readClientRef.current = publicClient as unknown as Erc20ReadClient
       decimalsRef.current = {
-        stable: stats.stableTokenDecimals ?? DEFAULT_STABLE_DECIMALS,
+        // Chain-aware fallback: XDC's stable token (USDC) is 6 decimals, Celo's
+        // (USDm) is 18. Only used if the SDK stats omit the value.
+        stable:
+          stats.stableTokenDecimals ?? (chainId === XDC_CHAIN_ID ? 6 : DEFAULT_STABLE_DECIMALS),
         gd: stats.goodDollarDecimals ?? DEFAULT_GD_DECIMALS,
       }
       // Preserve the real exit contribution so the quote can display it instead
@@ -430,11 +433,22 @@ export function useGoodReserveAdapter(
         const walletProvider = provider as
           | { request?: (args: { method: string; params?: unknown[] }) => Promise<unknown> }
           | undefined
-        if (!walletProvider?.request) return
-        await walletProvider.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: `0x${targetChainId.toString(16)}` }],
-        })
+        if (!walletProvider?.request) {
+          applyStatePatch({ error: 'No wallet available to switch networks.' })
+          return
+        }
+        try {
+          await walletProvider.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: `0x${targetChainId.toString(16)}` }],
+          })
+        } catch (err: unknown) {
+          // 4902 = chain not added to the wallet; surface a clear message rather
+          // than letting the rejection bubble unhandled out of the CTA handler.
+          applyStatePatch({
+            error: mapReserveError(err, 'Could not switch network. Add the network in your wallet and retry.'),
+          })
+        }
       },
       setDirection: (direction: ReserveSwapDirection) => {
         const stableSymbol = getStableSymbol(chainId)
@@ -495,11 +509,13 @@ export function useGoodReserveAdapter(
         // Reject a stale quote: reserve prices move, so a minReturn derived from
         // an old quote may no longer be safe. Force a refresh instead of signing.
         if (state.quoteExpiresAt !== null && Date.now() > state.quoteExpiresAt) {
+          // Keep the entered amount and drop back to editing so the debounced
+          // quote effect re-fetches a fresh quote automatically (one-tap re-quote).
           applyStatePatch({
-            status: 'quote_error',
+            status: 'amount_editing',
             quote: null,
             quoteExpiresAt: null,
-            error: 'Quote expired. Enter the amount again to refresh.',
+            warning: 'Quote refreshed — review the new amount before confirming.',
           })
           return
         }

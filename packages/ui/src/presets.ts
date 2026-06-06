@@ -63,6 +63,19 @@ const tokenPreset = {
       glowSuccess: 'rgba(19, 198, 54, 0.72)',
       glowError: 'rgba(240, 5, 5, 0.72)',
       shimmer: 'rgba(245, 249, 255, 0.22)',
+
+      // GoodReserve swap widget palette (Figma file xsk5EiF6CvStA9mtdbA9OR).
+      // Namespaced so they back the light_Reserve* / dark_Reserve* sub-themes
+      // without colliding with the shared semantic tokens above.
+      reserveCard: '#0C0E15',
+      reserveInputCard: '#252730',
+      reserveBadge: '#33343C',
+      reserveSurfaceInner: '#191B22',
+      reserveHeading: '#4090FF',
+      reserveText: '#E2E2EC',
+      reserveTextMuted: '#8B91A0',
+      reserveTextSecondary: '#C1C6D6',
+      reserveAccentSoft: '#AAC7FF',
     },
     space: {
       1: 4,
@@ -345,6 +358,62 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
       color: color.white,
       borderColor: color.border,
       shadowColor: 'rgba(3, 7, 18, 0.8)',
+    },
+
+    // GoodReserve swap widget — public, host-themable component sub-themes.
+    // Defaults map to the Figma palette; integrators override these keys to
+    // reskin the widget without touching the shared preset tokens.
+    light_ReserveSwapShell: {
+      background: color.reserveCard,
+      color: color.reserveText,
+      borderColor: color.border,
+    },
+    dark_ReserveSwapShell: {
+      background: color.reserveCard,
+      color: color.reserveText,
+      borderColor: color.borderDark,
+    },
+    light_ReserveAmountCard: {
+      background: color.reserveInputCard,
+      color: color.reserveText,
+    },
+    dark_ReserveAmountCard: {
+      background: color.reserveInputCard,
+      color: color.reserveText,
+    },
+    light_ReserveTokenBadge: {
+      background: color.reserveBadge,
+      color: color.reserveText,
+    },
+    dark_ReserveTokenBadge: {
+      background: color.reserveBadge,
+      color: color.reserveText,
+    },
+    light_ReserveSwapDirectionButton: {
+      background: color.reserveBadge,
+      color: color.reserveHeading,
+    },
+    dark_ReserveSwapDirectionButton: {
+      background: color.reserveBadge,
+      color: color.reserveHeading,
+    },
+    light_ReserveSettingsButton: {
+      background: color.reserveBadge,
+      color: color.reserveHeading,
+    },
+    dark_ReserveSettingsButton: {
+      background: color.reserveBadge,
+      color: color.reserveHeading,
+    },
+    light_ReserveSuccessIcon: {
+      background: color.primary,
+      color: color.white,
+      shadowColor: color.glowPrimary,
+    },
+    dark_ReserveSuccessIcon: {
+      background: color.primary,
+      color: color.white,
+      shadowColor: color.glowPrimary,
     },
   },
   typography: {
