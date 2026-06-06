@@ -16,14 +16,19 @@ import {
   createComponent,
 } from '@goodwidget/ui'
 import type { ReserveSwapWidgetAdapterResult } from './widgetRuntimeContract'
-import { CELO_CHAIN_ID, XDC_CHAIN_ID } from './constants'
+import { CELO_CHAIN_ID, SUPPORTED_RESERVE_CHAINS, XDC_CHAIN_ID } from './constants'
 import { sanitizeAmount } from './amount'
 
 // ---------------------------------------------------------------------------
 // Named styled components participate in the component sub-theme system: each
-// resolves both its surface ($background) AND its foreground ($color) from a
+// resolves its surface ($background) and its primary foreground ($color) from a
 // registered dark_Reserve* theme (defined in the preset), so a host override of
-// a sub-theme moves the surface and its text/icon together. No raw hex here.
+// a sub-theme's surface/primary-text moves them together.
+//
+// Secondary text shades (muted labels, the blue heading, the accent link) are
+// driven by dedicated $reserve* tokens rather than per-component sub-theme keys,
+// so they are overridable at the token layer (not per sub-theme). No raw hex is
+// used in the view; all colors are tokens or sub-theme keys.
 //
 // The widget is dark-only (GoodWalletV2 has no light design); see
 // widgetRuntimeContract.ts — defaultTheme is fixed to 'dark'.
@@ -160,7 +165,7 @@ function networkLabel(chainId: number | null): string {
 // Block-explorer transaction URL for the supported reserve chains.
 function explorerTxUrl(chainId: number | null, txHash: string): string {
   return chainId === XDC_CHAIN_ID
-    ? `https://explorer.xdc.org/txs/${txHash}`
+    ? `https://xdcscan.com/tx/${txHash}`
     : `https://celoscan.io/tx/${txHash}`
 }
 
@@ -231,6 +236,13 @@ function CollapsibleSection({
 export function ReserveSwapView({ adapter, preferredChainId }: ReserveSwapViewProps) {
   const { state, actions } = adapter
   const network = networkLabel(state.chainId)
+
+  // Clamp the unsupported-chain switch target to a supported reserve chain so a
+  // bad preferredChainId can't route the user to e.g. Ethereum and bounce back.
+  const switchTarget =
+    preferredChainId != null && SUPPORTED_RESERVE_CHAINS.includes(preferredChainId as never)
+      ? preferredChainId
+      : CELO_CHAIN_ID
 
   const hasAmount = Boolean(state.inputAmount) && Number(state.inputAmount) > 0
   const isBlocked =
@@ -358,7 +370,7 @@ export function ReserveSwapView({ adapter, preferredChainId }: ReserveSwapViewPr
       <YStack alignItems="center" gap="$2">
         <XStack
           borderWidth={1}
-          borderColor="rgba(26,133,255,0.30)"
+          borderColor="$primaryMuted"
           borderRadius="$full"
           paddingHorizontal="$3"
           paddingVertical="$1"
@@ -479,7 +491,7 @@ export function ReserveSwapView({ adapter, preferredChainId }: ReserveSwapViewPr
             <DetailRow label="SLIPPAGE TOLERANCE" value={`${state.slippagePercent}%`} />
             <DetailRow
               label="PRICE"
-              value={`${state.quote?.price ?? '0.00000'} G$ PER ${stableSymbol.toUpperCase()}`}
+              value={`1 ${state.tokenInSymbol} = ${state.quote?.price ?? '0.00000'} ${state.tokenOutSymbol}`}
             />
             <DetailRow
               label="EXIT CONTRIBUTION"
@@ -527,7 +539,7 @@ export function ReserveSwapView({ adapter, preferredChainId }: ReserveSwapViewPr
               return
             }
             if (state.status === 'unsupported_chain') {
-              await actions.switchChain(preferredChainId ?? CELO_CHAIN_ID)
+              await actions.switchChain(switchTarget)
               return
             }
             actions.openConfirm()
