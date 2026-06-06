@@ -9,7 +9,11 @@ function GoodReserveWidgetInner({
   onSwapSuccess,
   onSwapError,
   mockState,
-}: Pick<ReserveSwapWidgetProps, 'onSwapSuccess' | 'onSwapError' | 'mockState'>) {
+  preferredChainId,
+}: Pick<
+  ReserveSwapWidgetProps,
+  'onSwapSuccess' | 'onSwapError' | 'mockState' | 'preferredChainId'
+>) {
   const adapter = useGoodReserveAdapter(mockState)
   const { status, txHash, error, address, chainId } = adapter.state
 
@@ -38,7 +42,7 @@ function GoodReserveWidgetInner({
     }
   }, [status, txHash, error, address, chainId])
 
-  return <ReserveSwapView adapter={adapter} />
+  return <ReserveSwapView adapter={adapter} preferredChainId={preferredChainId} />
 }
 
 // Public widget entry wired to GoodWidget runtime context + theming contract.
@@ -50,6 +54,7 @@ export function GoodReserveWidget({
   onSwapSuccess,
   onSwapError,
   mockState,
+  preferredChainId,
 }: ReserveSwapWidgetProps) {
   return (
     <GoodWidgetProvider
@@ -62,6 +67,7 @@ export function GoodReserveWidget({
         onSwapSuccess={onSwapSuccess}
         onSwapError={onSwapError}
         mockState={mockState}
+        preferredChainId={preferredChainId}
       />
     </GoodWidgetProvider>
   )

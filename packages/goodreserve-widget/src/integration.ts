@@ -8,7 +8,7 @@ export const goodReserveWidgetIntegration = {
     'no_provider',
     'unsupported_chain',
     'sdk_initializing',
-    'idle_buy',
+    'idle',
     'amount_editing',
     'quote_loading',
     'quote_ready',

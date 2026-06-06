@@ -19,6 +19,7 @@ import {
   DEFAULT_SLIPPAGE_PERCENT,
   DEFAULT_STABLE_DECIMALS,
   QUOTE_DEBOUNCE_MS,
+  QUOTE_TTL_MS,
   SUPPORTED_RESERVE_CHAINS,
   XDC_CHAIN_ID,
 } from './constants'
@@ -125,6 +126,7 @@ const initialState: ReserveSwapWidgetAdapterState = {
   error: null,
   txHash: null,
   lastSwapOutput: null,
+  quoteExpiresAt: null,
 }
 
 function getStableSymbol(chainId: number | null): string {
@@ -171,7 +173,7 @@ export function useGoodReserveAdapter(
   // Status to restore when an overlay (slippage sheet / confirm dialog) is
   // dismissed, so cancelling does not lie about the underlying quote state
   // (e.g. returning to quote_ready when the user was at insufficient_balance).
-  const previousStatusRef = useRef<ReserveSwapWidgetAdapterState['status']>('idle_buy')
+  const previousStatusRef = useRef<ReserveSwapWidgetAdapterState['status']>('idle')
   const mountedRef = useRef(true)
 
   useEffect(() => {
@@ -280,7 +282,7 @@ export function useGoodReserveAdapter(
       const stableSymbol = getStableSymbol(chainId)
       const dir = directionRef.current
       applyStatePatch({
-        status: 'idle_buy',
+        status: 'idle',
         tokenInSymbol: dir === 'buy' ? stableSymbol : 'G$',
         tokenOutSymbol: dir === 'buy' ? 'G$' : stableSymbol,
         warning: null,
@@ -329,7 +331,7 @@ export function useGoodReserveAdapter(
   useEffect(() => {
     if (mockState || !sdkRef.current) return
     if (!state.inputAmount) {
-      applyStatePatch({ quote: null, warning: null, error: null, status: 'idle_buy' })
+      applyStatePatch({ quote: null, warning: null, error: null, status: 'idle' })
       return
     }
 
@@ -402,6 +404,7 @@ export function useGoodReserveAdapter(
             priceImpactPercent: 'N/A',
             exitContributionPercent: exitContributionRef.current,
           },
+          quoteExpiresAt: Date.now() + QUOTE_TTL_MS,
           error: null,
         })
       } catch (err: unknown) {
@@ -444,14 +447,17 @@ export function useGoodReserveAdapter(
           ...balancesForDirection(direction, balancesRef.current.stable, balancesRef.current.gd),
           inputAmount: '',
           quote: null,
-          status: 'idle_buy',
+          status: 'idle',
           error: null,
           warning: null,
+          // Clear any prior swap result so it cannot leak into the next swap.
+          txHash: null,
+          lastSwapOutput: null,
         })
       },
       setInputAmount: (value: string) => {
         const clean = sanitizeAmount(value)
-        applyStatePatch({ inputAmount: clean, status: clean ? 'amount_editing' : 'idle_buy' })
+        applyStatePatch({ inputAmount: clean, status: clean ? 'amount_editing' : 'idle' })
       },
       setMaxAmount: () => {
         // Balance is formatUnits output; sanitize so it is always parseUnits-safe.
@@ -461,7 +467,7 @@ export function useGoodReserveAdapter(
         })
       },
       setSlippagePercent: (value: number) => {
-        // Keep the underlying quote/idle context instead of forcing idle_buy.
+        // Keep the underlying quote/idle context instead of forcing idle.
         applyStatePatch({ slippagePercent: value, status: previousStatusRef.current })
       },
       openSlippage: () => {
@@ -486,6 +492,17 @@ export function useGoodReserveAdapter(
         if (!sdkRef.current || !state.quote || !state.inputAmount) return
         // Guard against double submission while a swap is already in flight.
         if (state.status === 'swap_pending') return
+        // Reject a stale quote: reserve prices move, so a minReturn derived from
+        // an old quote may no longer be safe. Force a refresh instead of signing.
+        if (state.quoteExpiresAt !== null && Date.now() > state.quoteExpiresAt) {
+          applyStatePatch({
+            status: 'quote_error',
+            quote: null,
+            quoteExpiresAt: null,
+            error: 'Quote expired. Enter the amount again to refresh.',
+          })
+          return
+        }
         // Re-validate chain support: the user may have switched to an
         // unsupported chain in their wallet while the confirm dialog was open.
         if (!chainSupported) {
@@ -553,6 +570,7 @@ export function useGoodReserveAdapter(
       state.direction,
       state.inputAmount,
       state.quote,
+      state.quoteExpiresAt,
       state.slippagePercent,
       state.status,
       state.tokenInBalance,
