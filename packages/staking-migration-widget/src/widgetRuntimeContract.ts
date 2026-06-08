@@ -1,11 +1,12 @@
 import type { Address } from 'viem'
 import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
+import type { StakingMigrationWidgetEnvironment } from './migrationEnvironments'
 
-// This is the expected network for Fuse staking approvals.
+export type { StakingMigrationWidgetEnvironment } from './migrationEnvironments'
+
 export const FUSE_CHAIN_ID = 122
 
-// This address is sourced from GoodProtocol releases/deployment.json -> production.FuseStaking.
-export const FUSE_STAKING_CONTRACT_ADDRESS: Address = '0xA199F0C353E25AdF022378B0c208D600f39a6505'
+export const FUSE_STAKING_CONTRACT_ADDRESS: Address = '0xB7C3e738224625289C573c54d402E9Be46205546'
 
 export type MigrationStep = 'unstake' | 'bridge sent' | 'bridge received' | 'stake'
 
@@ -18,6 +19,14 @@ export type StakingMigrationWidgetStatus =
   | 'error'
   | 'wrong-network'
   | 'missing-config'
+
+export type StakingMigrationPrimaryAction =
+  | 'connect'
+  | 'switch_chain'
+  | 'migrate'
+  | 'retry'
+  | 'refresh'
+  | 'none'
 
 export interface StakingMigrationSuccessDetail {
   address: string
@@ -48,6 +57,8 @@ export interface StakingMigrationWidgetState {
   approvalTxHash: string | null
   migrationId: string | null
   error: string | null
+  primaryAction: StakingMigrationPrimaryAction
+  primaryLabel: string
 }
 
 export interface StakingMigrationWidgetActions {
@@ -64,25 +75,19 @@ export interface StakingMigrationWidgetAdapterResult {
 }
 
 export interface StakingMigrationWidgetAdapterFactoryInput {
-  config: StakingMigrationWidgetConfig
+  environment: StakingMigrationWidgetEnvironment
 }
 
 export type StakingMigrationWidgetAdapterFactory = (
   input: StakingMigrationWidgetAdapterFactoryInput,
 ) => StakingMigrationWidgetAdapterResult
 
-export interface StakingMigrationWidgetConfig {
-  migrationApiBaseUrl?: string
-  migrationOperator?: Address
-  migrationApiToken?: string
-}
-
 export interface StakingMigrationWidgetProps {
   provider?: unknown
   config?: GoodWidgetConfig
   defaultTheme?: 'light' | 'dark'
   themeOverrides?: GoodWidgetThemeOverrides
-  migrationConfig?: StakingMigrationWidgetConfig
+  environment?: StakingMigrationWidgetEnvironment
   onMigrationSuccess?: (detail: StakingMigrationSuccessDetail) => void
   onMigrationError?: (detail: StakingMigrationErrorDetail) => void
   adapterFactory?: StakingMigrationWidgetAdapterFactory

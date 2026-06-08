@@ -165,7 +165,7 @@ function OverrideShowcase() {
 
           <YStack gap="$2">
             <Text variant="label">StakingMigrationWidget:</Text>
-            <StakingMigrationWidget />
+            <StakingMigrationWidget environment="development" />
           </YStack>
 
           <Card>

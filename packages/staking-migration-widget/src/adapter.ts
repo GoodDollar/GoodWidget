@@ -12,27 +12,35 @@ import {
   type Chain,
 } from 'viem'
 import {
+  normalizeStakingMigrationEnvironment,
+  resolveMigrationConfigForEnvironment,
+  type ResolvedStakingMigrationConfig,
+} from './migrationEnvironments'
+import {
   FUSE_CHAIN_ID,
   FUSE_STAKING_CONTRACT_ADDRESS,
   type MigrationStep,
   type StakingMigrationErrorDetail,
+  type StakingMigrationPrimaryAction,
   type StakingMigrationSuccessDetail,
   type StakingMigrationWidgetAdapterResult,
-  type StakingMigrationWidgetConfig,
+  type StakingMigrationWidgetEnvironment,
   type StakingMigrationWidgetState,
 } from './widgetRuntimeContract'
 
-// This is the migration step order expected by the widget timeline.
 const MIGRATION_STEPS: MigrationStep[] = ['unstake', 'bridge sent', 'bridge received', 'stake']
 
-// This ABI covers the ERC-20-style methods required for sG$ balance and approval flow.
+const MIGRATION_SUBMIT_PATH = '/migrate-stake-from-approval'
+const MIGRATION_STATUS_PATH = '/migrate-stake-status'
+const MIGRATION_STATUS_STREAM_PATH = '/migrate-stake-status/stream'
+const MIGRATION_STATUS_POLL_INTERVAL_MS = 2500
+
 const fuseStakingAbi = parseAbi([
   'function balanceOf(address account) view returns (uint256)',
   'function decimals() view returns (uint8)',
   'function approve(address spender, uint256 amount) returns (bool)',
 ])
 
-// This chain descriptor keeps viem wallet/public clients aligned with Fuse mainnet.
 const FUSE_CHAIN: Chain = {
   id: FUSE_CHAIN_ID,
   name: 'Fuse',
@@ -45,6 +53,41 @@ const FUSE_CHAIN: Chain = {
     default: { http: ['https://rpc.fuse.io'] },
     public: { http: ['https://rpc.fuse.io'] },
   },
+}
+
+const WORKER_STEP_CHECKPOINTS: Record<MigrationStep, string[]> = {
+  unstake: ['fuse_transfer', 'fuse_withdraw', 'fuse_bridge_sent', 'celo_bridge_received', 'celo_staked', 'completed'],
+  'bridge sent': ['fuse_bridge_sent', 'celo_bridge_received', 'celo_staked', 'completed'],
+  'bridge received': ['celo_bridge_received', 'celo_staked', 'completed'],
+  stake: ['celo_staked', 'completed'],
+}
+
+interface WorkerMigrationState {
+  approvalTxHash: string
+  user?: string
+  status: 'pending' | 'completed' | 'failed'
+  lastSuccessfulStep?: string
+  lastError?: {
+    stage: string
+    message: string
+    at: string
+  }
+  updatedAt?: string
+}
+
+interface ApiProgressPayload {
+  migrationId: string | null
+  status: 'migrating' | 'success' | 'error'
+  completedSteps: MigrationStep[]
+  activeStep: MigrationStep | null
+  failedStep: MigrationStep | null
+  reason: string | null
+}
+
+export interface UseStakingMigrationAdapterOptions {
+  environment?: StakingMigrationWidgetEnvironment
+  onMigrationSuccess?: (detail: StakingMigrationSuccessDetail) => void
+  onMigrationError?: (detail: StakingMigrationErrorDetail) => void
 }
 
 const DEFAULT_STATE: StakingMigrationWidgetState = {
@@ -63,21 +106,8 @@ const DEFAULT_STATE: StakingMigrationWidgetState = {
   approvalTxHash: null,
   migrationId: null,
   error: null,
-}
-
-interface ApiProgressPayload {
-  migrationId: string | null
-  status: 'migrating' | 'success' | 'error'
-  completedSteps: MigrationStep[]
-  activeStep: MigrationStep | null
-  failedStep: MigrationStep | null
-  reason: string | null
-}
-
-export interface UseStakingMigrationAdapterOptions {
-  migrationConfig?: StakingMigrationWidgetConfig
-  onMigrationSuccess?: (detail: StakingMigrationSuccessDetail) => void
-  onMigrationError?: (detail: StakingMigrationErrorDetail) => void
+  primaryAction: 'none',
+  primaryLabel: '',
 }
 
 function formatErrorMessage(error: unknown): string {
@@ -89,91 +119,11 @@ function formatErrorMessage(error: unknown): string {
   return error.message
 }
 
-function normalizeStep(step: unknown): MigrationStep | null {
-  if (typeof step !== 'string') return null
-  const lowerStep = step.trim().toLowerCase().replace(/[_-]/g, ' ')
-  if (lowerStep.includes('unstake')) return 'unstake'
-  if (lowerStep.includes('bridge sent') || lowerStep === 'bridge') return 'bridge sent'
-  if (lowerStep.includes('bridge received')) return 'bridge received'
-  if (lowerStep.includes('stake')) return 'stake'
-  return null
+function hasRequiredConfig(migrationConfig: ResolvedStakingMigrationConfig): boolean {
+  return Boolean(migrationConfig.migrationApiBaseUrl && migrationConfig.migrationOperator)
 }
 
-function collectCompletedSteps(payload: Record<string, unknown>): MigrationStep[] {
-  const completed = new Set<MigrationStep>()
-
-  const completedSteps = payload.completedSteps
-  if (Array.isArray(completedSteps)) {
-    for (const step of completedSteps) {
-      const normalizedStep = normalizeStep(step)
-      if (normalizedStep) completed.add(normalizedStep)
-    }
-  }
-
-  const steps = payload.steps
-  if (Array.isArray(steps)) {
-    for (const stepEntry of steps) {
-      if (!stepEntry || typeof stepEntry !== 'object') continue
-      const entry = stepEntry as Record<string, unknown>
-      const normalizedStep = normalizeStep(entry.step ?? entry.name ?? entry.id)
-      const normalizedStatus =
-        typeof entry.status === 'string' ? entry.status.toLowerCase().trim() : undefined
-      if (normalizedStep && normalizedStatus === 'completed') {
-        completed.add(normalizedStep)
-      }
-    }
-  }
-
-  return MIGRATION_STEPS.filter((step) => completed.has(step))
-}
-
-function normalizeApiProgress(rawPayload: unknown): ApiProgressPayload {
-  const payload = rawPayload && typeof rawPayload === 'object' ? (rawPayload as Record<string, unknown>) : {}
-
-  const rawStatus =
-    typeof payload.status === 'string'
-      ? payload.status.toLowerCase().trim()
-      : typeof payload.state === 'string'
-        ? payload.state.toLowerCase().trim()
-        : 'migrating'
-
-  const normalizedStatus: ApiProgressPayload['status'] =
-    rawStatus === 'success' || rawStatus === 'completed' || rawStatus === 'done'
-      ? 'success'
-      : rawStatus === 'error' || rawStatus === 'failed'
-        ? 'error'
-        : 'migrating'
-
-  const activeStep = normalizeStep(payload.activeStep ?? payload.step ?? payload.currentStep)
-  const failedStep = normalizeStep(payload.failedStep ?? payload.errorStep)
-
-  const reasonSource =
-    payload.reason ??
-    payload.message ??
-    (payload.error && typeof payload.error === 'object'
-      ? (payload.error as Record<string, unknown>).message
-      : payload.error)
-
-  const completedSteps = collectCompletedSteps(payload)
-
-  const migrationId =
-    typeof payload.migrationId === 'string'
-      ? payload.migrationId
-      : typeof payload.id === 'string'
-        ? payload.id
-        : null
-
-  return {
-    migrationId,
-    status: normalizedStatus,
-    completedSteps,
-    activeStep,
-    failedStep,
-    reason: typeof reasonSource === 'string' ? reasonSource : null,
-  }
-}
-
-function buildApiHeaders(migrationConfig: StakingMigrationWidgetConfig): Record<string, string> {
+function buildApiHeaders(migrationConfig: ResolvedStakingMigrationConfig): Record<string, string> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   }
@@ -185,28 +135,325 @@ function buildApiHeaders(migrationConfig: StakingMigrationWidgetConfig): Record<
   return headers
 }
 
-function hasRequiredConfig(migrationConfig: StakingMigrationWidgetConfig): boolean {
-  return Boolean(migrationConfig.migrationApiBaseUrl && migrationConfig.migrationOperator)
+function buildMigrationApiUrl(baseUrl: string, path: string): string {
+  return `${baseUrl.replace(/\/$/, '')}${path}`
+}
+
+function workerStepCompletesWidgetStep(
+  lastSuccessfulStep: string | undefined,
+  widgetStep: MigrationStep,
+): boolean {
+  if (!lastSuccessfulStep) return false
+  return WORKER_STEP_CHECKPOINTS[widgetStep].includes(lastSuccessfulStep)
+}
+
+function mapWorkerStageToFailedStep(stage: string): MigrationStep | null {
+  const normalizedStage = stage.toLowerCase()
+  if (
+    normalizedStage.includes('fuse_transfer') ||
+    normalizedStage.includes('fuse_withdraw') ||
+    normalizedStage.includes('unstake')
+  ) {
+    return 'unstake'
+  }
+  if (normalizedStage.includes('fuse_bridge_sent') || normalizedStage.includes('bridge_sent')) {
+    return 'bridge sent'
+  }
+  if (normalizedStage.includes('celo_bridge_received') || normalizedStage.includes('bridge_received')) {
+    return 'bridge received'
+  }
+  if (normalizedStage.includes('celo_staked') || normalizedStage.includes('stake')) {
+    return 'stake'
+  }
+  return null
+}
+
+function mapWorkerStateToProgress(state: WorkerMigrationState): ApiProgressPayload {
+  const completedSteps = MIGRATION_STEPS.filter((step) =>
+    workerStepCompletesWidgetStep(state.lastSuccessfulStep, step),
+  )
+  const activeStep = MIGRATION_STEPS.find((step) => !completedSteps.includes(step)) ?? null
+  const failedStep =
+    state.status === 'failed' && state.lastError?.stage
+      ? mapWorkerStageToFailedStep(state.lastError.stage)
+      : null
+
+  const status: ApiProgressPayload['status'] =
+    state.status === 'completed' ? 'success' : state.status === 'failed' ? 'error' : 'migrating'
+
+  return {
+    migrationId: state.approvalTxHash,
+    status,
+    completedSteps,
+    activeStep: status === 'success' ? null : failedStep ?? activeStep,
+    failedStep,
+    reason: state.lastError?.message ?? null,
+  }
+}
+
+function createCompletedProgress(approvalTxHash: string): ApiProgressPayload {
+  return {
+    migrationId: approvalTxHash,
+    status: 'success',
+    completedSteps: [...MIGRATION_STEPS],
+    activeStep: null,
+    failedStep: null,
+    reason: null,
+  }
+}
+
+function parseSseFrame(frame: string): { event: string; data: unknown } | null {
+  let event = 'message'
+  let dataStr = ''
+
+  for (const line of frame.split('\n')) {
+    if (line.startsWith('event:')) {
+      event = line.slice(6).trim()
+    }
+    if (line.startsWith('data:')) {
+      dataStr += line.slice(5).trim()
+    }
+  }
+
+  if (!dataStr) return null
+
+  try {
+    return { event, data: JSON.parse(dataStr) as unknown }
+  } catch {
+    return null
+  }
+}
+
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException('Aborted', 'AbortError'))
+      return
+    }
+
+    const timeout = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort)
+      resolve()
+    }, ms)
+
+    const onAbort = () => {
+      clearTimeout(timeout)
+      reject(new DOMException('Aborted', 'AbortError'))
+    }
+
+    signal?.addEventListener('abort', onAbort, { once: true })
+  })
+}
+
+async function fetchWorkerMigrationState(
+  approvalTxHash: string,
+  migrationConfig: ResolvedStakingMigrationConfig,
+): Promise<WorkerMigrationState> {
+  const endpoint = `${buildMigrationApiUrl(migrationConfig.migrationApiBaseUrl!, MIGRATION_STATUS_PATH)}?approvalTxHash=${encodeURIComponent(approvalTxHash)}`
+  const response = await fetch(endpoint, {
+    method: 'GET',
+    headers: buildApiHeaders(migrationConfig),
+  })
+
+  const responsePayload = (await response.json().catch(() => ({}))) as unknown
+
+  if (response.status === 404) {
+    throw new Error('Migration state not found')
+  }
+
+  if (!response.ok) {
+    const payload =
+      responsePayload && typeof responsePayload === 'object'
+        ? (responsePayload as Record<string, unknown>)
+        : {}
+    throw new Error(
+      typeof payload.error === 'string'
+        ? payload.error
+        : `Migration status request failed (${response.status})`,
+    )
+  }
+
+  return responsePayload as WorkerMigrationState
+}
+
+async function submitMigrationStart(
+  approvalTxHash: string,
+  migrationConfig: ResolvedStakingMigrationConfig,
+): Promise<'started' | 'completed'> {
+  const endpoint = buildMigrationApiUrl(migrationConfig.migrationApiBaseUrl!, MIGRATION_SUBMIT_PATH)
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: buildApiHeaders(migrationConfig),
+    body: JSON.stringify({ approvalTxHash }),
+  })
+
+  const responsePayload = (await response.json().catch(() => ({}))) as Record<string, unknown>
+
+  if (response.status === 409) {
+    return 'started'
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      typeof responsePayload.error === 'string'
+        ? responsePayload.error
+        : `Migration API request failed (${response.status})`,
+    )
+  }
+
+  if (responsePayload.skipped === true) {
+    throw new Error(
+      typeof responsePayload.skipReason === 'string'
+        ? responsePayload.skipReason
+        : 'Migration was skipped by backend',
+    )
+  }
+
+  return 'completed'
+}
+
+async function watchMigrationViaPolling(
+  approvalTxHash: string,
+  migrationConfig: ResolvedStakingMigrationConfig,
+  signal: AbortSignal,
+  onProgress: (progress: ApiProgressPayload) => boolean,
+): Promise<void> {
+  while (!signal.aborted) {
+    try {
+      const workerState = await fetchWorkerMigrationState(approvalTxHash, migrationConfig)
+      if (onProgress(mapWorkerStateToProgress(workerState))) {
+        return
+      }
+    } catch (error: unknown) {
+      if (!(error instanceof Error) || error.message !== 'Migration state not found') {
+        throw error
+      }
+    }
+
+    await sleep(MIGRATION_STATUS_POLL_INTERVAL_MS, signal)
+  }
+}
+
+async function watchMigrationViaSse(
+  approvalTxHash: string,
+  migrationConfig: ResolvedStakingMigrationConfig,
+  signal: AbortSignal,
+  onProgress: (progress: ApiProgressPayload) => boolean,
+): Promise<void> {
+  const endpoint = `${buildMigrationApiUrl(migrationConfig.migrationApiBaseUrl!, MIGRATION_STATUS_STREAM_PATH)}?approvalTxHash=${encodeURIComponent(approvalTxHash)}`
+  const response = await fetch(endpoint, {
+    method: 'GET',
+    headers: buildApiHeaders(migrationConfig),
+    signal,
+  })
+
+  if (!response.ok || !response.body) {
+    throw new Error(`Migration SSE request failed (${response.status})`)
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  while (!signal.aborted) {
+    const { done, value } = await reader.read()
+    if (done) break
+
+    buffer += decoder.decode(value, { stream: true })
+
+    let frameEnd = buffer.indexOf('\n\n')
+    while (frameEnd >= 0) {
+      const frame = buffer.slice(0, frameEnd)
+      buffer = buffer.slice(frameEnd + 2)
+      const parsedFrame = parseSseFrame(frame)
+
+      if (parsedFrame?.event === 'state' && parsedFrame.data && typeof parsedFrame.data === 'object') {
+        const payload = parsedFrame.data as Record<string, unknown>
+        if (payload.status === 'not_found') {
+          frameEnd = buffer.indexOf('\n\n')
+          continue
+        }
+
+        if (onProgress(mapWorkerStateToProgress(parsedFrame.data as WorkerMigrationState))) {
+          return
+        }
+      }
+
+      if (parsedFrame?.event === 'done') {
+        return
+      }
+
+      frameEnd = buffer.indexOf('\n\n')
+    }
+  }
+}
+
+async function watchMigrationProgress(
+  approvalTxHash: string,
+  migrationConfig: ResolvedStakingMigrationConfig,
+  signal: AbortSignal,
+  onProgress: (progress: ApiProgressPayload) => boolean,
+): Promise<void> {
+  try {
+    await watchMigrationViaSse(approvalTxHash, migrationConfig, signal, onProgress)
+  } catch {
+    await watchMigrationViaPolling(approvalTxHash, migrationConfig, signal, onProgress)
+  }
+}
+
+function derivePrimaryAction(state: StakingMigrationWidgetState): StakingMigrationPrimaryAction {
+  if (state.isBalanceLoading) return 'none'
+  if (!state.hasRequiredConfig || state.status === 'missing-config') return 'none'
+  if (state.stakedAmountRaw <= 0n) return 'none'
+  if (!state.address) return 'connect'
+  if (state.status === 'wrong-network') return 'switch_chain'
+  if (state.status === 'approval-pending' || state.status === 'migrating') return 'none'
+  if (state.status === 'success') return 'refresh'
+  if (state.status === 'approval-failed' || state.status === 'error') return 'retry'
+  return 'migrate'
+}
+
+function derivePrimaryLabel(
+  state: StakingMigrationWidgetState,
+  primaryAction: StakingMigrationPrimaryAction,
+): string {
+  if (state.isBalanceLoading) return 'Loading...'
+  if (!state.hasRequiredConfig || state.status === 'missing-config') return 'Setup required'
+  if (state.stakedAmountRaw <= 0n) return 'No balance'
+  if (state.status === 'approval-pending') return 'Approval pending'
+  if (state.status === 'migrating') return 'Migrating'
+
+  switch (primaryAction) {
+    case 'connect':
+      return 'Connect wallet'
+    case 'switch_chain':
+      return 'Switch to Fuse'
+    case 'migrate':
+      return 'Approve & Migrate'
+    case 'retry':
+      return state.status === 'approval-failed' ? 'Retry approval' : 'Retry migration'
+    case 'refresh':
+      return 'Refresh balance'
+    default:
+      return ''
+  }
 }
 
 export function useStakingMigrationAdapter({
-  migrationConfig,
+  environment,
   onMigrationSuccess,
   onMigrationError,
 }: UseStakingMigrationAdapterOptions = {}): StakingMigrationWidgetAdapterResult {
   const { address, chainId, isConnected, provider, connect } = useWallet()
 
-  const resolvedConfig = useMemo<StakingMigrationWidgetConfig>(
-    () => ({
-      migrationApiBaseUrl: migrationConfig?.migrationApiBaseUrl,
-      migrationOperator: migrationConfig?.migrationOperator,
-      migrationApiToken: migrationConfig?.migrationApiToken,
-    }),
-    [
-      migrationConfig?.migrationApiBaseUrl,
-      migrationConfig?.migrationApiToken,
-      migrationConfig?.migrationOperator,
-    ],
+  const resolvedEnvironment = useMemo(
+    () => normalizeStakingMigrationEnvironment(environment),
+    [environment],
+  )
+
+  const resolvedConfig = useMemo<ResolvedStakingMigrationConfig>(
+    () => resolveMigrationConfigForEnvironment(resolvedEnvironment),
+    [resolvedEnvironment],
   )
 
   const [state, setState] = useState<StakingMigrationWidgetState>(() => ({
@@ -216,6 +463,7 @@ export function useStakingMigrationAdapter({
 
   const actionInFlightRef = useRef(false)
   const unmountedRef = useRef(false)
+  const migrationWatchAbortRef = useRef<AbortController | null>(null)
 
   const publicClient = useMemo(
     () =>
@@ -235,6 +483,120 @@ export function useStakingMigrationAdapter({
       transport: custom(provider as EIP1193Provider),
     })
   }, [provider, address])
+
+  const stopMigrationWatch = useCallback(() => {
+    migrationWatchAbortRef.current?.abort()
+    migrationWatchAbortRef.current = null
+  }, [])
+
+  const applyMigrationProgress = useCallback(
+    (progress: ApiProgressPayload, approvalTxHash: string) => {
+      if (progress.status === 'success') {
+        setState((previousState) => ({
+          ...previousState,
+          status: 'success',
+          approvalTxHash,
+          migrationId: progress.migrationId ?? approvalTxHash,
+          completedSteps: progress.completedSteps.length > 0 ? progress.completedSteps : MIGRATION_STEPS,
+          activeStep: null,
+          failedStep: null,
+          error: null,
+        }))
+
+        onMigrationSuccess?.({
+          address: address!,
+          approvalTxHash,
+          migrationId: progress.migrationId ?? approvalTxHash,
+          completedSteps:
+            progress.completedSteps.length > 0 ? progress.completedSteps : [...MIGRATION_STEPS],
+        })
+        return true
+      }
+
+      if (progress.status === 'error') {
+        const errorMessage = progress.reason ?? 'Migration failed during backend processing'
+
+        setState((previousState) => ({
+          ...previousState,
+          status: 'error',
+          approvalTxHash,
+          migrationId: progress.migrationId ?? approvalTxHash,
+          completedSteps: progress.completedSteps,
+          activeStep: progress.activeStep,
+          failedStep: progress.failedStep,
+          error: errorMessage,
+        }))
+
+        onMigrationError?.({
+          address: address ?? null,
+          reason: errorMessage,
+          failedStep: progress.failedStep,
+        })
+        return true
+      }
+
+      setState((previousState) => ({
+        ...previousState,
+        status: 'migrating',
+        approvalTxHash,
+        migrationId: progress.migrationId ?? approvalTxHash,
+        completedSteps: progress.completedSteps,
+        activeStep:
+          progress.activeStep ??
+          MIGRATION_STEPS.find((step) => !progress.completedSteps.includes(step)) ??
+          null,
+        failedStep: null,
+        error: null,
+      }))
+      return false
+    },
+    [address, onMigrationError, onMigrationSuccess],
+  )
+
+  const runMigrationJob = useCallback(
+    async (approvalTxHash: string) => {
+      stopMigrationWatch()
+
+      const abortController = new AbortController()
+      migrationWatchAbortRef.current = abortController
+      let reachedTerminalState = false
+
+      const watchPromise = watchMigrationProgress(
+        approvalTxHash,
+        resolvedConfig,
+        abortController.signal,
+        (progress) => {
+          const terminal = applyMigrationProgress(progress, approvalTxHash)
+          if (terminal) {
+            reachedTerminalState = true
+            stopMigrationWatch()
+          }
+          return terminal
+        },
+      ).catch((error: unknown) => {
+        if (reachedTerminalState || unmountedRef.current) return
+        if (error instanceof DOMException && error.name === 'AbortError') return
+        throw error
+      })
+
+      try {
+        const postResult = await submitMigrationStart(approvalTxHash, resolvedConfig)
+        if (postResult === 'completed' && !reachedTerminalState) {
+          reachedTerminalState = applyMigrationProgress(
+            createCompletedProgress(approvalTxHash),
+            approvalTxHash,
+          )
+        }
+      } catch (error: unknown) {
+        if (!reachedTerminalState) {
+          throw error
+        }
+      }
+
+      await watchPromise
+    },
+    [applyMigrationProgress, resolvedConfig, stopMigrationWatch],
+  )
 
   const refreshStakeState = useCallback(async () => {
     if (!isConnected || !address) {
@@ -327,152 +689,13 @@ export function useStakingMigrationAdapter({
     unmountedRef.current = false
     return () => {
       unmountedRef.current = true
+      stopMigrationWatch()
     }
-  }, [])
+  }, [stopMigrationWatch])
 
   useEffect(() => {
     void refreshStakeState()
   }, [refreshStakeState])
-
-  const applyMigrationProgress = useCallback(
-    (progress: ApiProgressPayload, approvalTxHash: string) => {
-      if (progress.status === 'success') {
-        setState((previousState) => ({
-          ...previousState,
-          status: 'success',
-          approvalTxHash,
-          migrationId: progress.migrationId,
-          completedSteps: progress.completedSteps.length > 0 ? progress.completedSteps : MIGRATION_STEPS,
-          activeStep: null,
-          failedStep: null,
-          error: null,
-        }))
-
-        onMigrationSuccess?.({
-          address: address!,
-          approvalTxHash,
-          migrationId: progress.migrationId ?? 'unknown',
-          completedSteps:
-            progress.completedSteps.length > 0 ? progress.completedSteps : [...MIGRATION_STEPS],
-        })
-        return true
-      }
-
-      if (progress.status === 'error') {
-        const errorMessage = progress.reason ?? 'Migration failed during backend processing'
-
-        setState((previousState) => ({
-          ...previousState,
-          status: 'error',
-          approvalTxHash,
-          migrationId: progress.migrationId,
-          completedSteps: progress.completedSteps,
-          activeStep: progress.activeStep,
-          failedStep: progress.failedStep,
-          error: errorMessage,
-        }))
-
-        onMigrationError?.({
-          address: address ?? null,
-          reason: errorMessage,
-          failedStep: progress.failedStep,
-        })
-        return true
-      }
-
-      setState((previousState) => ({
-        ...previousState,
-        status: 'migrating',
-        approvalTxHash,
-        migrationId: progress.migrationId,
-        completedSteps: progress.completedSteps,
-        activeStep:
-          progress.activeStep ??
-          MIGRATION_STEPS.find((step) => !progress.completedSteps.includes(step)) ??
-          null,
-        failedStep: null,
-        error: null,
-      }))
-      return false
-    },
-    [address, onMigrationError, onMigrationSuccess],
-  )
-
-  const submitMigrationApproval = useCallback(
-    async (approvalTxHash: string): Promise<ApiProgressPayload> => {
-      const baseUrl = resolvedConfig.migrationApiBaseUrl!
-      const endpoint = `${baseUrl.replace(/\/$/, '')}/staking-migrations`
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: buildApiHeaders(resolvedConfig),
-        body: JSON.stringify({
-          walletAddress: address,
-          approvalTxHash,
-          sourceChainId: FUSE_CHAIN_ID,
-          stakingContract: FUSE_STAKING_CONTRACT_ADDRESS,
-          migrationOperator: resolvedConfig.migrationOperator,
-        }),
-      })
-
-      const responsePayload = (await response.json().catch(() => ({}))) as unknown
-
-      if (!response.ok) {
-        const normalizedPayload = normalizeApiProgress(responsePayload)
-        throw new Error(normalizedPayload.reason ?? `Migration API request failed (${response.status})`)
-      }
-
-      return normalizeApiProgress(responsePayload)
-    },
-    [address, resolvedConfig],
-  )
-
-  const fetchMigrationProgress = useCallback(
-    async (migrationId: string): Promise<ApiProgressPayload> => {
-      const baseUrl = resolvedConfig.migrationApiBaseUrl!
-      const endpoint = `${baseUrl.replace(/\/$/, '')}/staking-migrations/${migrationId}`
-
-      const response = await fetch(endpoint, {
-        method: 'GET',
-        headers: buildApiHeaders(resolvedConfig),
-      })
-
-      const responsePayload = (await response.json().catch(() => ({}))) as unknown
-
-      if (!response.ok) {
-        const normalizedPayload = normalizeApiProgress(responsePayload)
-        throw new Error(normalizedPayload.reason ?? `Migration status request failed (${response.status})`)
-      }
-
-      return normalizeApiProgress(responsePayload)
-    },
-    [resolvedConfig],
-  )
-
-  const waitForMigrationCompletion = useCallback(
-    async (approvalTxHash: string, initialProgress: ApiProgressPayload): Promise<void> => {
-      let progress = initialProgress
-
-      if (applyMigrationProgress(progress, approvalTxHash)) {
-        return
-      }
-
-      const migrationId = progress.migrationId
-      if (!migrationId) {
-        throw new Error('Migration API did not return a migration id')
-      }
-
-      while (!unmountedRef.current) {
-        await new Promise((resolve) => setTimeout(resolve, 3000))
-        progress = await fetchMigrationProgress(migrationId)
-        const reachedTerminalState = applyMigrationProgress(progress, approvalTxHash)
-        if (reachedTerminalState) {
-          return
-        }
-      }
-    },
-    [applyMigrationProgress, fetchMigrationProgress],
-  )
 
   const startApprovalAndMigration = useCallback(async () => {
     if (actionInFlightRef.current) return
@@ -483,7 +706,7 @@ export function useStakingMigrationAdapter({
         ...previousState,
         status: 'missing-config',
         hasRequiredConfig: false,
-        error: 'Missing migrationApiBaseUrl or migrationOperator in migrationConfig',
+        error: 'Migration backend configuration is unavailable for the selected environment',
       }))
       return
     }
@@ -523,6 +746,7 @@ export function useStakingMigrationAdapter({
 
     actionInFlightRef.current = true
     let approvalConfirmed = false
+
     setState((previousState) => ({
       ...previousState,
       status: 'approval-pending',
@@ -545,10 +769,17 @@ export function useStakingMigrationAdapter({
       if (approvalReceipt.status !== 'success') {
         throw new Error('Approval transaction did not confirm successfully')
       }
+
       approvalConfirmed = true
 
-      const initialProgress = await submitMigrationApproval(approvalTxHash)
-      await waitForMigrationCompletion(approvalTxHash, initialProgress)
+      setState((previousState) => ({
+        ...previousState,
+        status: 'migrating',
+        approvalTxHash,
+        migrationId: approvalTxHash,
+      }))
+
+      await runMigrationJob(approvalTxHash)
     } catch (error: unknown) {
       const errorMessage = formatErrorMessage(error)
       const isApprovalFailure = !approvalConfirmed
@@ -566,6 +797,7 @@ export function useStakingMigrationAdapter({
       })
     } finally {
       actionInFlightRef.current = false
+      stopMigrationWatch()
     }
   }, [
     address,
@@ -575,11 +807,10 @@ export function useStakingMigrationAdapter({
     onMigrationError,
     publicClient,
     resolvedConfig,
+    runMigrationJob,
     state.activeStep,
     state.stakedAmountRaw,
-    state.status,
-    submitMigrationApproval,
-    waitForMigrationCompletion,
+    stopMigrationWatch,
     walletClient,
   ])
 
@@ -593,12 +824,13 @@ export function useStakingMigrationAdapter({
       setState((previousState) => ({
         ...previousState,
         status: 'missing-config',
-        error: 'Missing migrationApiBaseUrl or migrationOperator in migrationConfig',
+        error: 'Migration backend configuration is unavailable for the selected environment',
       }))
       return
     }
 
     actionInFlightRef.current = true
+
     setState((previousState) => ({
       ...previousState,
       status: 'migrating',
@@ -606,8 +838,7 @@ export function useStakingMigrationAdapter({
     }))
 
     try {
-      const initialProgress = await submitMigrationApproval(state.approvalTxHash)
-      await waitForMigrationCompletion(state.approvalTxHash, initialProgress)
+      await runMigrationJob(state.approvalTxHash)
     } catch (error: unknown) {
       const errorMessage = formatErrorMessage(error)
       setState((previousState) => ({
@@ -617,8 +848,9 @@ export function useStakingMigrationAdapter({
       }))
     } finally {
       actionInFlightRef.current = false
+      stopMigrationWatch()
     }
-  }, [resolvedConfig, startApprovalAndMigration, state.approvalTxHash, submitMigrationApproval, waitForMigrationCompletion])
+  }, [resolvedConfig, runMigrationJob, startApprovalAndMigration, state.approvalTxHash, stopMigrationWatch])
 
   const switchToFuse = useCallback(async () => {
     if (!provider) return
@@ -629,14 +861,23 @@ export function useStakingMigrationAdapter({
         params: [{ chainId: `0x${FUSE_CHAIN_ID.toString(16)}` }],
       })
     } catch {
-      // no-op: wallet might not support programmatic switching
     } finally {
       await refreshStakeState()
     }
   }, [provider, refreshStakeState])
 
+  const derivedState = useMemo(() => {
+    const primaryAction = derivePrimaryAction(state)
+    const primaryLabel = derivePrimaryLabel(state, primaryAction)
+    return {
+      ...state,
+      primaryAction,
+      primaryLabel,
+    }
+  }, [state])
+
   return {
-    state,
+    state: derivedState,
     actions: {
       connect,
       switchToFuse,

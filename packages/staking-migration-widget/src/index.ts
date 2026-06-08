@@ -10,13 +10,23 @@ export type {
   StakingMigrationWidgetAdapterFactoryInput,
   StakingMigrationWidgetAdapterResult,
   StakingMigrationWidgetActions,
-  StakingMigrationWidgetConfig,
+  StakingMigrationWidgetEnvironment,
   StakingMigrationWidgetProps,
   StakingMigrationWidgetState,
   StakingMigrationWidgetStatus,
+  StakingMigrationPrimaryAction,
 } from './widgetRuntimeContract'
 
 export {
   FUSE_CHAIN_ID,
   FUSE_STAKING_CONTRACT_ADDRESS,
 } from './widgetRuntimeContract'
+
+export {
+  MIGRATION_OPERATOR_ADDRESS,
+  normalizeStakingMigrationEnvironment,
+  resolveMigrationConfigForEnvironment,
+  stakingMigrationCapabilities,
+} from './migrationEnvironments'
+
+export type { ResolvedStakingMigrationConfig } from './migrationEnvironments'

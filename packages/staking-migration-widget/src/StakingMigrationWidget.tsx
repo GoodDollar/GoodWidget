@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useCallback, useMemo } from 'react'
 import { GoodWidgetProvider } from '@goodwidget/core'
 import type { EIP1193Provider } from '@goodwidget/core'
 import { Card, Text, ToastContainer, YStack } from '@goodwidget/ui'
@@ -11,7 +11,7 @@ import type {
 } from './widgetRuntimeContract'
 
 interface StakingMigrationInnerProps {
-  migrationConfig: StakingMigrationWidgetProps['migrationConfig']
+  environment: StakingMigrationWidgetProps['environment']
   adapterFactory?: StakingMigrationWidgetAdapterFactory
   onMigrationSuccess?: StakingMigrationWidgetProps['onMigrationSuccess']
   onMigrationError?: StakingMigrationWidgetProps['onMigrationError']
@@ -26,13 +26,13 @@ function formatJourneyLabel(label: string | null): string | null {
 }
 
 function StakingMigrationInner({
-  migrationConfig,
+  environment,
   adapterFactory,
   onMigrationSuccess,
   onMigrationError,
 }: StakingMigrationInnerProps) {
   const defaultAdapter = useStakingMigrationAdapter({
-    migrationConfig,
+    environment,
     onMigrationSuccess,
     onMigrationError,
   })
@@ -41,124 +41,55 @@ function StakingMigrationInner({
     () =>
       adapterFactory
         ? adapterFactory({
-            config: migrationConfig ?? {},
+            environment: environment ?? 'production',
           })
         : defaultAdapter,
-    [adapterFactory, defaultAdapter, migrationConfig],
+    [adapterFactory, defaultAdapter, environment],
   )
 
   const { state, actions } = activeAdapter
   const isZeroBalance = state.stakedAmountRaw <= 0n
+  const isPrimaryPending =
+    state.isBalanceLoading ||
+    state.status === 'approval-pending' ||
+    state.status === 'migrating'
 
-  const journeyAction = useMemo(() => {
-    if (state.isBalanceLoading) {
-      return {
-        label: 'Loading...',
-        disabled: true,
-        pending: true,
-        onPress: undefined,
-      }
+  const handlePrimaryAction = useCallback(async () => {
+    switch (state.primaryAction) {
+      case 'connect':
+        await actions.connect()
+        break
+      case 'switch_chain':
+        await actions.switchToFuse()
+        break
+      case 'migrate':
+        await actions.approveAndMigrate()
+        break
+      case 'retry':
+        await actions.retryMigration()
+        break
+      case 'refresh':
+        await actions.refresh()
+        break
+      default:
+        break
     }
+  }, [actions, state.primaryAction])
 
-    if (!state.hasRequiredConfig || state.status === 'missing-config') {
-      return {
-        label: 'Setup required',
-        disabled: true,
-        onPress: undefined,
-      }
-    }
-
-    if (isZeroBalance) {
-      return {
-        label: 'No balance',
-        disabled: true,
-        onPress: undefined,
-      }
-    }
-
-    if (!state.address) {
-      return {
-        label: 'Connect wallet',
-        disabled: false,
-        onPress: () => {
-          void actions.connect()
-        },
-      }
-    }
-
-    if (state.status === 'wrong-network') {
-      return {
-        label: 'Switch to Fuse',
-        disabled: false,
-        onPress: () => {
-          void actions.switchToFuse()
-        },
-      }
-    }
-
-    if (state.status === 'approval-pending') {
-      return {
-        label: 'Approval pending',
-        disabled: true,
-        pending: true,
-        onPress: undefined,
-      }
-    }
-
-    if (state.status === 'migrating') {
-      return {
-        label: 'Migrating',
-        disabled: true,
-        pending: true,
-        onPress: undefined,
-      }
-    }
-
-    if (state.status === 'success') {
-      return {
-        label: 'Refresh balance',
-        disabled: false,
-        onPress: () => {
-          void actions.refresh()
-        },
-      }
-    }
-
-    if (state.status === 'approval-failed') {
-      return {
-        label: 'Retry approval',
-        disabled: false,
-        onPress: () => {
-          void actions.retryMigration()
-        },
-      }
-    }
-
-    if (state.status === 'error') {
-      return {
-        label: 'Retry migration',
-        disabled: false,
-        onPress: () => {
-          void actions.retryMigration()
-        },
-      }
-    }
-
-    return {
-      label: 'Approve & Migrate',
-      disabled: false,
-      onPress: () => {
-        void actions.approveAndMigrate()
-      },
-    }
-  }, [
-    actions,
-    isZeroBalance,
-    state.address,
-    state.hasRequiredConfig,
-    state.isBalanceLoading,
-    state.status,
-  ])
+  const summaryAction = useMemo(
+    () => ({
+      label: state.primaryLabel,
+      disabled: state.primaryAction === 'none' || isPrimaryPending,
+      pending: isPrimaryPending,
+      onPress:
+        state.primaryAction === 'none' || isPrimaryPending
+          ? undefined
+          : () => {
+              void handlePrimaryAction()
+            },
+    }),
+    [handlePrimaryAction, isPrimaryPending, state.primaryAction, state.primaryLabel],
+  )
 
   const summaryStatusMessage = useMemo(() => {
     if (state.status === 'migrating') {
@@ -175,7 +106,7 @@ function StakingMigrationInner({
       <MigrationSummaryCard
         stakedAmount={state.stakedAmount}
         statusMessage={summaryStatusMessage}
-        action={journeyAction}
+        action={summaryAction}
       />
 
       <Card>
@@ -191,8 +122,8 @@ function StakingMigrationInner({
 
           {state.status === 'missing-config' && (
             <Text secondary>
-              <Text color="$warning">Missing migration configuration:</Text> Provide migrationApiBaseUrl
-              and migrationOperator in migrationConfig before enabling migration.
+              <Text color="$warning">Missing migration configuration:</Text> Set a supported environment
+              (`production`, `staging`, or `development`) before enabling migration.
             </Text>
           )}
         </YStack>
@@ -206,7 +137,7 @@ export function StakingMigrationWidget({
   config,
   defaultTheme = 'light',
   themeOverrides,
-  migrationConfig,
+  environment = 'production',
   onMigrationSuccess,
   onMigrationError,
   adapterFactory,
@@ -219,7 +150,7 @@ export function StakingMigrationWidget({
       themeOverrides={themeOverrides}
     >
       <StakingMigrationInner
-        migrationConfig={migrationConfig}
+        environment={environment}
         onMigrationSuccess={onMigrationSuccess}
         onMigrationError={onMigrationError}
         adapterFactory={adapterFactory}
