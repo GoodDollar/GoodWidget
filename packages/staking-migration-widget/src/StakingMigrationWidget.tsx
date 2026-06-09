@@ -5,18 +5,16 @@ import { Card, Text, ToastContainer, YStack } from '@goodwidget/ui'
 import { MigrationProgressTimeline } from './MigrationProgressTimeline'
 import { MigrationSummaryCard } from './MigrationSummaryCard'
 import { useStakingMigrationAdapter } from './adapter'
-import type {
-  StakingMigrationWidgetAdapterFactory,
-  StakingMigrationWidgetProps,
-} from './widgetRuntimeContract'
+import type { StakingMigrationWidgetProps } from './widgetRuntimeContract'
 
-interface StakingMigrationInnerProps {
-  environment: StakingMigrationWidgetProps['environment']
-  migrationApiToken: StakingMigrationWidgetProps['migrationApiToken']
-  adapterFactory?: StakingMigrationWidgetAdapterFactory
-  onMigrationSuccess?: StakingMigrationWidgetProps['onMigrationSuccess']
-  onMigrationError?: StakingMigrationWidgetProps['onMigrationError']
-}
+type StakingMigrationInnerProps = Pick<
+  StakingMigrationWidgetProps,
+  | 'migrationApiBaseUrl'
+  | 'migrationApiToken'
+  | 'adapterFactory'
+  | 'onMigrationSuccess'
+  | 'onMigrationError'
+>
 
 function formatJourneyLabel(label: string | null): string | null {
   if (!label) return null
@@ -27,14 +25,14 @@ function formatJourneyLabel(label: string | null): string | null {
 }
 
 function StakingMigrationInner({
-  environment,
+  migrationApiBaseUrl,
   migrationApiToken,
   adapterFactory,
   onMigrationSuccess,
   onMigrationError,
 }: StakingMigrationInnerProps) {
   const defaultAdapter = useStakingMigrationAdapter({
-    environment,
+    migrationApiBaseUrl,
     migrationApiToken,
     onMigrationSuccess,
     onMigrationError,
@@ -44,11 +42,11 @@ function StakingMigrationInner({
     () =>
       adapterFactory
         ? adapterFactory({
-            environment: environment ?? 'production',
+            migrationApiBaseUrl,
             migrationApiToken,
           })
         : defaultAdapter,
-    [adapterFactory, defaultAdapter, environment, migrationApiToken],
+    [adapterFactory, defaultAdapter, migrationApiBaseUrl, migrationApiToken],
   )
 
   const { state, actions } = activeAdapter
@@ -126,8 +124,8 @@ function StakingMigrationInner({
 
           {state.status === 'missing-config' && (
             <Text secondary>
-              <Text color="$warning">Missing migration configuration:</Text> Set a supported environment
-              (`production`, `staging`, or `development`) before enabling migration.
+              <Text color="$warning">Missing migration configuration:</Text> Provide a migration API base
+              URL before enabling migration.
             </Text>
           )}
         </YStack>
@@ -141,7 +139,7 @@ export function StakingMigrationWidget({
   config,
   defaultTheme = 'light',
   themeOverrides,
-  environment = 'production',
+  migrationApiBaseUrl,
   migrationApiToken,
   onMigrationSuccess,
   onMigrationError,
@@ -155,7 +153,7 @@ export function StakingMigrationWidget({
       themeOverrides={themeOverrides}
     >
       <StakingMigrationInner
-        environment={environment}
+        migrationApiBaseUrl={migrationApiBaseUrl}
         migrationApiToken={migrationApiToken}
         onMigrationSuccess={onMigrationSuccess}
         onMigrationError={onMigrationError}

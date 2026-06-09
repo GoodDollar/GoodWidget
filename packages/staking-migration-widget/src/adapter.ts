@@ -11,11 +11,7 @@ import {
   type Address,
   type Chain,
 } from 'viem'
-import {
-  normalizeStakingMigrationEnvironment,
-  resolveMigrationConfigForEnvironment,
-  type ResolvedStakingMigrationConfig,
-} from './migrationEnvironments'
+import { resolveMigrationConfig, type ResolvedStakingMigrationConfig } from './migrationEnvironments'
 import {
   FUSE_CHAIN_ID,
   FUSE_STAKING_CONTRACT_ADDRESS,
@@ -24,7 +20,6 @@ import {
   type StakingMigrationPrimaryAction,
   type StakingMigrationSuccessDetail,
   type StakingMigrationWidgetAdapterResult,
-  type StakingMigrationWidgetEnvironment,
   type StakingMigrationWidgetState,
 } from './widgetRuntimeContract'
 
@@ -85,7 +80,7 @@ interface ApiProgressPayload {
 }
 
 export interface UseStakingMigrationAdapterOptions {
-  environment?: StakingMigrationWidgetEnvironment
+  migrationApiBaseUrl?: string
   migrationApiToken?: string
   onMigrationSuccess?: (detail: StakingMigrationSuccessDetail) => void
   onMigrationError?: (detail: StakingMigrationErrorDetail) => void
@@ -407,7 +402,7 @@ async function watchMigrationProgress(
   }
 }
 
-function derivePrimaryAction(state: StakingMigrationWidgetState): StakingMigrationPrimaryAction {
+export function derivePrimaryAction(state: StakingMigrationWidgetState): StakingMigrationPrimaryAction {
   if (state.isBalanceLoading) return 'none'
   if (!state.hasRequiredConfig || state.status === 'missing-config') return 'none'
   if (state.stakedAmountRaw <= 0n) return 'none'
@@ -419,7 +414,7 @@ function derivePrimaryAction(state: StakingMigrationWidgetState): StakingMigrati
   return 'migrate'
 }
 
-function derivePrimaryLabel(
+export function derivePrimaryLabel(
   state: StakingMigrationWidgetState,
   primaryAction: StakingMigrationPrimaryAction,
 ): string {
@@ -446,21 +441,16 @@ function derivePrimaryLabel(
 }
 
 export function useStakingMigrationAdapter({
-  environment,
+  migrationApiBaseUrl,
   migrationApiToken,
   onMigrationSuccess,
   onMigrationError,
 }: UseStakingMigrationAdapterOptions = {}): StakingMigrationWidgetAdapterResult {
   const { address, chainId, isConnected, provider, connect } = useWallet()
 
-  const resolvedEnvironment = useMemo(
-    () => normalizeStakingMigrationEnvironment(environment),
-    [environment],
-  )
-
   const resolvedConfig = useMemo<ResolvedStakingMigrationConfig>(
-    () => resolveMigrationConfigForEnvironment(resolvedEnvironment, migrationApiToken),
-    [migrationApiToken, resolvedEnvironment],
+    () => resolveMigrationConfig({ migrationApiBaseUrl, migrationApiToken }),
+    [migrationApiBaseUrl, migrationApiToken],
   )
 
   const [state, setState] = useState<StakingMigrationWidgetState>(() => ({
@@ -713,7 +703,7 @@ export function useStakingMigrationAdapter({
         ...previousState,
         status: 'missing-config',
         hasRequiredConfig: false,
-        error: 'Migration backend configuration is unavailable for the selected environment',
+        error: 'Migration backend configuration is unavailable',
       }))
       return
     }
@@ -831,7 +821,7 @@ export function useStakingMigrationAdapter({
       setState((previousState) => ({
         ...previousState,
         status: 'missing-config',
-        error: 'Migration backend configuration is unavailable for the selected environment',
+        error: 'Migration backend configuration is unavailable',
       }))
       return
     }

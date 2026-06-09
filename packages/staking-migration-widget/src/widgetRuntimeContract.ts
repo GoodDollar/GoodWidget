@@ -1,9 +1,5 @@
 import type { Address } from 'viem'
 import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
-import type { StakingMigrationWidgetEnvironment } from './migrationEnvironments'
-
-export type { StakingMigrationWidgetEnvironment } from './migrationEnvironments'
-
 export const FUSE_CHAIN_ID = 122
 
 export const FUSE_STAKING_CONTRACT_ADDRESS: Address = '0xB7C3e738224625289C573c54d402E9Be46205546'
@@ -75,7 +71,7 @@ export interface StakingMigrationWidgetAdapterResult {
 }
 
 export interface StakingMigrationWidgetAdapterFactoryInput {
-  environment: StakingMigrationWidgetEnvironment
+  migrationApiBaseUrl?: string
   migrationApiToken?: string
 }
 
@@ -88,7 +84,7 @@ export interface StakingMigrationWidgetProps {
   config?: GoodWidgetConfig
   defaultTheme?: 'light' | 'dark'
   themeOverrides?: GoodWidgetThemeOverrides
-  environment?: StakingMigrationWidgetEnvironment
+  migrationApiBaseUrl?: string
   migrationApiToken?: string
   onMigrationSuccess?: (detail: StakingMigrationSuccessDetail) => void
   onMigrationError?: (detail: StakingMigrationErrorDetail) => void

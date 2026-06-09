@@ -2,7 +2,11 @@ export { stakingMigrationIntegration } from './integration'
 export type { StakingMigrationIntegration } from './integration'
 
 export { StakingMigrationWidget } from './StakingMigrationWidget'
-export { useStakingMigrationAdapter } from './adapter'
+export {
+  derivePrimaryAction,
+  derivePrimaryLabel,
+  useStakingMigrationAdapter,
+} from './adapter'
 export type { UseStakingMigrationAdapterOptions } from './adapter'
 
 export type {
@@ -13,7 +17,6 @@ export type {
   StakingMigrationWidgetAdapterFactoryInput,
   StakingMigrationWidgetAdapterResult,
   StakingMigrationWidgetActions,
-  StakingMigrationWidgetEnvironment,
   StakingMigrationWidgetProps,
   StakingMigrationWidgetState,
   StakingMigrationWidgetStatus,
@@ -24,12 +27,3 @@ export {
   FUSE_CHAIN_ID,
   FUSE_STAKING_CONTRACT_ADDRESS,
 } from './widgetRuntimeContract'
-
-export {
-  MIGRATION_OPERATOR_ADDRESS,
-  normalizeStakingMigrationEnvironment,
-  resolveMigrationConfigForEnvironment,
-  stakingMigrationCapabilities,
-} from './migrationEnvironments'
-
-export type { ResolvedStakingMigrationConfig } from './migrationEnvironments'

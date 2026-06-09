@@ -3,40 +3,16 @@ import type { Meta, StoryObj } from '@storybook/react'
 import { YStack } from '@goodwidget/ui'
 import {
   StakingMigrationWidget,
+  derivePrimaryAction,
+  derivePrimaryLabel,
   type MigrationStep,
-  type StakingMigrationPrimaryAction,
   type StakingMigrationWidgetAdapterFactory,
+  type StakingMigrationWidgetState,
   type StakingMigrationWidgetStatus,
 } from '@goodwidget/staking-migration-widget'
 import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
 
-function deriveMockPrimary(
-  status: StakingMigrationWidgetStatus,
-  stakedAmountRaw: bigint,
-): { primaryAction: StakingMigrationPrimaryAction; primaryLabel: string } {
-  if (stakedAmountRaw <= 0n) {
-    return { primaryAction: 'none', primaryLabel: 'No balance' }
-  }
-
-  switch (status) {
-    case 'wrong-network':
-      return { primaryAction: 'switch_chain', primaryLabel: 'Switch to Fuse' }
-    case 'approval-pending':
-      return { primaryAction: 'none', primaryLabel: 'Approval pending' }
-    case 'migrating':
-      return { primaryAction: 'none', primaryLabel: 'Migrating' }
-    case 'success':
-      return { primaryAction: 'refresh', primaryLabel: 'Refresh balance' }
-    case 'approval-failed':
-      return { primaryAction: 'retry', primaryLabel: 'Retry approval' }
-    case 'error':
-      return { primaryAction: 'retry', primaryLabel: 'Retry migration' }
-    default:
-      return { primaryAction: 'migrate', primaryLabel: 'Approve & Migrate' }
-  }
-}
-
-function createAdapterFactory(
+function createMockState(
   status: StakingMigrationWidgetStatus,
   overrides: {
     stakedAmount?: string
@@ -48,31 +24,41 @@ function createAdapterFactory(
     hasRequiredConfig?: boolean
     isWrongNetwork?: boolean
   } = {},
-): StakingMigrationWidgetAdapterFactory {
-  return () => {
-    const stakedAmountRaw = overrides.stakedAmountRaw ?? 250000n
-    const primary = deriveMockPrimary(status, stakedAmountRaw)
+): StakingMigrationWidgetState {
+  const stakedAmountRaw = overrides.stakedAmountRaw ?? 250000n
+  const state: StakingMigrationWidgetState = {
+    status,
+    address: '0x329377cbeeF39f01b0Ea04B80465c9eB47D3ED1',
+    chainId: 122,
+    stakedAmount: overrides.stakedAmount ?? '2500',
+    stakedAmountRaw,
+    stakedTokenSymbol: 'sG$',
+    hasRequiredConfig: overrides.hasRequiredConfig ?? true,
+    isWrongNetwork: overrides.isWrongNetwork ?? false,
+    isBalanceLoading: false,
+    completedSteps: overrides.completedSteps ?? [],
+    activeStep: overrides.activeStep ?? null,
+    failedStep: overrides.failedStep ?? null,
+    approvalTxHash: '0xapprovalhash',
+    migrationId: 'migration-1',
+    error: overrides.error ?? null,
+    primaryAction: 'none',
+    primaryLabel: '',
+  }
+  const primaryAction = derivePrimaryAction(state)
+  return {
+    ...state,
+    primaryAction,
+    primaryLabel: derivePrimaryLabel(state, primaryAction),
+  }
+}
 
-    return {
-    state: {
-      status,
-      address: '0x329377cbeeF39f01b0Ea04B80465c9eB47D3ED1',
-      chainId: 122,
-      stakedAmount: overrides.stakedAmount ?? '2500',
-      stakedAmountRaw,
-      stakedTokenSymbol: 'sG$',
-      hasRequiredConfig: overrides.hasRequiredConfig ?? true,
-      isWrongNetwork: overrides.isWrongNetwork ?? false,
-      isBalanceLoading: false,
-      completedSteps: overrides.completedSteps ?? [],
-      activeStep: overrides.activeStep ?? null,
-      failedStep: overrides.failedStep ?? null,
-      approvalTxHash: '0xapprovalhash',
-      migrationId: 'migration-1',
-      error: overrides.error ?? null,
-      primaryAction: primary.primaryAction,
-      primaryLabel: primary.primaryLabel,
-    },
+function createAdapterFactory(
+  status: StakingMigrationWidgetStatus,
+  overrides: Parameters<typeof createMockState>[1] = {},
+): StakingMigrationWidgetAdapterFactory {
+  return () => ({
+    state: createMockState(status, overrides),
     actions: {
       connect: async () => {},
       switchToFuse: async () => {},
@@ -80,8 +66,7 @@ function createAdapterFactory(
       approveAndMigrate: async () => {},
       retryMigration: async () => {},
     },
-  }
-  }
+  })
 }
 
 function StoryShell({ adapterFactory }: { adapterFactory: StakingMigrationWidgetAdapterFactory }) {
@@ -89,11 +74,7 @@ function StoryShell({ adapterFactory }: { adapterFactory: StakingMigrationWidget
     const provider = createCustodialEip1193Provider()
     return (
       <YStack style={{ width: 420 }}>
-        <StakingMigrationWidget
-          provider={provider}
-          environment="development"
-          adapterFactory={adapterFactory}
-        />
+        <StakingMigrationWidget provider={provider} adapterFactory={adapterFactory} />
       </YStack>
     )
   } catch (error: unknown) {

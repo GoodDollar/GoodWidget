@@ -1,5 +1,3 @@
-export { stakingMigrationCapabilities } from './migrationEnvironments'
-
 export const stakingMigrationIntegration = {
   id: 'staking-migration',
   capabilitySource: 'stakingMigrationCapabilities',

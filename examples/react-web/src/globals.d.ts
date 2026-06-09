@@ -3,9 +3,8 @@ declare const process: {
 }
 
 interface ImportMetaEnv {
-  readonly DEV: boolean
-  readonly MODE: string
-  readonly PROD: boolean
+  readonly VITE_MIGRATION_API_BASE_URL?: string
+  readonly VITE_MIGRATION_API_TOKEN?: string
 }
 
 interface ImportMeta {
