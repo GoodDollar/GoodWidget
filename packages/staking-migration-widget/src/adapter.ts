@@ -86,6 +86,7 @@ interface ApiProgressPayload {
 
 export interface UseStakingMigrationAdapterOptions {
   environment?: StakingMigrationWidgetEnvironment
+  migrationApiToken?: string
   onMigrationSuccess?: (detail: StakingMigrationSuccessDetail) => void
   onMigrationError?: (detail: StakingMigrationErrorDetail) => void
 }
@@ -123,13 +124,18 @@ function hasRequiredConfig(migrationConfig: ResolvedStakingMigrationConfig): boo
   return Boolean(migrationConfig.migrationApiBaseUrl && migrationConfig.migrationOperator)
 }
 
+function normalizeMigrationApiToken(token: string): string {
+  return token.startsWith('Bearer ') ? token.slice(7) : token
+}
+
 function buildApiHeaders(migrationConfig: ResolvedStakingMigrationConfig): Record<string, string> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   }
 
   if (migrationConfig.migrationApiToken) {
-    headers.Authorization = 'Bearer ' + migrationConfig.migrationApiToken
+    headers.Authorization =
+      'Bearer ' + normalizeMigrationApiToken(migrationConfig.migrationApiToken)
   }
 
   return headers
@@ -441,6 +447,7 @@ function derivePrimaryLabel(
 
 export function useStakingMigrationAdapter({
   environment,
+  migrationApiToken,
   onMigrationSuccess,
   onMigrationError,
 }: UseStakingMigrationAdapterOptions = {}): StakingMigrationWidgetAdapterResult {
@@ -452,8 +459,8 @@ export function useStakingMigrationAdapter({
   )
 
   const resolvedConfig = useMemo<ResolvedStakingMigrationConfig>(
-    () => resolveMigrationConfigForEnvironment(resolvedEnvironment),
-    [resolvedEnvironment],
+    () => resolveMigrationConfigForEnvironment(resolvedEnvironment, migrationApiToken),
+    [migrationApiToken, resolvedEnvironment],
   )
 
   const [state, setState] = useState<StakingMigrationWidgetState>(() => ({

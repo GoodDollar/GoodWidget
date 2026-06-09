@@ -12,6 +12,7 @@ import type {
 
 interface StakingMigrationInnerProps {
   environment: StakingMigrationWidgetProps['environment']
+  migrationApiToken: StakingMigrationWidgetProps['migrationApiToken']
   adapterFactory?: StakingMigrationWidgetAdapterFactory
   onMigrationSuccess?: StakingMigrationWidgetProps['onMigrationSuccess']
   onMigrationError?: StakingMigrationWidgetProps['onMigrationError']
@@ -27,12 +28,14 @@ function formatJourneyLabel(label: string | null): string | null {
 
 function StakingMigrationInner({
   environment,
+  migrationApiToken,
   adapterFactory,
   onMigrationSuccess,
   onMigrationError,
 }: StakingMigrationInnerProps) {
   const defaultAdapter = useStakingMigrationAdapter({
     environment,
+    migrationApiToken,
     onMigrationSuccess,
     onMigrationError,
   })
@@ -42,9 +45,10 @@ function StakingMigrationInner({
       adapterFactory
         ? adapterFactory({
             environment: environment ?? 'production',
+            migrationApiToken,
           })
         : defaultAdapter,
-    [adapterFactory, defaultAdapter, environment],
+    [adapterFactory, defaultAdapter, environment, migrationApiToken],
   )
 
   const { state, actions } = activeAdapter
@@ -138,6 +142,7 @@ export function StakingMigrationWidget({
   defaultTheme = 'light',
   themeOverrides,
   environment = 'production',
+  migrationApiToken,
   onMigrationSuccess,
   onMigrationError,
   adapterFactory,
@@ -151,6 +156,7 @@ export function StakingMigrationWidget({
     >
       <StakingMigrationInner
         environment={environment}
+        migrationApiToken={migrationApiToken}
         onMigrationSuccess={onMigrationSuccess}
         onMigrationError={onMigrationError}
         adapterFactory={adapterFactory}

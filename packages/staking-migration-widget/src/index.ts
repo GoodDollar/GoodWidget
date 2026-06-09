@@ -1,3 +1,6 @@
+export { stakingMigrationIntegration } from './integration'
+export type { StakingMigrationIntegration } from './integration'
+
 export { StakingMigrationWidget } from './StakingMigrationWidget'
 export { useStakingMigrationAdapter } from './adapter'
 export type { UseStakingMigrationAdapterOptions } from './adapter'

@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { GoodWidgetProvider, useWallet, useHost } from '@goodwidget/core'
 import { ClaimWidget } from '@goodwidget/claim-widget-theme-demo'
 import { StakingMigrationWidget } from '@goodwidget/staking-migration-widget'
+import { LOCAL_MIGRATION_API_TOKEN } from './stakingMigrationDevConfig'
 import {
   getThemeManifest,
   MiniAppShell,
@@ -165,7 +166,10 @@ function OverrideShowcase() {
 
           <YStack gap="$2">
             <Text variant="label">StakingMigrationWidget:</Text>
-            <StakingMigrationWidget environment="development" />
+            <StakingMigrationWidget
+              environment={import.meta.env.DEV ? 'development' : 'production'}
+              migrationApiToken={import.meta.env.DEV ? LOCAL_MIGRATION_API_TOKEN : undefined}
+            />
           </YStack>
 
           <Card>

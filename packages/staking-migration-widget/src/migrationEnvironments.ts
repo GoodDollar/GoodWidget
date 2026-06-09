@@ -10,16 +10,23 @@ export const stakingMigrationCapabilities = {
 
 export const MIGRATION_OPERATOR_ADDRESS: Address = '0xE3441bA0863AEFBf28eca5F6fAAFb4A2B608F3A1'
 
-const MIGRATION_API_BASE_URLS: Record<StakingMigrationWidgetEnvironment, string> = {
-  development: 'http://localhost:8787',
-  staging: 'https://monitoringworker-staging.gooddollar.workers.dev',
-  production: 'https://monitoringworker.gooddollar.workers.dev',
+interface MigrationEnvironmentPreset {
+  migrationApiBaseUrl: string
 }
 
-const MIGRATION_API_TOKENS: Record<StakingMigrationWidgetEnvironment, string | undefined> = {
-  development: 'migration-test-token',
-  staging: undefined,
-  production: undefined,
+const MIGRATION_ENVIRONMENT_PRESETS: Record<
+  StakingMigrationWidgetEnvironment,
+  MigrationEnvironmentPreset
+> = {
+  development: {
+    migrationApiBaseUrl: 'http://localhost:8787',
+  },
+  staging: {
+    migrationApiBaseUrl: 'https://monitoringworker-staging.gooddollar.workers.dev',
+  },
+  production: {
+    migrationApiBaseUrl: 'https://monitoringworker.gooddollar.workers.dev',
+  },
 }
 
 export interface ResolvedStakingMigrationConfig {
@@ -30,11 +37,13 @@ export interface ResolvedStakingMigrationConfig {
 
 export function resolveMigrationConfigForEnvironment(
   environment: StakingMigrationWidgetEnvironment,
+  migrationApiToken?: string,
 ): ResolvedStakingMigrationConfig {
+  const preset = MIGRATION_ENVIRONMENT_PRESETS[environment]
   return {
-    migrationApiBaseUrl: MIGRATION_API_BASE_URLS[environment],
+    migrationApiBaseUrl: preset.migrationApiBaseUrl,
     migrationOperator: MIGRATION_OPERATOR_ADDRESS,
-    migrationApiToken: MIGRATION_API_TOKENS[environment],
+    migrationApiToken,
   }
 }
 
