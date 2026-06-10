@@ -4,7 +4,6 @@ declare const process: {
 
 interface ImportMetaEnv {
   readonly VITE_MIGRATION_API_BASE_URL?: string
-  readonly VITE_MIGRATION_API_TOKEN?: string
 }
 
 interface ImportMeta {

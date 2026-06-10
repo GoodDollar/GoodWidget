@@ -10,7 +10,6 @@ import type { StakingMigrationWidgetProps } from './widgetRuntimeContract'
 type StakingMigrationInnerProps = Pick<
   StakingMigrationWidgetProps,
   | 'migrationApiBaseUrl'
-  | 'migrationApiToken'
   | 'adapterFactory'
   | 'onMigrationSuccess'
   | 'onMigrationError'
@@ -26,14 +25,12 @@ function formatJourneyLabel(label: string | null): string | null {
 
 function StakingMigrationInner({
   migrationApiBaseUrl,
-  migrationApiToken,
   adapterFactory,
   onMigrationSuccess,
   onMigrationError,
 }: StakingMigrationInnerProps) {
   const defaultAdapter = useStakingMigrationAdapter({
     migrationApiBaseUrl,
-    migrationApiToken,
     onMigrationSuccess,
     onMigrationError,
   })
@@ -43,10 +40,9 @@ function StakingMigrationInner({
       adapterFactory
         ? adapterFactory({
             migrationApiBaseUrl,
-            migrationApiToken,
           })
         : defaultAdapter,
-    [adapterFactory, defaultAdapter, migrationApiBaseUrl, migrationApiToken],
+    [adapterFactory, defaultAdapter, migrationApiBaseUrl],
   )
 
   const { state, actions } = activeAdapter
@@ -140,7 +136,6 @@ export function StakingMigrationWidget({
   defaultTheme = 'light',
   themeOverrides,
   migrationApiBaseUrl,
-  migrationApiToken,
   onMigrationSuccess,
   onMigrationError,
   adapterFactory,
@@ -154,7 +149,6 @@ export function StakingMigrationWidget({
     >
       <StakingMigrationInner
         migrationApiBaseUrl={migrationApiBaseUrl}
-        migrationApiToken={migrationApiToken}
         onMigrationSuccess={onMigrationSuccess}
         onMigrationError={onMigrationError}
         adapterFactory={adapterFactory}

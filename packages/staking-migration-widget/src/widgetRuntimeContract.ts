@@ -72,7 +72,6 @@ export interface StakingMigrationWidgetAdapterResult {
 
 export interface StakingMigrationWidgetAdapterFactoryInput {
   migrationApiBaseUrl?: string
-  migrationApiToken?: string
 }
 
 export type StakingMigrationWidgetAdapterFactory = (
@@ -85,7 +84,6 @@ export interface StakingMigrationWidgetProps {
   defaultTheme?: 'light' | 'dark'
   themeOverrides?: GoodWidgetThemeOverrides
   migrationApiBaseUrl?: string
-  migrationApiToken?: string
   onMigrationSuccess?: (detail: StakingMigrationSuccessDetail) => void
   onMigrationError?: (detail: StakingMigrationErrorDetail) => void
   adapterFactory?: StakingMigrationWidgetAdapterFactory

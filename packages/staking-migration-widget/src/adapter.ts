@@ -81,7 +81,6 @@ interface ApiProgressPayload {
 
 export interface UseStakingMigrationAdapterOptions {
   migrationApiBaseUrl?: string
-  migrationApiToken?: string
   onMigrationSuccess?: (detail: StakingMigrationSuccessDetail) => void
   onMigrationError?: (detail: StakingMigrationErrorDetail) => void
 }
@@ -119,21 +118,10 @@ function hasRequiredConfig(migrationConfig: ResolvedStakingMigrationConfig): boo
   return Boolean(migrationConfig.migrationApiBaseUrl && migrationConfig.migrationOperator)
 }
 
-function normalizeMigrationApiToken(token: string): string {
-  return token.startsWith('Bearer ') ? token.slice(7) : token
-}
-
-function buildApiHeaders(migrationConfig: ResolvedStakingMigrationConfig): Record<string, string> {
-  const headers: Record<string, string> = {
+function buildApiHeaders(): Record<string, string> {
+  return {
     'Content-Type': 'application/json',
   }
-
-  if (migrationConfig.migrationApiToken) {
-    headers.Authorization =
-      'Bearer ' + normalizeMigrationApiToken(migrationConfig.migrationApiToken)
-  }
-
-  return headers
 }
 
 function buildMigrationApiUrl(baseUrl: string, path: string): string {
@@ -253,7 +241,7 @@ async function fetchWorkerMigrationState(
   const endpoint = `${buildMigrationApiUrl(migrationConfig.migrationApiBaseUrl!, MIGRATION_STATUS_PATH)}?approvalTxHash=${encodeURIComponent(approvalTxHash)}`
   const response = await fetch(endpoint, {
     method: 'GET',
-    headers: buildApiHeaders(migrationConfig),
+    headers: buildApiHeaders(),
   })
 
   const responsePayload = (await response.json().catch(() => ({}))) as unknown
@@ -284,7 +272,7 @@ async function submitMigrationStart(
   const endpoint = buildMigrationApiUrl(migrationConfig.migrationApiBaseUrl!, MIGRATION_SUBMIT_PATH)
   const response = await fetch(endpoint, {
     method: 'POST',
-    headers: buildApiHeaders(migrationConfig),
+    headers: buildApiHeaders(),
     body: JSON.stringify({ approvalTxHash }),
   })
 
@@ -344,7 +332,7 @@ async function watchMigrationViaSse(
   const endpoint = `${buildMigrationApiUrl(migrationConfig.migrationApiBaseUrl!, MIGRATION_STATUS_STREAM_PATH)}?approvalTxHash=${encodeURIComponent(approvalTxHash)}`
   const response = await fetch(endpoint, {
     method: 'GET',
-    headers: buildApiHeaders(migrationConfig),
+    headers: buildApiHeaders(),
     signal,
   })
 
@@ -442,15 +430,14 @@ export function derivePrimaryLabel(
 
 export function useStakingMigrationAdapter({
   migrationApiBaseUrl,
-  migrationApiToken,
   onMigrationSuccess,
   onMigrationError,
 }: UseStakingMigrationAdapterOptions = {}): StakingMigrationWidgetAdapterResult {
   const { address, chainId, isConnected, provider, connect } = useWallet()
 
   const resolvedConfig = useMemo<ResolvedStakingMigrationConfig>(
-    () => resolveMigrationConfig({ migrationApiBaseUrl, migrationApiToken }),
-    [migrationApiBaseUrl, migrationApiToken],
+    () => resolveMigrationConfig({ migrationApiBaseUrl }),
+    [migrationApiBaseUrl],
   )
 
   const [state, setState] = useState<StakingMigrationWidgetState>(() => ({

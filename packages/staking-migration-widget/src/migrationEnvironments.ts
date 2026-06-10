@@ -11,12 +11,10 @@ export const MIGRATION_OPERATOR_ADDRESS: Address = '0xE3441bA0863AEFBf28eca5F6fA
 export interface ResolvedStakingMigrationConfig {
   migrationApiBaseUrl?: string
   migrationOperator: Address
-  migrationApiToken?: string
 }
 
 export interface ResolveMigrationConfigInput {
   migrationApiBaseUrl?: string
-  migrationApiToken?: string
 }
 
 export function resolveMigrationConfig(
@@ -25,6 +23,5 @@ export function resolveMigrationConfig(
   return {
     migrationApiBaseUrl: input.migrationApiBaseUrl,
     migrationOperator: MIGRATION_OPERATOR_ADDRESS,
-    migrationApiToken: input.migrationApiToken,
   }
 }

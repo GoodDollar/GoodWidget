@@ -167,7 +167,6 @@ function OverrideShowcase() {
             <Text variant="label">StakingMigrationWidget:</Text>
             <StakingMigrationWidget
               migrationApiBaseUrl={import.meta.env.VITE_MIGRATION_API_BASE_URL}
-              migrationApiToken={import.meta.env.VITE_MIGRATION_API_TOKEN}
             />
           </YStack>
 
