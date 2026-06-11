@@ -68,7 +68,7 @@ export function createMiniAppElement(
     shadow = true,
     props: propDefs = {},
     events = [],
-    defaultTheme = 'light',
+    defaultTheme = 'dark',
     defaultConfig,
   } = options
   const normalizedProps = normalizePropDefs(propDefs)
