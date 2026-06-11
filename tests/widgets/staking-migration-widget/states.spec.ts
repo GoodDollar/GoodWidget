@@ -60,7 +60,7 @@ test('StakingMigrationWidget approval pending notice', async ({ page }) => {
 test('StakingMigrationWidget migrating timeline', async ({ page }) => {
   await gotoStory(page, STORY_IDS.migrating)
   await expect(page.getByText('Migration journey')).toBeVisible()
-  await expect(page.getByText('Bridge received')).toBeVisible()
+  await expect(page.getByText('Bridge Received', { exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Migrating' })).toBeDisabled()
   await page.screenshot({
     path: 'tests/widgets/staking-migration-widget/test-results/smw-05-migrating.png',
@@ -80,7 +80,7 @@ test('StakingMigrationWidget success state', async ({ page }) => {
 
 test('StakingMigrationWidget error state', async ({ page }) => {
   await gotoStory(page, STORY_IDS.error)
-  await expect(page.getByText('Failed')).toBeVisible()
+  await expect(page.getByText('Failed', { exact: true })).toBeVisible()
   await expect(page.getByText('Bridge finalization timeout')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Retry migration' })).toHaveCount(1)
   await page.screenshot({
