@@ -2,10 +2,13 @@
  * Storybook main configuration.
  *
  * - Framework: @storybook/react-vite
- * - Addons: essentials (controls, docs, actions, viewport) + interactions (play functions)
+ * - Addons: essentials (controls, docs, actions) + interactions (play functions)
  * - viteFinal: mirrors the react-native-web + Tamagui settings from examples/react-web
  */
+import { fileURLToPath } from 'node:url'
 import type { StorybookConfig } from '@storybook/react-vite'
+
+const reactNativeSvgShim = fileURLToPath(new URL('../src/shims/reactNativeSvg.tsx', import.meta.url))
 
 const config: StorybookConfig = {
   stories: ['../src/**/*.stories.@(ts|tsx)'],
@@ -18,7 +21,7 @@ const config: StorybookConfig = {
     autodocs: 'tag',
   },
   viteFinal: async (config) => {
-    // Mirror the Vite settings from examples/react-web so Tamagui + react-native-web resolve
+    // Mirror the Vite settings from examples/react-web so Tamagui + react-native-web resolve.
     config.define = {
       ...config.define,
       global: 'globalThis',
@@ -30,6 +33,7 @@ const config: StorybookConfig = {
       alias: {
         ...(config.resolve?.alias as Record<string, string> | undefined),
         'react-native': 'react-native-web',
+        'react-native-svg': reactNativeSvgShim,
       },
     }
     config.optimizeDeps = {
