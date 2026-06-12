@@ -1,10 +1,16 @@
 export {
   ImpactCard,
+} from './ImpactCard'
+export {
   BalanceCard,
+} from './BalanceCard'
+export {
   AlignmentVotingProposalCard,
   OptimisticVotingProposalCard,
+} from './ProposalCards'
+export {
   FundingDistributionChart,
-} from './governanceComponents'
+} from './FundingDistributionChart'
 export type {
   GovernanceAmount,
   ImpactCardMetric,
@@ -18,4 +24,4 @@ export type {
   OptimisticVotingProposalCardProps,
   FundingProjectAllocation,
   FundingDistributionChartProps,
-} from './governanceComponents'
+} from './types'
