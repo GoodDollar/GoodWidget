@@ -20,7 +20,7 @@ export const CitizenClaimWidgetElement = createMiniAppElement(
   CitizenClaimWidget as React.ComponentType<Record<string, unknown>>,
   {
     shadow: true,
-    defaultTheme: 'light',
+    defaultTheme: 'dark',
     events: ['claim-success', 'claim-error'],
   },
 )
