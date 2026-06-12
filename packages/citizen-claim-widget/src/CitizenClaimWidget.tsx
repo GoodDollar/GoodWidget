@@ -529,7 +529,7 @@ export function CitizenClaimWidget({
   environment = 'production',
   themeOverrides,
   config,
-  defaultTheme = 'light',
+  defaultTheme = 'dark',
   onClaimSuccess,
   onClaimError,
 }: CitizenClaimWidgetProps) {

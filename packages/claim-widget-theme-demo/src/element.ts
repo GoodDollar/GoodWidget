@@ -19,7 +19,7 @@ export const ClaimWidgetElement = createMiniAppElement(
   ClaimWidget as React.ComponentType<Record<string, unknown>>,
   {
     shadow: true,
-    defaultTheme: 'light',
+    defaultTheme: 'dark',
     events: ['claim-success', 'claim-error'],
   },
 )

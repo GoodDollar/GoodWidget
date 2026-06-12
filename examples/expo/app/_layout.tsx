@@ -10,7 +10,7 @@ import { GoodWidgetProvider } from '@goodwidget/core'
  */
 export default function RootLayout() {
   return (
-    <GoodWidgetProvider defaultTheme="light">
+    <GoodWidgetProvider defaultTheme="dark">
       <Slot />
     </GoodWidgetProvider>
   )

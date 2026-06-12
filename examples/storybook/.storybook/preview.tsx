@@ -5,7 +5,14 @@
 import React from 'react'
 import type { Preview } from '@storybook/react'
 import { GoodWidgetProvider } from '@goodwidget/core'
+import type { GoodWidgetConfig } from '@goodwidget/ui'
 import { MiniAppShell } from '@goodwidget/ui'
+
+interface StoryGoodWidgetParameters {
+  config?: GoodWidgetConfig
+  defaultTheme?: 'light' | 'dark'
+  useShell?: boolean
+}
 
 const preview: Preview = {
   parameters: {
@@ -16,13 +23,22 @@ const preview: Preview = {
     },
   },
   decorators: [
-    (Story) => (
-      <GoodWidgetProvider defaultTheme="light">
-        <MiniAppShell>
-          <Story />
-        </MiniAppShell>
-      </GoodWidgetProvider>
-    ),
+    (Story, context) => {
+      const params = (context.parameters.goodWidgetProvider ?? {}) as StoryGoodWidgetParameters
+      const story = <Story />
+
+      return (
+        <GoodWidgetProvider config={params.config} defaultTheme={params.defaultTheme ?? 'dark'}>
+          {params.useShell === false ? (
+            story
+          ) : (
+            <MiniAppShell title="GoodWidgetDemos" headerRight={undefined}>
+              {story}
+            </MiniAppShell>
+          )}
+        </GoodWidgetProvider>
+      )
+    },
   ],
 }
 

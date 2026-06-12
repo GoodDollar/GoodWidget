@@ -57,7 +57,7 @@ export function GoodWidgetProvider({
   provider: explicitProvider,
   config: authorConfig,
   themeOverrides,
-  defaultTheme = 'light',
+  defaultTheme = 'dark',
   children,
 }: GoodWidgetProviderProps) {
   const [resolvedProvider, setResolvedProvider] = useState<EIP1193Provider | null>(

@@ -32,9 +32,8 @@ async function gotoStory(page: Page, storyId: string): Promise<void> {
 }
 
 /** Get the content frame inside the Storybook canvas iframe. */
-async function getStoryFrame(page: Page) {
-  const frame = page.frameLocator('#storybook-preview-iframe')
-  return frame
+function getStoryFrame(page: Page) {
+  return page.frameLocator('#storybook-preview-iframe')
 }
 
 test('Card/Default story renders', async ({ page }) => {
@@ -78,31 +77,11 @@ test('TokenAmount/Default story renders', async ({ page }) => {
 })
 
 test('ClaimWidget/Default story renders in mock-connected state', async ({ page }) => {
-  await gotoStory(page, 'widgets-claimwidget--default')
+  await gotoStory(page, 'theme-claimwidgetthemedemo-light--default')
   const frame = getStoryFrame(page)
   await expect(frame.getByTestId('ClaimWidget-default')).toBeVisible()
   await page.screenshot({
     path: 'tests/design-system/test-results/story-claimwidget-default.png',
-    fullPage: true,
-  })
-})
-
-test('ClaimWidget/CobaltBrand story renders', async ({ page }) => {
-  await gotoStory(page, 'widgets-claimwidget--cobalt-brand')
-  const frame = getStoryFrame(page)
-  await expect(frame.getByTestId('ClaimWidget-cobalt')).toBeVisible()
-  await page.screenshot({
-    path: 'tests/design-system/test-results/story-claimwidget-cobalt.png',
-    fullPage: true,
-  })
-})
-
-test('ClaimWidget/TealBrand story renders', async ({ page }) => {
-  await gotoStory(page, 'widgets-claimwidget--teal-brand')
-  const frame = getStoryFrame(page)
-  await expect(frame.getByTestId('ClaimWidget-teal')).toBeVisible()
-  await page.screenshot({
-    path: 'tests/design-system/test-results/story-claimwidget-teal.png',
     fullPage: true,
   })
 })
