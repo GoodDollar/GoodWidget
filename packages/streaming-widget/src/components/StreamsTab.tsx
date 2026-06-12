@@ -94,7 +94,9 @@ export function StreamsTab({
 
       <Separator />
 
-      <Heading level={4}>Active streams</Heading>
+      <Heading level={4} color="$white">
+        Active streams
+      </Heading>
 
       <XStack gap="$2">
         {(['all', 'incoming', 'outgoing'] as StreamDirection[]).map((filter) => (

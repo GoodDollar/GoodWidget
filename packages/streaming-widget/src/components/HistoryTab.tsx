@@ -36,7 +36,9 @@ export function HistoryTab({
   return (
     <StreamingTabContent>
       <XStack justifyContent="space-between" alignItems="center">
-        <Heading level={4}>Stream history</Heading>
+        <Heading level={4} color="$white">
+          Stream history
+        </Heading>
         <Button variant="secondary" onPress={onRefresh}>
           <ButtonText>Refresh</ButtonText>
         </Button>
