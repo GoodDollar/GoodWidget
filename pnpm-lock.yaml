@@ -170,6 +170,9 @@ importers:
       '@goodwidget/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@goodwidget/goodreserve-widget':
+        specifier: workspace:*
+        version: link:../../packages/goodreserve-widget
       '@goodwidget/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -324,6 +327,40 @@ importers:
       '@r2wc/react-to-web-component':
         specifier: ^2.0.3
         version: 2.1.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+    devDependencies:
+      '@types/react':
+        specifier: ^18.3.0
+        version: 18.3.28
+      '@types/react-dom':
+        specifier: ^18.3.0
+        version: 18.3.7(@types/react@18.3.28)
+      react:
+        specifier: ^18.3.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.0
+        version: 18.3.1(react@18.3.1)
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(@swc/core@1.15.30)(postcss@8.5.8)(typescript@5.9.3)(yaml@2.8.3)
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  packages/goodreserve-widget:
+    dependencies:
+      '@goodwidget/core':
+        specifier: workspace:*
+        version: link:../core
+      '@goodwidget/embed':
+        specifier: workspace:*
+        version: link:../embed
+      '@goodwidget/ui':
+        specifier: workspace:*
+        version: link:../ui
+      viem:
+        specifier: ^2.0.0
+        version: 2.48.4(typescript@5.9.3)
     devDependencies:
       '@types/react':
         specifier: ^18.3.0
