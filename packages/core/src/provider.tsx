@@ -24,7 +24,7 @@ export interface WalletContextValue extends WalletState {
   connect: () => Promise<void>
 }
 
-export type HostContextValue = HostState
+export interface HostContextValue extends HostState {}
 
 export interface GoodWidgetContextValue extends GoodWidgetState {
   connect: () => Promise<void>
@@ -57,7 +57,7 @@ export function GoodWidgetProvider({
   provider: explicitProvider,
   config: authorConfig,
   themeOverrides,
-  defaultTheme = 'light',
+  defaultTheme = 'dark',
   children,
 }: GoodWidgetProviderProps) {
   const [resolvedProvider, setResolvedProvider] = useState<EIP1193Provider | null>(

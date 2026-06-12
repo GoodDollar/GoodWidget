@@ -146,6 +146,9 @@ function createAdapter(
     superTokenBalance: '128.50',
     balanceLoading: false,
     balanceError: null,
+    supTokenBalance: '24.25',
+    supBalanceLoading: false,
+    supBalanceError: null,
     supReserveBalance: null,
     supReserveLockers: [],
     supReserveLoading: false,
@@ -229,7 +232,7 @@ function StreamingWidgetStoryShell({
         boxSizing: 'border-box',
       }}
     >
-      <StreamingWidget provider={provider} environment="development" />
+      <StreamingWidget provider={provider} environment="production" />
     </YStack>
   )
 }
@@ -259,6 +262,7 @@ function InjectedWalletStory() {
           streamHistory: [],
           pools: [],
           superTokenBalance: null,
+          supTokenBalance: null,
         })}
         dataTestId="StreamingWidget-no-injected-wallet"
       />
@@ -330,6 +334,29 @@ function PoolClaimableAmountErrorStory() {
   )
 }
 
+function CreateUpdateFormStory() {
+  const [form, setForm] = React.useState<SetStreamFormState>(validForm)
+
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter(
+        { setStreamForm: form },
+        {
+          updateSetStreamForm: (partial) => {
+            setForm((current) => ({
+              ...current,
+              ...partial,
+              validationError: null,
+            }))
+          },
+        },
+      )}
+      dataTestId="StreamingWidget-create-update-form"
+      initialStreamsFormOpen
+    />
+  )
+}
+
 export const InjectedWallet: Story = {
   render: () => <InjectedWalletStory />,
 }
@@ -349,6 +376,7 @@ export const NoWallet: Story = {
         streamHistory: [],
         pools: [],
         superTokenBalance: null,
+        supTokenBalance: null,
       })}
       dataTestId="StreamingWidget-no-wallet"
     />
@@ -378,6 +406,8 @@ export const LoadingState: Story = {
         pools: [],
         poolsLoading: true,
         balanceLoading: true,
+        supBalanceLoading: true,
+        supReserveLoading: true,
       })}
       dataTestId="StreamingWidget-loading-state"
     />
@@ -392,6 +422,7 @@ export const EmptyState: Story = {
         streamHistory: [],
         pools: [],
         superTokenBalance: '0',
+        supTokenBalance: '0',
       })}
       dataTestId="StreamingWidget-empty-state"
     />
@@ -409,6 +440,8 @@ export const ErrorState: Story = {
         pools: [],
         poolsError: 'Unable to load pool memberships.',
         balanceError: 'Unable to load token balance.',
+        supBalanceError: 'Unable to load SUP balance.',
+        supReserveError: 'Unable to load SUP reserve.',
       })}
       dataTestId="StreamingWidget-error-state"
     />
@@ -425,13 +458,7 @@ export const PopulatedState: Story = {
 }
 
 export const CreateUpdateForm: Story = {
-  render: () => (
-    <PreviewStoryShell
-      adapter={createAdapter({ setStreamForm: validForm })}
-      dataTestId="StreamingWidget-create-update-form"
-      initialStreamsFormOpen
-    />
-  ),
+  render: () => <CreateUpdateFormStory />,
 }
 
 export const CreateUpdateInvalidInput: Story = {
@@ -561,6 +588,7 @@ export const BaseSupBalanceAndReserve: Story = {
       adapter={createAdapter({
         chainId: STREAMING_CHAINS.BASE,
         superTokenBalance: '712.10',
+        supTokenBalance: '712.10',
         supReserveBalance: '112.75',
         supReserveLockers: [
           {
@@ -583,7 +611,16 @@ export const NonBaseSupReserveDisabled: Story = {
       adapter={createAdapter({
         chainId: STREAMING_CHAINS.CELO,
         superTokenBalance: '128.50',
-        supReserveBalance: null,
+        supTokenBalance: '24.25',
+        supReserveBalance: '112.75',
+        supReserveLockers: [
+          {
+            address: DEMO_RESERVE_LOCKER,
+            stakedBalance: 95250000000000000000n,
+            unstakedBalance: 17500000000000000000n,
+            totalBalance: 112750000000000000000n,
+          },
+        ],
       })}
       dataTestId="StreamingWidget-non-base-reserve"
       initialTab="balances"

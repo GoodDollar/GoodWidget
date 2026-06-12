@@ -2,11 +2,10 @@
  * ThemePlayground — interactive exploration of GoodWidget's override system.
  *
  * This story group covers the four supported override layers in order of precedence:
- *   1. Default preset (GoodWalletV2 — no overrides)
+ *   1. Default preset (GoodWalletV2 dark baseline — no overrides)
  *   2. Token overrides — broad brand/palette/scale changes
  *   3. Component sub-theme overrides — targeted named-component skinning
  *   4. Host themeOverrides — runtime integrator overrides (merged last)
- *
  * Each story mounts a single ClaimWidget to avoid Tamagui theme-key clashing.
  *
  * See docs/demo-environment.md for the full override precedence model.
@@ -28,7 +27,7 @@ export default meta
 type Story = StoryObj
 
 /**
- * Default preset — the GoodWalletV2 base design system, no runtime overrides.
+ * Default preset — the GoodWalletV2 dark base design system, no runtime overrides.
  * This is what every widget instance looks like out of the box.
  */
 export const DefaultPreset: Story = {
@@ -37,9 +36,9 @@ export const DefaultPreset: Story = {
       <Alert
         type="info"
         title="Preset Baseline"
-        message="No runtime overrides. The GoodWalletV2 preset drives all tokens, themes, and component sub-themes."
+        message="No runtime overrides. The GoodWalletV2 dark preset drives all tokens, themes, and component sub-themes."
       />
-      <ClaimWidget provider={mockProvider} />
+      <ClaimWidget provider={mockProvider} defaultTheme="dark" />
     </YStack>
   ),
 }
@@ -61,8 +60,8 @@ export const TokenOverride: Story = {
       />
       <Card>
         <Heading level={5}>How it works</Heading>
-        <Text variant="caption">
-          {`<ClaimWidget
+      <Text variant="caption">
+        {`<ClaimWidget
   config={{
     tokens: {
       color: { primary: '#4F7DFF', primaryDark: '#2E5DE8', primaryLight: '#7FA4FF' }
@@ -73,6 +72,7 @@ export const TokenOverride: Story = {
       </Card>
       <ClaimWidget
         provider={mockProvider}
+        defaultTheme="dark"
         config={{
           tokens: {
             color: {
@@ -91,7 +91,7 @@ export const TokenOverride: Story = {
  * Component sub-theme override — targeted via `config.themes`.
  *
  * Named components in GoodWidget (e.g. ClaimCard, ClaimActionGlow) opt into
- * named component sub-themes. Overriding `light_ClaimActionGlow` only affects
+ * named component sub-themes. Overriding `dark_ClaimActionGlow` only affects
  * that specific named component, not the whole widget.
  *
  * These overrides are intended for widget *authors*, not host integrators.
@@ -106,13 +106,13 @@ export const ComponentThemeOverride: Story = {
       />
       <Card>
         <Heading level={5}>How it works</Heading>
-        <Text variant="caption">
-          {`<ClaimWidget
+      <Text variant="caption">
+        {`<ClaimWidget
   config={{
     themes: {
-      light_ClaimActionGlow: { primary: '#12cb31', primaryLight: '#9A4DFF' },
-      light_ClaimActionRing: { primary: '#ff3333', primaryLight: '#9A4DFF' },
-      light_ClaimActionInner: { backgroundDark: 'orange' },
+      dark_ClaimActionGlow: { primary: '#12cb31', primaryLight: '#9A4DFF' },
+      dark_ClaimActionRing: { primary: '#ff3333', primaryLight: '#9A4DFF' },
+      dark_ClaimActionInner: { backgroundDark: 'orange' },
     }
   }}
 />`}
@@ -120,12 +120,13 @@ export const ComponentThemeOverride: Story = {
       </Card>
       <ClaimWidget
         provider={mockProvider}
+        defaultTheme="dark"
         config={{
           themes: {
-            light_ClaimActionGlow: { primary: '#12cb31', primaryLight: '#9A4DFF' },
-            light_ClaimActionRing: { primary: '#ff3333', primaryLight: '#9A4DFF' },
-            light_ClaimActionInner: { backgroundDark: 'orange', backgroundDarkHover: 'red' },
-            light_TokenAmountText: { color: 'red', secondaryColor: '#3fbdf2' },
+            dark_ClaimActionGlow: { primary: '#12cb31', primaryLight: '#9A4DFF' },
+            dark_ClaimActionRing: { primary: '#ff3333', primaryLight: '#9A4DFF' },
+            dark_ClaimActionInner: { backgroundDark: 'orange', backgroundDarkHover: 'red' },
+            dark_TokenAmountText: { color: 'red', secondaryColor: '#3fbdf2' },
           },
         }}
       />
@@ -150,8 +151,8 @@ export const HostOverrideCobalt: Story = {
       />
       <Card>
         <Heading level={5}>How it works</Heading>
-        <Text variant="caption">
-          {`<ClaimWidget
+      <Text variant="caption">
+        {`<ClaimWidget
   themeOverrides={{
     tokens: { color: { primary: '#2E5DE8', ... } },
     themes: {
@@ -164,16 +165,17 @@ export const HostOverrideCobalt: Story = {
       </Card>
       <ClaimWidget
         provider={mockProvider}
+        defaultTheme="dark"
         themeOverrides={{
           tokens: {
             color: { primary: '#2E5DE8', primaryDark: '#1D3EB2', primaryLight: '#6E8DFF' },
           },
           themes: {
-            light_ClaimCard: { borderColor: '#2E5DE8', shadowColor: 'rgba(46,93,232,0.7)' },
-            light_ClaimActionGlow: { primary: '#4F7DFF', primaryLight: '#9DB4FF' },
-            light_ClaimActionRing: { primary: '#2E5DE8', primaryLight: '#6E8DFF' },
-            light_ClaimActionInner: { backgroundDark: '#0E1A3A', backgroundDarkHover: '#172B60' },
-            light_TokenAmountText: { color: '#BBD0FF', secondaryColor: '#7FA2FF' },
+            dark_ClaimCard: { borderColor: '#2E5DE8', shadowColor: 'rgba(46,93,232,0.7)' },
+            dark_ClaimActionGlow: { primary: '#4F7DFF', primaryLight: '#9DB4FF' },
+            dark_ClaimActionRing: { primary: '#2E5DE8', primaryLight: '#6E8DFF' },
+            dark_ClaimActionInner: { backgroundDark: '#0E1A3A', backgroundDarkHover: '#172B60' },
+            dark_TokenAmountText: { color: '#BBD0FF', secondaryColor: '#7FA2FF' },
           },
         }}
       />
@@ -194,16 +196,17 @@ export const HostOverrideTeal: Story = {
       />
       <ClaimWidget
         provider={mockProvider}
+        defaultTheme="dark"
         themeOverrides={{
           tokens: {
             color: { primary: '#00A884', primaryDark: '#007A61', primaryLight: '#33C9AA' },
           },
           themes: {
-            light_ClaimCard: { borderColor: '#00A884', shadowColor: 'rgba(0,168,132,0.65)' },
-            light_ClaimActionGlow: { primary: '#33C9AA', primaryLight: '#78E0CB' },
-            light_ClaimActionRing: { primary: '#00A884', primaryLight: '#33C9AA' },
-            light_ClaimActionInner: { backgroundDark: '#062A23', backgroundDarkHover: '#0B3B31' },
-            light_TokenAmountText: { color: '#BFF5E7', secondaryColor: '#66D5BB' },
+            dark_ClaimCard: { borderColor: '#00A884', shadowColor: 'rgba(0,168,132,0.65)' },
+            dark_ClaimActionGlow: { primary: '#33C9AA', primaryLight: '#78E0CB' },
+            dark_ClaimActionRing: { primary: '#00A884', primaryLight: '#33C9AA' },
+            dark_ClaimActionInner: { backgroundDark: '#062A23', backgroundDarkHover: '#0B3B31' },
+            dark_TokenAmountText: { color: '#BFF5E7', secondaryColor: '#66D5BB' },
           },
         }}
       />

@@ -53,7 +53,7 @@ test('StreamingWidget renders tab navigation and switches views', async ({ page 
   await expectBodyToContain(page, ['Claimable', 'Claim', 'Connect'])
 
   await page.getByText('Balances').first().click()
-  await expectBodyToContain(page, ['Super Token Balance', 'SUP Reserve'])
+  await expectBodyToContain(page, ['Super Token Balance', 'SUP Balance', 'SUP Reserve'])
 
   await saveScreenshot(page, 'sw-02-tab-navigation')
 })
@@ -141,12 +141,18 @@ test('StreamingWidget create/update form shows invalid input feedback', async ({
     'Create / Update Stream',
     'Recipient must be a valid Ethereum address',
   ])
+  await page.getByRole('listbox').click()
+  await expectBodyToContain(page, ['per month', 'per day', 'per year'])
+  await expect(page.getByText('per second')).toHaveCount(0)
+  await expect(page.getByText('per minute')).toHaveCount(0)
+  await expect(page.getByText('per hour')).toHaveCount(0)
+  await expect(page.getByText('per week')).toHaveCount(0)
   await saveScreenshot(page, 'sw-08-create-update-invalid')
 })
 
 test('StreamingWidget create/update form shows pending and success states', async ({ page }) => {
   await gotoStory(page, 'create-update-pending')
-  await expectBodyToContain(page, ['Create / Update Stream', 'Transaction pending...'])
+  await expectBodyToContain(page, ['Create / Update Stream', '/day', 'Transaction pending...'])
   await saveScreenshot(page, 'sw-09-create-update-pending')
 
   await gotoStory(page, 'create-update-success')
@@ -204,24 +210,30 @@ test('StreamingWidget shows pool claim amount and lifecycle states', async ({ pa
   await saveScreenshot(page, 'sw-21-pool-claimable-retry-loading')
 })
 
-test('StreamingWidget shows Base SUP reserve and disables reserve off Base', async ({ page }) => {
+test('StreamingWidget shows read-only Base SUP balance and reserve data', async ({ page }) => {
   await gotoStory(page, 'base-sup-balance-and-reserve')
   await expectBodyToContain(page, [
     'Super Token Balance',
+    'SUP Balance',
     'SUP Reserve',
+    'To see your active SUP streams visit app.superfluid.org',
     '112.75',
     'Reserve locker',
     'Available',
     'Staked',
-    'Open in Superfluid Explorer',
+    'Open reserve in Superfluid',
   ])
   await saveScreenshot(page, 'sw-16-base-sup-reserve')
 
   await gotoStory(page, 'non-base-sup-reserve-disabled')
   await expectBodyToContain(page, [
     'Super Token Balance',
+    'Celo',
+    'SUP Balance',
     'SUP Reserve',
-    'Reserve data is only available on Base',
+    'To see your active SUP streams visit app.superfluid.org',
+    '112.75',
+    'Open reserve in Superfluid',
   ])
   await saveScreenshot(page, 'sw-17-non-base-reserve-disabled')
 })

@@ -63,16 +63,16 @@ const ClaimActionButton = createComponent(ButtonFrame, {
 const ClaimActionGlow = createComponent(YStack, {
   name: 'ClaimActionGlow',
   position: 'absolute',
-  top: -16,
-  right: -16,
-  bottom: -16,
-  left: -16,
+  top: '$glowOffset',
+  right: '$glowOffset',
+  bottom: '$glowOffset',
+  left: '$glowOffset',
   borderRadius: 9999,
-  backgroundColor: '$primary',
+  backgroundColor: '$backgroundColor',
   hoverStyle: {
     backgroundColor: '$primaryLight',
   },
-  opacity: 0.45,
+  opacity: '$glowOpacity',
 })
 
 const ClaimActionRing = createComponent(YStack, {
@@ -169,8 +169,8 @@ function ClaimInner() {
                   >
                     {claiming ? (
                       <XStack gap="$2" alignItems="center">
-                        <Spinner size="sm" color="$grey600" />
-                        <ButtonText color="$grey600">Claiming...</ButtonText>
+                        <Spinner size="sm" color="$colorSoft" />
+                        <ButtonText color="$colorSoft">Claiming...</ButtonText>
                       </XStack>
                     ) : (
                       <ButtonText color="$primary">{address ? 'Claim' : 'Connect'}</ButtonText>
@@ -253,7 +253,7 @@ export function ClaimWidget({
   provider,
   themeOverrides,
   config, // We are exposing it to our demo apps but ideally config overrides should be done by widget authors and any host-level overrides done through themeOverrides
-  defaultTheme = 'light',
+  defaultTheme = 'dark',
 }: ClaimWidgetProps) {
   return (
     <GoodWidgetProvider

@@ -24,7 +24,7 @@ export type StreamDirection = 'all' | 'incoming' | 'outgoing'
 // ---------------------------------------------------------------------------
 // Time unit for flow rate display/input
 // ---------------------------------------------------------------------------
-export type StreamTimeUnit = 'second' | 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year'
+export type StreamTimeUnit = 'day' | 'month' | 'year'
 
 // ---------------------------------------------------------------------------
 // Widget tab IDs
@@ -124,7 +124,12 @@ export interface StreamingWidgetAdapterState {
   balanceLoading: boolean
   balanceError: string | null
 
-  /** SUP reserve data — only populated on Base */
+  /** Read-only SUP balance on Base, independent from the connected wallet chain */
+  supTokenBalance: string | null
+  supBalanceLoading: boolean
+  supBalanceError: string | null
+
+  /** Read-only SUP reserve data from Base, independent from the active wallet chain */
   supReserveBalance: string | null
   supReserveLockers: SupReserveLockerItem[]
   supReserveLoading: boolean

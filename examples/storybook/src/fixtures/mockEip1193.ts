@@ -35,7 +35,7 @@ type EventCallback = (...args: unknown[]) => void
  * ```tsx
  * import { createMockEip1193Provider } from '../fixtures/mockEip1193'
  *
- * <GoodWidgetProvider provider={createMockEip1193Provider()} defaultTheme="light">
+ * <GoodWidgetProvider provider={createMockEip1193Provider()} defaultTheme="dark">
  *   <WalletInfo />
  * </GoodWidgetProvider>
  * ```

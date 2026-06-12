@@ -86,7 +86,7 @@ export type { DialogConfig, DialogStatus } from './components/Dialog'
 
 // Web3
 export { AddressDisplay } from './components-test/AddressDisplay'
-export { TokenAmount, formatDisplayAmount } from './components/TokenAmount'
+export { TokenAmount } from './components/TokenAmount'
 export { TransactionButton } from './components-test/TransactionButton'
 export { ChainBadge } from './components-test/ChainBadge'
 export { WalletInfo } from './components-test/WalletInfo'
