@@ -22,6 +22,8 @@ export interface ReserveSwapQuoteView {
   outputAmount: string
   price: string
   minimumReceived: string
+  /** Raw minReturn (base units, BigInt-as-string) submitted on-chain. Matches `minimumReceived`. */
+  minReturnRaw?: string
   priceImpactPercent: string
   exitContributionPercent: string
 }
