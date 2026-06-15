@@ -100,11 +100,12 @@ test('slippage selection sheet exposes tolerance options', async ({ page }) => {
   await page.screenshot({ path: `${SCREENSHOT_DIR}/grw-08-slippage-selection.png` })
 })
 
-test('confirm dialog uses a press-to-confirm button (not slide-to-confirm)', async ({ page }) => {
+test('confirm dialog renders as a bottom-sheet with a press-to-confirm button', async ({ page }) => {
   await gotoStory(page, 'widgets-goodreservewidget--confirm-dialog')
   await expect(page.getByText('Confirm Swap').first()).toBeVisible()
   await expect(page.getByText('Minimum Received', { exact: true })).toBeVisible()
-  // Maintainer note: confirmation is a simple button, not the Figma slide control.
+  await expect(page.getByText('Network Fee')).toBeVisible()
+  // Confirmation is a simple button (slide-to-confirm in Figma is simplified).
   await expect(page.getByText('Confirm Swap').last()).toBeVisible()
   await page.screenshot({ path: `${SCREENSHOT_DIR}/grw-09-confirm-dialog.png` })
 })
