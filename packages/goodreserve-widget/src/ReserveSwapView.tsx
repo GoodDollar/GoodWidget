@@ -305,13 +305,15 @@ export function ReserveSwapView({ adapter }: ReserveSwapViewProps) {
               flex={1}
               borderWidth={0}
               backgroundColor="$backgroundTransparent"
-              textAlign="right"
               fontSize={34}
               fontWeight="700"
               // Web: the @goodwidget/ui Input is a Tamagui `tag:'input'` Stack which
               // does not translate RN's onChangeText to the DOM, so wire the native
               // onChange and sanitize to a single decimal number at the boundary.
+              // textAlign is applied via style (DOM-valid) rather than the RN prop,
+              // which Tamagui would otherwise emit as an invalid `textalign` attr.
               inputMode="decimal"
+              style={{ textAlign: 'right' }}
               value={state.inputAmount}
               placeholder="0.00"
               onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
