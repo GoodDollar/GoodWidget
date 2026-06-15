@@ -65,8 +65,9 @@ const tokenPreset = {
       shimmer: 'rgba(245, 249, 255, 0.22)',
 
       // GoodReserve swap widget palette (Figma file xsk5EiF6CvStA9mtdbA9OR).
-      // Namespaced so they back the light_Reserve* / dark_Reserve* sub-themes
-      // without colliding with the shared semantic tokens above.
+      // Mirror of defaultTokenValues.color.reserve* in theme.ts (the canonical
+      // token source); these must stay in sync. Namespaced so they back the
+      // dark_Reserve* sub-themes without colliding with the shared tokens above.
       reserveCard: '#0C0E15',
       reserveInputCard: '#252730',
       reserveBadge: '#33343C',
@@ -361,8 +362,10 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
     },
 
     // GoodReserve swap widget — public, host-themable component sub-themes.
-    // Defaults map to the Figma palette; integrators override these keys to
-    // reskin the widget without touching the shared preset tokens.
+    // The widget is dark-only (GoodWalletV2 has no light design), so the
+    // light_/dark_ pairs are intentionally identical and map to the Figma
+    // palette. Integrators override these keys to reskin the widget without
+    // touching the shared preset tokens.
     light_ReserveSwapShell: {
       background: color.reserveCard,
       color: color.reserveText,
@@ -379,6 +382,33 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
     },
     dark_ReserveAmountCard: {
       background: color.reserveInputCard,
+      color: color.reserveText,
+    },
+    // Raised surfaces: success summary card + FAQ card.
+    light_ReserveSurface: {
+      background: color.surface,
+      color: color.reserveText,
+    },
+    dark_ReserveSurface: {
+      background: color.surface,
+      color: color.reserveText,
+    },
+    // Inner highlight surface inside the confirm sheet.
+    light_ReserveSurfaceInner: {
+      background: color.reserveSurfaceInner,
+      color: color.reserveText,
+    },
+    dark_ReserveSurfaceInner: {
+      background: color.reserveSurfaceInner,
+      color: color.reserveText,
+    },
+    // Confirm-sheet details table surface.
+    light_ReserveDetailsTable: {
+      background: color.reserveCard,
+      color: color.reserveText,
+    },
+    dark_ReserveDetailsTable: {
+      background: color.reserveCard,
       color: color.reserveText,
     },
     light_ReserveTokenBadge: {
@@ -405,6 +435,7 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
       background: color.reserveBadge,
       color: color.reserveHeading,
     },
+    // Glowing success hero (96x96).
     light_ReserveSuccessIcon: {
       background: color.primary,
       color: color.white,
@@ -414,6 +445,15 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
       background: color.primary,
       color: color.white,
       shadowColor: color.glowPrimary,
+    },
+    // Flat "to" badge in the confirm hero (distinct from the glowing hero).
+    light_ReserveConfirmToBadge: {
+      background: color.primary,
+      color: color.white,
+    },
+    dark_ReserveConfirmToBadge: {
+      background: color.primary,
+      color: color.white,
     },
   },
   typography: {
