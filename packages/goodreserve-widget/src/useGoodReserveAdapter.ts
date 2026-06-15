@@ -257,12 +257,11 @@ export function useGoodReserveAdapter(
           stats.stableTokenDecimals ?? (chainId === XDC_CHAIN_ID ? 6 : DEFAULT_STABLE_DECIMALS),
         gd: stats.goodDollarDecimals ?? DEFAULT_GD_DECIMALS,
       }
-      // Preserve the real exit contribution so the quote can display it instead
-      // of a hardcoded 0%. The SDK returns it as raw parts-per-million (PPM,
-      // 0..1_000_000) straight from the Mento pool's uint32 exitContribution —
-      // see GoodSDKs PR #35 (getReserveStats/extractPoolStats, no scaling). So
-      // PPM → percent is `/ 10_000` (== /1_000_000 * 100); e.g. 5000 → "0.50%".
-      // (This matches how the SDK demo renders reserveRatio, also PPM.)
+      // exitContribution comes from the same Mento pool struct as reserveRatio
+      // and is read unscaled by the SDK (extractPoolStats → toNumber(pool[5])).
+      // The GoodSDKs demo renders these pool fields as a percent with `/ 10000`
+      // (apps/demo-reserve-swap ReserveSwap.tsx: reserveRatio / 10000), so we
+      // follow the same convention as the source of truth: e.g. 5000 → "0.50%".
       exitContributionRef.current =
         stats.exitContribution != null
           ? `${(stats.exitContribution / 10_000).toFixed(2)}%`
@@ -390,10 +389,11 @@ export function useGoodReserveAdapter(
 
         const outputFormatted = formatUnits(output, outDecimals)
         const minReceivedFormatted = formatUnits(minReturn, outDecimals)
-        // Display-only price (input per output); on-chain math stays BigInt-pure.
+        // Display-only unit price expressed as OUTPUT per INPUT, i.e. the rate
+        // for "1 tokenIn = <price> tokenOut". On-chain math stays BigInt-pure.
         const inputNum = Number(formatUnits(input, inDecimals))
         const outputNum = Number(outputFormatted)
-        const price = outputNum === 0 ? '0.00000' : (inputNum / outputNum).toFixed(5)
+        const price = inputNum === 0 ? '0.00000' : (outputNum / inputNum).toFixed(5)
 
         applyStatePatch({
           status: 'quote_ready',
