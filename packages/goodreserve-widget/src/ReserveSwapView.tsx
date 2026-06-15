@@ -155,6 +155,8 @@ function explorerTxUrl(chainId: number | null, txHash: string): string {
 
 interface ReserveSwapViewProps {
   adapter: ReserveSwapWidgetAdapterResult
+  /** Chain proposed by the unsupported-chain CTA. Defaults to Celo. */
+  preferredChainId?: number
 }
 
 // A single right-aligned key/value row inside the transaction details block.
@@ -215,7 +217,7 @@ function CollapsibleSection({
 // Renders the reserve swap states with the GoodWalletV2 / Figma structure:
 // header → from/to amount cards → transaction details → primary CTA → FAQ.
 // Confirmation, pending, success and error states overlay the same shell.
-export function ReserveSwapView({ adapter }: ReserveSwapViewProps) {
+export function ReserveSwapView({ adapter, preferredChainId }: ReserveSwapViewProps) {
   const { state, actions } = adapter
   const network = networkLabel(state.chainId)
 
@@ -472,8 +474,13 @@ export function ReserveSwapView({ adapter }: ReserveSwapViewProps) {
             />
             <DetailRow
               label="PRICE IMPACT"
-              value={state.quote?.priceImpactPercent ?? '~0.00%'}
-              valueColor={FIGMA.positive}
+              value={state.quote?.priceImpactPercent ?? 'N/A'}
+              // Only color it positive/green when it's a real value; N/A stays muted.
+              valueColor={
+                !state.quote || state.quote.priceImpactPercent === 'N/A'
+                  ? FIGMA.textMuted
+                  : FIGMA.positive
+              }
             />
             <DetailRow
               label="EXIT CONTRIBUTION"
@@ -493,9 +500,19 @@ export function ReserveSwapView({ adapter }: ReserveSwapViewProps) {
         )}
 
         {(state.status === 'swap_error' || state.status === 'quote_error') && state.error && (
-          <Text testID="GoodReserveWidget-error" color="$error">
-            {state.error}
-          </Text>
+          <YStack gap="$2">
+            <Text testID="GoodReserveWidget-error" color="$error">
+              {state.error}
+            </Text>
+            <Button
+              testID="GoodReserveWidget-retry"
+              variant="secondary"
+              fullWidth
+              onPress={actions.refresh}
+            >
+              <ButtonText>Retry</ButtonText>
+            </Button>
+          </YStack>
         )}
 
         {/* Primary CTA — connect / switch / review / pending */}
@@ -511,7 +528,7 @@ export function ReserveSwapView({ adapter }: ReserveSwapViewProps) {
               return
             }
             if (state.status === 'unsupported_chain') {
-              await actions.switchChain(CELO_CHAIN_ID)
+              await actions.switchChain(preferredChainId ?? CELO_CHAIN_ID)
               return
             }
             actions.openConfirm()
