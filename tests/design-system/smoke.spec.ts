@@ -32,9 +32,8 @@ async function gotoStory(page: Page, storyId: string): Promise<void> {
 }
 
 /** Get the content frame inside the Storybook canvas iframe. */
-async function getStoryFrame(page: Page) {
-  const frame = page.frameLocator('#storybook-preview-iframe')
-  return frame
+function getStoryFrame(page: Page) {
+  return page.frameLocator('#storybook-preview-iframe')
 }
 
 test('Card/Default story renders', async ({ page }) => {

@@ -13,3 +13,5 @@ playwright-report/
 **/storybook-static/
 **/.yalc
 **/yalc.lock
+.bounties/contributor-bounties
+local-reference-assets

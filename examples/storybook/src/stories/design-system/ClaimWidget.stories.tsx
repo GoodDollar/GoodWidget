@@ -10,8 +10,9 @@
  */
 import React from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
+import { GoodWidgetProvider } from '@goodwidget/core'
 import { ClaimWidget } from '@goodwidget/claim-widget-theme-demo'
-import { YStack } from '@goodwidget/ui'
+import { MiniAppShell, YStack } from '@goodwidget/ui'
 import { createMockEip1193Provider } from '../../fixtures/mockEip1193'
 
 // Stable mock provider — created once at module level to prevent re-render churn.
@@ -54,10 +55,13 @@ const tealOverrides = {
 }
 
 const meta: Meta<typeof ClaimWidget> = {
-  title: 'Theme/ClaimWidgetThemeDemo',
+  title: 'Theme/ClaimWidgetThemeDemo-Light',
   component: ClaimWidget,
   tags: ['autodocs'],
   parameters: { layout: 'padded' },
+  goodWidgetProvider: {
+    useShell: false,
+  },
 }
 export default meta
 type Story = StoryObj<typeof ClaimWidget>
@@ -65,26 +69,12 @@ type Story = StoryObj<typeof ClaimWidget>
 /** Default preset — no overrides, GoodWalletV2 baseline. */
 export const Default: Story = {
   render: () => (
-    <YStack data-testid="ClaimWidget-default" style={{ width: 380 }}>
-      <ClaimWidget provider={mockProvider} />
-    </YStack>
-  ),
-}
-
-/** Cobalt brand — token + component theme overrides via themeOverrides. */
-export const CobaltBrand: Story = {
-  render: () => (
-    <YStack data-testid="ClaimWidget-cobalt" style={{ width: 380 }}>
-      <ClaimWidget provider={mockProvider} themeOverrides={cobaltOverrides} />
-    </YStack>
-  ),
-}
-
-/** Teal brand — a different brand palette via themeOverrides. */
-export const TealBrand: Story = {
-  render: () => (
-    <YStack data-testid="ClaimWidget-teal" style={{ width: 380 }}>
-      <ClaimWidget provider={mockProvider} themeOverrides={tealOverrides} />
-    </YStack>
+    <GoodWidgetProvider defaultTheme="light">
+      <MiniAppShell>
+        <YStack data-testid="ClaimWidget-default" style={{ width: 380 }}>
+          <ClaimWidget provider={mockProvider} defaultTheme="light" />
+        </YStack>
+      </MiniAppShell>
+    </GoodWidgetProvider>
   ),
 }

@@ -1,13 +1,6 @@
 import React from 'react'
 import { GoodWidgetProvider, useWallet } from '@goodwidget/core'
-import {
-  MiniAppShell,
-  Card,
-  Heading,
-  Text,
-  Button,
-  ButtonText,
-} from '@goodwidget/ui'
+import { MiniAppShell, Card, Heading, Text, Button, ButtonText } from '@goodwidget/ui'
 
 function MyMiniApp() {
   const { address, connect } = useWallet()
@@ -31,7 +24,7 @@ function MyMiniApp() {
 
 export function App() {
   return (
-    <GoodWidgetProvider defaultTheme="light">
+    <GoodWidgetProvider defaultTheme="dark">
       <MyMiniApp />
     </GoodWidgetProvider>
   )

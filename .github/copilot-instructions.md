@@ -28,7 +28,7 @@ The expected flow a GoodWidget issue planning should follow is:
 2. there will be an assignment of the original issue to start 'planning' the implementation.
 3. this should result in a 'sub-issue' of the original issue, with title `[DRAFT][PLAN] <what issue is being planned>` (no changes to the original issue)
    -- sub-issue should have a type 'Task'
-   -- sub-issue should start the issue description with: [DRAFT] <sub-issue title>
+   -- sub-issue should start the issue description with: <sub-issue title>
    -- then follow the requested format from the persisted `Create the plan` section of the original issue.
 4. Once the planning is done it should be requested to review the plan (no execution of the task or any pull-request should be opened at this stage).
 5. Only issues assigned that have `[PLAN]` in their title and don't have `[DRAFT]` anymore can be executed and have pull-requests opened for them.
