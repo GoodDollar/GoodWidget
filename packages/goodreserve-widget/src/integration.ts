@@ -1,7 +1,6 @@
 export const goodReserveWidgetIntegration = {
   id: 'goodreserve-swap',
   sdk: '@goodsdks/good-reserve',
-  capabilitySource: 'goodReserveSdkCapabilities',
   uses: ['getBuyQuote', 'getSellQuote', 'buy', 'sell', 'getReserveStats'],
   chains: [42220, 50],
   states: [

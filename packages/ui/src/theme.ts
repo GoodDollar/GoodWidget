@@ -45,6 +45,17 @@ export const defaultTokenValues = {
     borderDark: '#333333',
     overlay: 'rgba(0,0,0,0.5)',
     transparent: 'transparent',
+
+    // GoodReserve swap widget palette (overridable as $reserve* tokens).
+    reserveCard: '#0C0E15',
+    reserveInputCard: '#252730',
+    reserveBadge: '#33343C',
+    reserveSurfaceInner: '#191B22',
+    reserveHeading: '#4090FF',
+    reserveText: '#E2E2EC',
+    reserveTextMuted: '#8B91A0',
+    reserveTextSecondary: '#C1C6D6',
+    reserveAccentSoft: '#AAC7FF',
   },
   size: {
     0: 0,

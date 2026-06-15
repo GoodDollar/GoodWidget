@@ -116,7 +116,7 @@ test('confirm dialog renders as a bottom-sheet with a press-to-confirm button', 
   await gotoStory(page, 'widgets-goodreservewidget--confirm-dialog')
   await expect(page.getByText('Confirm Swap').first()).toBeVisible()
   await expect(page.getByText('Minimum Received', { exact: true })).toBeVisible()
-  await expect(page.getByText('Network Fee')).toBeVisible()
+  await expect(page.getByText('Max Slippage')).toBeVisible()
   // Confirmation is a simple button (slide-to-confirm in Figma is simplified).
   await expect(page.getByText('Confirm Swap').last()).toBeVisible()
   await page.screenshot({ path: `${SCREENSHOT_DIR}/grw-09-confirm-dialog.png` })
@@ -131,7 +131,7 @@ test('swap-pending state shows the swapping CTA', async ({ page }) => {
 test('swap-success state shows the received amount, not the wallet balance', async ({ page }) => {
   await gotoStory(page, 'widgets-goodreservewidget--swap-success')
   await expect(page.getByText('Swap Successful')).toBeVisible()
-  await expect(page.getByText('Final amount received')).toBeVisible()
+  await expect(page.getByText('Estimated received')).toBeVisible()
   // The fixture's lastSwapOutput is 10,230 while the wallet balance is 12,500;
   // the success card must show the amount received from the swap.
   await expect(page.getByText('10,230 G$')).toBeVisible()
