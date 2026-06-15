@@ -46,8 +46,11 @@ const lowQuorumSegments: VoteSegment[] = [
   { id: 'abstain', label: 'Abstain', percentage: 8, tone: 'abstain' },
 ]
 
+const mayaAvatar =
+  'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2232%22 fill=%22%232563eb%22/%3E%3Ctext x=%2232%22 y=%2239%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2224%22 font-weight=%22700%22 fill=%22white%22%3EM%3C/text%3E%3C/svg%3E'
+
 const voters: VoterPreview[] = [
-  { id: 'maya', label: 'Maya' },
+  { id: 'maya', label: 'Maya', avatarUrl: mayaAvatar },
   { id: 'kenji', label: 'Kenji' },
   { id: 'sol', label: 'Sol' },
   { id: 'ama', label: 'Ama' },
@@ -123,12 +126,13 @@ export const ImpactDarkLongDisabledMobile: Story = {
 
 export const BalanceVariantsLight: Story = {
   render: () => (
-    <XStack flexWrap="wrap" gap="$3" padding="$3" width={560}>
+    <XStack flexWrap="wrap" gap="$3" padding="$3" width={600}>
       <BalanceCard
         testID="BalanceCard-token-growth"
         icon="wallet"
         title="Voting balance"
         amount={{ value: 12345.67, token: 'G$' }}
+        metadataType="growth"
         metadata={{ label: '+12.4% this cycle', tone: 'positive', icon: 'chevron-up' }}
       />
       <BalanceCard
@@ -137,6 +141,7 @@ export const BalanceVariantsLight: Story = {
         title="Eligible proposals with a long title"
         amount={17}
         amountType="raw"
+        metadataType="time-window"
         metadata={{ label: 'Last 30 days', tone: 'muted', icon: 'info' }}
       />
     </XStack>
@@ -153,6 +158,7 @@ export const BalanceDarkCompact: Story = {
         icon="wallet"
         title="Compact delegated voting power with truncation"
         amount={{ value: 7821, token: 'G$' }}
+        metadataType="time-window"
         metadata={{ label: 'Snapshot in 3 days', tone: 'muted', icon: 'info' }}
       />
     </GovernanceStoryFrame>

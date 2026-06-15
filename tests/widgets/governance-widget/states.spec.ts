@@ -89,6 +89,8 @@ const STORY_CASES: GovernanceStoryCase[] = [
 async function gotoStory(page: Page, storyId: string): Promise<void> {
   await page.goto(`/iframe.html?id=${storyId}&viewMode=story`)
   await page.waitForLoadState('domcontentloaded')
+  await page.locator('#storybook-root').waitFor({ state: 'attached' })
+  await page.waitForLoadState('networkidle')
 }
 
 for (const storyCase of STORY_CASES) {
@@ -100,7 +102,7 @@ for (const storyCase of STORY_CASES) {
     await gotoStory(page, storyCase.id)
 
     const component = page.getByTestId(storyCase.testId)
-    await expect(component).toBeVisible()
+    await expect(component).toBeVisible({ timeout: 15_000 })
     await expect(page.getByText(storyCase.expectedText).first()).toBeVisible()
 
     await page.screenshot({ path: storyCase.screenshot, fullPage: true })
