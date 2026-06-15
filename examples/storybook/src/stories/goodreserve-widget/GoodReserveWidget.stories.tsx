@@ -27,6 +27,11 @@ export const NoProvider: Story = {
   render: () => renderStory(reserveWidgetMockStates.noProvider, 'GoodReserveWidget-no-provider'),
 }
 
+export const SdkInitializing: Story = {
+  render: () =>
+    renderStory(reserveWidgetMockStates.sdkInitializing, 'GoodReserveWidget-sdk-initializing'),
+}
+
 export const UnsupportedChain: Story = {
   render: () =>
     renderStory(reserveWidgetMockStates.unsupportedChain, 'GoodReserveWidget-unsupported-chain'),
