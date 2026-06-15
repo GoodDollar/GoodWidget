@@ -18,7 +18,7 @@ type Story = StoryObj<typeof meta>
 
 // Renders one deterministic reserve state per story for CI-safe widget coverage.
 const renderStory = (mockState: Story['args']['mockState'], dataTestId: string) => (
-  <div data-testid={dataTestId} style={{ width: 380 }}>
+  <div data-testid={dataTestId} style={{ width: 390 }}>
     <GoodReserveWidget provider={provider} mockState={mockState} />
   </div>
 )
