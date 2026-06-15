@@ -25,6 +25,7 @@ import {
 } from './constants'
 import { mapReserveError } from './errors'
 import { sanitizeAmount } from './amount'
+import { loadGoodReserveSdkConstructor, type GoodReserveSDKLike } from './sdk'
 
 // Minimal viem Chain definitions for the supported reserve chains. The
 // GoodReserve SDK constructor reads publicClient.chain.id and throws when it is
@@ -45,34 +46,6 @@ const RESERVE_CHAINS: Record<number, Chain> = {
   } as Chain,
 }
 
-type GoodReserveSDKLike = {
-  getStableTokenAddress: () => `0x${string}`
-  getGoodDollarAddress: () => `0x${string}`
-  getReserveStats: () => Promise<{
-    stableTokenDecimals?: number
-    goodDollarDecimals?: number
-    exitContribution?: number | null
-  }>
-  getBuyQuote: (stableToken: `0x${string}`, amountIn: bigint) => Promise<bigint>
-  getSellQuote: (gdAmount: bigint, stableToken: `0x${string}`) => Promise<bigint>
-  buy: (
-    stableToken: `0x${string}`,
-    amountIn: bigint,
-    minReturn: bigint,
-  ) => Promise<{ hash: `0x${string}`; receipt: { transactionHash: string } }>
-  sell: (
-    stableToken: `0x${string}`,
-    amountIn: bigint,
-    minReturn: bigint,
-  ) => Promise<{ hash: `0x${string}`; receipt: { transactionHash: string } }>
-}
-
-type GoodReserveSDKConstructor = new (
-  publicClient: unknown,
-  walletClient: unknown,
-  env: 'production' | 'development',
-) => GoodReserveSDKLike
-
 type Erc20ReadClient = {
   readContract: (params: {
     address: `0x${string}`
@@ -91,23 +64,6 @@ const erc20BalanceOfAbi = [
     outputs: [{ name: '', type: 'uint256' }],
   },
 ] as const
-
-// Loads the SDK module dynamically so workspace builds still run if the SDK package is missing.
-async function loadGoodReserveSdkConstructor(): Promise<
-  GoodReserveSDKConstructor | null
-> {
-  try {
-    const importer = new Function('moduleName', 'return import(moduleName)') as (
-      moduleName: string,
-    ) => Promise<Record<string, unknown>>
-    const module = await importer('@goodsdks/good-reserve')
-    const ctor = module.GoodReserveSDK
-    if (typeof ctor !== 'function') return null
-    return ctor as GoodReserveSDKConstructor
-  } catch {
-    return null
-  }
-}
 
 const initialState: ReserveSwapWidgetAdapterState = {
   status: 'no_provider',
@@ -174,7 +130,15 @@ export function useGoodReserveAdapter(
   // dismissed, so cancelling does not lie about the underlying quote state
   // (e.g. returning to quote_ready when the user was at insufficient_balance).
   const previousStatusRef = useRef<ReserveSwapWidgetAdapterState['status']>('idle')
+  // Latest status, read inside the quote effect's empty-input guard without
+  // adding state.status to its deps (which would re-arm the debounce on every
+  // transition). Lets the guard avoid clobbering terminal swap states.
+  const statusRef = useRef(state.status)
   const mountedRef = useRef(true)
+
+  useEffect(() => {
+    statusRef.current = state.status
+  }, [state.status])
 
   useEffect(() => {
     tokenInBalanceRef.current = state.tokenInBalance
@@ -231,6 +195,24 @@ export function useGoodReserveAdapter(
     }))
   }, [address])
 
+  // Reads the wallet's CURRENT chain id directly via eth_chainId, rather than
+  // trusting React-derived `chainId` state which may lag a mid-dialog wallet
+  // network switch. Returns null when no provider/request is available so the
+  // caller can fall back to the memoized flag.
+  const readActiveChainId = useCallback(async (): Promise<number | null> => {
+    const walletProvider = provider as
+      | { request?: (args: { method: string; params?: unknown[] }) => Promise<unknown> }
+      | undefined
+    if (!walletProvider?.request) return null
+    try {
+      const hex = (await walletProvider.request({ method: 'eth_chainId' })) as string
+      const parsed = Number.parseInt(hex, 16)
+      return Number.isNaN(parsed) ? null : parsed
+    } catch {
+      return null
+    }
+  }, [provider])
+
   const bootstrapSdk = useCallback(async () => {
     if (!provider || !address || !chainId || !chainSupported) return
 
@@ -276,9 +258,15 @@ export function useGoodReserveAdapter(
         gd: stats.goodDollarDecimals ?? DEFAULT_GD_DECIMALS,
       }
       // Preserve the real exit contribution so the quote can display it instead
-      // of a hardcoded 0%.
+      // of a hardcoded 0%. The SDK returns it as raw parts-per-million (PPM,
+      // 0..1_000_000) straight from the Mento pool's uint32 exitContribution —
+      // see GoodSDKs PR #35 (getReserveStats/extractPoolStats, no scaling). So
+      // PPM → percent is `/ 10_000` (== /1_000_000 * 100); e.g. 5000 → "0.50%".
+      // (This matches how the SDK demo renders reserveRatio, also PPM.)
       exitContributionRef.current =
-        stats.exitContribution != null ? `${(stats.exitContribution * 100).toFixed(2)}%` : '0%'
+        stats.exitContribution != null
+          ? `${(stats.exitContribution / 10_000).toFixed(2)}%`
+          : '0%'
 
       await refreshBalances()
       // Read direction via ref so toggling buy/sell does not re-bootstrap the SDK.
@@ -334,6 +322,18 @@ export function useGoodReserveAdapter(
   useEffect(() => {
     if (mockState || !sdkRef.current) return
     if (!state.inputAmount) {
+      // A successful swap clears inputAmount as part of its success patch, which
+      // re-triggers this effect. Don't clobber terminal swap states (success/
+      // error/pending) back to idle — only reset when we're in a quote/editing
+      // context. Otherwise the success screen would flash and vanish.
+      const current = statusRef.current
+      if (
+        current === 'swap_success' ||
+        current === 'swap_error' ||
+        current === 'swap_pending'
+      ) {
+        return
+      }
       applyStatePatch({ quote: null, warning: null, error: null, status: 'idle' })
       return
     }
@@ -519,14 +519,22 @@ export function useGoodReserveAdapter(
           })
           return
         }
-        // Re-validate chain support: the user may have switched to an
-        // unsupported chain in their wallet while the confirm dialog was open.
-        if (!chainSupported) {
+        // Re-validate chain support against the wallet's CURRENT chain, read
+        // live rather than trusting the memoized chainId: the user may have
+        // switched networks in their wallet while the confirm dialog was open.
+        const activeChainId = await readActiveChainId()
+        if (activeChainId !== null && !SUPPORTED_RESERVE_CHAINS.includes(activeChainId as never)) {
+          applyStatePatch({ status: 'unsupported_chain', error: null })
+          return
+        }
+        // Fall back to the memoized flag if the live read failed (no provider.request).
+        if (activeChainId === null && !chainSupported) {
           applyStatePatch({ status: 'unsupported_chain', error: null })
           return
         }
         try {
-          applyStatePatch({ status: 'swap_pending', error: null })
+          // Clear any prior txHash so a stale hash can't leak into this attempt.
+          applyStatePatch({ status: 'swap_pending', error: null, txHash: null })
           const stableToken = sdkRef.current.getStableTokenAddress()
           const amountIn = parseUnits(
             state.inputAmount,
@@ -545,10 +553,17 @@ export function useGoodReserveAdapter(
                 return (quoteOut * (10_000n - slippageBps)) / 10_000n
               })()
 
+          // onHash fires as soon as the tx is submitted (before it is mined), so
+          // swap_pending can already surface the submitted hash / explorer link
+          // instead of waiting for the receipt. buy/sell still resolve on receipt.
+          const onHash = (hash: `0x${string}`) => {
+            applyStatePatch({ txHash: hash })
+          }
+
           const result =
             state.direction === 'buy'
-              ? await sdkRef.current.buy(stableToken, amountIn, minReturn)
-              : await sdkRef.current.sell(stableToken, amountIn, minReturn)
+              ? await sdkRef.current.buy(stableToken, amountIn, minReturn, onHash)
+              : await sdkRef.current.sell(stableToken, amountIn, minReturn, onHash)
 
           // Surface success first; balance refresh is best-effort so an RPC blip
           // cannot turn a confirmed swap into a swap_error. Preserve the quoted
@@ -582,6 +597,7 @@ export function useGoodReserveAdapter(
       connect,
       mockState,
       provider,
+      readActiveChainId,
       refreshBalances,
       state.direction,
       state.inputAmount,

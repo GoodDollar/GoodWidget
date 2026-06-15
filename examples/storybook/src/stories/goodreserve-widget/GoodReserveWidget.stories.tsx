@@ -1,8 +1,15 @@
 import React from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
-import { GoodReserveWidget } from '@goodwidget/goodreserve-widget'
+import {
+  GoodReserveWidget,
+  __setGoodReserveSdkConstructorForTesting,
+} from '@goodwidget/goodreserve-widget'
 import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
 import { reserveWidgetMockStates } from '../../fixtures/goodReserveWidgetMock'
+import {
+  FakeGoodReserveSDK,
+  createReserveTestProvider,
+} from '../../fixtures/goodReserveSdkFake'
 
 const provider = createCustodialEip1193Provider()
 
@@ -98,4 +105,36 @@ export const Interactive: Story = {
       <GoodReserveWidget provider={provider} />
     </div>
   ),
+}
+
+// ---------------------------------------------------------------------------
+// LiveFakeSdk — drives the FULL real adapter against a deterministic fake SDK
+// (injected via the test seam) and a local EIP-1193 provider. No mockState, no
+// published SDK, no live RPC. Playwright uses this to verify the real
+// quote → confirm → buy → success transition (including the submitted tx hash
+// from the onHash callback and the PPM exit-contribution scaling).
+// ---------------------------------------------------------------------------
+const liveProvider = createReserveTestProvider()
+
+// Sets the injected fake synchronously (before the child widget's effects run,
+// so bootstrapSdk picks it up) and clears it on unmount, so the fake can never
+// leak into other stories rendered later in the same Storybook session.
+function LiveFakeSdkHarness() {
+  const injected = React.useRef(false)
+  if (!injected.current) {
+    __setGoodReserveSdkConstructorForTesting(FakeGoodReserveSDK)
+    injected.current = true
+  }
+  React.useEffect(() => {
+    return () => __setGoodReserveSdkConstructorForTesting(null)
+  }, [])
+  return (
+    <div data-testid="GoodReserveWidget-live" style={{ width: 390 }}>
+      <GoodReserveWidget provider={liveProvider} />
+    </div>
+  )
+}
+
+export const LiveFakeSdk: Story = {
+  render: () => <LiveFakeSdkHarness />,
 }
