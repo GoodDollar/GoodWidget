@@ -25,6 +25,8 @@ export const reserveWidgetMockStates: Record<string, Partial<ReserveSwapWidgetAd
     chainId: 42220,
     address: '0x1111111111111111111111111111111111111111',
     hasProvider: true,
+    tokenInSymbol: 'USDm',
+    tokenOutSymbol: 'G$',
     tokenInBalance: '120.00',
     tokenOutBalance: '10340.22',
     inputAmount: '',
@@ -36,6 +38,7 @@ export const reserveWidgetMockStates: Record<string, Partial<ReserveSwapWidgetAd
     hasProvider: true,
     inputAmount: '25',
     tokenInBalance: '120.00',
+    tokenOutBalance: '10340.22',
   },
   quoteLoading: {
     status: 'quote_loading',
@@ -43,6 +46,7 @@ export const reserveWidgetMockStates: Record<string, Partial<ReserveSwapWidgetAd
     hasProvider: true,
     inputAmount: '25',
     tokenInBalance: '120.00',
+    tokenOutBalance: '10340.22',
   },
   quoteReady: {
     status: 'quote_ready',
@@ -109,7 +113,13 @@ export const reserveWidgetMockStates: Record<string, Partial<ReserveSwapWidgetAd
     status: 'swap_success',
     chainId: 42220,
     hasProvider: true,
-    txHash: '0xabc123',
+    tokenOutSymbol: 'G$',
+    tokenOutBalance: '12,500',
+    // Post-swap reality: quote is cleared and the received amount is preserved
+    // in lastSwapOutput (distinct from the wallet balance).
+    lastSwapOutput: '10,230',
+    quote: null,
+    txHash: '0xabc1230000000000000000000000000000000000000000000000000000000000',
   },
   swapError: {
     status: 'swap_error',
@@ -132,6 +142,26 @@ export const reserveWidgetMockStates: Record<string, Partial<ReserveSwapWidgetAd
       price: '4.4820',
       minimumReceived: '8.9142',
       priceImpactPercent: '~0.02%',
+      exitContributionPercent: '0%',
+    },
+  },
+  // Buy-ready state on XDC (chain 50) — exercises the dynamic network label and
+  // the USDC stable-token symbol used on XDC.
+  xdcQuoteReady: {
+    status: 'quote_ready',
+    chainId: 50,
+    hasProvider: true,
+    direction: 'buy',
+    tokenInSymbol: 'USDC',
+    tokenOutSymbol: 'G$',
+    tokenInBalance: '500.00',
+    tokenOutBalance: '0.00',
+    inputAmount: '50',
+    quote: {
+      outputAmount: '216.5000',
+      price: '0.2310',
+      minimumReceived: '216.2835',
+      priceImpactPercent: '~0.01%',
       exitContributionPercent: '0%',
     },
   },

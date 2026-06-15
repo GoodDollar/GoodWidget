@@ -57,12 +57,12 @@ type GoodReserveSDKLike = {
     stableToken: `0x${string}`,
     amountIn: bigint,
     minReturn: bigint,
-  ) => Promise<{ receipt: { transactionHash: string } }>
+  ) => Promise<{ hash: `0x${string}`; receipt: { transactionHash: string } }>
   sell: (
     stableToken: `0x${string}`,
     amountIn: bigint,
     minReturn: bigint,
-  ) => Promise<{ receipt: { transactionHash: string } }>
+  ) => Promise<{ hash: `0x${string}`; receipt: { transactionHash: string } }>
 }
 
 type GoodReserveSDKConstructor = new (
@@ -123,6 +123,7 @@ const initialState: ReserveSwapWidgetAdapterState = {
   warning: null,
   error: null,
   txHash: null,
+  lastSwapOutput: null,
 }
 
 function getStableSymbol(chainId: number | null): string {
@@ -317,16 +318,35 @@ export function useGoodReserveAdapter(
       return
     }
 
-    const amount = Number(state.inputAmount)
-    if (!Number.isFinite(amount) || amount <= 0) {
+    const inDecimals =
+      state.direction === 'buy' ? decimalsRef.current.stable : decimalsRef.current.gd
+    const outDecimals =
+      state.direction === 'buy' ? decimalsRef.current.gd : decimalsRef.current.stable
+
+    // Parse the amount in BigInt base units once; reject anything parseUnits
+    // can't handle (avoids float precision in the gate and balance comparison).
+    let input: bigint
+    try {
+      input = parseUnits(state.inputAmount, inDecimals)
+    } catch {
+      applyStatePatch({ quote: null, status: 'amount_editing' })
+      return
+    }
+    if (input <= 0n) {
       applyStatePatch({ quote: null, status: 'amount_editing' })
       return
     }
 
-    const timeoutId = window.setTimeout(async () => {
+    const timeoutId = setTimeout(async () => {
       try {
-        const inputBalance = Number(tokenInBalanceRef.current)
-        if (Number.isFinite(inputBalance) && amount > inputBalance) {
+        // BigInt balance comparison — no float rounding at the last decimal.
+        let balanceBigInt: bigint
+        try {
+          balanceBigInt = parseUnits(tokenInBalanceRef.current, inDecimals)
+        } catch {
+          balanceBigInt = 0n
+        }
+        if (input > balanceBigInt) {
           applyStatePatch({
             status: 'insufficient_balance',
             warning: 'Input exceeds your available token balance.',
@@ -338,11 +358,6 @@ export function useGoodReserveAdapter(
 
         applyStatePatch({ status: 'quote_loading', warning: null, error: null })
         const stableToken = sdkRef.current!.getStableTokenAddress()
-        const inDecimals =
-          state.direction === 'buy' ? decimalsRef.current.stable : decimalsRef.current.gd
-        const outDecimals =
-          state.direction === 'buy' ? decimalsRef.current.gd : decimalsRef.current.stable
-        const input = parseUnits(state.inputAmount, inDecimals)
         const output =
           state.direction === 'buy'
             ? await sdkRef.current!.getBuyQuote(stableToken, input)
@@ -355,12 +370,16 @@ export function useGoodReserveAdapter(
 
         const outputFormatted = formatUnits(output, outDecimals)
         const minReceivedFormatted = formatUnits(minReturn, outDecimals)
+        // Display-only price (input per output); on-chain math stays BigInt-pure.
+        const inputNum = Number(formatUnits(input, inDecimals))
+        const outputNum = Number(outputFormatted)
+        const price = outputNum === 0 ? '0.00000' : (inputNum / outputNum).toFixed(5)
 
         applyStatePatch({
           status: 'quote_ready',
           quote: {
             outputAmount: outputFormatted,
-            price: output === 0n ? '0.00000' : (amount / Number(outputFormatted || '1')).toFixed(5),
+            price,
             minimumReceived: minReceivedFormatted,
             minReturnRaw: minReturn.toString(),
             priceImpactPercent: '~0.01%',
@@ -377,7 +396,7 @@ export function useGoodReserveAdapter(
       }
     }, QUOTE_DEBOUNCE_MS)
 
-    return () => window.clearTimeout(timeoutId)
+    return () => clearTimeout(timeoutId)
     // Note: tokenInBalance is intentionally read via ref (not a dep) so a
     // post-swap/direction-toggle balance update does not restart the debounce.
   }, [applyStatePatch, mockState, state.direction, state.inputAmount, state.slippagePercent])
@@ -476,10 +495,13 @@ export function useGoodReserveAdapter(
               : await sdkRef.current.sell(stableToken, amountIn, minReturn)
 
           // Surface success first; balance refresh is best-effort so an RPC blip
-          // cannot turn a confirmed swap into a swap_error.
+          // cannot turn a confirmed swap into a swap_error. Preserve the quoted
+          // output as lastSwapOutput before clearing the quote, so the success
+          // screen shows the amount received (not the wallet balance).
           applyStatePatch({
             status: 'swap_success',
-            txHash: result.receipt.transactionHash,
+            txHash: result.hash,
+            lastSwapOutput: state.quote.outputAmount,
             inputAmount: '',
             quote: null,
           })
