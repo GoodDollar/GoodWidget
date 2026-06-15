@@ -1,5 +1,6 @@
 import React from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
+import { GoodWidgetProvider } from '@goodwidget/core'
 import {
   STREAMING_CHAINS,
   StreamingWidget,
@@ -12,7 +13,7 @@ import {
   type StreamingWidgetTab,
   type StreamListItem,
 } from '@goodwidget/streaming-widget'
-import { YStack } from '@goodwidget/ui'
+import { MiniAppShell, YStack } from '@goodwidget/ui'
 import {
   getInjectedEip1193Provider,
   isInjectedProviderUsable,
@@ -185,6 +186,32 @@ function createAdapter(
   }
 }
 
+function LightStoryShell({
+  children,
+  dataTestId,
+}: {
+  children: React.ReactNode
+  dataTestId: string
+}) {
+  return (
+    <GoodWidgetProvider defaultTheme="light">
+      <MiniAppShell>
+        <YStack
+          data-testid={dataTestId}
+          style={{
+            width: '100%',
+            maxWidth: 400,
+            minHeight: '100vh',
+            boxSizing: 'border-box',
+          }}
+        >
+          {children}
+        </YStack>
+      </MiniAppShell>
+    </GoodWidgetProvider>
+  )
+}
+
 function PreviewStoryShell({
   adapter,
   dataTestId,
@@ -197,21 +224,13 @@ function PreviewStoryShell({
   initialStreamsFormOpen?: boolean
 }) {
   return (
-    <YStack
-      data-testid={dataTestId}
-      style={{
-        width: '100%',
-        maxWidth: 400,
-        minHeight: '100vh',
-        boxSizing: 'border-box',
-      }}
-    >
+    <LightStoryShell dataTestId={dataTestId}>
       <StreamingWidgetPreview
         adapter={adapter}
         initialTab={initialTab}
         initialStreamsFormOpen={initialStreamsFormOpen}
       />
-    </YStack>
+    </LightStoryShell>
   )
 }
 
@@ -223,17 +242,9 @@ function StreamingWidgetStoryShell({
   dataTestId: string
 }) {
   return (
-    <YStack
-      data-testid={dataTestId}
-      style={{
-        width: '100%',
-        maxWidth: 400,
-        minHeight: '100vh',
-        boxSizing: 'border-box',
-      }}
-    >
+    <LightStoryShell dataTestId={dataTestId}>
       <StreamingWidget provider={provider} environment="production" />
-    </YStack>
+    </LightStoryShell>
   )
 }
 
@@ -241,7 +252,13 @@ const meta: Meta<typeof StreamingWidget> = {
   title: 'Widgets/StreamingWidget',
   component: StreamingWidget,
   tags: ['autodocs'],
-  parameters: { layout: 'padded' },
+  parameters: {
+    layout: 'padded',
+    goodWidgetProvider: {
+      defaultTheme: 'light',
+      useShell: false,
+    },
+  },
 }
 
 export default meta

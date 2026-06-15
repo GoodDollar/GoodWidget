@@ -13,7 +13,12 @@ import {
 import type { Address } from 'viem'
 import type { PoolMembershipItem, WriteStatus } from '../widgetRuntimeContract'
 import { formatWeiAmount } from './format'
-import { PoolRow, WriteStatusBadge, type SuperTokenSymbol } from './shared'
+import {
+  PoolRow,
+  SecondaryButtonText,
+  WriteStatusBadge,
+  type SuperTokenSymbol,
+} from './shared'
 
 interface PoolCardProps {
   pool: PoolMembershipItem
@@ -83,7 +88,7 @@ export function PoolCard({
             Could not load claimable amount.
           </Text>
           <Button variant="secondary" size="sm" onPress={onRetryClaimable}>
-            <ButtonText>Retry</ButtonText>
+            <SecondaryButtonText>Retry</SecondaryButtonText>
           </Button>
         </XStack>
       )}
@@ -120,7 +125,11 @@ export function PoolCard({
               disabled={isConnectPending}
               onPress={() => onConnect(pool.poolId)}
             >
-              {isConnectPending ? <Spinner size="sm" /> : <ButtonText>Connect</ButtonText>}
+              {isConnectPending ? (
+                <Spinner size="sm" />
+              ) : (
+                <SecondaryButtonText>Connect</SecondaryButtonText>
+              )}
             </Button>
           </>
         )}

@@ -11,7 +11,12 @@ import {
 import type { StreamListItem } from '../widgetRuntimeContract'
 import { tokenSymbol } from './format'
 import { StreamCard } from './StreamCard'
-import { EmptyStateCard, ErrorStateCard, StreamingTabContent } from './shared'
+import {
+  EmptyStateCard,
+  ErrorStateCard,
+  SecondaryButtonText,
+  StreamingTabContent,
+} from './shared'
 
 interface HistoryTabProps {
   streamHistory: StreamListItem[]
@@ -36,11 +41,9 @@ export function HistoryTab({
   return (
     <StreamingTabContent>
       <XStack justifyContent="space-between" alignItems="center">
-        <Heading level={4} color="$white">
-          Stream history
-        </Heading>
+        <Heading level={4}>Stream history</Heading>
         <Button variant="secondary" onPress={onRefresh}>
-          <ButtonText>Refresh</ButtonText>
+          <SecondaryButtonText>Refresh</SecondaryButtonText>
         </Button>
       </XStack>
 
@@ -76,7 +79,7 @@ export function HistoryTab({
 
       {!loading && !error && hasMoreHistory && (
         <Button variant="secondary" onPress={() => setHistoryLimit((count) => count + 4)}>
-          <ButtonText>Show more</ButtonText>
+          <SecondaryButtonText>Show more</SecondaryButtonText>
         </Button>
       )}
     </StreamingTabContent>

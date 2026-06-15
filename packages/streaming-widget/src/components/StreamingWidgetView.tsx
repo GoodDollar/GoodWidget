@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Badge, BadgeText, Heading, Text, WidgetTabs, XStack, YStack } from '@goodwidget/ui'
+import { Badge, BadgeText, Heading, WidgetTabs, XStack, YStack } from '@goodwidget/ui'
 import type {
   StreamingWidgetAdapterResult,
   StreamingWidgetTab,
@@ -97,9 +97,7 @@ export function StreamingWidgetView({
   return (
     <YStack gap="$3" padding="$5" width="100%" style={{ boxSizing: 'border-box' }}>
       <XStack justifyContent="space-between" alignItems="center" paddingHorizontal="$1">
-        <Heading level={4} color="$white">
-          GoodDollar
-        </Heading>
+        <Heading level={4}>GoodDollar</Heading>
         {state.chainId && (
           <Badge type="info">
             <BadgeText>Chain {state.chainId}</BadgeText>
@@ -116,11 +114,6 @@ export function StreamingWidgetView({
         activeTab={activeTab}
         onTabChange={(id) => setActiveTab(id as StreamingWidgetTab)}
         withConnectionStatus={false}
-        renderLabel={(tab, isActive) => (
-          <Text variant="label" color={isActive ? '$white' : '$placeholderColor'}>
-            {tab.label}
-          </Text>
-        )}
       />
       {tabContent}
     </YStack>

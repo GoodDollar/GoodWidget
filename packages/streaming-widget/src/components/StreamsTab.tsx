@@ -18,7 +18,12 @@ import type {
 import { TIME_UNIT_OPTIONS, tokenSymbol } from './format'
 import { SetStreamForm } from './SetStreamForm'
 import { StreamCard } from './StreamCard'
-import { EmptyStateCard, ErrorStateCard, StreamingTabContent } from './shared'
+import {
+  EmptyStateCard,
+  ErrorStateCard,
+  SecondaryButtonText,
+  StreamingTabContent,
+} from './shared'
 
 const DIRECTION_LABELS: Record<StreamDirection, string> = {
   all: 'All',
@@ -94,9 +99,7 @@ export function StreamsTab({
 
       <Separator />
 
-      <Heading level={4} color="$white">
-        Active streams
-      </Heading>
+      <Heading level={4}>Active streams</Heading>
 
       <XStack gap="$2">
         {(['all', 'incoming', 'outgoing'] as StreamDirection[]).map((filter) => (
@@ -105,7 +108,11 @@ export function StreamsTab({
             onPress={() => setDirection(filter)}
             variant={direction === filter ? 'primary' : 'secondary'}
           >
-            <ButtonText>{DIRECTION_LABELS[filter]}</ButtonText>
+            {direction === filter ? (
+              <ButtonText>{DIRECTION_LABELS[filter]}</ButtonText>
+            ) : (
+              <SecondaryButtonText>{DIRECTION_LABELS[filter]}</SecondaryButtonText>
+            )}
           </Button>
         ))}
       </XStack>

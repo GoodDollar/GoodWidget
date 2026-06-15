@@ -2,6 +2,7 @@ import React from 'react'
 import {
   Badge,
   BadgeText,
+  ButtonText,
   Card,
   YStack,
   createComponent,
@@ -77,4 +78,8 @@ export function WriteStatusBadge({ status }: { status: WriteStatus }) {
       <BadgeText>Failed</BadgeText>
     </Badge>
   )
+}
+
+export function SecondaryButtonText({ children }: { children: React.ReactNode }) {
+  return <ButtonText color="$primary">{children}</ButtonText>
 }
