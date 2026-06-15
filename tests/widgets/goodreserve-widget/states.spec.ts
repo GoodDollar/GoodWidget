@@ -47,3 +47,22 @@ test('GoodReserveWidget transaction states render pending/success/error', async 
   storyFrame = await frame(page)
   await expect(storyFrame.getByTestId('GoodReserveWidget-error')).toContainText('Swap reverted')
 })
+
+// Regression guard for the web amount input: the live adapter (no mockState)
+// must accept typed characters. Tamagui's tag:'input' Stack does not forward
+// RN onChangeText on web, so the view wires a native onChange instead.
+test('amount input accepts typed characters (live adapter)', async ({ page }) => {
+  await page.goto('/iframe.html?id=widgets-goodreservewidget--interactive&viewMode=story')
+  await page.waitForLoadState('networkidle')
+  await page.getByTestId('GoodReserveWidget-interactive').first().waitFor({ timeout: 30_000 })
+
+  const input = page.locator('input').first()
+  await input.click()
+  await input.pressSequentially('25', { delay: 30 })
+  await expect(input).toHaveValue('25')
+
+  // Sanitization: invalid characters and extra dots are stripped.
+  await input.fill('')
+  await input.pressSequentially('1.2.3x', { delay: 30 })
+  await expect(input).toHaveValue('1.23')
+})

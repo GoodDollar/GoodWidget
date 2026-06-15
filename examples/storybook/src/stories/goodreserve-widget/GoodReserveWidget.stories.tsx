@@ -82,3 +82,15 @@ export const SwapSuccess: Story = {
 export const SwapError: Story = {
   render: () => renderStory(reserveWidgetMockStates.swapError, 'GoodReserveWidget-swap-error'),
 }
+
+// Live adapter (no mockState) so the real amount-input wiring is exercised.
+// Used by the Playwright "types into the input" coverage; the SDK is not
+// available in CI so this lands in a quote/error state, but the controlled
+// input must still accept typed characters.
+export const Interactive: Story = {
+  render: () => (
+    <div data-testid="GoodReserveWidget-interactive" style={{ width: 390 }}>
+      <GoodReserveWidget provider={provider} />
+    </div>
+  ),
+}

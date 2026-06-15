@@ -88,6 +88,15 @@ function networkLabel(chainId: number | null): string {
   return chainId !== null && NETWORK_LABELS[chainId] ? NETWORK_LABELS[chainId] : 'Unsupported'
 }
 
+// Keeps only digits and a single decimal point so the value is always safe to
+// pass to viem's parseUnits (which throws on "1.2.3", "1e6", separators, etc.).
+function sanitizeAmount(raw: string): string {
+  const cleaned = raw.replace(/[^0-9.]/g, '')
+  const firstDot = cleaned.indexOf('.')
+  if (firstDot === -1) return cleaned
+  return cleaned.slice(0, firstDot + 1) + cleaned.slice(firstDot + 1).replace(/\./g, '')
+}
+
 interface ReserveSwapViewProps {
   adapter: ReserveSwapWidgetAdapterResult
 }
@@ -279,12 +288,17 @@ export function ReserveSwapView({ adapter }: ReserveSwapViewProps) {
               borderWidth={0}
               backgroundColor="$backgroundTransparent"
               textAlign="right"
-              fontSize={28}
+              fontSize={34}
               fontWeight="700"
-              keyboardType="decimal-pad"
+              // Web: the @goodwidget/ui Input is a Tamagui `tag:'input'` Stack which
+              // does not translate RN's onChangeText to the DOM, so wire the native
+              // onChange and sanitize to a single decimal number at the boundary.
+              inputMode="decimal"
               value={state.inputAmount}
               placeholder="0.00"
-              onChangeText={actions.setInputAmount}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                actions.setInputAmount(sanitizeAmount(event.target.value))
+              }
             />
           </XStack>
         </AmountCard>
