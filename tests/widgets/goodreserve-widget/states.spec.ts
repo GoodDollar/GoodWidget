@@ -64,6 +64,18 @@ test('idle-buy state shows the Enter Amount CTA', async ({ page }) => {
   await page.screenshot({ path: `${SCREENSHOT_DIR}/grw-03-idle-buy.png` })
 })
 
+test('amount-editing state reflects the typed amount', async ({ page }) => {
+  await gotoStory(page, 'widgets-goodreservewidget--amount-editing')
+  await expect(page.locator('input').first()).toHaveValue('25')
+  await page.screenshot({ path: `${SCREENSHOT_DIR}/grw-14-amount-editing.png` })
+})
+
+test('quote-loading state shows the fetching-quote CTA', async ({ page }) => {
+  await gotoStory(page, 'widgets-goodreservewidget--quote-loading')
+  await expect(page.getByText('Fetching Quote…')).toBeVisible()
+  await page.screenshot({ path: `${SCREENSHOT_DIR}/grw-15-quote-loading.png` })
+})
+
 test('quote-ready buy renders the quoted G$ output', async ({ page }) => {
   await gotoStory(page, 'widgets-goodreservewidget--quote-ready-buy')
   await expect(page.getByText('108.2500')).toBeVisible()

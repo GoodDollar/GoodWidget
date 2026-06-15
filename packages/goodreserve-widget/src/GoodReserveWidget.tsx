@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { GoodWidgetProvider } from '@goodwidget/core'
 import type { EIP1193Provider } from '@goodwidget/core'
 import { ReserveSwapView } from './ReserveSwapView'
@@ -11,26 +11,32 @@ function GoodReserveWidgetInner({
   mockState,
 }: Pick<ReserveSwapWidgetProps, 'onSwapSuccess' | 'onSwapError' | 'mockState'>) {
   const adapter = useGoodReserveAdapter(mockState)
+  const { status, txHash, error, address, chainId } = adapter.state
 
-  // Emits swap lifecycle callbacks for host integrations.
+  // Hold the host callbacks in refs so inline arrow functions (a new reference
+  // each parent render) do not re-run the lifecycle effect and re-fire the
+  // callbacks on an unchanged swap_success / swap_error state.
+  const onSwapSuccessRef = useRef(onSwapSuccess)
+  const onSwapErrorRef = useRef(onSwapError)
   useEffect(() => {
-    if (adapter.state.status === 'swap_success' && adapter.state.txHash) {
-      onSwapSuccess?.({
-        address: adapter.state.address,
-        chainId: adapter.state.chainId,
-        transactionHash: adapter.state.txHash,
-      })
+    onSwapSuccessRef.current = onSwapSuccess
+  }, [onSwapSuccess])
+  useEffect(() => {
+    onSwapErrorRef.current = onSwapError
+  }, [onSwapError])
+
+  // Emits swap lifecycle callbacks for host integrations, keyed only on the
+  // discrete lifecycle fields so it fires once per real status transition.
+  useEffect(() => {
+    if (status === 'swap_success' && txHash) {
+      onSwapSuccessRef.current?.({ address, chainId, transactionHash: txHash })
       return
     }
 
-    if (adapter.state.status === 'swap_error' && adapter.state.error) {
-      onSwapError?.({
-        address: adapter.state.address,
-        chainId: adapter.state.chainId,
-        message: adapter.state.error,
-      })
+    if (status === 'swap_error' && error) {
+      onSwapErrorRef.current?.({ address, chainId, message: error })
     }
-  }, [adapter.state, onSwapError, onSwapSuccess])
+  }, [status, txHash, error, address, chainId])
 
   return <ReserveSwapView adapter={adapter} />
 }

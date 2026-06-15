@@ -17,6 +17,7 @@ import {
 } from '@goodwidget/ui'
 import type { ReserveSwapWidgetAdapterResult } from './widgetRuntimeContract'
 import { CELO_CHAIN_ID, XDC_CHAIN_ID } from './constants'
+import { sanitizeAmount } from './amount'
 
 // ---------------------------------------------------------------------------
 // Figma reference palette (file xsk5EiF6CvStA9mtdbA9OR, page GoodReserve).
@@ -150,15 +151,6 @@ function explorerTxUrl(chainId: number | null, txHash: string): string {
   return chainId === XDC_CHAIN_ID
     ? `https://explorer.xinfin.network/txs/${txHash}`
     : `https://celoscan.io/tx/${txHash}`
-}
-
-// Keeps only digits and a single decimal point so the value is always safe to
-// pass to viem's parseUnits (which throws on "1.2.3", "1e6", separators, etc.).
-function sanitizeAmount(raw: string): string {
-  const cleaned = raw.replace(/[^0-9.]/g, '')
-  const firstDot = cleaned.indexOf('.')
-  if (firstDot === -1) return cleaned
-  return cleaned.slice(0, firstDot + 1) + cleaned.slice(firstDot + 1).replace(/\./g, '')
 }
 
 interface ReserveSwapViewProps {
@@ -649,7 +641,10 @@ export function ReserveSwapView({ adapter }: ReserveSwapViewProps) {
               value={`1 ${state.tokenInSymbol} = ${state.quote?.price ?? '0'} ${state.tokenOutSymbol}`}
             />
             <DetailRow label="Max Slippage" value={`${state.slippagePercent}%`} />
-            <DetailRow label="Network Fee" value="~0.001 CELO" />
+            <DetailRow
+              label="Network Fee"
+              value={`~0.001 ${state.chainId === XDC_CHAIN_ID ? 'XDC' : 'CELO'}`}
+            />
             <DetailRow label="You Pay" value={`${state.inputAmount} ${state.tokenInSymbol}`} />
           </YStack>
 
