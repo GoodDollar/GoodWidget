@@ -69,6 +69,14 @@ export type { ToastStatus, ToastConfig, ToastItem } from './components/Toast'
 export { Alert } from './components-test/Alert'
 export { Badge, BadgeText } from './components-test/Badge'
 export { Drawer } from './components/Drawer'
+export {
+  PageWizardProvider,
+  PageWizardShell,
+  usePageWizard,
+} from './components/PageWizard'
+export type { PageWizardContextValue, PageWizardStep } from './components/PageWizard'
+export { Stepper } from './components/Stepper'
+export type { StepperProps, StepperStepItem, StepperStepStatus } from './components/Stepper'
 
 // Icon — new component with inline SVG registry and semantic color/size props
 export { Icon } from './components/Icon'

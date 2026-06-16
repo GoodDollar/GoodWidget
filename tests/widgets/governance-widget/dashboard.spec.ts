@@ -1,10 +1,4 @@
-/**
- * states.spec.ts — Playwright smoke tests for presentational governance widgets.
- *
- * The stories use mocked values only; these tests verify screenshot-ready light,
- * dark, mobile, long-content, empty, and interaction states without wallet or RPC.
- */
-import { test, expect, Page } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
 type GovernanceStoryCase = {
   id: string
@@ -17,13 +11,13 @@ type GovernanceStoryCase = {
 
 const STORY_CASES: GovernanceStoryCase[] = [
   {
-    id: 'widgets-governancewidget--impact-light',
+    id: 'widgets-governancedashboard--impact-light',
     testId: 'ImpactCard-light',
     screenshot: 'tests/widgets/governance-widget/test-results/gw-01-impact-light.png',
     expectedText: 'Community impact this month',
   },
   {
-    id: 'widgets-governancewidget--impact-dark-long-disabled-mobile',
+    id: 'widgets-governancedashboard--impact-dark-long-disabled-mobile',
     testId: 'ImpactCard-dark-mobile-disabled',
     screenshot: 'tests/widgets/governance-widget/test-results/gw-02-impact-dark-mobile-disabled.png',
     width: 390,
@@ -31,13 +25,13 @@ const STORY_CASES: GovernanceStoryCase[] = [
     expectedText: 'Coming soon',
   },
   {
-    id: 'widgets-governancewidget--balance-variants-light',
+    id: 'widgets-governancedashboard--balance-variants-light',
     testId: 'BalanceCard-token-growth',
     screenshot: 'tests/widgets/governance-widget/test-results/gw-03-balance-variants-light.png',
     expectedText: 'Voting balance',
   },
   {
-    id: 'widgets-governancewidget--balance-dark-compact',
+    id: 'widgets-governancedashboard--balance-dark-compact',
     testId: 'BalanceCard-dark-compact',
     screenshot: 'tests/widgets/governance-widget/test-results/gw-04-balance-dark-compact.png',
     width: 390,
@@ -45,31 +39,31 @@ const STORY_CASES: GovernanceStoryCase[] = [
     expectedText: 'Snapshot in 3 days',
   },
   {
-    id: 'widgets-governancewidget--alignment-default-light',
+    id: 'widgets-governancedashboard--alignment-default-light',
     testId: 'AlignmentVotingProposalCard-default',
     screenshot: 'tests/widgets/governance-widget/test-results/gw-05-alignment-default-light.png',
     expectedText: 'Current top 3 voted',
   },
   {
-    id: 'widgets-governancewidget--alignment-dark-long-options',
+    id: 'widgets-governancedashboard--alignment-dark-long-options',
     testId: 'AlignmentVotingProposalCard-dark-long',
     screenshot: 'tests/widgets/governance-widget/test-results/gw-06-alignment-dark-long-options.png',
     expectedText: '+2 more options',
   },
   {
-    id: 'widgets-governancewidget--optimistic-high-quorum-light',
+    id: 'widgets-governancedashboard--optimistic-high-quorum-light',
     testId: 'OptimisticVotingProposalCard-high-quorum',
     screenshot: 'tests/widgets/governance-widget/test-results/gw-07-optimistic-high-quorum-light.png',
     expectedText: '78% reached',
   },
   {
-    id: 'widgets-governancewidget--optimistic-dark-low-quorum-mixed',
+    id: 'widgets-governancedashboard--optimistic-dark-low-quorum-mixed',
     testId: 'OptimisticVotingProposalCard-low-quorum',
     screenshot: 'tests/widgets/governance-widget/test-results/gw-08-optimistic-dark-low-quorum-mixed.png',
     expectedText: '+84',
   },
   {
-    id: 'widgets-governancewidget--funding-distribution-light',
+    id: 'widgets-governancedashboard--funding-distribution-light',
     testId: 'FundingDistributionChart-populated',
     screenshot: 'tests/widgets/governance-widget/test-results/gw-09-funding-distribution-light.png',
     width: 760,
@@ -77,7 +71,7 @@ const STORY_CASES: GovernanceStoryCase[] = [
     expectedText: 'Local Food Chain',
   },
   {
-    id: 'widgets-governancewidget--funding-distribution-dark-empty-mobile',
+    id: 'widgets-governancedashboard--funding-distribution-dark-empty-mobile',
     testId: 'FundingDistributionChart-empty-dark-mobile',
     screenshot: 'tests/widgets/governance-widget/test-results/gw-10-funding-distribution-empty-dark-mobile.png',
     width: 390,
@@ -107,11 +101,13 @@ for (const storyCase of STORY_CASES) {
   })
 }
 
-test('governance card interactions update mocked action state', async ({ page }) => {
-  await gotoStory(page, 'widgets-governancewidget--alignment-default-light')
+test('governance dashboard card interactions update mocked action state', async ({ page }) => {
+  await gotoStory(page, 'widgets-governancedashboard--alignment-default-light')
 
   await page.getByTestId('AlignmentVotingProposalCard-default').click()
-  await expect(page.getByTestId('GovernanceWidget-last-action')).toContainText('Opened alignment-q3')
+  await expect(page.getByTestId('GovernanceWidget-last-action')).toContainText(
+    'Opened alignment-q3',
+  )
 
   await page.screenshot({
     path: 'tests/widgets/governance-widget/test-results/gw-11-interaction-alignment.png',

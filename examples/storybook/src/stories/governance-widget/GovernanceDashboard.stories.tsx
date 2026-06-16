@@ -16,7 +16,7 @@ import type {
 } from '@goodwidget/governance-widget'
 
 const meta: Meta = {
-  title: 'Widgets/GovernanceWidget',
+  title: 'Widgets/GovernanceDashboard',
   tags: ['autodocs'],
   parameters: {
     layout: 'centered',
@@ -54,15 +54,35 @@ const voters: VoterPreview[] = [
 ]
 
 const fundingProjects: FundingProjectAllocation[] = [
-  { id: 'food', name: 'Local Food Chain', amount: { value: 12400, token: 'G$', isStreaming: true }, percentage: 42 },
-  { id: 'literacy', name: 'Web3 Literacy for Community Builders', amount: { value: 9100, token: 'G$' }, percentage: 31 },
-  { id: 'civic', name: 'Civic Onboarding', amount: { value: 7900, token: 'G$' }, percentage: 27 },
+  {
+    id: 'food',
+    name: 'Local Food Chain',
+    amount: { value: 12400, token: 'G$', isStreaming: true },
+    percentage: 42,
+  },
+  {
+    id: 'literacy',
+    name: 'Web3 Literacy for Community Builders',
+    amount: { value: 9100, token: 'G$' },
+    percentage: 31,
+  },
+  {
+    id: 'civic',
+    name: 'Civic Onboarding',
+    amount: { value: 7900, token: 'G$' },
+    percentage: 27,
+  },
 ]
 
-function GovernanceStoryFrame({ children, width = 520 }: { children: React.ReactNode; width?: number }) {
+function GovernanceStoryFrame({
+  children,
+  width = 520,
+}: {
+  children: React.ReactNode
+  width?: number
+}) {
   const [lastAction, setLastAction] = useState('No interaction yet')
 
-  // Mocked handlers make interaction affordances visible without wiring runtime data.
   const enhancedChildren = React.Children.map(children, (child) => {
     if (!React.isValidElement(child)) {
       return child
@@ -92,8 +112,21 @@ export const ImpactLight: Story = {
         testID="ImpactCard-light"
         title="Community impact this month"
         metrics={[
-          { label: 'Distributed', amount: { value: 348000, token: 'G$' }, description: 'Across verified community projects' },
-          { label: 'Streaming now', amount: { value: 12800, token: 'G$', isStreaming: true, streamLabel: 'G$ / month live' }, description: 'Active flow to approved recipients' },
+          {
+            label: 'Distributed',
+            amount: { value: 348000, token: 'G$' },
+            description: 'Across verified community projects',
+          },
+          {
+            label: 'Streaming now',
+            amount: {
+              value: 12800,
+              token: 'G$',
+              isStreaming: true,
+              streamLabel: 'G$ / month live',
+            },
+            description: 'Active flow to approved recipients',
+          },
         ]}
         description="Track how governance funding turns into measurable economic activity for GoodDollar members."
         ctaLabel="View impact report"
@@ -103,7 +136,10 @@ export const ImpactLight: Story = {
 }
 
 export const ImpactDarkLongDisabledMobile: Story = {
-  parameters: { goodWidgetProvider: { useShell: false, defaultTheme: 'dark' }, viewport: { defaultViewport: 'mobile1' } },
+  parameters: {
+    goodWidgetProvider: { useShell: false, defaultTheme: 'dark' },
+    viewport: { defaultViewport: 'mobile1' },
+  },
   render: () => (
     <GovernanceStoryFrame width={328}>
       <ImpactCard
@@ -111,7 +147,15 @@ export const ImpactDarkLongDisabledMobile: Story = {
         title="Long-running regional resilience campaign with intentionally verbose title"
         metrics={[
           { label: 'Committed', amount: { value: 914000, token: 'G$' } },
-          { label: 'Live stream', amount: { value: 42500, token: 'G$', isStreaming: true, streamLabel: 'Streaming every month' } },
+          {
+            label: 'Live stream',
+            amount: {
+              value: 42500,
+              token: 'G$',
+              isStreaming: true,
+              streamLabel: 'Streaming every month',
+            },
+          },
         ]}
         description="This longer description validates wrapping and mobile stacking without relying on runtime data or contract reads."
         ctaLabel="Coming soon"
@@ -243,7 +287,10 @@ export const FundingDistributionLight: Story = {
 }
 
 export const FundingDistributionDarkEmptyMobile: Story = {
-  parameters: { goodWidgetProvider: { useShell: false, defaultTheme: 'dark' }, viewport: { defaultViewport: 'mobile1' } },
+  parameters: {
+    goodWidgetProvider: { useShell: false, defaultTheme: 'dark' },
+    viewport: { defaultViewport: 'mobile1' },
+  },
   render: () => (
     <GovernanceStoryFrame width={328}>
       <FundingDistributionChart
