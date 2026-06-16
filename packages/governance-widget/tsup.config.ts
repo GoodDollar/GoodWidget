@@ -9,5 +9,5 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   tsconfig: 'tsconfig.build.json',
-  external: ['react', 'react-dom', 'react-native', 'react-native-web'],
+  external: ['react', 'react-dom', 'react-native', 'react-native-web', 'react-native-svg'],
 })

@@ -1,7 +1,7 @@
 {
   "name": "@goodwidget/governance-widget",
   "version": "0.1.0",
-  "description": "Presentational governance onboarding flow components for GoodWidget",
+  "description": "Presentational governance homepage components for GoodWidget",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -21,16 +21,11 @@
   },
   "peerDependencies": {
     "react": ">=18.0.0",
-    "react-dom": ">=18.0.0",
-    "react-native": ">=0.76.0"
-  },
-  "peerDependenciesMeta": {
-    "react-native": {
-      "optional": true
-    }
+    "react-dom": ">=18.0.0"
   },
   "dependencies": {
     "@goodwidget/ui": "workspace:*",
+    "react-native-svg": "15.15.5",
     "tamagui": "1.121.0"
   },
   "devDependencies": {
@@ -38,7 +33,6 @@
     "@types/react-dom": "^18.3.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "react-native-web": "^0.19.13",
     "tsup": "^8.4.0",
     "typescript": "^5.7.0"
   }

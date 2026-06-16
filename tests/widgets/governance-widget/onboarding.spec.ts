@@ -2,20 +2,21 @@ import { expect, test, type Page } from '@playwright/test'
 
 const STORY_IDS = {
   injectedWelcomeUnverified:
-    '/iframe.html?id=widgets-governancewidget--injected-welcome-unverified&viewMode=story',
+    '/iframe.html?id=widgets-governanceonboarding--injected-welcome-unverified&viewMode=story',
   custodialWelcomeUnverified:
-    '/iframe.html?id=widgets-governancewidget--custodial-welcome-unverified&viewMode=story',
+    '/iframe.html?id=widgets-governanceonboarding--custodial-welcome-unverified&viewMode=story',
   custodialInteractiveFlow:
-    '/iframe.html?id=widgets-governancewidget--custodial-interactive-flow&viewMode=story',
+    '/iframe.html?id=widgets-governanceonboarding--custodial-interactive-flow&viewMode=story',
   custodialHouseSelection:
-    '/iframe.html?id=widgets-governancewidget--custodial-house-selection&viewMode=story',
+    '/iframe.html?id=widgets-governanceonboarding--custodial-house-selection&viewMode=story',
   custodialCitizenshipProfileReady:
-    '/iframe.html?id=widgets-governancewidget--custodial-citizenship-profile-ready&viewMode=story',
+    '/iframe.html?id=widgets-governanceonboarding--custodial-citizenship-profile-ready&viewMode=story',
   custodialAlignmentProfileError:
-    '/iframe.html?id=widgets-governancewidget--custodial-alignment-profile-error&viewMode=story',
+    '/iframe.html?id=widgets-governanceonboarding--custodial-alignment-profile-error&viewMode=story',
   custodialStakeProgress:
-    '/iframe.html?id=widgets-governancewidget--custodial-stake-progress&viewMode=story',
-  custodialSuccess: '/iframe.html?id=widgets-governancewidget--custodial-success&viewMode=story',
+    '/iframe.html?id=widgets-governanceonboarding--custodial-stake-progress&viewMode=story',
+  custodialSuccess:
+    '/iframe.html?id=widgets-governanceonboarding--custodial-success&viewMode=story',
 } as const
 
 async function gotoStory(page: Page, storyUrl: string): Promise<void> {

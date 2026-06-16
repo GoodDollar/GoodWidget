@@ -12,7 +12,7 @@ import {
 import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
 
 const meta: Meta<typeof GovernanceOnboardingWidget> = {
-  title: 'Widgets/GovernanceWidget',
+  title: 'Widgets/GovernanceOnboarding',
   component: GovernanceOnboardingWidget,
   tags: ['autodocs'],
   parameters: {
