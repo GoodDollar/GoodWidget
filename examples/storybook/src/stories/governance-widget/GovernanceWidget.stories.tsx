@@ -57,9 +57,10 @@ const voters: VoterPreview[] = [
 ]
 
 const fundingProjects: FundingProjectAllocation[] = [
-  { id: 'food', name: 'Local Food Chain', amount: { value: 12400, token: 'G$', isStreaming: true }, percentage: 42 },
-  { id: 'literacy', name: 'Web3 Literacy for Community Builders', amount: { value: 9100, token: 'G$' }, percentage: 31 },
-  { id: 'civic', name: 'Civic Onboarding', amount: { value: 7900, token: 'G$' }, percentage: 27 },
+  { id: 'education', name: 'Education Hubs', amount: { value: 157500, token: 'G$' }, percentage: 35 },
+  { id: 'merchant', name: 'Merchant Onboard', amount: { value: 112500, token: 'G$' }, percentage: 25 },
+  { id: 'grants', name: 'Dev Grants', amount: { value: 90000, token: 'G$' }, percentage: 20 },
+  { id: 'creator', name: 'Creator Fund', amount: { value: 90000, token: 'G$' }, percentage: 20 },
 ]
 
 function GovernanceStoryFrame({ children, width = 520 }: { children: React.ReactNode; width?: number }) {
@@ -90,16 +91,16 @@ function GovernanceStoryFrame({ children, width = 520 }: { children: React.React
 
 export const ImpactLight: Story = {
   render: () => (
-    <GovernanceStoryFrame>
+    <GovernanceStoryFrame width={680}>
       <ImpactCard
         testID="ImpactCard-light"
-        title="Community impact this month"
+        title="Total Impact to Date"
         metrics={[
-          { label: 'Distributed', amount: { value: 348000, token: 'G$' }, description: 'Across verified community projects' },
-          { label: 'Streaming now', amount: { value: 12800, token: 'G$', isStreaming: true, streamLabel: 'G$ / month live' }, description: 'Active flow to approved recipients' },
+          { label: 'UBI Pool Distributed', amount: { value: 12400000, token: 'G$' } },
+          { label: 'Impact Pool Distributed', amount: { value: 5234891, token: 'G$', isStreaming: true, streamLabel: 'Live stream active' } },
         ]}
-        description="Track how governance funding turns into measurable economic activity for GoodDollar members."
-        ctaLabel="View impact report"
+        description="Track how governance funding turns into measurable public value for GoodDollar members and partner communities."
+        ctaLabel="View Impact Report Q3"
       />
     </GovernanceStoryFrame>
   ),
@@ -111,10 +112,10 @@ export const ImpactDarkLongDisabledMobile: Story = {
     <GovernanceStoryFrame width={328}>
       <ImpactCard
         testID="ImpactCard-dark-mobile-disabled"
-        title="Long-running regional resilience campaign with intentionally verbose title"
+        title="Impact Campaign"
         metrics={[
-          { label: 'Committed', amount: { value: 914000, token: 'G$' } },
-          { label: 'Live stream', amount: { value: 42500, token: 'G$', isStreaming: true, streamLabel: 'Streaming every month' } },
+          { label: 'Community Allocation', amount: { value: 914000, token: 'G$' } },
+          { label: 'Live Stream', amount: { value: 42500, token: 'G$', isStreaming: true, streamLabel: 'Streaming every month' } },
         ]}
         description="This longer description validates wrapping and mobile stacking without relying on runtime data or contract reads."
         ctaLabel="Coming soon"
@@ -126,23 +127,23 @@ export const ImpactDarkLongDisabledMobile: Story = {
 
 export const BalanceVariantsLight: Story = {
   render: () => (
-    <XStack flexWrap="wrap" gap="$3" padding="$3" width={600}>
+    <XStack data-testid="BalanceCard-light-variants" flexWrap="wrap" gap="$3" padding="$3" width={600}>
       <BalanceCard
         testID="BalanceCard-token-growth"
         icon="wallet"
-        title="Voting balance"
-        amount={{ value: 12345.67, token: 'G$' }}
+        title="DAO Treasury Balance"
+        amount={{ value: 148400000, token: 'G$' }}
         metadataType="growth"
-        metadata={{ label: '+12.4% this cycle', tone: 'positive', icon: 'chevron-up' }}
+        metadata={{ label: '+2.4%', tone: 'positive', icon: 'chevron-up' }}
       />
       <BalanceCard
         testID="BalanceCard-raw-window"
         icon="check"
-        title="Eligible proposals with a long title"
-        amount={17}
+        title="Active Members"
+        amount={12402}
         amountType="raw"
         metadataType="time-window"
-        metadata={{ label: 'Last 30 days', tone: 'muted', icon: 'info' }}
+        metadata={{ label: 'Past 30 days', tone: 'muted', icon: 'info' }}
       />
     </XStack>
   ),
@@ -171,7 +172,7 @@ export const AlignmentDefaultLight: Story = {
       <AlignmentVotingProposalCard
         testID="AlignmentVotingProposalCard-default"
         id="alignment-q3"
-        categoryLabel="Alignment Vote"
+        categoryLabel="Budget Allocation"
         title="Q3 House Of Alignment Funding Allocation"
         summaryLabel="Current top 3 voted"
         options={alignmentOptions}
@@ -204,13 +205,14 @@ export const OptimisticHighQuorumLight: Story = {
       <OptimisticVotingProposalCard
         testID="OptimisticVotingProposalCard-high-quorum"
         id="gip-43"
-        categoryLabel="Proposal GIP-43"
-        title="Approve House of Alignment funding allocation"
+        categoryLabel="Proposal GIP-42"
+        title="Expand Digital Literacy Programs in South East Asia"
         quorumLabel="Current Vote Quorum"
         quorumReachedPercent={78}
         voteSegments={voteSegments}
         voters={voters}
         remainingVoterCountLabel="+1.2k"
+        statusLabel="2 days remaining"
       />
     </GovernanceStoryFrame>
   ),
@@ -240,8 +242,9 @@ export const FundingDistributionLight: Story = {
     <GovernanceStoryFrame width={660}>
       <FundingDistributionChart
         testID="FundingDistributionChart-populated"
-        totalAmount={{ value: 29400, token: 'G$', isStreaming: true, streamLabel: 'Live total' }}
-        isStreaming
+        title="House Of Alignment funding allocation"
+        centerLabel="Total Monthly"
+        totalAmount={{ value: 450000, token: 'G$', streamLabel: 'Current allocation' }}
         projects={fundingProjects}
       />
     </GovernanceStoryFrame>
@@ -254,6 +257,8 @@ export const FundingDistributionDarkEmptyMobile: Story = {
     <GovernanceStoryFrame width={328}>
       <FundingDistributionChart
         testID="FundingDistributionChart-empty-dark-mobile"
+        title="Funding distribution"
+        centerLabel="Total Monthly"
         totalAmount={{ value: 0, token: 'G$', isStreaming: true, streamLabel: 'No active stream' }}
         isStreaming
         projects={[]}

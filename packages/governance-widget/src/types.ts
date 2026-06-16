@@ -79,6 +79,8 @@ export interface OptimisticVotingProposalCardProps {
   voteSegments: VoteSegment[]
   voters: VoterPreview[]
   remainingVoterCountLabel?: string
+  statusLabel?: string
+  statusTone?: 'warning' | 'muted' | 'positive'
   onPress?: (id: string) => void
   testID?: string
 }
@@ -91,6 +93,9 @@ export interface FundingProjectAllocation {
 }
 
 export interface FundingDistributionChartProps {
+  title?: string
+  centerLabel?: string
+  emptyStateLabel?: string
   totalAmount: GovernanceAmount
   projects: FundingProjectAllocation[]
   isStreaming?: boolean

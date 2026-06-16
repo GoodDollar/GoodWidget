@@ -14,10 +14,13 @@ function VoterAvatar({ voter, index }: { voter: VoterPreview; index: number }) {
       borderRadius="$full"
       borderWidth={2}
       borderColor="$background"
-      backgroundColor="$backgroundPress"
+      backgroundColor="$backgroundHover"
       alignItems="center"
       justifyContent="center"
       overflow="hidden"
+      shadowColor="$elevationShadowColor"
+      shadowOffset={{ width: 0, height: 4 }}
+      shadowRadius={12}
     >
       {voter.avatarUrl ? (
         <Image
@@ -44,8 +47,8 @@ export function VoterAvatarStack({ voters, remainingLabel }: { voters: VoterPrev
         ))}
       </XStack>
       {remainingLabel ? (
-        <Badge>
-          <BadgeText>{remainingLabel}</BadgeText>
+        <Badge backgroundColor="$backgroundHover" paddingHorizontal="$3" paddingVertical="$2">
+          <BadgeText color="$text">{remainingLabel}</BadgeText>
         </Badge>
       ) : null}
     </XStack>

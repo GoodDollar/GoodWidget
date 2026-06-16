@@ -7,14 +7,14 @@ function RankedOptionRow({ option }: { option: RankedVotingOption }) {
   return (
     <YStack gap="$2">
       <XStack alignItems="center" justifyContent="space-between" gap="$3">
-        <Text variant="label" truncate flex={1}>
+        <Text variant="large" tone="soft" flex={1}>
           {option.label}
         </Text>
-        <Text variant="label" bold noWrap>
+        <Text variant="large" color="$primary" bold noWrap>
           {clampPercentage(option.percentage)}%
         </Text>
       </XStack>
-      <ProgressBar percentage={option.percentage} />
+      <ProgressBar percentage={option.percentage} height={10} />
     </YStack>
   )
 }
@@ -42,16 +42,23 @@ export function AlignmentVotingProposalCard({
       onPress={onPress ? () => onPress(id) : undefined}
       role={onPress ? 'button' : undefined}
       aria-label={`Open proposal ${title}`}
+      borderColor="$primary"
+      shadowColor="$elevationShadowColor"
+      shadowOffset={{ width: 0, height: 8 }}
+      shadowRadius={22}
+      elevated
     >
       <ProposalHeader categoryLabel={categoryLabel} />
-      <Heading level={4}>{title}</Heading>
+      <Heading level={4} color="$primary" lineHeight={54}>
+        {title}
+      </Heading>
       <XStack alignItems="center" gap="$2">
-        <Icon name="info" size="xs" color="muted" />
-        <Text variant="caption" tone="secondary">
+        <Icon name="info" size="xs" color="primary" />
+        <Text variant="label" color="$primary">
           {summaryLabel}
         </Text>
       </XStack>
-      <YStack gap="$3">
+      <YStack gap="$4">
         {visibleOptions.map((option) => (
           <RankedOptionRow key={option.id} option={option} />
         ))}

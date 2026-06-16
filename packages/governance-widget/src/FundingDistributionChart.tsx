@@ -1,61 +1,53 @@
 import Svg, { Circle, G } from 'react-native-svg'
 import { Stack, useTheme } from 'tamagui'
-import { Button, Card, Heading, Text, XStack, YStack } from '@goodwidget/ui'
+import { Card, Heading, Text, XStack, YStack } from '@goodwidget/ui'
 import type { FundingDistributionChartProps, FundingProjectAllocation, GovernanceAmount } from './types'
 import { clampPercentage, fundingAmountLabel } from './format'
-import { renderGovernanceAmount } from './shared'
+import { resolveThemeColor } from './shared'
 
-const DONUT_COLOR_KEYS = ['primary', 'success', 'warning', 'info', 'error'] as const
-
-function resolveThemeColor(theme: ReturnType<typeof useTheme>, key: string, fallback: string): string {
-  const themeValue = theme[key as keyof typeof theme]
-
-  if (themeValue && typeof themeValue === 'object' && 'val' in themeValue) {
-    return String(themeValue.val)
-  }
-
-  return fallback
-}
+const DONUT_COLOR_KEYS = ['primary', 'success', 'warning', 'colorDim', 'error'] as const
 
 function FundingLegend({
   projects,
   colors,
+  emptyStateLabel,
   onProjectPress,
 }: {
   projects: FundingProjectAllocation[]
   colors: string[]
+  emptyStateLabel: string
   onProjectPress?: (id: string) => void
 }) {
   if (projects.length === 0) {
     return (
       <YStack padding="$3" borderRadius="$3" backgroundColor="$backgroundHover">
-        <Text tone="secondary">No active funding distribution yet.</Text>
+        <Text tone="secondary">{emptyStateLabel}</Text>
       </YStack>
     )
   }
 
   return (
-    <YStack gap="$2" flex={1} minWidth={220}>
+    <YStack gap="$3" width="100%">
       {projects.map((project, index) => (
-        <Button
+        <XStack
           key={project.id}
-          variant="list"
+          alignItems="flex-start"
+          gap="$3"
+          cursor={onProjectPress ? 'pointer' : undefined}
           onPress={onProjectPress ? () => onProjectPress(project.id) : undefined}
+          role={onProjectPress ? 'button' : undefined}
           aria-label={`Open ${project.name} allocation`}
         >
           <Stack width={12} height={12} borderRadius="$full" backgroundColor={colors[index]} />
           <YStack flex={1} gap="$1">
-            <Text variant="label" truncate>
+            <Text variant="large" fontWeight="700">
               {project.name}
             </Text>
             <Text variant="caption" tone="secondary">
-              {fundingAmountLabel(project.amount)}
+              {clampPercentage(project.percentage)}% • {fundingAmountLabel(project.amount)}
             </Text>
           </YStack>
-          <Text variant="label" bold noWrap>
-            {clampPercentage(project.percentage)}%
-          </Text>
-        </Button>
+        </XStack>
       ))}
     </YStack>
   )
@@ -64,16 +56,18 @@ function FundingLegend({
 function FundingDonut({
   projects,
   totalAmount,
+  centerLabel,
   colors,
   onProjectPress,
 }: {
   projects: FundingProjectAllocation[]
   totalAmount: GovernanceAmount
+  centerLabel: string
   colors: string[]
   onProjectPress?: (id: string) => void
 }) {
-  const size = 196
-  const strokeWidth = 22
+  const size = 208
+  const strokeWidth = 24
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
   let offset = 0
@@ -116,9 +110,14 @@ function FundingDonut({
         </G>
       </Svg>
       <YStack position="absolute" alignItems="center" justifyContent="center" gap="$1" maxWidth={128}>
-        {renderGovernanceAmount(totalAmount, 'md')}
+        <Text variant="label" tone="secondary" center>
+          {centerLabel}
+        </Text>
+        <Text color="$primary" fontSize={28} lineHeight={32} fontWeight="800" textAlign="center">
+          {fundingAmountLabel(totalAmount)}
+        </Text>
         <Text variant="caption" tone="secondary" center>
-          Total active funding
+          {totalAmount.streamLabel ?? 'Current allocation'}
         </Text>
       </YStack>
     </Stack>
@@ -126,6 +125,9 @@ function FundingDonut({
 }
 
 export function FundingDistributionChart({
+  title = 'Funding distribution',
+  centerLabel = 'Total active funding',
+  emptyStateLabel = 'No active funding distribution yet.',
   totalAmount,
   projects,
   isStreaming = false,
@@ -133,20 +135,36 @@ export function FundingDistributionChart({
   testID,
 }: FundingDistributionChartProps) {
   const theme = useTheme()
-  const fallbackColors = ['#2563eb', '#16a34a', '#d97706', '#0891b2', '#dc2626']
-  const colors = DONUT_COLOR_KEYS.map((key, index) => resolveThemeColor(theme, key, fallbackColors[index]))
+  const fallbackColors = ['#00B0FF', '#13C636', '#FFB020', '#585D79', '#F00505']
+  const colors = DONUT_COLOR_KEYS.map((key, index) =>
+    resolveThemeColor(theme as unknown as Record<string, unknown>, key, fallbackColors[index]),
+  )
   const total = { ...totalAmount, isStreaming: totalAmount.isStreaming ?? isStreaming }
 
   return (
-    <Card data-testid={testID} width="100%" maxWidth={620} gap="$4">
-      <YStack gap="$1">
-        <Heading level={3}>Funding distribution</Heading>
-        <Text tone="secondary">Current allocation across active governance projects.</Text>
+    <Card
+      data-testid={testID}
+      width="100%"
+      maxWidth={460}
+      gap="$5"
+      shadowColor="$elevationShadowColor"
+      shadowOffset={{ width: 0, height: 8 }}
+      shadowRadius={22}
+      elevated
+    >
+      <YStack gap="$2">
+        <Heading level={4}>{title}</Heading>
       </YStack>
-      <XStack flexWrap="wrap" justifyContent="center" alignItems="center" gap="$4">
-        <FundingDonut projects={projects} totalAmount={total} colors={colors} onProjectPress={onProjectPress} />
-        <FundingLegend projects={projects} colors={colors} onProjectPress={onProjectPress} />
-      </XStack>
+      <YStack alignItems="center" gap="$5">
+        <FundingDonut
+          projects={projects}
+          totalAmount={total}
+          centerLabel={centerLabel}
+          colors={colors}
+          onProjectPress={onProjectPress}
+        />
+        <FundingLegend projects={projects} colors={colors} emptyStateLabel={emptyStateLabel} onProjectPress={onProjectPress} />
+      </YStack>
     </Card>
   )
 }

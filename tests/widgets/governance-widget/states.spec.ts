@@ -20,7 +20,7 @@ const STORY_CASES: GovernanceStoryCase[] = [
     id: 'widgets-governancewidget--impact-light',
     testId: 'ImpactCard-light',
     screenshot: 'tests/widgets/governance-widget/test-results/gw-01-impact-light.png',
-    expectedText: 'Community impact this month',
+    expectedText: 'View Impact Report Q3',
   },
   {
     id: 'widgets-governancewidget--impact-dark-long-disabled-mobile',
@@ -32,9 +32,9 @@ const STORY_CASES: GovernanceStoryCase[] = [
   },
   {
     id: 'widgets-governancewidget--balance-variants-light',
-    testId: 'BalanceCard-token-growth',
+    testId: 'BalanceCard-light-variants',
     screenshot: 'tests/widgets/governance-widget/test-results/gw-03-balance-variants-light.png',
-    expectedText: 'Voting balance',
+    expectedText: 'DAO Treasury Balance',
   },
   {
     id: 'widgets-governancewidget--balance-dark-compact',
@@ -60,7 +60,7 @@ const STORY_CASES: GovernanceStoryCase[] = [
     id: 'widgets-governancewidget--optimistic-high-quorum-light',
     testId: 'OptimisticVotingProposalCard-high-quorum',
     screenshot: 'tests/widgets/governance-widget/test-results/gw-07-optimistic-high-quorum-light.png',
-    expectedText: '78% reached',
+    expectedText: '2 days remaining',
   },
   {
     id: 'widgets-governancewidget--optimistic-dark-low-quorum-mixed',
@@ -74,7 +74,7 @@ const STORY_CASES: GovernanceStoryCase[] = [
     screenshot: 'tests/widgets/governance-widget/test-results/gw-09-funding-distribution-light.png',
     width: 760,
     height: 720,
-    expectedText: 'Local Food Chain',
+    expectedText: 'Education Hubs',
   },
   {
     id: 'widgets-governancewidget--funding-distribution-dark-empty-mobile',
@@ -105,7 +105,7 @@ for (const storyCase of STORY_CASES) {
     await expect(component).toBeVisible({ timeout: 15_000 })
     await expect(page.getByText(storyCase.expectedText).first()).toBeVisible()
 
-    await page.screenshot({ path: storyCase.screenshot, fullPage: true })
+    await component.screenshot({ path: storyCase.screenshot })
   })
 }
 
@@ -115,8 +115,7 @@ test('governance card interactions update mocked action state', async ({ page })
   await page.getByTestId('AlignmentVotingProposalCard-default').click()
   await expect(page.getByTestId('GovernanceWidget-last-action')).toContainText('Opened alignment-q3')
 
-  await page.screenshot({
+  await page.getByTestId('AlignmentVotingProposalCard-default').screenshot({
     path: 'tests/widgets/governance-widget/test-results/gw-11-interaction-alignment.png',
-    fullPage: true,
   })
 })

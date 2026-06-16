@@ -26,13 +26,13 @@ function VoteLegend({ segments }: { segments: VoteSegment[] }) {
       {segments.map((segment) => (
         <XStack key={segment.id} alignItems="center" gap="$2">
           <Stack
-            width={10}
-            height={10}
+            width={8}
+            height={8}
             borderRadius="$full"
             backgroundColor={SEGMENT_TONES[segment.tone ?? 'neutral']}
           />
           <Text variant="caption" tone="secondary">
-            {segment.label} {clampPercentage(segment.percentage)}%
+            {segment.label} ({clampPercentage(segment.percentage)}%)
           </Text>
         </XStack>
       ))}
@@ -49,9 +49,14 @@ export function OptimisticVotingProposalCard({
   voteSegments,
   voters,
   remainingVoterCountLabel,
+  statusLabel,
+  statusTone = 'warning',
   onPress,
   testID,
 }: OptimisticVotingProposalCardProps) {
+  const statusColor =
+    statusTone === 'positive' ? '$success' : statusTone === 'muted' ? '$placeholderColor' : '$warning'
+
   return (
     <Card
       data-testid={testID}
@@ -62,9 +67,13 @@ export function OptimisticVotingProposalCard({
       onPress={onPress ? () => onPress(id) : undefined}
       role={onPress ? 'button' : undefined}
       aria-label={`Open proposal ${title}`}
+      shadowColor="$elevationShadowColor"
+      shadowOffset={{ width: 0, height: 8 }}
+      shadowRadius={22}
+      elevated
     >
       <ProposalHeader categoryLabel={categoryLabel} />
-      <Heading level={4}>{title}</Heading>
+      <Heading level={4} lineHeight={54}>{title}</Heading>
       <Stack gap="$2">
         <XStack alignItems="center" justifyContent="space-between" gap="$3">
           <Text variant="caption" tone="secondary">
@@ -83,7 +92,15 @@ export function OptimisticVotingProposalCard({
           </Stack>
         </Stack>
       </Stack>
-      <VoterAvatarStack voters={voters} remainingLabel={remainingVoterCountLabel} />
+      <Stack height={1} backgroundColor="$borderColor" />
+      <XStack alignItems="center" justifyContent="space-between" gap="$3" flexWrap="wrap">
+        <VoterAvatarStack voters={voters} remainingLabel={remainingVoterCountLabel} />
+        {statusLabel ? (
+          <Text variant="caption" color={statusColor} fontWeight="600">
+            {statusLabel}
+          </Text>
+        ) : null}
+      </XStack>
       <VoteLegend segments={voteSegments} />
     </Card>
   )
