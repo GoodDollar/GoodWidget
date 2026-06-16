@@ -514,7 +514,7 @@ function OverrideShowcase() {
 
 export function App() {
   return (
-    <GoodWidgetProvider defaultTheme="light">
+    <GoodWidgetProvider defaultTheme="dark">
       <OverrideShowcase />
     </GoodWidgetProvider>
   )
