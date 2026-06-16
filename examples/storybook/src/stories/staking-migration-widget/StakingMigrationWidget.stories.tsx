@@ -1,5 +1,7 @@
 import React from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
+import { GoodWidgetProvider } from '@goodwidget/core'
+import { MiniAppShell } from '@goodwidget/ui'
 import { YStack } from '@goodwidget/ui'
 import {
   StakingMigrationWidget,
@@ -156,5 +158,26 @@ export const Error: Story = {
         error: 'Bridge finalization timeout',
       })}
     />
+  ),
+}
+
+export const LightDemo: Story = {
+  parameters: {
+    goodWidgetProvider: {
+      useShell: false,
+    },
+  },
+  render: () => (
+    <GoodWidgetProvider defaultTheme="light">
+      <MiniAppShell title="StakingMigrationWidget">
+        <YStack style={{ width: 420 }}>
+          <StakingMigrationWidget
+            provider={createCustodialEip1193Provider()}
+            adapterFactory={createAdapterFactory('summary')}
+            defaultTheme="light"
+          />
+        </YStack>
+      </MiniAppShell>
+    </GoodWidgetProvider>
   ),
 }
