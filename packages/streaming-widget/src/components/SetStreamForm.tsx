@@ -1,22 +1,12 @@
 import React from 'react'
-import {
-  Button,
-  ButtonText,
-  Heading,
-  Input,
-  Select,
-  Spinner,
-  Text,
-  XStack,
-  YStack,
-} from '@goodwidget/ui'
+import { ButtonText, Heading, Input, Select, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
 import type {
   SetStreamFormState,
   StreamTimeUnit,
   WriteStatus,
 } from '../widgetRuntimeContract'
 import { formatFlowRatePerDay } from './format'
-import { SetStreamFormCard, type SuperTokenSymbol } from './shared'
+import { ActionButton, SetStreamFormCard, type SuperTokenSymbol } from './shared'
 
 interface SetStreamFormProps {
   form: SetStreamFormState
@@ -107,17 +97,17 @@ export function SetStreamForm({
       )}
 
       <XStack gap="$2" alignItems="center">
-        <Button
+        <ActionButton
           flex={1}
           disabled={isSubmitting || !!form.validationError || !form.flowRate}
           onPress={onSubmit}
         >
           {isSubmitting ? <Spinner size="sm" /> : <ButtonText>Set Stream</ButtonText>}
-        </Button>
+        </ActionButton>
         {(status === 'success' || status === 'error') && (
-          <Button onPress={onReset}>
+          <ActionButton onPress={onReset}>
             <ButtonText>Reset</ButtonText>
-          </Button>
+          </ActionButton>
         )}
       </XStack>
     </SetStreamFormCard>

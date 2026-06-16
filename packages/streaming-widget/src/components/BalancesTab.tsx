@@ -4,7 +4,6 @@ import {
   Anchor,
   Badge,
   BadgeText,
-  Button,
   ButtonText,
   Icon,
   Spinner,
@@ -21,7 +20,7 @@ import {
   superfluidReserveUrl,
   tokenSymbol,
 } from './format'
-import { BalanceCard, StreamingTabContent } from './shared'
+import { ActionButton, BalanceCard, StreamingTabContent } from './shared'
 
 interface ExternalLinkProps {
   href: string
@@ -73,9 +72,9 @@ export function BalancesTab({
       <BalanceCard>
         <XStack justifyContent="space-between" alignItems="center">
           <Text variant="label">Super Token Balance</Text>
-          <Button onPress={onRefresh}>
+          <ActionButton onPress={onRefresh}>
             <ButtonText>Refresh</ButtonText>
-          </Button>
+          </ActionButton>
         </XStack>
 
         {balanceLoading && <Spinner size="sm" />}

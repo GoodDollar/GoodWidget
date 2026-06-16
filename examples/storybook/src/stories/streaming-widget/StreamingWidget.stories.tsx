@@ -10,6 +10,7 @@ import {
   type StreamingWidgetAdapterActions,
   type StreamingWidgetAdapterResult,
   type StreamingWidgetAdapterState,
+  type StreamingWidgetProps,
   type StreamingWidgetTab,
   type StreamListItem,
 } from '@goodwidget/streaming-widget'
@@ -237,13 +238,21 @@ function PreviewStoryShell({
 function StreamingWidgetStoryShell({
   provider,
   dataTestId,
+  apiKey,
 }: {
   provider: unknown
   dataTestId: string
+  apiKey?: string
 }) {
+  const trimmedApiKey = apiKey?.trim()
+
   return (
     <LightStoryShell dataTestId={dataTestId}>
-      <StreamingWidget provider={provider} environment="production" />
+      <StreamingWidget
+        provider={provider}
+        environment="production"
+        apiKey={trimmedApiKey || undefined}
+      />
     </LightStoryShell>
   )
 }
@@ -259,12 +268,23 @@ const meta: Meta<typeof StreamingWidget> = {
       useShell: false,
     },
   },
+  argTypes: {
+    apiKey: {
+      control: 'text',
+      name: 'TheGraph API key',
+      description:
+        'Optional TheGraph key passed to the SDK-backed streaming adapter for Base SUP reserve queries.',
+    },
+  },
+  args: {
+    apiKey: '',
+  },
 }
 
 export default meta
 type Story = StoryObj<typeof meta>
 
-function InjectedWalletStory() {
+function InjectedWalletStory({ apiKey }: Pick<StreamingWidgetProps, 'apiKey'>) {
   const injectedProvider = getInjectedEip1193Provider()
   const usableProvider = isInjectedProviderUsable(injectedProvider)
 
@@ -290,17 +310,19 @@ function InjectedWalletStory() {
     <StreamingWidgetStoryShell
       provider={injectedProvider}
       dataTestId="StreamingWidget-injected-wallet"
+      apiKey={apiKey}
     />
   )
 }
 
-function CustodialLocalFixtureStory() {
+function CustodialLocalFixtureStory({ apiKey }: Pick<StreamingWidgetProps, 'apiKey'>) {
   try {
     const provider = createCustodialEip1193Provider()
     return (
       <StreamingWidgetStoryShell
         provider={provider}
         dataTestId="StreamingWidget-custodial-wallet"
+        apiKey={apiKey}
       />
     )
   } catch (error: unknown) {
@@ -375,11 +397,11 @@ function CreateUpdateFormStory() {
 }
 
 export const InjectedWallet: Story = {
-  render: () => <InjectedWalletStory />,
+  render: ({ apiKey }) => <InjectedWalletStory apiKey={apiKey} />,
 }
 
 export const CustodialLocalFixture: Story = {
-  render: () => <CustodialLocalFixtureStory />,
+  render: ({ apiKey }) => <CustodialLocalFixtureStory apiKey={apiKey} />,
 }
 
 export const NoWallet: Story = {

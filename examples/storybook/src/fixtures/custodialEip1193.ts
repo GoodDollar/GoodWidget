@@ -31,6 +31,15 @@ const CHAIN_CONFIGS: Record<number, { chain: Chain; rpcUrl: string }> = {
     } as Chain,
     rpcUrl: 'https://forno.celo.org',
   },
+  [8453]: {
+    chain: {
+      id: 8453,
+      name: 'Base',
+      nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+      rpcUrls: { default: { http: ['https://mainnet.base.org'] } },
+    } as Chain,
+    rpcUrl: 'https://mainnet.base.org',
+  },
   [50]: {
     chain: {
       id: 50,

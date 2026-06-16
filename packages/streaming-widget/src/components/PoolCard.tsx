@@ -3,7 +3,6 @@ import {
   AddressDisplay,
   Badge,
   BadgeText,
-  Button,
   ButtonText,
   Spinner,
   Text,
@@ -15,6 +14,7 @@ import type { PoolMembershipItem, WriteStatus } from '../widgetRuntimeContract'
 import { formatWeiAmount } from './format'
 import {
   PoolRow,
+  ActionButton,
   SecondaryButtonText,
   WriteStatusBadge,
   type SuperTokenSymbol,
@@ -87,9 +87,9 @@ export function PoolCard({
           <Text color="$error" variant="caption">
             Could not load claimable amount.
           </Text>
-          <Button variant="secondary" size="sm" onPress={onRetryClaimable}>
+          <ActionButton variant="secondary" onPress={onRetryClaimable}>
             <SecondaryButtonText>Retry</SecondaryButtonText>
-          </Button>
+          </ActionButton>
         </XStack>
       )}
 
@@ -97,7 +97,7 @@ export function PoolCard({
         {pool.isConnected ? (
           <>
             <WriteStatusBadge status={claimStatus} />
-            <Button
+            <ActionButton
               variant="secondary"
               disabled={isConnectPending}
               borderColor="$error"
@@ -108,19 +108,19 @@ export function PoolCard({
               ) : (
                 <ButtonText color="$error">Disconnect</ButtonText>
               )}
-            </Button>
+            </ActionButton>
           </>
         ) : (
           <>
             <WriteStatusBadge status={claimStatus} />
-            <Button
+            <ActionButton
               disabled={!canClaim || isClaimPending || claimStatus === 'success'}
               onPress={() => onClaim(pool.poolId)}
             >
               {isClaimPending ? <Spinner size="sm" /> : <ButtonText>Claim</ButtonText>}
-            </Button>
+            </ActionButton>
             <WriteStatusBadge status={connectStatus} />
-            <Button
+            <ActionButton
               variant="secondary"
               disabled={isConnectPending}
               onPress={() => onConnect(pool.poolId)}
@@ -130,7 +130,7 @@ export function PoolCard({
               ) : (
                 <SecondaryButtonText>Connect</SecondaryButtonText>
               )}
-            </Button>
+            </ActionButton>
           </>
         )}
       </XStack>

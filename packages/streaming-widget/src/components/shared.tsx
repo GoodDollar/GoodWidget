@@ -2,6 +2,8 @@ import React from 'react'
 import {
   Badge,
   BadgeText,
+  Button,
+  type ButtonProps,
   ButtonText,
   Card,
   YStack,
@@ -82,4 +84,17 @@ export function WriteStatusBadge({ status }: { status: WriteStatus }) {
 
 export function SecondaryButtonText({ children }: { children: React.ReactNode }) {
   return <ButtonText color="$primary">{children}</ButtonText>
+}
+
+export function ActionButton({
+  children,
+  minWidth = 100,
+  size = 'sm',
+  ...props
+}: ButtonProps) {
+  return (
+    <Button minWidth={minWidth} size={size} {...props}>
+      {children}
+    </Button>
+  )
 }

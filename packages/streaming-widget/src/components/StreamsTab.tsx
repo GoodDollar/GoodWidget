@@ -1,14 +1,5 @@
 import React, { useState } from 'react'
-import {
-  Button,
-  ButtonText,
-  Heading,
-  Separator,
-  Spinner,
-  Text,
-  XStack,
-  YStack,
-} from '@goodwidget/ui'
+import { ButtonText, Heading, Separator, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
 import type {
   SetStreamFormState,
   StreamDirection,
@@ -21,6 +12,7 @@ import { StreamCard } from './StreamCard'
 import {
   EmptyStateCard,
   ErrorStateCard,
+  ActionButton,
   SecondaryButtonText,
   StreamingTabContent,
 } from './shared'
@@ -75,9 +67,9 @@ export function StreamsTab({
   return (
     <StreamingTabContent>
       <XStack justifyContent="flex-end">
-        <Button onPress={() => setShowForm((visible) => !visible)}>
+        <ActionButton onPress={() => setShowForm((visible) => !visible)}>
           <ButtonText>{showForm ? 'Cancel' : '+ New Stream'}</ButtonText>
-        </Button>
+        </ActionButton>
       </XStack>
 
       {showForm && (
@@ -103,7 +95,7 @@ export function StreamsTab({
 
       <XStack gap="$2">
         {(['all', 'incoming', 'outgoing'] as StreamDirection[]).map((filter) => (
-          <Button
+          <ActionButton
             key={filter}
             onPress={() => setDirection(filter)}
             variant={direction === filter ? 'primary' : 'secondary'}
@@ -113,7 +105,7 @@ export function StreamsTab({
             ) : (
               <SecondaryButtonText>{DIRECTION_LABELS[filter]}</SecondaryButtonText>
             )}
-          </Button>
+          </ActionButton>
         ))}
       </XStack>
 
@@ -127,9 +119,9 @@ export function StreamsTab({
       {!loading && error && (
         <ErrorStateCard>
           <Text color="$error">{error}</Text>
-          <Button onPress={onRefresh}>
+          <ActionButton onPress={onRefresh}>
             <ButtonText>Retry</ButtonText>
-          </Button>
+          </ActionButton>
         </ErrorStateCard>
       )}
 
@@ -138,9 +130,9 @@ export function StreamsTab({
           <Text secondary center>
             {emptyStreamsMessage}
           </Text>
-          <Button onPress={onRefresh}>
+          <ActionButton onPress={onRefresh}>
             <ButtonText>Refresh</ButtonText>
-          </Button>
+          </ActionButton>
         </EmptyStateCard>
       )}
 

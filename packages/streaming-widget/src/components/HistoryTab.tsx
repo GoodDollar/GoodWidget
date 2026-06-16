@@ -1,19 +1,12 @@
 import React, { useState } from 'react'
-import {
-  Button,
-  ButtonText,
-  Heading,
-  Spinner,
-  Text,
-  XStack,
-  YStack,
-} from '@goodwidget/ui'
+import { ButtonText, Heading, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
 import type { StreamListItem } from '../widgetRuntimeContract'
 import { tokenSymbol } from './format'
 import { StreamCard } from './StreamCard'
 import {
   EmptyStateCard,
   ErrorStateCard,
+  ActionButton,
   SecondaryButtonText,
   StreamingTabContent,
 } from './shared'
@@ -42,9 +35,9 @@ export function HistoryTab({
     <StreamingTabContent>
       <XStack justifyContent="space-between" alignItems="center">
         <Heading level={4}>Stream history</Heading>
-        <Button variant="secondary" onPress={onRefresh}>
+        <ActionButton variant="secondary" onPress={onRefresh}>
           <SecondaryButtonText>Refresh</SecondaryButtonText>
-        </Button>
+        </ActionButton>
       </XStack>
 
       {loading && (
@@ -57,9 +50,9 @@ export function HistoryTab({
       {!loading && error && (
         <ErrorStateCard>
           <Text color="$error">{error}</Text>
-          <Button onPress={onRefresh}>
+          <ActionButton onPress={onRefresh}>
             <ButtonText>Retry</ButtonText>
-          </Button>
+          </ActionButton>
         </ErrorStateCard>
       )}
 
@@ -78,9 +71,12 @@ export function HistoryTab({
         ))}
 
       {!loading && !error && hasMoreHistory && (
-        <Button variant="secondary" onPress={() => setHistoryLimit((count) => count + 4)}>
+        <ActionButton
+          variant="secondary"
+          onPress={() => setHistoryLimit((count) => count + 4)}
+        >
           <SecondaryButtonText>Show more</SecondaryButtonText>
-        </Button>
+        </ActionButton>
       )}
     </StreamingTabContent>
   )
