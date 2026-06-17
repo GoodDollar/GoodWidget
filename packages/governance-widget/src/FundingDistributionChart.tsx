@@ -1,6 +1,6 @@
 import Svg, { Circle, G } from 'react-native-svg'
 import { Stack, useTheme } from 'tamagui'
-import { Card, Heading, Text, XStack, YStack } from '@goodwidget/ui'
+import { Card, Text, XStack, YStack } from '@goodwidget/ui'
 import type { FundingDistributionChartProps, FundingProjectAllocation, GovernanceAmount } from './types'
 import { clampPercentage, fundingAmountLabel } from './format'
 import { resolveThemeColor } from './shared'
@@ -27,20 +27,22 @@ function FundingLegend({
   }
 
   return (
-    <YStack gap="$3" width="100%">
+    <YStack gap="$4" width="100%">
       {projects.map((project, index) => (
         <XStack
           key={project.id}
-          alignItems="flex-start"
+          alignItems="center"
           gap="$3"
           cursor={onProjectPress ? 'pointer' : undefined}
           onPress={onProjectPress ? () => onProjectPress(project.id) : undefined}
           role={onProjectPress ? 'button' : undefined}
           aria-label={`Open ${project.name} allocation`}
         >
-          <Stack width={12} height={12} borderRadius="$full" backgroundColor={colors[index]} />
+          <Stack width={18} alignItems="center" justifyContent="center">
+            <Stack width={11} height={11} borderRadius="$full" backgroundColor={colors[index]} />
+          </Stack>
           <YStack flex={1} gap="$1">
-            <Text variant="large" fontWeight="700">
+            <Text fontSize={16} lineHeight={20} fontWeight="700">
               {project.name}
             </Text>
             <Text variant="caption" tone="secondary">
@@ -66,8 +68,8 @@ function FundingDonut({
   colors: string[]
   onProjectPress?: (id: string) => void
 }) {
-  const size = 208
-  const strokeWidth = 24
+  const size = 188
+  const strokeWidth = 20
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
   let offset = 0
@@ -109,11 +111,11 @@ function FundingDonut({
           })}
         </G>
       </Svg>
-      <YStack position="absolute" alignItems="center" justifyContent="center" gap="$1" maxWidth={128}>
+      <YStack position="absolute" alignItems="center" justifyContent="center" gap="$1" maxWidth={116}>
         <Text variant="label" tone="secondary" center>
           {centerLabel}
         </Text>
-        <Text color="$primary" fontSize={28} lineHeight={32} fontWeight="800" textAlign="center">
+        <Text color="$primary" fontSize={24} lineHeight={28} fontWeight="800" textAlign="center">
           {fundingAmountLabel(totalAmount)}
         </Text>
         <Text variant="caption" tone="secondary" center>
@@ -145,17 +147,17 @@ export function FundingDistributionChart({
     <Card
       data-testid={testID}
       width="100%"
-      maxWidth={460}
-      gap="$5"
+      maxWidth={340}
+      gap="$4"
       shadowColor="$elevationShadowColor"
       shadowOffset={{ width: 0, height: 8 }}
       shadowRadius={22}
       elevated
     >
-      <YStack gap="$2">
-        <Heading level={4}>{title}</Heading>
-      </YStack>
-      <YStack alignItems="center" gap="$5">
+      <Text fontSize={22} lineHeight={28} fontWeight="700">
+        {title}
+      </Text>
+      <YStack alignItems="center" gap="$4">
         <FundingDonut
           projects={projects}
           totalAmount={total}

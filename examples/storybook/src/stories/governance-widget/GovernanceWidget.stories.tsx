@@ -91,15 +91,15 @@ function GovernanceStoryFrame({ children, width = 520 }: { children: React.React
 
 export const ImpactLight: Story = {
   render: () => (
-    <GovernanceStoryFrame width={680}>
+    <GovernanceStoryFrame width={390}>
       <ImpactCard
         testID="ImpactCard-light"
-        title="Total Impact to Date"
+        title="Distributed"
         metrics={[
-          { label: 'UBI Pool Distributed', amount: { value: 12400000, token: 'G$' } },
-          { label: 'Impact Pool Distributed', amount: { value: 5234891, token: 'G$', isStreaming: true, streamLabel: 'Live stream active' } },
+          { label: 'UBI Pool', amount: { value: 12400000, token: 'G$' } },
+          { label: 'Impact Pool', amount: { value: 5234891, token: 'G$', isStreaming: true, streamLabel: 'Live stream active' } },
         ]}
-        description="Track how governance funding turns into measurable public value for GoodDollar members and partner communities."
+        description="Empowering 640k+ people worldwide through transparent, decentralized funding for public goods."
         ctaLabel="View Impact Report Q3"
       />
     </GovernanceStoryFrame>
@@ -109,17 +109,16 @@ export const ImpactLight: Story = {
 export const ImpactDarkLongDisabledMobile: Story = {
   parameters: { goodWidgetProvider: { useShell: false, defaultTheme: 'dark' }, viewport: { defaultViewport: 'mobile1' } },
   render: () => (
-    <GovernanceStoryFrame width={328}>
+    <GovernanceStoryFrame width={390}>
       <ImpactCard
         testID="ImpactCard-dark-mobile-disabled"
-        title="Impact Campaign"
+        title="Distributed"
         metrics={[
-          { label: 'Community Allocation', amount: { value: 914000, token: 'G$' } },
-          { label: 'Live Stream', amount: { value: 42500, token: 'G$', isStreaming: true, streamLabel: 'Streaming every month' } },
+          { label: 'UBI Pool', amount: { value: 12400000, token: 'G$' } },
+          { label: 'Impact Pool', amount: { value: 5234891, token: 'G$', isStreaming: true, streamLabel: 'Live stream active' } },
         ]}
-        description="This longer description validates wrapping and mobile stacking without relying on runtime data or contract reads."
-        ctaLabel="Coming soon"
-        ctaDisabled
+        description="Empowering 640k+ people worldwide through transparent, decentralized funding for public goods."
+        ctaLabel="View Impact Report Q3"
       />
     </GovernanceStoryFrame>
   ),
@@ -239,9 +238,24 @@ export const OptimisticDarkLowQuorumMixed: Story = {
 
 export const FundingDistributionLight: Story = {
   render: () => (
-    <GovernanceStoryFrame width={660}>
+    <GovernanceStoryFrame width={390}>
       <FundingDistributionChart
         testID="FundingDistributionChart-populated"
+        title="House Of Alignment funding allocation"
+        centerLabel="Total Monthly"
+        totalAmount={{ value: 450000, token: 'G$', streamLabel: 'Current allocation' }}
+        projects={fundingProjects}
+      />
+    </GovernanceStoryFrame>
+  ),
+}
+
+export const FundingDistributionDarkPopulated: Story = {
+  parameters: { goodWidgetProvider: { useShell: false, defaultTheme: 'dark' }, viewport: { defaultViewport: 'mobile1' } },
+  render: () => (
+    <GovernanceStoryFrame width={390}>
+      <FundingDistributionChart
+        testID="FundingDistributionChart-populated-dark"
         title="House Of Alignment funding allocation"
         centerLabel="Total Monthly"
         totalAmount={{ value: 450000, token: 'G$', streamLabel: 'Current allocation' }}

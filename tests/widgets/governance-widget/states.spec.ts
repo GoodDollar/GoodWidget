@@ -20,6 +20,8 @@ const STORY_CASES: GovernanceStoryCase[] = [
     id: 'widgets-governancewidget--impact-light',
     testId: 'ImpactCard-light',
     screenshot: 'tests/widgets/governance-widget/test-results/gw-01-impact-light.png',
+    width: 390,
+    height: 844,
     expectedText: 'View Impact Report Q3',
   },
   {
@@ -28,7 +30,7 @@ const STORY_CASES: GovernanceStoryCase[] = [
     screenshot: 'tests/widgets/governance-widget/test-results/gw-02-impact-dark-mobile-disabled.png',
     width: 390,
     height: 844,
-    expectedText: 'Coming soon',
+    expectedText: 'View Impact Report Q3',
   },
   {
     id: 'widgets-governancewidget--balance-variants-light',
@@ -72,14 +74,22 @@ const STORY_CASES: GovernanceStoryCase[] = [
     id: 'widgets-governancewidget--funding-distribution-light',
     testId: 'FundingDistributionChart-populated',
     screenshot: 'tests/widgets/governance-widget/test-results/gw-09-funding-distribution-light.png',
-    width: 760,
-    height: 720,
+    width: 390,
+    height: 844,
+    expectedText: 'Education Hubs',
+  },
+  {
+    id: 'widgets-governancewidget--funding-distribution-dark-populated',
+    testId: 'FundingDistributionChart-populated-dark',
+    screenshot: 'tests/widgets/governance-widget/test-results/gw-10-funding-distribution-dark-populated.png',
+    width: 390,
+    height: 844,
     expectedText: 'Education Hubs',
   },
   {
     id: 'widgets-governancewidget--funding-distribution-dark-empty-mobile',
     testId: 'FundingDistributionChart-empty-dark-mobile',
-    screenshot: 'tests/widgets/governance-widget/test-results/gw-10-funding-distribution-empty-dark-mobile.png',
+    screenshot: 'tests/widgets/governance-widget/test-results/gw-11-funding-distribution-empty-dark-mobile.png',
     width: 390,
     height: 844,
     expectedText: 'No active funding distribution yet.',
@@ -116,6 +126,6 @@ test('governance card interactions update mocked action state', async ({ page })
   await expect(page.getByTestId('GovernanceWidget-last-action')).toContainText('Opened alignment-q3')
 
   await page.getByTestId('AlignmentVotingProposalCard-default').screenshot({
-    path: 'tests/widgets/governance-widget/test-results/gw-11-interaction-alignment.png',
+    path: 'tests/widgets/governance-widget/test-results/gw-12-interaction-alignment.png',
   })
 })
