@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import { Heading, Stepper, Text, YStack, type StepperStepItem } from '@goodwidget/ui'
+import { Stepper, Text, YStack, type StepperStepItem } from '@goodwidget/ui'
 import type { MigrationStep, StakingMigrationWidgetStatus } from './widgetRuntimeContract'
 
 const STEP_ORDER: MigrationStep[] = ['unstake', 'bridge sent', 'bridge received', 'stake']
@@ -170,7 +170,6 @@ export function MigrationProgressTimeline({
       activeStepId={activeStepId}
       header={
         <YStack gap="$2">
-          <Heading level={4}>Migration journey</Heading>
           {statusLabel && (
             <Text variant="caption" color={statusColor} fontWeight="700">
               {statusLabel}

@@ -1,9 +1,10 @@
 import React, { useCallback, useMemo } from 'react'
 import { GoodWidgetProvider } from '@goodwidget/core'
 import type { EIP1193Provider } from '@goodwidget/core'
-import { Card, Text, ToastContainer, YStack } from '@goodwidget/ui'
+import { Text, ToastContainer, YStack } from '@goodwidget/ui'
 import { MigrationProgressTimeline } from './MigrationProgressTimeline'
 import { MigrationSummaryCard } from './MigrationSummaryCard'
+import { MigrationSecondaryCard } from './migrationWidgetComponents'
 import { useStakingMigrationAdapter } from './adapter'
 import type { StakingMigrationWidgetProps } from './widgetRuntimeContract'
 
@@ -107,7 +108,7 @@ function StakingMigrationInner({
         action={summaryAction}
       />
 
-      <Card>
+      <MigrationSecondaryCard>
         <YStack gap="$4">
           <MigrationProgressTimeline
             status={state.status}
@@ -125,7 +126,7 @@ function StakingMigrationInner({
             </Text>
           )}
         </YStack>
-      </Card>
+      </MigrationSecondaryCard>
     </YStack>
   )
 }

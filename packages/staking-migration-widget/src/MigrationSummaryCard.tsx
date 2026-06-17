@@ -1,5 +1,6 @@
 import React from 'react'
-import { YStack, Heading, Text, TokenAmount, CircularActionButton } from '@goodwidget/ui'
+import { YStack, Text, TokenAmount, CircularActionButton } from '@goodwidget/ui'
+import { MigrationPrimaryCard } from './migrationWidgetComponents'
 
 export interface MigrationSummaryAction {
   label: string
@@ -20,45 +21,33 @@ export function MigrationSummaryCard({
   action,
 }: MigrationSummaryCardProps) {
   return (
-    <YStack gap="$5" alignItems="center">
-      <Heading level={3} textAlign="center" color="$primary">
-        Migrate Fuse staking to Celo savings
-      </Heading>
-      <Text secondary textAlign="center">
-        Move your assets to the new network to continue earning rewards.
-      </Text>
-
-      <YStack
-        width="100%"
-        alignItems="center"
-        gap="$3"
-        padding="$5"
-        borderRadius="$4"
-        borderWidth={1}
-        borderColor="$borderColorFocus"
-        backgroundColor="$backgroundHover"
-        shadowColor="$borderColorFocus"
-        shadowOpacity={0.18}
-        shadowRadius={16}
-      >
-        <Text variant="caption" secondary fontWeight="700" textTransform="uppercase">
-          Amount to migrate
-        </Text>
-        <TokenAmount token="sG$" amount={stakedAmount} size="lg" />
-
-        <CircularActionButton
-          label={action.label}
-          disabled={action.disabled}
-          pending={action.pending}
-          onPress={action.onPress}
-        />
-
-        {statusMessage && (
-          <Text color="$primary" fontWeight="700" textAlign="center">
-            {statusMessage}
+    <MigrationPrimaryCard>
+      <YStack gap="$9" paddingVertical="$6">
+        <YStack alignItems="center" gap="$4">
+          <Text secondary textAlign="center">
+            Migrate Fuse staking to Celo savings
           </Text>
-        )}
+          <Text secondary textAlign="center">
+            Move your assets to the new network to continue earning rewards.
+          </Text>
+          <TokenAmount token="sG$" amount={stakedAmount} size="xl" />
+        </YStack>
+
+        <YStack alignItems="center" gap="$4">
+          <CircularActionButton
+            label={action.label}
+            disabled={action.disabled}
+            pending={action.pending}
+            onPress={action.onPress}
+          />
+
+          {statusMessage && (
+            <Text color="$primary" fontWeight="700" textAlign="center">
+              {statusMessage}
+            </Text>
+          )}
+        </YStack>
       </YStack>
-    </YStack>
+    </MigrationPrimaryCard>
   )
 }
