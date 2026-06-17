@@ -52,13 +52,15 @@ function GovernanceStoryFrame({
   walletLabel,
   children,
   dataTestId,
+  width = 440,
 }: {
   walletLabel: string
   children: React.ReactNode
   dataTestId: string
+  width?: number
 }) {
   return (
-    <YStack width={440} maxWidth="100%" gap="$3" data-testid={dataTestId}>
+    <YStack width={width} maxWidth="100%" gap="$3" data-testid={dataTestId}>
       <Card outlined>
         <Text variant="caption" tone="secondary">
           {walletLabel}
@@ -105,22 +107,24 @@ function CustodialGovernanceStory({
   walletLabel,
   storyProps,
   dataTestId,
+  width,
 }: {
   walletLabel: string
   storyProps: GovernanceOnboardingWidgetProps
   dataTestId: string
+  width?: number
 }) {
   try {
     createCustodialEip1193Provider()
 
     return (
-      <GovernanceStoryFrame walletLabel={walletLabel} dataTestId={dataTestId}>
+      <GovernanceStoryFrame walletLabel={walletLabel} dataTestId={dataTestId} width={width}>
         <GovernanceOnboardingWidget {...storyProps} />
       </GovernanceStoryFrame>
     )
   } catch (error: unknown) {
     return (
-      <YStack width={440} gap="$3" data-testid="GovernanceOnboardingWidget-custodial-config-error">
+      <YStack width={width ?? 440} gap="$3" data-testid="GovernanceOnboardingWidget-custodial-config-error">
         <Card>
           <Text bold>Custodial fixture not configured</Text>
           <Text tone="secondary">
@@ -266,6 +270,73 @@ export const CustodialSuccess: Story = {
           { id: 'proposal', label: 'Review proposal queue', variant: 'secondary' },
         ],
         dataTestId: 'GovernanceOnboardingWidget-success',
+      }}
+    />
+  ),
+}
+
+function CustodialGovernanceStoryAtWidth({
+  walletLabel,
+  storyProps,
+  dataTestId,
+  width,
+}: {
+  walletLabel: string
+  storyProps: GovernanceOnboardingWidgetProps
+  dataTestId: string
+  width: number
+}) {
+  return (
+    <CustodialGovernanceStory
+      walletLabel={walletLabel}
+      dataTestId={dataTestId}
+      storyProps={{
+        ...storyProps,
+        dataTestId,
+      }}
+      width={width}
+    />
+  )
+}
+
+export const CustodialMobileWelcome: Story = {
+  parameters: {
+    goodWidgetProvider: { useShell: false, defaultTheme: 'light' },
+    viewport: { defaultViewport: 'mobile1' },
+  },
+  render: () => (
+    <CustodialGovernanceStoryAtWidth
+      walletLabel="Custodial wallet fixture"
+      dataTestId="GovernanceOnboardingWidget-mobile-welcome"
+      width={328}
+      storyProps={{
+        currentStepId: 'welcome',
+        identityStatus: 'verified',
+      }}
+    />
+  ),
+}
+
+export const CustodialMobileDarkProfile: Story = {
+  parameters: {
+    goodWidgetProvider: { useShell: false, defaultTheme: 'dark' },
+    viewport: { defaultViewport: 'mobile1' },
+  },
+  render: () => (
+    <CustodialGovernanceStoryAtWidth
+      walletLabel="Custodial wallet fixture"
+      dataTestId="GovernanceOnboardingWidget-mobile-dark-profile"
+      width={328}
+      storyProps={{
+        currentStepId: 'profile',
+        identityStatus: 'verified',
+        initialHouse: 'alignment',
+        initialProfileDraft: { name: 'Solar Commons' },
+        initialFieldErrors: {
+          projectWebpage: 'Project webpage is required',
+          missionStatement: 'Mission statement is required',
+          distributionStrategy: 'Distribution strategy is required',
+        },
       }}
     />
   ),
