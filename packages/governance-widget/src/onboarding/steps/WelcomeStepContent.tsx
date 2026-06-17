@@ -1,34 +1,22 @@
 import React from 'react'
-import { Card, YStack } from '@goodwidget/ui'
-import { OnboardingNotice } from '../OnboardingNotice'
+import { YStack } from '@goodwidget/ui'
+import { OnboardingIdentityCard } from '../OnboardingIdentityCard'
 import type { GovernanceIdentityStatus } from '../../types'
 
 interface WelcomeStepContentProps {
   identityStatus: GovernanceIdentityStatus
+  walletAddress?: string
+  onVerifyPress?: () => void
 }
 
-export function WelcomeStepContent({ identityStatus }: WelcomeStepContentProps) {
-  const isVerified = identityStatus === 'verified'
-
+export function WelcomeStepContent({ identityStatus, walletAddress, onVerifyPress }: WelcomeStepContentProps) {
   return (
     <YStack gap="$3">
-      <Card elevated>
-        <OnboardingNotice
-          badgeLabel={isVerified ? 'Identity verified' : 'Verification required'}
-          badgeType={isVerified ? 'success' : 'warning'}
-          iconName={isVerified ? 'check' : 'alert-triangle'}
-          title={
-            isVerified
-              ? 'You are ready to continue into governance onboarding.'
-              : 'Complete identity verification before onboarding can continue.'
-          }
-          description={
-            isVerified
-              ? 'Your wallet can move to house selection and profile setup.'
-              : 'The verify action stays available, but the proceed CTA remains disabled until verification succeeds.'
-          }
-        />
-      </Card>
+      <OnboardingIdentityCard
+        identityStatus={identityStatus}
+        walletAddress={walletAddress}
+        onVerifyPress={onVerifyPress}
+      />
     </YStack>
   )
 }

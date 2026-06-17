@@ -158,6 +158,7 @@ export const CustodialInteractiveFlow: Story = {
       storyProps={{
         identityStatus: 'verified',
         initialStepId: 'welcome',
+        walletAddress: '0x4E5B2D7a45C2e31a8F0d09b4bE1fA11aD3aC9F08',
         dataTestId: 'GovernanceOnboardingWidget-interactive-flow',
       }}
     />
@@ -172,6 +173,7 @@ export const CustodialWelcomeUnverified: Story = {
       storyProps={{
         currentStepId: 'welcome',
         identityStatus: 'unverified',
+        walletAddress: '0x4E5B2D7a45C2e31a8F0d09b4bE1fA11aD3aC9F08',
         dataTestId: 'GovernanceOnboardingWidget-welcome-unverified-custodial',
       }}
     />

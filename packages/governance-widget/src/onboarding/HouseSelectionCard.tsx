@@ -1,6 +1,6 @@
 import React from 'react'
 import { Stack, styled } from 'tamagui'
-import { Badge, BadgeText, Heading, Icon, Text, XStack, YStack } from '@goodwidget/ui'
+import { Badge, BadgeText, Heading, Icon, PillText, Text, XStack, YStack } from '@goodwidget/ui'
 import { HOUSE_COPY } from './copy'
 import type { GovernanceHouse } from '../types'
 
@@ -47,14 +47,64 @@ const HouseOptionButton = styled(Stack, {
   } as const,
 })
 
+const RadioBullet = styled(Stack, {
+  width: 24,
+  height: 24,
+  borderRadius: '$full',
+  borderWidth: 2,
+  borderColor: '$borderColor',
+  backgroundColor: '$background',
+  alignItems: 'center',
+  justifyContent: 'center',
+  variants: {
+    selected: {
+      true: {
+        borderColor: '$primary',
+      },
+    },
+  } as const,
+})
+
+const RadioDot = styled(Stack, {
+  width: 10,
+  height: 10,
+  borderRadius: '$full',
+  backgroundColor: '$primary',
+  variants: {
+    selected: {
+      false: {
+        backgroundColor: 'transparent',
+      },
+    },
+  } as const,
+})
+
+const HousePill = styled(Stack, {
+  borderRadius: '$full',
+  borderWidth: 1,
+  borderColor: '$borderColor',
+  backgroundColor: '$surface',
+  paddingHorizontal: '$3',
+  paddingVertical: '$1',
+  alignItems: 'center',
+  justifyContent: 'center',
+})
+
 interface HouseSelectionCardProps {
   house: GovernanceHouse
   isSelected: boolean
   isDisabled: boolean
+  stakeAmountLabel: string
   onPress: () => void
 }
 
-export function HouseSelectionCard({ house, isSelected, isDisabled, onPress }: HouseSelectionCardProps) {
+export function HouseSelectionCard({
+  house,
+  isSelected,
+  isDisabled,
+  stakeAmountLabel,
+  onPress,
+}: HouseSelectionCardProps) {
   const houseCopy = HOUSE_COPY[house]
 
   return (
@@ -66,17 +116,36 @@ export function HouseSelectionCard({ house, isSelected, isDisabled, onPress }: H
       onPress={onPress}
       data-testid={`GovernanceOnboardingWidget-house-${house}`}
     >
-      <XStack alignItems="center" justifyContent="space-between" width="100%">
-        <Badge type={isSelected ? 'success' : 'info'}>
-          <BadgeText>{isSelected ? 'Selected' : 'Choose house'}</BadgeText>
-        </Badge>
-        <Icon name={isSelected ? 'check' : 'chevron-right'} color={isSelected ? 'success' : 'muted'} />
+      <XStack alignItems="center" gap="$3" width="100%">
+        <RadioBullet selected={isSelected}>
+          <RadioDot selected={isSelected} />
+        </RadioBullet>
+        <YStack flex={1} gap="$1">
+          <Heading level={5}>{houseCopy.title}</Heading>
+          <Text tone="secondary">{houseCopy.summary}</Text>
+        </YStack>
       </XStack>
-      <YStack gap="$1">
-        <Heading level={5}>{houseCopy.title}</Heading>
-        <Text>{houseCopy.summary}</Text>
-      </YStack>
-      <Text tone="secondary">{houseCopy.helper}</Text>
+
+      <XStack gap="$2" flexWrap="wrap" alignItems="center">
+        <HousePill>
+          <PillText>{houseCopy.label}</PillText>
+        </HousePill>
+        <HousePill>
+          <PillText>{`${stakeAmountLabel} stake`}</PillText>
+        </HousePill>
+        {isSelected ? (
+          <Badge type="success">
+            <BadgeText>Selected</BadgeText>
+          </Badge>
+        ) : null}
+      </XStack>
+
+      <XStack alignItems="center" gap="$2" alignSelf="flex-end">
+        <Text color="$primary" fontWeight="700">
+          Continue with this house
+        </Text>
+        <Icon name="arrow-right" size="sm" color="primary" />
+      </XStack>
     </HouseOptionButton>
   )
 }

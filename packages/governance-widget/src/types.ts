@@ -39,6 +39,12 @@ export interface GovernanceOnboardingWidgetProps {
   currentStepId?: GovernanceOnboardingStepId
   initialStepId?: GovernanceOnboardingStepId
   identityStatus?: GovernanceIdentityStatus
+  /**
+   * Connected wallet address shown in the welcome step. The widget is
+   * presentational, so a parent integration supplies the address instead of
+   * the widget reading provider state directly.
+   */
+  walletAddress?: string
   initialHouse?: GovernanceHouse
   disabledHouseOptions?: GovernanceHouse[]
   initialProfileDraft?: GovernanceProfileDraft

@@ -74,7 +74,7 @@ export type IconSize = '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl'
  * Semantic color roles for icons — resolved via the active theme.
  * 'inherit' falls back to CSS currentColor (inherits from parent element).
  */
-export type IconColor = 'primary' | 'text' | 'muted' | 'error' | 'success' | 'inherit'
+export type IconColor = 'primary' | 'text' | 'muted' | 'error' | 'success' | 'warning' | 'white' | 'inherit'
 
 /** Raw px values for each named size — mirrors the preset icon token scale. */
 const SIZE_PX: Record<IconSize, number> = {
@@ -98,6 +98,8 @@ const COLOR_THEME_KEY: Record<IconColor, string> = {
   muted: '$placeholderColor',
   error: '$error',
   success: '$success',
+  warning: '$warning',
+  white: '$white',
   inherit: 'currentColor',
 }
 

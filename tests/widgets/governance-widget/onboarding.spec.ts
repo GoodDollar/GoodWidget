@@ -30,13 +30,13 @@ test('Governance onboarding interactive flow persists selected house into profil
   await gotoStory(page, STORY_IDS.custodialInteractiveFlow)
 
   await expect(page.getByText('Join GoodDollar governance')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Continue to house selection' })).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Proceed to membership' })).toBeEnabled()
   await page.screenshot({
     path: 'tests/widgets/governance-widget/test-results/gwo-01-welcome-verified.png',
     fullPage: true,
   })
 
-  await page.getByRole('button', { name: 'Continue to house selection' }).click()
+  await page.getByRole('button', { name: 'Proceed to membership' }).click()
   await expect(page.getByText('Select your governance house')).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/governance-widget/test-results/gwo-02-house-selection.png',
@@ -72,7 +72,9 @@ test('Governance onboarding interactive flow persists selected house into profil
   })
 
   await page.getByRole('button', { name: 'Continue to success' }).click()
-  await expect(page.getByText('Governance onboarding complete')).toBeVisible()
+  await expect(
+    page.getByTestId('GovernanceOnboardingWidget-success').getByText('Onboarding complete', { exact: true }),
+  ).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/governance-widget/test-results/gwo-05-success.png',
     fullPage: true,
@@ -82,7 +84,7 @@ test('Governance onboarding interactive flow persists selected house into profil
 test('Governance onboarding shows the unverified welcome state', async ({ page }) => {
   await gotoStory(page, STORY_IDS.custodialWelcomeUnverified)
   await expect(page.getByText('Verification required')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Continue to house selection' })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Proceed to membership' })).toBeDisabled()
   await page.screenshot({
     path: 'tests/widgets/governance-widget/test-results/gwo-06-welcome-unverified.png',
     fullPage: true,
@@ -146,7 +148,7 @@ test('Profile field handles rapid typing without losing characters (stale-closur
 }) => {
   await gotoStory(page, STORY_IDS.custodialInteractiveFlow)
 
-  await page.getByRole('button', { name: 'Continue to house selection' }).click()
+  await page.getByRole('button', { name: 'Proceed to membership' }).click()
   await page.getByTestId('GovernanceOnboardingWidget-house-alignment').click()
   await page.getByRole('button', { name: 'Continue to profile' }).click()
   await expect(page.getByText('House of Alignment profile', { exact: true })).toBeVisible()

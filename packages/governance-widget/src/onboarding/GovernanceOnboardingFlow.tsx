@@ -21,6 +21,7 @@ import type { StepperStepItem } from '@goodwidget/ui'
 
 interface GovernanceOnboardingFlowProps {
   identityStatus: GovernanceIdentityStatus
+  walletAddress?: string
   disabledHouseOptions: GovernanceHouse[]
   initialFieldErrors: GovernanceProfileFieldErrors
   stakeAmountLabel: string
@@ -33,6 +34,7 @@ interface GovernanceOnboardingFlowProps {
 
 export function GovernanceOnboardingFlow({
   identityStatus,
+  walletAddress,
   disabledHouseOptions,
   initialFieldErrors,
   stakeAmountLabel,
@@ -95,14 +97,17 @@ export function GovernanceOnboardingFlow({
       shellTitle = 'Join GoodDollar governance'
       shellDescription =
         'Start with identity status, then move through house selection, profile setup, staking progress, and success.'
-      shellContent = <WelcomeStepContent identityStatus={identityStatus} />
+      shellContent = (
+        <WelcomeStepContent
+          identityStatus={identityStatus}
+          walletAddress={walletAddress}
+          onVerifyPress={onVerifyIdentity}
+        />
+      )
       shellFooter = (
-        <XStack gap="$3" justifyContent="space-between" flexWrap="wrap">
-          <Button variant="secondary" onPress={onVerifyIdentity}>
-            <ButtonText>{isIdentityVerified ? 'Review verification' : 'Verify identity'}</ButtonText>
-          </Button>
+        <XStack gap="$3" justifyContent="flex-end" flexWrap="wrap">
           <Button disabled={!isIdentityVerified} onPress={next}>
-            <ButtonText>Continue to house selection</ButtonText>
+            <ButtonText>Proceed to membership</ButtonText>
           </Button>
         </XStack>
       )
@@ -115,6 +120,7 @@ export function GovernanceOnboardingFlow({
         <HouseStepContent
           selectedHouse={selectedHouse}
           disabledHouseOptions={disabledHouseOptions}
+          stakeAmountLabel={stakeAmountLabel}
           onHouseSelect={handleHouseSelect}
         />
       )
@@ -175,9 +181,9 @@ export function GovernanceOnboardingFlow({
       break
 
     case 'success':
-      shellTitle = 'Membership onboarding completed'
+      shellTitle = 'Complete'
       shellDescription =
-        'Leave the screen ready for one or more redirect actions after a successful governance onboarding flow.'
+        'Your governance membership is registered. Pick where to go next.'
       shellContent = (
         <SuccessStepContent finalActions={finalActions} onFinalActionPress={onFinalActionPress} />
       )
