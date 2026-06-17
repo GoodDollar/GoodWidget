@@ -113,6 +113,30 @@ interface StepperStepRowProps {
   stepRef: (node: HTMLElement | null) => void
 }
 
+const StepperStepContent = createComponent(YStack, {
+  name: 'StepperStepContent',
+  flex: 1,
+  paddingTop: '$1',
+  variants: {
+    emphasis: {
+      true: {
+        gap: '$2',
+        paddingHorizontal: '$3',
+        paddingVertical: '$3',
+        borderRadius: '$3',
+        borderWidth: 1,
+      },
+      false: {
+        gap: '$1',
+        paddingBottom: '$3',
+      },
+    },
+  } as const,
+  defaultVariants: {
+    emphasis: false,
+  },
+})
+
 function StepperStepRow({
   step,
   isFirst,
@@ -131,7 +155,6 @@ function StepperStepRow({
       : step.status === 'completed' || isActive
         ? '$color'
         : '$placeholderColor'
-  const contentBackgroundColor = isActive ? '$backgroundHover' : undefined
   const contentBorderColor = isAttention
     ? '$warning'
     : isFailed
@@ -167,17 +190,10 @@ function StepperStepRow({
           )}
         </YStack>
 
-        <YStack
-          flex={1}
-          gap={isActive ? '$2' : '$1'}
-          paddingTop="$1"
-          paddingBottom={isLast ? '$0' : '$3'}
-          paddingHorizontal={isActive || isFailed ? '$3' : '$0'}
-          paddingVertical={isActive || isFailed ? '$3' : '$0'}
-          borderRadius="$3"
-          borderWidth={isActive || isFailed ? 1 : 0}
+        <StepperStepContent
+          emphasis={isActive || isFailed}
+          paddingBottom={isLast ? '$0' : undefined}
           borderColor={contentBorderColor}
-          backgroundColor={contentBackgroundColor}
         >
           <XStack alignItems="center" justifyContent="space-between" gap="$2">
             <XStack alignItems="center" gap="$2" flex={1} flexWrap="wrap">
@@ -199,7 +215,7 @@ function StepperStepRow({
               {step.description}
             </Text>
           )}
-        </YStack>
+        </StepperStepContent>
       </XStack>
     </YStack>
   )

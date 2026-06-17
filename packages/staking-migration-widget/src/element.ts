@@ -7,7 +7,7 @@ export const StakingMigrationWidgetElement = createMiniAppElement(
   StakingMigrationWidget as React.ComponentType<Record<string, unknown>>,
   {
     shadow: true,
-    defaultTheme: 'light',
+    defaultTheme: 'dark',
     events: ['migration-success', 'migration-error'],
   },
 )

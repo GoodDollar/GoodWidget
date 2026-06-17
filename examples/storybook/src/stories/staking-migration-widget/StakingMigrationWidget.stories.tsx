@@ -1,8 +1,7 @@
 import React from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { GoodWidgetProvider } from '@goodwidget/core'
-import { MiniAppShell } from '@goodwidget/ui'
-import { YStack } from '@goodwidget/ui'
+import { MiniAppShell, YStack } from '@goodwidget/ui'
 import {
   StakingMigrationWidget,
   derivePrimaryAction,
@@ -13,6 +12,10 @@ import {
   type StakingMigrationWidgetStatus,
 } from '@goodwidget/staking-migration-widget'
 import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
+import {
+  getInjectedEip1193Provider,
+  isInjectedProviderUsable,
+} from '../../fixtures/injectedEip1193'
 
 function createMockState(
   status: StakingMigrationWidgetStatus,
@@ -71,21 +74,55 @@ function createAdapterFactory(
   })
 }
 
-function StoryShell({ adapterFactory }: { adapterFactory: StakingMigrationWidgetAdapterFactory }) {
+function MockStoryShell({ adapterFactory }: { adapterFactory: StakingMigrationWidgetAdapterFactory }) {
   try {
     const provider = createCustodialEip1193Provider()
     return (
-      <YStack style={{ width: 420 }}>
+      <YStack data-testid="StakingMigrationWidget-mock" style={{ width: 420 }}>
         <StakingMigrationWidget provider={provider} adapterFactory={adapterFactory} />
       </YStack>
     )
   } catch (error: unknown) {
     return (
       <YStack style={{ width: 420 }}>
-        {error instanceof Error ? error.message : 'Custodial fixture not configured'}
+        {error instanceof globalThis.Error ? error.message : 'Custodial fixture not configured'}
       </YStack>
     )
   }
+}
+
+function InjectedWalletStory() {
+  const injectedProvider = getInjectedEip1193Provider()
+  const migrationApiBaseUrl = import.meta.env.VITE_MIGRATION_API_BASE_URL
+
+  if (!isInjectedProviderUsable(injectedProvider)) {
+    return (
+      <YStack data-testid="StakingMigrationWidget-no-wallet" style={{ width: 420 }} gap="$3">
+        <strong>No injected wallet found</strong>
+        <span>
+          Install or enable MetaMask (or another EIP-1193 wallet) in this browser, then refresh
+          Storybook.
+        </span>
+      </YStack>
+    )
+  }
+
+  return (
+    <YStack data-testid="StakingMigrationWidget-injected-wallet" style={{ width: 420 }}>
+      <StakingMigrationWidget
+        provider={injectedProvider}
+        migrationApiBaseUrl={migrationApiBaseUrl}
+      />
+      {!migrationApiBaseUrl && (
+        <YStack marginTop="$3">
+          <span>
+            Set `VITE_MIGRATION_API_BASE_URL` in `examples/storybook/.env.local` to enable the
+            migration backend.
+          </span>
+        </YStack>
+      )}
+    </YStack>
+  )
 }
 
 const meta: Meta<typeof StakingMigrationWidget> = {
@@ -98,9 +135,18 @@ const meta: Meta<typeof StakingMigrationWidget> = {
 export default meta
 type Story = StoryObj<typeof meta>
 
+export const InjectedWallet: Story = {
+  parameters: {
+    goodWidgetProvider: {
+      useShell: false,
+    },
+  },
+  render: () => <InjectedWalletStory />,
+}
+
 export const EmptyBalance: Story = {
   render: () => (
-    <StoryShell
+    <MockStoryShell
       adapterFactory={createAdapterFactory('summary', {
         stakedAmount: '0',
         stakedAmountRaw: 0n,
@@ -110,12 +156,12 @@ export const EmptyBalance: Story = {
 }
 
 export const Ready: Story = {
-  render: () => <StoryShell adapterFactory={createAdapterFactory('summary')} />,
+  render: () => <MockStoryShell adapterFactory={createAdapterFactory('summary')} />,
 }
 
 export const WrongNetwork: Story = {
   render: () => (
-    <StoryShell
+    <MockStoryShell
       adapterFactory={createAdapterFactory('wrong-network', {
         isWrongNetwork: true,
       })}
@@ -124,12 +170,12 @@ export const WrongNetwork: Story = {
 }
 
 export const ApprovalPending: Story = {
-  render: () => <StoryShell adapterFactory={createAdapterFactory('approval-pending')} />,
+  render: () => <MockStoryShell adapterFactory={createAdapterFactory('approval-pending')} />,
 }
 
 export const Migrating: Story = {
   render: () => (
-    <StoryShell
+    <MockStoryShell
       adapterFactory={createAdapterFactory('migrating', {
         completedSteps: ['unstake', 'bridge sent'],
         activeStep: 'bridge received',
@@ -140,7 +186,7 @@ export const Migrating: Story = {
 
 export const Success: Story = {
   render: () => (
-    <StoryShell
+    <MockStoryShell
       adapterFactory={createAdapterFactory('success', {
         completedSteps: ['unstake', 'bridge sent', 'bridge received', 'stake'],
       })}
@@ -148,9 +194,9 @@ export const Success: Story = {
   ),
 }
 
-export const Error: Story = {
+export const ErrorState: Story = {
   render: () => (
-    <StoryShell
+    <MockStoryShell
       adapterFactory={createAdapterFactory('error', {
         completedSteps: ['unstake', 'bridge sent'],
         activeStep: 'bridge received',
@@ -161,7 +207,7 @@ export const Error: Story = {
   ),
 }
 
-export const LightDemo: Story = {
+export const LightThemeReady: Story = {
   parameters: {
     goodWidgetProvider: {
       useShell: false,
@@ -170,9 +216,8 @@ export const LightDemo: Story = {
   render: () => (
     <GoodWidgetProvider defaultTheme="light">
       <MiniAppShell title="StakingMigrationWidget">
-        <YStack style={{ width: 420 }}>
+        <YStack data-testid="StakingMigrationWidget-light-ready" style={{ width: 420 }}>
           <StakingMigrationWidget
-            provider={createCustodialEip1193Provider()}
             adapterFactory={createAdapterFactory('summary')}
             defaultTheme="light"
           />

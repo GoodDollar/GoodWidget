@@ -24,13 +24,16 @@ const ClaimActionButton = createComponent(ButtonFrame, {
 const ClaimActionGlow = createComponent(YStack, {
   name: 'ClaimActionGlow',
   position: 'absolute' as const,
-  top: -16,
-  right: -16,
-  bottom: -16,
-  left: -16,
+  top: '$glowOffset',
+  right: '$glowOffset',
+  bottom: '$glowOffset',
+  left: '$glowOffset',
   borderRadius: 9999,
-  backgroundColor: '$primary',
-  opacity: 0.45,
+  backgroundColor: '$backgroundColor',
+  hoverStyle: {
+    backgroundColor: '$primaryLight',
+  },
+  opacity: '$glowOpacity',
 })
 
 const ClaimActionRing = createComponent(YStack, {
@@ -42,6 +45,9 @@ const ClaimActionRing = createComponent(YStack, {
   left: 0,
   borderRadius: 9999,
   backgroundColor: '$primary',
+  hoverStyle: {
+    backgroundColor: '$primaryLight',
+  },
 })
 
 const ClaimActionInner = createComponent(YStack, {
@@ -53,6 +59,9 @@ const ClaimActionInner = createComponent(YStack, {
   left: 2,
   borderRadius: 9999,
   backgroundColor: '$backgroundDark',
+  hoverStyle: {
+    backgroundColor: '$backgroundDarkHover',
+  },
 })
 
 export interface CircularActionButtonProps {

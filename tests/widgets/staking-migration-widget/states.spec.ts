@@ -8,7 +8,7 @@ const STORY_IDS = {
   approvalPending: '/iframe.html?id=widgets-stakingmigrationwidget--approval-pending&viewMode=story',
   migrating: '/iframe.html?id=widgets-stakingmigrationwidget--migrating&viewMode=story',
   success: '/iframe.html?id=widgets-stakingmigrationwidget--success&viewMode=story',
-  error: '/iframe.html?id=widgets-stakingmigrationwidget--error&viewMode=story',
+  error: '/iframe.html?id=widgets-stakingmigrationwidget--error-state&viewMode=story',
 } as const
 
 async function gotoStory(page: Page, storyUrl: string): Promise<void> {

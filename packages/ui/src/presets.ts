@@ -380,7 +380,7 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
     },
     light_ClaimActionGlow: {
       backgroundColor: color.governanceGlowPrimary,
-      opacity: '0.08',
+      glowOpacity: '0.08',
       glowOffset: '-4px',
     },
     dark_ClaimActionGlow: {
@@ -397,6 +397,15 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
       borderColor: color.primary,
       borderColorFocus: color.primary,
       shadowColor: 'rgba(26, 133, 255, 0.9)',
+    },
+
+    light_StepperStepContent: {
+      background: color.governanceSurfaceAlt,
+      borderColor: color.governancePrimary,
+    },
+    dark_StepperStepContent: {
+      background: color.backgroundInput,
+      borderColor: color.primary,
     },
 
     light_TokenAmountText: {

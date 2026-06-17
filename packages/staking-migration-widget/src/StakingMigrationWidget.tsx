@@ -133,7 +133,7 @@ function StakingMigrationInner({
 export function StakingMigrationWidget({
   provider,
   config,
-  defaultTheme = 'light',
+  defaultTheme = 'dark',
   themeOverrides,
   migrationApiBaseUrl,
   onMigrationSuccess,
