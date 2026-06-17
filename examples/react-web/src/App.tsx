@@ -166,6 +166,7 @@ function OverrideShowcase() {
           <YStack gap="$2">
             <Text variant="label">StakingMigrationWidget:</Text>
             <StakingMigrationWidget
+              provider={typeof window !== 'undefined' ? window.ethereum : undefined}
               migrationApiBaseUrl={import.meta.env.VITE_MIGRATION_API_BASE_URL}
             />
           </YStack>

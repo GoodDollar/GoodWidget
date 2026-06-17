@@ -2,6 +2,10 @@ declare const process: {
   env: Record<string, string | undefined>
 }
 
+interface Window {
+  ethereum?: unknown
+}
+
 interface ImportMetaEnv {
   readonly VITE_MIGRATION_API_BASE_URL?: string
 }

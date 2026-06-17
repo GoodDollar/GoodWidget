@@ -393,8 +393,8 @@ async function watchMigrationProgress(
 export function derivePrimaryAction(state: StakingMigrationWidgetState): StakingMigrationPrimaryAction {
   if (state.isBalanceLoading) return 'none'
   if (!state.hasRequiredConfig || state.status === 'missing-config') return 'none'
-  if (state.stakedAmountRaw <= 0n) return 'none'
   if (!state.address) return 'connect'
+  if (state.stakedAmountRaw <= 0n) return 'none'
   if (state.status === 'wrong-network') return 'switch_chain'
   if (state.status === 'approval-pending' || state.status === 'migrating') return 'none'
   if (state.status === 'success') return 'refresh'
@@ -408,6 +408,7 @@ export function derivePrimaryLabel(
 ): string {
   if (state.isBalanceLoading) return 'Loading...'
   if (!state.hasRequiredConfig || state.status === 'missing-config') return 'Setup required'
+  if (!state.address) return 'Connect wallet'
   if (state.stakedAmountRaw <= 0n) return 'No balance'
   if (state.status === 'approval-pending') return 'Approval pending'
   if (state.status === 'migrating') return 'Migrating'
@@ -863,7 +864,10 @@ export function useStakingMigrationAdapter({
   return {
     state: derivedState,
     actions: {
-      connect,
+      connect: async () => {
+        await connect()
+        await refreshStakeState()
+      },
       switchToFuse,
       refresh: refreshStakeState,
       approveAndMigrate: startApprovalAndMigration,
