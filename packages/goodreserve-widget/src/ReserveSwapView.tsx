@@ -162,10 +162,13 @@ function networkLabel(chainId: number | null): string {
   return chainId !== null && NETWORK_LABELS[chainId] ? NETWORK_LABELS[chainId] : 'Unsupported'
 }
 
-// Block-explorer transaction URL for the supported reserve chains.
+// Block-explorer transaction URLs for the supported reserve chains. The XDC
+// explorer (explorer.xdc.org/tx/<hash>) matches the SDK author's own demo
+// (apps/demo-reserve-swap/src/components/TransactionHistory.tsx) so we follow
+// the same source of truth. See sdk.ts for the PR #35 commit reference.
 function explorerTxUrl(chainId: number | null, txHash: string): string {
   return chainId === XDC_CHAIN_ID
-    ? `https://xdcscan.com/tx/${txHash}`
+    ? `https://explorer.xdc.org/tx/${txHash}`
     : `https://celoscan.io/tx/${txHash}`
 }
 

@@ -9,6 +9,7 @@ coverage/
 .vite/
 .codex
 /test-results/
+**/test-results/
 playwright-report/
 **/storybook-static/
 **/.yalc

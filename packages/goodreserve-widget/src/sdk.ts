@@ -1,17 +1,29 @@
 // ---------------------------------------------------------------------------
 // Typed seam for @goodsdks/good-reserve.
 //
+// Source of truth (mirrored verbatim):
+//   GoodSDKs PR #35 — "Feat/good reserve sdk"
+//   https://github.com/GoodDollar/GoodSDKs/pull/35
+//   merged 2026-04-02  (merge commit 53fa2f56947e10e29864c0ab4f22733ca54d3b3a)
+//   good-reserve head on main: fcd7b278558db9624f2b67a7cbe22c09f662bd32
+//   files mirrored: packages/good-reserve/src/{viem-reserve-sdk,index,
+//   capabilities,constants}.ts
+//   Demo cross-reference (shows the same types in use, including the PPM
+//   /10_000 scaling for reserveRatio/exitContribution pool fields):
+//   https://github.com/GoodDollar/GoodSDKs/blob/main/apps/demo-reserve-swap/
+//   src/components/ReserveSwap.tsx
+//
 // The package is an optionalDependency: it is not yet published to npm (and so
 // is not present in this monorepo's lockfile). A static `import` would break
 // `pnpm install`/build until it ships, so we use a typed lazy `import()` guarded
-// by a try/catch. Critically, the types below are NOT a loose `any`/`unknown`
-// shadow — they mirror the real public surface from GoodSDKs PR #35
-// (packages/good-reserve/src/viem-reserve-sdk.ts), so every call site in the
-// adapter is type-checked against the actual SDK contract.
+// by a try/catch. The types below are NOT a loose `any`/`unknown` shadow — they
+// mirror the PR #35 public surface verbatim, so every adapter call site is
+// type-checked against the actual SDK contract.
 //
 // When @goodsdks/good-reserve is published, the dynamic specifier resolves to
 // the real module and these declarations can be replaced by a direct
-// `import type { GoodReserveSDK, ReserveStats } from '@goodsdks/good-reserve'`.
+// `import type { GoodReserveSDK, ReserveStats } from '@goodsdks/good-reserve'`
+// — and the publish checklist below should be followed.
 //
 // Publish checklist (once the SDK ships to npm):
 //   1. Pin the version in package.json optionalDependencies (e.g. "^0.1.0")

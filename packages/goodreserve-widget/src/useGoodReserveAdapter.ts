@@ -260,8 +260,9 @@ export function useGoodReserveAdapter(
       // exitContribution comes from the same Mento pool struct as reserveRatio
       // and is read unscaled by the SDK (extractPoolStats → toNumber(pool[5])).
       // The GoodSDKs demo renders these pool fields as a percent with `/ 10000`
-      // (apps/demo-reserve-swap ReserveSwap.tsx: reserveRatio / 10000), so we
-      // follow the same convention as the source of truth: e.g. 5000 → "0.50%".
+      // (apps/demo-reserve-swap/src/components/ReserveSwap.tsx: reserveRatio / 10000);
+      // we follow the same convention as the source of truth: e.g. 5000 → "0.50%".
+      // See sdk.ts for the GoodSDKs PR #35 commit the SDK types are mirrored from.
       exitContributionRef.current =
         stats.exitContribution != null
           ? `${(stats.exitContribution / 10_000).toFixed(2)}%`
