@@ -245,16 +245,19 @@ function StepperStepRow({
 
 const SCROLL_HIDE_CLASS = 'gw-stepper-scroll-hide'
 
-let scrollbarStyleInjected = false
+const SCROLL_HIDE_STYLE_ID = 'gw-stepper-scroll-hide-style'
 
 function ensureScrollbarHidden(): void {
-  if (scrollbarStyleInjected || typeof document === 'undefined') {
+  if (typeof document === 'undefined') {
     return
   }
 
-  scrollbarStyleInjected = true
+  if (document.getElementById(SCROLL_HIDE_STYLE_ID)) {
+    return
+  }
+
   const style = document.createElement('style')
-  style.id = 'gw-stepper-scroll-hide'
+  style.id = SCROLL_HIDE_STYLE_ID
   style.textContent = `.${SCROLL_HIDE_CLASS}::-webkit-scrollbar { display: none; width: 0; height: 0; }`
   document.head.appendChild(style)
 }
@@ -281,7 +284,9 @@ export function Stepper({ steps, activeStepId, header, maxHeight = 360 }: Steppe
   const stepRefs = useRef(new Map<string, HTMLElement>())
   const resolvedActiveStepId = resolveActiveStepId(steps, activeStepId)
 
-  ensureScrollbarHidden()
+  useEffect(() => {
+    ensureScrollbarHidden()
+  }, [])
 
   useEffect(() => {
     if (!resolvedActiveStepId) {
@@ -294,7 +299,7 @@ export function Stepper({ steps, activeStepId, header, maxHeight = 360 }: Steppe
     })
 
     return () => cancelAnimationFrame(frame)
-  }, [resolvedActiveStepId, steps])
+  }, [resolvedActiveStepId])
 
   return (
     <YStack gap="$3" width="100%">

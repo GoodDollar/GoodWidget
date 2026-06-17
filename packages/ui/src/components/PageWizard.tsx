@@ -23,7 +23,7 @@ export interface PageWizardContextValue {
   currentStep?: PageWizardStep
   steps: PageWizardStep[]
   data: Record<string, unknown>
-  setData: (patch: Record<string, unknown>) => void
+  setData: (patch: PageWizardDataPatch) => void
   next: () => void
   back: () => void
   goTo: (index: number) => void
@@ -31,6 +31,10 @@ export interface PageWizardContextValue {
   isFirst: boolean
   isLast: boolean
 }
+
+export type PageWizardDataPatch =
+  | Record<string, unknown>
+  | ((previous: Record<string, unknown>) => Record<string, unknown>)
 
 interface PageWizardProviderProps {
   steps: PageWizardStep[]
@@ -86,11 +90,14 @@ export function PageWizardProvider({
   const resolvedStepId = currentStepId ?? uncontrolledStepId ?? steps[0]?.id
   const currentIndex = resolveStepIndex(steps, resolvedStepId)
 
-  const setData = useCallback((patch: Record<string, unknown>) => {
-    setDataState((previousData) => ({
-      ...previousData,
-      ...patch,
-    }))
+  const setData = useCallback((patch: PageWizardDataPatch) => {
+    setDataState((previousData) => {
+      const resolvedPatch = typeof patch === 'function' ? patch(previousData) : patch
+      return {
+        ...previousData,
+        ...resolvedPatch,
+      }
+    })
   }, [])
 
   const updateStep = useCallback(
@@ -171,34 +178,70 @@ export function PageWizardShell({
   dataTestId,
 }: PageWizardShellProps) {
   const { currentIndex, steps } = usePageWizard()
+  const activeStep = steps[currentIndex]
 
   return (
     <YStack gap="$4" width="100%" data-testid={dataTestId}>
       <YStack gap="$3">
+        <YStack
+          gap="$1"
+          data-testid="PageWizardStep-mobile-summary"
+          display="flex"
+          $gtSm={{ display: 'none' }}
+        >
+          <Text variant="caption" tone="secondary">
+            {`Step ${currentIndex + 1} of ${steps.length}`}
+          </Text>
+          {activeStep ? (
+            <Text fontWeight="700" color="$color">
+              {activeStep.title}
+            </Text>
+          ) : null}
+        </YStack>
+
         <XStack
-          gap="$3"
-          overflow="auto"
-          paddingBottom="$1"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          alignItems="center"
+          justifyContent="space-between"
+          gap="$2"
+          width="100%"
+          data-testid="PageWizardStep-track"
+          display="none"
+          $gtSm={{ display: 'flex' }}
         >
           {steps.map((step, index) => {
             const isActiveStep = index === currentIndex
             const isCompletedStep = index < currentIndex
-            const stepColor = isActiveStep || isCompletedStep ? '$white' : '$placeholderColor'
-            const connectorColor = index < currentIndex ? '$success' : '$borderColor'
+            const isLastStep = index === steps.length - 1
+            const connectorColor = index < currentIndex ? '$borderColorFocus' : '$borderColor'
 
             return (
-              <XStack key={step.id} alignItems="center" gap="$2" minWidth={120} flexShrink={0}>
-                <YStack alignItems="center" gap="$1.5">
+              <React.Fragment key={step.id}>
+                <YStack
+                  alignItems="center"
+                  gap="$1"
+                  flex={1}
+                  minWidth={0}
+                  data-testid={`PageWizardStep-${step.id}`}
+                  data-state={isActiveStep ? 'active' : isCompletedStep ? 'completed' : 'pending'}
+                >
                   <PageWizardStepCircle
                     backgroundColor={
-                      isActiveStep ? '$primary' : isCompletedStep ? '$success' : '$background'
+                      isActiveStep
+                        ? '$primary'
+                        : isCompletedStep
+                          ? '$successMuted'
+                          : '$background'
                     }
                     borderColor={
                       isActiveStep ? '$primary' : isCompletedStep ? '$success' : '$borderColor'
                     }
                   >
-                    <Text color={stepColor} fontWeight="700">
+                    <Text
+                      color={
+                        isActiveStep || isCompletedStep ? '$color' : '$placeholderColor'
+                      }
+                      fontWeight="700"
+                    >
                       {index + 1}
                     </Text>
                   </PageWizardStepCircle>
@@ -207,14 +250,24 @@ export function PageWizardShell({
                     color={isActiveStep ? '$color' : '$placeholderColor'}
                     fontWeight={isActiveStep ? '700' : '500'}
                     center
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                    maxWidth="100%"
                   >
                     {step.title}
                   </Text>
                 </YStack>
-                {index < steps.length - 1 ? (
-                  <YStack flex={1} height={2} borderRadius="$full" backgroundColor={connectorColor} />
+                {!isLastStep ? (
+                  <YStack
+                    flex={1}
+                    height={2}
+                    borderRadius="$full"
+                    backgroundColor={connectorColor}
+                    marginHorizontal="$1"
+                    data-testid={`PageWizardConnector-${index}`}
+                  />
                 ) : null}
-              </XStack>
+              </React.Fragment>
             )
           })}
         </XStack>
