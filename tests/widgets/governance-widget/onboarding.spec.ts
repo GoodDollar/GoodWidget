@@ -140,3 +140,51 @@ test('Governance onboarding shows the standalone success state actions', async (
     fullPage: true,
   })
 })
+
+test('Profile field handles rapid typing without losing characters (stale-closure regression)', async ({
+  page,
+}) => {
+  await gotoStory(page, STORY_IDS.custodialInteractiveFlow)
+
+  await page.getByRole('button', { name: 'Continue to house selection' }).click()
+  await page.getByTestId('GovernanceOnboardingWidget-house-alignment').click()
+  await page.getByRole('button', { name: 'Continue to profile' }).click()
+  await expect(page.getByText('House of Alignment profile', { exact: true })).toBeVisible()
+
+  const nameInput = page.getByPlaceholder('Describe the member or project name')
+  const longName = `Solar Commons Federation ${'X'.repeat(60)}`
+
+  await nameInput.click()
+  await page.keyboard.type(longName, { delay: 0 })
+
+  await expect(nameInput).toHaveValue(longName)
+
+  const webpageInput = page.getByPlaceholder('https://goodproject.example')
+  const longWebpage = `https://${'y'.repeat(40)}.example`
+  await webpageInput.click()
+  await page.keyboard.type(longWebpage, { delay: 0 })
+
+  await expect(webpageInput).toHaveValue(longWebpage)
+
+  // Multi-line textarea path — exercises ProfileTextAreaField's controlled-value
+  // reconciliation, which is the path most likely to drop characters under
+  // rapid React Native Web input events.
+  const missionArea = page.getByPlaceholder(
+    'Explain the mission that aligns the project with the GoodDollar ecosystem.',
+  )
+  const longMission = `Expand regenerative local access. ${'Regenerative '.repeat(40)}`
+  await missionArea.click()
+  await page.keyboard.type(longMission, { delay: 0 })
+
+  await expect(missionArea).toHaveValue(longMission)
+
+  // Clear-then-retype path — verifies the controlled-value reconciliation works
+  // when the input is overwritten rather than incrementally typed into. This
+  // guards against a regression where the stale closure was masked by always
+  // typing into an empty field.
+  const newMission = 'All new copy after clearing the previous value.'
+  await missionArea.fill('')
+  await missionArea.click()
+  await page.keyboard.type(newMission, { delay: 0 })
+  await expect(missionArea).toHaveValue(newMission)
+})
