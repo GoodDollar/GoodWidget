@@ -9,6 +9,11 @@ export type GovernanceOnboardingStepId =
   | 'stake'
   | 'success'
 
+export interface GovernanceWizardData extends Record<string, unknown> {
+  selectedHouse?: GovernanceHouse
+  profileDraft: GovernanceProfileDraft
+}
+
 export type GovernanceIdentityStatus = 'verified' | 'unverified'
 
 export interface GovernanceProfileDraft {

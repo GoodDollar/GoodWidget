@@ -8,6 +8,7 @@ export type {
   GovernanceProfileDraft,
   GovernanceProfileFieldErrors,
   GovernanceProfileFieldKey,
+  GovernanceWizardData,
 } from './types'
 export {
   ImpactCard,
