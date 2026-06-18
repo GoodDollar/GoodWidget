@@ -1,6 +1,7 @@
 import React from 'react'
 import { Badge, BadgeText, Card, Heading, Text, XStack, YStack } from '@goodwidget/ui'
 import { HOUSE_COPY } from '../copy'
+import { MembershipStakeBanner } from '../MembershipStakeBanner'
 import { ProfileField } from '../ProfileField'
 import { ProfileTextAreaField } from '../ProfileTextAreaField'
 import { isProfileDraftComplete } from '../validation'
@@ -18,6 +19,9 @@ interface ProfileStepContentProps {
   stakeAmountLabel: string
   onProfileFieldChange: (fieldKey: GovernanceProfileFieldKey, nextValue: string) => void
 }
+
+const STAKE_WARNING =
+  'Please ensure you have at least the required G$ in your wallet. Staked tokens are locked for the duration of active governance cycles.'
 
 export function ProfileStepContent({
   selectedHouse,
@@ -39,29 +43,19 @@ export function ProfileStepContent({
 
   return (
     <YStack gap="$3">
+      <MembershipStakeBanner stakeAmountLabel={stakeAmountLabel} warningMessage={STAKE_WARNING} />
+
       <Card elevated>
         <YStack gap="$3">
           <XStack alignItems="center" justifyContent="space-between" gap="$3" flexWrap="wrap">
+            <YStack gap="$1">
+              <Heading level={5}>{HOUSE_COPY[selectedHouse].title} profile</Heading>
+              <Text tone="secondary">{HOUSE_COPY[selectedHouse].helper}</Text>
+            </YStack>
             <Badge type={isReadyToContinue ? 'success' : hasErrors ? 'warning' : 'info'}>
               <BadgeText>{statusBadgeLabel}</BadgeText>
             </Badge>
           </XStack>
-
-          <YStack gap="$1">
-            <Heading level={5}>{HOUSE_COPY[selectedHouse].title} profile</Heading>
-            <Text tone="secondary">{HOUSE_COPY[selectedHouse].helper}</Text>
-          </YStack>
-
-          <Card outlined backgroundColor="$warningMuted">
-            <YStack gap="$2">
-              <Badge type="warning">
-                <BadgeText>{`${stakeAmountLabel} stake required`}</BadgeText>
-              </Badge>
-              <Text>
-                {`Please ensure you have the required G$ in your wallet. Staked tokens are locked for the duration of active governance cycles.`}
-              </Text>
-            </YStack>
-          </Card>
 
           <YStack gap="$3">
             <ProfileField

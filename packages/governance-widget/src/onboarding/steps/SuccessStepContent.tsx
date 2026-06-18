@@ -1,10 +1,24 @@
 import React from 'react'
-import { Button, ButtonText, Heading, Icon, Text, YStack } from '@goodwidget/ui'
+import { Stack, YStack } from 'tamagui'
+import { Button, ButtonText, createComponent, Heading, Icon, Text } from '@goodwidget/ui'
 import type { GovernanceOnboardingAction } from '../../types'
 
 const SUCCESS_GRADIENT = {
-  background: 'linear-gradient(135deg, #00B0FF 0%, #33BFFF 60%, #7BD6FF 100%)',
+  background: 'linear-gradient(135deg, #00AFFF 0%, #33BFFF 60%, #7BD6FF 100%)',
 }
+
+const CelebrationOverlay = createComponent(Stack, {
+  name: 'GovernanceSuccessOverlay',
+  width: '100%',
+  minHeight: 420,
+  paddingVertical: '$8',
+  paddingHorizontal: '$5',
+  backgroundColor: '#191C1E',
+  alignItems: 'center',
+  justifyContent: 'center',
+  position: 'relative',
+  overflow: 'hidden',
+})
 
 interface SuccessStepContentProps {
   finalActions: GovernanceOnboardingAction[]
@@ -13,24 +27,34 @@ interface SuccessStepContentProps {
 
 export function SuccessStepContent({ finalActions, onFinalActionPress }: SuccessStepContentProps) {
   return (
-    <YStack
-      width="100%"
-      borderRadius="$4"
-      overflow="hidden"
-      data-testid="GovernanceOnboardingWidget-success"
-    >
+    <CelebrationOverlay data-testid="GovernanceOnboardingWidget-success">
+      <YStack
+        position="absolute"
+        top={-180}
+        right={-180}
+        width={520}
+        height={520}
+        opacity={0.18}
+        alignItems="center"
+        justifyContent="center"
+        pointerEvents="none"
+      >
+        <Icon name="globe" size="2xl" color="white" />
+      </YStack>
+
       <YStack
         width="100%"
-        style={SUCCESS_GRADIENT}
-        paddingVertical="$8"
-        paddingHorizontal="$5"
+        maxWidth={520}
+        borderRadius="$5"
+        padding="$8"
+        gap="$5"
         alignItems="center"
-        gap="$4"
-        color="white"
+        style={SUCCESS_GRADIENT}
+        data-testid="GovernanceOnboardingWidget-success-card"
       >
         <YStack
-          width={120}
-          height={120}
+          width={80}
+          height={80}
           borderRadius="$full"
           alignItems="center"
           justifyContent="center"
@@ -38,38 +62,38 @@ export function SuccessStepContent({ finalActions, onFinalActionPress }: Success
           borderWidth={3}
           borderColor="rgba(255,255,255,0.65)"
         >
-          <Icon name="check" size="2xl" color="inherit" />
+          <Icon name="check" size="lg" color="white" />
         </YStack>
-        <YStack alignItems="center" gap="$2" maxWidth={420}>
-          <Heading level={3} color="white" center>
-            Onboarding complete
+
+        <YStack alignItems="center" gap="$3" maxWidth={420}>
+          <Heading level={1} color="white" center>
+            Welcome to Governance
           </Heading>
           <Text color="white" center>
-            Your governance membership is registered. You can now open the dashboard or browse the
-            proposal queue.
+            {`You've successfully staked the required G$ and joined the mission. Your voice now shapes the
+            network's future.`}
           </Text>
         </YStack>
-      </YStack>
 
-      <YStack
-        width="100%"
-        paddingVertical="$4"
-        paddingHorizontal="$4"
-        gap="$2"
-        backgroundColor="$background"
-      >
-        {finalActions.map((action) => (
-          <Button
-            key={action.id}
-            variant={action.variant ?? 'primary'}
-            fullWidth
-            disabled={action.disabled}
-            onPress={() => onFinalActionPress?.(action.id)}
-          >
-            <ButtonText>{action.label}</ButtonText>
-          </Button>
-        ))}
+        <YStack width="100%" gap="$3">
+          {finalActions.map((action, index) => (
+            <Button
+              key={action.id}
+              fullWidth
+              variant={action.variant ?? (index === 0 ? 'secondary' : 'primary')}
+              disabled={action.disabled}
+              onPress={() => onFinalActionPress?.(action.id)}
+              data-testid={`GovernanceOnboardingWidget-success-${action.id}`}
+            >
+              <ButtonText>{action.label}</ButtonText>
+            </Button>
+          ))}
+        </YStack>
+
+        <Text variant="caption" color="white" center>
+          {`© 2024 GoodDollar Governance. Civic & Transparent.`}
+        </Text>
       </YStack>
-    </YStack>
+    </CelebrationOverlay>
   )
 }

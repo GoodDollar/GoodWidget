@@ -87,16 +87,17 @@ export function GovernanceOnboardingFlow({
   }
 
   let shellTitle = 'Governance onboarding'
-  let shellDescription = 'Move through the five-step UI flow before the runtime integration is wired.'
+  let shellDescription = 'Move through the four-step UI flow before the runtime integration is wired.'
   let shellContent: React.ReactNode = null
   let shellFooter: React.ReactNode = null
+  let hideStepper = false
 
   switch (currentStep?.id as GovernanceOnboardingStepId | undefined) {
     case 'welcome':
     default:
-      shellTitle = 'Join GoodDollar governance'
+      shellTitle = 'Welcome'
       shellDescription =
-        'Start with identity status, then move through house selection, profile setup, staking progress, and success.'
+        'Before entering governance, we must verify your unique identity status on the GoodDollar network.'
       shellContent = (
         <WelcomeStepContent
           identityStatus={identityStatus}
@@ -107,15 +108,16 @@ export function GovernanceOnboardingFlow({
       shellFooter = (
         <XStack gap="$3" justifyContent="flex-end" flexWrap="wrap">
           <Button disabled={!isIdentityVerified} onPress={next}>
-            <ButtonText>Proceed to membership</ButtonText>
+            <ButtonText>Proceed to Membership</ButtonText>
           </Button>
         </XStack>
       )
       break
 
     case 'house':
-      shellTitle = 'Select your governance house'
-      shellDescription = 'Choose the house that should own the profile and membership stake shown in later steps.'
+      shellTitle = 'Choose your house'
+      shellDescription =
+        'Where will your impact be felt? Choose the path that best fits your contribution.'
       shellContent = (
         <HouseStepContent
           selectedHouse={selectedHouse}
@@ -137,9 +139,9 @@ export function GovernanceOnboardingFlow({
       break
 
     case 'profile':
-      shellTitle = `Complete the ${HOUSE_COPY[resolvedHouse].title} profile`
+      shellTitle = `Apply for ${HOUSE_COPY[resolvedHouse].title}`
       shellDescription =
-        'Keep the form readable in light and dark themes while collecting the stake-aware metadata required by the selected house.'
+        'Finalize your application by providing your details and staking the required amount.'
       shellContent = (
         <ProfileStepContent
           selectedHouse={resolvedHouse}
@@ -162,9 +164,9 @@ export function GovernanceOnboardingFlow({
       break
 
     case 'stake':
-      shellTitle = 'Track the membership stake journey'
+      shellTitle = 'Creating profile & staking'
       shellDescription =
-        'Present the transaction tracker so a future runtime can drive its step statuses without changing the screen structure.'
+        'Please wait while your transaction is confirmed on-chain. You can review each step below.'
       shellContent = (
         <StakeStepContent stakeAmountLabel={stakeAmountLabel} transactionSteps={transactionSteps} />
       )
@@ -181,9 +183,7 @@ export function GovernanceOnboardingFlow({
       break
 
     case 'success':
-      shellTitle = 'Complete'
-      shellDescription =
-        'Your governance membership is registered. Pick where to go next.'
+      hideStepper = true
       shellContent = (
         <SuccessStepContent finalActions={finalActions} onFinalActionPress={onFinalActionPress} />
       )
@@ -192,7 +192,13 @@ export function GovernanceOnboardingFlow({
   }
 
   return (
-    <PageWizardShell title={shellTitle} description={shellDescription} footer={shellFooter} dataTestId={dataTestId}>
+    <PageWizardShell
+      title={shellTitle}
+      description={shellDescription}
+      footer={shellFooter}
+      dataTestId={dataTestId}
+      showStepper={!hideStepper}
+    >
       {shellContent}
     </PageWizardShell>
   )

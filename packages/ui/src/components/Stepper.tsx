@@ -48,31 +48,31 @@ interface PaletteTokens {
 }
 
 const PRIMARY_PALETTE: PaletteTokens = {
-  activeFill: '$primary',
-  activeText: '$color',
-  activeRingFill: 'rgba(0, 174, 255, 0.10)',
-  activeRingText: '$color',
-  completedFill: '$borderColorFocus',
-  completedText: '$color',
-  pendingTrack: '$borderColor',
-  pendingBorder: '$borderColor',
-  pendingText: '$placeholderColor',
-  failedFill: '$warning',
-  failedText: '$warning',
+  activeFill: '$governancePrimary',
+  activeText: '$governancePrimaryDark',
+  activeRingFill: '$governancePrimaryMuted',
+  activeRingText: '$governancePrimaryDark',
+  completedFill: '$governanceSuccess',
+  completedText: '$governancePrimaryDark',
+  pendingTrack: '$governanceBorderLight',
+  pendingBorder: '$governanceBorder',
+  pendingText: '$governanceTextSecondary',
+  failedFill: '$governanceError',
+  failedText: '$governanceError',
 }
 
 const PURPLE_PALETTE: PaletteTokens = {
-  activeFill: '#7E6CE8',
-  activeText: '#3D2F8C',
-  activeRingFill: '#A9A4ED',
-  activeRingText: '#3D2F8C',
-  completedFill: '#A9A4ED',
-  completedText: '#5E4FB0',
-  pendingTrack: '#CFCEE2',
-  pendingBorder: '#CFCEE2',
-  pendingText: '#71727A',
-  failedFill: '#F5A623',
-  failedText: '#F5A623',
+  activeFill: '$governancePrimary',
+  activeText: '$governancePrimaryDark',
+  activeRingFill: '$governancePrimaryMuted',
+  activeRingText: '$governancePrimaryDark',
+  completedFill: '$governancePrimary',
+  completedText: '$governancePrimaryDark',
+  pendingTrack: '$governanceBorderLight',
+  pendingBorder: '$governanceBorder',
+  pendingText: '$governanceTextSecondary',
+  failedFill: '$governanceError',
+  failedText: '$governanceError',
 }
 
 function resolvePalette(palette: StepperPalette | undefined): PaletteTokens {

@@ -28,7 +28,7 @@ export function StakeStepContent({ stakeAmountLabel, transactionSteps }: StakeSt
               <Text variant="caption" tone="secondary">
                 {`${stakeAmountLabel} locked stake`}
               </Text>
-              <Heading level={4}>Stake progress tracker</Heading>
+              <Heading level={4}>Creating profile &amp; staking</Heading>
             </YStack>
             <Badge type={stakeSummary.badgeType}>
               <BadgeText>{stakeSummary.title}</BadgeText>
@@ -40,22 +40,18 @@ export function StakeStepContent({ stakeAmountLabel, transactionSteps }: StakeSt
               <YStack
                 height="100%"
                 width={`${progress.percent}%`}
-                backgroundColor="#7E6CE8"
+                backgroundColor="$primary"
                 borderRadius="$full"
               />
             </YStack>
-            <Text fontWeight="700" color="#5E4FB0">
+            <Text fontWeight="700" color="$primary">
               {`${progress.completed}/${progress.total}`}
             </Text>
           </XStack>
 
           <Text tone="secondary">{stakeSummary.description}</Text>
 
-          <Stepper
-            steps={transactionSteps}
-            palette="purple"
-            maxHeight={320}
-          />
+          <Stepper steps={transactionSteps} palette="primary" maxHeight={320} />
         </YStack>
       </Card>
     </YStack>

@@ -3,11 +3,11 @@ import type { GovernanceHouse, GovernanceProfileFieldKey } from '../types'
 import type { GovernanceOnboardingAction } from '../types'
 
 export const ONBOARDING_STEPS: PageWizardStep[] = [
-  { id: 'welcome', title: 'Welcome' },
-  { id: 'house', title: 'House' },
+  { id: 'welcome', title: 'Verify' },
+  { id: 'house', title: 'Path' },
   { id: 'profile', title: 'Profile' },
-  { id: 'stake', title: 'Stake' },
-  { id: 'success', title: 'Success' },
+  { id: 'stake', title: 'Transact' },
+  { id: 'success', title: 'Complete' },
 ]
 
 export const REQUIRED_PROFILE_FIELDS: Record<GovernanceHouse, GovernanceProfileFieldKey[]> = {
@@ -41,6 +41,6 @@ export const DEFAULT_TRANSACTION_STEPS: StepperStepItem[] = [
 ]
 
 export const DEFAULT_FINAL_ACTIONS: GovernanceOnboardingAction[] = [
-  { id: 'dashboard', label: 'Open governance dashboard', variant: 'primary' },
-  { id: 'members', label: 'View member guide', variant: 'secondary' },
+  { id: 'proposals', label: 'Explore Governance Proposals', variant: 'secondary' },
+  { id: 'profile', label: 'Go to my profile', variant: 'primary' },
 ]

@@ -51,6 +51,12 @@ interface PageWizardShellProps {
   footer?: ReactNode
   children: ReactNode
   dataTestId?: string
+  /**
+   * Renders the horizontal step track and mobile summary when true. Use false
+   * for end-state views (e.g. a celebration screen) where the wizard progress
+   * should be hidden from the user.
+   */
+  showStepper?: boolean
 }
 
 const PageWizardContext = createContext<PageWizardContextValue | null>(null)
@@ -176,107 +182,117 @@ export function PageWizardShell({
   footer,
   children,
   dataTestId,
+  showStepper = true,
 }: PageWizardShellProps) {
   const { currentIndex, steps } = usePageWizard()
   const activeStep = steps[currentIndex]
 
   return (
     <YStack gap="$4" width="100%" data-testid={dataTestId}>
-      <YStack gap="$3">
-        <YStack
-          gap="$1"
-          data-testid="PageWizardStep-mobile-summary"
-          display="flex"
-          $gtSm={{ display: 'none' }}
-        >
-          <Text variant="caption" tone="secondary">
-            {`Step ${currentIndex + 1} of ${steps.length}`}
-          </Text>
-          {activeStep ? (
-            <Text fontWeight="700" color="$color">
-              {activeStep.title}
+      {showStepper ? (
+        <YStack gap="$3">
+          <YStack
+            gap="$1"
+            data-testid="PageWizardStep-mobile-summary"
+            display="flex"
+            $gtSm={{ display: 'none' }}
+          >
+            <Text variant="caption" tone="secondary">
+              {`Step ${currentIndex + 1} of ${steps.length}`}
             </Text>
-          ) : null}
-        </YStack>
+            {activeStep ? (
+              <Text fontWeight="700" color="$color">
+                {activeStep.title}
+              </Text>
+            ) : null}
+          </YStack>
 
-        <XStack
-          alignItems="center"
-          justifyContent="space-between"
-          gap="$2"
-          width="100%"
-          data-testid="PageWizardStep-track"
-          display="none"
-          $gtSm={{ display: 'flex' }}
-        >
-          {steps.map((step, index) => {
-            const isActiveStep = index === currentIndex
-            const isCompletedStep = index < currentIndex
-            const isLastStep = index === steps.length - 1
-            const connectorColor = index < currentIndex ? '$borderColorFocus' : '$borderColor'
+          <XStack
+            alignItems="center"
+            justifyContent="space-between"
+            gap="$2"
+            width="100%"
+            data-testid="PageWizardStep-track"
+            display="none"
+            $gtSm={{ display: 'flex' }}
+          >
+            {steps.map((step, index) => {
+              const isActiveStep = index === currentIndex
+              const isCompletedStep = index < currentIndex
+              const isLastStep = index === steps.length - 1
+              const connectorColor =
+                index < currentIndex ? '$governancePrimary' : '$governanceBorder'
 
-            return (
-              <React.Fragment key={step.id}>
-                <YStack
-                  alignItems="center"
-                  gap="$1"
-                  flex={1}
-                  minWidth={0}
-                  data-testid={`PageWizardStep-${step.id}`}
-                  data-state={isActiveStep ? 'active' : isCompletedStep ? 'completed' : 'pending'}
-                >
-                  <PageWizardStepCircle
-                    backgroundColor={
-                      isActiveStep
-                        ? '$primary'
-                        : isCompletedStep
-                          ? '$successMuted'
-                          : '$background'
-                    }
-                    borderColor={
-                      isActiveStep ? '$primary' : isCompletedStep ? '$success' : '$borderColor'
-                    }
-                  >
-                    <Text
-                      color={
-                        isActiveStep || isCompletedStep ? '$color' : '$placeholderColor'
-                      }
-                      fontWeight="700"
-                    >
-                      {index + 1}
-                    </Text>
-                  </PageWizardStepCircle>
-                  <Text
-                    variant="caption"
-                    color={isActiveStep ? '$color' : '$placeholderColor'}
-                    fontWeight={isActiveStep ? '700' : '500'}
-                    center
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                    maxWidth="100%"
-                  >
-                    {step.title}
-                  </Text>
-                </YStack>
-                {!isLastStep ? (
+              return (
+                <React.Fragment key={step.id}>
                   <YStack
+                    alignItems="center"
+                    gap="$1"
                     flex={1}
-                    height={2}
-                    borderRadius="$full"
-                    backgroundColor={connectorColor}
-                    marginHorizontal="$1"
-                    data-testid={`PageWizardConnector-${index}`}
-                  />
-                ) : null}
-              </React.Fragment>
-            )
-          })}
-        </XStack>
+                    minWidth={0}
+                    data-testid={`PageWizardStep-${step.id}`}
+                    data-state={isActiveStep ? 'active' : isCompletedStep ? 'completed' : 'pending'}
+                  >
+                    <PageWizardStepCircle
+                      backgroundColor={
+                        isActiveStep
+                          ? '$governancePrimary'
+                          : isCompletedStep
+                            ? '$governanceSuccessMuted'
+                            : '$governanceBackground'
+                      }
+                      borderColor={
+                        isActiveStep
+                          ? '$governancePrimary'
+                          : isCompletedStep
+                            ? '$governanceSuccess'
+                            : '$governanceBorder'
+                      }
+                    >
+                      <Text
+                        color={
+                          isActiveStep || isCompletedStep
+                            ? '$color'
+                            : '$governanceTextSecondary'
+                        }
+                        fontWeight="700"
+                      >
+                        {index + 1}
+                      </Text>
+                    </PageWizardStepCircle>
+                    <Text
+                      variant="caption"
+                      color={isActiveStep ? '$color' : '$governanceTextSecondary'}
+                      fontWeight={isActiveStep ? '700' : '500'}
+                      center
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                      maxWidth="100%"
+                    >
+                      {step.title}
+                    </Text>
+                  </YStack>
+                  {!isLastStep ? (
+                    <YStack
+                      flex={1}
+                      height={2}
+                      borderRadius="$full"
+                      backgroundColor={connectorColor}
+                      marginHorizontal="$1"
+                      data-testid={`PageWizardConnector-${index}`}
+                    />
+                  ) : null}
+                </React.Fragment>
+              )
+            })}
+          </XStack>
 
-        <YStack gap="$1">
-          <Heading level={3}>{title}</Heading>
-          {description ? <Text tone="secondary">{description}</Text> : null}
+          <YStack gap="$1">
+            <Heading level={3}>{title}</Heading>
+            {description ? <Text tone="secondary">{description}</Text> : null}
+          </YStack>
         </YStack>
-      </YStack>
+      ) : null}
 
       {children}
       {footer}

@@ -268,8 +268,8 @@ export const CustodialSuccess: Story = {
         identityStatus: 'verified',
         initialHouse: 'alignment',
         finalActions: [
-          { id: 'dashboard', label: 'Open governance dashboard', variant: 'primary' },
-          { id: 'proposal', label: 'Review proposal queue', variant: 'secondary' },
+          { id: 'proposals', label: 'Explore Governance Proposals', variant: 'secondary' },
+          { id: 'profile', label: 'Go to my profile', variant: 'primary' },
         ],
         dataTestId: 'GovernanceOnboardingWidget-success',
       }}
