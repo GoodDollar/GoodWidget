@@ -52,7 +52,6 @@ export function GovernanceOnboardingFlow({
   const profileDraft = wizardData.profileDraft ?? {}
   const resolvedHouse: GovernanceHouse = selectedHouse ?? 'citizenship'
   const isIdentityVerified = identityStatus === 'verified'
-  const isProfileReady = isProfileDraftComplete(resolvedHouse, profileDraft, fieldErrors)
 
   const updateProfileField = (fieldKey: GovernanceProfileFieldKey, nextValue: string) => {
     setData((previousData) => {
@@ -87,7 +86,7 @@ export function GovernanceOnboardingFlow({
   }
 
   let shellTitle = 'Governance onboarding'
-  let shellDescription = 'Move through the four-step UI flow before the runtime integration is wired.'
+  let shellDescription = ''
   let shellContent: React.ReactNode = null
   let shellFooter: React.ReactNode = null
   let hideStepper = false
@@ -97,21 +96,19 @@ export function GovernanceOnboardingFlow({
     default:
       shellTitle = 'Welcome'
       shellDescription =
-        'Before entering governance, we must verify your unique identity status on the GoodDollar network.'
+        'Before entering governance, we must verify your unique identity status on the GoodDollar Protocol.'
       shellContent = (
         <WelcomeStepContent
           identityStatus={identityStatus}
           walletAddress={walletAddress}
+          isIdentityVerified={isIdentityVerified}
           onVerifyPress={onVerifyIdentity}
+          // CTA button lives inside the card — no shell footer button needed
+          onProceedPress={next}
         />
       )
-      shellFooter = (
-        <XStack gap="$3" justifyContent="flex-end" flexWrap="wrap">
-          <Button disabled={!isIdentityVerified} onPress={next}>
-            <ButtonText>Proceed to Membership</ButtonText>
-          </Button>
-        </XStack>
-      )
+      // Footer is null — "Proceed to Membership" is inside OnboardingIdentityCard
+      shellFooter = null
       break
 
     case 'house':
@@ -149,18 +146,12 @@ export function GovernanceOnboardingFlow({
           fieldErrors={fieldErrors}
           stakeAmountLabel={stakeAmountLabel}
           onProfileFieldChange={updateProfileField}
+          // CTA button lives inside the card — no shell footer button needed
+          onContinuePress={handleProfileContinue}
         />
       )
-      shellFooter = (
-        <XStack gap="$3" justifyContent="space-between" flexWrap="wrap">
-          <Button variant="secondary" onPress={back}>
-            <ButtonText>Back</ButtonText>
-          </Button>
-          <Button onPress={handleProfileContinue}>
-            <ButtonText>{isProfileReady ? 'Continue to stake flow' : 'Validate and continue'}</ButtonText>
-          </Button>
-        </XStack>
-      )
+      // Footer is null — "Create Profile and Stake" is inside ProfileStepContent card
+      shellFooter = null
       break
 
     case 'stake':
@@ -185,7 +176,11 @@ export function GovernanceOnboardingFlow({
     case 'success':
       hideStepper = true
       shellContent = (
-        <SuccessStepContent finalActions={finalActions} onFinalActionPress={onFinalActionPress} />
+        <SuccessStepContent
+          finalActions={finalActions}
+          stakeAmountLabel={stakeAmountLabel}
+          onFinalActionPress={onFinalActionPress}
+        />
       )
       shellFooter = null
       break

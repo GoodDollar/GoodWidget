@@ -55,20 +55,20 @@ test('Governance onboarding interactive flow persists selected house into profil
     fullPage: true,
   })
 
-  await page.getByPlaceholder('Describe the member or project name').fill('Solar Commons')
-  await page.getByPlaceholder('https://goodproject.example').fill('https://solar.example')
+  await page.getByPlaceholder('John Doe or Organization').fill('Solar Commons')
+  await page.getByPlaceholder('https://...').fill('https://solar.example')
   await page
     .getByPlaceholder(
-      'Explain the mission that aligns the project with the GoodDollar ecosystem.',
+      'What is the primary goal of your alignment?',
     )
     .fill('Expand regenerative local access.')
   await page
-    .getByPlaceholder('Describe how governance-approved funding will be allocated.')
+    .getByPlaceholder('How do you plan to allocate resources?')
     .fill('Allocate quarterly grants through community review.')
   await page
-    .getByRole('button', { name: 'Continue to stake flow' })
+    .getByRole('button', { name: 'Create Profile and Stake' })
     .scrollIntoViewIfNeeded()
-  await page.getByRole('button', { name: 'Continue to stake flow' }).click({ force: true })
+  await page.getByRole('button', { name: 'Create Profile and Stake' }).click({ force: true })
 
   await expect(page.getByText('Creating profile & staking', { exact: true }).first()).toBeVisible()
   await expect(page.getByText('Approve governance stake')).toBeVisible()
@@ -109,7 +109,6 @@ test('Governance onboarding shows house selection as a standalone state', async 
 test('Governance onboarding shows the citizenship profile ready state', async ({ page }) => {
   await gotoStory(page, STORY_IDS.custodialCitizenshipProfileReady)
   await expect(page.getByText('Ready to continue')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Continue to stake flow' })).toHaveCount(1)
   await page.screenshot({
     path: 'tests/widgets/governance-widget/test-results/gwo-08-profile-citizenship-ready.png',
     fullPage: true,
@@ -160,7 +159,7 @@ test('Profile field handles rapid typing without losing characters (stale-closur
   await page.getByRole('button', { name: 'Continue to profile' }).click({ force: true })
   await expect(page.getByText('Apply for House of Alignment', { exact: true })).toBeVisible()
 
-  const nameInput = page.getByPlaceholder('Describe the member or project name')
+  const nameInput = page.getByPlaceholder('John Doe or Organization')
   const longName = `Solar Commons Federation ${'X'.repeat(60)}`
 
   await nameInput.click()
@@ -168,7 +167,7 @@ test('Profile field handles rapid typing without losing characters (stale-closur
 
   await expect(nameInput).toHaveValue(longName)
 
-  const webpageInput = page.getByPlaceholder('https://goodproject.example')
+  const webpageInput = page.getByPlaceholder('https://...')
   const longWebpage = `https://${'y'.repeat(40)}.example`
   await webpageInput.click()
   await page.keyboard.type(longWebpage, { delay: 0 })
@@ -179,7 +178,7 @@ test('Profile field handles rapid typing without losing characters (stale-closur
   // reconciliation, which is the path most likely to drop characters under
   // rapid React Native Web input events.
   const missionArea = page.getByPlaceholder(
-    'Explain the mission that aligns the project with the GoodDollar ecosystem.',
+    'What is the primary goal of your alignment?',
   )
   const longMission = `Expand regenerative local access. ${'Regenerative '.repeat(40)}`
   await missionArea.scrollIntoViewIfNeeded()

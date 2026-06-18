@@ -1,8 +1,7 @@
 import React from 'react'
-import { Badge, BadgeText, Card, Heading, Text, XStack, YStack } from '@goodwidget/ui'
-import { HOUSE_COPY } from '../copy'
-import { MembershipStakeBanner } from '../MembershipStakeBanner'
-import { ProfileField } from '../ProfileField'
+import { Stack, XStack, YStack } from 'tamagui'
+import { Badge, BadgeText, Button, ButtonText, Card, Icon, Text } from '@goodwidget/ui'
+import { InputError, InputFrame, InputLabel } from '@goodwidget/ui'
 import { ProfileTextAreaField } from '../ProfileTextAreaField'
 import { isProfileDraftComplete } from '../validation'
 import type {
@@ -18,10 +17,41 @@ interface ProfileStepContentProps {
   fieldErrors: GovernanceProfileFieldErrors
   stakeAmountLabel: string
   onProfileFieldChange: (fieldKey: GovernanceProfileFieldKey, nextValue: string) => void
+  onContinuePress: () => void
 }
 
 const STAKE_WARNING =
-  'Please ensure you have at least the required G$ in your wallet. Staked tokens are locked for the duration of active governance cycles.'
+  'Please ensure you have the required G$ in your wallet. Staked tokens are locked for the duration of active governance cycles.'
+
+// ── Inline profile field (avoids extra import of ProfileField) ───────────────
+function FormField({
+  label,
+  placeholder,
+  value,
+  errorMessage,
+  onChangeText,
+}: {
+  label: string
+  placeholder: string
+  value?: string
+  errorMessage?: string
+  onChangeText: (v: string) => void
+}) {
+  return (
+    <YStack gap="$1">
+      <InputLabel>{label}</InputLabel>
+      <InputFrame
+        placeholder={placeholder}
+        value={value ?? ''}
+        error={Boolean(errorMessage)}
+        onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+          onChangeText(event.currentTarget.value)
+        }}
+      />
+      {errorMessage ? <InputError>{errorMessage}</InputError> : null}
+    </YStack>
+  )
+}
 
 export function ProfileStepContent({
   selectedHouse,
@@ -29,6 +59,7 @@ export function ProfileStepContent({
   fieldErrors,
   stakeAmountLabel,
   onProfileFieldChange,
+  onContinuePress,
 }: ProfileStepContentProps) {
   const isReadyToContinue = isProfileDraftComplete(selectedHouse, profileDraft, fieldErrors)
   const isPristine = Object.values(profileDraft).every((fieldValue) => !fieldValue)
@@ -43,68 +74,120 @@ export function ProfileStepContent({
 
   return (
     <YStack gap="$3">
-      <MembershipStakeBanner stakeAmountLabel={stakeAmountLabel} warningMessage={STAKE_WARNING} />
-
       <Card elevated>
-        <YStack gap="$3">
-          <XStack alignItems="center" justifyContent="space-between" gap="$3" flexWrap="wrap">
-            <YStack gap="$1">
-              <Heading level={5}>{HOUSE_COPY[selectedHouse].title} profile</Heading>
-              <Text tone="secondary">{HOUSE_COPY[selectedHouse].helper}</Text>
-            </YStack>
+        <YStack gap="$4">
+          {/* ── Membership Stake banner (Figma: inline inside card) ──────── */}
+          <YStack
+            borderRadius="$3"
+            borderWidth={1}
+            borderColor="$governancePrimary"
+            backgroundColor="$governanceSurfaceAlt"
+            padding="$3"
+            gap="$3"
+          >
+            {/* Amount row */}
+            <XStack alignItems="center" gap="$3">
+              <XStack
+                width={36}
+                height={36}
+                borderRadius="$full"
+                alignItems="center"
+                justifyContent="center"
+                backgroundColor="$governancePrimary"
+              >
+                <Icon name="shield-check" size="sm" color="white" />
+              </XStack>
+              <YStack gap="$0.5">
+                <Text variant="caption" tone="secondary">
+                  Membership Stake
+                </Text>
+                <Text fontWeight="700" fontSize="$6" lineHeight="$6" color="$color">
+                  {stakeAmountLabel}
+                </Text>
+              </YStack>
+            </XStack>
+
+            {/* Warning row */}
+            <XStack
+              alignItems="flex-start"
+              gap="$3"
+              padding="$3"
+              borderRadius="$2"
+              backgroundColor="$governanceErrorMuted"
+              borderWidth={1}
+              borderColor="$governanceError"
+            >
+              <Icon name="alert-triangle" color="error" size="sm" />
+              <Text variant="caption" flex={1}>
+                {STAKE_WARNING}
+              </Text>
+            </XStack>
+          </YStack>
+
+          {/* ── Header details row with Status Badge ────────────────────── */}
+          <XStack justifyContent="space-between" alignItems="center" flexWrap="wrap" gap="$2">
+            <Text variant="caption" tone="secondary">
+              Profile details
+            </Text>
             <Badge type={isReadyToContinue ? 'success' : hasErrors ? 'warning' : 'info'}>
               <BadgeText>{statusBadgeLabel}</BadgeText>
             </Badge>
           </XStack>
 
+          {/* ── Profile fields ──────────────────────────────────────────── */}
           <YStack gap="$3">
-            <ProfileField
-              label="Name"
-              placeholder="Describe the member or project name"
+            <FormField
+              label="Official Name"
+              placeholder="John Doe or Organization"
               value={profileDraft.name}
               errorMessage={fieldErrors.name}
-              helperText="This value is shared across both house registration variants."
-              onChangeText={(nextValue) => onProfileFieldChange('name', nextValue)}
+              onChangeText={(v) => onProfileFieldChange('name', v)}
             />
 
             {selectedHouse === 'citizenship' ? (
-              <ProfileField
-                label="Social links"
-                placeholder="https://twitter.com/your-handle"
+              <FormField
+                label="Social Profile Link"
+                placeholder="https://twitter.com/username"
                 value={profileDraft.socialLinks}
                 errorMessage={fieldErrors.socialLinks}
-                helperText="Use a short, reviewer-friendly list of public social URLs."
-                onChangeText={(nextValue) => onProfileFieldChange('socialLinks', nextValue)}
+                onChangeText={(v) => onProfileFieldChange('socialLinks', v)}
               />
             ) : (
               <>
-                <ProfileField
-                  label="Project webpage"
-                  placeholder="https://goodproject.example"
+                <FormField
+                  label="External Link"
+                  placeholder="https://..."
                   value={profileDraft.projectWebpage}
                   errorMessage={fieldErrors.projectWebpage}
-                  helperText="Point reviewers to the project homepage or primary documentation page."
-                  onChangeText={(nextValue) => onProfileFieldChange('projectWebpage', nextValue)}
+                  onChangeText={(v) => onProfileFieldChange('projectWebpage', v)}
                 />
                 <ProfileTextAreaField
-                  label="Mission statement"
-                  placeholder="Explain the mission that aligns the project with the GoodDollar ecosystem."
+                  label="Mission Statement"
+                  placeholder="What is the primary goal of your alignment?"
                   value={profileDraft.missionStatement}
                   errorMessage={fieldErrors.missionStatement}
-                  helperText="This field is intended for longer descriptive copy."
-                  onChangeText={(nextValue) => onProfileFieldChange('missionStatement', nextValue)}
+                  onChangeText={(v) => onProfileFieldChange('missionStatement', v)}
                 />
                 <ProfileTextAreaField
-                  label="Distribution strategy"
-                  placeholder="Describe how governance-approved funding will be allocated."
+                  label="Redistribution Strategy"
+                  placeholder="How do you plan to allocate resources?"
                   value={profileDraft.distributionStrategy}
                   errorMessage={fieldErrors.distributionStrategy}
-                  helperText="Keep the strategy readable for reviewers in both light and dark mode."
-                  onChangeText={(nextValue) => onProfileFieldChange('distributionStrategy', nextValue)}
+                  onChangeText={(v) => onProfileFieldChange('distributionStrategy', v)}
                 />
               </>
             )}
           </YStack>
+
+          {/* ── CTA button (Figma: inside card at bottom) ───────────────── */}
+          <Button
+            fullWidth
+            onPress={onContinuePress}
+            aria-label="Create Profile and Stake"
+            data-testid="GovernanceOnboardingWidget-profile-cta"
+          >
+            <ButtonText>Create Profile and Stake</ButtonText>
+          </Button>
         </YStack>
       </Card>
     </YStack>
