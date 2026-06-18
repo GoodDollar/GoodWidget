@@ -1,9 +1,9 @@
 import Svg, { Circle, G } from 'react-native-svg'
 import { Stack, useTheme } from 'tamagui'
-import { Card, Text, XStack, YStack } from '@goodwidget/ui'
+import { Heading, Text, XStack, YStack } from '@goodwidget/ui'
 import type { FundingDistributionChartProps, FundingProjectAllocation, GovernanceAmount } from './types'
 import { clampPercentage, fundingAmountLabel } from './format'
-import { resolveThemeColor } from './shared'
+import { GovernanceSurfaceCard, resolveThemeColor } from './shared'
 
 const DONUT_COLOR_KEYS = ['primary', 'success', 'warning', 'colorDim', 'error'] as const
 
@@ -46,7 +46,7 @@ function FundingLegend({
               {project.name}
             </Text>
             <Text variant="caption" tone="secondary">
-              {clampPercentage(project.percentage)}% • {fundingAmountLabel(project.amount)}
+              {clampPercentage(project.percentage)}% - {fundingAmountLabel(project.amount)}
             </Text>
           </YStack>
         </XStack>
@@ -144,19 +144,8 @@ export function FundingDistributionChart({
   const total = { ...totalAmount, isStreaming: totalAmount.isStreaming ?? isStreaming }
 
   return (
-    <Card
-      data-testid={testID}
-      width="100%"
-      maxWidth={340}
-      gap="$4"
-      shadowColor="$elevationShadowColor"
-      shadowOffset={{ width: 0, height: 8 }}
-      shadowRadius={22}
-      elevated
-    >
-      <Text fontSize={22} lineHeight={28} fontWeight="700">
-        {title}
-      </Text>
+    <GovernanceSurfaceCard data-testid={testID} maxWidth={340}>
+      <Heading level={4}>{title}</Heading>
       <YStack alignItems="center" gap="$4">
         <FundingDonut
           projects={projects}
@@ -167,6 +156,6 @@ export function FundingDistributionChart({
         />
         <FundingLegend projects={projects} colors={colors} emptyStateLabel={emptyStateLabel} onProjectPress={onProjectPress} />
       </YStack>
-    </Card>
+    </GovernanceSurfaceCard>
   )
 }

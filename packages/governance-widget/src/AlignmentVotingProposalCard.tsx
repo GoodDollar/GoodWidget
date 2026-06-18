@@ -1,7 +1,7 @@
-import { Card, Heading, Icon, Text, YStack, XStack } from '@goodwidget/ui'
+import { Heading, Icon, Text, YStack, XStack } from '@goodwidget/ui'
 import type { AlignmentVotingProposalCardProps, RankedVotingOption } from './types'
 import { clampPercentage } from './format'
-import { ProgressBar, ProposalHeader } from './shared'
+import { GovernanceAccentCard, ProgressBar, ProposalHeader } from './shared'
 
 function RankedOptionRow({ option }: { option: RankedVotingOption }) {
   return (
@@ -33,23 +33,16 @@ export function AlignmentVotingProposalCard({
   const hiddenCount = Math.max(0, options.length - visibleOptions.length)
 
   return (
-    <Card
+    <GovernanceAccentCard
       data-testid={testID}
-      width="100%"
       maxWidth={480}
-      gap="$4"
       cursor={onPress ? 'pointer' : undefined}
       onPress={onPress ? () => onPress(id) : undefined}
       role={onPress ? 'button' : undefined}
       aria-label={`Open proposal ${title}`}
-      borderColor="$primary"
-      shadowColor="$elevationShadowColor"
-      shadowOffset={{ width: 0, height: 8 }}
-      shadowRadius={22}
-      elevated
     >
       <ProposalHeader categoryLabel={categoryLabel} />
-      <Heading level={4} color="$primary" lineHeight={54}>
+      <Heading level={4} color="$primary">
         {title}
       </Heading>
       <XStack alignItems="center" gap="$2">
@@ -68,6 +61,6 @@ export function AlignmentVotingProposalCard({
           </Text>
         ) : null}
       </YStack>
-    </Card>
+    </GovernanceAccentCard>
   )
 }

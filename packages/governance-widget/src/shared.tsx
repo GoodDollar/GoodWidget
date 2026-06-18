@@ -1,5 +1,5 @@
 import { Stack } from 'tamagui'
-import { Heading, Icon, Text, XStack, YStack } from '@goodwidget/ui'
+import { Card, Heading, Icon, Text, XStack, YStack, createComponent } from '@goodwidget/ui'
 import type { GovernanceAmount, VoteSegment } from './types'
 import { clampPercentage, formatCompactValue, formatRawValue } from './format'
 
@@ -12,19 +12,50 @@ export const SEGMENT_TONES: Record<NonNullable<VoteSegment['tone']>, string> = {
 
 export type GovernanceAmountSize = 'sm' | 'md' | 'lg' | 'xl'
 
-const VALUE_TEXT_SIZE: Record<GovernanceAmountSize, number> = {
-  sm: 18,
-  md: 24,
-  lg: 36,
-  xl: 52,
-}
+export const GovernanceSurfaceCard = createComponent(Card, {
+  name: 'GovernanceSurfaceCard',
+  extends: 'Card',
+  width: '100%',
+  gap: '$4',
+  shadowColor: '$elevationShadowColor',
+  shadowOffset: { width: 0, height: 8 },
+  shadowRadius: 22,
+  elevated: true,
+})
 
-const TOKEN_TEXT_SIZE: Record<GovernanceAmountSize, number> = {
-  sm: 14,
-  md: 18,
-  lg: 22,
-  xl: 28,
-}
+export const GovernanceAccentCard = createComponent(GovernanceSurfaceCard, {
+  name: 'GovernanceAccentCard',
+  extends: 'GovernanceSurfaceCard',
+  borderColor: '$primary',
+})
+
+const GovernanceAmountValue = createComponent(Text, {
+  name: 'GovernanceAmountValue',
+  extends: 'Text',
+  fontWeight: '700',
+  variants: {
+    amountSize: {
+      sm: { fontSize: '$4', lineHeight: '$3' },
+      md: { fontSize: '$6', lineHeight: '$4' },
+      lg: { fontSize: '$8', lineHeight: '$6' },
+      xl: { fontSize: '$10', lineHeight: '$8' },
+    },
+  } as const,
+})
+
+const GovernanceAmountToken = createComponent(Text, {
+  name: 'GovernanceAmountToken',
+  extends: 'Text',
+  fontWeight: '700',
+  variants: {
+    amountSize: {
+      sm: { fontSize: '$2', lineHeight: '$1' },
+      md: { fontSize: '$4', lineHeight: '$2' },
+      lg: { fontSize: '$5', lineHeight: '$3' },
+      xl: { fontSize: '$6', lineHeight: '$4' },
+    },
+  } as const,
+})
 
 const CAPTION_SIZE: Record<GovernanceAmountSize, 'caption' | 'label'> = {
   sm: 'caption',
@@ -38,12 +69,12 @@ export function renderGovernanceAmount(amount: GovernanceAmount, size: Governanc
     <YStack gap="$1">
       {amount.token ? (
         <XStack alignItems="baseline" gap="$1">
-          <Text fontSize={TOKEN_TEXT_SIZE[size]} lineHeight={TOKEN_TEXT_SIZE[size]} fontWeight="700">
+          <GovernanceAmountToken amountSize={size}>
             {amount.token}
-          </Text>
-          <Text fontSize={VALUE_TEXT_SIZE[size]} lineHeight={VALUE_TEXT_SIZE[size]} fontWeight="700">
+          </GovernanceAmountToken>
+          <GovernanceAmountValue amountSize={size}>
             {formatCompactValue(amount.value)}
-          </Text>
+          </GovernanceAmountValue>
         </XStack>
       ) : (
         <Heading level={size === 'xl' ? 2 : 4}>{formatRawValue(amount.value)}</Heading>

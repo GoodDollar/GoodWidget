@@ -1,8 +1,8 @@
 import { Stack } from 'tamagui'
-import { Card, Heading, Text, XStack } from '@goodwidget/ui'
+import { Heading, Text, XStack } from '@goodwidget/ui'
 import type { OptimisticVotingProposalCardProps, VoteSegment } from './types'
 import { clampPercentage } from './format'
-import { ProposalHeader, SEGMENT_TONES } from './shared'
+import { GovernanceSurfaceCard, ProposalHeader, SEGMENT_TONES } from './shared'
 import { VoterAvatarStack } from './VoterAvatarStack'
 
 function StackedProgressBar({ segments }: { segments: VoteSegment[] }) {
@@ -58,22 +58,16 @@ export function OptimisticVotingProposalCard({
     statusTone === 'positive' ? '$success' : statusTone === 'muted' ? '$placeholderColor' : '$warning'
 
   return (
-    <Card
+    <GovernanceSurfaceCard
       data-testid={testID}
-      width="100%"
       maxWidth={480}
-      gap="$4"
       cursor={onPress ? 'pointer' : undefined}
       onPress={onPress ? () => onPress(id) : undefined}
       role={onPress ? 'button' : undefined}
       aria-label={`Open proposal ${title}`}
-      shadowColor="$elevationShadowColor"
-      shadowOffset={{ width: 0, height: 8 }}
-      shadowRadius={22}
-      elevated
     >
       <ProposalHeader categoryLabel={categoryLabel} />
-      <Heading level={4} lineHeight={54}>{title}</Heading>
+      <Heading level={4}>{title}</Heading>
       <Stack gap="$2">
         <XStack alignItems="center" justifyContent="space-between" gap="$3">
           <Text variant="caption" tone="secondary">
@@ -102,6 +96,6 @@ export function OptimisticVotingProposalCard({
         ) : null}
       </XStack>
       <VoteLegend segments={voteSegments} />
-    </Card>
+    </GovernanceSurfaceCard>
   )
 }
