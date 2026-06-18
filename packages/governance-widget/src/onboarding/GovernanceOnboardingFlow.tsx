@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Button, ButtonText, PageWizardShell, XStack, usePageWizard } from '@goodwidget/ui'
 import { HOUSE_COPY } from './copy'
 import { DEFAULT_TRANSACTION_STEPS, DEFAULT_FINAL_ACTIONS } from './constants'
-import { isProfileDraftComplete, validateProfileDraft } from './validation'
+import { validateProfileDraft } from './validation'
 import { WelcomeStepContent } from './steps/WelcomeStepContent'
 import { HouseStepContent } from './steps/HouseStepContent'
 import { ProfileStepContent } from './steps/ProfileStepContent'
@@ -44,7 +44,10 @@ export function GovernanceOnboardingFlow({
   onFinalActionPress,
   dataTestId,
 }: GovernanceOnboardingFlowProps) {
-  const { currentStep, data, setData, next, back, isFirst } = usePageWizard()
+  const { currentStep, steps, data, setData, next, back, isFirst } = usePageWizard()
+  // The success step is a terminal view and should not appear in the progress
+  // indicator — Stitch design shows exactly 4 steps: Verify, Path, Profile, Transact.
+  const stepperDisplaySteps = steps.filter((s) => s.id !== 'success')
   const [fieldErrors, setFieldErrors] = useState<GovernanceProfileFieldErrors>(initialFieldErrors)
 
   const wizardData = data as GovernanceWizardData
@@ -193,6 +196,7 @@ export function GovernanceOnboardingFlow({
       footer={shellFooter}
       dataTestId={dataTestId}
       showStepper={!hideStepper}
+      stepperSteps={stepperDisplaySteps}
     >
       {shellContent}
     </PageWizardShell>

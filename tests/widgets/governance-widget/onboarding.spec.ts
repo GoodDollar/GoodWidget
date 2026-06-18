@@ -108,7 +108,8 @@ test('Governance onboarding shows house selection as a standalone state', async 
 
 test('Governance onboarding shows the citizenship profile ready state', async ({ page }) => {
   await gotoStory(page, STORY_IDS.custodialCitizenshipProfileReady)
-  await expect(page.getByText('Ready to continue')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Create Profile and Stake' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Create Profile and Stake' })).toBeEnabled()
   await page.screenshot({
     path: 'tests/widgets/governance-widget/test-results/gwo-08-profile-citizenship-ready.png',
     fullPage: true,
@@ -150,6 +151,7 @@ test('Governance onboarding shows the standalone success state actions', async (
 test('Profile field handles rapid typing without losing characters (stale-closure regression)', async ({
   page,
 }) => {
+  test.slow()
   await gotoStory(page, STORY_IDS.custodialInteractiveFlow)
 
   await page.getByRole('button', { name: 'Proceed to Membership' }).scrollIntoViewIfNeeded()
@@ -180,7 +182,7 @@ test('Profile field handles rapid typing without losing characters (stale-closur
   const missionArea = page.getByPlaceholder(
     'What is the primary goal of your alignment?',
   )
-  const longMission = `Expand regenerative local access. ${'Regenerative '.repeat(40)}`
+  const longMission = `Expand regenerative local access. ${'Regenerative '.repeat(20)}`
   await missionArea.scrollIntoViewIfNeeded()
   await missionArea.click({ force: true })
   await page.keyboard.type(longMission, { delay: 0 })

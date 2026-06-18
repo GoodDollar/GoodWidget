@@ -57,6 +57,14 @@ interface PageWizardShellProps {
    * should be hidden from the user.
    */
   showStepper?: boolean
+  /**
+   * Optional subset of steps to render in the visual stepper indicator.
+   * When provided, only these steps appear in the step track while the full
+   * steps array from context is still used for navigation. Useful when the
+   * wizard has a terminal/celebration step that should not appear in the
+   * progress track (e.g. a success screen).
+   */
+  stepperSteps?: PageWizardStep[]
 }
 
 const PageWizardContext = createContext<PageWizardContextValue | null>(null)
@@ -183,9 +191,17 @@ export function PageWizardShell({
   children,
   dataTestId,
   showStepper = true,
+  stepperSteps,
 }: PageWizardShellProps) {
-  const { currentIndex, steps } = usePageWizard()
+  const { currentIndex, steps, currentStep } = usePageWizard()
   const activeStep = steps[currentIndex]
+
+  // Use the provided stepperSteps for visual display, falling back to all steps.
+  // This allows a terminal step (e.g. success) to be excluded from the track.
+  const displaySteps = stepperSteps ?? steps
+  const displayCurrentIndex = stepperSteps
+    ? stepperSteps.findIndex((s) => s.id === currentStep?.id)
+    : currentIndex
 
   return (
     <YStack gap="$4" width="100%" data-testid={dataTestId}>
@@ -198,7 +214,7 @@ export function PageWizardShell({
             $gtSm={{ display: 'none' }}
           >
             <Text variant="caption" tone="secondary">
-              {`Step ${currentIndex + 1} of ${steps.length}`}
+              {`Step ${displayCurrentIndex >= 0 ? displayCurrentIndex + 1 : currentIndex + 1} of ${displaySteps.length}`}
             </Text>
             {activeStep ? (
               <Text fontWeight="700" color="$color">
@@ -216,12 +232,12 @@ export function PageWizardShell({
             display="none"
             $gtSm={{ display: 'flex' }}
           >
-            {steps.map((step, index) => {
-              const isActiveStep = index === currentIndex
-              const isCompletedStep = index < currentIndex
-              const isLastStep = index === steps.length - 1
+            {displaySteps.map((step, index) => {
+              const isActiveStep = index === displayCurrentIndex
+              const isCompletedStep = index < displayCurrentIndex
+              const isLastStep = index === displaySteps.length - 1
               const connectorColor =
-                index < currentIndex ? '$governancePrimary' : '$governanceBorder'
+                index < displayCurrentIndex ? '$governancePrimary' : '$governanceBorder'
 
               return (
                 <React.Fragment key={step.id}>
@@ -235,30 +251,45 @@ export function PageWizardShell({
                   >
                     <PageWizardStepCircle
                       backgroundColor={
-                        isActiveStep
-                          ? '$governancePrimary'
-                          : isCompletedStep
-                            ? '$governanceSuccessMuted'
+                        isCompletedStep
+                          ? '$governanceSuccess'
+                          : isActiveStep
+                            ? '$governancePrimary'
                             : '$governanceBackground'
                       }
                       borderColor={
-                        isActiveStep
-                          ? '$governancePrimary'
-                          : isCompletedStep
-                            ? '$governanceSuccess'
+                        isCompletedStep
+                          ? '$governanceSuccess'
+                          : isActiveStep
+                            ? '$governancePrimary'
                             : '$governanceBorder'
                       }
                     >
-                      <Text
-                        color={
-                          isActiveStep || isCompletedStep
-                            ? '$color'
-                            : '$governanceTextSecondary'
-                        }
-                        fontWeight="700"
-                      >
-                        {index + 1}
-                      </Text>
+                      {isCompletedStep ? (
+                        // Solid green circle with white checkmark — matches Stitch design
+                        <svg
+                          width={14}
+                          height={14}
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="white"
+                          strokeWidth={3}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M20 6L9 17L4 12" />
+                        </svg>
+                      ) : (
+                        <Text
+                          color={
+                            isActiveStep ? 'white' : '$governanceTextSecondary'
+                          }
+                          fontWeight="700"
+                        >
+                          {index + 1}
+                        </Text>
+                      )}
                     </PageWizardStepCircle>
                     <Text
                       variant="caption"

@@ -1,9 +1,8 @@
 import React from 'react'
-import { Stack, XStack, YStack } from 'tamagui'
-import { Badge, BadgeText, Button, ButtonText, Card, Icon, Text } from '@goodwidget/ui'
+import { XStack, YStack } from 'tamagui'
+import { Button, ButtonText, Card, Icon, Text } from '@goodwidget/ui'
 import { InputError, InputFrame, InputLabel } from '@goodwidget/ui'
 import { ProfileTextAreaField } from '../ProfileTextAreaField'
-import { isProfileDraftComplete } from '../validation'
 import type {
   GovernanceHouse,
   GovernanceProfileDraft,
@@ -20,8 +19,15 @@ interface ProfileStepContentProps {
   onContinuePress: () => void
 }
 
-const STAKE_WARNING =
+const STAKE_WARNING_GENERIC =
   'Please ensure you have the required G$ in your wallet. Staked tokens are locked for the duration of active governance cycles.'
+
+function resolveStakeWarning(house: GovernanceHouse, stakeAmountLabel: string): string {
+  if (house === 'alignment') {
+    return `Please ensure you have at least ${stakeAmountLabel} in your wallet. Staked tokens are locked for the duration of active governance cycles.`
+  }
+  return STAKE_WARNING_GENERIC
+}
 
 // ── Inline profile field (avoids extra import of ProfileField) ───────────────
 function FormField({
@@ -61,16 +67,6 @@ export function ProfileStepContent({
   onProfileFieldChange,
   onContinuePress,
 }: ProfileStepContentProps) {
-  const isReadyToContinue = isProfileDraftComplete(selectedHouse, profileDraft, fieldErrors)
-  const isPristine = Object.values(profileDraft).every((fieldValue) => !fieldValue)
-  const hasErrors = Object.keys(fieldErrors).length > 0
-  const statusBadgeLabel = isReadyToContinue
-    ? 'Ready to continue'
-    : hasErrors
-      ? 'Validation needed'
-      : isPristine
-        ? 'Profile empty'
-        : 'Editing profile'
 
   return (
     <YStack gap="$3">
@@ -93,9 +89,9 @@ export function ProfileStepContent({
                 borderRadius="$full"
                 alignItems="center"
                 justifyContent="center"
-                backgroundColor="$governancePrimary"
+                backgroundColor="$infoMuted"
               >
-                <Icon name="shield-check" size="sm" color="white" />
+                <Icon name="shield-check" size="sm" color="primary" />
               </XStack>
               <YStack gap="$0.5">
                 <Text variant="caption" tone="secondary">
@@ -119,20 +115,10 @@ export function ProfileStepContent({
             >
               <Icon name="alert-triangle" color="error" size="sm" />
               <Text variant="caption" flex={1}>
-                {STAKE_WARNING}
+                {resolveStakeWarning(selectedHouse, stakeAmountLabel)}
               </Text>
             </XStack>
           </YStack>
-
-          {/* ── Header details row with Status Badge ────────────────────── */}
-          <XStack justifyContent="space-between" alignItems="center" flexWrap="wrap" gap="$2">
-            <Text variant="caption" tone="secondary">
-              Profile details
-            </Text>
-            <Badge type={isReadyToContinue ? 'success' : hasErrors ? 'warning' : 'info'}>
-              <BadgeText>{statusBadgeLabel}</BadgeText>
-            </Badge>
-          </XStack>
 
           {/* ── Profile fields ──────────────────────────────────────────── */}
           <YStack gap="$3">
