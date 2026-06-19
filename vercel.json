@@ -4,5 +4,8 @@
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm build && pnpm build-storybook",
   "outputDirectory": "examples/storybook/storybook-static",
-  "devCommand": "pnpm storybook"
+  "devCommand": "pnpm storybook",
+  "git": {
+    "deploymentEnabled": false
+  }
 }
