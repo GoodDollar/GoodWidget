@@ -3,7 +3,7 @@ import { Stack, useTheme } from 'tamagui'
 import { Heading, Text, XStack, YStack } from '@goodwidget/ui'
 import type { FundingDistributionChartProps, FundingProjectAllocation, GovernanceAmount } from './types'
 import { clampPercentage, fundingAmountLabel } from './format'
-import { GovernanceSurfaceCard, resolveThemeColor } from './shared'
+import { FundingDistributionChartFrame, GovernanceComponentTheme, resolveThemeColor } from './shared'
 
 const DONUT_COLOR_KEYS = ['primary', 'success', 'warning', 'colorDim', 'error'] as const
 
@@ -42,7 +42,7 @@ function FundingLegend({
             <Stack width={11} height={11} borderRadius="$full" backgroundColor={colors[index]} />
           </Stack>
           <YStack flex={1} gap="$1">
-            <Text fontSize={16} lineHeight={20} fontWeight="700">
+            <Text tone="default" fontWeight="700">
               {project.name}
             </Text>
             <Text variant="caption" tone="secondary">
@@ -115,9 +115,9 @@ function FundingDonut({
         <Text variant="label" tone="secondary" center>
           {centerLabel}
         </Text>
-        <Text color="$primary" fontSize={24} lineHeight={28} fontWeight="800" textAlign="center">
+        <Heading level={5} color="$primary" textAlign="center">
           {fundingAmountLabel(totalAmount)}
-        </Text>
+        </Heading>
         <Text variant="caption" tone="secondary" center>
           {totalAmount.streamLabel ?? 'Current allocation'}
         </Text>
@@ -126,7 +126,7 @@ function FundingDonut({
   )
 }
 
-export function FundingDistributionChart({
+function FundingDistributionChartContent({
   title = 'Funding distribution',
   centerLabel = 'Total active funding',
   emptyStateLabel = 'No active funding distribution yet.',
@@ -134,18 +134,16 @@ export function FundingDistributionChart({
   projects,
   isStreaming = false,
   onProjectPress,
-  testID,
 }: FundingDistributionChartProps) {
   const theme = useTheme()
-  const fallbackColors = ['#00B0FF', '#13C636', '#FFB020', '#585D79', '#F00505']
-  const colors = DONUT_COLOR_KEYS.map((key, index) =>
-    resolveThemeColor(theme as unknown as Record<string, unknown>, key, fallbackColors[index]),
-  )
+  const colors = DONUT_COLOR_KEYS.map((key) => resolveThemeColor(theme as unknown as Record<string, unknown>, key))
   const total = { ...totalAmount, isStreaming: totalAmount.isStreaming ?? isStreaming }
 
   return (
-    <GovernanceSurfaceCard data-testid={testID} maxWidth={340}>
-      <Heading level={4}>{title}</Heading>
+    <>
+      <Heading level={4} color="$color">
+        {title}
+      </Heading>
       <YStack alignItems="center" gap="$4">
         <FundingDonut
           projects={projects}
@@ -156,6 +154,16 @@ export function FundingDistributionChart({
         />
         <FundingLegend projects={projects} colors={colors} emptyStateLabel={emptyStateLabel} onProjectPress={onProjectPress} />
       </YStack>
-    </GovernanceSurfaceCard>
+    </>
+  )
+}
+
+export function FundingDistributionChart(props: FundingDistributionChartProps) {
+  return (
+    <GovernanceComponentTheme componentName="FundingDistributionChart">
+      <FundingDistributionChartFrame data-testid={props.testID}>
+        <FundingDistributionChartContent {...props} />
+      </FundingDistributionChartFrame>
+    </GovernanceComponentTheme>
   )
 }

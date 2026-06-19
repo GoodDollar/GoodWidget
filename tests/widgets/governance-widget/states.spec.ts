@@ -33,6 +33,14 @@ const STORY_CASES: GovernanceStoryCase[] = [
     expectedText: 'View Impact Report Q3',
   },
   {
+    id: 'widgets-governancewidget--impact-light-component-override',
+    testId: 'ImpactCard-light-component-override',
+    screenshot: 'tests/widgets/governance-widget/test-results/gw-13-impact-light-component-override.png',
+    width: 390,
+    height: 844,
+    expectedText: 'View Impact Report Q3',
+  },
+  {
     id: 'widgets-governancewidget--balance-variants-light',
     testId: 'BalanceCard-light-variants',
     screenshot: 'tests/widgets/governance-widget/test-results/gw-03-balance-variants-light.png',

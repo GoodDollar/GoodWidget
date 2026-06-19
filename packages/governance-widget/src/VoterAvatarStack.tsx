@@ -30,7 +30,7 @@ function VoterAvatar({ voter, index }: { voter: VoterPreview; index: number }) {
           style={{ width: '100%', height: '100%' }}
         />
       ) : (
-        <Text variant="caption" bold>
+        <Text variant="caption" tone="default" bold>
           {initial}
         </Text>
       )}
@@ -48,7 +48,7 @@ export function VoterAvatarStack({ voters, remainingLabel }: { voters: VoterPrev
       </XStack>
       {remainingLabel ? (
         <Badge backgroundColor="$backgroundHover" paddingHorizontal="$3" paddingVertical="$2">
-          <BadgeText color="$text">{remainingLabel}</BadgeText>
+          <BadgeText color="$color">{remainingLabel}</BadgeText>
         </Badge>
       ) : null}
     </XStack>

@@ -2,7 +2,12 @@ import { Stack } from 'tamagui'
 import { Heading, Text, XStack } from '@goodwidget/ui'
 import type { OptimisticVotingProposalCardProps, VoteSegment } from './types'
 import { clampPercentage } from './format'
-import { GovernanceSurfaceCard, ProposalHeader, SEGMENT_TONES } from './shared'
+import {
+  GovernanceComponentTheme,
+  OptimisticVotingProposalCardFrame,
+  ProposalHeader,
+  SEGMENT_TONES,
+} from './shared'
 import { VoterAvatarStack } from './VoterAvatarStack'
 
 function StackedProgressBar({ segments }: { segments: VoteSegment[] }) {
@@ -58,44 +63,47 @@ export function OptimisticVotingProposalCard({
     statusTone === 'positive' ? '$success' : statusTone === 'muted' ? '$placeholderColor' : '$warning'
 
   return (
-    <GovernanceSurfaceCard
-      data-testid={testID}
-      maxWidth={480}
-      cursor={onPress ? 'pointer' : undefined}
-      onPress={onPress ? () => onPress(id) : undefined}
-      role={onPress ? 'button' : undefined}
-      aria-label={`Open proposal ${title}`}
-    >
-      <ProposalHeader categoryLabel={categoryLabel} />
-      <Heading level={4}>{title}</Heading>
-      <Stack gap="$2">
-        <XStack alignItems="center" justifyContent="space-between" gap="$3">
-          <Text variant="caption" tone="secondary">
-            {quorumLabel}
-          </Text>
-          <Text variant="label" bold noWrap>
-            {clampPercentage(quorumReachedPercent)}% reached
-          </Text>
-        </XStack>
-        <Stack position="relative">
-          <Stack height={12} borderRadius="$full" backgroundColor="$borderColor" overflow="hidden">
-            <Stack width={`${clampPercentage(quorumReachedPercent)}%`} height="100%" backgroundColor="$backgroundHover" />
-          </Stack>
-          <Stack position="absolute" left={0} right={0} top={0} bottom={0}>
-            <StackedProgressBar segments={voteSegments} />
+    <GovernanceComponentTheme componentName="OptimisticVotingProposalCard">
+      <OptimisticVotingProposalCardFrame
+        data-testid={testID}
+        cursor={onPress ? 'pointer' : undefined}
+        onPress={onPress ? () => onPress(id) : undefined}
+        role={onPress ? 'button' : undefined}
+        aria-label={`Open proposal ${title}`}
+      >
+        <ProposalHeader categoryLabel={categoryLabel} />
+        <Heading level={4} color="$color">
+          {title}
+        </Heading>
+        <Stack gap="$2">
+          <XStack alignItems="center" justifyContent="space-between" gap="$3">
+            <Text variant="caption" tone="secondary">
+              {quorumLabel}
+            </Text>
+            <Text variant="label" tone="default" bold noWrap>
+              {clampPercentage(quorumReachedPercent)}% reached
+            </Text>
+          </XStack>
+          <Stack position="relative">
+            <Stack height={12} borderRadius="$full" backgroundColor="$borderColor" overflow="hidden">
+              <Stack width={`${clampPercentage(quorumReachedPercent)}%`} height="100%" backgroundColor="$backgroundHover" />
+            </Stack>
+            <Stack position="absolute" left={0} right={0} top={0} bottom={0}>
+              <StackedProgressBar segments={voteSegments} />
+            </Stack>
           </Stack>
         </Stack>
-      </Stack>
-      <Stack height={1} backgroundColor="$borderColor" />
-      <XStack alignItems="center" justifyContent="space-between" gap="$3" flexWrap="wrap">
-        <VoterAvatarStack voters={voters} remainingLabel={remainingVoterCountLabel} />
-        {statusLabel ? (
-          <Text variant="caption" color={statusColor} fontWeight="600">
-            {statusLabel}
-          </Text>
-        ) : null}
-      </XStack>
-      <VoteLegend segments={voteSegments} />
-    </GovernanceSurfaceCard>
+        <Stack height={1} backgroundColor="$borderColor" />
+        <XStack alignItems="center" justifyContent="space-between" gap="$3" flexWrap="wrap">
+          <VoterAvatarStack voters={voters} remainingLabel={remainingVoterCountLabel} />
+          {statusLabel ? (
+            <Text variant="caption" color={statusColor} fontWeight="600">
+              {statusLabel}
+            </Text>
+          ) : null}
+        </XStack>
+        <VoteLegend segments={voteSegments} />
+      </OptimisticVotingProposalCardFrame>
+    </GovernanceComponentTheme>
   )
 }
