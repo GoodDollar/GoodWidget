@@ -28,7 +28,8 @@ const ShellBody = createComponent(Stack, {
   flex: 1,
   padding: '$4',
   gap: '$4',
-  overflow: 'scroll' as const,
+  overflowX: 'hidden' as const,
+  overflowY: 'auto' as const,
   alignItems: 'center',
 })
 

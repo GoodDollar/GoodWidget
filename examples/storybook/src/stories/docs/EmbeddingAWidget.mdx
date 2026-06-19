@@ -1,0 +1,87 @@
+import { Canvas, Meta, Source } from '@storybook/blocks';
+import * as ClaimWidgetStories from '../claim-widget/ClaimWidget.stories';
+import { DocsCallout, DocsCard, DocsGrid, DocsList, DocsPage, DocsSection } from './DocsLayout';
+
+<Meta title="Integrators/Embedding A Widget" />
+
+<DocsPage
+  eyebrow="Integrator Guide"
+  title="Embed a widget the same way a host dapp would"
+  lead="Start from the showcase stories. They are the stable examples that demonstrate how a widget should be mounted, themed, and reviewed outside of QA-only fixture states."
+>
+  <DocsSection
+    title="Theme demo baseline"
+    description="This uses the `claim-widget-theme-demo` package as a stable styling example. It relies on a deterministic provider so the visual result is repeatable in CI, screenshots, and docs."
+  >
+    <Canvas of={ClaimWidgetStories.Default} />
+  </DocsSection>
+
+  <DocsSection
+    title="Recommended integration shape"
+    description="Keep the host setup narrow: pass a provider, select a theme, and add overrides only when they solve a specific branding requirement."
+  >
+    <Source
+      dark
+      language="tsx"
+      code={`import { ClaimWidget } from '@goodwidget/claim-widget-theme-demo'
+
+export function RewardsPanel({ provider }: { provider?: unknown }) {
+  return <ClaimWidget provider={provider} defaultTheme="dark" />
+}`}
+    />
+  </DocsSection>
+
+  <DocsSection
+    title="Optional section shell"
+    description="Use MiniAppShell when you want the widget to live as a section inside a larger page or when you want to enforce a mobile-sized frame for demos and docs."
+  >
+    <Source
+      dark
+      language="tsx"
+      code={`import { ClaimWidget } from '@goodwidget/claim-widget-theme-demo'
+import { MiniAppShell } from '@goodwidget/ui'
+
+export function RewardsPanel() {
+  return (
+    <MiniAppShell title="GoodDollar">
+      <ClaimWidget defaultTheme="dark" />
+    </MiniAppShell>
+  )
+}`}
+    />
+  </DocsSection>
+
+  <DocsSection
+    title="What belongs in the docs surface"
+    description="The public docs surface should show the intended setup and the supported customization path, not every internal runtime state."
+  >
+    <DocsGrid>
+      <DocsCard title="Use showcase stories for">
+        <DocsList>
+          <li>Copy-paste integration examples</li>
+          <li>Design review and product sign-off</li>
+          <li>Interactive demos for builders and integrators</li>
+          <li>Stable product-facing screenshots</li>
+        </DocsList>
+      </DocsCard>
+      <DocsCard title="Use QA stories for">
+        <DocsList>
+          <li>Local fixtures and wallet-sensitive runtime states</li>
+          <li>Regression screenshots and reproducible failure paths</li>
+          <li>Automation-only scenarios that are too noisy for the main docs flow</li>
+        </DocsList>
+      </DocsCard>
+    </DocsGrid>
+  </DocsSection>
+
+  <DocsSection
+    title="Why the split matters"
+    description="Integrators need confidence about the supported path. Testers need deterministic fixtures. Mixing those goals into the same story set creates noise."
+  >
+    <DocsCallout title="Practical rule" tone="info">
+      If a state exists mainly to prove a bug path, an RPC failure, or a local fixture, it belongs
+      in `QA`. If it exists to show how the widget should be consumed by a host app, it belongs in
+      `Widgets` and the integrator docs.
+    </DocsCallout>
+  </DocsSection>
+</DocsPage>

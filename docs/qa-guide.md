@@ -31,8 +31,11 @@ pnpm test:demo tests/widgets/<widget specific folder> <-- only run tests for a s
 
 ## Storybook Structure
 
-- `examples/storybook/src/stories/design-system/`: design-system primitives and theme examples.
-- `examples/storybook/src/stories/<widget-name>/`: widget stories.
+- `Start Here/`: orientation pages.
+- `Integrators/`: embedding and theming guides.
+- `Design System/`: primitives plus theming references.
+- `Widgets/`: widget showcase stories and guides.
+- `QA/`: deterministic fixture stories used for automation and hard-to-reach states.
 
 ### Fixture / State Meanings
 
@@ -41,8 +44,8 @@ pnpm test:demo tests/widgets/<widget specific folder> <-- only run tests for a s
 
 ### Design-system stories
 
-- `Primitives/*`: verify layout, text, spacing, and visible interactions.
-- `Theme/ThemePlayground`: verify overrides still apply correctly and do not break readability or hierarchy.
+- `Design System/Primitives/*`: verify layout, text, spacing, and visible interactions.
+- `Design System/Theming/*`: verify overrides still apply correctly and do not break readability or hierarchy.
 
 ## Playwright Test Structure Alignment
 
