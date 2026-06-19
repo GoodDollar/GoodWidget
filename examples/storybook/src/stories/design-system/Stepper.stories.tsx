@@ -3,9 +3,9 @@ import type { Meta, StoryObj } from '@storybook/react'
 import { Stepper, Text, YStack, type StepperStepItem } from '@goodwidget/ui'
 
 const meta: Meta<typeof Stepper> = {
-  title: 'Design System/Stepper',
+  title: 'Design System/Primitives/Stepper',
   component: Stepper,
-  tags: ['autodocs'],
+  tags: ['autodocs', 'showcase'],
   parameters: { layout: 'padded' },
 }
 
@@ -21,9 +21,9 @@ const STEPS: StepperStepItem[] = [
   { id: 'confirm', title: 'Confirm receipt', status: 'pending' },
 ]
 
-export const TransactionFlow: Story = {
+export const Default: Story = {
   render: () => (
-    <YStack width={420}>
+    <YStack width={420} data-testid="Stepper-default">
       <Stepper
         steps={STEPS}
         activeStepId="submit"

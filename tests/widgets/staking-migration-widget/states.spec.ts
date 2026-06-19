@@ -2,13 +2,15 @@ import { expect, test, type Page } from '@playwright/test'
 
 // This map keeps each test state tied to one Storybook story for visual smoke coverage.
 const STORY_IDS = {
-  empty: '/iframe.html?id=widgets-stakingmigrationwidget--empty-balance&viewMode=story',
-  ready: '/iframe.html?id=widgets-stakingmigrationwidget--ready&viewMode=story',
-  wrongNetwork: '/iframe.html?id=widgets-stakingmigrationwidget--wrong-network&viewMode=story',
-  approvalPending: '/iframe.html?id=widgets-stakingmigrationwidget--approval-pending&viewMode=story',
-  migrating: '/iframe.html?id=widgets-stakingmigrationwidget--migrating&viewMode=story',
-  success: '/iframe.html?id=widgets-stakingmigrationwidget--success&viewMode=story',
-  error: '/iframe.html?id=widgets-stakingmigrationwidget--error-state&viewMode=story',
+  empty: '/iframe.html?id=qa-stakingmigrationwidget-runtime-fixtures--empty-balance&viewMode=story',
+  ready: '/iframe.html?id=qa-stakingmigrationwidget-runtime-fixtures--ready&viewMode=story',
+  wrongNetwork:
+    '/iframe.html?id=qa-stakingmigrationwidget-runtime-fixtures--wrong-network&viewMode=story',
+  approvalPending:
+    '/iframe.html?id=qa-stakingmigrationwidget-runtime-fixtures--approval-pending&viewMode=story',
+  migrating: '/iframe.html?id=qa-stakingmigrationwidget-runtime-fixtures--migrating&viewMode=story',
+  success: '/iframe.html?id=qa-stakingmigrationwidget-runtime-fixtures--success&viewMode=story',
+  error: '/iframe.html?id=qa-stakingmigrationwidget-runtime-fixtures--error-state&viewMode=story',
 } as const
 
 async function gotoStory(page: Page, storyUrl: string): Promise<void> {
