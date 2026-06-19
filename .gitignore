@@ -8,6 +8,7 @@ dist/
 coverage/
 .vite/
 .codex
+.vscode
 /test-results/
 playwright-report/
 **/storybook-static/
@@ -15,3 +16,5 @@ playwright-report/
 **/yalc.lock
 .bounties/contributor-bounties
 local-reference-assets
+.vercel
+.env*

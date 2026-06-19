@@ -9,9 +9,9 @@ import type { Meta, StoryObj } from '@storybook/react'
 import { Card, Heading, Text, Button, ButtonText, YStack } from '@goodwidget/ui'
 
 const meta: Meta<typeof Card> = {
-  title: 'Primitives/Card',
+  title: 'Design System/Primitives/Card',
   component: Card,
-  tags: ['autodocs'],
+  tags: ['autodocs', 'showcase'],
   parameters: { layout: 'padded' },
 }
 export default meta

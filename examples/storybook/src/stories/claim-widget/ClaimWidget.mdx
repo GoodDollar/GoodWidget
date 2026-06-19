@@ -1,0 +1,105 @@
+import { Canvas, Meta, Source } from '@storybook/blocks';
+import * as ClaimWidgetStories from './ClaimWidget.stories';
+import { DocsCallout, DocsCard, DocsGrid, DocsList, DocsPage, DocsSection } from '../docs/DocsLayout';
+
+<Meta of={ClaimWidgetStories} />
+
+<DocsPage
+  eyebrow="Widget Guide"
+  title="ClaimWidget Theme Demo"
+  lead="A boilerplate claim-flow example from `@goodwidget/claim-widget-theme-demo`. Use it to review the preset styling, override surface, and stable visual contract rather than as the runtime-complete citizen claim implementation."
+>
+  <DocsSection
+    title="Dark preset baseline"
+    description="Dark is the default GoodWidget design-system preset. This baseline story is the primary styling reference for the claim-flow theme demo."
+  >
+    <Canvas of={ClaimWidgetStories.Default} />
+  </DocsSection>
+
+  <DocsSection
+    title="Host-themed examples"
+    description="These examples keep the default dark preset and demonstrate how the boilerplate flow can be rebranded through supported overrides without changing widget logic."
+  >
+    <Canvas of={ClaimWidgetStories.CobaltBrand} />
+    <Canvas of={ClaimWidgetStories.TealBrand} />
+  </DocsSection>
+
+  <DocsSection
+    title="Light preset example"
+    description="This is a single light-theme example so builders can review the alternative preset branch and understand how the same widget reads when mounted with `defaultTheme=&quot;light&quot;`."
+  >
+    <Canvas of={ClaimWidgetStories.LightTheme} />
+    <DocsCallout title="Why only one light example" tone="info">
+      The theme demo stays dark-first because the design-system default is dark. The light example
+      exists to document the preset branch, not to duplicate every branded showcase in a second
+      theme family.
+    </DocsCallout>
+  </DocsSection>
+
+  <DocsSection
+    title="How to mount it"
+    description="Keep the host contract narrow. The widget expects a provider and optional theming inputs."
+  >
+    <Source
+      dark
+      language="tsx"
+      code={`import { ClaimWidget } from '@goodwidget/claim-widget-theme-demo'
+import { MiniAppShell } from '@goodwidget/ui'
+
+export function RewardsPanel({ provider }: { provider?: unknown }) {
+  return (
+    <MiniAppShell title="GoodDollar">
+      <ClaimWidget provider={provider} defaultTheme="dark" />
+    </MiniAppShell>
+  )
+}`}
+    />
+  </DocsSection>
+
+  <DocsSection
+    title="Why the shell is optional"
+    description="MiniAppShell is layout chrome, not runtime plumbing. Use it when the widget should read as a section inside a larger app, or when you want to force a mobile-sized frame in demos and docs."
+  >
+    <DocsCallout title="Keep the runtime wrapper separate" tone="info">
+      `ClaimWidget` already owns its internal `GoodWidgetProvider`. You only add `MiniAppShell` when
+      you want a consistent frame around the widget, not when you want the widget to function.
+    </DocsCallout>
+  </DocsSection>
+
+  <DocsSection
+    title="Integrator notes"
+    description="These are the constraints that matter when using this package as a styling and integration demo."
+  >
+    <DocsGrid>
+      <DocsCard title="Deterministic docs demos">
+        The showcase stories use a deterministic mock EIP-1193 provider so docs, screenshots, and
+        design reviews stay stable.
+      </DocsCard>
+      <DocsCard title="Dark is the default preset">
+        The theme demo uses the dark preset as its baseline because that is the default design-system
+        branch. Light is shown once as a separate reference example.
+      </DocsCard>
+      <DocsCard title="Boilerplate, not full runtime">
+        This package demonstrates the claim-flow presentation and theming contract. For the
+        runtime-connected implementation, use `CitizenClaimWidget`.
+      </DocsCard>
+      <DocsCard title="Public customization surface">
+        `themeOverrides` is the host-facing customization path. It is the supported way to align the
+        widget with your brand.
+      </DocsCard>
+      <DocsCard title="QA separation">
+        Runtime-heavy fixture states should live under `QA`, not in the theme-demo showcase.
+      </DocsCard>
+    </DocsGrid>
+  </DocsSection>
+
+  <DocsSection
+    title="What this page is for"
+    description="This page should help builders and integrators understand the preset styling contract and how to embed a themed demo flow."
+  >
+    <DocsCallout title="Use this page for product-facing review" tone="info">
+      Use these stories when the question is how the design system looks and how host overrides
+      behave. If you need the runtime-connected claim journey, use `CitizenClaimWidget` instead.
+    </DocsCallout>
+  </DocsSection>
+</DocsPage>
