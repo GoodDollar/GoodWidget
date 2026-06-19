@@ -1,0 +1,55 @@
+import { Canvas, Meta } from '@storybook/blocks';
+import * as ShowcaseStories from './StakingMigrationWidgetShowcase.stories';
+import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/DocsLayout';
+
+<Meta of={ShowcaseStories} />
+
+<DocsPage
+  eyebrow="Widget Guide"
+  title="StakingMigrationWidget"
+  lead="This widget combines a product-facing injected-wallet showcase with deterministic migration fixtures for QA, screenshots, and state-flow validation."
+>
+  <DocsSection
+    title="Manual wallet showcase"
+    description="Use this story when validating the injected-wallet migration flow in a browser with a real EIP-1193 wallet extension."
+  >
+    <Canvas of={ShowcaseStories.InjectedWallet} />
+  </DocsSection>
+
+  <DocsSection
+    title="QA coverage"
+    description="Deterministic migration states live in a dedicated QA story file so visual regression, fixture review, and debugging stay reproducible."
+  >
+    <DocsCard
+      title="Open the QA fixture demo"
+      href="?path=/story/qa-stakingmigrationwidget-runtime-fixtures--empty-balance"
+    >
+      Empty balance, ready, wrong network, approval pending, migrating, success, error, and light
+      theme fixture states live in `QA / StakingMigrationWidget / Runtime Fixtures`.
+    </DocsCard>
+  </DocsSection>
+
+  <DocsSection
+    title="Why this widget is split"
+    description="The runtime-connected wallet path is useful for manual validation, while the migration-state fixtures are better suited to automation and repeatable review."
+  >
+    <DocsGrid>
+      <DocsCard title="Showcase stories">
+        Manual review in a browser with an injected wallet and optional migration backend wiring.
+      </DocsCard>
+      <DocsCard title="QA stories">
+        Controlled migration states for screenshots, automation, and debugging without live runtime dependencies.
+      </DocsCard>
+    </DocsGrid>
+  </DocsSection>
+
+  <DocsSection
+    title="Workflow guidance"
+    description="Choose the story type based on whether you are reviewing integration behavior or validating deterministic widget states."
+  >
+    <DocsCallout title="Rule of use" tone="info">
+      Use the showcase story for product-facing wallet checks. Use the QA fixtures when you need
+      repeatable screenshots, runtime-state coverage, or debugging.
+    </DocsCallout>
+  </DocsSection>
+</DocsPage>

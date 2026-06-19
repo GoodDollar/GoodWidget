@@ -133,6 +133,9 @@ importers:
       '@goodwidget/embed':
         specifier: workspace:*
         version: link:../../packages/embed
+      '@goodwidget/staking-migration-widget':
+        specifier: workspace:*
+        version: link:../../packages/staking-migration-widget
       '@goodwidget/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -173,6 +176,9 @@ importers:
       '@goodwidget/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@goodwidget/staking-migration-widget':
+        specifier: workspace:*
+        version: link:../../packages/staking-migration-widget
       '@goodwidget/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -327,6 +333,40 @@ importers:
       '@r2wc/react-to-web-component':
         specifier: ^2.0.3
         version: 2.1.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+    devDependencies:
+      '@types/react':
+        specifier: ^18.3.0
+        version: 18.3.28
+      '@types/react-dom':
+        specifier: ^18.3.0
+        version: 18.3.7(@types/react@18.3.28)
+      react:
+        specifier: ^18.3.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.0
+        version: 18.3.1(react@18.3.1)
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(@swc/core@1.15.30)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.3)
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  packages/staking-migration-widget:
+    dependencies:
+      '@goodwidget/core':
+        specifier: workspace:*
+        version: link:../core
+      '@goodwidget/embed':
+        specifier: workspace:*
+        version: link:../embed
+      '@goodwidget/ui':
+        specifier: workspace:*
+        version: link:../ui
+      viem:
+        specifier: ^2.0.0
+        version: 2.48.4(typescript@5.9.3)(zod@4.1.11)
     devDependencies:
       '@types/react':
         specifier: ^18.3.0
@@ -1671,7 +1711,7 @@ packages:
 
   '@expo/bunyan@4.0.1':
     resolution: {integrity: sha512-+Lla7nYSiHZirgK+U/uYzsLv/X+HaJienbD5AKX1UQZHYfWaP+9uuQluRB4GrEVWF0GZ7vEVp/jzaOT9k/SQlg==}
-    engines: {node: '>=0.10.0'}
+    engines: {'0': node >=0.10.0}
 
   '@expo/cli@0.22.28':
     resolution: {integrity: sha512-lvt72KNitGuixYD2l3SZmRKVu2G4zJpmg5V7WfUBNpmUU5oODBw/6qmiJ6kSLAlfDozscUk+BBGknBBzxUrwrA==}
