@@ -24,12 +24,12 @@ export type StreamDirection = 'all' | 'incoming' | 'outgoing'
 // ---------------------------------------------------------------------------
 // Time unit for flow rate display/input
 // ---------------------------------------------------------------------------
-export type StreamTimeUnit = 'second' | 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year'
+export type StreamTimeUnit = 'day' | 'month' | 'year'
 
 // ---------------------------------------------------------------------------
 // Widget tab IDs
 // ---------------------------------------------------------------------------
-export type StreamingWidgetTab = 'streams' | 'pools' | 'balances'
+export type StreamingWidgetTab = 'streams' | 'history' | 'pools' | 'balances'
 
 // ---------------------------------------------------------------------------
 // Operation lifecycle status for write actions
@@ -62,9 +62,23 @@ export interface PoolMembershipItem {
   poolId: Address
   poolToken: Address
   totalUnits: bigint
+  /** Claimable incoming distribution amount in wei, when exposed by the data source */
+  claimableAmount: bigint
+  /** True when the claimable amount read fails and should be retried */
+  claimableAmountError: boolean
   totalAmountClaimed: bigint
   /** Whether this account has actively connected to the pool distribution */
   isConnected: boolean
+}
+
+// ---------------------------------------------------------------------------
+// SUP reserve locker displayed on Base
+// ---------------------------------------------------------------------------
+export interface SupReserveLockerItem {
+  address: Address
+  stakedBalance: bigint
+  unstakedBalance: bigint
+  totalBalance: bigint
 }
 
 // ---------------------------------------------------------------------------
@@ -96,6 +110,9 @@ export interface StreamingWidgetAdapterState {
   streams: StreamListItem[]
   streamsLoading: boolean
   streamsError: string | null
+  streamHistory: StreamListItem[]
+  streamHistoryLoading: boolean
+  streamHistoryError: string | null
 
   /** GDA pool memberships for the connected address */
   pools: PoolMembershipItem[]
@@ -107,8 +124,14 @@ export interface StreamingWidgetAdapterState {
   balanceLoading: boolean
   balanceError: string | null
 
-  /** SUP reserve data — only populated on Base */
+  /** Read-only SUP balance on Base, independent from the connected wallet chain */
+  supTokenBalance: string | null
+  supBalanceLoading: boolean
+  supBalanceError: string | null
+
+  /** Read-only SUP reserve data from Base, independent from the active wallet chain */
   supReserveBalance: string | null
+  supReserveLockers: SupReserveLockerItem[]
   supReserveLoading: boolean
   supReserveError: string | null
 
@@ -121,6 +144,9 @@ export interface StreamingWidgetAdapterState {
   /** Pool connect/disconnect write status keyed by pool address */
   poolConnectStatus: Record<string, WriteStatus>
   poolConnectError: Record<string, string | null>
+  /** Pool claim write status keyed by pool address */
+  poolClaimStatus: Record<string, WriteStatus>
+  poolClaimError: Record<string, string | null>
 }
 
 // ---------------------------------------------------------------------------
@@ -130,6 +156,7 @@ export interface StreamingWidgetAdapterActions {
   connect: () => Promise<void>
   switchChain: (chainId: number) => Promise<void>
   refreshStreams: () => Promise<void>
+  refreshStreamHistory: () => Promise<void>
   refreshPools: () => Promise<void>
   refreshBalance: () => Promise<void>
 
@@ -144,6 +171,8 @@ export interface StreamingWidgetAdapterActions {
   connectToPool: (poolAddress: Address) => Promise<void>
   /** Disconnect wallet from a GDA pool */
   disconnectFromPool: (poolAddress: Address) => Promise<void>
+  /** Claim all currently claimable distributions from a GDA pool */
+  claimFromPool: (poolAddress: Address) => Promise<void>
 }
 
 export interface StreamingWidgetAdapterResult {

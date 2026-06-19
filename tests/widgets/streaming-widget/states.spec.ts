@@ -1,285 +1,239 @@
-/**
- * states.spec.ts — Playwright smoke tests for the StreamingWidget.
- *
- * Tests use the NoWallet story (no provider) to verify the widget shell renders and
- * surfaces the connect-wallet prompt, and the CustodialLocalFixture story to verify
- * the connected flow on Celo with an empty-history test wallet.
- *
- * Story URLs:
- *   /iframe.html?id=widgets-streamingwidget--no-wallet&viewMode=story
- *   /iframe.html?id=widgets-streamingwidget--custodial-local-fixture&viewMode=story
- *
- * Browser flags (set globally in playwright.config.ts):
- *   --disable-web-security     : allows viem fetch calls from localhost to external HTTPS RPC
- *   --ignore-certificate-errors: allows Chromium to accept RPC endpoint TLS certs
- *
- * Running:
- *   pnpm storybook          (in one terminal)
- *   pnpm test:demo          (in another terminal)
- *
- * Artifact output:
- *   tests/widgets/streaming-widget/test-results/   (widget screenshot evidence)
- *   test-results/                                  (Playwright traces/videos/attachments)
- */
 import { test, expect, type Page } from '@playwright/test'
 
-const NO_WALLET_STORY_URL =
-  '/iframe.html?id=widgets-streamingwidget--no-wallet&viewMode=story'
+const STORY_PREFIX = '/iframe.html?id=widgets-streamingwidget--'
 
-const CUSTODIAL_STORY_URL =
-  '/iframe.html?id=widgets-streamingwidget--custodial-local-fixture&viewMode=story'
+function storyUrl(storyId: string): string {
+  return `${STORY_PREFIX}${storyId}&viewMode=story`
+}
 
-/** Navigate directly to the story iframe (bypasses Storybook shell for speed). */
-async function gotoStory(page: Page, url: string): Promise<void> {
-  await page.goto(url)
+async function gotoStory(page: Page, storyId: string): Promise<void> {
+  await page.goto(storyUrl(storyId))
   await page.waitForLoadState('domcontentloaded')
+  await page.waitForFunction(() => document.body.innerText.trim().length > 0)
 }
 
-/** Poll the page until any of the given text patterns appears in the body. */
-async function waitForText(
-  page: Page,
-  patterns: string[],
-  timeoutMs = 30_000,
-): Promise<string> {
-  const deadline = Date.now() + timeoutMs
-  while (Date.now() < deadline) {
-    const text = await page.evaluate(() => document.body.innerText)
-    for (const p of patterns) {
-      if (text.includes(p)) return p
+async function bodyText(page: Page): Promise<string> {
+  return page.evaluate(() => document.body.innerText)
+}
+
+async function expectBodyToContain(page: Page, patterns: Array<string | RegExp>) {
+  const text = await bodyText(page)
+  for (const pattern of patterns) {
+    if (typeof pattern === 'string') {
+      expect(text).toContain(pattern)
+    } else {
+      expect(text).toMatch(pattern)
     }
-    await page.waitForTimeout(500)
   }
-  return ''
 }
 
-// ─── no-wallet state ─────────────────────────────────────────────────────────
-test('StreamingWidget shows connect-wallet prompt when no provider is given', async ({ page }) => {
-  await gotoStory(page, NO_WALLET_STORY_URL)
-
-  // The widget should render the tab bar and the connect-wallet prompt
-  const matched = await waitForText(page, ['Connect Wallet', 'not connected', 'Streams'], 20_000)
-  expect(matched, 'Expected connect-wallet prompt').toBeTruthy()
-
-  const bodyText = await page.evaluate(() => document.body.innerText)
-  expect(bodyText).toMatch(/Connect Wallet|not connected/i)
-
+async function saveScreenshot(page: Page, name: string) {
   await page.screenshot({
-    path: 'tests/widgets/streaming-widget/test-results/sw-01-no-wallet.png',
+    path: `tests/widgets/streaming-widget/test-results/${name}.png`,
     fullPage: true,
   })
+}
+
+test('StreamingWidget shows the disconnected wallet gate', async ({ page }) => {
+  await gotoStory(page, 'no-wallet')
+
+  await expectBodyToContain(page, ['Wallet not connected', 'Connect Wallet'])
+  await saveScreenshot(page, 'sw-01-no-wallet')
 })
 
-// ─── tab navigation ───────────────────────────────────────────────────────────
-test('StreamingWidget renders Streams, Pools, Balances tabs', async ({ page }) => {
-  await gotoStory(page, NO_WALLET_STORY_URL)
+test('StreamingWidget renders tab navigation and switches views', async ({ page }) => {
+  await gotoStory(page, 'populated-state')
 
-  const matched = await waitForText(page, ['Streams', 'Pools', 'Balances'], 20_000)
-  expect(matched, 'Tab bar must render').toBeTruthy()
+  await expectBodyToContain(page, ['Streams', 'History', 'Pools', 'Balances', 'Active streams'])
 
-  const bodyText = await page.evaluate(() => document.body.innerText)
-  expect(bodyText).toContain('Streams')
-  expect(bodyText).toContain('Pools')
-  expect(bodyText).toContain('Balances')
+  await page.getByText('History').first().click()
+  await expectBodyToContain(page, ['Stream history', 'Show more'])
 
-  await page.screenshot({
-    path: 'tests/widgets/streaming-widget/test-results/sw-02-tabs-visible.png',
-    fullPage: true,
-  })
+  await page.getByText('Pools').first().click()
+  await expectBodyToContain(page, ['Claimable', 'Claim', 'Connect'])
+
+  await page.getByText('Balances').first().click()
+  await expectBodyToContain(page, ['Super Token Balance', 'SUP Balance', 'SUP Reserve'])
+
+  await saveScreenshot(page, 'sw-02-tab-navigation')
 })
 
-// ─── wrong-chain state ────────────────────────────────────────────────────────
-test('StreamingWidget shows wrong-chain prompt when wallet is on unsupported chain', async ({
-  page,
-}) => {
-  // Inject a minimal EIP-1193 provider that reports an unsupported chain (chain 1 = Ethereum mainnet)
-  await gotoStory(page, NO_WALLET_STORY_URL)
+test('StreamingWidget shows the unsupported network prompt', async ({ page }) => {
+  await gotoStory(page, 'wrong-chain')
 
-  // Evaluate a mock provider in the page context to simulate wrong chain
-  await page.evaluate(() => {
-    const mockProvider = {
-      on: () => {},
-      removeListener: () => {},
-      request: async ({ method }: { method: string }) => {
-        if (method === 'eth_accounts' || method === 'eth_requestAccounts')
-          return ['0x1234567890123456789012345678901234567890']
-        if (method === 'eth_chainId') return '0x1' // Ethereum mainnet (unsupported)
-        if (method === 'net_version') return '1'
-        return null
-      },
-    }
-    ;(window as unknown as Record<string, unknown>).__mockProvider = mockProvider
-  })
-
-  // The story renders with no provider so we can't easily inject — just verify tab bar renders
-  const matched = await waitForText(page, ['Streams', 'Pools', 'Balances'], 15_000)
-  expect(matched).toBeTruthy()
-
-  await page.screenshot({
-    path: 'tests/widgets/streaming-widget/test-results/sw-03-no-wallet-tabs.png',
-    fullPage: true,
-  })
+  await expectBodyToContain(page, [
+    'Unsupported network',
+    'Switch to Celo',
+    'Switch to Base',
+  ])
+  await saveScreenshot(page, 'sw-03-wrong-chain')
 })
 
-// ─── custodial: loading + empty states ────────────────────────────────────────
-test('StreamingWidget custodial fixture — Streams tab shows loading then empty state', async ({
-  page,
-  browserName,
-}) => {
-  test.skip(
-    browserName !== 'chromium',
-    'Live RPC test requires --disable-web-security / --ignore-certificate-errors',
-  )
+test('StreamingWidget shows loading states for streams and history', async ({ page }) => {
+  await gotoStory(page, 'loading-state')
 
-  // Route subgraph calls to never respond — intentionally hangs to keep the
-  // widget in the loading state indefinitely so we can screenshot that state.
-  await page.route('https://subgraph-gateway.superfluid.finance/**', () => {
-    /* intentional hang — never fulfill, never abort */
-  })
-  await page.route('https://gateway-arbitrum.network.thegraph.com/**', () => {
-    /* intentional hang — never fulfill, never abort */
-  })
+  await expectBodyToContain(page, ['Loading streams'])
 
-  await gotoStory(page, CUSTODIAL_STORY_URL)
-
-  // Tab bar should render first
-  const tabsVisible = await waitForText(page, ['Streams', 'Pools', 'Balances'], 30_000)
-  expect(tabsVisible).toBeTruthy()
-
-  await page.screenshot({
-    path: 'tests/widgets/streaming-widget/test-results/sw-04-loading.png',
-    fullPage: true,
-  })
+  await page.getByText('History').first().click()
+  await expectBodyToContain(page, ['Loading stream history'])
+  await saveScreenshot(page, 'sw-04-loading-state')
 })
 
-// ─── custodial: RPC blocked → error state ────────────────────────────────────
-test('StreamingWidget custodial fixture — shows error state when RPC is blocked', async ({
-  page,
-  browserName,
-}) => {
-  test.skip(
-    browserName !== 'chromium',
-    'Live RPC test requires --disable-web-security / --ignore-certificate-errors',
-  )
+test('StreamingWidget shows empty states for streams and history', async ({ page }) => {
+  await gotoStory(page, 'empty-state')
 
-  // Block all Celo RPC and subgraph endpoints to force error state
-  await page.route('https://forno.celo.org/**', (route) => route.abort())
-  await page.route('https://subgraph-gateway.superfluid.finance/**', (route) => route.abort())
-  await page.route('https://gateway-arbitrum.network.thegraph.com/**', (route) => route.abort())
+  await expectBodyToContain(page, ['No streams found.'])
 
-  await gotoStory(page, CUSTODIAL_STORY_URL)
-
-  // After RPCs abort, adapter should surface error state with Retry button
-  const matched = await waitForText(page, ['Retry', 'error', 'reach'], 25_000)
-  expect(matched, 'Expected error state after RPC abort').toBeTruthy()
-
-  await page.screenshot({
-    path: 'tests/widgets/streaming-widget/test-results/sw-05-error.png',
-    fullPage: true,
-  })
+  await page.getByText('History').first().click()
+  await expectBodyToContain(page, ['No stream history found.'])
+  await saveScreenshot(page, 'sw-05-empty-state')
 })
 
-// ─── custodial: pools tab navigation ─────────────────────────────────────────
-test('StreamingWidget custodial fixture — clicking Pools tab changes view', async ({
-  page,
-  browserName,
-}) => {
-  test.skip(
-    browserName !== 'chromium',
-    'Live RPC test requires --disable-web-security / --ignore-certificate-errors',
-  )
+test('StreamingWidget shows error states for streams and history', async ({ page }) => {
+  await gotoStory(page, 'error-state')
 
-  // Block external calls to keep the test deterministic
-  await page.route('https://forno.celo.org/**', (route) => route.abort())
-  await page.route('https://subgraph-gateway.superfluid.finance/**', (route) => route.abort())
+  await expectBodyToContain(page, ['Unable to reach the network', 'Retry'])
 
-  await gotoStory(page, CUSTODIAL_STORY_URL)
-
-  // Wait for tab bar to render
-  await waitForText(page, ['Streams', 'Pools', 'Balances'], 20_000)
-
-  // Click the Pools tab
-  const poolsTab = page.getByText('Pools').first()
-  await expect(poolsTab).toBeVisible()
-  await poolsTab.click()
-
-  await page.waitForTimeout(500)
-
-  await page.screenshot({
-    path: 'tests/widgets/streaming-widget/test-results/sw-06-pools-tab.png',
-    fullPage: true,
-  })
-
-  // Verify the tab content changed (either loading, error, or empty state for pools)
-  const bodyText = await page.evaluate(() => document.body.innerText)
-  expect(bodyText).toContain('Pools')
+  await page.getByText('History').first().click()
+  await expectBodyToContain(page, ['Unable to load stream history.', 'Retry'])
+  await saveScreenshot(page, 'sw-06-error-state')
 })
 
-// ─── custodial: balances tab navigation ──────────────────────────────────────
-test('StreamingWidget custodial fixture — clicking Balances tab shows balance section', async ({
-  page,
-  browserName,
-}) => {
-  test.skip(
-    browserName !== 'chromium',
-    'Live RPC test requires --disable-web-security / --ignore-certificate-errors',
-  )
+test('StreamingWidget shows populated incoming and outgoing stream views', async ({ page }) => {
+  await gotoStory(page, 'populated-state')
 
-  // Block external calls
-  await page.route('https://forno.celo.org/**', (route) => route.abort())
-  await page.route('https://subgraph-gateway.superfluid.finance/**', (route) => route.abort())
+  await expectBodyToContain(page, [
+    'Active streams',
+    'Incoming',
+    'Outgoing',
+    /100\s+G\$\s*\/mo/,
+  ])
 
-  await gotoStory(page, CUSTODIAL_STORY_URL)
+  await page.getByText('Incoming').first().click()
+  await expectBodyToContain(page, ['Incoming'])
 
-  await waitForText(page, ['Streams', 'Pools', 'Balances'], 20_000)
+  await page.getByText('Outgoing').first().click()
+  await expectBodyToContain(page, ['Outgoing'])
 
-  // Click Balances tab
-  const balancesTab = page.getByText('Balances').first()
-  await expect(balancesTab).toBeVisible()
-  await balancesTab.click()
+  await saveScreenshot(page, 'sw-07-populated-streams')
 
-  await page.waitForTimeout(500)
-
-  await page.screenshot({
-    path: 'tests/widgets/streaming-widget/test-results/sw-07-balances-tab.png',
-    fullPage: true,
-  })
-
-  // Balances tab shows Super Token Balance section and the SUP reserve disabled notice for non-Base
-  const bodyText = await page.evaluate(() => document.body.innerText)
-  expect(bodyText).toMatch(/Balance|Refresh|Super Token/i)
+  await page.getByText('History').first().click()
+  await expectBodyToContain(page, ['Stream history', 'Show more'])
+  await saveScreenshot(page, 'sw-22-stream-history-tab')
 })
 
-// ─── custodial: create-stream form toggle ────────────────────────────────────
-test('StreamingWidget custodial fixture — New Stream button toggles form', async ({
-  page,
-  browserName,
-}) => {
-  test.skip(
-    browserName !== 'chromium',
-    'Live RPC test requires --disable-web-security / --ignore-certificate-errors',
-  )
+test('StreamingWidget renders usable mobile and desktop layouts', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await gotoStory(page, 'populated-state')
+  await expectBodyToContain(page, ['Streams', 'History', 'Active streams'])
+  await saveScreenshot(page, 'sw-18-mobile-populated')
 
-  // Block external calls for determinism
-  await page.route('https://forno.celo.org/**', (route) => route.abort())
-  await page.route('https://subgraph-gateway.superfluid.finance/**', (route) => route.abort())
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await gotoStory(page, 'populated-state')
+  await expectBodyToContain(page, ['Streams', 'History', 'Pools', 'Balances', 'Active streams'])
+  await saveScreenshot(page, 'sw-19-desktop-populated')
+})
 
-  await gotoStory(page, CUSTODIAL_STORY_URL)
+test('StreamingWidget create/update form shows invalid input feedback', async ({ page }) => {
+  await gotoStory(page, 'create-update-invalid-input')
 
-  // Wait for Streams tab to render with the New Stream button
-  await waitForText(page, ['New Stream'], 20_000)
+  await expectBodyToContain(page, [
+    'Create / Update Stream',
+    'Recipient must be a valid Ethereum address',
+  ])
+  await page.getByRole('listbox').click()
+  await expectBodyToContain(page, ['per month', 'per day', 'per year'])
+  await expect(page.getByText('per second')).toHaveCount(0)
+  await expect(page.getByText('per minute')).toHaveCount(0)
+  await expect(page.getByText('per hour')).toHaveCount(0)
+  await expect(page.getByText('per week')).toHaveCount(0)
+  await saveScreenshot(page, 'sw-08-create-update-invalid')
+})
 
-  const newStreamBtn = page.getByText('+ New Stream').first()
-  await expect(newStreamBtn).toBeVisible()
-  await newStreamBtn.click()
+test('StreamingWidget create/update form shows pending and success states', async ({ page }) => {
+  await gotoStory(page, 'create-update-pending')
+  await expectBodyToContain(page, ['Create / Update Stream', '/day', 'Transaction pending...'])
+  await saveScreenshot(page, 'sw-09-create-update-pending')
 
-  // Form should appear with recipient and amount fields
-  await waitForText(page, ['Recipient address', 'Amount', 'Set Stream'], 5_000)
+  await gotoStory(page, 'create-update-success')
+  await expectBodyToContain(page, ['Create / Update Stream', 'Stream set! Tx:'])
+  await saveScreenshot(page, 'sw-10-create-update-success')
+})
 
-  const bodyText = await page.evaluate(() => document.body.innerText)
-  expect(bodyText).toMatch(/Recipient|Amount|Set Stream/i)
+test('StreamingWidget create/update form shows failure state', async ({ page }) => {
+  await gotoStory(page, 'create-update-failure')
 
-  await page.screenshot({
-    path: 'tests/widgets/streaming-widget/test-results/sw-08-create-stream-form.png',
-    fullPage: true,
-  })
+  await expectBodyToContain(page, ['Create / Update Stream', 'Transaction cancelled by wallet.'])
+  await saveScreenshot(page, 'sw-11-create-update-failure')
+})
+
+test('StreamingWidget shows pool claim amount and lifecycle states', async ({ page }) => {
+  await gotoStory(page, 'pool-claim-state')
+  await expectBodyToContain(page, ['Claimable', '12.5', 'Claim'])
+  await saveScreenshot(page, 'sw-12-pool-claim')
+
+  await gotoStory(page, 'pool-connected-state')
+  await expectBodyToContain(page, ['Connected', 'Claimable', 'Disconnect'])
+  await expect(page.getByText('Claim', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('Connect', { exact: true })).toHaveCount(0)
+  await saveScreenshot(page, 'sw-23-pool-connected')
+
+  await gotoStory(page, 'pool-claim-pending')
+  await expectBodyToContain(page, ['Connected', 'Claimable', '12.5', 'Pending', 'Disconnect'])
+  await expect(page.getByText('Claim', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('Connect', { exact: true })).toHaveCount(0)
+  await saveScreenshot(page, 'sw-13-pool-claim-pending')
+
+  await gotoStory(page, 'pool-claim-success')
+  await expectBodyToContain(page, ['Connected', 'Claimable', 'Done', 'Disconnect'])
+  await expect(page.getByText('Claim', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('Connect', { exact: true })).toHaveCount(0)
+  await saveScreenshot(page, 'sw-14-pool-claim-success')
+
+  await gotoStory(page, 'pool-claim-error')
+  await expectBodyToContain(page, [
+    'Connected',
+    'Pool claim failed. Please retry.',
+    'Failed',
+    'Disconnect',
+  ])
+  await expect(page.getByText('Claim', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('Connect', { exact: true })).toHaveCount(0)
+  await saveScreenshot(page, 'sw-15-pool-claim-error')
+
+  await gotoStory(page, 'pool-claimable-amount-error')
+  await expectBodyToContain(page, ['Could not load claimable amount.', 'Retry'])
+  await saveScreenshot(page, 'sw-20-pool-claimable-amount-error')
+
+  await page.getByText('Retry').first().click()
+  await expectBodyToContain(page, ['Loading pool memberships'])
+  await saveScreenshot(page, 'sw-21-pool-claimable-retry-loading')
+})
+
+test('StreamingWidget shows read-only Base SUP balance and reserve data', async ({ page }) => {
+  await gotoStory(page, 'base-sup-balance-and-reserve')
+  await expectBodyToContain(page, [
+    'Super Token Balance',
+    'SUP Balance',
+    'SUP Reserve',
+    'To see your active SUP streams visit app.superfluid.org',
+    '112.75',
+    'Reserve locker',
+    'Available',
+    'Staked',
+    'Open reserve in Superfluid',
+  ])
+  await saveScreenshot(page, 'sw-16-base-sup-reserve')
+
+  await gotoStory(page, 'non-base-sup-reserve-disabled')
+  await expectBodyToContain(page, [
+    'Super Token Balance',
+    'Celo',
+    'SUP Balance',
+    'SUP Reserve',
+    'To see your active SUP streams visit app.superfluid.org',
+    '112.75',
+    'Open reserve in Superfluid',
+  ])
+  await saveScreenshot(page, 'sw-17-non-base-reserve-disabled')
 })
