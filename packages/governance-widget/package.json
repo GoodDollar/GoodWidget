@@ -30,6 +30,7 @@
     }
   },
   "dependencies": {
+    "@goodwidget/core": "workspace:*",
     "@goodwidget/ui": "workspace:*",
     "react-native-svg": "15.15.5",
     "tamagui": "1.121.0"

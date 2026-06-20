@@ -13,6 +13,10 @@ export {
 export {
   FundingDistributionChart,
 } from './FundingDistributionChart'
+export {
+  GovernanceWidgetProvider,
+} from './GovernanceWidgetProvider'
+export type { GovernanceWidgetProviderProps } from './GovernanceWidgetProvider'
 export type {
   GovernanceAmount,
   ImpactCardMetric,

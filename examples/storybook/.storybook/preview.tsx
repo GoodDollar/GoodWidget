@@ -11,6 +11,7 @@ import { MiniAppShell } from '@goodwidget/ui'
 interface StoryGoodWidgetParameters {
   config?: GoodWidgetConfig
   defaultTheme?: 'light' | 'dark'
+  useProvider?: boolean
   useShell?: boolean
 }
 
@@ -26,16 +27,20 @@ const preview: Preview = {
     (Story, context) => {
       const params = (context.parameters.goodWidgetProvider ?? {}) as StoryGoodWidgetParameters
       const story = <Story />
+      const content =
+        params.useShell === false ? (
+          story
+        ) : (
+          <MiniAppShell title="GoodWidgetDemos" headerRight={undefined}>
+            {story}
+          </MiniAppShell>
+        )
 
-      return (
+      return params.useProvider === false ? (
+        content
+      ) : (
         <GoodWidgetProvider config={params.config} defaultTheme={params.defaultTheme ?? 'dark'}>
-          {params.useShell === false ? (
-            story
-          ) : (
-            <MiniAppShell title="GoodWidgetDemos" headerRight={undefined}>
-              {story}
-            </MiniAppShell>
-          )}
+          {content}
         </GoodWidgetProvider>
       )
     },

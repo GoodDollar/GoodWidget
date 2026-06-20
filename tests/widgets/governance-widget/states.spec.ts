@@ -13,6 +13,7 @@ type GovernanceStoryCase = {
   width?: number
   height?: number
   expectedText: string
+  expectedBackgroundColor?: string
 }
 
 const STORY_CASES: GovernanceStoryCase[] = [
@@ -39,6 +40,7 @@ const STORY_CASES: GovernanceStoryCase[] = [
     width: 390,
     height: 844,
     expectedText: 'View Impact Report Q3',
+    expectedBackgroundColor: 'rgb(15, 118, 110)',
   },
   {
     id: 'widgets-governancewidget--balance-variants-light',
@@ -122,6 +124,9 @@ for (const storyCase of STORY_CASES) {
     const component = page.getByTestId(storyCase.testId)
     await expect(component).toBeVisible({ timeout: 15_000 })
     await expect(page.getByText(storyCase.expectedText).first()).toBeVisible()
+    if (storyCase.expectedBackgroundColor) {
+      await expect(component).toHaveCSS('background-color', storyCase.expectedBackgroundColor)
+    }
 
     await component.screenshot({ path: storyCase.screenshot })
   })

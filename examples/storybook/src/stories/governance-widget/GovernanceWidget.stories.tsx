@@ -5,6 +5,7 @@ import {
   AlignmentVotingProposalCard,
   BalanceCard,
   FundingDistributionChart,
+  GovernanceWidgetProvider,
   ImpactCard,
   OptimisticVotingProposalCard,
 } from '@goodwidget/governance-widget'
@@ -14,13 +15,14 @@ import type {
   VoteSegment,
   VoterPreview,
 } from '@goodwidget/governance-widget'
+import type { GoodWidgetThemeOverrides } from '@goodwidget/core'
 
 const meta: Meta = {
   title: 'Widgets/GovernanceWidget',
   tags: ['autodocs'],
   parameters: {
     layout: 'centered',
-    goodWidgetProvider: { useShell: false, defaultTheme: 'light' },
+    goodWidgetProvider: { useShell: false, useProvider: false },
   },
 }
 
@@ -63,7 +65,17 @@ const fundingProjects: FundingProjectAllocation[] = [
   { id: 'creator', name: 'Creator Fund', amount: { value: 90000, token: 'G$' }, percentage: 20 },
 ]
 
-function GovernanceStoryFrame({ children, width = 520 }: { children: React.ReactNode; width?: number }) {
+function GovernanceStoryFrame({
+  children,
+  width = 520,
+  defaultTheme = 'light',
+  themeOverrides,
+}: {
+  children: React.ReactNode
+  width?: number
+  defaultTheme?: 'light' | 'dark'
+  themeOverrides?: GoodWidgetThemeOverrides
+}) {
   const [lastAction, setLastAction] = useState('No interaction yet')
 
   // Mocked handlers make interaction affordances visible without wiring runtime data.
@@ -80,12 +92,14 @@ function GovernanceStoryFrame({ children, width = 520 }: { children: React.React
   })
 
   return (
-    <YStack width={width} maxWidth="100%" gap="$3" padding="$3">
-      {enhancedChildren}
-      <Text variant="caption" tone="secondary" data-testid="GovernanceWidget-last-action">
-        {lastAction}
-      </Text>
-    </YStack>
+    <GovernanceWidgetProvider defaultTheme={defaultTheme} themeOverrides={themeOverrides}>
+      <YStack width={width} maxWidth="100%" gap="$3" padding="$3">
+        {enhancedChildren}
+        <Text variant="caption" tone="secondary" data-testid="GovernanceWidget-last-action">
+          {lastAction}
+        </Text>
+      </YStack>
+    </GovernanceWidgetProvider>
   )
 }
 
@@ -107,9 +121,9 @@ export const ImpactLight: Story = {
 }
 
 export const ImpactDarkLongDisabledMobile: Story = {
-  parameters: { goodWidgetProvider: { useShell: false, defaultTheme: 'dark' }, viewport: { defaultViewport: 'mobile1' } },
+  parameters: { viewport: { defaultViewport: 'mobile1' } },
   render: () => (
-    <GovernanceStoryFrame width={390}>
+    <GovernanceStoryFrame width={390} defaultTheme="dark">
       <ImpactCard
         testID="ImpactCard-dark-mobile-disabled"
         title="Distributed"
@@ -126,32 +140,33 @@ export const ImpactDarkLongDisabledMobile: Story = {
 
 export const BalanceVariantsLight: Story = {
   render: () => (
-    <XStack data-testid="BalanceCard-light-variants" flexWrap="wrap" gap="$3" padding="$3" width={600}>
-      <BalanceCard
-        testID="BalanceCard-token-growth"
-        icon="wallet"
-        title="DAO Treasury Balance"
-        amount={{ value: 148400000, token: 'G$' }}
-        metadataType="growth"
-        metadata={{ label: '+2.4%', tone: 'positive', icon: 'chevron-up' }}
-      />
-      <BalanceCard
-        testID="BalanceCard-raw-window"
-        icon="check"
-        title="Active Members"
-        amount={12402}
-        amountType="raw"
-        metadataType="time-window"
-        metadata={{ label: 'Past 30 days', tone: 'muted', icon: 'info' }}
-      />
-    </XStack>
+    <GovernanceWidgetProvider>
+      <XStack data-testid="BalanceCard-light-variants" flexWrap="wrap" gap="$3" padding="$3" width={600}>
+        <BalanceCard
+          testID="BalanceCard-token-growth"
+          icon="wallet"
+          title="DAO Treasury Balance"
+          amount={{ value: 148400000, token: 'G$' }}
+          metadataType="growth"
+          metadata={{ label: '+2.4%', tone: 'positive', icon: 'chevron-up' }}
+        />
+        <BalanceCard
+          testID="BalanceCard-raw-window"
+          icon="check"
+          title="Active Members"
+          amount={12402}
+          amountType="raw"
+          metadataType="time-window"
+          metadata={{ label: 'Past 30 days', tone: 'muted', icon: 'info' }}
+        />
+      </XStack>
+    </GovernanceWidgetProvider>
   ),
 }
 
 export const BalanceDarkCompact: Story = {
-  parameters: { goodWidgetProvider: { useShell: false, defaultTheme: 'dark' } },
   render: () => (
-    <GovernanceStoryFrame width={252}>
+    <GovernanceStoryFrame width={252} defaultTheme="dark">
       <BalanceCard
         testID="BalanceCard-dark-compact"
         compact
@@ -182,9 +197,8 @@ export const AlignmentDefaultLight: Story = {
 }
 
 export const AlignmentDarkLongOptions: Story = {
-  parameters: { goodWidgetProvider: { useShell: false, defaultTheme: 'dark' } },
   render: () => (
-    <GovernanceStoryFrame>
+    <GovernanceStoryFrame defaultTheme="dark">
       <AlignmentVotingProposalCard
         testID="AlignmentVotingProposalCard-dark-long"
         id="alignment-long"
@@ -218,9 +232,8 @@ export const OptimisticHighQuorumLight: Story = {
 }
 
 export const OptimisticDarkLowQuorumMixed: Story = {
-  parameters: { goodWidgetProvider: { useShell: false, defaultTheme: 'dark' } },
   render: () => (
-    <GovernanceStoryFrame>
+    <GovernanceStoryFrame defaultTheme="dark">
       <OptimisticVotingProposalCard
         testID="OptimisticVotingProposalCard-low-quorum"
         id="gip-44"
@@ -251,11 +264,10 @@ export const FundingDistributionLight: Story = {
 }
 
 export const ImpactLightComponentOverride: Story = {
-  parameters: {
-    goodWidgetProvider: {
-      useShell: false,
-      defaultTheme: 'light',
-      config: {
+  render: () => (
+    <GovernanceStoryFrame
+      width={390}
+      themeOverrides={{
         themes: {
           light_ImpactCard: {
             background: '#0F766E',
@@ -275,11 +287,8 @@ export const ImpactLightComponentOverride: Story = {
             color: '#0F766E',
           },
         },
-      },
-    },
-  },
-  render: () => (
-    <GovernanceStoryFrame width={390}>
+      }}
+    >
       <ImpactCard
         testID="ImpactCard-light-component-override"
         title="Distributed"
@@ -295,9 +304,9 @@ export const ImpactLightComponentOverride: Story = {
 }
 
 export const FundingDistributionDarkPopulated: Story = {
-  parameters: { goodWidgetProvider: { useShell: false, defaultTheme: 'dark' }, viewport: { defaultViewport: 'mobile1' } },
+  parameters: { viewport: { defaultViewport: 'mobile1' } },
   render: () => (
-    <GovernanceStoryFrame width={390}>
+    <GovernanceStoryFrame width={390} defaultTheme="dark">
       <FundingDistributionChart
         testID="FundingDistributionChart-populated-dark"
         title="House Of Alignment funding allocation"
@@ -310,9 +319,9 @@ export const FundingDistributionDarkPopulated: Story = {
 }
 
 export const FundingDistributionDarkEmptyMobile: Story = {
-  parameters: { goodWidgetProvider: { useShell: false, defaultTheme: 'dark' }, viewport: { defaultViewport: 'mobile1' } },
+  parameters: { viewport: { defaultViewport: 'mobile1' } },
   render: () => (
-    <GovernanceStoryFrame width={328}>
+    <GovernanceStoryFrame width={328} defaultTheme="dark">
       <FundingDistributionChart
         testID="FundingDistributionChart-empty-dark-mobile"
         title="Funding distribution"
