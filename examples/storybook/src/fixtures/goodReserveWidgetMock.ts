@@ -56,7 +56,7 @@ export const reserveWidgetMockStates: Record<string, Partial<ReserveSwapWidgetAd
     tokenInBalance: '120.00',
     quote: {
       outputAmount: '108.2500',
-      price: '0.2310',
+      price: '4.33000',
       minimumReceived: '108.1417',
       priceImpactPercent: 'N/A',
       exitContributionPercent: '0%',
@@ -90,7 +90,7 @@ export const reserveWidgetMockStates: Record<string, Partial<ReserveSwapWidgetAd
     inputAmount: '25',
     quote: {
       outputAmount: '108.2500',
-      price: '0.2310',
+      price: '4.33000',
       minimumReceived: '108.1417',
       priceImpactPercent: 'N/A',
       exitContributionPercent: '0%',
@@ -103,7 +103,7 @@ export const reserveWidgetMockStates: Record<string, Partial<ReserveSwapWidgetAd
     inputAmount: '25',
     quote: {
       outputAmount: '108.2500',
-      price: '0.2310',
+      price: '4.33000',
       minimumReceived: '108.1417',
       priceImpactPercent: 'N/A',
       exitContributionPercent: '0%',
@@ -139,7 +139,7 @@ export const reserveWidgetMockStates: Record<string, Partial<ReserveSwapWidgetAd
     inputAmount: '40',
     quote: {
       outputAmount: '8.9231',
-      price: '4.4820',
+      price: '0.22308',
       minimumReceived: '8.9142',
       priceImpactPercent: 'N/A',
       exitContributionPercent: '0%',
@@ -159,7 +159,7 @@ export const reserveWidgetMockStates: Record<string, Partial<ReserveSwapWidgetAd
     inputAmount: '50',
     quote: {
       outputAmount: '216.5000',
-      price: '0.2310',
+      price: '4.33000',
       minimumReceived: '216.2835',
       priceImpactPercent: 'N/A',
       exitContributionPercent: '0%',

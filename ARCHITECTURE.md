@@ -308,8 +308,6 @@ Key patterns in `packages/claim-widget/src/ClaimWidget.tsx`:
 
 ## Demo and Review Environment
 
-<<<<<<< HEAD
-
 ### React web demo lab
 
 `examples/react-web` is a route-based Vite + React + RN-web SPA that serves as

@@ -45,19 +45,6 @@ export const defaultTokenValues = {
     borderDark: '#333333',
     overlay: 'rgba(0,0,0,0.5)',
     transparent: 'transparent',
-
-    // GoodReserve swap widget palette. This is the canonical token source for
-    // the $reserve* tokens (the preset's color map mirrors these exact values so
-    // its component sub-themes can reference them; keep the two in sync).
-    reserveCard: '#0C0E15',
-    reserveInputCard: '#252730',
-    reserveBadge: '#33343C',
-    reserveSurfaceInner: '#191B22',
-    reserveHeading: '#4090FF',
-    reserveText: '#E2E2EC',
-    reserveTextMuted: '#8B91A0',
-    reserveTextSecondary: '#C1C6D6',
-    reserveAccentSoft: '#AAC7FF',
   },
   size: {
     0: 0,

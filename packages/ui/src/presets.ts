@@ -63,20 +63,6 @@ const tokenPreset = {
       glowSuccess: 'rgba(19, 198, 54, 0.72)',
       glowError: 'rgba(240, 5, 5, 0.72)',
       shimmer: 'rgba(245, 249, 255, 0.22)',
-
-      // GoodReserve swap widget palette (Figma file xsk5EiF6CvStA9mtdbA9OR).
-      // Mirror of defaultTokenValues.color.reserve* in theme.ts (the canonical
-      // token source); these must stay in sync. Namespaced so they back the
-      // dark_Reserve* sub-themes without colliding with the shared tokens above.
-      reserveCard: '#0C0E15',
-      reserveInputCard: '#252730',
-      reserveBadge: '#33343C',
-      reserveSurfaceInner: '#191B22',
-      reserveHeading: '#4090FF',
-      reserveText: '#E2E2EC',
-      reserveTextMuted: '#8B91A0',
-      reserveTextSecondary: '#C1C6D6',
-      reserveAccentSoft: '#AAC7FF',
     },
     space: {
       1: 4,
@@ -359,101 +345,6 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
       color: color.white,
       borderColor: color.border,
       shadowColor: 'rgba(3, 7, 18, 0.8)',
-    },
-
-    // GoodReserve swap widget — public, host-themable component sub-themes.
-    // The widget is dark-only (GoodWalletV2 has no light design), so the
-    // light_/dark_ pairs are intentionally identical and map to the Figma
-    // palette. Integrators override these keys to reskin the widget without
-    // touching the shared preset tokens.
-    light_ReserveSwapShell: {
-      background: color.reserveCard,
-      color: color.reserveText,
-      borderColor: color.border,
-    },
-    dark_ReserveSwapShell: {
-      background: color.reserveCard,
-      color: color.reserveText,
-      borderColor: color.borderDark,
-    },
-    light_ReserveAmountCard: {
-      background: color.reserveInputCard,
-      color: color.reserveText,
-    },
-    dark_ReserveAmountCard: {
-      background: color.reserveInputCard,
-      color: color.reserveText,
-    },
-    // Raised surfaces: success summary card + FAQ card.
-    light_ReserveSurface: {
-      background: color.surface,
-      color: color.reserveText,
-    },
-    dark_ReserveSurface: {
-      background: color.surface,
-      color: color.reserveText,
-    },
-    // Inner highlight surface inside the confirm sheet.
-    light_ReserveSurfaceInner: {
-      background: color.reserveSurfaceInner,
-      color: color.reserveText,
-    },
-    dark_ReserveSurfaceInner: {
-      background: color.reserveSurfaceInner,
-      color: color.reserveText,
-    },
-    // Confirm-sheet details table surface.
-    light_ReserveDetailsTable: {
-      background: color.reserveCard,
-      color: color.reserveText,
-    },
-    dark_ReserveDetailsTable: {
-      background: color.reserveCard,
-      color: color.reserveText,
-    },
-    light_ReserveTokenBadge: {
-      background: color.reserveBadge,
-      color: color.reserveText,
-    },
-    dark_ReserveTokenBadge: {
-      background: color.reserveBadge,
-      color: color.reserveText,
-    },
-    light_ReserveSwapDirectionButton: {
-      background: color.reserveBadge,
-      color: color.reserveHeading,
-    },
-    dark_ReserveSwapDirectionButton: {
-      background: color.reserveBadge,
-      color: color.reserveHeading,
-    },
-    light_ReserveSettingsButton: {
-      background: color.reserveBadge,
-      color: color.reserveHeading,
-    },
-    dark_ReserveSettingsButton: {
-      background: color.reserveBadge,
-      color: color.reserveHeading,
-    },
-    // Glowing success hero (96x96).
-    light_ReserveSuccessIcon: {
-      background: color.primary,
-      color: color.white,
-      shadowColor: color.glowPrimary,
-    },
-    dark_ReserveSuccessIcon: {
-      background: color.primary,
-      color: color.white,
-      shadowColor: color.glowPrimary,
-    },
-    // Flat "to" badge in the confirm hero (distinct from the glowing hero).
-    light_ReserveConfirmToBadge: {
-      background: color.primary,
-      color: color.white,
-    },
-    dark_ReserveConfirmToBadge: {
-      background: color.primary,
-      color: color.white,
     },
   },
   typography: {

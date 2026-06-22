@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useWallet } from '@goodwidget/core'
+import { erc20ABI } from '@goodsdks/good-reserve'
 import {
   createPublicClient,
   createWalletClient,
@@ -25,7 +26,7 @@ import {
 } from './constants'
 import { mapReserveError } from './errors'
 import { sanitizeAmount } from './amount'
-import { loadGoodReserveSdkConstructor, type GoodReserveSDKLike } from './sdk'
+import { GoodReserveSDK } from '@goodsdks/good-reserve'
 
 // Minimal viem Chain definitions for the supported reserve chains. The
 // GoodReserve SDK constructor reads publicClient.chain.id and throws when it is
@@ -45,25 +46,6 @@ const RESERVE_CHAINS: Record<number, Chain> = {
     rpcUrls: { default: { http: ['https://rpc.ankr.com/xdc'] } },
   } as Chain,
 }
-
-type Erc20ReadClient = {
-  readContract: (params: {
-    address: `0x${string}`
-    abi: readonly unknown[]
-    functionName: 'balanceOf'
-    args: [`0x${string}`]
-  }) => Promise<bigint>
-}
-
-const erc20BalanceOfAbi = [
-  {
-    type: 'function',
-    stateMutability: 'view',
-    name: 'balanceOf',
-    inputs: [{ name: 'account', type: 'address' }],
-    outputs: [{ name: '', type: 'uint256' }],
-  },
-] as const
 
 const initialState: ReserveSwapWidgetAdapterState = {
   status: 'no_provider',
@@ -111,8 +93,10 @@ export function useGoodReserveAdapter(
     ...mockState,
   })
 
-  const sdkRef = useRef<GoodReserveSDKLike | null>(null)
-  const readClientRef = useRef<Erc20ReadClient | null>(null)
+  const sdkRef = useRef<GoodReserveSDK | null>(null)
+  // viem public client retained for ERC20 balance reads (the SDK has
+  // getGDBalance but no helper for the arbitrary stable token).
+  const publicClientRef = useRef<ReturnType<typeof createPublicClient> | null>(null)
   const decimalsRef = useRef({ stable: DEFAULT_STABLE_DECIMALS, gd: DEFAULT_GD_DECIMALS })
   // Raw on-chain balances kept independent of direction so the in/out slots can
   // be remapped instantly when the user toggles buy/sell.
@@ -165,23 +149,20 @@ export function useGoodReserveAdapter(
   const reserveEnvironment = chainId === XDC_CHAIN_ID ? 'development' : 'production'
 
   const refreshBalances = useCallback(async () => {
-    if (!address || !sdkRef.current || !readClientRef.current) return
+    if (!address || !sdkRef.current || !publicClientRef.current) return
 
-    const stableToken = sdkRef.current.getStableTokenAddress()
-    const gdToken = sdkRef.current.getGoodDollarAddress()
+    const sdk = sdkRef.current
+    const stableToken = sdk.getStableTokenAddress()
     const [stable, gd] = await Promise.all([
-      readClientRef.current.readContract({
+      // Stable-token balance via direct ERC20 read (the SDK has no helper for it).
+      publicClientRef.current.readContract({
         address: stableToken,
-        abi: erc20BalanceOfAbi,
+        abi: erc20ABI,
         functionName: 'balanceOf',
         args: [address as `0x${string}`],
-      }),
-      readClientRef.current.readContract({
-        address: gdToken,
-        abi: erc20BalanceOfAbi,
-        functionName: 'balanceOf',
-        args: [address as `0x${string}`],
-      }),
+      }) as Promise<bigint>,
+      // G$ balance via the SDK helper.
+      sdk.getGDBalance(address as `0x${string}`),
     ])
 
     const stableBalance = formatUnits(stable, decimalsRef.current.stable)
@@ -219,19 +200,9 @@ export function useGoodReserveAdapter(
     // Drop any SDK/client bound to a previous chain so a Celo<->XDC switch
     // re-initializes against the new chain instead of reusing stale clients.
     sdkRef.current = null
-    readClientRef.current = null
+    publicClientRef.current = null
 
     applyStatePatch({ status: 'sdk_initializing', hasProvider: true, error: null })
-
-    const constructor = await loadGoodReserveSdkConstructor()
-    if (!constructor) {
-      applyStatePatch({
-        status: 'quote_error',
-        error:
-          'GoodReserve SDK is not available in this environment. Install @goodsdks/good-reserve to enable live swaps.',
-      })
-      return
-    }
 
     try {
       const chain = RESERVE_CHAINS[chainId]
@@ -245,24 +216,29 @@ export function useGoodReserveAdapter(
         transport,
       })
 
-      const sdk = new constructor(publicClient, walletClient, reserveEnvironment)
+      // exactApproval: true approves only the swap amount each time (no
+      // leftover allowance on the broker) — the right default for
+      // swap-on-demand UX.
+      const sdk = new GoodReserveSDK(publicClient, walletClient, reserveEnvironment, {
+        exactApproval: true,
+      })
       const stats = await sdk.getReserveStats()
 
       sdkRef.current = sdk
-      readClientRef.current = publicClient as unknown as Erc20ReadClient
+      publicClientRef.current = publicClient
       decimalsRef.current = {
-        // Chain-aware fallback: XDC's stable token (USDC) is 6 decimals, Celo's
-        // (USDm) is 18. Only used if the SDK stats omit the value.
+        // Chain-aware fallback: XDC's stable token (USDC) is 6 decimals,
+        // Celo's (USDm) is 18. Only used if the SDK stats omit the value.
         stable:
           stats.stableTokenDecimals ?? (chainId === XDC_CHAIN_ID ? 6 : DEFAULT_STABLE_DECIMALS),
         gd: stats.goodDollarDecimals ?? DEFAULT_GD_DECIMALS,
       }
-      // exitContribution comes from the same Mento pool struct as reserveRatio
-      // and is read unscaled by the SDK (extractPoolStats → toNumber(pool[5])).
-      // The GoodSDKs demo renders these pool fields as a percent with `/ 10000`
-      // (apps/demo-reserve-swap/src/components/ReserveSwap.tsx: reserveRatio / 10000);
-      // we follow the same convention as the source of truth: e.g. 5000 → "0.50%".
-      // See sdk.ts for the GoodSDKs PR #35 commit the SDK types are mirrored from.
+      // exitContribution comes from the same Mento pool struct as
+      // reserveRatio and is read unscaled by the SDK
+      // (extractPoolStats → toNumber(pool[5])). The GoodSDKs demo renders
+      // these pool fields as a percent with `/ 10000`
+      // (apps/demo-reserve-swap/src/components/ReserveSwap.tsx: reserveRatio /
+      // 10000); we follow the same convention: e.g. 5000 → "0.50%".
       exitContributionRef.current =
         stats.exitContribution != null
           ? `${(stats.exitContribution / 10_000).toFixed(2)}%`
@@ -297,10 +273,9 @@ export function useGoodReserveAdapter(
 
   useEffect(() => {
     if (mockState) return
-
     if (!provider || !isConnected || !address) {
       sdkRef.current = null
-      readClientRef.current = null
+      publicClientRef.current = null
       applyStatePatch({
         ...initialState,
         status: 'no_provider',

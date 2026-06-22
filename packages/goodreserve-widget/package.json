@@ -34,13 +34,11 @@
     "react-dom": ">=18.0.0"
   },
   "dependencies": {
+    "@goodsdks/good-reserve": "^0.1.0",
     "@goodwidget/core": "workspace:*",
     "@goodwidget/embed": "workspace:*",
     "@goodwidget/ui": "workspace:*",
     "viem": "^2.0.0"
-  },
-  "optionalDependencies": {
-    "@goodsdks/good-reserve": "*"
   },
   "devDependencies": {
     "@types/react": "^18.3.0",
