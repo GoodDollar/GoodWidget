@@ -20,7 +20,7 @@ import type {
   ReserveSwapWidgetAdapterResult,
   ReserveSwapWidgetAdapterState,
 } from './widgetRuntimeContract'
-import { CELO_CHAIN_ID, SUPPORTED_RESERVE_CHAINS, XDC_CHAIN_ID } from './constants'
+import { CELO_CHAIN_ID, getReserveChainFromId, XDC_CHAIN_ID } from './constants'
 import { sanitizeAmount } from './amount'
 
 // ---------------------------------------------------------------------------
@@ -256,7 +256,7 @@ export function ReserveSwapView({ adapter, preferredChainId }: ReserveSwapViewPr
   // Clamp the unsupported-chain switch target to a supported reserve chain so a
   // bad preferredChainId can't route the user to e.g. Ethereum and bounce back.
   const switchTarget =
-    preferredChainId != null && SUPPORTED_RESERVE_CHAINS.includes(preferredChainId as never)
+    preferredChainId != null && getReserveChainFromId(preferredChainId) !== null
       ? preferredChainId
       : CELO_CHAIN_ID
 

@@ -21,12 +21,11 @@ import {
   DEFAULT_STABLE_DECIMALS,
   QUOTE_DEBOUNCE_MS,
   QUOTE_TTL_MS,
-  SUPPORTED_RESERVE_CHAINS,
   XDC_CHAIN_ID,
 } from './constants'
 import { mapReserveError } from './errors'
 import { sanitizeAmount } from './amount'
-import { GoodReserveSDK } from '@goodsdks/good-reserve'
+import { GoodReserveSDK, getReserveChainFromId } from '@goodsdks/good-reserve'
 
 // Minimal viem Chain definitions for the supported reserve chains. The
 // GoodReserve SDK constructor reads publicClient.chain.id and throws when it is
@@ -144,9 +143,16 @@ export function useGoodReserveAdapter(
     setState((current) => ({ ...current, ...patch }))
   }, [])
 
-  const chainSupported = chainId !== null && SUPPORTED_RESERVE_CHAINS.includes(chainId as never)
-
   const reserveEnvironment = chainId === XDC_CHAIN_ID ? 'development' : 'production'
+
+  // Drive the supported-chain check from the SDK's own validator, which
+  // accounts for env-specific availability (e.g. XDC reserve contracts are
+  // only deployed in 'development'). getReserveChainFromId handles the case
+  // where the SDK is reachable but the chain isn't valid for the current env.
+  const chainSupported =
+    chainId !== null &&
+    (GoodReserveSDK.isChainEnvSupported(chainId, reserveEnvironment) ||
+      getReserveChainFromId(chainId) !== null)
 
   const refreshBalances = useCallback(async () => {
     if (!address || !sdkRef.current || !publicClientRef.current) return
@@ -499,7 +505,7 @@ export function useGoodReserveAdapter(
         // live rather than trusting the memoized chainId: the user may have
         // switched networks in their wallet while the confirm dialog was open.
         const activeChainId = await readActiveChainId()
-        if (activeChainId !== null && !SUPPORTED_RESERVE_CHAINS.includes(activeChainId as never)) {
+        if (activeChainId !== null && getReserveChainFromId(activeChainId) === null) {
           applyStatePatch({ status: 'unsupported_chain', error: null })
           return
         }
