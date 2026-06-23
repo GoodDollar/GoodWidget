@@ -1,0 +1,55 @@
+import { Canvas, Meta } from '@storybook/blocks';
+import * as ShowcaseStories from './CitizenClaimWidgetShowcase.stories';
+import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/DocsLayout';
+
+<Meta of={ShowcaseStories} />
+
+<DocsPage
+  eyebrow="Widget Guide"
+  title="CitizenClaimWidget"
+  lead="This widget is more runtime-connected than the ClaimWidget demo, so the Storybook structure is intentionally split between a manual showcase path and QA-oriented fixture states."
+>
+  <DocsSection
+    title="Manual wallet showcase"
+    description="Use this story when reviewing the widget in a browser that has an injected wallet available."
+  >
+    <Canvas of={ShowcaseStories.InjectedWallet} />
+  </DocsSection>
+
+  <DocsSection
+    title="QA coverage"
+    description="Use the QA demo when you need reproducible custodial state, Playwright screenshots, or fixture-driven debugging. Keep this page focused on the product-facing integration flow."
+  >
+    <DocsCard
+      title="Open the QA fixture demo"
+      href="?path=/story/qa-citizenclaimwidget-runtime-fixtures--custodial-local-fixture"
+    >
+      Custodial fixtures, Playwright screenshots, and reproducible runtime checks live in
+      `QA / CitizenClaimWidget / Runtime Fixtures`.
+    </DocsCard>
+  </DocsSection>
+
+  <DocsSection
+    title="Why this widget is split"
+    description="The runtime behavior is not as documentation-friendly as the reference ClaimWidget demo, so the showcase and QA responsibilities are intentionally separated."
+  >
+    <DocsGrid>
+      <DocsCard title="Showcase stories">
+        Manual review in a realistic browser environment with an injected wallet.
+      </DocsCard>
+      <DocsCard title="QA stories">
+        Deterministic fixtures and controlled network behavior for automation and debugging.
+      </DocsCard>
+    </DocsGrid>
+  </DocsSection>
+
+  <DocsSection
+    title="Workflow guidance"
+    description="Choose the story type based on the job you are trying to do."
+  >
+    <DocsCallout title="Rule of use" tone="info">
+      Use the showcase story when validating the product-facing integration flow. Use the QA fixture
+      story when you need state-flow coverage, screenshots, or reproducible runtime conditions.
+    </DocsCallout>
+  </DocsSection>
+</DocsPage>

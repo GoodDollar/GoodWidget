@@ -1,11 +1,11 @@
 /**
  * claimwidget-screenshots.spec.ts — targeted screenshot captures for the
- * current ClaimWidget demo and the dark ThemePlayground baseline.
+ * current ClaimWidget theme demo and the dark ThemePlayground baseline.
  *
  * This is intentionally separate from smoke.spec.ts so it only tracks the
  * two live stories we actually want screenshots for:
- *   - Theme/ClaimWidgetThemeDemo-Light
- *   - Theme/ThemePlayground (Default Preset)
+ *   - Widgets/ClaimWidget Theme Demo/Showcase
+ *   - Design System/Theming/Override Playground (Default Preset)
  */
 import { test, expect, Page } from '@playwright/test'
 
@@ -19,11 +19,11 @@ function getStoryFrame(page: Page) {
   return page.frameLocator('#storybook-preview-iframe')
 }
 
-test('ClaimWidget light demo renders and captures screenshot', async ({ page }) => {
+test('ClaimWidget light preset demo renders and captures screenshot', async ({ page }) => {
   await page.setViewportSize({ width: 420, height: 1100 })
-  await gotoStory(page, 'theme-claimwidgetthemedemo-light--default')
+  await gotoStory(page, 'widgets-claimwidget-theme-demo-showcase--light-theme')
   const frame = getStoryFrame(page)
-  await expect(frame.locator('[data-testid="ClaimWidget-default"]')).toBeVisible()
+  await expect(frame.locator('[data-testid="ClaimWidget-light"]')).toBeVisible()
   await page.locator('#storybook-preview-iframe').screenshot({
     path: 'tests/design-system/test-results/claimwidget-light-gooddapp.png',
   })
@@ -31,7 +31,7 @@ test('ClaimWidget light demo renders and captures screenshot', async ({ page }) 
 
 test('ThemePlayground dark baseline renders and captures screenshot', async ({ page }) => {
   await page.setViewportSize({ width: 420, height: 1100 })
-  await gotoStory(page, 'theme-themeplayground--default-preset')
+  await gotoStory(page, 'design-system-theming-override-playground--default-preset')
   const frame = getStoryFrame(page)
   await expect(frame.locator('text=Preset Baseline')).toBeVisible()
   await page.locator('#storybook-preview-iframe').screenshot({

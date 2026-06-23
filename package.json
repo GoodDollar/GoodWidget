@@ -8,6 +8,12 @@
     "clean": "turbo run clean",
     "storybook": "pnpm --filter @goodwidget/storybook storybook",
     "build-storybook": "pnpm --filter @goodwidget/storybook build-storybook",
+    "vercel:pull:preview": "vercel pull --yes --environment=preview",
+    "vercel:pull:production": "vercel pull --yes --environment=production",
+    "vercel:build:preview": "pnpm vercel:pull:preview && vercel build",
+    "vercel:build:production": "pnpm vercel:pull:production && vercel build --prod",
+    "vercel:deploy:preview": "pnpm vercel:build:preview && vercel deploy --prebuilt",
+    "vercel:deploy:production": "pnpm vercel:build:production && vercel deploy --prebuilt --prod",
     "test:storybook": "pnpm --filter @goodwidget/storybook test:storybook",
     "test:demo": "playwright test"
   },
@@ -18,7 +24,8 @@
     "eslint": "^9.20.0",
     "prettier": "^3.5.0",
     "@typescript-eslint/eslint-plugin": "^8.25.0",
-    "@typescript-eslint/parser": "^8.25.0"
+    "@typescript-eslint/parser": "^8.25.0",
+    "vercel": "^54.14.2"
   },
   "packageManager": "pnpm@9.15.0"
 }

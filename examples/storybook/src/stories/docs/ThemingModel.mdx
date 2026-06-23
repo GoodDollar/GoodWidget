@@ -1,0 +1,57 @@
+import { Canvas, Meta } from '@storybook/blocks';
+import * as CardStories from '../design-system/Card.stories';
+import * as ThemeStories from '../design-system/ThemePlayground.stories';
+import { DocsCard, DocsGrid, DocsList, DocsPage, DocsSection } from './DocsLayout';
+
+<Meta title="Design System/Theming Model" />
+
+<DocsPage
+  eyebrow="Design System"
+  title="Understand the theming model before authoring overrides"
+  lead="The main distinction is simple but important: tokens are static design primitives, themes are semantic values derived from those primitives, and named components expose stable theme targets."
+>
+  <DocsSection
+    title="Core model"
+    description="This is the contract the widget and design-system packages are built around."
+  >
+    <DocsGrid>
+      <DocsCard title="Tokens">
+        Raw design primitives like palette values, spacing, size scales, radii, and other values
+        that should mean the same thing everywhere.
+      </DocsCard>
+      <DocsCard title="Themes">
+        Semantic values like `background`, `color`, `borderColor`, and `shadowColor` that can vary
+        by light or dark context.
+      </DocsCard>
+      <DocsCard title="Named component themes">
+        Stable override targets like `light_Card` and `dark_Card` that let a host or widget author
+        tune specific surfaces without rewriting the component.
+      </DocsCard>
+    </DocsGrid>
+  </DocsSection>
+
+  <DocsSection
+    title="Primitive reference"
+    description="This primitive story demonstrates a component that inherits its visual treatment from the active theme and named component sub-theme."
+  >
+    <Canvas of={CardStories.Default} />
+  </DocsSection>
+
+  <DocsSection
+    title="Override behavior reference"
+    description="Use this story to see how token overrides cascade across the component surface."
+  >
+    <Canvas of={ThemeStories.TokenOverride} />
+  </DocsSection>
+
+  <DocsSection
+    title="Decision rule"
+    description="Choosing the right layer is more important than choosing a clever implementation."
+  >
+    <DocsList>
+      <li>Change tokens when you want broad brand alignment across many surfaces.</li>
+      <li>Change themes when you want semantic light or dark values to shift.</li>
+      <li>Change named component sub-themes when you need a targeted surface adjustment.</li>
+    </DocsList>
+  </DocsSection>
+</DocsPage>
