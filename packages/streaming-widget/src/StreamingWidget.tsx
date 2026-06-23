@@ -37,7 +37,7 @@ export function StreamingWidgetPreview({
   initialStreamsFormOpen,
   themeOverrides,
   config,
-  defaultTheme = 'light',
+  defaultTheme = 'dark',
 }: StreamingWidgetPreviewProps) {
   return (
     <GoodWidgetProvider config={config} themeOverrides={themeOverrides} defaultTheme={defaultTheme}>

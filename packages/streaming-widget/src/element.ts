@@ -19,7 +19,7 @@ export const StreamingWidgetElement = createMiniAppElement(
   StreamingWidget as React.ComponentType<Record<string, unknown>>,
   {
     shadow: true,
-    defaultTheme: 'light',
+    defaultTheme: 'dark',
     events: [],
   },
 )

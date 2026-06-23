@@ -1,5 +1,4 @@
 import React from 'react'
-import { GoodWidgetProvider } from '@goodwidget/core'
 import {
   STREAMING_CHAINS,
   StreamingWidget,
@@ -14,6 +13,7 @@ import {
   type StreamListItem,
 } from '@goodwidget/streaming-widget'
 import { MiniAppShell, YStack } from '@goodwidget/ui'
+import { GoodWidgetProvider } from '@goodwidget/core'
 import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
 import {
   getInjectedEip1193Provider,
@@ -186,29 +186,21 @@ function createAdapter(
   }
 }
 
-function LightStoryShell({
-  children,
-  dataTestId,
-}: {
-  children: React.ReactNode
-  dataTestId: string
-}) {
+function StoryShell({ children, dataTestId }: { children: React.ReactNode; dataTestId: string }) {
   return (
-    <GoodWidgetProvider defaultTheme="light">
-      <MiniAppShell>
-        <YStack
-          data-testid={dataTestId}
-          style={{
-            width: '100%',
-            maxWidth: 400,
-            minHeight: '100vh',
-            boxSizing: 'border-box',
-          }}
-        >
-          {children}
-        </YStack>
-      </MiniAppShell>
-    </GoodWidgetProvider>
+    <MiniAppShell>
+      <YStack
+        data-testid={dataTestId}
+        style={{
+          width: '100%',
+          maxWidth: 400,
+          minHeight: '100vh',
+          boxSizing: 'border-box',
+        }}
+      >
+        {children}
+      </YStack>
+    </MiniAppShell>
   )
 }
 
@@ -217,20 +209,23 @@ function PreviewStoryShell({
   dataTestId,
   initialTab = 'streams',
   initialStreamsFormOpen = false,
+  defaultTheme,
 }: {
   adapter: StreamingWidgetAdapterResult
   dataTestId: string
   initialTab?: StreamingWidgetTab
   initialStreamsFormOpen?: boolean
+  defaultTheme?: 'light' | 'dark'
 }) {
   return (
-    <LightStoryShell dataTestId={dataTestId}>
+    <StoryShell dataTestId={dataTestId}>
       <StreamingWidgetPreview
         adapter={adapter}
         initialTab={initialTab}
         initialStreamsFormOpen={initialStreamsFormOpen}
+        defaultTheme={defaultTheme}
       />
-    </LightStoryShell>
+    </StoryShell>
   )
 }
 
@@ -238,21 +233,24 @@ function StreamingWidgetStoryShell({
   provider,
   dataTestId,
   apiKey,
+  defaultTheme,
 }: {
   provider: unknown
   dataTestId: string
   apiKey?: string
+  defaultTheme?: 'light' | 'dark'
 }) {
   const trimmedApiKey = apiKey?.trim()
 
   return (
-    <LightStoryShell dataTestId={dataTestId}>
+    <StoryShell dataTestId={dataTestId}>
       <StreamingWidget
         provider={provider}
         environment="production"
         apiKey={trimmedApiKey || undefined}
+        defaultTheme={defaultTheme}
       />
-    </LightStoryShell>
+    </StoryShell>
   )
 }
 
@@ -400,6 +398,18 @@ export function ErrorStateStory() {
 export function PopulatedStateStory() {
   return (
     <PreviewStoryShell adapter={createAdapter()} dataTestId="StreamingWidget-populated-state" />
+  )
+}
+
+export function LightThemePopulatedStory() {
+  return (
+    <GoodWidgetProvider defaultTheme="light">
+      <PreviewStoryShell
+        adapter={createAdapter()}
+        dataTestId="StreamingWidget-light-theme-populated"
+        defaultTheme="light"
+      />
+    </GoodWidgetProvider>
   )
 }
 

@@ -10,6 +10,7 @@ import {
   CustodialLocalFixtureStory,
   EmptyStateStory,
   ErrorStateStory,
+  LightThemePopulatedStory,
   LoadingStateStory,
   NoWalletStory,
   NonBaseSupReserveDisabledStory,
@@ -30,7 +31,6 @@ const meta: Meta<typeof StreamingWidget> = {
   parameters: {
     layout: 'padded',
     goodWidgetProvider: {
-      defaultTheme: 'light',
       useShell: false,
     },
   },
@@ -76,6 +76,10 @@ export const ErrorState: Story = {
 
 export const PopulatedState: Story = {
   render: () => <PopulatedStateStory />,
+}
+
+export const LightThemePopulated: Story = {
+  render: () => <LightThemePopulatedStory />,
 }
 
 export const CreateUpdateForm: Story = {
