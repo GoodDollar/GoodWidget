@@ -21,8 +21,10 @@ function StreamingWidgetRuntime({ environment, apiKey }: StreamingWidgetRuntimeP
   return <StreamingWidgetView adapter={adapter} />
 }
 
-export interface StreamingWidgetPreviewProps
-  extends Pick<StreamingWidgetProps, 'themeOverrides' | 'config' | 'defaultTheme'> {
+export interface StreamingWidgetPreviewProps extends Pick<
+  StreamingWidgetProps,
+  'themeOverrides' | 'config' | 'defaultTheme'
+> {
   adapter: StreamingWidgetAdapterResult
   initialTab?: StreamingWidgetTab
   initialStreamsFormOpen?: boolean
@@ -38,11 +40,7 @@ export function StreamingWidgetPreview({
   defaultTheme = 'light',
 }: StreamingWidgetPreviewProps) {
   return (
-    <GoodWidgetProvider
-      config={config}
-      themeOverrides={themeOverrides}
-      defaultTheme={defaultTheme}
-    >
+    <GoodWidgetProvider config={config} themeOverrides={themeOverrides} defaultTheme={defaultTheme}>
       <StreamingWidgetView
         adapter={adapter}
         initialTab={initialTab}
@@ -58,7 +56,7 @@ export function StreamingWidget({
   environment = 'production',
   themeOverrides,
   config,
-  defaultTheme = 'light',
+  defaultTheme = 'dark',
   apiKey,
 }: StreamingWidgetProps) {
   return (

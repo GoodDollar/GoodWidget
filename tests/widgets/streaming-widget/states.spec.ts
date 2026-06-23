@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 
-const STORY_PREFIX = '/iframe.html?id=widgets-streamingwidget--'
+const STORY_PREFIX = '/iframe.html?id=qa-streamingwidget-runtime-fixtures--'
 
 function storyUrl(storyId: string): string {
   return `${STORY_PREFIX}${storyId}&viewMode=story`
