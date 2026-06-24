@@ -3,6 +3,8 @@ import type { Address } from 'viem'
 
 export const ANTSEED_DEPOSITS_EIP712_NAME = 'AntseedDeposits'
 export const ANTSEED_DEPOSITS_EIP712_VERSION = '1'
+export const ANTSEED_DEPOSITS_BASE_ADDRESS =
+  '0x0F7a3a8f4Da01637d1202bb5443fcF7F88F99fD2' as const
 
 export const SET_OPERATOR_EIP712_TYPES = {
   SetOperator: [

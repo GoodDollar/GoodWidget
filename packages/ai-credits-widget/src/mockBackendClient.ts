@@ -1,7 +1,8 @@
 import type { AiCreditsQuote, AiCreditsUsageEntry } from './widgetRuntimeContract'
-import type {
-  OperatorConsentParams,
-  OperatorConsentSubmissionResult,
+import {
+  ANTSEED_DEPOSITS_BASE_ADDRESS,
+  type OperatorConsentParams,
+  type OperatorConsentSubmissionResult,
 } from './operatorConsent'
 
 export type { OperatorConsentParams, OperatorConsentSubmissionResult }
@@ -128,7 +129,7 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     return {
       enabled: true,
       buyer: buyer.toLowerCase(),
-      depositsAddress: '0x0000000000000000000000000000000000000003',
+      depositsAddress: ANTSEED_DEPOSITS_BASE_ADDRESS,
       operatorAddress: '0x0000000000000000000000000000000000000004',
       chainId: 8453,
       domainSeparator: `0x${'00'.repeat(64)}`,

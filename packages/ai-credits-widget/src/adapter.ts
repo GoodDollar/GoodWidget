@@ -51,7 +51,7 @@ const MIN_STREAM_AMOUNT = '1'
 const CELO_GD_ANTSEED_VAULT_ADDRESS: Address = '0x0000000000000000000000000000000000000002'
 
 /** G$ token contract on Celo */
-const G_TOKEN_CELO_ADDRESS: Address = '0x62B8B11039FcfE5aB0C56E502b1C372A3d462a4'
+const G_TOKEN_CELO_ADDRESS: Address = '0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A'
 
 const G_TOKEN_ABI = parseAbi([
   'function balanceOf(address account) view returns (uint256)',
