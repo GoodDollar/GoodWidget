@@ -355,29 +355,27 @@ export function BuyerKeyPanel({
 
 interface OperatorConsentStepProps {
   buyerKey: string | null
+  buyerKeyPrivate: string | null
   operatorConsentSigned: boolean
-  isSigning: boolean
   onSign: () => Promise<void>
 }
 
-/**
- * Prompts the payer wallet to sign a backend-issued nonce message.
- * The backend verifies the signature and issues a `gd_live_...` API key
- * that developer tools use to access AntSeed compute.
- * No gas transaction is required.
- */
 export function OperatorConsentStep({
   buyerKey,
+  buyerKeyPrivate,
   operatorConsentSigned,
-  isSigning,
   onSign,
 }: OperatorConsentStepProps) {
+  const [isSigning, setIsSigning] = useState(false)
+  const canSign = Boolean(buyerKey && buyerKeyPrivate)
+
   return (
     <OperatorConsentCard>
-      <Heading level={5}>Authenticate with AntSeed</Heading>
+      <Heading level={5}>Authorize AntSeed Operator</Heading>
       <Text fontSize="$2" lineHeight="$3">
-        Sign a message with your wallet to prove you own it. The backend checks your signature and
-        issues a GoodDollar AntSeed API key for your developer tools.
+        Your buyer key signs an EIP-712 SetOperator message on Base. The backend submits it to
+        AntseedDeposits so the funding vault can act as your operator. No gas is required from
+        you.
       </Text>
 
       {buyerKey && (
@@ -392,14 +390,17 @@ export function OperatorConsentStep({
       {operatorConsentSigned ? (
         <XStack gap="$2" alignItems="center">
           <Icon name="check" size="sm" color="success" />
-          <Text color="$success">API key issued — ready to pay</Text>
+          <Text color="$success">Operator consent accepted — ready to pay</Text>
         </XStack>
       ) : (
         <Button
           onPress={() => {
-            void onSign()
+            setIsSigning(true)
+            void onSign().finally(() => {
+              setIsSigning(false)
+            })
           }}
-          disabled={!buyerKey || isSigning}
+          disabled={!canSign || isSigning}
         >
           {isSigning ? (
             <XStack gap="$2" alignItems="center">
@@ -407,7 +408,7 @@ export function OperatorConsentStep({
               <Spinner size="sm" />
             </XStack>
           ) : (
-            <ButtonText>Sign &amp; Get API Key</ButtonText>
+            <ButtonText>Sign Operator Consent</ButtonText>
           )}
         </Button>
       )}

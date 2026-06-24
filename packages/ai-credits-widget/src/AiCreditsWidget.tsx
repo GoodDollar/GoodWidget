@@ -71,9 +71,6 @@ function AiCreditsInner({
 
   const { state, actions } = activeAdapter
 
-  // Tracks whether the operator consent sign is in-flight
-  const isSigning = state.status === 'payment_pending'
-
   const handlePay = useCallback(async () => {
     const toastId = createToast({
       message: 'Submitting Celo transaction…',
@@ -363,8 +360,8 @@ function AiCreditsInner({
       {state.buyerKey && state.buyerKeyConfirmed && !state.operatorConsentSigned && (
         <OperatorConsentStep
           buyerKey={state.buyerKey}
+          buyerKeyPrivate={state.buyerKeyPrivate ?? null}
           operatorConsentSigned={state.operatorConsentSigned}
-          isSigning={isSigning}
           onSign={actions.signOperatorConsent}
         />
       )}

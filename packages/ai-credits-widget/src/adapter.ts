@@ -19,6 +19,7 @@ import {
   ProductionAiCreditsBackendClient,
 } from './mockBackendClient'
 import type { AiCreditsBackendClient } from './mockBackendClient'
+import { signSetOperatorConsent } from './operatorConsent'
 import type {
   AiCreditsWidgetAdapterActions,
   AiCreditsWidgetAdapterResult,
@@ -408,28 +409,68 @@ export function useAiCreditsAdapter({
 
   const handleSignOperatorConsent = useCallback(async () => {
     const currentState = state
-    if (!currentState.address || !providerRef.current) return
+    if (!currentState.buyerKey || !currentState.buyerKeyPrivate) {
+      setState((prev) => ({
+        ...prev,
+        error: 'Generate a buyer key before signing operator consent',
+      }))
+      return
+    }
 
     try {
-      // Step 1 — request a nonce/message from the backend
-      const { nonce, message } = await backendClient.requestConsentNonce(currentState.address)
+      const params = await backendClient.getOperatorConsentParams(currentState.buyerKey)
 
-      // Step 2 — payer wallet signs the plain message (personal_sign)
-      const walletClient = createWalletClient({
-        account: currentState.address as Address,
-        chain: CELO_CHAIN,
-        transport: custom(providerRef.current),
-      })
+      if (!params.enabled) {
+        throw new Error('Operator consent is not available')
+      }
 
-      const signature = await walletClient.signMessage({ message })
+      if (params.alreadyAccepted) {
+        setState((prev) => {
+          const nextStatus = deriveStatus({
+            isConnected: true,
+            chainId: prev.chainId,
+            gBalance: prev.gBalance,
+            aiCreditsBalance: prev.aiCreditsBalance,
+            buyerKey: prev.buyerKey,
+            buyerKeyConfirmed: true,
+            operatorConsentSigned: true,
+            depositAmount: prev.depositAmount,
+            streamAmount: prev.streamAmount,
+            error: null,
+            currentStatus: 'connected_empty',
+          })
+          const primaryAction = derivePrimaryAction(nextStatus)
+          return {
+            ...prev,
+            operatorConsentSigned: true,
+            error: null,
+            status: nextStatus,
+            primaryAction,
+            primaryLabel: derivePrimaryLabel(primaryAction),
+          }
+        })
+        return
+      }
 
-      // Step 3 — submit signature to backend; receive gd_live_... API key
-      const { apiKey } = await backendClient.submitConsent(
-        currentState.address,
-        nonce,
-        signature,
-        'GoodWidget',
+      const signature = await signSetOperatorConsent(
+        currentState.buyerKeyPrivate as `0x${string}`,
+        {
+          depositsAddress: params.depositsAddress as Address,
+          operatorAddress: params.operatorAddress as Address,
+          chainId: params.chainId,
+          nonce: BigInt(params.nonce),
+        },
       )
+
+      const result = await backendClient.submitOperatorConsent(
+        currentState.buyerKey,
+        params.nonce,
+        signature,
+      )
+
+      if (!result.accepted) {
+        throw new Error('Operator consent was not accepted')
+      }
 
       setState((prev) => {
         const nextStatus = deriveStatus({
@@ -449,7 +490,6 @@ export function useAiCreditsAdapter({
         return {
           ...prev,
           operatorConsentSigned: true,
-          apiKey,
           error: null,
           status: nextStatus,
           primaryAction,
@@ -459,7 +499,7 @@ export function useAiCreditsAdapter({
     } catch (err: unknown) {
       setState((prev) => ({
         ...prev,
-        error: err instanceof Error ? err.message : 'Consent signature rejected',
+        error: err instanceof Error ? err.message : 'Operator consent signature rejected',
       }))
     }
   }, [state, backendClient])

@@ -1,9 +1,10 @@
 import type { AiCreditsQuote, AiCreditsUsageEntry } from './widgetRuntimeContract'
+import type {
+  OperatorConsentParams,
+  OperatorConsentSubmissionResult,
+} from './operatorConsent'
 
-// ---------------------------------------------------------------------------
-// Backend client interface — production implementation calls backendUrl REST endpoints.
-// Mock implementation returns deterministic fake data for Storybook and Playwright.
-// ---------------------------------------------------------------------------
+export type { OperatorConsentParams, OperatorConsentSubmissionResult }
 
 export interface AiCreditsBackendClient {
   /**
@@ -26,34 +27,14 @@ export interface AiCreditsBackendClient {
    */
   getUsageLog(account: string): Promise<AiCreditsUsageEntry[]>
 
-  /**
-   * Requests a nonce/message that the payer wallet must sign to prove ownership.
-   * Maps to POST /v1/auth/nonce.
-   * @param account - Payer wallet address
-   */
-  requestConsentNonce(account: string): Promise<{ nonce: string; message: string; expiresAt: string }>
+  getOperatorConsentParams(buyer: string): Promise<OperatorConsentParams>
 
-  /**
-   * Submits the wallet-signed nonce to obtain a `gd_live_...` API key.
-   * Maps to POST /v1/auth/api-keys.
-   * @param account   - Payer wallet address
-   * @param nonce     - Nonce returned by requestConsentNonce
-   * @param signature - Hex signature from the payer wallet over the nonce message
-   * @param label     - Optional human-readable label for the API key
-   */
-  submitConsent(
-    account: string,
+  submitOperatorConsent(
+    buyer: string,
     nonce: string,
     signature: string,
-    label?: string,
-  ): Promise<{ apiKey: string }>
+  ): Promise<OperatorConsentSubmissionResult>
 
-  /**
-   * Records a submitted Celo vault deposit transaction with the backend.
-   * The backend verifies vault events, resolves GoodID root, and issues credits.
-   * Maps to POST /v1/celo/events/record.
-   * @param txHash - Submitted Celo transaction hash
-   */
   notifyPayment(txHash: string): Promise<{ estimatedCredits: string }>
 
   /**
@@ -142,26 +123,27 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     ]
   }
 
-  async requestConsentNonce(
-    account: string,
-  ): Promise<{ nonce: string; message: string; expiresAt: string }> {
+  async getOperatorConsentParams(buyer: string): Promise<OperatorConsentParams> {
     await sleep(MOCK_DELAY_MS)
-    const nonce = `mock-nonce-${account.slice(2, 8)}-${Date.now()}`
     return {
-      nonce,
-      message: `Sign this message to authenticate with GoodDollar AntSeed.\n\nAccount: ${account}\nNonce: ${nonce}`,
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+      enabled: true,
+      buyer: buyer.toLowerCase(),
+      depositsAddress: '0x0000000000000000000000000000000000000003',
+      operatorAddress: '0x0000000000000000000000000000000000000004',
+      chainId: 8453,
+      domainSeparator: `0x${'00'.repeat(64)}`,
+      nonce: '0',
+      alreadyAccepted: false,
     }
   }
 
-  async submitConsent(
-    _account: string,
+  async submitOperatorConsent(
+    _buyer: string,
     _nonce: string,
     _signature: string,
-    _label?: string,
-  ): Promise<{ apiKey: string }> {
+  ): Promise<OperatorConsentSubmissionResult> {
     await sleep(MOCK_DELAY_MS)
-    return { apiKey: 'gd_live_mock_api_key_1234567890abcdef' }
+    return { accepted: true, txHash: `0xmock${Date.now().toString(16)}` }
   }
 
   async notifyPayment(_txHash: string): Promise<{ estimatedCredits: string }> {
@@ -211,34 +193,26 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
     return data.requests ?? []
   }
 
-  async requestConsentNonce(
-    account: string,
-  ): Promise<{ nonce: string; message: string; expiresAt: string }> {
-    const url = `${this.backendUrl}/v1/auth/nonce`
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ account }),
-    })
-    if (!response.ok) throw new Error(`Nonce request failed: ${response.status}`)
-    return response.json() as Promise<{ nonce: string; message: string; expiresAt: string }>
+  async getOperatorConsentParams(buyer: string): Promise<OperatorConsentParams> {
+    const url = `${this.backendUrl}/v1/operator/consent?buyer=${encodeURIComponent(buyer)}`
+    const response = await fetch(url)
+    if (!response.ok) throw new Error(`Operator consent params request failed: ${response.status}`)
+    return response.json() as Promise<OperatorConsentParams>
   }
 
-  async submitConsent(
-    account: string,
+  async submitOperatorConsent(
+    buyer: string,
     nonce: string,
     signature: string,
-    label?: string,
-  ): Promise<{ apiKey: string }> {
-    const url = `${this.backendUrl}/v1/auth/api-keys`
+  ): Promise<OperatorConsentSubmissionResult> {
+    const url = `${this.backendUrl}/v1/operator/consent`
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ account, nonce, signature, label: label ?? 'GoodWidget' }),
+      body: JSON.stringify({ buyer, nonce, signature }),
     })
-    if (!response.ok) throw new Error(`Consent submission failed: ${response.status}`)
-    const data = (await response.json()) as { token: string }
-    return { apiKey: data.token }
+    if (!response.ok) throw new Error(`Operator consent submission failed: ${response.status}`)
+    return response.json() as Promise<OperatorConsentSubmissionResult>
   }
 
   async notifyPayment(txHash: string): Promise<{ estimatedCredits: string }> {

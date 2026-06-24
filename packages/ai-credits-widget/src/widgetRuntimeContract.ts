@@ -107,11 +107,11 @@ export interface AiCreditsWidgetAdapterState {
   buyerKeyPrivate: string | null
   /** Whether the buyer key has been confirmed (copied/saved) by the user */
   buyerKeyConfirmed: boolean
-  /** Whether operator consent has been signed and the backend has issued an API key */
+  /** Whether the buyer has signed EIP-712 SetOperator consent for AntseedDeposits on Base */
   operatorConsentSigned: boolean
   /**
-   * GoodDollar AntSeed API key (`gd_live_...`) issued by the backend after wallet-signature
-   * consent. This key is what developer tools (VS Code, Cursor, Cline) use to access AntSeed.
+   * GoodDollar AntSeed API key (`gd_live_...`) for developer tools.
+   * Issued separately from operator consent; not set by the consent step.
    */
   apiKey: string | null
   /** Deposit amount entered by user in G$ */
@@ -147,7 +147,7 @@ export interface AiCreditsWidgetAdapterActions {
   pasteBuyerKey: (key: string) => void
   /** Mark buyer key as confirmed after user has copied it */
   confirmBuyerKey: () => void
-  /** Sign EIP-712 operator consent for AntseedBuyerOperator using the buyer key */
+  /** Sign EIP-712 SetOperator on AntseedDeposits using the buyer private key */
   signOperatorConsent: () => Promise<void>
   /** Update the one-time deposit amount */
   setDepositAmount: (amount: string) => void
