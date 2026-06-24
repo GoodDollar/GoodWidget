@@ -171,10 +171,10 @@ test('amount input accepts typed characters (live adapter)', async ({ page }) =>
 // result.hash, and the PPM exit-contribution scaling, none of which the
 // mockState stories touch.
 //
-// Skipped by default: requires live Celo/XDC RPC connectivity which is not
-// available in CI. Re-enable manually (remove `.skip`) when running locally
-// against a configured wallet provider.
-test.skip('live adapter completes a buy: quote → confirm → success with tx hash', async ({ page }) => {
+// Verifies the live SDK path: exercises getBuyQuote, the onHash callback,
+// result.hash, and the PPM exit-contribution scaling against the real
+// @goodsdks/good-reserve SDK.
+test('live adapter completes a buy: quote → confirm → success with tx hash', async ({ page }) => {
   await page.goto('/iframe.html?id=widgets-goodreservewidget--interactive&viewMode=story')
   await page.waitForLoadState('networkidle')
   await page.getByTestId('GoodReserveWidget-interactive').first().waitFor({ timeout: 30_000 })

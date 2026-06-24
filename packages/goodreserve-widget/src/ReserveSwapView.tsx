@@ -361,6 +361,125 @@ function SwapSuccessView({
   )
 }
 
+// Slippage selection as a bottom-sheet Drawer.
+function SlippageDrawer({
+  state,
+  actions,
+}: {
+  state: ReserveSwapWidgetAdapterState
+  actions: ReserveSwapWidgetAdapterActions
+}) {
+  return (
+    <Drawer open={state.status === 'slippage_selection'} onClose={actions.closeSlippage} height="half">
+      <YStack testID="GoodReserveWidget-slippage-sheet" gap="$4" width="100%">
+        <XStack justifyContent="space-between" alignItems="center">
+          <Heading level={4} color={FIGMA.text}>
+            Slippage Tolerance
+          </Heading>
+          <XStack cursor="pointer" onPress={actions.closeSlippage}>
+            <Icon name="x" size="sm" color="muted" />
+          </XStack>
+        </XStack>
+        <XStack gap="$2" flexWrap="wrap">
+          {[0.1, 0.5, 1].map((option) => (
+            <Button
+              key={option}
+              flex={1}
+              variant={state.slippagePercent === option ? 'primary' : 'secondary'}
+              onPress={() => actions.setSlippagePercent(option)}
+            >
+              <ButtonText>{option}%</ButtonText>
+            </Button>
+          ))}
+        </XStack>
+        <Button fullWidth height={54} borderRadius="$full" onPress={actions.closeSlippage}>
+          <ButtonText>Done</ButtonText>
+        </Button>
+      </YStack>
+    </Drawer>
+  )
+}
+
+// Confirmation as an anchored bottom-sheet Drawer (Figma). Uses full
+// height so the hero + 50px highlight + details table are not clipped.
+function ConfirmDrawer({
+  state,
+  actions,
+}: {
+  state: ReserveSwapWidgetAdapterState
+  actions: ReserveSwapWidgetAdapterActions
+}) {
+  return (
+    <Drawer open={state.status === 'confirm_dialog'} onClose={actions.closeConfirm} height="full">
+      <YStack testID="GoodReserveWidget-confirm-dialog" gap="$4" width="100%">
+        <XStack justifyContent="space-between" alignItems="center">
+          <Heading level={4} color={FIGMA.text}>
+            Confirm Swap
+          </Heading>
+          <XStack cursor="pointer" onPress={actions.closeConfirm}>
+            <Icon name="x" size="sm" color="muted" />
+          </XStack>
+        </XStack>
+
+        {/* Token hero: from badge → arrow → to badge */}
+        <XStack alignItems="center" justifyContent="center" gap="$3">
+          <TokenBadge>
+            <Text fontSize={16} fontWeight="700" color={FIGMA.text}>
+              $
+            </Text>
+          </TokenBadge>
+          <Icon name="arrow-right" size="sm" color="primary" />
+          <ConfirmToBadge>
+            <Text fontSize={16} fontWeight="700" color="#FFFFFF">
+              $
+            </Text>
+          </ConfirmToBadge>
+        </XStack>
+
+        {/* Minimum received highlight */}
+        <ReserveSurfaceInner padding="$4" alignItems="center" gap="$1">
+          <Text fontSize={14} fontWeight="400" color={FIGMA.textSecondary}>
+            Minimum Received
+          </Text>
+          <Text fontSize={50} fontWeight="800" color={FIGMA.text}>
+            {state.quote?.minimumReceived ?? '0.00'}
+          </Text>
+          <Text fontSize={17} fontWeight="600" color={FIGMA.text}>
+            {state.tokenOutSymbol}
+          </Text>
+        </ReserveSurfaceInner>
+
+        {/* Details table */}
+        <ReserveDetailsTable padding="$4" gap="$2">
+          <DetailRow
+            label="Exchange Rate"
+            value={`1 ${state.tokenInSymbol} = ${state.quote?.price ?? '0'} ${state.tokenOutSymbol}`}
+          />
+          <DetailRow label="Max Slippage" value={`${state.slippagePercent}%`} />
+          <DetailRow label="You Pay" value={`${state.inputAmount} ${state.tokenInSymbol}`} />
+        </ReserveDetailsTable>
+
+        <Separator />
+
+        <XStack gap="$2">
+          <Button flex={1} variant="secondary" onPress={actions.closeConfirm}>
+            <ButtonText>Cancel</ButtonText>
+          </Button>
+          <Button
+            flex={2}
+            height={54}
+            borderRadius="$full"
+            testID="GoodReserveWidget-confirm-cta"
+            onPress={actions.executeSwap}
+          >
+            <ButtonText>Confirm Swap</ButtonText>
+          </Button>
+        </XStack>
+      </YStack>
+    </Drawer>
+  )
+}
+
 // Main swap view: header → from/to amount cards → transaction details → primary
 // CTA → settings → FAQ. Confirmation and slippage states overlay the same shell
 // through nested Drawer components.
@@ -468,7 +587,7 @@ function MainSwapView({
               flex={1}
               borderWidth={0}
               backgroundColor="$backgroundTransparent"
-              fontSize={34}
+              fontSize={28}
               fontWeight="700"
               color={FIGMA.text}
               // Web: the @goodwidget/ui Input is a Tamagui `tag:'input'` Stack which
@@ -519,7 +638,15 @@ function MainSwapView({
             {state.status === 'quote_loading' ? (
               <Spinner size="sm" />
             ) : (
-              <Text fontSize={34} fontWeight="700" color={state.quote ? FIGMA.text : FIGMA.textMuted}>
+              <Text
+                flex={1}
+              fontSize={34}
+                fontWeight="700"
+                color={state.quote ? FIGMA.text : FIGMA.textMuted}
+                textAlign="right"
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
                 {state.quote?.outputAmount ?? '0.00'}
               </Text>
             )}
@@ -628,103 +755,11 @@ function MainSwapView({
       </ReserveSurface>
 
       {/* Slippage selection as a bottom-sheet Drawer. */}
-      <Drawer open={state.status === 'slippage_selection'} onClose={actions.closeSlippage} height="half">
-        <YStack testID="GoodReserveWidget-slippage-sheet" gap="$4" width="100%">
-          <XStack justifyContent="space-between" alignItems="center">
-            <Heading level={4} color={FIGMA.text}>
-              Slippage Tolerance
-            </Heading>
-            <XStack cursor="pointer" onPress={actions.closeSlippage}>
-              <Icon name="x" size="sm" color="muted" />
-            </XStack>
-          </XStack>
-          <XStack gap="$2" flexWrap="wrap">
-            {[0.1, 0.5, 1].map((option) => (
-              <Button
-                key={option}
-                flex={1}
-                variant={state.slippagePercent === option ? 'primary' : 'secondary'}
-                onPress={() => actions.setSlippagePercent(option)}
-              >
-                <ButtonText>{option}%</ButtonText>
-              </Button>
-            ))}
-          </XStack>
-          <Button fullWidth height={54} borderRadius="$full" onPress={actions.closeSlippage}>
-            <ButtonText>Done</ButtonText>
-          </Button>
-        </YStack>
-      </Drawer>
+      <SlippageDrawer state={state} actions={actions} />
 
       {/* Confirmation as an anchored bottom-sheet Drawer (Figma). Uses full
           height so the hero + 50px highlight + details table are not clipped. */}
-      <Drawer open={state.status === 'confirm_dialog'} onClose={actions.closeConfirm} height="full">
-        <YStack testID="GoodReserveWidget-confirm-dialog" gap="$4" width="100%">
-          <XStack justifyContent="space-between" alignItems="center">
-            <Heading level={4} color={FIGMA.text}>
-              Confirm Swap
-            </Heading>
-            <XStack cursor="pointer" onPress={actions.closeConfirm}>
-              <Icon name="x" size="sm" color="muted" />
-            </XStack>
-          </XStack>
-
-          {/* Token hero: from badge → arrow → to badge */}
-          <XStack alignItems="center" justifyContent="center" gap="$3">
-            <TokenBadge>
-              <Text fontSize={16} fontWeight="700" color={FIGMA.text}>
-                $
-              </Text>
-            </TokenBadge>
-            <Icon name="arrow-right" size="sm" color="primary" />
-            <ConfirmToBadge>
-              <Text fontSize={16} fontWeight="700" color="#FFFFFF">
-                $
-              </Text>
-            </ConfirmToBadge>
-          </XStack>
-
-          {/* Minimum received highlight */}
-          <ReserveSurfaceInner padding="$4" alignItems="center" gap="$1">
-            <Text fontSize={14} fontWeight="400" color={FIGMA.textSecondary}>
-              Minimum Received
-            </Text>
-            <Text fontSize={50} fontWeight="800" color={FIGMA.text}>
-              {state.quote?.minimumReceived ?? '0.00'}
-            </Text>
-            <Text fontSize={17} fontWeight="600" color={FIGMA.text}>
-              {state.tokenOutSymbol}
-            </Text>
-          </ReserveSurfaceInner>
-
-          {/* Details table */}
-          <ReserveDetailsTable padding="$4" gap="$2">
-            <DetailRow
-              label="Exchange Rate"
-              value={`1 ${state.tokenInSymbol} = ${state.quote?.price ?? '0'} ${state.tokenOutSymbol}`}
-            />
-            <DetailRow label="Max Slippage" value={`${state.slippagePercent}%`} />
-            <DetailRow label="You Pay" value={`${state.inputAmount} ${state.tokenInSymbol}`} />
-          </ReserveDetailsTable>
-
-          <Separator />
-
-          <XStack gap="$2">
-            <Button flex={1} variant="secondary" onPress={actions.closeConfirm}>
-              <ButtonText>Cancel</ButtonText>
-            </Button>
-            <Button
-              flex={2}
-              height={54}
-              borderRadius="$full"
-              testID="GoodReserveWidget-confirm-cta"
-              onPress={actions.executeSwap}
-            >
-              <ButtonText>Confirm Swap</ButtonText>
-            </Button>
-          </XStack>
-        </YStack>
-      </Drawer>
+      <ConfirmDrawer state={state} actions={actions} />
     </YStack>
   )
 }

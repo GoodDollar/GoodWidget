@@ -104,3 +104,41 @@ export const Interactive: Story = {
     </div>
   ),
 }
+
+// Live wallet test - uses real MetaMask/wallet extension for end-to-end testing.
+// This story requires a browser wallet extension (MetaMask, etc.) to be installed.
+// NOT for CI - requires manual testing with real wallet connection.
+export const LiveWallet: Story = {
+  render: () => {
+    // Check if window.ethereum exists (MetaMask or other wallet extension)
+    if (typeof window === 'undefined' || !(window as any).ethereum) {
+      return (
+        <div style={{ padding: '20px', maxWidth: '400px' }}>
+          <h2>Wallet Required</h2>
+          <p>This story requires a browser wallet extension (MetaMask, etc.) to test the live SDK path.</p>
+          <p><strong>To test:</strong></p>
+          <ol>
+            <li>Install MetaMask or another EIP-1193 compatible wallet</li>
+            <li>Connect to Celo mainnet or XDC network</li>
+            <li>Refresh this page</li>
+            <li>The widget will use your real wallet for testing</li>
+          </ol>
+        </div>
+      )
+    }
+
+    // Use the real wallet provider
+    const walletProvider = (window as any).ethereum
+
+    return (
+      <div data-testid="GoodReserveWidget-live-wallet" style={{ width: 390 }}>
+        <div style={{ marginBottom: '10px', padding: '10px', backgroundColor: '#fff3cd', border: '1px solid #ffc107', borderRadius: '4px' }}>
+          <strong>⚠️ Live Wallet Test</strong><br />
+          Using real wallet: {walletProvider.isMetaMask ? 'MetaMask' : 'Wallet Extension'}<br />
+          <small>Test the full swap flow: quote → confirm → execute → success</small>
+        </div>
+        <GoodReserveWidget provider={walletProvider} />
+      </div>
+    )
+  },
+}
