@@ -173,6 +173,14 @@ export function BuyerKeyPanel({
   const [pasteValue, setPasteValue] = useState('')
   const [copiedAddress, setCopiedAddress] = useState(false)
   const [copiedPrivate, setCopiedPrivate] = useState(false)
+  const [isPrivateKeyVisible, setIsPrivateKeyVisible] = useState(false)
+
+  const monospaceSingleLineStyle = {
+    fontFamily: 'monospace',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  } as React.CSSProperties
 
   async function handleCopyAddress() {
     if (!buyerKey) return
@@ -198,12 +206,20 @@ export function BuyerKeyPanel({
 
       {!pasteMode && (
         <YStack gap="$3">
-          <Button onPress={onGenerate}>
+          <Button
+            onPress={onGenerate}
+            backgroundColor="$success"
+            borderColor="$success"
+            hoverStyle={{ backgroundColor: '$success' }}
+            pressStyle={{ backgroundColor: '$success', opacity: 0.9 }}
+          >
             <ButtonText>Generate New Key</ButtonText>
           </Button>
 
           <Button
             variant="outline"
+            size="sm"
+            alignSelf="center"
             onPress={() => {
               setPasteMode(true)
             }}
@@ -226,25 +242,38 @@ export function BuyerKeyPanel({
               >
                 <Text
                   fontSize="$2"
-                  style={{ fontFamily: 'monospace' } as React.CSSProperties}
+                  style={monospaceSingleLineStyle}
                   flex={1}
+                  numberOfLines={1}
                 >
                   {buyerKey}
                 </Text>
-                <Button size="sm" variant="ghost" onPress={handleCopyAddress}>
-                  <ButtonText>{copiedAddress ? 'Copied!' : 'Copy'}</ButtonText>
+                <Button size="sm" variant="ghost" iconSize="sm" onPress={handleCopyAddress}>
+                  <Icon name={copiedAddress ? 'check' : 'copy'} size="xs" color={copiedAddress ? 'success' : 'text'} />
                 </Button>
               </XStack>
 
               {/* Private key row — only shown for generated keys */}
               {buyerKeyPrivate && (
                 <>
-                  <Text variant="label" secondary>
-                    Private Key — save this securely, it will not be shown again
-                  </Text>
+                  <XStack justifyContent="space-between" alignItems="center">
+                    <Text variant="label" secondary>
+                      Private Key — save this securely
+                    </Text>
+                    <Button
+                      variant="text"
+                      size="sm"
+                      onPress={() => {
+                        setIsPrivateKeyVisible((prev) => !prev)
+                      }}
+                    >
+                      <ButtonText>{isPrivateKeyVisible ? 'Hide' : 'Reveal'}</ButtonText>
+                    </Button>
+                  </XStack>
                   <AiCreditsStatusNotice borderColor="$warning">
                     <Text color="$warning" fontSize="$2">
-                      ⚠ Never share your private key. Store it in a password manager.
+                      ⚠ Revealing your private key can expose your account. Never share it and store it
+                      in a password manager.
                     </Text>
                   </AiCreditsStatusNotice>
                   <XStack
@@ -256,21 +285,27 @@ export function BuyerKeyPanel({
                   >
                     <Text
                       fontSize="$2"
-                      style={{ fontFamily: 'monospace' } as React.CSSProperties}
+                      style={monospaceSingleLineStyle}
                       flex={1}
                       numberOfLines={1}
                     >
-                      {buyerKeyPrivate}
+                      {isPrivateKeyVisible ? buyerKeyPrivate : '•'.repeat(Math.min(48, buyerKeyPrivate.length))}
                     </Text>
-                    <Button size="sm" variant="ghost" onPress={handleCopyPrivate}>
-                      <ButtonText>{copiedPrivate ? 'Copied!' : 'Copy'}</ButtonText>
+                    <Button size="sm" variant="ghost" iconSize="sm" onPress={handleCopyPrivate}>
+                      <Icon name={copiedPrivate ? 'check' : 'copy'} size="xs" color={copiedPrivate ? 'success' : 'text'} />
                     </Button>
                   </XStack>
                 </>
               )}
 
               {!buyerKeyConfirmed && (
-                <Button onPress={onConfirm}>
+                <Button
+                  onPress={onConfirm}
+                  backgroundColor="$success"
+                  borderColor="$success"
+                  hoverStyle={{ backgroundColor: '$success' }}
+                  pressStyle={{ backgroundColor: '$success', opacity: 0.9 }}
+                >
                   <ButtonText>I've Saved My Private Key</ButtonText>
                 </Button>
               )}
@@ -299,6 +334,10 @@ export function BuyerKeyPanel({
           <XStack gap="$2">
             <Button
               flex={1}
+              backgroundColor="$success"
+              borderColor="$success"
+              hoverStyle={{ backgroundColor: '$success' }}
+              pressStyle={{ backgroundColor: '$success', opacity: 0.9 }}
               onPress={() => {
                 if (pasteValue.trim()) {
                   onPaste(pasteValue.trim())
