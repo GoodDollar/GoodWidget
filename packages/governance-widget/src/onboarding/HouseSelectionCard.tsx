@@ -1,16 +1,14 @@
 import React from 'react'
-import { Stack, styled } from 'tamagui'
-import { Badge, BadgeText, Heading, Icon, PillText, Text, XStack, YStack } from '@goodwidget/ui'
+import { Stack } from 'tamagui'
+import { Badge, BadgeText, Heading, Icon, PillText, Text, XStack, YStack, createComponent } from '@goodwidget/ui'
 import { HOUSE_COPY } from './copy'
 import type { GovernanceHouse } from '../types'
 
 /**
- * Internal house-selection button. Uses Tamagui's `styled()` directly (not
- * `createComponent`) because this is governance-specific UI, not a reusable
- * design-system primitive. Registering a `name` here would pollute the public
- * `@goodwidget/ui` manifest namespace with widget-internal components.
+ * Internal house-selection button. Uses createComponent to register for theme overrides.
  */
-const HouseOptionButton = styled(Stack, {
+const HouseOptionButton = createComponent(Stack, {
+  name: 'GovernanceHouseOptionButton',
   tag: 'button',
   alignItems: 'flex-start',
   justifyContent: 'flex-start',
@@ -47,7 +45,8 @@ const HouseOptionButton = styled(Stack, {
   } as const,
 })
 
-const RadioBullet = styled(Stack, {
+const RadioBullet = createComponent(Stack, {
+  name: 'GovernanceRadioBullet',
   width: 24,
   height: 24,
   borderRadius: '$full',
@@ -65,7 +64,8 @@ const RadioBullet = styled(Stack, {
   } as const,
 })
 
-const RadioDot = styled(Stack, {
+const RadioDot = createComponent(Stack, {
+  name: 'GovernanceRadioDot',
   width: 10,
   height: 10,
   borderRadius: '$full',
@@ -79,7 +79,8 @@ const RadioDot = styled(Stack, {
   } as const,
 })
 
-const HousePill = styled(Stack, {
+const HousePill = createComponent(Stack, {
+  name: 'GovernanceHousePill',
   borderRadius: '$full',
   borderWidth: 1,
   borderColor: '$borderColor',

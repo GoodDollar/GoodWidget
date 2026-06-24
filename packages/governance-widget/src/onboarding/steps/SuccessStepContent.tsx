@@ -1,11 +1,36 @@
 import React from 'react'
 import { YStack } from 'tamagui'
-import { Button, ButtonText, Heading, Icon, Text } from '@goodwidget/ui'
+import { Button, ButtonText, Heading, Icon, Text, createComponent } from '@goodwidget/ui'
 import type { GovernanceOnboardingAction } from '../../types'
 
-const SUCCESS_GRADIENT = {
-  background: 'linear-gradient(135deg, #00AFFF 0%, #33BFFF 60%, #7BD6FF 100%)',
-}
+/**
+ * Success celebration card with gradient background.
+ * Named 'OnboardingSuccessCard' for theme overrides.
+ */
+const SuccessCard = createComponent(YStack, {
+  name: 'OnboardingSuccessCard',
+  width: '100%',
+  borderRadius: '$5',
+  padding: '$8',
+  gap: '$5',
+  alignItems: 'center',
+  backgroundColor: '$primary',
+})
+
+/**
+ * Celebration icon container with translucent overlay.
+ */
+const CelebrationIcon = createComponent(YStack, {
+  name: 'OnboardingCelebrationIcon',
+  width: 80,
+  height: 80,
+  borderRadius: '$full',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: '$backgroundTransparent',
+  borderWidth: 3,
+  borderColor: '$backgroundHover',
+})
 
 interface SuccessStepContentProps {
   finalActions: GovernanceOnboardingAction[]
@@ -19,37 +44,18 @@ export function SuccessStepContent({
   onFinalActionPress,
 }: SuccessStepContentProps) {
   return (
-    /* The gradient card IS the root — no dark outer overlay (matches Figma) */
-    <YStack
-      width="100%"
-      borderRadius="$5"
-      padding="$8"
-      gap="$5"
-      alignItems="center"
-      style={SUCCESS_GRADIENT}
-      data-testid="GovernanceOnboardingWidget-success-card"
-    >
+    <SuccessCard data-testid="GovernanceOnboardingWidget-success-card">
       {/* ── Celebration icon ─────────────────────────────────────── */}
-      <YStack
-        width={80}
-        height={80}
-        borderRadius="$full"
-        alignItems="center"
-        justifyContent="center"
-        style={{ backgroundColor: 'rgba(255,255,255,0.22)' }}
-        borderWidth={3}
-        borderColor="rgba(255,255,255,0.65)"
-        data-testid="GovernanceOnboardingWidget-success"
-      >
+      <CelebrationIcon data-testid="GovernanceOnboardingWidget-success">
         <Icon name="party-popper" size="lg" color="white" />
-      </YStack>
+      </CelebrationIcon>
 
       {/* ── Heading + body ───────────────────────────────────────── */}
       <YStack alignItems="center" gap="$3" maxWidth={420}>
-        <Heading level={1} color="white" center>
+        <Heading level={1} color="$white" center>
           Welcome to Governance
         </Heading>
-        <Text color="white" center>
+        <Text color="$white" center>
           {`You've successfully staked ${stakeAmountLabel} and joined the mission. Your voice now shapes the future of sustainable universal basic income.`}
         </Text>
       </YStack>
@@ -76,9 +82,9 @@ export function SuccessStepContent({
       </YStack>
 
       {/* ── Footer ───────────────────────────────────────────────── */}
-      <Text variant="caption" color="white" center>
+      <Text variant="caption" color="$white" center>
         {'© 2024 GoodDollar Governance. Civic & Transparent.'}
       </Text>
-    </YStack>
+    </SuccessCard>
   )
 }

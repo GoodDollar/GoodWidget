@@ -1,6 +1,6 @@
 import React from 'react'
-import { Stack, styled } from 'tamagui'
-import { AddressDisplay, Button, ButtonText, Card, Icon, Text, XStack, YStack } from '@goodwidget/ui'
+import { Stack } from 'tamagui'
+import { AddressDisplay, Button, ButtonText, Card, Icon, Text, XStack, YStack, createComponent } from '@goodwidget/ui'
 import type { GovernanceIdentityStatus } from '../types'
 
 interface OnboardingIdentityCardProps {
@@ -11,7 +11,8 @@ interface OnboardingIdentityCardProps {
 }
 
 /** Left-border accent row used for the Identity Status field when verified. */
-const AccentRow = styled(XStack, {
+const AccentRow = createComponent(XStack, {
+  name: 'OnboardingAccentRow',
   alignItems: 'center',
   justifyContent: 'space-between',
   paddingVertical: '$3',
@@ -28,7 +29,8 @@ const AccentRow = styled(XStack, {
 })
 
 /** Plain field row without a left accent (e.g. Wallet Address). */
-const FieldRow = styled(XStack, {
+const FieldRow = createComponent(XStack, {
+  name: 'OnboardingFieldRow',
   alignItems: 'center',
   justifyContent: 'space-between',
   paddingVertical: '$3',
