@@ -6,6 +6,7 @@ import {
   createWalletClient,
   custom,
   encodeAbiParameters,
+  encodeFunctionData,
   formatUnits,
   http,
   parseAbi,
@@ -45,24 +46,84 @@ const MIN_STREAM_AMOUNT = '1'
 
 /**
  * CeloGdAntSeedVault contract address on Celo.
- * G$ is deposited here; the Worker reads vault events to issue credits.
- * TODO: replace with the canonical deployed address once available.
+ * Set via adapter option (from env / backend config).
+ * Falls back to this placeholder until a canonical address is deployed.
  */
-const CELO_GD_ANTSEED_VAULT_ADDRESS: Address = '0x0000000000000000000000000000000000000002'
+const CELO_GD_ANTSEED_VAULT_FALLBACK: Address = '0x0000000000000000000000000000000000000002'
 
-/** G$ token contract on Celo */
+/** G$ SuperToken contract on Celo mainnet */
 const G_TOKEN_CELO_ADDRESS: Address = '0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A'
+
+/** Multicall3 on Celo mainnet — same canonical address as all EVM chains */
+const MULTICALL3_ADDRESS: Address = '0xcA11bde05977b3631167028862bE2a173976CA11'
+
+/** Superfluid host (Framework) on Celo mainnet */
+const SUPERFLUID_HOST_ADDRESS: Address = '0xA4Ff07cF81C02CFD356184879D953970cA957585'
+
+/**
+ * keccak256("org.superfluid-finance.agreements.ConstantFlowAgreement.v1")
+ * Used to resolve the live CFA contract from the Superfluid host at runtime.
+ */
+const CFA_AGREEMENT_TYPE =
+  '0x4440dbc4df02395da68f8203b0eba06f9024fa3f8dc8cbde6c8a7e68f04fa3b7' as `0x${string}`
+
+/** Seconds in a 30-day month — used for flowRate calculation */
+const SECONDS_PER_MONTH = 30n * 24n * 3600n
 
 const G_TOKEN_ABI = parseAbi([
   'function balanceOf(address account) view returns (uint256)',
   'function decimals() view returns (uint8)',
   'function approve(address spender, uint256 amount) returns (bool)',
+  'function increaseAllowance(address spender, uint256 addedValue) returns (bool)',
+  'function allowance(address owner, address spender) view returns (uint256)',
+  'function transferAndCall(address to, uint256 value, bytes data) returns (bool)',
 ])
 
 const VAULT_ABI = parseAbi([
   'function deposit(uint256 amount, bytes calldata data) returns (uint256)',
   'function isGoodIDVerified(address account) view returns (bool)',
 ])
+
+const SUPERFLUID_HOST_ABI = parseAbi([
+  'function callAgreement(address agreementClass, bytes calldata callData, bytes calldata userData) external returns (bytes memory returnedData)',
+  'function getAgreementClass(bytes32 agreementType) external view returns (address agreementClass)',
+])
+
+const CFA_ABI = parseAbi([
+  'function createFlow(address token, address receiver, int96 flowRate, bytes ctx) external returns (bytes newCtx)',
+  'function updateFlow(address token, address receiver, int96 flowRate, bytes ctx) external returns (bytes newCtx)',
+  'function getFlow(address token, address sender, address receiver) external view returns (uint256 timestamp, int96 flowRate, uint256 deposit, uint256 owedDeposit)',
+])
+
+/** Multicall3 aggregate3 ABI — uses tuple[] for the calls and results */
+const MULTICALL3_ABI = [
+  {
+    name: 'aggregate3',
+    type: 'function',
+    stateMutability: 'payable',
+    inputs: [
+      {
+        name: 'calls',
+        type: 'tuple[]',
+        components: [
+          { name: 'target', type: 'address' },
+          { name: 'allowFailure', type: 'bool' },
+          { name: 'callData', type: 'bytes' },
+        ],
+      },
+    ],
+    outputs: [
+      {
+        name: 'returnData',
+        type: 'tuple[]',
+        components: [
+          { name: 'success', type: 'bool' },
+          { name: 'returnData', type: 'bytes' },
+        ],
+      },
+    ],
+  },
+] as const
 
 const CELO_CHAIN: Chain = {
   id: CELO_CHAIN_ID,
@@ -243,6 +304,12 @@ function derivePrimaryLabel(action: AiCreditsWidgetAdapterState['primaryAction']
 export interface UseAiCreditsAdapterOptions {
   environment?: AiCreditsWidgetEnvironment
   backendUrl?: string
+  /**
+   * CeloGdAntSeedVault address on Celo mainnet.
+   * Pass from env (e.g. import.meta.env.VITE_AI_CREDITS_VAULT_ADDRESS).
+   * Falls back to a placeholder until the vault is deployed.
+   */
+  vaultAddress?: Address
   onPaySuccess?: (detail: AiCreditsPaySuccessDetail) => void
   onPayError?: (detail: AiCreditsPayErrorDetail) => void
 }
@@ -253,6 +320,7 @@ export interface UseAiCreditsAdapterOptions {
 
 export function useAiCreditsAdapter({
   backendUrl,
+  vaultAddress,
   onPaySuccess,
   onPayError,
 }: UseAiCreditsAdapterOptions): AiCreditsWidgetAdapterResult {
@@ -302,7 +370,7 @@ export function useAiCreditsAdapter({
         let goodIdVerified = false
         try {
           goodIdVerified = (await publicClient.readContract({
-            address: CELO_GD_ANTSEED_VAULT_ADDRESS,
+            address: vaultAddress ?? CELO_GD_ANTSEED_VAULT_FALLBACK,
             abi: VAULT_ABI,
             functionName: 'isGoodIDVerified',
             args: [address as Address],
@@ -360,7 +428,7 @@ export function useAiCreditsAdapter({
     return () => {
       cancelled = true
     }
-  }, [isConnected, address, chainId])
+  }, [isConnected, address, chainId, vaultAddress])
 
   // ---------------------------------------------------------------------------
   // Actions
@@ -570,6 +638,12 @@ export function useAiCreditsAdapter({
 
     if (!currentState.address || !currentState.buyerKey || !providerRef.current) return
 
+    const depositAmountG = Number.parseFloat(currentState.depositAmount)
+    const streamAmountG = Number.parseFloat(currentState.streamAmount)
+    const hasDeposit = depositAmountG > 0
+    const hasStream = streamAmountG > 0
+    if (!hasDeposit && !hasStream) return
+
     // Fetch a fresh quote before sending the transaction
     let quote: AiCreditsQuote
     try {
@@ -599,36 +673,109 @@ export function useAiCreditsAdapter({
     }))
 
     try {
+      const vault = vaultAddress ?? CELO_GD_ANTSEED_VAULT_FALLBACK
+      const payerAddress = currentState.address as Address
+      const buyerAddress = currentState.buyerKey as Address
+
+      // ABI-encode buyerAddress as deposit userData — equivalent to abi.encode(buyerAddress)
+      const buyerData = encodeAbiParameters([{ type: 'address' }], [buyerAddress])
+
+      const publicClient = createPublicClient({ chain: CELO_CHAIN, transport: http() })
       const walletClient = createWalletClient({
-        account: currentState.address as Address,
+        account: payerAddress,
         chain: CELO_CHAIN,
         transport: custom(providerRef.current),
       })
 
-      const totalG = Number.parseFloat(currentState.depositAmount) + Number.parseFloat(currentState.streamAmount)
-      const amountWei = parseUnits(totalG.toFixed(2), 18)
+      // Ordered list of sub-calls for Multicall3 aggregate3
+      const calls: Array<{ target: Address; allowFailure: boolean; callData: `0x${string}` }> = []
 
-      // ABI-encode the buyer key address as the deposit userData so the vault and Worker
-      // know which buyer address to credit. Equivalent to abi.encode(buyerAddress) in Solidity.
-      const depositData = encodeAbiParameters(
-        [{ type: 'address' }],
-        [currentState.buyerKey as Address],
-      )
+      // ------------------------------------------------------------------
+      // Stream sub-calls (must come before deposit in aggregate3)
+      // ------------------------------------------------------------------
+      if (hasStream) {
+        const monthlyWei = parseUnits(streamAmountG.toString(), 18)
+        const flowRatePerSecond = monthlyWei / SECONDS_PER_MONTH
 
-      // Step 1: approve the vault to spend G$
-      await walletClient.writeContract({
-        address: G_TOKEN_CELO_ADDRESS,
-        abi: G_TOKEN_ABI,
-        functionName: 'approve',
-        args: [CELO_GD_ANTSEED_VAULT_ADDRESS, amountWei],
-      })
+        // Resolve CFA address from host so we stay in sync with the live deployment
+        const cfaAddress = (await publicClient.readContract({
+          address: SUPERFLUID_HOST_ADDRESS,
+          abi: SUPERFLUID_HOST_ABI,
+          functionName: 'getAgreementClass',
+          args: [CFA_AGREEMENT_TYPE],
+        })) as Address
 
-      // Step 2: deposit into the vault with buyer address encoded in data
+        // Increase CFA allowance only when current allowance < monthly stream budget
+        const existingCfaAllowance = (await publicClient.readContract({
+          address: G_TOKEN_CELO_ADDRESS,
+          abi: G_TOKEN_ABI,
+          functionName: 'allowance',
+          args: [payerAddress, cfaAddress],
+        })) as bigint
+
+        if (existingCfaAllowance < monthlyWei) {
+          const MAX_UINT256 = 2n ** 256n - 1n
+          calls.push({
+            target: G_TOKEN_CELO_ADDRESS,
+            allowFailure: false,
+            callData: encodeFunctionData({
+              abi: G_TOKEN_ABI,
+              functionName: 'increaseAllowance',
+              args: [cfaAddress, MAX_UINT256 - existingCfaAllowance],
+            }),
+          })
+        }
+
+        // Determine whether to createFlow or updateFlow based on existing flow
+        const flowInfo = (await publicClient.readContract({
+          address: cfaAddress,
+          abi: CFA_ABI,
+          functionName: 'getFlow',
+          args: [G_TOKEN_CELO_ADDRESS, payerAddress, vault],
+        })) as readonly [bigint, bigint, bigint, bigint]
+        const existingFlowRate = flowInfo[1] // int96 flowRate
+        const cfaFunction = existingFlowRate !== 0n ? 'updateFlow' : 'createFlow'
+
+        // Encode the CFA calldata — ctx is filled by the host, we pass 0x
+        const cfaCalldata = encodeFunctionData({
+          abi: CFA_ABI,
+          functionName: cfaFunction,
+          args: [G_TOKEN_CELO_ADDRESS, vault, flowRatePerSecond, '0x'],
+        })
+
+        calls.push({
+          target: SUPERFLUID_HOST_ADDRESS,
+          allowFailure: false,
+          callData: encodeFunctionData({
+            abi: SUPERFLUID_HOST_ABI,
+            functionName: 'callAgreement',
+            args: [cfaAddress, cfaCalldata, buyerData],
+          }),
+        })
+      }
+
+      // ------------------------------------------------------------------
+      // One-time deposit sub-call via transferAndCall (single call, no approve)
+      // ------------------------------------------------------------------
+      if (hasDeposit) {
+        const depositWei = parseUnits(depositAmountG.toString(), 18)
+        calls.push({
+          target: G_TOKEN_CELO_ADDRESS,
+          allowFailure: false,
+          callData: encodeFunctionData({
+            abi: G_TOKEN_ABI,
+            functionName: 'transferAndCall',
+            args: [vault, depositWei, buyerData],
+          }),
+        })
+      }
+
+      // Submit all sub-calls as a single wallet confirmation via Multicall3
       const txHash = await walletClient.writeContract({
-        address: CELO_GD_ANTSEED_VAULT_ADDRESS,
-        abi: VAULT_ABI,
-        functionName: 'deposit',
-        args: [amountWei, depositData],
+        address: MULTICALL3_ADDRESS,
+        abi: MULTICALL3_ABI,
+        functionName: 'aggregate3',
+        args: [calls],
       })
 
       setState((prev) => ({
@@ -676,7 +823,7 @@ export function useAiCreditsAdapter({
         message,
       })
     }
-  }, [state, backendClient, onPaySuccess, onPayError])
+  }, [state, backendClient, vaultAddress, onPaySuccess, onPayError])
 
   const handleRefresh = useCallback(async () => {
     const currentState = state
