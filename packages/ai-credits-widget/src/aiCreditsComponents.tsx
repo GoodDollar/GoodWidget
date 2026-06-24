@@ -125,7 +125,7 @@ export function AiCreditsHero({ gBalance, isGoodIdVerified, bonusPercent }: Hero
         {/* Bonus badge — shown when balance > 0 */}
         {gBalance && Number.parseFloat(gBalance) > 0 && (
           <BonusBadgeFrame backgroundColor="$backgroundPress">
-            <Icon name="info" size="xs" color="$primary" />
+            <Icon name="info" size="xs" color="primary" />
             <Text fontSize="$2" fontWeight="700" color="$primary">
               +{bonusPercent}% Bonus
             </Text>
@@ -228,7 +228,7 @@ export function BuyerKeyPanel({
 
               {buyerKeyConfirmed && (
                 <XStack gap="$2" alignItems="center">
-                  <Icon name="check" size="sm" color="$success" />
+                  <Icon name="check" size="sm" color="success" />
                   <Text color="$success" fontSize="$2">
                     Key confirmed — you can proceed
                   </Text>
@@ -317,7 +317,7 @@ export function OperatorConsentStep({
 
       {operatorConsentSigned ? (
         <XStack gap="$2" alignItems="center">
-          <Icon name="check" size="sm" color="$success" />
+          <Icon name="check" size="sm" color="success" />
           <Text color="$success">Consent signed — ready to pay</Text>
         </XStack>
       ) : (
@@ -469,7 +469,7 @@ export function CreditsBalance({ aiCreditsBalance, setupSnippet: _ }: CreditsBal
     <CreditsBalanceCard>
       <XStack justifyContent="space-between" alignItems="center">
         <Text variant="label">AI Credits (Base)</Text>
-        <Icon name="zap" size="sm" color="$primary" />
+        <Icon name="zap" size="sm" color="primary" />
       </XStack>
       {aiCreditsBalance !== null ? (
         <Heading level={3}>{Number.parseFloat(aiCreditsBalance).toFixed(2)} credits</Heading>

@@ -69,7 +69,7 @@ test('AiCreditsWidget quote_ready state', async ({ page }) => {
 test('AiCreditsWidget quote_ready GoodID bonus', async ({ page }) => {
   await gotoStory(page, STORY_IDS.quoteReadyGoodId)
   await expect(page.getByTestId('AiCreditsWidget-quote-ready-goodid')).toBeVisible()
-  await expect(page.getByText('+20%')).toBeVisible()
+  await expect(page.getByText('+20% Bonus', { exact: true })).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-04-quote-ready-goodid.png',
     fullPage: true,
@@ -79,7 +79,7 @@ test('AiCreditsWidget quote_ready GoodID bonus', async ({ page }) => {
 test('AiCreditsWidget payment_pending state', async ({ page }) => {
   await gotoStory(page, STORY_IDS.paymentPending)
   await expect(page.getByTestId('AiCreditsWidget-payment-pending')).toBeVisible()
-  await expect(page.getByText('Transaction submitted')).toBeVisible()
+  await expect(page.getByText('Transaction submitted — waiting for confirmation…')).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-05-payment-pending.png',
     fullPage: true,
@@ -141,7 +141,7 @@ test('AiCreditsWidget payment_failed state', async ({ page }) => {
   await gotoStory(page, STORY_IDS.paymentFailed)
   await expect(page.getByTestId('AiCreditsWidget-payment-failed')).toBeVisible()
   await expect(page.getByText('Payment Failed')).toBeVisible()
-  await expect(page.getByText('Transaction reverted')).toBeVisible()
+  await expect(page.getByText('Transaction reverted: insufficient allowance').first()).toBeVisible()
   await expect(page.getByRole('button', { name: 'Try Again' })).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-11-payment-failed.png',
