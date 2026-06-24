@@ -285,7 +285,7 @@ export function useAiCreditsAdapter({
     async function loadBalance() {
       try {
         const publicClient = createPublicClient({ chain: CELO_CHAIN, transport: http() })
-        const [rawBalance, decimals, isVerified] = await Promise.all([
+        const [rawBalance, decimals] = await Promise.all([
           publicClient.readContract({
             address: G_TOKEN_CELO_ADDRESS,
             abi: G_TOKEN_ABI,
@@ -297,18 +297,23 @@ export function useAiCreditsAdapter({
             abi: G_TOKEN_ABI,
             functionName: 'decimals',
           }),
-          publicClient.readContract({
+        ])
+
+        let goodIdVerified = false
+        try {
+          goodIdVerified = (await publicClient.readContract({
             address: CELO_GD_ANTSEED_VAULT_ADDRESS,
             abi: VAULT_ABI,
             functionName: 'isGoodIDVerified',
             args: [address as Address],
-          }),
-        ])
+          })) as boolean
+        } catch {
+          goodIdVerified = false
+        }
 
         if (cancelled) return
 
         const formatted = formatUnits(rawBalance as bigint, decimals as number)
-        const goodIdVerified = isVerified as boolean
         setState((prev) => {
           const nextStatus = deriveStatus({
             isConnected: true,
