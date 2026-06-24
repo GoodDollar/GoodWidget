@@ -267,8 +267,8 @@ export function BuyerKeyPanel({
                   </XStack>
                   <AiCreditsStatusNotice borderColor="$warning">
                     <Text color="$warning" fontSize="$2">
-                      ⚠ Revealing your private key can expose your account. Never share it and store it
-                      in a password manager.
+                      ⚠ Revealing your private key can expose your account. Never share it — store it in a
+                      secure place.
                     </Text>
                   </AiCreditsStatusNotice>
                   <XStack
@@ -294,13 +294,7 @@ export function BuyerKeyPanel({
               )}
 
               {!buyerKeyConfirmed && (
-                <Button
-                  onPress={onConfirm}
-                  backgroundColor="$success"
-                  borderColor="$success"
-                  hoverStyle={{ backgroundColor: '$success' }}
-                  pressStyle={{ backgroundColor: '$success', opacity: 0.9 }}
-                >
+                <Button onPress={onConfirm}>
                   <ButtonText>I've Saved My Private Key</ButtonText>
                 </Button>
               )}
@@ -329,10 +323,6 @@ export function BuyerKeyPanel({
           <XStack gap="$2">
             <Button
               flex={1}
-              backgroundColor="$success"
-              borderColor="$success"
-              hoverStyle={{ backgroundColor: '$success' }}
-              pressStyle={{ backgroundColor: '$success', opacity: 0.9 }}
               onPress={() => {
                 if (pasteValue.trim()) {
                   onPaste(pasteValue.trim())
@@ -385,13 +375,13 @@ export function OperatorConsentStep({
   return (
     <OperatorConsentCard>
       <Heading level={5}>Authenticate with AntSeed</Heading>
-      <Text secondary>
-        Sign a message with your wallet to prove ownership. The backend will verify your signature
-        and issue a GoodDollar AntSeed API key for your developer tools.
+      <Text fontSize="$2" lineHeight="$3">
+        Sign a message with your wallet to prove you own it. The backend checks your signature and
+        issues a GoodDollar AntSeed API key for your developer tools.
       </Text>
 
       {buyerKey && (
-        <Text fontSize="$2" secondary>
+        <Text fontSize="$2" lineHeight="$2">
           Buyer address:{' '}
           <Text fontFamily="$mono" fontSize="$2">
             {buyerKey.slice(0, 10)}…{buyerKey.slice(-6)}
