@@ -341,6 +341,7 @@ function AiCreditsInner({
       {state.address && !state.buyerKey && (
         <BuyerKeyPanel
           buyerKey={null}
+          buyerKeyPrivate={null}
           buyerKeyConfirmed={false}
           onGenerate={actions.generateBuyerKey}
           onPaste={actions.pasteBuyerKey}
@@ -351,6 +352,7 @@ function AiCreditsInner({
       {state.buyerKey && !state.buyerKeyConfirmed && (
         <BuyerKeyPanel
           buyerKey={state.buyerKey}
+          buyerKeyPrivate={state.buyerKeyPrivate ?? null}
           buyerKeyConfirmed={state.buyerKeyConfirmed}
           onGenerate={actions.generateBuyerKey}
           onPaste={actions.pasteBuyerKey}
@@ -411,11 +413,11 @@ function AiCreditsInner({
  *
  * The widget guides the user through:
  *   1. Connect wallet (Celo)
- *   2. Generate or provide a buyer key
- *   3. Sign EIP-712 operator consent (in-browser, no custody)
+ *   2. Generate or provide a buyer key (real private key, user must save it)
+ *   3. Sign backend-issued nonce → receive `gd_live_...` API key
  *   4. Set deposit / stream amounts
- *   5. Submit Celo payment transaction
- *   6. Wait for Base credit settlement
+ *   5. Submit G$ approve + CeloGdAntSeedVault.deposit (buyer address ABI-encoded)
+ *   6. Wait for credit settlement (Worker verifies vault events)
  *   7. View credits balance, setup snippet, and usage log
  *
  * Usage as a React component:

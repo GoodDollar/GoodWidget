@@ -5,6 +5,7 @@ import {
   createPublicClient,
   createWalletClient,
   custom,
+  encodeAbiParameters,
   formatUnits,
   http,
   parseAbi,
@@ -12,6 +13,7 @@ import {
   type Address,
   type Chain,
 } from 'viem'
+import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import {
   MockAiCreditsBackendClient,
   ProductionAiCreditsBackendClient,
@@ -40,8 +42,12 @@ const MIN_DEPOSIT_AMOUNT = '1'
 /** Minimum G$ stream amount in formatted units */
 const MIN_STREAM_AMOUNT = '1'
 
-/** AntseedBuyerOperator contract address on Base (settlement chain) */
-const ANTSEED_BUYER_OPERATOR_ADDRESS: Address = '0x0000000000000000000000000000000000000001'
+/**
+ * CeloGdAntSeedVault contract address on Celo.
+ * G$ is deposited here; the Worker reads vault events to issue credits.
+ * TODO: replace with the canonical deployed address once available.
+ */
+const CELO_GD_ANTSEED_VAULT_ADDRESS: Address = '0x0000000000000000000000000000000000000002'
 
 /** G$ token contract on Celo */
 const G_TOKEN_CELO_ADDRESS: Address = '0x62B8B11039FcfE5aB0C56E502b1C372A3d462a4'
@@ -49,7 +55,12 @@ const G_TOKEN_CELO_ADDRESS: Address = '0x62B8B11039FcfE5aB0C56E502b1C372A3d462a4
 const G_TOKEN_ABI = parseAbi([
   'function balanceOf(address account) view returns (uint256)',
   'function decimals() view returns (uint8)',
-  'function transfer(address to, uint256 amount) returns (bool)',
+  'function approve(address spender, uint256 amount) returns (bool)',
+])
+
+const VAULT_ABI = parseAbi([
+  'function deposit(uint256 amount, bytes calldata data) returns (uint256)',
+  'function isGoodIDVerified(address account) view returns (bool)',
 ])
 
 const CELO_CHAIN: Chain = {
@@ -60,24 +71,6 @@ const CELO_CHAIN: Chain = {
     default: { http: ['https://forno.celo.org'] },
     public: { http: ['https://forno.celo.org'] },
   },
-}
-
-// ---------------------------------------------------------------------------
-// EIP-712 domain and type definitions for AntseedBuyerOperator consent
-// ---------------------------------------------------------------------------
-
-const EIP712_DOMAIN = {
-  name: 'AntseedBuyerOperator',
-  version: '1',
-  chainId: 8453, // Base — where credits settle
-}
-
-const EIP712_TYPES = {
-  OperatorConsent: [
-    { name: 'buyerKey', type: 'address' },
-    { name: 'operator', type: 'address' },
-    { name: 'nonce', type: 'uint256' },
-  ],
 }
 
 // ---------------------------------------------------------------------------
@@ -92,8 +85,10 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   aiCreditsBalance: null,
   isGoodIdVerified: false,
   buyerKey: null,
+  buyerKeyPrivate: null,
   buyerKeyConfirmed: false,
   operatorConsentSigned: false,
+  apiKey: null,
   depositAmount: MIN_DEPOSIT_AMOUNT,
   streamAmount: '0',
   bonusPercent: 10,
@@ -276,11 +271,11 @@ export function useAiCreditsAdapter({
   }, [backendUrl])
 
   // ---------------------------------------------------------------------------
-  // Load G$ balance whenever wallet state changes
+  // Load G$ balance and GoodID status whenever wallet state changes
   // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!isConnected || !address) {
-      setState((prev) => ({ ...prev, gBalance: null, status: 'disconnected' }))
+      setState((prev) => ({ ...prev, gBalance: null, isGoodIdVerified: false, status: 'disconnected' }))
       return
     }
 
@@ -289,7 +284,7 @@ export function useAiCreditsAdapter({
     async function loadBalance() {
       try {
         const publicClient = createPublicClient({ chain: CELO_CHAIN, transport: http() })
-        const [rawBalance, decimals] = await Promise.all([
+        const [rawBalance, decimals, isVerified] = await Promise.all([
           publicClient.readContract({
             address: G_TOKEN_CELO_ADDRESS,
             abi: G_TOKEN_ABI,
@@ -301,11 +296,18 @@ export function useAiCreditsAdapter({
             abi: G_TOKEN_ABI,
             functionName: 'decimals',
           }),
+          publicClient.readContract({
+            address: CELO_GD_ANTSEED_VAULT_ADDRESS,
+            abi: VAULT_ABI,
+            functionName: 'isGoodIDVerified',
+            args: [address as Address],
+          }),
         ])
 
         if (cancelled) return
 
         const formatted = formatUnits(rawBalance as bigint, decimals as number)
+        const goodIdVerified = isVerified as boolean
         setState((prev) => {
           const nextStatus = deriveStatus({
             isConnected: true,
@@ -326,6 +328,7 @@ export function useAiCreditsAdapter({
             address,
             chainId,
             gBalance: formatted,
+            isGoodIdVerified: goodIdVerified,
             status: nextStatus,
             primaryAction,
             primaryLabel: derivePrimaryLabel(primaryAction),
@@ -371,20 +374,19 @@ export function useAiCreditsAdapter({
   }, [])
 
   const handleGenerateBuyerKey = useCallback(() => {
-    // Generate a random 32-byte private key and derive its address for use as buyer key.
-    // The private key is intentionally discarded — only the derived address is stored,
-    // since the buyer key address is what AntseedBuyerOperator references on-chain.
-    const randomBytes = crypto.getRandomValues(new Uint8Array(32))
-    const hex = Array.from(randomBytes)
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('')
-    const buyerKey = `0x${hex.slice(0, 40)}` // Use first 20 bytes as a pseudo-address
+    // Generate a real EIP-55 private key and derive its address.
+    // The private key is shown to the user once so they can store it for AntSeed.
+    // Only the derived address is sent on-chain (ABI-encoded in the vault deposit data).
+    const privateKey = generatePrivateKey()
+    const account = privateKeyToAccount(privateKey)
 
     setState((prev) => ({
       ...prev,
-      buyerKey,
+      buyerKey: account.address,
+      buyerKeyPrivate: privateKey,
       buyerKeyConfirmed: false,
       operatorConsentSigned: false,
+      apiKey: null,
     }))
   }, [])
 
@@ -393,8 +395,10 @@ export function useAiCreditsAdapter({
     setState((prev) => ({
       ...prev,
       buyerKey: normalized,
+      buyerKeyPrivate: null, // User-provided address — no private key available here
       buyerKeyConfirmed: true, // User-provided keys are pre-confirmed
       operatorConsentSigned: false,
+      apiKey: null,
     }))
   }, [])
 
@@ -404,26 +408,28 @@ export function useAiCreditsAdapter({
 
   const handleSignOperatorConsent = useCallback(async () => {
     const currentState = state
-    if (!currentState.buyerKey || !currentState.address || !providerRef.current) return
+    if (!currentState.address || !providerRef.current) return
 
     try {
+      // Step 1 — request a nonce/message from the backend
+      const { nonce, message } = await backendClient.requestConsentNonce(currentState.address)
+
+      // Step 2 — payer wallet signs the plain message (personal_sign)
       const walletClient = createWalletClient({
         account: currentState.address as Address,
         chain: CELO_CHAIN,
         transport: custom(providerRef.current),
       })
 
-      // Sign EIP-712 typed data in-browser; private key never leaves the browser
-      await walletClient.signTypedData({
-        domain: EIP712_DOMAIN,
-        types: EIP712_TYPES,
-        primaryType: 'OperatorConsent',
-        message: {
-          buyerKey: currentState.buyerKey as Address,
-          operator: ANTSEED_BUYER_OPERATOR_ADDRESS,
-          nonce: BigInt(Date.now()),
-        },
-      })
+      const signature = await walletClient.signMessage({ message })
+
+      // Step 3 — submit signature to backend; receive gd_live_... API key
+      const { apiKey } = await backendClient.submitConsent(
+        currentState.address,
+        nonce,
+        signature,
+        'GoodWidget',
+      )
 
       setState((prev) => {
         const nextStatus = deriveStatus({
@@ -443,6 +449,7 @@ export function useAiCreditsAdapter({
         return {
           ...prev,
           operatorConsentSigned: true,
+          apiKey,
           error: null,
           status: nextStatus,
           primaryAction,
@@ -455,7 +462,7 @@ export function useAiCreditsAdapter({
         error: err instanceof Error ? err.message : 'Consent signature rejected',
       }))
     }
-  }, [state])
+  }, [state, backendClient])
 
   const handleSetDepositAmount = useCallback((amount: string) => {
     setState((prev) => {
@@ -553,15 +560,30 @@ export function useAiCreditsAdapter({
         transport: custom(providerRef.current),
       })
 
-      // Build the G$ transfer transaction to the AntseedBuyerOperator contract
       const totalG = Number.parseFloat(currentState.depositAmount) + Number.parseFloat(currentState.streamAmount)
       const amountWei = parseUnits(totalG.toFixed(2), 18)
 
-      const txHash = await walletClient.writeContract({
+      // ABI-encode the buyer key address as the deposit userData so the vault and Worker
+      // know which buyer address to credit. Equivalent to abi.encode(buyerAddress) in Solidity.
+      const depositData = encodeAbiParameters(
+        [{ type: 'address' }],
+        [currentState.buyerKey as Address],
+      )
+
+      // Step 1: approve the vault to spend G$
+      await walletClient.writeContract({
         address: G_TOKEN_CELO_ADDRESS,
         abi: G_TOKEN_ABI,
-        functionName: 'transfer',
-        args: [ANTSEED_BUYER_OPERATOR_ADDRESS, amountWei],
+        functionName: 'approve',
+        args: [CELO_GD_ANTSEED_VAULT_ADDRESS, amountWei],
+      })
+
+      // Step 2: deposit into the vault with buyer address encoded in data
+      const txHash = await walletClient.writeContract({
+        address: CELO_GD_ANTSEED_VAULT_ADDRESS,
+        abi: VAULT_ABI,
+        functionName: 'deposit',
+        args: [amountWei, depositData],
       })
 
       setState((prev) => ({
@@ -571,11 +593,11 @@ export function useAiCreditsAdapter({
         primaryLabel: 'Settling…',
       }))
 
-      // Notify backend and wait for Base settlement
-      await backendClient.notifyPayment(currentState.buyerKey, txHash)
-      const { credits } = await backendClient.waitForSettlement(currentState.buyerKey)
+      // Record the Celo transaction with the backend and wait for credit settlement
+      await backendClient.notifyPayment(txHash)
+      const { credits } = await backendClient.waitForSettlement(currentState.address)
 
-      const setupSnippet = buildSetupSnippet(currentState.buyerKey)
+      const setupSnippet = buildSetupSnippet(currentState.apiKey, currentState.buyerKey)
 
       setState((prev) => ({
         ...prev,
@@ -613,12 +635,12 @@ export function useAiCreditsAdapter({
 
   const handleRefresh = useCallback(async () => {
     const currentState = state
-    if (!currentState.buyerKey) return
+    if (!currentState.address) return
 
     try {
       const [balance, usageLog] = await Promise.all([
-        backendClient.getCreditsBalance(currentState.buyerKey),
-        backendClient.getUsageLog(currentState.buyerKey),
+        backendClient.getCreditsBalance(currentState.address),
+        backendClient.getUsageLog(currentState.address),
       ])
 
       setState((prev) => {
@@ -695,16 +717,25 @@ export function useAiCreditsAdapter({
 // Helper: build the copyable API setup snippet shown after first purchase
 // ---------------------------------------------------------------------------
 
-function buildSetupSnippet(buyerKey: string): string {
-  return `# AntSeed API Configuration
-# Add these to your Cursor / Cline / VS Code Copilot settings:
+function buildSetupSnippet(apiKey: string | null, buyerKeyAddress: string): string {
+  const key = apiKey ?? '<your-api-key>'
+  return `# GoodDollar AntSeed — Developer Tool Configuration
+# Generated by GoodWidget after your G$ deposit on Celo.
 
-ANTSEED_API_KEY="${buyerKey}"
+# Your AntSeed API key (treat as a secret):
+GOODDOLLAR_ANTSEED_API_KEY="${key}"
+
+# Your buyer key address (registered in vault deposit):
+GOODDOLLAR_BUYER_ADDRESS="${buyerKeyAddress}"
+
+# OpenAI-compatible base URL:
 ANTSEED_BASE_URL="https://api.antseed.xyz/v1"
 
-# Example (Cursor settings.json):
+# Example Cursor / Cline / Continue settings:
 # {
-#   "antseed.apiKey": "${buyerKey}",
-#   "antseed.baseUrl": "https://api.antseed.xyz/v1"
+#   "provider": "openai",
+#   "model": "qwen3-235b-instruct",
+#   "apiBase": "https://api.antseed.xyz/v1",
+#   "apiKey": "${key}"
 # }`
 }

@@ -15,31 +15,53 @@ export interface AiCreditsBackendClient {
   getQuote(address: string, depositG: string, streamG: string): Promise<AiCreditsQuote>
 
   /**
-   * Returns the current AI credits balance for the given buyer key.
-   * @param buyerKey - Buyer key public address (hex)
+   * Returns the current AI credits balance for the given account.
+   * @param account - Payer wallet address
    */
-  getCreditsBalance(buyerKey: string): Promise<string>
+  getCreditsBalance(account: string): Promise<string>
 
   /**
-   * Returns the usage log for the given buyer key.
-   * @param buyerKey - Buyer key public address (hex)
+   * Returns the usage log for the given account.
+   * @param account - Payer wallet address
    */
-  getUsageLog(buyerKey: string): Promise<AiCreditsUsageEntry[]>
+  getUsageLog(account: string): Promise<AiCreditsUsageEntry[]>
 
   /**
-   * Notifies the backend that a Celo payment tx has been submitted and returns the
-   * estimated credit amount. The backend polls for settlement on Base.
-   * @param buyerKey - Buyer key public address (hex)
+   * Requests a nonce/message that the payer wallet must sign to prove ownership.
+   * Maps to POST /v1/auth/nonce.
+   * @param account - Payer wallet address
+   */
+  requestConsentNonce(account: string): Promise<{ nonce: string; message: string; expiresAt: string }>
+
+  /**
+   * Submits the wallet-signed nonce to obtain a `gd_live_...` API key.
+   * Maps to POST /v1/auth/api-keys.
+   * @param account   - Payer wallet address
+   * @param nonce     - Nonce returned by requestConsentNonce
+   * @param signature - Hex signature from the payer wallet over the nonce message
+   * @param label     - Optional human-readable label for the API key
+   */
+  submitConsent(
+    account: string,
+    nonce: string,
+    signature: string,
+    label?: string,
+  ): Promise<{ apiKey: string }>
+
+  /**
+   * Records a submitted Celo vault deposit transaction with the backend.
+   * The backend verifies vault events, resolves GoodID root, and issues credits.
+   * Maps to POST /v1/celo/events/record.
    * @param txHash - Submitted Celo transaction hash
    */
-  notifyPayment(buyerKey: string, txHash: string): Promise<{ estimatedCredits: string }>
+  notifyPayment(txHash: string): Promise<{ estimatedCredits: string }>
 
   /**
    * Polls the backend for credit settlement status after a payment.
    * Resolves when credits are confirmed or throws on timeout/error.
-   * @param buyerKey - Buyer key public address (hex)
+   * @param account - Payer wallet address
    */
-  waitForSettlement(buyerKey: string): Promise<{ credits: string }>
+  waitForSettlement(account: string): Promise<{ credits: string }>
 }
 
 // ---------------------------------------------------------------------------
@@ -91,12 +113,12 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     return calculateMockQuote(depositG, streamG, this.isGoodIdVerified)
   }
 
-  async getCreditsBalance(_buyerKey: string): Promise<string> {
+  async getCreditsBalance(_account: string): Promise<string> {
     await sleep(MOCK_DELAY_MS)
     return '124.50'
   }
 
-  async getUsageLog(_buyerKey: string): Promise<AiCreditsUsageEntry[]> {
+  async getUsageLog(_account: string): Promise<AiCreditsUsageEntry[]> {
     await sleep(MOCK_DELAY_MS)
     return [
       {
@@ -120,15 +142,34 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     ]
   }
 
-  async notifyPayment(
-    _buyerKey: string,
-    _txHash: string,
-  ): Promise<{ estimatedCredits: string }> {
+  async requestConsentNonce(
+    account: string,
+  ): Promise<{ nonce: string; message: string; expiresAt: string }> {
+    await sleep(MOCK_DELAY_MS)
+    const nonce = `mock-nonce-${account.slice(2, 8)}-${Date.now()}`
+    return {
+      nonce,
+      message: `Sign this message to authenticate with GoodDollar AntSeed.\n\nAccount: ${account}\nNonce: ${nonce}`,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+    }
+  }
+
+  async submitConsent(
+    _account: string,
+    _nonce: string,
+    _signature: string,
+    _label?: string,
+  ): Promise<{ apiKey: string }> {
+    await sleep(MOCK_DELAY_MS)
+    return { apiKey: 'gd_live_mock_api_key_1234567890abcdef' }
+  }
+
+  async notifyPayment(_txHash: string): Promise<{ estimatedCredits: string }> {
     await sleep(MOCK_DELAY_MS)
     return { estimatedCredits: '110.00' }
   }
 
-  async waitForSettlement(_buyerKey: string): Promise<{ credits: string }> {
+  async waitForSettlement(_account: string): Promise<{ credits: string }> {
     // Simulate backend settlement taking 2 seconds
     await sleep(2000)
     return { credits: '110.00' }
@@ -154,47 +195,75 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
     return response.json() as Promise<AiCreditsQuote>
   }
 
-  async getCreditsBalance(buyerKey: string): Promise<string> {
-    const url = `${this.backendUrl}/balance/${encodeURIComponent(buyerKey)}`
+  async getCreditsBalance(account: string): Promise<string> {
+    const url = `${this.backendUrl}/v1/accounts/${encodeURIComponent(account)}/credit`
     const response = await fetch(url)
     if (!response.ok) throw new Error(`Balance request failed: ${response.status}`)
     const data = (await response.json()) as { balance: string }
     return data.balance
   }
 
-  async getUsageLog(buyerKey: string): Promise<AiCreditsUsageEntry[]> {
-    const url = `${this.backendUrl}/usage/${encodeURIComponent(buyerKey)}`
+  async getUsageLog(account: string): Promise<AiCreditsUsageEntry[]> {
+    const url = `${this.backendUrl}/v1/accounts/${encodeURIComponent(account)}/credit`
     const response = await fetch(url)
     if (!response.ok) throw new Error(`Usage log request failed: ${response.status}`)
-    return response.json() as Promise<AiCreditsUsageEntry[]>
+    const data = (await response.json()) as { requests?: AiCreditsUsageEntry[] }
+    return data.requests ?? []
   }
 
-  async notifyPayment(
-    buyerKey: string,
-    txHash: string,
-  ): Promise<{ estimatedCredits: string }> {
-    const url = `${this.backendUrl}/payment`
+  async requestConsentNonce(
+    account: string,
+  ): Promise<{ nonce: string; message: string; expiresAt: string }> {
+    const url = `${this.backendUrl}/v1/auth/nonce`
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ buyerKey, txHash }),
+      body: JSON.stringify({ account }),
+    })
+    if (!response.ok) throw new Error(`Nonce request failed: ${response.status}`)
+    return response.json() as Promise<{ nonce: string; message: string; expiresAt: string }>
+  }
+
+  async submitConsent(
+    account: string,
+    nonce: string,
+    signature: string,
+    label?: string,
+  ): Promise<{ apiKey: string }> {
+    const url = `${this.backendUrl}/v1/auth/api-keys`
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ account, nonce, signature, label: label ?? 'GoodWidget' }),
+    })
+    if (!response.ok) throw new Error(`Consent submission failed: ${response.status}`)
+    const data = (await response.json()) as { token: string }
+    return { apiKey: data.token }
+  }
+
+  async notifyPayment(txHash: string): Promise<{ estimatedCredits: string }> {
+    const url = `${this.backendUrl}/v1/celo/events/record`
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ txHash }),
     })
     if (!response.ok) throw new Error(`Payment notification failed: ${response.status}`)
     return response.json() as Promise<{ estimatedCredits: string }>
   }
 
-  async waitForSettlement(buyerKey: string): Promise<{ credits: string }> {
+  async waitForSettlement(account: string): Promise<{ credits: string }> {
     const POLL_INTERVAL_MS = 3000
     const MAX_ATTEMPTS = 20
 
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       await sleep(POLL_INTERVAL_MS)
-      const url = `${this.backendUrl}/settlement/${encodeURIComponent(buyerKey)}`
+      const url = `${this.backendUrl}/v1/accounts/${encodeURIComponent(account)}/credit`
       const response = await fetch(url)
       if (!response.ok) continue
-      const data = (await response.json()) as { status: string; credits?: string }
-      if (data.status === 'settled' && data.credits) {
-        return { credits: data.credits }
+      const data = (await response.json()) as { balance?: string; status?: string }
+      if (data.balance && Number.parseFloat(data.balance) > 0) {
+        return { credits: data.balance }
       }
     }
 

@@ -147,6 +147,7 @@ export function AiCreditsHero({ gBalance, isGoodIdVerified, bonusPercent }: Hero
 
 interface BuyerKeyPanelProps {
   buyerKey: string | null
+  buyerKeyPrivate: string | null
   buyerKeyConfirmed: boolean
   onGenerate: () => void
   onPaste: (key: string) => void
@@ -155,11 +156,14 @@ interface BuyerKeyPanelProps {
 
 /**
  * Handles buyer key generation and confirmation.
- * Generated keys require copy-and-confirm before the user can proceed.
- * User-provided (pasted) keys are pre-confirmed.
+ * When a key is generated the panel shows both the private key (which the user must save)
+ * and the derived address (registered in the vault deposit). The user must confirm they have
+ * saved the private key before proceeding.
+ * User-provided (pasted) keys are pre-confirmed since the user already has the key.
  */
 export function BuyerKeyPanel({
   buyerKey,
+  buyerKeyPrivate,
   buyerKeyConfirmed,
   onGenerate,
   onPaste,
@@ -167,21 +171,29 @@ export function BuyerKeyPanel({
 }: BuyerKeyPanelProps) {
   const [pasteMode, setPasteMode] = useState(false)
   const [pasteValue, setPasteValue] = useState('')
-  const [copied, setCopied] = useState(false)
+  const [copiedAddress, setCopiedAddress] = useState(false)
+  const [copiedPrivate, setCopiedPrivate] = useState(false)
 
-  async function handleCopy() {
+  async function handleCopyAddress() {
     if (!buyerKey) return
     await navigator.clipboard.writeText(buyerKey)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    setCopiedAddress(true)
+    setTimeout(() => setCopiedAddress(false), 2000)
+  }
+
+  async function handleCopyPrivate() {
+    if (!buyerKeyPrivate) return
+    await navigator.clipboard.writeText(buyerKeyPrivate)
+    setCopiedPrivate(true)
+    setTimeout(() => setCopiedPrivate(false), 2000)
   }
 
   return (
     <BuyerKeyPanelCard>
       <Heading level={5}>Buyer Key</Heading>
       <Text secondary>
-        Your buyer key links your AI credits on Base to your identity. Generate a new one or paste
-        an existing key.
+        Generate a key pair for your AntSeed buyer identity. Save the private key — you will need it
+        to authenticate with AntSeed from your developer tools.
       </Text>
 
       {!pasteMode && (
@@ -201,6 +213,10 @@ export function BuyerKeyPanel({
 
           {buyerKey && (
             <YStack gap="$2">
+              {/* Address row */}
+              <Text variant="label" secondary>
+                Address (registered on-chain)
+              </Text>
               <XStack
                 backgroundColor="$backgroundMuted"
                 borderRadius="$2"
@@ -215,14 +231,47 @@ export function BuyerKeyPanel({
                 >
                   {buyerKey}
                 </Text>
-                <Button size="sm" variant="ghost" onPress={handleCopy}>
-                  <ButtonText>{copied ? 'Copied!' : 'Copy'}</ButtonText>
+                <Button size="sm" variant="ghost" onPress={handleCopyAddress}>
+                  <ButtonText>{copiedAddress ? 'Copied!' : 'Copy'}</ButtonText>
                 </Button>
               </XStack>
 
+              {/* Private key row — only shown for generated keys */}
+              {buyerKeyPrivate && (
+                <>
+                  <Text variant="label" secondary>
+                    Private Key — save this securely, it will not be shown again
+                  </Text>
+                  <AiCreditsStatusNotice borderColor="$warning">
+                    <Text color="$warning" fontSize="$2">
+                      ⚠ Never share your private key. Store it in a password manager.
+                    </Text>
+                  </AiCreditsStatusNotice>
+                  <XStack
+                    backgroundColor="$backgroundMuted"
+                    borderRadius="$2"
+                    padding="$3"
+                    justifyContent="space-between"
+                    alignItems="center"
+                  >
+                    <Text
+                      fontSize="$2"
+                      style={{ fontFamily: 'monospace' } as React.CSSProperties}
+                      flex={1}
+                      numberOfLines={1}
+                    >
+                      {buyerKeyPrivate}
+                    </Text>
+                    <Button size="sm" variant="ghost" onPress={handleCopyPrivate}>
+                      <ButtonText>{copiedPrivate ? 'Copied!' : 'Copy'}</ButtonText>
+                    </Button>
+                  </XStack>
+                </>
+              )}
+
               {!buyerKeyConfirmed && (
                 <Button onPress={onConfirm}>
-                  <ButtonText>I've Copied My Key</ButtonText>
+                  <ButtonText>I've Saved My Private Key</ButtonText>
                 </Button>
               )}
 
@@ -288,9 +337,10 @@ interface OperatorConsentStepProps {
 }
 
 /**
- * Prompts the user to sign the EIP-712 operator consent message.
- * This authorises AntseedBuyerOperator to manage deposits on Base on behalf of the buyer key.
- * The buyer key signs in-browser; the payer wallet is not involved here.
+ * Prompts the payer wallet to sign a backend-issued nonce message.
+ * The backend verifies the signature and issues a `gd_live_...` API key
+ * that developer tools use to access AntSeed compute.
+ * No gas transaction is required.
  */
 export function OperatorConsentStep({
   buyerKey,
@@ -300,15 +350,15 @@ export function OperatorConsentStep({
 }: OperatorConsentStepProps) {
   return (
     <OperatorConsentCard>
-      <Heading level={5}>Operator Consent</Heading>
+      <Heading level={5}>Authenticate with AntSeed</Heading>
       <Text secondary>
-        Sign a permission message allowing the AntseedBuyerOperator contract to manage your credits
-        on Base. This happens in-browser and does not require a gas transaction.
+        Sign a message with your wallet to prove ownership. The backend will verify your signature
+        and issue a GoodDollar AntSeed API key for your developer tools.
       </Text>
 
       {buyerKey && (
         <Text fontSize="$2" secondary>
-          Buyer key:{' '}
+          Buyer address:{' '}
           <Text fontFamily="$mono" fontSize="$2">
             {buyerKey.slice(0, 10)}…{buyerKey.slice(-6)}
           </Text>
@@ -318,7 +368,7 @@ export function OperatorConsentStep({
       {operatorConsentSigned ? (
         <XStack gap="$2" alignItems="center">
           <Icon name="check" size="sm" color="success" />
-          <Text color="$success">Consent signed — ready to pay</Text>
+          <Text color="$success">API key issued — ready to pay</Text>
         </XStack>
       ) : (
         <Button
@@ -333,7 +383,7 @@ export function OperatorConsentStep({
               <Spinner size="sm" />
             </XStack>
           ) : (
-            <ButtonText>Sign Consent</ButtonText>
+            <ButtonText>Sign &amp; Get API Key</ButtonText>
           )}
         </Button>
       )}

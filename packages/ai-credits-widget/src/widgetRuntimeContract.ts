@@ -98,12 +98,22 @@ export interface AiCreditsWidgetAdapterState {
   aiCreditsBalance: string | null
   /** Whether the connected wallet has a verified GoodID */
   isGoodIdVerified: boolean
-  /** Buyer key public address (hex) used for AI credits; never sent unencrypted to backend */
+  /** Buyer key public address (hex) — encoded in CeloGdAntSeedVault deposit data */
   buyerKey: string | null
-  /** Whether the buyer key has been confirmed (copied) by the user */
+  /**
+   * Raw private key (hex, 0x-prefixed) for the generated buyer key.
+   * Shown once to the user so they can store it; never transmitted to the backend.
+   */
+  buyerKeyPrivate: string | null
+  /** Whether the buyer key has been confirmed (copied/saved) by the user */
   buyerKeyConfirmed: boolean
-  /** Whether operator consent has been signed for the buyer key */
+  /** Whether operator consent has been signed and the backend has issued an API key */
   operatorConsentSigned: boolean
+  /**
+   * GoodDollar AntSeed API key (`gd_live_...`) issued by the backend after wallet-signature
+   * consent. This key is what developer tools (VS Code, Cursor, Cline) use to access AntSeed.
+   */
+  apiKey: string | null
   /** Deposit amount entered by user in G$ */
   depositAmount: string
   /** Monthly stream amount entered by user in G$ */
