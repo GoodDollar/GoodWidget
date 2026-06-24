@@ -147,12 +147,14 @@ function StepperStepRow({
           emphasis={emphasized}
           paddingBottom={isLast ? '$0' : undefined}
           borderColor={style.borderColor}
+          // Active step: replace uniform thin border with a prominent left accent bar
+          {...(style.active ? { borderWidth: 0, borderLeftWidth: 3 } : {})}
         >
           <XStack alignItems="center" justifyContent="space-between" gap="$2">
             <XStack alignItems="center" gap="$2" flex={1} flexWrap="wrap">
               <Text
                 color={style.titleColor}
-                fontWeight={emphasized || step.status === 'completed' ? '700' : '600'}
+                fontWeight={style.active ? '700' : step.status === 'completed' ? '600' : '400'}
                 fontSize={style.active ? '$4' : undefined}
               >
                 {step.title}
