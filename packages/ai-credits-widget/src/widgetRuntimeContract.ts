@@ -80,6 +80,7 @@ export interface AiCreditsUsageEntry {
   timestamp: string
   creditsUsed: number
   model: string
+  kind?: 'funding' | 'usage'
 }
 
 // ---------------------------------------------------------------------------

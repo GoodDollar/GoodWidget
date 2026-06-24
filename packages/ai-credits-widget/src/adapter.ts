@@ -587,6 +587,7 @@ export function useAiCreditsAdapter({
         currentState.address,
         currentState.depositAmount,
         currentState.streamAmount,
+        { isGoodIdVerified: currentState.isGoodIdVerified },
       )
     } catch {
       setState((prev) => ({
@@ -639,10 +640,20 @@ export function useAiCreditsAdapter({
         primaryLabel: 'Settling…',
       }))
 
+      let balanceBefore = '0'
+      try {
+        balanceBefore = await backendClient.getCreditsBalance(currentState.address)
+      } catch {
+        balanceBefore = '0'
+      }
+
       for (const hash of txHashes) {
         await backendClient.notifyPayment(hash)
       }
-      const { credits } = await backendClient.waitForSettlement(currentState.address)
+      const { credits } = await backendClient.waitForSettlement(
+        currentState.address,
+        balanceBefore,
+      )
 
       const setupSnippet = buildSetupSnippet(currentState.apiKey, currentState.buyerKey)
 

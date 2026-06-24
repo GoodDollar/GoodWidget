@@ -615,6 +615,7 @@ export function UsageLog({ entries }: UsageLogProps) {
 
   if (entries.length === 0) return null
 
+  const isFundingHistory = entries.every((entry) => entry.kind === 'funding')
   const total = entries.reduce((sum, e) => sum + e.creditsUsed, 0)
 
   return (
@@ -625,7 +626,7 @@ export function UsageLog({ entries }: UsageLogProps) {
         onPress={() => setExpanded((v) => !v)}
         cursor="pointer"
       >
-        <Heading level={5}>Usage History</Heading>
+        <Heading level={5}>{isFundingHistory ? 'Credit History' : 'Usage History'}</Heading>
         <XStack gap="$2" alignItems="center">
           <Text fontSize="$2" secondary>
             {total.toFixed(1)} total credits
@@ -649,7 +650,8 @@ export function UsageLog({ entries }: UsageLogProps) {
                   </Text>
                 </YStack>
                 <Text fontSize="$2" color="$primary">
-                  -{entry.creditsUsed.toFixed(1)} credits
+                  {entry.kind === 'funding' ? '+' : '-'}
+                  {entry.creditsUsed.toFixed(1)} credits
                 </Text>
               </XStack>
             </YStack>
