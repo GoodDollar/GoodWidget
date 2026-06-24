@@ -10,6 +10,7 @@ import { Stack } from 'tamagui'
 import { createComponent } from '../createComponent'
 import { XStack, YStack } from '../components-test/Stacks'
 import { Heading } from './Heading'
+import { Icon } from './Icon'
 import { Text } from './Text'
 
 export interface PageWizardStep {
@@ -237,7 +238,7 @@ export function PageWizardShell({
               const isCompletedStep = index < displayCurrentIndex
               const isLastStep = index === displaySteps.length - 1
               const connectorColor =
-                index < displayCurrentIndex ? '$governancePrimary' : '$governanceBorder'
+                index < displayCurrentIndex ? '$primary' : '$borderColor'
 
               return (
                 <React.Fragment key={step.id}>
@@ -252,38 +253,25 @@ export function PageWizardShell({
                     <PageWizardStepCircle
                       backgroundColor={
                         isCompletedStep
-                          ? '$governanceSuccess'
+                          ? '$success'
                           : isActiveStep
-                            ? '$governancePrimary'
-                            : '$governanceBackground'
+                            ? '$primary'
+                            : '$background'
                       }
                       borderColor={
                         isCompletedStep
-                          ? '$governanceSuccess'
+                          ? '$success'
                           : isActiveStep
-                            ? '$governancePrimary'
-                            : '$governanceBorder'
+                            ? '$primary'
+                            : '$borderColor'
                       }
                     >
                       {isCompletedStep ? (
-                        // Solid green circle with white checkmark — matches Stitch design
-                        <svg
-                          width={14}
-                          height={14}
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="white"
-                          strokeWidth={3}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
-                        >
-                          <path d="M20 6L9 17L4 12" />
-                        </svg>
+                        <Icon name="check" size="xs" color="white" />
                       ) : (
                         <Text
                           color={
-                            isActiveStep ? 'white' : '$governanceTextSecondary'
+                            isActiveStep ? '$white' : '$placeholderColor'
                           }
                           fontWeight="700"
                         >
@@ -293,7 +281,7 @@ export function PageWizardShell({
                     </PageWizardStepCircle>
                     <Text
                       variant="caption"
-                      color={isActiveStep ? '$color' : '$governanceTextSecondary'}
+                      color={isActiveStep ? '$color' : '$placeholderColor'}
                       fontWeight={isActiveStep ? '700' : '500'}
                       center
                       numberOfLines={1}

@@ -76,8 +76,8 @@ export function ProfileStepContent({
           <YStack
             borderRadius="$3"
             borderWidth={1}
-            borderColor="$governancePrimary"
-            backgroundColor="$governanceSurfaceAlt"
+            borderColor="$primary"
+            backgroundColor="$backgroundHover"
             padding="$3"
             gap="$3"
           >
@@ -109,9 +109,9 @@ export function ProfileStepContent({
               gap="$3"
               padding="$3"
               borderRadius="$2"
-              backgroundColor="$governanceErrorMuted"
+              backgroundColor="$errorMuted"
               borderWidth={1}
-              borderColor="$governanceError"
+              borderColor="$error"
             >
               <Icon name="alert-triangle" color="error" size="sm" />
               <Text variant="caption" flex={1}>

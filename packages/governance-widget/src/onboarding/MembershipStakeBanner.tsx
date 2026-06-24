@@ -13,7 +13,7 @@ interface MembershipStakeBannerProps {
  */
 export function MembershipStakeBanner({ stakeAmountLabel, warningMessage }: MembershipStakeBannerProps) {
   return (
-    <Card elevated backgroundColor="$governanceSurfaceAlt" borderColor="$governancePrimary">
+    <Card elevated backgroundColor="$backgroundHover" borderColor="$primary">
       <YStack gap="$3">
         <XStack alignItems="center" gap="$3">
           <XStack
@@ -22,7 +22,7 @@ export function MembershipStakeBanner({ stakeAmountLabel, warningMessage }: Memb
             borderRadius="$full"
             alignItems="center"
             justifyContent="center"
-            backgroundColor="$governancePrimary"
+            backgroundColor="$primary"
           >
             <Icon name="info" color="white" />
           </XStack>
@@ -41,9 +41,9 @@ export function MembershipStakeBanner({ stakeAmountLabel, warningMessage }: Memb
           gap="$3"
           padding="$3"
           borderRadius="$3"
-          backgroundColor="$governanceErrorMuted"
+          backgroundColor="$errorMuted"
           borderWidth={1}
-          borderColor="$governanceError"
+          borderColor="$error"
         >
           <Icon name="alert-triangle" color="error" />
           <YStack flex={1} gap="$2">

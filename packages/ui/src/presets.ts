@@ -348,6 +348,24 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
       placeholderColor: color.textSecondaryDark,
     },
 
+    light_ProfileTextAreaField: {
+      background: color.governanceSurface,
+      color: color.governanceText,
+      borderColor: color.governanceBorder,
+      borderColorHover: color.governanceBorderLight,
+      borderColorFocus: color.governancePrimary,
+      placeholderColor: color.governanceTextSecondary,
+      shadowColorFocus: color.governanceElevationShadow,
+    },
+    dark_ProfileTextAreaField: {
+      background: color.backgroundInput,
+      color: color.textDark,
+      borderColor: color.borderDark,
+      borderColorHover: color.borderLight,
+      borderColorFocus: color.primary,
+      placeholderColor: color.textSecondaryDark,
+    },
+
     light_ClaimCard: {
       background: color.governanceSurface,
       borderColor: color.governanceBorder,
