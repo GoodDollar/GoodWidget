@@ -199,33 +199,28 @@ export function BuyerKeyPanel({
   return (
     <BuyerKeyPanelCard>
       <Heading level={5}>Buyer Key</Heading>
-      <Text secondary>
+      <Text>
         Generate a key pair for your AntSeed buyer identity. Save the private key — you will need it
         to authenticate with AntSeed from your developer tools.
       </Text>
 
       {!pasteMode && (
         <YStack gap="$3">
-          <Button
-            onPress={onGenerate}
-            backgroundColor="$success"
-            borderColor="$success"
-            hoverStyle={{ backgroundColor: '$success' }}
-            pressStyle={{ backgroundColor: '$success', opacity: 0.9 }}
-          >
-            <ButtonText>Generate New Key</ButtonText>
-          </Button>
+          <XStack gap="$2" alignItems="center">
+            <Button onPress={onGenerate} flex={1}>
+              <ButtonText>Generate New Key</ButtonText>
+            </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            alignSelf="center"
-            onPress={() => {
-              setPasteMode(true)
-            }}
-          >
-            <ButtonText>Paste Existing Key</ButtonText>
-          </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onPress={() => {
+                setPasteMode(true)
+              }}
+            >
+              <ButtonText>Paste Key</ButtonText>
+            </Button>
+          </XStack>
 
           {buyerKey && (
             <YStack gap="$2">
