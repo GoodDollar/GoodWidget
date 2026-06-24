@@ -16,43 +16,24 @@
 name: Copilot setup steps
 
 on:
-  workflow_dispatch:
-  push:
-    paths:
-      - .github/workflows/copilot-setup-steps.yml
-  pull_request:
-    paths:
-      - .github/workflows/copilot-setup-steps.yml
+  workflow_call: {}
 
 jobs:
   copilot-setup-steps:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
-      # 1. Check out the repository before running any package-manager commands.
-      - name: Checkout repository
-        uses: actions/checkout@v5
-
-      # 2. Install the repository's Node.js version and enable pnpm dependency caching.
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: pnpm
-
-      # 3. Enable corepack so the declared pnpm version (packageManager field) is used.
+      # 1. Enable corepack so the declared pnpm version (packageManager field) is used
       - name: Enable corepack
         run: corepack enable && corepack prepare pnpm@9.15.0 --activate
 
-      # 4. Install all monorepo dependencies via pnpm workspaces.
+      # 2. Install all monorepo dependencies via pnpm workspaces
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
-      # 5. Build all workspace packages so Storybook can import them.
+      # 3. Build all workspace packages so Storybook can import them
       - name: Build packages
-        run: pnpm run build
+        run: pnpm build
 
-      # 6. Install the Chromium browser and its OS-level deps for Playwright / test-runner.
+      # 4. Install the Chromium browser and its OS-level deps for Playwright / test-runner
       - name: Install Playwright browsers
         run: pnpm exec playwright install chromium --with-deps
