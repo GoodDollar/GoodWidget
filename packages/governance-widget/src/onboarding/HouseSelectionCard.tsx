@@ -1,4 +1,3 @@
-import React from 'react'
 import { Stack } from 'tamagui'
 import { Badge, BadgeText, Heading, Icon, PillText, Text, XStack, YStack, createComponent } from '@goodwidget/ui'
 import { HOUSE_COPY } from './copy'

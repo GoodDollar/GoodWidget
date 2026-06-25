@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { Text, XStack, YStack } from '@goodwidget/ui'
 import {
@@ -74,8 +74,6 @@ const fundingProjects: FundingProjectAllocation[] = [
   },
 ]
 
-import { GovernanceWidgetProvider } from '@goodwidget/governance-widget'
-
 function GovernanceStoryFrame({
   children,
   width = 520,
@@ -100,14 +98,12 @@ function GovernanceStoryFrame({
   })
 
   return (
-    <GovernanceWidgetProvider defaultTheme={theme}>
-      <YStack width={width} maxWidth="100%" gap="$3" padding="$3">
-        {enhancedChildren}
-        <Text variant="caption" tone="secondary" data-testid="GovernanceWidget-last-action">
-          {lastAction}
-        </Text>
-      </YStack>
-    </GovernanceWidgetProvider>
+    <YStack width={width} maxWidth="100%" gap="$3" padding="$3">
+      {enhancedChildren}
+      <Text variant="caption" tone="secondary" data-testid="GovernanceWidget-last-action">
+        {lastAction}
+      </Text>
+    </YStack>
   )
 }
 
@@ -172,26 +168,27 @@ export const ImpactDarkLongDisabledMobile: Story = {
 }
 
 export const BalanceVariantsLight: Story = {
+  parameters: {
+    goodWidgetProvider: { useShell: false, defaultTheme: 'light' },
+  },
   render: () => (
-    <GovernanceWidgetProvider defaultTheme="light">
-      <XStack flexWrap="wrap" gap="$3" padding="$3" width={560}>
-        <BalanceCard
-          testID="BalanceCard-token-growth"
-          icon="wallet"
-          title="Voting balance"
-          amount={{ value: 12345.67, token: 'G$' }}
-          metadata={{ label: '+12.4% this cycle', tone: 'positive', icon: 'chevron-up' }}
-        />
-        <BalanceCard
-          testID="BalanceCard-raw-window"
-          icon="check"
-          title="Eligible proposals with a long title"
-          amount={17}
-          amountType="raw"
-          metadata={{ label: 'Last 30 days', tone: 'muted', icon: 'info' }}
-        />
-      </XStack>
-    </GovernanceWidgetProvider>
+    <XStack flexWrap="wrap" gap="$3" padding="$3" width={560}>
+      <BalanceCard
+        testID="BalanceCard-token-growth"
+        icon="wallet"
+        title="Voting balance"
+        amount={{ value: 12345.67, token: 'G$' }}
+        metadata={{ label: '+12.4% this cycle', tone: 'positive', icon: 'chevron-up' }}
+      />
+      <BalanceCard
+        testID="BalanceCard-raw-window"
+        icon="check"
+        title="Eligible proposals with a long title"
+        amount={17}
+        amountType="raw"
+        metadata={{ label: 'Last 30 days', tone: 'muted', icon: 'info' }}
+      />
+    </XStack>
   ),
 }
 

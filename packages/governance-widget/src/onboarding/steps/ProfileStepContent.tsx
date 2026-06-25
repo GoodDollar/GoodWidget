@@ -1,4 +1,4 @@
-import React from 'react'
+import type { ChangeEvent } from 'react'
 import { XStack, YStack } from 'tamagui'
 import { Button, ButtonText, Card, Icon, Text } from '@goodwidget/ui'
 import { InputError, InputFrame, InputLabel } from '@goodwidget/ui'
@@ -50,7 +50,7 @@ function FormField({
         placeholder={placeholder}
         value={value ?? ''}
         error={Boolean(errorMessage)}
-        onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+        onChange={(event: ChangeEvent<HTMLInputElement>) => {
           onChangeText(event.currentTarget.value)
         }}
       />

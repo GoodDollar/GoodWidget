@@ -1,4 +1,4 @@
-import React from 'react'
+import type { ChangeEvent } from 'react'
 import { TextArea } from 'tamagui'
 import { createComponent, InputError, InputLabel, Text, YStack } from '@goodwidget/ui'
 
@@ -75,7 +75,7 @@ export function ProfileTextAreaField({
         value={value ?? ''}
         placeholder={placeholder}
         numberOfLines={4}
-        onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => {
+        onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
           onChangeText(event.currentTarget.value)
         }}
       />

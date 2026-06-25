@@ -1,4 +1,3 @@
-import React from 'react'
 import { Badge, BadgeText, Card, Heading, Stepper, Text, XStack, YStack } from '@goodwidget/ui'
 import { resolveStakeSummary } from '../resolveStakeSummary'
 import type { StepperStepItem } from '@goodwidget/ui'

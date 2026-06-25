@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Button, ButtonText, PageWizardShell, XStack, usePageWizard } from '@goodwidget/ui'
 import { HOUSE_COPY } from './copy'
 import { DEFAULT_TRANSACTION_STEPS, DEFAULT_FINAL_ACTIONS } from './constants'

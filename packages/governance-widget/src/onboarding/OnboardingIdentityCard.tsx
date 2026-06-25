@@ -1,4 +1,3 @@
-import React from 'react'
 import { Stack } from 'tamagui'
 import { AddressDisplay, Button, ButtonText, Card, Icon, Text, XStack, YStack, createComponent } from '@goodwidget/ui'
 import type { GovernanceIdentityStatus } from '../types'

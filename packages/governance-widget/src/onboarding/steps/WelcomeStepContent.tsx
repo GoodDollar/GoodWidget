@@ -1,4 +1,3 @@
-import React from 'react'
 import { YStack } from '@goodwidget/ui'
 import { OnboardingIdentityCard } from '../OnboardingIdentityCard'
 import type { GovernanceIdentityStatus } from '../../types'

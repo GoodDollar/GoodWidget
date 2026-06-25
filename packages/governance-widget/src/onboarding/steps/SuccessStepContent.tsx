@@ -1,4 +1,3 @@
-import React from 'react'
 import { YStack, XStack, Theme, useTheme } from 'tamagui'
 import { Button, ButtonText, Heading, Icon, Text, createComponent } from '@goodwidget/ui'
 import type { GovernanceOnboardingAction } from '../../types'
@@ -66,8 +65,8 @@ function SuccessStepInner({
 
   return (
     <YStack width="100%" gap="$3">
-      {finalActions.map((action, index) => {
-        const isPrimary = index === 0
+      {finalActions.map((action) => {
+        const isPrimary = action.variant === 'primary'
         const bg = isPrimary ? primaryBg : secondaryBg
         const textColor = isPrimary ? primaryColor : secondaryColor
         const hoverBg = isPrimary ? primaryBgHover : secondaryBgHover
@@ -81,6 +80,7 @@ function SuccessStepInner({
           <Button
             key={action.id}
             fullWidth
+            variant={action.variant}
             disabled={action.disabled}
             onPress={() => onFinalActionPress?.(action.id)}
             data-testid={`GovernanceOnboardingWidget-success-${action.id}`}

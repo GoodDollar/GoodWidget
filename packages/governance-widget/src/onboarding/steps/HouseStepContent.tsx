@@ -1,4 +1,3 @@
-import React from 'react'
 import { Card, Heading, Text, YStack } from '@goodwidget/ui'
 import { HouseSelectionCard } from '../HouseSelectionCard'
 import type { GovernanceHouse } from '../../types'

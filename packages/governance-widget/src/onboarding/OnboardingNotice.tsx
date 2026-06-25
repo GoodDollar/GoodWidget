@@ -1,4 +1,3 @@
-import React from 'react'
 import { Badge, BadgeText, Card, Heading, Icon, Text, XStack, YStack } from '@goodwidget/ui'
 
 export type OnboardingNoticeBadgeType = 'info' | 'warning' | 'success'
@@ -38,7 +37,7 @@ export function OnboardingNotice({
         >
           <Icon
             name={iconName}
-            color={badgeType === 'warning' ? 'error' : badgeType === 'success' ? 'success' : 'primary'}
+            color={badgeType === 'warning' ? 'warning' : badgeType === 'success' ? 'success' : 'primary'}
           />
         </YStack>
         <YStack flex={1} gap="$2">

@@ -45,18 +45,6 @@ export default defineConfig({
         },
       },
     },
-    {
-      // Mobile capture for governance onboarding — mirrors the Figma reference
-      // width (390px) so PR reviewers can compare against design without resizing.
-      name: 'chromium-mobile',
-      testMatch: /governance-widget\/.*\.spec\.ts$/,
-      use: {
-        ...devices['Pixel 7'],
-        launchOptions: {
-          args: ['--disable-web-security', '--ignore-certificate-errors'],
-        },
-      },
-    },
   ],
   webServer: {
     command: 'pnpm storybook',

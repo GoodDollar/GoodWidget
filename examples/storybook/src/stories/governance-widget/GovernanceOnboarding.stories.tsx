@@ -1,9 +1,8 @@
-import React from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { Card, Text, YStack } from '@goodwidget/ui'
 import {
   GovernanceOnboardingWidget,
-  GovernanceWidgetProvider,
+  governanceWidgetConfig,
   type GovernanceOnboardingWidgetProps,
 } from '@goodwidget/governance-widget'
 import {
@@ -18,7 +17,7 @@ const meta: Meta<typeof GovernanceOnboardingWidget> = {
   tags: ['autodocs'],
   parameters: {
     layout: 'centered',
-    goodWidgetProvider: { useShell: false },
+    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig },
   },
 }
 
@@ -98,11 +97,9 @@ function InjectedGovernanceStory({
   }
 
   return (
-    <GovernanceWidgetProvider defaultTheme="light">
-      <GovernanceStoryFrame walletLabel={walletLabel} dataTestId={dataTestId}>
-        <GovernanceOnboardingWidget {...storyProps} />
-      </GovernanceStoryFrame>
-    </GovernanceWidgetProvider>
+    <GovernanceStoryFrame walletLabel={walletLabel} dataTestId={dataTestId}>
+      <GovernanceOnboardingWidget {...storyProps} />
+    </GovernanceStoryFrame>
   )
 }
 
@@ -121,11 +118,9 @@ function CustodialGovernanceStory({
     createCustodialEip1193Provider()
 
     return (
-      <GovernanceWidgetProvider defaultTheme="light">
-        <GovernanceStoryFrame walletLabel={walletLabel} dataTestId={dataTestId} width={width}>
-          <GovernanceOnboardingWidget {...storyProps} />
-        </GovernanceStoryFrame>
-      </GovernanceWidgetProvider>
+      <GovernanceStoryFrame walletLabel={walletLabel} dataTestId={dataTestId} width={width}>
+        <GovernanceOnboardingWidget {...storyProps} />
+      </GovernanceStoryFrame>
     )
   } catch (error: unknown) {
     return (
