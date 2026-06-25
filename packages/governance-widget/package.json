@@ -21,9 +21,16 @@
   },
   "peerDependencies": {
     "react": ">=18.0.0",
-    "react-dom": ">=18.0.0"
+    "react-dom": ">=18.0.0",
+    "react-native": ">=0.76.0"
+  },
+  "peerDependenciesMeta": {
+    "react-native": {
+      "optional": true
+    }
   },
   "dependencies": {
+    "@goodwidget/core": "workspace:*",
     "@goodwidget/ui": "workspace:*",
     "react-native-svg": "15.15.5",
     "tamagui": "1.121.0"
@@ -33,6 +40,7 @@
     "@types/react-dom": "^18.3.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
+    "react-native-web": "^0.19.13",
     "tsup": "^8.4.0",
     "typescript": "^5.7.0"
   }

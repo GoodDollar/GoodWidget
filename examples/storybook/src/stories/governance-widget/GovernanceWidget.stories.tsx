@@ -5,6 +5,7 @@ import {
   AlignmentVotingProposalCard,
   BalanceCard,
   FundingDistributionChart,
+  GovernanceWidgetProvider,
   ImpactCard,
   OptimisticVotingProposalCard,
 } from '@goodwidget/governance-widget'
@@ -14,13 +15,14 @@ import type {
   VoteSegment,
   VoterPreview,
 } from '@goodwidget/governance-widget'
+import type { GoodWidgetThemeOverrides } from '@goodwidget/core'
 
 const meta: Meta = {
   title: 'Widgets/GovernanceWidget',
   tags: ['autodocs'],
   parameters: {
     layout: 'centered',
-    goodWidgetProvider: { useShell: false, defaultTheme: 'light' },
+    goodWidgetProvider: { useShell: false, useProvider: false },
   },
 }
 
@@ -46,20 +48,34 @@ const lowQuorumSegments: VoteSegment[] = [
   { id: 'abstain', label: 'Abstain', percentage: 8, tone: 'abstain' },
 ]
 
+const mayaAvatar =
+  'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2232%22 fill=%22%232563eb%22/%3E%3Ctext x=%2232%22 y=%2239%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2224%22 font-weight=%22700%22 fill=%22white%22%3EM%3C/text%3E%3C/svg%3E'
+
 const voters: VoterPreview[] = [
-  { id: 'maya', label: 'Maya' },
+  { id: 'maya', label: 'Maya', avatarUrl: mayaAvatar },
   { id: 'kenji', label: 'Kenji' },
   { id: 'sol', label: 'Sol' },
   { id: 'ama', label: 'Ama' },
 ]
 
 const fundingProjects: FundingProjectAllocation[] = [
-  { id: 'food', name: 'Local Food Chain', amount: { value: 12400, token: 'G$', isStreaming: true }, percentage: 42 },
-  { id: 'literacy', name: 'Web3 Literacy for Community Builders', amount: { value: 9100, token: 'G$' }, percentage: 31 },
-  { id: 'civic', name: 'Civic Onboarding', amount: { value: 7900, token: 'G$' }, percentage: 27 },
+  { id: 'education', name: 'Education Hubs', amount: { value: 157500, token: 'G$' }, percentage: 35 },
+  { id: 'merchant', name: 'Merchant Onboard', amount: { value: 112500, token: 'G$' }, percentage: 25 },
+  { id: 'grants', name: 'Dev Grants', amount: { value: 90000, token: 'G$' }, percentage: 20 },
+  { id: 'creator', name: 'Creator Fund', amount: { value: 90000, token: 'G$' }, percentage: 20 },
 ]
 
-function GovernanceStoryFrame({ children, width = 520 }: { children: React.ReactNode; width?: number }) {
+function GovernanceStoryFrame({
+  children,
+  width = 520,
+  defaultTheme = 'light',
+  themeOverrides,
+}: {
+  children: React.ReactNode
+  width?: number
+  defaultTheme?: 'light' | 'dark'
+  themeOverrides?: GoodWidgetThemeOverrides
+}) {
   const [lastAction, setLastAction] = useState('No interaction yet')
 
   // Mocked handlers make interaction affordances visible without wiring runtime data.
@@ -76,46 +92,47 @@ function GovernanceStoryFrame({ children, width = 520 }: { children: React.React
   })
 
   return (
-    <YStack width={width} maxWidth="100%" gap="$3" padding="$3">
-      {enhancedChildren}
-      <Text variant="caption" tone="secondary" data-testid="GovernanceWidget-last-action">
-        {lastAction}
-      </Text>
-    </YStack>
+    <GovernanceWidgetProvider defaultTheme={defaultTheme} themeOverrides={themeOverrides}>
+      <YStack width={width} maxWidth="100%" gap="$3" padding="$3">
+        {enhancedChildren}
+        <Text variant="caption" tone="secondary" data-testid="GovernanceWidget-last-action">
+          {lastAction}
+        </Text>
+      </YStack>
+    </GovernanceWidgetProvider>
   )
 }
 
 export const ImpactLight: Story = {
   render: () => (
-    <GovernanceStoryFrame>
+    <GovernanceStoryFrame width={390}>
       <ImpactCard
         testID="ImpactCard-light"
-        title="Community impact this month"
+        title="Distributed"
         metrics={[
-          { label: 'Distributed', amount: { value: 348000, token: 'G$' }, description: 'Across verified community projects' },
-          { label: 'Streaming now', amount: { value: 12800, token: 'G$', isStreaming: true, streamLabel: 'G$ / month live' }, description: 'Active flow to approved recipients' },
+          { label: 'UBI Pool', amount: { value: 12400000, token: 'G$' } },
+          { label: 'Impact Pool', amount: { value: 5234891, token: 'G$', isStreaming: true, streamLabel: 'Live stream active' } },
         ]}
-        description="Track how governance funding turns into measurable economic activity for GoodDollar members."
-        ctaLabel="View impact report"
+        description="Empowering 640k+ people worldwide through transparent, decentralized funding for public goods."
+        ctaLabel="View Impact Report Q3"
       />
     </GovernanceStoryFrame>
   ),
 }
 
 export const ImpactDarkLongDisabledMobile: Story = {
-  parameters: { goodWidgetProvider: { useShell: false, defaultTheme: 'dark' }, viewport: { defaultViewport: 'mobile1' } },
+  parameters: { viewport: { defaultViewport: 'mobile1' } },
   render: () => (
-    <GovernanceStoryFrame width={328}>
+    <GovernanceStoryFrame width={390} defaultTheme="dark">
       <ImpactCard
         testID="ImpactCard-dark-mobile-disabled"
-        title="Long-running regional resilience campaign with intentionally verbose title"
+        title="Distributed"
         metrics={[
-          { label: 'Committed', amount: { value: 914000, token: 'G$' } },
-          { label: 'Live stream', amount: { value: 42500, token: 'G$', isStreaming: true, streamLabel: 'Streaming every month' } },
+          { label: 'UBI Pool', amount: { value: 12400000, token: 'G$' } },
+          { label: 'Impact Pool', amount: { value: 5234891, token: 'G$', isStreaming: true, streamLabel: 'Live stream active' } },
         ]}
-        description="This longer description validates wrapping and mobile stacking without relying on runtime data or contract reads."
-        ctaLabel="Coming soon"
-        ctaDisabled
+        description="Empowering 640k+ people worldwide through transparent, decentralized funding for public goods."
+        ctaLabel="View Impact Report Q3"
       />
     </GovernanceStoryFrame>
   ),
@@ -123,36 +140,40 @@ export const ImpactDarkLongDisabledMobile: Story = {
 
 export const BalanceVariantsLight: Story = {
   render: () => (
-    <XStack flexWrap="wrap" gap="$3" padding="$3" width={560}>
-      <BalanceCard
-        testID="BalanceCard-token-growth"
-        icon="wallet"
-        title="Voting balance"
-        amount={{ value: 12345.67, token: 'G$' }}
-        metadata={{ label: '+12.4% this cycle', tone: 'positive', icon: 'chevron-up' }}
-      />
-      <BalanceCard
-        testID="BalanceCard-raw-window"
-        icon="check"
-        title="Eligible proposals with a long title"
-        amount={17}
-        amountType="raw"
-        metadata={{ label: 'Last 30 days', tone: 'muted', icon: 'info' }}
-      />
-    </XStack>
+    <GovernanceWidgetProvider>
+      <XStack data-testid="BalanceCard-light-variants" flexWrap="wrap" gap="$3" padding="$3" width={600}>
+        <BalanceCard
+          testID="BalanceCard-token-growth"
+          icon="wallet"
+          title="DAO Treasury Balance"
+          amount={{ value: 148400000, token: 'G$' }}
+          metadataType="growth"
+          metadata={{ label: '+2.4%', tone: 'positive', icon: 'chevron-up' }}
+        />
+        <BalanceCard
+          testID="BalanceCard-raw-window"
+          icon="check"
+          title="Active Members"
+          amount={12402}
+          amountType="raw"
+          metadataType="time-window"
+          metadata={{ label: 'Past 30 days', tone: 'muted', icon: 'info' }}
+        />
+      </XStack>
+    </GovernanceWidgetProvider>
   ),
 }
 
 export const BalanceDarkCompact: Story = {
-  parameters: { goodWidgetProvider: { useShell: false, defaultTheme: 'dark' } },
   render: () => (
-    <GovernanceStoryFrame width={252}>
+    <GovernanceStoryFrame width={252} defaultTheme="dark">
       <BalanceCard
         testID="BalanceCard-dark-compact"
         compact
         icon="wallet"
         title="Compact delegated voting power with truncation"
         amount={{ value: 7821, token: 'G$' }}
+        metadataType="time-window"
         metadata={{ label: 'Snapshot in 3 days', tone: 'muted', icon: 'info' }}
       />
     </GovernanceStoryFrame>
@@ -165,7 +186,7 @@ export const AlignmentDefaultLight: Story = {
       <AlignmentVotingProposalCard
         testID="AlignmentVotingProposalCard-default"
         id="alignment-q3"
-        categoryLabel="Alignment Vote"
+        categoryLabel="Budget Allocation"
         title="Q3 House Of Alignment Funding Allocation"
         summaryLabel="Current top 3 voted"
         options={alignmentOptions}
@@ -176,9 +197,8 @@ export const AlignmentDefaultLight: Story = {
 }
 
 export const AlignmentDarkLongOptions: Story = {
-  parameters: { goodWidgetProvider: { useShell: false, defaultTheme: 'dark' } },
   render: () => (
-    <GovernanceStoryFrame>
+    <GovernanceStoryFrame defaultTheme="dark">
       <AlignmentVotingProposalCard
         testID="AlignmentVotingProposalCard-dark-long"
         id="alignment-long"
@@ -198,22 +218,22 @@ export const OptimisticHighQuorumLight: Story = {
       <OptimisticVotingProposalCard
         testID="OptimisticVotingProposalCard-high-quorum"
         id="gip-43"
-        categoryLabel="Proposal GIP-43"
-        title="Approve House of Alignment funding allocation"
+        categoryLabel="Proposal GIP-42"
+        title="Expand Digital Literacy Programs in South East Asia"
         quorumLabel="Current Vote Quorum"
         quorumReachedPercent={78}
         voteSegments={voteSegments}
         voters={voters}
         remainingVoterCountLabel="+1.2k"
+        statusLabel="2 days remaining"
       />
     </GovernanceStoryFrame>
   ),
 }
 
 export const OptimisticDarkLowQuorumMixed: Story = {
-  parameters: { goodWidgetProvider: { useShell: false, defaultTheme: 'dark' } },
   render: () => (
-    <GovernanceStoryFrame>
+    <GovernanceStoryFrame defaultTheme="dark">
       <OptimisticVotingProposalCard
         testID="OptimisticVotingProposalCard-low-quorum"
         id="gip-44"
@@ -231,11 +251,54 @@ export const OptimisticDarkLowQuorumMixed: Story = {
 
 export const FundingDistributionLight: Story = {
   render: () => (
-    <GovernanceStoryFrame width={660}>
+    <GovernanceStoryFrame width={390}>
       <FundingDistributionChart
         testID="FundingDistributionChart-populated"
-        totalAmount={{ value: 29400, token: 'G$', isStreaming: true, streamLabel: 'Live total' }}
-        isStreaming
+        title="House Of Alignment funding allocation"
+        centerLabel="Total Monthly"
+        totalAmount={{ value: 450000, token: 'G$', streamLabel: 'Current allocation' }}
+        projects={fundingProjects}
+      />
+    </GovernanceStoryFrame>
+  ),
+}
+
+export const ImpactLightComponentOverride: Story = {
+  render: () => (
+    <GovernanceStoryFrame
+      width={390}
+      themeOverrides={{
+        themes: {
+          light_ImpactCard: {
+            background: '#0F766E',
+            shadowColor: 'rgba(15,118,110,0.24)',
+          },
+        },
+      }}
+    >
+      <ImpactCard
+        testID="ImpactCard-light-component-override"
+        title="Distributed"
+        metrics={[
+          { label: 'UBI Pool', amount: { value: 12400000, token: 'G$' } },
+          { label: 'Impact Pool', amount: { value: 5234891, token: 'G$', isStreaming: true, streamLabel: 'Live stream active' } },
+        ]}
+        description="This story verifies the ImpactCard preset target can be branded without local component styles."
+        ctaLabel="View Impact Report Q3"
+      />
+    </GovernanceStoryFrame>
+  ),
+}
+
+export const FundingDistributionDarkPopulated: Story = {
+  parameters: { viewport: { defaultViewport: 'mobile1' } },
+  render: () => (
+    <GovernanceStoryFrame width={390} defaultTheme="dark">
+      <FundingDistributionChart
+        testID="FundingDistributionChart-populated-dark"
+        title="House Of Alignment funding allocation"
+        centerLabel="Total Monthly"
+        totalAmount={{ value: 450000, token: 'G$', streamLabel: 'Current allocation' }}
         projects={fundingProjects}
       />
     </GovernanceStoryFrame>
@@ -243,11 +306,13 @@ export const FundingDistributionLight: Story = {
 }
 
 export const FundingDistributionDarkEmptyMobile: Story = {
-  parameters: { goodWidgetProvider: { useShell: false, defaultTheme: 'dark' }, viewport: { defaultViewport: 'mobile1' } },
+  parameters: { viewport: { defaultViewport: 'mobile1' } },
   render: () => (
-    <GovernanceStoryFrame width={328}>
+    <GovernanceStoryFrame width={328} defaultTheme="dark">
       <FundingDistributionChart
         testID="FundingDistributionChart-empty-dark-mobile"
+        title="Funding distribution"
+        centerLabel="Total Monthly"
         totalAmount={{ value: 0, token: 'G$', isStreaming: true, streamLabel: 'No active stream' }}
         isStreaming
         projects={[]}

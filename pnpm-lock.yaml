@@ -349,9 +349,15 @@ importers:
 
   packages/governance-widget:
     dependencies:
+      '@goodwidget/core':
+        specifier: workspace:*
+        version: link:../core
       '@goodwidget/ui':
         specifier: workspace:*
         version: link:../ui
+      react-native:
+        specifier: '>=0.76.0'
+        version: 0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1)
       react-native-svg:
         specifier: 15.15.5
         version: 15.15.5(react-native@0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)
@@ -371,6 +377,9 @@ importers:
       react-dom:
         specifier: ^18.3.0
         version: 18.3.1(react@18.3.1)
+      react-native-web:
+        specifier: ^0.19.13
+        version: 0.19.13(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       tsup:
         specifier: ^8.4.0
         version: 8.5.1(@swc/core@1.15.30)(postcss@8.5.8)(typescript@5.9.3)(yaml@2.8.3)

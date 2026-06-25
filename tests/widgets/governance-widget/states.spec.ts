@@ -13,6 +13,7 @@ type GovernanceStoryCase = {
   width?: number
   height?: number
   expectedText: string
+  expectedBackgroundColor?: string
 }
 
 const STORY_CASES: GovernanceStoryCase[] = [
@@ -20,7 +21,9 @@ const STORY_CASES: GovernanceStoryCase[] = [
     id: 'widgets-governancewidget--impact-light',
     testId: 'ImpactCard-light',
     screenshot: 'tests/widgets/governance-widget/test-results/gw-01-impact-light.png',
-    expectedText: 'Community impact this month',
+    width: 390,
+    height: 844,
+    expectedText: 'View Impact Report Q3',
   },
   {
     id: 'widgets-governancewidget--impact-dark-long-disabled-mobile',
@@ -28,13 +31,22 @@ const STORY_CASES: GovernanceStoryCase[] = [
     screenshot: 'tests/widgets/governance-widget/test-results/gw-02-impact-dark-mobile-disabled.png',
     width: 390,
     height: 844,
-    expectedText: 'Coming soon',
+    expectedText: 'View Impact Report Q3',
+  },
+  {
+    id: 'widgets-governancewidget--impact-light-component-override',
+    testId: 'ImpactCard-light-component-override',
+    screenshot: 'tests/widgets/governance-widget/test-results/gw-13-impact-light-component-override.png',
+    width: 390,
+    height: 844,
+    expectedText: 'View Impact Report Q3',
+    expectedBackgroundColor: 'rgb(15, 118, 110)',
   },
   {
     id: 'widgets-governancewidget--balance-variants-light',
-    testId: 'BalanceCard-token-growth',
+    testId: 'BalanceCard-light-variants',
     screenshot: 'tests/widgets/governance-widget/test-results/gw-03-balance-variants-light.png',
-    expectedText: 'Voting balance',
+    expectedText: 'DAO Treasury Balance',
   },
   {
     id: 'widgets-governancewidget--balance-dark-compact',
@@ -60,7 +72,7 @@ const STORY_CASES: GovernanceStoryCase[] = [
     id: 'widgets-governancewidget--optimistic-high-quorum-light',
     testId: 'OptimisticVotingProposalCard-high-quorum',
     screenshot: 'tests/widgets/governance-widget/test-results/gw-07-optimistic-high-quorum-light.png',
-    expectedText: '78% reached',
+    expectedText: '2 days remaining',
   },
   {
     id: 'widgets-governancewidget--optimistic-dark-low-quorum-mixed',
@@ -72,14 +84,22 @@ const STORY_CASES: GovernanceStoryCase[] = [
     id: 'widgets-governancewidget--funding-distribution-light',
     testId: 'FundingDistributionChart-populated',
     screenshot: 'tests/widgets/governance-widget/test-results/gw-09-funding-distribution-light.png',
-    width: 760,
-    height: 720,
-    expectedText: 'Local Food Chain',
+    width: 390,
+    height: 844,
+    expectedText: 'Education Hubs',
+  },
+  {
+    id: 'widgets-governancewidget--funding-distribution-dark-populated',
+    testId: 'FundingDistributionChart-populated-dark',
+    screenshot: 'tests/widgets/governance-widget/test-results/gw-10-funding-distribution-dark-populated.png',
+    width: 390,
+    height: 844,
+    expectedText: 'Education Hubs',
   },
   {
     id: 'widgets-governancewidget--funding-distribution-dark-empty-mobile',
     testId: 'FundingDistributionChart-empty-dark-mobile',
-    screenshot: 'tests/widgets/governance-widget/test-results/gw-10-funding-distribution-empty-dark-mobile.png',
+    screenshot: 'tests/widgets/governance-widget/test-results/gw-11-funding-distribution-empty-dark-mobile.png',
     width: 390,
     height: 844,
     expectedText: 'No active funding distribution yet.',
@@ -89,6 +109,8 @@ const STORY_CASES: GovernanceStoryCase[] = [
 async function gotoStory(page: Page, storyId: string): Promise<void> {
   await page.goto(`/iframe.html?id=${storyId}&viewMode=story`)
   await page.waitForLoadState('domcontentloaded')
+  await page.locator('#storybook-root').waitFor({ state: 'attached' })
+  await page.waitForLoadState('networkidle')
 }
 
 for (const storyCase of STORY_CASES) {
@@ -100,10 +122,13 @@ for (const storyCase of STORY_CASES) {
     await gotoStory(page, storyCase.id)
 
     const component = page.getByTestId(storyCase.testId)
-    await expect(component).toBeVisible()
+    await expect(component).toBeVisible({ timeout: 15_000 })
     await expect(page.getByText(storyCase.expectedText).first()).toBeVisible()
+    if (storyCase.expectedBackgroundColor) {
+      await expect(component).toHaveCSS('background-color', storyCase.expectedBackgroundColor)
+    }
 
-    await page.screenshot({ path: storyCase.screenshot, fullPage: true })
+    await component.screenshot({ path: storyCase.screenshot })
   })
 }
 
@@ -113,8 +138,7 @@ test('governance card interactions update mocked action state', async ({ page })
   await page.getByTestId('AlignmentVotingProposalCard-default').click()
   await expect(page.getByTestId('GovernanceWidget-last-action')).toContainText('Opened alignment-q3')
 
-  await page.screenshot({
-    path: 'tests/widgets/governance-widget/test-results/gw-11-interaction-alignment.png',
-    fullPage: true,
+  await page.getByTestId('AlignmentVotingProposalCard-default').screenshot({
+    path: 'tests/widgets/governance-widget/test-results/gw-12-interaction-alignment.png',
   })
 })
