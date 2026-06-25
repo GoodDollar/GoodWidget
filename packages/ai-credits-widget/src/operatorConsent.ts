@@ -1,57 +1,65 @@
-import { privateKeyToAccount, type PrivateKeyAccount } from 'viem/accounts'
+import { privateKeyToAccount } from 'viem/accounts'
 import type { Address } from 'viem'
 
-export const ANTSEED_DEPOSITS_EIP712_NAME = 'AntseedDeposits'
-export const ANTSEED_DEPOSITS_EIP712_VERSION = '1'
 export const ANTSEED_DEPOSITS_BASE_ADDRESS =
   '0x0F7a3a8f4Da01637d1202bb5443fcF7F88F99fD2' as const
 
-export const SET_OPERATOR_EIP712_TYPES = {
-  SetOperator: [
-    { name: 'operator', type: 'address' },
-    { name: 'nonce', type: 'uint256' },
-  ],
-} as const
-
-export interface OperatorConsentParams {
-  enabled: boolean
-  buyer: string
-  depositsAddress: string
-  operatorAddress: string
-  chainId: number
-  domainSeparator: string
-  nonce: string
-  alreadyAccepted: boolean
-}
-
-export interface OperatorConsentSubmissionResult {
-  accepted: boolean
-  alreadyAccepted?: boolean
-  txHash?: string
-}
-
-export async function signSetOperatorConsent(
-  buyerPrivateKey: `0x${string}`,
-  params: {
-    depositsAddress: Address
-    operatorAddress: Address
+export type Eip712SigningPayload = {
+  primaryType: string
+  domain: {
+    name: string
+    version: string
     chainId: number
-    nonce: bigint
-  },
+    verifyingContract: string
+  }
+  types: Record<string, Array<{ name: string; type: string }>>
+  message: Record<string, string | number>
+}
+
+export type BuyerOperatorStatus = {
+  enabled: boolean
+  account: string
+  buyerAddress: string
+  operatorAddress?: string
+  currentOperator: string
+  operatorAccepted: boolean
+  consentNonce: string
+}
+
+export type OperatorConsentPayloadResponse = {
+  enabled: boolean
+  account: string
+  buyerAddress: string
+  typedData?: Eip712SigningPayload
+}
+
+export type OperatorAcceptResponse = {
+  account: string
+  buyerAddress: string
+  operator: BuyerOperatorStatus
+  bridge?: { txHash?: string }
+  message?: string
+}
+
+export async function signOperatorConsentFromTypedData(
+  buyerPrivateKey: `0x${string}`,
+  typedData: Eip712SigningPayload,
 ): Promise<`0x${string}`> {
-  const account: PrivateKeyAccount = privateKeyToAccount(buyerPrivateKey)
+  const account = privateKeyToAccount(buyerPrivateKey)
+  const types = { ...typedData.types }
+  delete types.EIP712Domain
   return account.signTypedData({
     domain: {
-      name: ANTSEED_DEPOSITS_EIP712_NAME,
-      version: ANTSEED_DEPOSITS_EIP712_VERSION,
-      chainId: params.chainId,
-      verifyingContract: params.depositsAddress,
+      name: typedData.domain.name,
+      version: typedData.domain.version,
+      chainId: typedData.domain.chainId,
+      verifyingContract: typedData.domain.verifyingContract as Address,
     },
-    types: SET_OPERATOR_EIP712_TYPES,
-    primaryType: 'SetOperator',
+    types,
+    primaryType: typedData.primaryType,
     message: {
-      operator: params.operatorAddress,
-      nonce: params.nonce,
+      operator: typedData.message.operator as Address,
+      nonce: BigInt(String(typedData.message.nonce)),
     },
   })
 }

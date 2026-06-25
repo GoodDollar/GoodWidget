@@ -20,8 +20,14 @@ export type {
 } from './widgetRuntimeContract'
 
 // Backend client
-export type { AiCreditsBackendClient } from './mockBackendClient'
-export { MockAiCreditsBackendClient, ProductionAiCreditsBackendClient, createBackendClient } from './mockBackendClient'
+export type { AiCreditsBackendClient, AccountRef, AccountStatusResponse } from './mockBackendClient'
+export {
+  MockAiCreditsBackendClient,
+  ProductionAiCreditsBackendClient,
+  createBackendClient,
+  microUsdToCredits,
+} from './mockBackendClient'
+export type { BuyerOperatorStatus, Eip712SigningPayload } from './operatorConsent'
 
 // Adapter hook
 export { useAiCreditsAdapter } from './adapter'

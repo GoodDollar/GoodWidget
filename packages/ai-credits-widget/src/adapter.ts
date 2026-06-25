@@ -15,9 +15,11 @@ import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import {
   MockAiCreditsBackendClient,
   ProductionAiCreditsBackendClient,
+  microUsdToCredits,
 } from './mockBackendClient'
 import type { AiCreditsBackendClient } from './mockBackendClient'
-import { signSetOperatorConsent } from './operatorConsent'
+import { signOperatorConsentFromTypedData } from './operatorConsent'
+import type { AccountRef } from './mockBackendClient'
 import { executeCeloPayment, G_TOKEN_CELO_ADDRESS } from './celoPayment'
 import type {
   AiCreditsWidgetAdapterActions,
@@ -366,6 +368,58 @@ export function useAiCreditsAdapter({
     }
   }, [isConnected, address, chainId, vaultAddress])
 
+  useEffect(() => {
+    if (!backendUrl || !address || !state.buyerKey || !state.buyerKeyConfirmed) return
+
+    let cancelled = false
+
+    async function loadAccountStatus() {
+      try {
+        const ref: AccountRef = { payer: address!, buyer: state.buyerKey! }
+        const status = await backendClient.getAccountStatus(ref)
+        if (cancelled) return
+
+        const creditsMicroUsd =
+          BigInt(status.profile.totalPrincipalMicroUsd || '0') +
+          BigInt(status.profile.totalBonusMicroUsd || '0')
+        const hasCredits = creditsMicroUsd > 0n
+        const formattedCredits = microUsdToCredits(creditsMicroUsd.toString())
+
+        setState((prev) => {
+          const nextStatus = deriveStatus({
+            isConnected: true,
+            chainId: prev.chainId,
+            gBalance: prev.gBalance,
+            aiCreditsBalance: hasCredits ? formattedCredits : prev.aiCreditsBalance,
+            buyerKey: prev.buyerKey,
+            buyerKeyConfirmed: prev.buyerKeyConfirmed,
+            operatorConsentSigned: status.operator.operatorAccepted,
+            depositAmount: prev.depositAmount,
+            streamAmount: prev.streamAmount,
+            error: prev.error,
+            currentStatus: prev.status,
+          })
+          const primaryAction = derivePrimaryAction(nextStatus)
+          return {
+            ...prev,
+            operatorConsentSigned: status.operator.operatorAccepted,
+            aiCreditsBalance: hasCredits ? formattedCredits : prev.aiCreditsBalance,
+            status: nextStatus,
+            primaryAction,
+            primaryLabel: derivePrimaryLabel(primaryAction),
+          }
+        })
+      } catch {
+        // Backend may be offline during Storybook mock runs
+      }
+    }
+
+    void loadAccountStatus()
+    return () => {
+      cancelled = true
+    }
+  }, [backendUrl, address, state.buyerKey, state.buyerKeyConfirmed, backendClient])
+
   // ---------------------------------------------------------------------------
   // Actions
   // ---------------------------------------------------------------------------
@@ -418,7 +472,7 @@ export function useAiCreditsAdapter({
 
   const handleSignOperatorConsent = useCallback(async () => {
     const currentState = state
-    if (!currentState.buyerKey || !currentState.buyerKeyPrivate) {
+    if (!currentState.address || !currentState.buyerKey || !currentState.buyerKeyPrivate) {
       setState((prev) => ({
         ...prev,
         error: 'Generate a buyer key before signing operator consent',
@@ -426,14 +480,16 @@ export function useAiCreditsAdapter({
       return
     }
 
-    try {
-      const params = await backendClient.getOperatorConsentParams(currentState.buyerKey)
+    const ref: AccountRef = { payer: currentState.address, buyer: currentState.buyerKey }
 
-      if (!params.enabled) {
+    try {
+      const operatorStatus = await backendClient.getOperatorStatus(ref)
+
+      if (!operatorStatus.enabled) {
         throw new Error('Operator consent is not available')
       }
 
-      if (params.alreadyAccepted) {
+      if (operatorStatus.operatorAccepted) {
         setState((prev) => {
           const nextStatus = deriveStatus({
             isConnected: true,
@@ -461,23 +517,20 @@ export function useAiCreditsAdapter({
         return
       }
 
-      const signature = await signSetOperatorConsent(
+      const payload = await backendClient.getOperatorConsentPayload(ref)
+
+      if (!payload.enabled || !payload.typedData) {
+        throw new Error('Operator consent is not available')
+      }
+
+      const buyerSig = await signOperatorConsentFromTypedData(
         currentState.buyerKeyPrivate as `0x${string}`,
-        {
-          depositsAddress: params.depositsAddress as Address,
-          operatorAddress: params.operatorAddress as Address,
-          chainId: params.chainId,
-          nonce: BigInt(params.nonce),
-        },
+        payload.typedData,
       )
 
-      const result = await backendClient.submitOperatorConsent(
-        currentState.buyerKey,
-        params.nonce,
-        signature,
-      )
+      const result = await backendClient.acceptOperator(ref, buyerSig)
 
-      if (!result.accepted) {
+      if (!result.operator.operatorAccepted && result.message !== 'operator already accepted') {
         throw new Error('Operator consent was not accepted')
       }
 
@@ -584,7 +637,6 @@ export function useAiCreditsAdapter({
     let quote: AiCreditsQuote
     try {
       quote = await backendClient.getQuote(
-        currentState.address,
         currentState.depositAmount,
         currentState.streamAmount,
         { isGoodIdVerified: currentState.isGoodIdVerified },
@@ -640,6 +692,11 @@ export function useAiCreditsAdapter({
         primaryLabel: 'Settling…',
       }))
 
+      const accountRef: AccountRef = {
+        payer: currentState.address,
+        buyer: currentState.buyerKey,
+      }
+
       let balanceBefore = '0'
       try {
         balanceBefore = await backendClient.getCreditsBalance(currentState.address)
@@ -650,10 +707,10 @@ export function useAiCreditsAdapter({
       for (const hash of txHashes) {
         await backendClient.notifyPayment(hash)
       }
-      const { credits } = await backendClient.waitForSettlement(
-        currentState.address,
-        balanceBefore,
-      )
+      const { credits } = await backendClient.waitForSettlement(accountRef, {
+        txHashes,
+        previousBalance: balanceBefore,
+      })
 
       const setupSnippet = buildSetupSnippet(currentState.apiKey, currentState.buyerKey)
 
@@ -696,8 +753,23 @@ export function useAiCreditsAdapter({
     if (!currentState.address) return
 
     try {
+      const ref: AccountRef | null = currentState.buyerKey
+        ? { payer: currentState.address, buyer: currentState.buyerKey }
+        : null
+
       const [balance, usageLog] = await Promise.all([
-        backendClient.getCreditsBalance(currentState.address),
+        ref
+          ? backendClient
+              .getAccountStatus(ref)
+              .then((status) =>
+                microUsdToCredits(
+                  (
+                    BigInt(status.profile.totalPrincipalMicroUsd || '0') +
+                    BigInt(status.profile.totalBonusMicroUsd || '0')
+                  ).toString(),
+                ),
+              )
+          : backendClient.getCreditsBalance(currentState.address),
         backendClient.getUsageLog(currentState.address),
       ])
 
