@@ -7,6 +7,7 @@ import {
   custom,
   formatUnits,
   http,
+  isAddress,
   parseAbi,
   type Address,
   type Chain,
@@ -97,6 +98,11 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   error: null,
   primaryAction: 'connect',
   primaryLabel: 'Connect Wallet',
+}
+
+function validProfileBuyer(buyer: string | undefined): string | null {
+  if (!buyer || !isAddress(buyer)) return null
+  return buyer.toLowerCase()
 }
 
 // ---------------------------------------------------------------------------
@@ -370,15 +376,17 @@ export function useAiCreditsAdapter({
   }, [isConnected, address, chainId, vaultAddress])
 
   useEffect(() => {
-    if (!backendUrl || !address || !state.buyerKey || !state.buyerKeyConfirmed) return
+    if (!address) return
 
     let cancelled = false
 
-    async function loadAccountStatus() {
+    async function loadPayerStatus() {
       try {
-        const ref: AccountRef = { payer: address!, buyer: state.buyerKey! }
-        const status = await backendClient.getAccountStatus(ref)
+        const status = await backendClient.getPayerStatus(address!)
         if (cancelled) return
+
+        const buyer = validProfileBuyer(status.profile.buyer)
+        if (!buyer) return
 
         const creditsMicroUsd =
           BigInt(status.profile.totalPrincipalMicroUsd || '0') +
@@ -392,9 +400,9 @@ export function useAiCreditsAdapter({
             chainId: prev.chainId,
             gBalance: prev.gBalance,
             aiCreditsBalance: hasCredits ? formattedCredits : prev.aiCreditsBalance,
-            buyerKey: prev.buyerKey,
-            buyerKeyConfirmed: prev.buyerKeyConfirmed,
-            operatorConsentSigned: status.operator.operatorAccepted,
+            buyerKey: buyer,
+            buyerKeyConfirmed: true,
+            operatorConsentSigned: true,
             depositAmount: prev.depositAmount,
             streamAmount: prev.streamAmount,
             error: prev.error,
@@ -403,7 +411,9 @@ export function useAiCreditsAdapter({
           const primaryAction = derivePrimaryAction(nextStatus)
           return {
             ...prev,
-            operatorConsentSigned: status.operator.operatorAccepted,
+            buyerKey: buyer,
+            buyerKeyConfirmed: true,
+            operatorConsentSigned: true,
             aiCreditsBalance: hasCredits ? formattedCredits : prev.aiCreditsBalance,
             status: nextStatus,
             primaryAction,
@@ -411,15 +421,14 @@ export function useAiCreditsAdapter({
           }
         })
       } catch {
-        // Backend may be offline during Storybook mock runs
       }
     }
 
-    void loadAccountStatus()
+    void loadPayerStatus()
     return () => {
       cancelled = true
     }
-  }, [backendUrl, address, state.buyerKey, state.buyerKeyConfirmed, backendClient])
+  }, [address, backendClient])
 
   // ---------------------------------------------------------------------------
   // Actions
@@ -766,23 +775,15 @@ export function useAiCreditsAdapter({
     if (!currentState.address) return
 
     try {
-      const ref: AccountRef | null = currentState.buyerKey
-        ? { payer: currentState.address, buyer: currentState.buyerKey }
-        : null
-
       const [balance, usageLog] = await Promise.all([
-        ref
-          ? backendClient
-              .getAccountStatus(ref)
-              .then((status) =>
-                microUsdToCredits(
-                  (
-                    BigInt(status.profile.totalPrincipalMicroUsd || '0') +
-                    BigInt(status.profile.totalBonusMicroUsd || '0')
-                  ).toString(),
-                ),
-              )
-          : backendClient.getCreditsBalance(currentState.address),
+        backendClient.getPayerStatus(currentState.address).then((status) =>
+          microUsdToCredits(
+            (
+              BigInt(status.profile.totalPrincipalMicroUsd || '0') +
+              BigInt(status.profile.totalBonusMicroUsd || '0')
+            ).toString(),
+          ),
+        ),
         backendClient.getUsageLog(currentState.address),
       ])
 

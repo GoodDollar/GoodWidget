@@ -18,6 +18,7 @@ type UserCreditProfile = {
   totalPrincipalMicroUsd: string
   totalBonusMicroUsd: string
   totalOutstandingFundingMicroUsd?: string
+  buyer?: string
 }
 
 export type GdCreditEntry = {
@@ -44,7 +45,7 @@ type AccountCreditResponse = {
 
 export type AccountStatusResponse = {
   account: string
-  buyerAddress: string
+  buyer: string | null
   profile: UserCreditProfile
   operator: BuyerOperatorStatus
   withdrawableMicroUsd: string
@@ -77,7 +78,7 @@ export interface AiCreditsBackendClient {
     options?: { isGoodIdVerified?: boolean },
   ): Promise<AiCreditsQuote>
 
-  getAccountStatus(ref: AccountRef): Promise<AccountStatusResponse>
+  getPayerStatus(payer: string): Promise<AccountStatusResponse>
 
   getOperatorStatus(ref: AccountRef): Promise<BuyerOperatorStatus>
 
@@ -226,6 +227,7 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
       bonusMicroUsd: bigint
       transactions: GdCreditEntry[]
       operatorAccepted: boolean
+      buyer: string | null
     }
   >()
 
@@ -242,6 +244,7 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     bonusMicroUsd: bigint
     transactions: GdCreditEntry[]
     operatorAccepted: boolean
+    buyer: string | null
   } {
     const key = normalizeAddress(payer)
     if (!this.accountStates.has(key)) {
@@ -250,6 +253,7 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
         bonusMicroUsd: 0n,
         transactions: [],
         operatorAccepted: false,
+        buyer: null,
       })
     }
     return this.accountStates.get(key)!
@@ -266,6 +270,7 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
       totalPrincipalMicroUsd: state.principalMicroUsd.toString(),
       totalBonusMicroUsd: state.bonusMicroUsd.toString(),
       totalOutstandingFundingMicroUsd: outstanding.toString(),
+      buyer: state.buyer ?? undefined,
     }
   }
 
@@ -284,13 +289,12 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     return quote
   }
 
-  async getAccountStatus(ref: AccountRef): Promise<AccountStatusResponse> {
+  async getPayerStatus(payer: string): Promise<AccountStatusResponse> {
     await sleep(MOCK_DELAY_MS)
-    this.touchRef(ref)
-    const payer = normalizeAddress(ref.payer)
-    const buyer = normalizeAddress(ref.buyer)
-    const state = this.getState(payer)
-    const operator = buildMockOperatorStatus(ref)
+    const normalizedPayer = normalizeAddress(payer)
+    const state = this.getState(normalizedPayer)
+    const buyer = state.buyer ?? normalizedPayer
+    const operator = buildMockOperatorStatus({ payer: normalizedPayer, buyer })
     operator.operatorAccepted = state.operatorAccepted
     if (state.operatorAccepted) {
       operator.currentOperator = operator.operatorAddress!
@@ -298,10 +302,10 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     const outstandingFundingCredits = state.transactions.filter(
       (entry) => entry.fundingStatus === 'pending' || entry.fundingStatus === 'failed',
     )
-    const profile = this.buildProfile(payer)
+    const profile = this.buildProfile(normalizedPayer)
     return {
-      account: payer,
-      buyerAddress: buyer,
+      account: normalizedPayer,
+      buyer: state.buyer,
       profile,
       operator,
       withdrawableMicroUsd: state.principalMicroUsd.toString(),
@@ -311,8 +315,7 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
   }
 
   async getOperatorStatus(ref: AccountRef): Promise<BuyerOperatorStatus> {
-    this.touchRef(ref)
-    const status = await this.getAccountStatus(ref)
+    const status = await this.getPayerStatus(ref.payer)
     return status.operator
   }
 
@@ -327,6 +330,7 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     this.touchRef(ref)
     const state = this.getState(ref.payer)
     state.operatorAccepted = true
+    state.buyer = normalizeAddress(ref.buyer)
     const operator = buildMockOperatorStatus(ref)
     operator.operatorAccepted = true
     operator.currentOperator = operator.operatorAddress!
@@ -503,9 +507,8 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
     return calculateMockQuote(depositG, streamG, options?.isGoodIdVerified ?? false)
   }
 
-  async getAccountStatus(ref: AccountRef): Promise<AccountStatusResponse> {
-    const url = this.withBuyer(`${this.accountBase(ref.payer)}/status`, ref.buyer)
-    const response = await fetch(url)
+  async getPayerStatus(payer: string): Promise<AccountStatusResponse> {
+    const response = await fetch(`${this.accountBase(payer)}/status`)
     if (!response.ok) throw new Error(`Account status request failed: ${response.status}`)
     return response.json() as Promise<AccountStatusResponse>
   }
@@ -597,7 +600,7 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
         }
 
         if (matching.length > 0 && matching.every((entry) => entry.fundingStatus === 'funded')) {
-          const status = await this.getAccountStatus(ref)
+          const status = await this.getPayerStatus(ref.payer)
           return { credits: balanceFromProfile(status.profile) }
         }
 
@@ -605,7 +608,7 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
         if (pending) continue
       }
 
-      const status = await this.getAccountStatus(ref)
+      const status = await this.getPayerStatus(ref.payer)
       const balance = Number.parseFloat(balanceFromProfile(status.profile))
       if (balance > baseline + 0.0001) {
         return { credits: balanceFromProfile(status.profile) }
