@@ -216,10 +216,57 @@ function buildMockConsentPayload(ref: AccountRef): OperatorConsentPayloadRespons
 
 export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
   private readonly isGoodIdVerified: boolean
-  private operatorAccepted = false
+  private activeRef: AccountRef | null = null
+  private lastQuote: AiCreditsQuote | null = null
+
+  private readonly accountStates = new Map<
+    string,
+    {
+      principalMicroUsd: bigint
+      bonusMicroUsd: bigint
+      transactions: GdCreditEntry[]
+      operatorAccepted: boolean
+    }
+  >()
 
   constructor(options: { isGoodIdVerified?: boolean } = {}) {
     this.isGoodIdVerified = options.isGoodIdVerified ?? false
+  }
+
+  private touchRef(ref: AccountRef): void {
+    this.activeRef = { payer: normalizeAddress(ref.payer), buyer: normalizeAddress(ref.buyer) }
+  }
+
+  private getState(payer: string): {
+    principalMicroUsd: bigint
+    bonusMicroUsd: bigint
+    transactions: GdCreditEntry[]
+    operatorAccepted: boolean
+  } {
+    const key = normalizeAddress(payer)
+    if (!this.accountStates.has(key)) {
+      this.accountStates.set(key, {
+        principalMicroUsd: 0n,
+        bonusMicroUsd: 0n,
+        transactions: [],
+        operatorAccepted: false,
+      })
+    }
+    return this.accountStates.get(key)!
+  }
+
+  private buildProfile(payer: string): UserCreditProfile {
+    const state = this.getState(payer)
+    const outstanding = state.transactions
+      .filter((entry) => entry.fundingStatus === 'pending' || entry.fundingStatus === 'failed')
+      .reduce((sum, entry) => sum + BigInt(entry.totalCreditMicroUsd || '0'), 0n)
+    return {
+      account: normalizeAddress(payer),
+      rootAccount: normalizeAddress(payer),
+      totalPrincipalMicroUsd: state.principalMicroUsd.toString(),
+      totalBonusMicroUsd: state.bonusMicroUsd.toString(),
+      totalOutstandingFundingMicroUsd: outstanding.toString(),
+    }
   }
 
   async getQuote(
@@ -228,48 +275,58 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     options?: { isGoodIdVerified?: boolean },
   ): Promise<AiCreditsQuote> {
     await sleep(MOCK_DELAY_MS)
-    return calculateMockQuote(depositG, streamG, options?.isGoodIdVerified ?? this.isGoodIdVerified)
+    const quote = calculateMockQuote(
+      depositG,
+      streamG,
+      options?.isGoodIdVerified ?? this.isGoodIdVerified,
+    )
+    this.lastQuote = quote
+    return quote
   }
 
   async getAccountStatus(ref: AccountRef): Promise<AccountStatusResponse> {
     await sleep(MOCK_DELAY_MS)
+    this.touchRef(ref)
     const payer = normalizeAddress(ref.payer)
     const buyer = normalizeAddress(ref.buyer)
+    const state = this.getState(payer)
     const operator = buildMockOperatorStatus(ref)
-    operator.operatorAccepted = this.operatorAccepted
-    if (this.operatorAccepted) {
+    operator.operatorAccepted = state.operatorAccepted
+    if (state.operatorAccepted) {
       operator.currentOperator = operator.operatorAddress!
     }
+    const outstandingFundingCredits = state.transactions.filter(
+      (entry) => entry.fundingStatus === 'pending' || entry.fundingStatus === 'failed',
+    )
+    const profile = this.buildProfile(payer)
     return {
       account: payer,
       buyerAddress: buyer,
-      profile: {
-        account: payer,
-        rootAccount: payer,
-        totalPrincipalMicroUsd: '1245000000',
-        totalBonusMicroUsd: '0',
-        totalOutstandingFundingMicroUsd: '0',
-      },
+      profile,
       operator,
-      withdrawableMicroUsd: '1245000000',
-      outstandingFundingMicroUsd: '0',
-      outstandingFundingCount: 0,
+      withdrawableMicroUsd: state.principalMicroUsd.toString(),
+      outstandingFundingMicroUsd: profile.totalOutstandingFundingMicroUsd ?? '0',
+      outstandingFundingCount: outstandingFundingCredits.length,
     }
   }
 
   async getOperatorStatus(ref: AccountRef): Promise<BuyerOperatorStatus> {
+    this.touchRef(ref)
     const status = await this.getAccountStatus(ref)
     return status.operator
   }
 
   async getOperatorConsentPayload(ref: AccountRef): Promise<OperatorConsentPayloadResponse> {
     await sleep(MOCK_DELAY_MS)
+    this.touchRef(ref)
     return buildMockConsentPayload(ref)
   }
 
   async acceptOperator(ref: AccountRef, _buyerSig: string): Promise<OperatorAcceptResponse> {
     await sleep(MOCK_DELAY_MS)
-    this.operatorAccepted = true
+    this.touchRef(ref)
+    const state = this.getState(ref.payer)
+    state.operatorAccepted = true
     const operator = buildMockOperatorStatus(ref)
     operator.operatorAccepted = true
     operator.currentOperator = operator.operatorAddress!
@@ -281,51 +338,138 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     }
   }
 
-  async getCreditsBalance(_payer: string): Promise<string> {
+  async getCreditsBalance(payer: string): Promise<string> {
     await sleep(MOCK_DELAY_MS)
-    return '124.50'
+    return balanceFromProfile(this.buildProfile(payer))
   }
 
-  async getTransactions(_payer: string): Promise<TransactionsResponse> {
+  async getTransactions(
+    payer: string,
+    options: { status?: 'pending' | 'funded' | 'failed'; limit?: number; cursor?: string } = {},
+  ): Promise<TransactionsResponse> {
     await sleep(MOCK_DELAY_MS)
-    return { account: normalizeAddress(_payer), transactions: [] }
+    const state = this.getState(payer)
+    let transactions = [...state.transactions]
+    if (options.status) {
+      transactions = transactions.filter((entry) => entry.fundingStatus === options.status)
+    }
+    const limit = options.limit ?? 20
+    if (options.cursor) {
+      const cursorIndex = transactions.findIndex((entry) => entry.id === options.cursor)
+      if (cursorIndex >= 0) {
+        transactions = transactions.slice(cursorIndex + 1)
+      }
+    }
+    const page = transactions.slice(0, limit)
+    const nextCursor =
+      transactions.length > limit ? page[page.length - 1]?.id : undefined
+    return {
+      account: normalizeAddress(payer),
+      transactions: page,
+      nextCursor,
+    }
   }
 
-  async getUsageLog(_payer: string): Promise<AiCreditsUsageEntry[]> {
-    await sleep(MOCK_DELAY_MS)
-    return [
-      {
-        sessionId: 'sess-001',
-        timestamp: '2025-06-20T10:00:00Z',
-        creditsUsed: 12.5,
-        model: 'claude-3-5-sonnet',
-        kind: 'usage',
-      },
-      {
-        sessionId: 'sess-002',
-        timestamp: '2025-06-21T14:30:00Z',
-        creditsUsed: 8.0,
-        model: 'gpt-4o',
-        kind: 'usage',
-      },
-      {
-        sessionId: 'sess-003',
-        timestamp: '2025-06-22T09:15:00Z',
-        creditsUsed: 22.0,
-        model: 'claude-3-5-sonnet',
-        kind: 'usage',
-      },
-    ]
+  async getUsageLog(payer: string): Promise<AiCreditsUsageEntry[]> {
+    const page = await this.getTransactions(payer, { limit: 20 })
+    return gdCreditsToUsageEntries(page.transactions ?? [])
   }
 
-  async notifyPayment(_txHash: string): Promise<CeloEventsRecordResponse> {
+  async notifyPayment(txHash: string): Promise<CeloEventsRecordResponse> {
     await sleep(MOCK_DELAY_MS)
-    return { events: [] }
+    const ref = this.activeRef
+    if (!ref) {
+      return { txHash, events: [] }
+    }
+
+    const quote = this.lastQuote ?? calculateMockQuote('10', '0', this.isGoodIdVerified)
+    const totalMicroUsd = BigInt(
+      Math.round(Number.parseFloat(quote.totalCredits) * CREDITS_PER_MICRO_USD),
+    )
+    const bonusPercent = BigInt(quote.bonusPercent)
+    const principalMicroUsd = (totalMicroUsd * 10000n) / (10000n + bonusPercent * 100n)
+    const bonusMicroUsd = totalMicroUsd - principalMicroUsd
+
+    const entry: GdCreditEntry = {
+      id: `${txHash}:0`,
+      source: 'deposit',
+      totalCreditMicroUsd: totalMicroUsd.toString(),
+      principalMicroUsd: principalMicroUsd.toString(),
+      bonusMicroUsd: bonusMicroUsd.toString(),
+      fundingStatus: 'pending',
+      txHash,
+      logIndex: 0,
+      createdAt: new Date().toISOString(),
+      buyerAddress: ref.buyer,
+    }
+
+    const state = this.getState(ref.payer)
+    const existing = state.transactions.find((item) => item.id === entry.id)
+    if (!existing) {
+      state.transactions.unshift(entry)
+    }
+
+    return { txHash, events: [existing ?? entry] }
   }
 
-  async waitForSettlement(_ref: AccountRef, _options?: { txHashes?: string[]; previousBalance?: string }): Promise<SettlementResult> {
-    await sleep(2000)
-    return { credits: '110.00' }
+  async waitForSettlement(
+    ref: AccountRef,
+    options: { txHashes?: string[]; previousBalance?: string } = {},
+  ): Promise<SettlementResult> {
+    this.touchRef(ref)
+    const POLL_INTERVAL_MS = 400
+    const MAX_ATTEMPTS = 6
+    const baseline = options.previousBalance ? Number.parseFloat(options.previousBalance) : 0
+    const txHashes = new Set((options.txHashes ?? []).map((hash) => hash.toLowerCase()))
+    const state = this.getState(ref.payer)
+
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      if (attempt > 0) await sleep(POLL_INTERVAL_MS)
+
+      if (txHashes.size > 0) {
+        const matching = state.transactions.filter(
+          (entry) => entry.txHash && txHashes.has(entry.txHash.toLowerCase()),
+        )
+
+        const failed = matching.find((entry) => entry.fundingStatus === 'failed')
+        if (failed) {
+          throw new Error(failed.fundingError ?? 'Base funding failed for this deposit')
+        }
+
+        const pending = matching.filter((entry) => entry.fundingStatus === 'pending')
+        if (pending.length > 0 && attempt === MAX_ATTEMPTS - 1) {
+          for (const entry of pending) {
+            entry.fundingStatus = 'funded'
+            state.principalMicroUsd += BigInt(entry.principalMicroUsd ?? '0')
+            state.bonusMicroUsd += BigInt(entry.bonusMicroUsd ?? '0')
+          }
+        } else if (pending.length > 0) {
+          continue
+        }
+
+        if (
+          matching.length > 0 &&
+          matching.every((entry) => entry.fundingStatus === 'funded')
+        ) {
+          return { credits: balanceFromProfile(this.buildProfile(ref.payer)) }
+        }
+      }
+
+      const balance = Number.parseFloat(balanceFromProfile(this.buildProfile(ref.payer)))
+      if (balance > baseline + 0.0001) {
+        return { credits: balanceFromProfile(this.buildProfile(ref.payer)) }
+      }
+    }
+
+    for (const entry of state.transactions) {
+      if (entry.fundingStatus !== 'pending') continue
+      if (txHashes.size > 0 && entry.txHash && !txHashes.has(entry.txHash.toLowerCase())) continue
+      entry.fundingStatus = 'funded'
+      state.principalMicroUsd += BigInt(entry.principalMicroUsd ?? '0')
+      state.bonusMicroUsd += BigInt(entry.bonusMicroUsd ?? '0')
+    }
+
+    return { credits: balanceFromProfile(this.buildProfile(ref.payer)) }
   }
 }
 
