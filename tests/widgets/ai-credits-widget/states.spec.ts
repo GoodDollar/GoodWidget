@@ -99,7 +99,7 @@ test('AiCreditsWidget payment_confirmed state', async ({ page }) => {
 test('AiCreditsWidget has_credits state', async ({ page }) => {
   await gotoStory(page, STORY_IDS.hasCredits)
   await expect(page.getByTestId('AiCreditsWidget-has-credits')).toBeVisible()
-  await expect(page.getByText('AI Credits (Base)')).toBeVisible()
+  await expect(page.getByText('AI Credits')).toBeVisible()
   await expect(page.getByText('110.00 credits')).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-07-has-credits.png',
