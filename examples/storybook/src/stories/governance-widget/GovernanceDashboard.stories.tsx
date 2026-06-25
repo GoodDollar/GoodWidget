@@ -74,12 +74,16 @@ const fundingProjects: FundingProjectAllocation[] = [
   },
 ]
 
+import { GovernanceWidgetProvider } from '@goodwidget/governance-widget'
+
 function GovernanceStoryFrame({
   children,
   width = 520,
+  theme = 'light',
 }: {
   children: React.ReactNode
   width?: number
+  theme?: 'light' | 'dark'
 }) {
   const [lastAction, setLastAction] = useState('No interaction yet')
 
@@ -96,12 +100,14 @@ function GovernanceStoryFrame({
   })
 
   return (
-    <YStack width={width} maxWidth="100%" gap="$3" padding="$3">
-      {enhancedChildren}
-      <Text variant="caption" tone="secondary" data-testid="GovernanceWidget-last-action">
-        {lastAction}
-      </Text>
-    </YStack>
+    <GovernanceWidgetProvider defaultTheme={theme}>
+      <YStack width={width} maxWidth="100%" gap="$3" padding="$3">
+        {enhancedChildren}
+        <Text variant="caption" tone="secondary" data-testid="GovernanceWidget-last-action">
+          {lastAction}
+        </Text>
+      </YStack>
+    </GovernanceWidgetProvider>
   )
 }
 
@@ -141,7 +147,7 @@ export const ImpactDarkLongDisabledMobile: Story = {
     viewport: { defaultViewport: 'mobile1' },
   },
   render: () => (
-    <GovernanceStoryFrame width={328}>
+    <GovernanceStoryFrame width={328} theme="dark">
       <ImpactCard
         testID="ImpactCard-dark-mobile-disabled"
         title="Long-running regional resilience campaign with intentionally verbose title"
@@ -167,30 +173,32 @@ export const ImpactDarkLongDisabledMobile: Story = {
 
 export const BalanceVariantsLight: Story = {
   render: () => (
-    <XStack flexWrap="wrap" gap="$3" padding="$3" width={560}>
-      <BalanceCard
-        testID="BalanceCard-token-growth"
-        icon="wallet"
-        title="Voting balance"
-        amount={{ value: 12345.67, token: 'G$' }}
-        metadata={{ label: '+12.4% this cycle', tone: 'positive', icon: 'chevron-up' }}
-      />
-      <BalanceCard
-        testID="BalanceCard-raw-window"
-        icon="check"
-        title="Eligible proposals with a long title"
-        amount={17}
-        amountType="raw"
-        metadata={{ label: 'Last 30 days', tone: 'muted', icon: 'info' }}
-      />
-    </XStack>
+    <GovernanceWidgetProvider defaultTheme="light">
+      <XStack flexWrap="wrap" gap="$3" padding="$3" width={560}>
+        <BalanceCard
+          testID="BalanceCard-token-growth"
+          icon="wallet"
+          title="Voting balance"
+          amount={{ value: 12345.67, token: 'G$' }}
+          metadata={{ label: '+12.4% this cycle', tone: 'positive', icon: 'chevron-up' }}
+        />
+        <BalanceCard
+          testID="BalanceCard-raw-window"
+          icon="check"
+          title="Eligible proposals with a long title"
+          amount={17}
+          amountType="raw"
+          metadata={{ label: 'Last 30 days', tone: 'muted', icon: 'info' }}
+        />
+      </XStack>
+    </GovernanceWidgetProvider>
   ),
 }
 
 export const BalanceDarkCompact: Story = {
   parameters: { goodWidgetProvider: { useShell: false, defaultTheme: 'dark' } },
   render: () => (
-    <GovernanceStoryFrame width={252}>
+    <GovernanceStoryFrame width={252} theme="dark">
       <BalanceCard
         testID="BalanceCard-dark-compact"
         compact
@@ -222,7 +230,7 @@ export const AlignmentDefaultLight: Story = {
 export const AlignmentDarkLongOptions: Story = {
   parameters: { goodWidgetProvider: { useShell: false, defaultTheme: 'dark' } },
   render: () => (
-    <GovernanceStoryFrame>
+    <GovernanceStoryFrame theme="dark">
       <AlignmentVotingProposalCard
         testID="AlignmentVotingProposalCard-dark-long"
         id="alignment-long"
@@ -257,7 +265,7 @@ export const OptimisticHighQuorumLight: Story = {
 export const OptimisticDarkLowQuorumMixed: Story = {
   parameters: { goodWidgetProvider: { useShell: false, defaultTheme: 'dark' } },
   render: () => (
-    <GovernanceStoryFrame>
+    <GovernanceStoryFrame theme="dark">
       <OptimisticVotingProposalCard
         testID="OptimisticVotingProposalCard-low-quorum"
         id="gip-44"
@@ -292,7 +300,7 @@ export const FundingDistributionDarkEmptyMobile: Story = {
     viewport: { defaultViewport: 'mobile1' },
   },
   render: () => (
-    <GovernanceStoryFrame width={328}>
+    <GovernanceStoryFrame width={328} theme="dark">
       <FundingDistributionChart
         testID="FundingDistributionChart-empty-dark-mobile"
         totalAmount={{ value: 0, token: 'G$', isStreaming: true, streamLabel: 'No active stream' }}

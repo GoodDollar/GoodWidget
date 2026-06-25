@@ -1,4 +1,7 @@
 export { GovernanceOnboardingWidget } from './GovernanceOnboardingWidget'
+export { GovernanceWidgetProvider } from './GovernanceWidgetProvider'
+export type { GovernanceWidgetProviderProps } from './GovernanceWidgetProvider'
+export { governanceWidgetConfig } from './config'
 export type {
   GovernanceHouse,
   GovernanceIdentityStatus,

@@ -249,7 +249,7 @@ export function createGoodWidgetConfig(overrides?: GoodWidgetConfig) {
 /**
  * Merges partial theme override maps by theme name.
  */
-function mergeOverrideMaps(
+export function mergeOverrideMaps(
   base?: Record<string, Partial<GoodWidgetThemeValues>>,
   override?: Record<string, Partial<GoodWidgetThemeValues>>,
 ): Record<string, Partial<GoodWidgetThemeValues>> | undefined {

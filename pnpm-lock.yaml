@@ -349,6 +349,9 @@ importers:
 
   packages/governance-widget:
     dependencies:
+      '@goodwidget/core':
+        specifier: workspace:*
+        version: link:../core
       '@goodwidget/ui':
         specifier: workspace:*
         version: link:../ui
