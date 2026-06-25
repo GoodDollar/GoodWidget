@@ -1,7 +1,7 @@
 import { Icon, Text, XStack } from '@goodwidget/ui'
 import type { BalanceCardProps } from './types'
 import { isGovernanceAmount } from './format'
-import { BalanceCardFrame, GovernanceComponentTheme, renderGovernanceAmount } from './shared'
+import { GovernanceWrapper, renderGovernanceAmount } from './shared'
 
 export function BalanceCard({
   icon,
@@ -24,29 +24,31 @@ export function BalanceCard({
   const metadataIconColor = metadata.tone === 'positive' || metadataType === 'growth' ? 'success' : 'muted'
 
   return (
-    <GovernanceComponentTheme componentName="BalanceCard">
-      <BalanceCardFrame data-testid={testID} compact={compact}>
-        <XStack alignItems="flex-start" gap="$2">
-          <Icon name={icon} size="xs" color="primary" />
-          <Text
-            variant="caption"
-            tone="secondary"
-            flex={1}
-            fontWeight="700"
-            textTransform="uppercase"
-            lineHeight={18}
-          >
-            {title}
-          </Text>
-        </XStack>
-        {renderGovernanceAmount(amountValue, compact ? 'md' : 'lg')}
-        <XStack alignItems="center" gap="$2" marginTop="auto">
-          {metadataIcon ? <Icon name={metadataIcon} size="xs" color={metadataIconColor} /> : null}
-          <Text variant="caption" tone={metadataTone} flexShrink={1}>
-            {metadata.label}
-          </Text>
-        </XStack>
-      </BalanceCardFrame>
-    </GovernanceComponentTheme>
+    <GovernanceWrapper
+      data-testid={testID}
+      maxWidth={compact ? 220 : 268}
+      minHeight={compact ? 152 : 176}
+    >
+      <XStack alignItems="flex-start" gap="$2">
+        <Icon name={icon} size="xs" color="primary" />
+        <Text
+          variant="caption"
+          tone="secondary"
+          flex={1}
+          fontWeight="700"
+          textTransform="uppercase"
+          lineHeight={18}
+        >
+          {title}
+        </Text>
+      </XStack>
+      {renderGovernanceAmount(amountValue, compact ? 'md' : 'lg')}
+      <XStack alignItems="center" gap="$2" marginTop="auto">
+        {metadataIcon ? <Icon name={metadataIcon} size="xs" color={metadataIconColor} /> : null}
+        <Text variant="caption" tone={metadataTone} flexShrink={1}>
+          {metadata.label}
+        </Text>
+      </XStack>
+    </GovernanceWrapper>
   )
 }

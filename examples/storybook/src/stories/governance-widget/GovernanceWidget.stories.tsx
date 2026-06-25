@@ -271,20 +271,7 @@ export const ImpactLightComponentOverride: Story = {
         themes: {
           light_ImpactCard: {
             background: '#0F766E',
-            backgroundHover: 'rgba(255,255,255,0.14)',
-            backgroundPress: 'rgba(255,255,255,0.08)',
-            backgroundFocus: 'rgba(255,255,255,0.20)',
-            color: '#FFFFFF',
-            colorSoft: 'rgba(255,255,255,0.88)',
-            colorDim: 'rgba(255,255,255,0.92)',
-            borderColor: 'rgba(255,255,255,0.12)',
-            borderColorHover: 'rgba(255,255,255,0.20)',
-            borderColorFocus: 'rgba(255,255,255,0.24)',
-            placeholderColor: 'rgba(255,255,255,0.88)',
             shadowColor: 'rgba(15,118,110,0.24)',
-          },
-          light_ImpactCardAction: {
-            color: '#0F766E',
           },
         },
       }}

@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { GoodWidgetProvider } from '@goodwidget/core'
+import { mergeOverrideMaps } from '@goodwidget/ui'
 import type {
   EIP1193Provider,
   GoodWidgetConfig,
@@ -16,21 +17,6 @@ export interface GovernanceWidgetProviderProps {
   children: ReactNode
 }
 
-function mergeThemeMaps(
-  base: GoodWidgetConfig['themes'],
-  override: GoodWidgetConfig['themes'],
-): GoodWidgetConfig['themes'] {
-  if (!base && !override) return undefined
-
-  const merged: NonNullable<GoodWidgetConfig['themes']> = { ...(base ?? {}) }
-
-  for (const [name, values] of Object.entries(override ?? {})) {
-    merged[name] = { ...(merged[name] ?? {}), ...values }
-  }
-
-  return merged
-}
-
 /**
  * Builds the governance author configuration before host theme overrides are
  * applied by GoodWidgetProvider.
@@ -39,7 +25,7 @@ function createGovernanceWidgetConfig(config?: GoodWidgetConfig): GoodWidgetConf
   return {
     preset: config?.preset,
     tokens: config?.tokens,
-    themes: mergeThemeMaps(governanceWidgetConfig.themes, config?.themes),
+    themes: mergeOverrideMaps(governanceWidgetConfig.themes, config?.themes),
   }
 }
 

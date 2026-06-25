@@ -2,7 +2,7 @@ import { Stack } from 'tamagui'
 import { Heading, Icon, Text, XStack, YStack } from '@goodwidget/ui'
 import type { ImpactCardMetric, ImpactCardProps } from './types'
 import { formatCompactValue } from './format'
-import { GovernanceComponentTheme, ImpactCardAction, ImpactCardFrame } from './shared'
+import { ImpactCardAction, ImpactCardFrame } from './shared'
 
 function HeroBackdrop() {
   return (
@@ -15,7 +15,7 @@ function HeroBackdrop() {
         height={220}
         borderRadius="$full"
         borderWidth={20}
-        borderColor="$borderColor"
+        borderColor="$governanceImpactBorder"
         opacity={0.8}
       />
       <Stack
@@ -25,7 +25,7 @@ function HeroBackdrop() {
         width={104}
         height={18}
         borderRadius="$full"
-        backgroundColor="$backgroundHover"
+        backgroundColor="$governanceImpactOverlay"
       />
       <Stack
         position="absolute"
@@ -34,7 +34,7 @@ function HeroBackdrop() {
         width={64}
         height={64}
         borderRadius="$full"
-        backgroundColor="$backgroundPress"
+        backgroundColor="$governanceImpactOverlayPressed"
       />
       <Stack
         position="absolute"
@@ -43,7 +43,7 @@ function HeroBackdrop() {
         width={132}
         height={24}
         borderRadius="$full"
-        backgroundColor="$backgroundHover"
+        backgroundColor="$governanceImpactOverlay"
       />
     </>
   )
@@ -55,26 +55,26 @@ function renderHeroAmount(metric: ImpactCardMetric, emphasized = false) {
       <XStack
         alignSelf="flex-start"
         borderRadius="$full"
-        backgroundColor="$backgroundFocus"
+        backgroundColor="$governanceImpactOverlayStrong"
         paddingHorizontal="$2"
         paddingVertical="$2"
       >
-        <Text variant="caption" color="$color" fontWeight="700" noWrap>
+        <Text variant="caption" color="$white" fontWeight="700" noWrap>
           {metric.label}
         </Text>
       </XStack>
       <XStack alignItems="baseline" gap="$1" flexWrap="nowrap">
         {metric.amount.token ? (
           <>
-            <Text variant={emphasized ? 'large' : 'label'} color="$color" fontWeight="700">
+            <Text variant={emphasized ? 'large' : 'label'} color="$white" fontWeight="700">
               {metric.amount.token}
             </Text>
-            <Heading level={emphasized ? 4 : 5} color="$color">
+            <Heading level={emphasized ? 4 : 5} color="$white">
               {formatCompactValue(metric.amount.value)}
             </Heading>
           </>
         ) : (
-          <Heading level={emphasized ? 4 : 5} color="$color">
+          <Heading level={emphasized ? 4 : 5} color="$white">
             {formatCompactValue(metric.amount.value)}
           </Heading>
         )}
@@ -82,7 +82,7 @@ function renderHeroAmount(metric: ImpactCardMetric, emphasized = false) {
       {metric.amount.isStreaming ? (
         <XStack alignItems="center" gap="$2">
           <Stack width={8} height={8} borderRadius="$full" backgroundColor="$success" />
-          <Text variant="caption" color="$color" fontWeight="700" textTransform="uppercase">
+          <Text variant="caption" color="$white" fontWeight="700" textTransform="uppercase">
             {metric.amount.streamLabel ?? 'Live stream active'}
           </Text>
         </XStack>
@@ -107,11 +107,11 @@ function MetricColumn({
       gap="$2"
       paddingLeft={withDivider ? '$3' : undefined}
       borderLeftWidth={withDivider ? 1 : 0}
-      borderLeftColor={withDivider ? '$borderColorHover' : undefined}
+      borderLeftColor={withDivider ? '$governanceImpactBorderHover' : undefined}
     >
       {renderHeroAmount(metric, emphasized)}
       {metric.description ? (
-        <Text variant="label" color="$colorSoft">
+        <Text variant="label" color="$governanceImpactTextSoft">
           {metric.description}
         </Text>
       ) : null}
@@ -131,35 +131,31 @@ export function ImpactCard({
   const [primaryMetric, secondaryMetric] = metrics
 
   return (
-    <GovernanceComponentTheme componentName="ImpactCard">
-      <ImpactCardFrame data-testid={testID}>
-        <HeroBackdrop />
-        <YStack position="relative" zIndex={1} gap="$4">
-          <Text fontSize="$4" lineHeight="$5" color="$color" fontWeight="800" textAlign="center" textTransform="uppercase">
-            {title}
-          </Text>
-          <XStack alignItems="stretch" gap="$3">
-            <MetricColumn metric={primaryMetric} emphasized />
-            <MetricColumn metric={secondaryMetric} withDivider />
+    <ImpactCardFrame data-testid={testID}>
+      <HeroBackdrop />
+      <YStack position="relative" zIndex={1} gap="$4">
+        <Text fontSize="$4" lineHeight="$5" color="$white" fontWeight="800" textAlign="center" textTransform="uppercase">
+          {title}
+        </Text>
+        <XStack alignItems="stretch" gap="$3">
+          <MetricColumn metric={primaryMetric} emphasized />
+          <MetricColumn metric={secondaryMetric} withDivider />
+        </XStack>
+        <Stack height={1} backgroundColor="$governanceImpactBorderFocus" />
+        <Text fontSize="$3" lineHeight="$5" color="$governanceImpactTextDim" textAlign="center">
+          {description}
+        </Text>
+      </YStack>
+      {ctaLabel ? (
+        <ImpactCardAction disabled={ctaDisabled} onPress={onCtaPress} aria-label={ctaLabel}>
+          <XStack alignItems="center" gap="$2">
+            <Text color="$primary" fontWeight="700">
+              {ctaLabel}
+            </Text>
+            <Icon name="external-link" size="xs" color="primary" />
           </XStack>
-          <Stack height={1} backgroundColor="$borderColorFocus" />
-          <Text fontSize="$3" lineHeight="$5" color="$colorDim" textAlign="center">
-            {description}
-          </Text>
-        </YStack>
-        {ctaLabel ? (
-          <GovernanceComponentTheme componentName="ImpactCardAction">
-            <ImpactCardAction disabled={ctaDisabled} onPress={onCtaPress} aria-label={ctaLabel}>
-              <XStack alignItems="center" gap="$2">
-                <Text color="$color" fontWeight="700">
-                  {ctaLabel}
-                </Text>
-                <Icon name="external-link" size="xs" color="primary" />
-              </XStack>
-            </ImpactCardAction>
-          </GovernanceComponentTheme>
-        ) : null}
-      </ImpactCardFrame>
-    </GovernanceComponentTheme>
+        </ImpactCardAction>
+      ) : null}
+    </ImpactCardFrame>
   )
 }

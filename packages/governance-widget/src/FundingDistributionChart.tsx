@@ -3,7 +3,7 @@ import { Stack, useTheme } from 'tamagui'
 import { Heading, Text, XStack, YStack } from '@goodwidget/ui'
 import type { FundingDistributionChartProps, FundingProjectAllocation, GovernanceAmount } from './types'
 import { clampPercentage, fundingAmountLabel } from './format'
-import { FundingDistributionChartFrame, GovernanceComponentTheme, resolveThemeColor } from './shared'
+import { GovernanceWrapper, resolveThemeColor } from './shared'
 
 const DONUT_COLOR_KEYS = ['primary', 'success', 'warning', 'colorDim', 'error'] as const
 
@@ -160,10 +160,8 @@ function FundingDistributionChartContent({
 
 export function FundingDistributionChart(props: FundingDistributionChartProps) {
   return (
-    <GovernanceComponentTheme componentName="FundingDistributionChart">
-      <FundingDistributionChartFrame data-testid={props.testID}>
-        <FundingDistributionChartContent {...props} />
-      </FundingDistributionChartFrame>
-    </GovernanceComponentTheme>
+    <GovernanceWrapper data-testid={props.testID} maxWidth={340}>
+      <FundingDistributionChartContent {...props} />
+    </GovernanceWrapper>
   )
 }

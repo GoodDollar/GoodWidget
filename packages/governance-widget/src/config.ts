@@ -1,135 +1,60 @@
 import type { GoodWidgetConfig } from '@goodwidget/core'
-import type { GoodWidgetThemeValues } from '@goodwidget/ui'
+import { defaultTokenPreset } from '@goodwidget/ui'
 
-const governanceSurfaceTheme = {
-  background: '#FFFFFF',
-  backgroundHover: '#EDF5FC',
-  backgroundPress: '#EDF5FC',
-  backgroundFocus: '#EDF5FC',
-  color: '#0D182D',
-  colorHover: '#0D182D',
-  colorPress: '#434B59',
-  colorFocus: '#0D182D',
-  colorSoft: '#4F606F',
-  colorDim: '#4F606F',
-  primary: '#00B0FF',
-  success: '#13C636',
-  warning: '#FFB020',
-  error: '#F00505',
-  borderColor: '#D0D9E4',
-  borderColorHover: 'rgba(0, 176, 255, 0.12)',
-  borderColorPress: '#8DCDFF',
-  borderColorFocus: '#00B0FF',
-  placeholderColor: '#4F606F',
-  shadowColor: 'rgba(0, 176, 255, 0.14)',
-  shadowColorHover: 'rgba(0, 176, 255, 0.1)',
-  shadowColorPress: 'rgba(0, 176, 255, 0.04)',
-  shadowColorFocus: 'rgba(0, 176, 255, 0.1)',
-} satisfies GoodWidgetThemeValues
+const color = defaultTokenPreset.tokens.color
 
-const darkSurfaceTheme = {
-  background: '#1E1F26',
-  backgroundHover: '#333333',
-  backgroundPress: '#333333',
-  backgroundFocus: '#1E1F26',
-  color: '#FFFFFF',
-  colorHover: '#FFFFFF',
-  colorPress: '#808080',
-  colorFocus: '#FFFFFF',
-  colorSoft: '#CCC',
-  colorDim: '#4B5563',
-  primary: '#1A85FF',
-  success: '#13C636',
-  warning: '#FFB020',
-  error: '#F00505',
-  borderColor: '#4D4D4D',
-  borderColorHover: '#666666',
-  borderColorPress: '#666666',
-  borderColorFocus: '#1A85FF',
-  placeholderColor: '#808080',
-  shadowColor: 'rgba(3, 7, 18, 0.68)',
-  shadowColorHover: 'rgba(3, 7, 18, 0.82)',
-  shadowColorPress: 'rgba(3, 7, 18, 0.58)',
-  shadowColorFocus: 'rgba(3, 7, 18, 0.82)',
-} satisfies GoodWidgetThemeValues
+const governanceTokenPreset = {
+  impactOverlay: 'rgba(255, 255, 255, 0.12)',
+  impactOverlayPressed: 'rgba(255, 255, 255, 0.08)',
+  impactOverlayStrong: 'rgba(255, 255, 255, 0.18)',
+  impactTextSoft: 'rgba(255, 255, 255, 0.88)',
+  impactTextDim: 'rgba(255, 255, 255, 0.92)',
+  impactBorder: 'rgba(255, 255, 255, 0.12)',
+  impactBorderHover: 'rgba(255, 255, 255, 0.20)',
+  impactBorderFocus: 'rgba(255, 255, 255, 0.24)',
+} as const
+
+export const governanceSurfaceTheme = {
+  backgroundColor: '$background',
+  borderColor: '$borderColor',
+  color: '$color',
+  shadowColor: '$shadowColor',
+} as const
+
+const governanceImpactTheme = {
+  governanceImpactOverlay: governanceTokenPreset.impactOverlay,
+  governanceImpactOverlayPressed: governanceTokenPreset.impactOverlayPressed,
+  governanceImpactOverlayStrong: governanceTokenPreset.impactOverlayStrong,
+  governanceImpactTextSoft: governanceTokenPreset.impactTextSoft,
+  governanceImpactTextDim: governanceTokenPreset.impactTextDim,
+  governanceImpactBorder: governanceTokenPreset.impactBorder,
+  governanceImpactBorderHover: governanceTokenPreset.impactBorderHover,
+  governanceImpactBorderFocus: governanceTokenPreset.impactBorderFocus,
+} as const
 
 /**
- * Default theme values for governance component targets.
+ * Governance-local author defaults.
  *
- * These remain local to the governance package. Hosts can override them through
- * GovernanceWidgetProvider's themeOverrides prop.
+ * Shared preset values stay in @goodwidget/ui. This config only adds widget
+ * semantics that the governance components consume directly.
  */
 export const governanceWidgetConfig = {
   themes: {
+    light: governanceImpactTheme,
+    dark: governanceImpactTheme,
+    light_GovernanceWrapper: {
+      background: color.governanceSurface,
+    },
+    dark_GovernanceWrapper: {
+      background: color.surfaceDark,
+    },
     light_ImpactCard: {
-      background: '#00B0FF',
-      backgroundHover: 'rgba(255, 255, 255, 0.12)',
-      backgroundPress: 'rgba(255, 255, 255, 0.08)',
-      backgroundFocus: 'rgba(255, 255, 255, 0.18)',
-      color: '#FFFFFF',
-      colorHover: '#FFFFFF',
-      colorPress: '#FFFFFF',
-      colorFocus: '#FFFFFF',
-      colorSoft: 'rgba(255, 255, 255, 0.88)',
-      colorDim: 'rgba(255, 255, 255, 0.92)',
-      borderColor: 'rgba(255, 255, 255, 0.12)',
-      borderColorHover: 'rgba(255, 255, 255, 0.20)',
-      borderColorPress: 'rgba(255, 255, 255, 0.24)',
-      borderColorFocus: 'rgba(255, 255, 255, 0.24)',
-      placeholderColor: 'rgba(255, 255, 255, 0.88)',
-      shadowColor: 'rgba(0, 176, 255, 0.14)',
+      background: color.governancePrimary,
+      shadowColor: color.governanceElevationShadow,
     },
     dark_ImpactCard: {
-      background: '#1A85FF',
-      backgroundHover: 'rgba(255, 255, 255, 0.12)',
-      backgroundPress: 'rgba(255, 255, 255, 0.08)',
-      backgroundFocus: 'rgba(255, 255, 255, 0.18)',
-      color: '#FFFFFF',
-      colorHover: '#FFFFFF',
-      colorPress: '#FFFFFF',
-      colorFocus: '#FFFFFF',
-      colorSoft: 'rgba(255, 255, 255, 0.88)',
-      colorDim: 'rgba(255, 255, 255, 0.92)',
-      borderColor: 'rgba(255, 255, 255, 0.12)',
-      borderColorHover: 'rgba(255, 255, 255, 0.20)',
-      borderColorPress: 'rgba(255, 255, 255, 0.24)',
-      borderColorFocus: 'rgba(255, 255, 255, 0.24)',
-      placeholderColor: 'rgba(255, 255, 255, 0.88)',
+      background: color.primary,
       shadowColor: 'rgba(3, 7, 18, 0.9)',
     },
-    light_ImpactCardAction: {
-      background: '#FFFFFF',
-      backgroundHover: '#EDF5FC',
-      backgroundPress: '#EDF5FC',
-      backgroundFocus: '#EDF5FC',
-      color: '#00B0FF',
-      borderColor: 'transparent',
-      shadowColor: 'rgba(0, 176, 255, 0.14)',
-    },
-    dark_ImpactCardAction: {
-      background: '#FFFFFF',
-      backgroundHover: '#F5F7FA',
-      backgroundPress: '#C4CAD3',
-      backgroundFocus: '#F5F7FA',
-      color: '#1A85FF',
-      borderColor: 'transparent',
-      shadowColor: 'rgba(3, 7, 18, 0.68)',
-    },
-    light_BalanceCard: governanceSurfaceTheme,
-    dark_BalanceCard: darkSurfaceTheme,
-    light_OptimisticVotingProposalCard: governanceSurfaceTheme,
-    dark_OptimisticVotingProposalCard: darkSurfaceTheme,
-    light_AlignmentVotingProposalCard: {
-      ...governanceSurfaceTheme,
-      borderColor: '#00B0FF',
-      borderColorFocus: '#00B0FF',
-    },
-    dark_AlignmentVotingProposalCard: {
-      ...darkSurfaceTheme,
-      borderColor: '#1A85FF',
-      borderColorFocus: '#1A85FF',
-    },
-    light_FundingDistributionChart: governanceSurfaceTheme,
-    dark_FundingDistributionChart: darkSurfaceTheme,
   },
 } satisfies GoodWidgetConfig

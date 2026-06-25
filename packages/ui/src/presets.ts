@@ -4,7 +4,7 @@ import type { WidgetDesignPreset } from './configTypes'
 // which are the source of truth for all design values used in the GoodWalletV2 app.
 // These should be used as the basis for all themes and component themes,
 // and only in rare cases should a new value be added that isn't derived from these tokens.
-const tokenPreset = {
+export const defaultTokenPreset = {
   tokens: {
     color: {
       white: '#FFFFFF',
@@ -153,7 +153,7 @@ const tokenPreset = {
   },
 }
 
-const color = tokenPreset.tokens.color
+const color = defaultTokenPreset.tokens.color
 
 // GoodWalletV2 baseline preset wired directly into the native GoodWidget
 // tokens -> themes -> createTamagui pipeline.
@@ -181,7 +181,7 @@ const color = tokenPreset.tokens.color
 export const goodWalletV2Preset: WidgetDesignPreset = {
   id: 'goodwallet-v2',
   version: '1.1.0',
-  tokens: tokenPreset.tokens,
+  tokens: defaultTokenPreset.tokens,
   themes: {
     // Governance UI light-mode branch.
     // This mirrors the separate governance preset direction so that one preset can

@@ -2,6 +2,7 @@
 export {
   createGoodWidgetConfig,
   createGoodWidgetThemes,
+  mergeOverrideMaps,
   mergeThemeOverrides,
   defaultConfig,
   defaultPreset,
@@ -25,7 +26,7 @@ export type {
 
 // Theme
 export { defaultTokenValues, createGoodWidgetTokens, createThemeValues } from './theme'
-export { goodWalletV2Preset } from './presets'
+export { defaultTokenPreset, goodWalletV2Preset } from './presets'
 
 // createComponent + Manifest
 export { createComponent } from './createComponent'

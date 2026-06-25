@@ -1,7 +1,7 @@
-import type { ReactNode } from 'react'
-import { Stack, Theme, useThemeName } from 'tamagui'
+import { Stack } from 'tamagui'
 import { ButtonFrame, Card, Heading, Icon, Text, XStack, YStack, createComponent } from '@goodwidget/ui'
 import type { GovernanceAmount, VoteSegment } from './types'
+import { governanceSurfaceTheme } from './config'
 import { clampPercentage, formatCompactValue, formatRawValue } from './format'
 
 export const SEGMENT_TONES: Record<NonNullable<VoteSegment['tone']>, string> = {
@@ -13,42 +13,26 @@ export const SEGMENT_TONES: Record<NonNullable<VoteSegment['tone']>, string> = {
 
 export type GovernanceAmountSize = 'sm' | 'md' | 'lg' | 'xl'
 
-type GovernanceThemeComponentName =
-  | 'ImpactCard'
-  | 'ImpactCardAction'
-  | 'BalanceCard'
-  | 'OptimisticVotingProposalCard'
-  | 'AlignmentVotingProposalCard'
-  | 'FundingDistributionChart'
-
-/**
- * Activates a governance component sub-theme while preserving the provider's
- * light or dark mode. Named frames register the override target; this boundary
- * lets their composed children consume the same semantic values.
- */
-export function GovernanceComponentTheme({
-  componentName,
-  children,
-}: {
-  componentName: GovernanceThemeComponentName
-  children: ReactNode
-}) {
-  const parentThemeName = useThemeName({ parent: true })
-  const mode = parentThemeName.startsWith('dark') ? 'dark' : 'light'
-
-  return <Theme name={`${mode}_${componentName}` as typeof parentThemeName}>{children}</Theme>
-}
-
 const GOVERNANCE_CARD_LAYOUT = {
-  extends: 'Card',
   width: '100%',
   gap: '$4',
   elevated: true,
 } as const
 
+export const GovernanceWrapper = createComponent(Card, {
+  name: 'GovernanceWrapper',
+  extends: 'Card',
+  ...governanceSurfaceTheme,
+  ...GOVERNANCE_CARD_LAYOUT,
+})
+
 export const ImpactCardFrame = createComponent(Card, {
   name: 'ImpactCard',
+  extends: 'Card',
   ...GOVERNANCE_CARD_LAYOUT,
+  backgroundColor: '$background',
+  color: '$white',
+  shadowColor: '$shadowColor',
   maxWidth: 390,
   overflow: 'hidden',
   borderWidth: 0,
@@ -62,41 +46,15 @@ export const ImpactCardAction = createComponent(ButtonFrame, {
   maxWidth: 320,
   minHeight: '$8',
   alignSelf: 'center',
-  backgroundColor: '$background',
+  backgroundColor: '$white',
   borderWidth: 0,
   borderRadius: '$full',
-  shadowColor: '$shadowColor',
+  shadowColor: '$elevationShadowColor',
   shadowOffset: { width: 0, height: 10 },
   shadowRadius: 24,
-})
-
-export const BalanceCardFrame = createComponent(Card, {
-  name: 'BalanceCard',
-  ...GOVERNANCE_CARD_LAYOUT,
-  variants: {
-    compact: {
-      true: { maxWidth: 220, minHeight: 152 },
-      false: { maxWidth: 268, minHeight: 176 },
-    },
-  } as const,
-})
-
-export const OptimisticVotingProposalCardFrame = createComponent(Card, {
-  name: 'OptimisticVotingProposalCard',
-  ...GOVERNANCE_CARD_LAYOUT,
-  maxWidth: 480,
-})
-
-export const AlignmentVotingProposalCardFrame = createComponent(Card, {
-  name: 'AlignmentVotingProposalCard',
-  ...GOVERNANCE_CARD_LAYOUT,
-  maxWidth: 480,
-})
-
-export const FundingDistributionChartFrame = createComponent(Card, {
-  name: 'FundingDistributionChart',
-  ...GOVERNANCE_CARD_LAYOUT,
-  maxWidth: 340,
+  hoverStyle: { backgroundColor: '$grey100' },
+  pressStyle: { backgroundColor: '$grey300' },
+  focusStyle: { backgroundColor: '$grey100' },
 })
 
 const GovernanceAmountValue = createComponent(Text, {

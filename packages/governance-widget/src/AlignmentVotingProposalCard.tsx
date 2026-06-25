@@ -1,7 +1,7 @@
 import { Heading, Icon, Text, YStack, XStack } from '@goodwidget/ui'
 import type { AlignmentVotingProposalCardProps, RankedVotingOption } from './types'
 import { clampPercentage } from './format'
-import { AlignmentVotingProposalCardFrame, GovernanceComponentTheme, ProgressBar, ProposalHeader } from './shared'
+import { GovernanceWrapper, ProgressBar, ProposalHeader } from './shared'
 
 function RankedOptionRow({ option }: { option: RankedVotingOption }) {
   return (
@@ -33,35 +33,35 @@ export function AlignmentVotingProposalCard({
   const hiddenCount = Math.max(0, options.length - visibleOptions.length)
 
   return (
-    <GovernanceComponentTheme componentName="AlignmentVotingProposalCard">
-      <AlignmentVotingProposalCardFrame
-        data-testid={testID}
-        cursor={onPress ? 'pointer' : undefined}
-        onPress={onPress ? () => onPress(id) : undefined}
-        role={onPress ? 'button' : undefined}
-        aria-label={`Open proposal ${title}`}
-      >
-        <ProposalHeader categoryLabel={categoryLabel} />
-        <Heading level={4} color="$primary">
-          {title}
-        </Heading>
-        <XStack alignItems="center" gap="$2">
-          <Icon name="info" size="xs" color="primary" />
-          <Text variant="label" color="$primary">
-            {summaryLabel}
+    <GovernanceWrapper
+      data-testid={testID}
+      maxWidth={480}
+      borderColor="$primary"
+      cursor={onPress ? 'pointer' : undefined}
+      onPress={onPress ? () => onPress(id) : undefined}
+      role={onPress ? 'button' : undefined}
+      aria-label={`Open proposal ${title}`}
+    >
+      <ProposalHeader categoryLabel={categoryLabel} />
+      <Heading level={4} color="$primary">
+        {title}
+      </Heading>
+      <XStack alignItems="center" gap="$2">
+        <Icon name="info" size="xs" color="primary" />
+        <Text variant="label" color="$primary">
+          {summaryLabel}
+        </Text>
+      </XStack>
+      <YStack gap="$4">
+        {visibleOptions.map((option) => (
+          <RankedOptionRow key={option.id} option={option} />
+        ))}
+        {hiddenCount > 0 ? (
+          <Text variant="caption" tone="secondary">
+            +{hiddenCount} more options
           </Text>
-        </XStack>
-        <YStack gap="$4">
-          {visibleOptions.map((option) => (
-            <RankedOptionRow key={option.id} option={option} />
-          ))}
-          {hiddenCount > 0 ? (
-            <Text variant="caption" tone="secondary">
-              +{hiddenCount} more options
-            </Text>
-          ) : null}
-        </YStack>
-      </AlignmentVotingProposalCardFrame>
-    </GovernanceComponentTheme>
+        ) : null}
+      </YStack>
+    </GovernanceWrapper>
   )
 }
