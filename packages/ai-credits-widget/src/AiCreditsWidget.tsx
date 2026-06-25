@@ -341,7 +341,6 @@ function AiCreditsInner({
           buyerKeyPrivate={null}
           buyerKeyConfirmed={false}
           onGenerate={actions.generateBuyerKey}
-          onPaste={actions.pasteBuyerKey}
           onConfirm={actions.confirmBuyerKey}
         />
       )}
@@ -352,7 +351,6 @@ function AiCreditsInner({
           buyerKeyPrivate={state.buyerKeyPrivate ?? null}
           buyerKeyConfirmed={state.buyerKeyConfirmed}
           onGenerate={actions.generateBuyerKey}
-          onPaste={actions.pasteBuyerKey}
           onConfirm={actions.confirmBuyerKey}
         />
       )}

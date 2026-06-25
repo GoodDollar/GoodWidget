@@ -150,27 +150,16 @@ interface BuyerKeyPanelProps {
   buyerKeyPrivate: string | null
   buyerKeyConfirmed: boolean
   onGenerate: () => void | Promise<void>
-  onPaste: (key: string) => void
   onConfirm: () => void
 }
 
-/**
- * Handles buyer key generation and confirmation.
- * When a key is generated the panel shows both the private key (which the user must save)
- * and the derived address (registered in the vault deposit). The user must confirm they have
- * saved the private key before proceeding.
- * User-provided (pasted) keys are pre-confirmed since the user already has the key.
- */
 export function BuyerKeyPanel({
   buyerKey,
   buyerKeyPrivate,
   buyerKeyConfirmed,
   onGenerate,
-  onPaste,
   onConfirm,
 }: BuyerKeyPanelProps) {
-  const [pasteMode, setPasteMode] = useState(false)
-  const [pasteValue, setPasteValue] = useState('')
   const [copiedAddress, setCopiedAddress] = useState(false)
   const [copiedPrivate, setCopiedPrivate] = useState(false)
   const [isPrivateKeyVisible, setIsPrivateKeyVisible] = useState(false)
@@ -214,25 +203,12 @@ export function BuyerKeyPanel({
         private key — you will need it to authenticate from your developer tools.
       </Text>
 
-      {!pasteMode && (
-        <YStack gap="$3">
-          <XStack gap="$2" alignItems="center">
-            <Button onPress={handleGenerate} flex={1} disabled={isGenerating}>
-              <ButtonText>{isGenerating ? 'Waiting for signature…' : 'Sign & Generate Key'}</ButtonText>
-            </Button>
+      <YStack gap="$3">
+        <Button onPress={handleGenerate} disabled={isGenerating}>
+          <ButtonText>{isGenerating ? 'Waiting for signature…' : 'Sign & Generate Key'}</ButtonText>
+        </Button>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onPress={() => {
-                setPasteMode(true)
-              }}
-            >
-              <ButtonText>Paste Key</ButtonText>
-            </Button>
-          </XStack>
-
-          {buyerKey && (
+        {buyerKey && (
             <YStack gap="$2">
               {/* Address row */}
               <Text variant="label" secondary>
@@ -319,42 +295,7 @@ export function BuyerKeyPanel({
               )}
             </YStack>
           )}
-        </YStack>
-      )}
-
-      {pasteMode && (
-        <YStack gap="$3">
-          <Input
-            placeholder="0x..."
-            value={pasteValue}
-            onChangeText={setPasteValue}
-            label="Buyer Key Address"
-          />
-          <XStack gap="$2">
-            <Button
-              flex={1}
-              onPress={() => {
-                if (pasteValue.trim()) {
-                  onPaste(pasteValue.trim())
-                  setPasteMode(false)
-                  setPasteValue('')
-                }
-              }}
-            >
-              <ButtonText>Use This Key</ButtonText>
-            </Button>
-            <Button
-              variant="outline"
-              onPress={() => {
-                setPasteMode(false)
-                setPasteValue('')
-              }}
-            >
-              <ButtonText>Cancel</ButtonText>
-            </Button>
-          </XStack>
-        </YStack>
-      )}
+      </YStack>
     </BuyerKeyPanelCard>
   )
 }

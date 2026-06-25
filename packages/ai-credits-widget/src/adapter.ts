@@ -479,18 +479,6 @@ export function useAiCreditsAdapter({
     }
   }, [address])
 
-  const handlePasteBuyerKey = useCallback((key: string) => {
-    const normalized = key.trim().toLowerCase().startsWith('0x') ? key.trim() : `0x${key.trim()}`
-    setState((prev) => ({
-      ...prev,
-      buyerKey: normalized,
-      buyerKeyPrivate: null, // User-provided address — no private key available here
-      buyerKeyConfirmed: true, // User-provided keys are pre-confirmed
-      operatorConsentSigned: false,
-      apiKey: null,
-    }))
-  }, [])
-
   const handleConfirmBuyerKey = useCallback(() => {
     setState((prev) => ({ ...prev, buyerKeyConfirmed: true }))
   }, [])
@@ -841,7 +829,6 @@ export function useAiCreditsAdapter({
       connect: handleConnect,
       switchChain: handleSwitchChain,
       generateBuyerKey: handleGenerateBuyerKey,
-      pasteBuyerKey: handlePasteBuyerKey,
       confirmBuyerKey: handleConfirmBuyerKey,
       signOperatorConsent: handleSignOperatorConsent,
       setDepositAmount: handleSetDepositAmount,
@@ -854,7 +841,6 @@ export function useAiCreditsAdapter({
       handleConnect,
       handleSwitchChain,
       handleGenerateBuyerKey,
-      handlePasteBuyerKey,
       handleConfirmBuyerKey,
       handleSignOperatorConsent,
       handleSetDepositAmount,

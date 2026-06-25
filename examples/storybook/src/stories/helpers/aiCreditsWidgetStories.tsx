@@ -56,7 +56,6 @@ function createAdapterFactory(
       connect: async () => {},
       switchChain: async () => {},
       generateBuyerKey: async () => {},
-      pasteBuyerKey: () => {},
       confirmBuyerKey: () => {},
       signOperatorConsent: async () => {},
       setDepositAmount: () => {},

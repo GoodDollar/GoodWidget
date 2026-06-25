@@ -144,8 +144,6 @@ export interface AiCreditsWidgetAdapterActions {
   switchChain: () => Promise<void>
   /** Derive a deterministic buyer key from a payer wallet signature */
   generateBuyerKey: () => Promise<void>
-  /** Accept a user-provided buyer key */
-  pasteBuyerKey: (key: string) => void
   /** Mark buyer key as confirmed after user has copied it */
   confirmBuyerKey: () => void
   /** Sign EIP-712 SetOperator on AntseedDeposits using the buyer private key */
