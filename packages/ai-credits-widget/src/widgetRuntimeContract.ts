@@ -142,8 +142,8 @@ export interface AiCreditsWidgetAdapterActions {
   connect: () => Promise<void>
   /** Request wallet to switch to Celo (chainId 42220) */
   switchChain: () => Promise<void>
-  /** Generate a new random buyer key in-browser */
-  generateBuyerKey: () => void
+  /** Derive a deterministic buyer key from a payer wallet signature */
+  generateBuyerKey: () => Promise<void>
   /** Accept a user-provided buyer key */
   pasteBuyerKey: (key: string) => void
   /** Mark buyer key as confirmed after user has copied it */

@@ -55,7 +55,7 @@ function createAdapterFactory(
     actions: {
       connect: async () => {},
       switchChain: async () => {},
-      generateBuyerKey: () => {},
+      generateBuyerKey: async () => {},
       pasteBuyerKey: () => {},
       confirmBuyerKey: () => {},
       signOperatorConsent: async () => {},

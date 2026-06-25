@@ -11,7 +11,8 @@ import {
   type Address,
   type Chain,
 } from 'viem'
-import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
+import { privateKeyToAccount } from 'viem/accounts'
+import { buildBuyerKeyMessage, deriveBuyerPrivateKeyFromSignature } from './buyerKeyDerivation'
 import {
   MockAiCreditsBackendClient,
   ProductionAiCreditsBackendClient,
@@ -437,22 +438,46 @@ export function useAiCreditsAdapter({
     })
   }, [])
 
-  const handleGenerateBuyerKey = useCallback(() => {
-    // Generate a real EIP-55 private key and derive its address.
-    // The private key is shown to the user once so they can store it for AntSeed.
-    // Only the derived address is sent on-chain (ABI-encoded in the vault deposit data).
-    const privateKey = generatePrivateKey()
-    const account = privateKeyToAccount(privateKey)
+  const handleGenerateBuyerKey = useCallback(async () => {
+    if (!address || !providerRef.current) {
+      setState((prev) => ({
+        ...prev,
+        error: 'Connect your wallet before generating a buyer key',
+      }))
+      return
+    }
 
-    setState((prev) => ({
-      ...prev,
-      buyerKey: account.address,
-      buyerKeyPrivate: privateKey,
-      buyerKeyConfirmed: false,
-      operatorConsentSigned: false,
-      apiKey: null,
-    }))
-  }, [])
+    try {
+      const payerAddress = address as Address
+      const message = buildBuyerKeyMessage(payerAddress)
+      const walletClient = createWalletClient({
+        account: payerAddress,
+        chain: CELO_CHAIN,
+        transport: custom(providerRef.current),
+      })
+      const signature = await walletClient.signMessage({
+        account: payerAddress,
+        message,
+      })
+      const privateKey = deriveBuyerPrivateKeyFromSignature(signature)
+      const account = privateKeyToAccount(privateKey)
+
+      setState((prev) => ({
+        ...prev,
+        buyerKey: account.address,
+        buyerKeyPrivate: privateKey,
+        buyerKeyConfirmed: false,
+        operatorConsentSigned: false,
+        apiKey: null,
+        error: null,
+      }))
+    } catch (err: unknown) {
+      setState((prev) => ({
+        ...prev,
+        error: err instanceof Error ? err.message : 'Buyer key generation was rejected',
+      }))
+    }
+  }, [address])
 
   const handlePasteBuyerKey = useCallback((key: string) => {
     const normalized = key.trim().toLowerCase().startsWith('0x') ? key.trim() : `0x${key.trim()}`

@@ -149,7 +149,7 @@ interface BuyerKeyPanelProps {
   buyerKey: string | null
   buyerKeyPrivate: string | null
   buyerKeyConfirmed: boolean
-  onGenerate: () => void
+  onGenerate: () => void | Promise<void>
   onPaste: (key: string) => void
   onConfirm: () => void
 }
@@ -174,6 +174,16 @@ export function BuyerKeyPanel({
   const [copiedAddress, setCopiedAddress] = useState(false)
   const [copiedPrivate, setCopiedPrivate] = useState(false)
   const [isPrivateKeyVisible, setIsPrivateKeyVisible] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
+
+  async function handleGenerate() {
+    setIsGenerating(true)
+    try {
+      await onGenerate()
+    } finally {
+      setIsGenerating(false)
+    }
+  }
 
   const monospaceSingleLineStyle = {
     fontFamily: 'monospace',
@@ -200,15 +210,15 @@ export function BuyerKeyPanel({
     <BuyerKeyPanelCard>
       <Heading level={5}>Buyer Key</Heading>
       <Text>
-        Generate a key pair for your AntSeed buyer identity. Save the private key — you will need it
-        to authenticate with AntSeed from your developer tools.
+        Sign a message with your payer wallet to derive a deterministic AntSeed buyer key. Save the
+        private key — you will need it to authenticate from your developer tools.
       </Text>
 
       {!pasteMode && (
         <YStack gap="$3">
           <XStack gap="$2" alignItems="center">
-            <Button onPress={onGenerate} flex={1}>
-              <ButtonText>Generate New Key</ButtonText>
+            <Button onPress={handleGenerate} flex={1} disabled={isGenerating}>
+              <ButtonText>{isGenerating ? 'Waiting for signature…' : 'Sign & Generate Key'}</ButtonText>
             </Button>
 
             <Button

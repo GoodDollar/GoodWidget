@@ -103,7 +103,7 @@ function AiCreditsInner({
         await actions.switchChain()
         break
       case 'generate_key':
-        actions.generateBuyerKey()
+        await actions.generateBuyerKey()
         break
       case 'sign_consent':
         await actions.signOperatorConsent()
