@@ -11,25 +11,27 @@ const SuccessCard = createComponent(YStack, {
   name: 'OnboardingSuccessCard',
   width: '100%',
   borderRadius: '$5',
-  padding: '$8',
-  gap: '$5',
+  padding: '$6',
+  gap: '$4',
   alignItems: 'center',
   backgroundColor: '$primary',
 })
 
 /**
- * Celebration icon container with translucent overlay.
+ * Celebration icon container — solid semi-transparent white fill circle.
+ * Matches Figma: ~56px filled circle, no border ring.
+ * Named 'OnboardingCelebrationIcon' for theme overrides.
  */
 const CelebrationIcon = createComponent(YStack, {
   name: 'OnboardingCelebrationIcon',
-  width: 80,
-  height: 80,
+  width: 48,
+  height: 48,
   borderRadius: '$full',
   alignItems: 'center',
   justifyContent: 'center',
-  backgroundColor: '$backgroundTransparent',
-  borderWidth: 3,
-  borderColor: '$backgroundHover',
+  // Solid semi-transparent white — visible on the blue card background
+  backgroundColor: 'rgba(255,255,255,0.25)',
+  borderWidth: 0,
 })
 
 interface SuccessStepContentProps {
@@ -47,15 +49,15 @@ export function SuccessStepContent({
     <SuccessCard data-testid="GovernanceOnboardingWidget-success-card">
       {/* ── Celebration icon ─────────────────────────────────────── */}
       <CelebrationIcon data-testid="GovernanceOnboardingWidget-success">
-        <Icon name="party-popper" size="lg" color="white" />
+        <Icon name="party-popper" size="sm" color="white" />
       </CelebrationIcon>
 
       {/* ── Heading + body ───────────────────────────────────────── */}
-      <YStack alignItems="center" gap="$3" maxWidth={420}>
-        <Heading level={1} color="$white" center>
+      <YStack alignItems="center" gap="$2" maxWidth={420}>
+        <Heading level={3} color="$white" textAlign="center">
           Welcome to Governance
         </Heading>
-        <Text color="$white" center>
+        <Text color="$white" textAlign="center">
           {`You've successfully staked ${stakeAmountLabel} and joined the mission. Your voice now shapes the future of sustainable universal basic income.`}
         </Text>
       </YStack>
@@ -66,23 +68,30 @@ export function SuccessStepContent({
           <Button
             key={action.id}
             fullWidth
-            variant={action.variant ?? (index === 0 ? 'secondary' : 'primary')}
             disabled={action.disabled}
             onPress={() => onFinalActionPress?.(action.id)}
             data-testid={`GovernanceOnboardingWidget-success-${action.id}`}
+            // Primary CTA (index 0): solid white pill — white bg, primary-colored text/icon
+            // Secondary CTA (index 1): ghost — transparent bg, white text/icon
+            variant={action.variant ?? (index === 0 ? 'primary' : 'ghost')}
+            {...(index === 0
+              ? { backgroundColor: 'white', borderRadius: '$full' }
+              : {})}
           >
             {index === 0 ? (
               <Icon name="compass" size="sm" color="primary" />
             ) : (
               <Icon name="user" size="sm" color="white" />
             )}
-            <ButtonText>{action.label}</ButtonText>
+            <ButtonText color={index === 0 ? '$primary' : '$white'}>
+              {action.label}
+            </ButtonText>
           </Button>
         ))}
       </YStack>
 
       {/* ── Footer ───────────────────────────────────────────────── */}
-      <Text variant="caption" color="$white" center>
+      <Text variant="caption" color="$white" textAlign="center">
         {'© 2024 GoodDollar Governance. Civic & Transparent.'}
       </Text>
     </SuccessCard>
