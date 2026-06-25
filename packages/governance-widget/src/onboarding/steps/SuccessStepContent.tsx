@@ -1,5 +1,5 @@
 import React from 'react'
-import { YStack, XStack } from 'tamagui'
+import { YStack, XStack, Theme, useTheme } from 'tamagui'
 import { Button, ButtonText, Heading, Icon, Text, createComponent } from '@goodwidget/ui'
 import type { GovernanceOnboardingAction } from '../../types'
 
@@ -14,7 +14,7 @@ const SuccessCard = createComponent(YStack, {
   padding: '$8',      // 32px padding
   gap: '$5',
   alignItems: 'center',
-  backgroundColor: '$primary',
+  backgroundColor: '$background',
 })
 
 /**
@@ -29,7 +29,7 @@ const CelebrationIcon = createComponent(YStack, {
   borderRadius: '$full',
   alignItems: 'center',
   justifyContent: 'center',
-  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  backgroundColor: '$background',
   borderWidth: 0,
 })
 
@@ -39,6 +39,83 @@ interface SuccessStepContentProps {
   onFinalActionPress?: (actionId: string) => void
 }
 
+/**
+ * Inner component rendered within the active OnboardingSuccessCard theme context.
+ * Uses useTheme() to resolve custom button color variables from the active theme,
+ * keeping all raw color values in config.ts and this component free of hardcoded hex.
+ */
+function SuccessStepInner({
+  finalActions,
+  onFinalActionPress,
+}: {
+  finalActions: GovernanceOnboardingAction[]
+  onFinalActionPress?: (actionId: string) => void
+}) {
+  const theme = useTheme()
+
+  // Resolved from light_OnboardingSuccessCard / dark_OnboardingSuccessCard in config.ts
+  const primaryBg = theme.primaryButtonBackground?.get()
+  const primaryBgHover = theme.primaryButtonBackgroundHover?.get()
+  const primaryBgPress = theme.primaryButtonBackgroundPress?.get()
+  const primaryColor = theme.primaryButtonColor?.get()
+
+  const secondaryBg = theme.secondaryButtonBackground?.get()
+  const secondaryBgHover = theme.secondaryButtonBackgroundHover?.get()
+  const secondaryBgPress = theme.secondaryButtonBackgroundPress?.get()
+  const secondaryColor = theme.secondaryButtonColor?.get()
+
+  return (
+    <YStack width="100%" gap="$3">
+      {finalActions.map((action, index) => {
+        const isPrimary = index === 0
+        const bg = isPrimary ? primaryBg : secondaryBg
+        const textColor = isPrimary ? primaryColor : secondaryColor
+        const hoverBg = isPrimary ? primaryBgHover : secondaryBgHover
+        const pressBg = isPrimary ? primaryBgPress : secondaryBgPress
+
+        // Icon color must be a semantic key; primary button icon uses the brand blue
+        // resolved via $color on the primary theme, secondary stays white.
+        const iconColor = isPrimary ? 'primary' : 'white'
+
+        return (
+          <Button
+            key={action.id}
+            fullWidth
+            disabled={action.disabled}
+            onPress={() => onFinalActionPress?.(action.id)}
+            data-testid={`GovernanceOnboardingWidget-success-${action.id}`}
+            backgroundColor={bg}
+            borderRadius="$3"
+            paddingVertical="$4"
+            height="auto"
+            minHeight={isPrimary ? 88 : 62}
+            hoverStyle={{ backgroundColor: hoverBg }}
+            pressStyle={{ backgroundColor: pressBg }}
+          >
+            <XStack alignItems="center" justifyContent="center" gap="$3" width="100%" paddingHorizontal="$4">
+              {isPrimary ? (
+                <Icon name="compass" size="sm" color={iconColor} />
+              ) : (
+                <Icon name="user" size="xs" color={iconColor} />
+              )}
+              <ButtonText
+                color={textColor}
+                fontSize="$5"
+                fontWeight="700"
+                textAlign="center"
+                lineHeight="$5"
+                flex={1}
+              >
+                {action.label}
+              </ButtonText>
+            </XStack>
+          </Button>
+        )
+      })}
+    </YStack>
+  )
+}
+
 export function SuccessStepContent({
   finalActions,
   stakeAmountLabel = '1,000 G$',
@@ -46,75 +123,30 @@ export function SuccessStepContent({
 }: SuccessStepContentProps) {
   return (
     <SuccessCard data-testid="GovernanceOnboardingWidget-success-card">
-      {/* ── Celebration icon ─────────────────────────────────────── */}
-      <CelebrationIcon data-testid="GovernanceOnboardingWidget-success">
-        <Icon name="party-popper" size="lg" color="white" />
-      </CelebrationIcon>
+      <Theme name="OnboardingSuccessCard">
+        {/* ── Celebration icon ─────────────────────────────────────── */}
+        <CelebrationIcon data-testid="GovernanceOnboardingWidget-success">
+          <Icon name="party-popper" size="lg" color="white" />
+        </CelebrationIcon>
 
-      {/* ── Heading + body ───────────────────────────────────────── */}
-      <YStack alignItems="center" gap="$3" maxWidth={420}>
-        <Heading level={3} color="$white" textAlign="center" fontWeight="700">
-          Welcome to Governance
-        </Heading>
-        <Text color="$white" textAlign="center" fontSize="$4">
-          {`You've successfully staked ${stakeAmountLabel} and joined the mission. Your voice now shapes the future of sustainable universal basic income.`}
+        {/* ── Heading + body ───────────────────────────────────────── */}
+        <YStack alignItems="center" gap="$3" maxWidth={420}>
+          <Heading level={3} color="$color" textAlign="center" fontWeight="700">
+            Welcome to Governance
+          </Heading>
+          <Text color="$color" textAlign="center" fontSize="$4">
+            {`You've successfully staked ${stakeAmountLabel} and joined the mission. Your voice now shapes the future of sustainable universal basic income.`}
+          </Text>
+        </YStack>
+
+        {/* ── Action buttons ───────────────────────────────────────── */}
+        <SuccessStepInner finalActions={finalActions} onFinalActionPress={onFinalActionPress} />
+
+        {/* ── Footer ───────────────────────────────────────────────── */}
+        <Text variant="caption" color="$color" textAlign="center" fontWeight="600">
+          {'© 2024 GoodDollar Governance. Civic & Transparent.'}
         </Text>
-      </YStack>
-
-      {/* ── Action buttons ───────────────────────────────────────── */}
-      <YStack width="100%" gap="$3">
-        {finalActions.map((action, index) => {
-          const isPrimary = index === 0
-          return (
-            <Button
-              key={action.id}
-              fullWidth
-              disabled={action.disabled}
-              onPress={() => onFinalActionPress?.(action.id)}
-              data-testid={`GovernanceOnboardingWidget-success-${action.id}`}
-              // Base button style configurations for Figma parity:
-              // - Corner radius 12px ($3)
-              // - Primary CTA: solid white background
-              // - Secondary CTA: 20% opacity translucent white background
-              backgroundColor={isPrimary ? 'white' : 'rgba(255, 255, 255, 0.2)'}
-              borderRadius="$3"
-              paddingVertical="$4"
-              height="auto"
-              minHeight={isPrimary ? 88 : 62}
-              hoverStyle={{
-                backgroundColor: isPrimary ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.3)',
-              }}
-              pressStyle={{
-                backgroundColor: isPrimary ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.15)',
-              }}
-            >
-              <XStack alignItems="center" justifyContent="center" gap="$3" width="100%" paddingHorizontal="$4">
-                {isPrimary ? (
-                  <Icon name="compass" size="sm" color="primary" />
-                ) : (
-                  <Icon name="user" size="xs" color="white" />
-                )}
-                <ButtonText
-                  color={isPrimary ? '$primary' : '$white'}
-                  fontSize="$5"
-                  fontWeight="700"
-                  textAlign="center"
-                  lineHeight="$5"
-                  style={{ whiteSpace: 'pre-line' }}
-                  flex={1}
-                >
-                  {isPrimary ? action.label.replace(' ', '\n') : action.label}
-                </ButtonText>
-              </XStack>
-            </Button>
-          )
-        })}
-      </YStack>
-
-      {/* ── Footer ───────────────────────────────────────────────── */}
-      <Text variant="caption" color="$white" textAlign="center" fontWeight="600">
-        {'© 2024 GoodDollar Governance. Civic & Transparent.'}
-      </Text>
+      </Theme>
     </SuccessCard>
   )
 }
