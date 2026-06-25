@@ -70,16 +70,37 @@ interface PageWizardShellProps {
 
 const PageWizardContext = createContext<PageWizardContextValue | null>(null)
 
-const PageWizardStepCircle = createComponent(Stack, {
-  name: 'PageWizardStepCircle',
-  width: 32,
-  height: 32,
+/**
+ * Individual step bullet — a small numbered circle.
+ * Active: filled with $primary, white number.
+ * Completed: filled with $success, white checkmark icon.
+ * Pending: transparent background, $borderColor border, $placeholderColor number.
+ *
+ * Design reference: Figma/Stitch GoodWidget Library node 2373-2 — the stepper
+ * is always rendered horizontally at the top of the screen on all breakpoints.
+ */
+const PageWizardStepBullet = createComponent(Stack, {
+  name: 'PageWizardStepBullet',
+  width: 28,
+  height: 28,
   borderRadius: '$full',
   alignItems: 'center',
   justifyContent: 'center',
-  borderWidth: 1,
+  borderWidth: 1.5,
   borderColor: '$borderColor',
   backgroundColor: '$background',
+})
+
+/**
+ * Connector line between two step bullets.
+ * Filled ($primary) when the left step is completed, grey ($borderColor) otherwise.
+ */
+const PageWizardConnector = createComponent(Stack, {
+  name: 'PageWizardConnector',
+  flex: 1,
+  height: 2,
+  borderRadius: '$full',
+  backgroundColor: '$borderColor',
 })
 
 function resolveStepIndex(steps: PageWizardStep[], stepId?: string): number {
@@ -195,7 +216,6 @@ export function PageWizardShell({
   stepperSteps,
 }: PageWizardShellProps) {
   const { currentIndex, steps, currentStep } = usePageWizard()
-  const activeStep = steps[currentIndex]
 
   // Use the provided stepperSteps for visual display, falling back to all steps.
   // This allows a terminal step (e.g. success) to be excluded from the track.
@@ -208,30 +228,19 @@ export function PageWizardShell({
     <YStack gap="$4" width="100%" data-testid={dataTestId}>
       {showStepper ? (
         <YStack gap="$3">
-          <YStack
-            gap="$1"
-            data-testid="PageWizardStep-mobile-summary"
-            display="flex"
-            $gtSm={{ display: 'none' }}
-          >
-            <Text variant="caption" tone="secondary">
-              {`Step ${displayCurrentIndex >= 0 ? displayCurrentIndex + 1 : currentIndex + 1} of ${displaySteps.length}`}
-            </Text>
-            {activeStep ? (
-              <Text fontWeight="700" color="$color">
-                {activeStep.title}
-              </Text>
-            ) : null}
-          </YStack>
-
+          {/*
+           * Horizontal step track — always rendered on all breakpoints.
+           * Design: Figma node 2373-2 / Stitch preview shows the numbered bullet
+           * track at the top of the screen on every screen size. There is no
+           * mobile-only text fallback replacing the track; only the track itself
+           * is shown. The "Step X of Y" label has been removed in favour of the
+           * always-visible numbered bullets per the requested design.
+           */}
           <XStack
             alignItems="center"
-            justifyContent="space-between"
             gap="$2"
             width="100%"
             data-testid="PageWizardStep-track"
-            display="none"
-            $gtSm={{ display: 'flex' }}
           >
             {displaySteps.map((step, index) => {
               const isActiveStep = index === displayCurrentIndex
@@ -245,12 +254,10 @@ export function PageWizardShell({
                   <YStack
                     alignItems="center"
                     gap="$1"
-                    flex={1}
-                    minWidth={0}
                     data-testid={`PageWizardStep-${step.id}`}
                     data-state={isActiveStep ? 'active' : isCompletedStep ? 'completed' : 'pending'}
                   >
-                    <PageWizardStepCircle
+                    <PageWizardStepBullet
                       backgroundColor={
                         isCompletedStep
                           ? '$success'
@@ -270,6 +277,8 @@ export function PageWizardShell({
                         <Icon name="check" size="xs" color="white" />
                       ) : (
                         <Text
+                          fontSize={11}
+                          lineHeight={14}
                           color={
                             isActiveStep ? '$white' : '$placeholderColor'
                           }
@@ -278,27 +287,26 @@ export function PageWizardShell({
                           {index + 1}
                         </Text>
                       )}
-                    </PageWizardStepCircle>
+                    </PageWizardStepBullet>
                     <Text
                       variant="caption"
                       color={isActiveStep ? '$color' : '$placeholderColor'}
                       fontWeight={isActiveStep ? '700' : '500'}
-                      center
+                      textAlign="center"
                       numberOfLines={1}
                       ellipsizeMode="tail"
-                      maxWidth="100%"
                     >
                       {step.title}
                     </Text>
                   </YStack>
                   {!isLastStep ? (
-                    <YStack
-                      flex={1}
-                      height={2}
-                      borderRadius="$full"
+                    <PageWizardConnector
                       backgroundColor={connectorColor}
-                      marginHorizontal="$1"
                       data-testid={`PageWizardConnector-${index}`}
+                      // Align connector with the center of the bullet circles,
+                      // not the bottom of the label text. marginBottom offsets
+                      // the label height so the line sits at bullet midpoint.
+                      marginBottom="$3"
                     />
                   ) : null}
                 </React.Fragment>
