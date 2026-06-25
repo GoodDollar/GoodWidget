@@ -535,45 +535,31 @@ export function useGoodReserveAdapter(
                 return (quoteOut * (10_000n - slippageBps)) / 10_000n
               })()
 
-          // Capture the transaction hash immediately when submitted, then show
-          // success without waiting for confirmation. This prevents the UI from
-          // getting stuck in "Swapping..." for 30+ seconds while waiting for the
-          // transaction to be mined on Celo.
-          let resolveHash: (hash: `0x${string}`) => void
-          const hashPromise = new Promise<`0x${string}`>((resolve) => {
-            resolveHash = resolve
-          })
-
+          // Wait for the transaction receipt before showing success. This ensures
+          // we only show success if the transaction actually succeeded on-chain.
+          // The onHash callback provides the hash immediately for logging/tracking.
           const onHash = (hash: `0x${string}`) => {
-            resolveHash(hash)
+            // Store hash in state for immediate feedback (user can see tx hash)
+            applyStatePatch({ txHash: hash })
           }
 
-          // Start the transaction (don't await it yet)
-          const txPromise =
+          const result =
             state.direction === 'buy'
-              ? sdkRef.current.buy(stableToken, amountIn, minReturn, onHash)
-              : sdkRef.current.sell(stableToken, amountIn, minReturn, onHash)
+              ? await sdkRef.current.buy(stableToken, amountIn, minReturn, onHash)
+              : await sdkRef.current.sell(stableToken, amountIn, minReturn, onHash)
 
-          // Wait for the hash to be captured (this happens immediately after writeContract)
-          const txHash = await hashPromise
-
-          // Show success immediately with the transaction hash
+          // Now show success with the confirmed transaction
           applyStatePatch({
             status: 'swap_success',
-            txHash,
+            txHash: result.hash,
             lastSwapOutput: state.quote.outputAmount,
             inputAmount: '',
             quote: null,
           })
 
-          // Refresh balances in the background
+          // Refresh balances after successful swap
           refreshBalances().catch((refreshErr) => {
             console.error('post-swap balance refresh failed', refreshErr)
-          })
-
-          // Let the transaction complete in the background
-          txPromise.catch((err) => {
-            console.error('Transaction failed after showing success:', err)
           })
         } catch (err: unknown) {
           applyStatePatch({

@@ -174,7 +174,12 @@ test('amount input accepts typed characters (live adapter)', async ({ page }) =>
 // Verifies the live SDK path: exercises getBuyQuote, the onHash callback,
 // result.hash, and the PPM exit-contribution scaling against the real
 // @goodsdks/good-reserve SDK.
+//
+// This test requires live RPC/wallet access and is gated behind an environment
+// variable. Set GOODRESERVE_LIVE_TEST=1 to run it locally.
 test('live adapter completes a buy: quote → confirm → success with tx hash', async ({ page }) => {
+  test.skip(process.env.GOODRESERVE_LIVE_TEST !== '1', 'Requires live RPC/wallet access')
+
   await page.goto('/iframe.html?id=widgets-goodreservewidget--interactive&viewMode=story')
   await page.waitForLoadState('networkidle')
   await page.getByTestId('GoodReserveWidget-interactive').first().waitFor({ timeout: 30_000 })

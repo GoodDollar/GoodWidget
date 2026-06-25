@@ -723,6 +723,20 @@ function MainSwapView({
           )}
         </Button>
 
+        {/* Surface the submitted hash immediately so the user gets immediate
+          confirmation the tx was broadcast, without waiting on the receipt. */}
+        {state.status === 'swap_pending' && state.txHash ? (
+          <Anchor
+            href={explorerTxUrl(state.chainId, state.txHash)}
+            target="_blank"
+            rel="noopener noreferrer"
+            fontSize={13}
+            color={FIGMA.primary}
+          >
+            Transaction submitted — view on explorer ↗
+          </Anchor>
+        ) : null}
+
         {/* Settings / slippage icon button at the bottom of the card (Figma). */}
         <SettingsButton testID="GoodReserveWidget-settings" onPress={actions.openSlippage}>
           <Icon name="settings" size="sm" color="primary" />
