@@ -137,10 +137,7 @@ function AiCreditsInner({
   if (isPostPurchase) {
     return (
       <YStack gap="$4" padding="$4">
-        <CreditsBalance
-          aiCreditsBalance={state.aiCreditsBalance}
-          setupSnippet={state.setupSnippet}
-        />
+        <CreditsBalance aiCreditsBalance={state.aiCreditsBalance} />
 
         {state.setupSnippet && <SetupSnippet snippet={state.setupSnippet} />}
 

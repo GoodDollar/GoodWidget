@@ -4,6 +4,7 @@ import {
   Card,
   Heading,
   Text,
+  Anchor,
   Button,
   ButtonText,
   XStack,
@@ -484,17 +485,13 @@ export function AmountPicker({
 
 interface CreditsBalanceProps {
   aiCreditsBalance: string | null
-  setupSnippet: string | null
 }
 
-/**
- * Shows the current AI credits balance on Base with a compact usage bar.
- */
-export function CreditsBalance({ aiCreditsBalance, setupSnippet: _ }: CreditsBalanceProps) {
+export function CreditsBalance({ aiCreditsBalance }: CreditsBalanceProps) {
   return (
     <CreditsBalanceCard>
       <XStack justifyContent="space-between" alignItems="center">
-        <Text variant="label">AI Credits (Base)</Text>
+        <Text variant="label">AI Credits</Text>
         <Icon name="zap" size="sm" color="primary" />
       </XStack>
       {aiCreditsBalance !== null ? (
@@ -510,18 +507,27 @@ export function CreditsBalance({ aiCreditsBalance, setupSnippet: _ }: CreditsBal
 // SetupSnippetCard component
 // ---------------------------------------------------------------------------
 
+const ANTSEED_API_DOCS_URL = 'https://antseed.com/docs/guides/using-the-api'
+
+const setupSnippetLineStyle: React.CSSProperties = {
+  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+  fontSize: 13,
+  lineHeight: '20px',
+  wordBreak: 'break-word',
+  overflowWrap: 'anywhere',
+}
+
 interface SetupSnippetProps {
   snippet: string
 }
 
-/**
- * Displays a copyable API key / base URL code block for Cursor, Cline, etc.
- */
 export function SetupSnippet({ snippet }: SetupSnippetProps) {
   const [copied, setCopied] = useState(false)
+  const copyText = snippet.replace(/\n\n+/g, '\n').trim()
+  const lines = snippet.trim().split('\n')
 
   async function handleCopy() {
-    await navigator.clipboard.writeText(snippet)
+    await navigator.clipboard.writeText(copyText)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -534,17 +540,18 @@ export function SetupSnippet({ snippet }: SetupSnippetProps) {
           <ButtonText>{copied ? 'Copied!' : 'Copy'}</ButtonText>
         </Button>
       </XStack>
-      <YStack
-        backgroundColor="$backgroundMuted"
-        borderRadius="$2"
-        padding="$3"
-      >
-        <Text style={{ fontFamily: 'monospace' } as React.CSSProperties} fontSize="$2">
-          {snippet}
-        </Text>
+      <YStack backgroundColor="$backgroundMuted" borderRadius="$2" padding="$3" width="100%" gap="$1">
+        {lines.map((line, index) => (
+          <Text key={index} color="$text" style={setupSnippetLineStyle}>
+            {line.length > 0 ? line : ' '}
+          </Text>
+        ))}
       </YStack>
       <Text fontSize="$1" secondary>
-        Paste these into your Cursor, Cline, or VS Code Copilot settings to start using AI credits.
+        Setup guide:{' '}
+        <Anchor href={ANTSEED_API_DOCS_URL} target="_blank">
+          antseed.com/docs
+        </Anchor>
       </Text>
     </SetupSnippetCard>
   )

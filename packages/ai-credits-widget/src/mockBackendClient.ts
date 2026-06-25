@@ -120,6 +120,13 @@ export function microUsdToCredits(microUsd: string): string {
   return credits.toFixed(2)
 }
 
+export function creditsBalanceFromStatus(status: AccountStatusResponse): string {
+  const microUsd =
+    BigInt(status.profile.totalPrincipalMicroUsd || '0') +
+    BigInt(status.profile.totalBonusMicroUsd || '0')
+  return microUsdToCredits(microUsd.toString())
+}
+
 function balanceFromProfile(profile: UserCreditProfile): string {
   const principal = BigInt(profile.totalPrincipalMicroUsd || '0')
   const bonus = BigInt(profile.totalBonusMicroUsd || '0')

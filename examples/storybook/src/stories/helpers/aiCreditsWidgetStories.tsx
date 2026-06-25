@@ -225,7 +225,8 @@ export function HasCreditsStory() {
       dataTestId="AiCreditsWidget-has-credits"
       adapterFactory={createAdapterFactory('has_credits', {
         aiCreditsBalance: '110.00',
-        setupSnippet: `ANTSEED_API_KEY="0xabcdef1234567890abcdef1234567890abcdef12"\nANTSEED_BASE_URL="https://api.antseed.xyz/v1"`,
+        buyerKey: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a',
+        setupSnippet: `export ANTSEED_IDENTITY_HEX=<buyer-private-key>\nexport ANTHROPIC_BASE_URL=http://localhost:8377`,
         primaryAction: 'refresh',
         primaryLabel: 'Refresh',
       })}
@@ -240,7 +241,8 @@ export function UsageEmptyStory() {
       dataTestId="AiCreditsWidget-usage-empty"
       adapterFactory={createAdapterFactory('usage_empty', {
         aiCreditsBalance: '0',
-        setupSnippet: `ANTSEED_API_KEY="0xabcdef1234567890abcdef1234567890abcdef12"\nANTSEED_BASE_URL="https://api.antseed.xyz/v1"`,
+        buyerKey: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a',
+        setupSnippet: `export ANTSEED_IDENTITY_HEX=<buyer-private-key>\nexport ANTHROPIC_BASE_URL=http://localhost:8377`,
         primaryAction: 'refresh',
         primaryLabel: 'Refresh',
       })}
@@ -255,7 +257,8 @@ export function UsageActiveStory() {
       dataTestId="AiCreditsWidget-usage-active"
       adapterFactory={createAdapterFactory('usage_active', {
         aiCreditsBalance: '87.50',
-        setupSnippet: `ANTSEED_API_KEY="0xabcdef1234567890abcdef1234567890abcdef12"\nANTSEED_BASE_URL="https://api.antseed.xyz/v1"`,
+        buyerKey: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a',
+        setupSnippet: `export ANTSEED_IDENTITY_HEX=<buyer-private-key>\nexport ANTHROPIC_BASE_URL=http://localhost:8377`,
         usageLog: [
           {
             sessionId: 'sess-001',
