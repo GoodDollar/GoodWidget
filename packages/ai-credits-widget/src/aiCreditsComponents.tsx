@@ -325,7 +325,7 @@ export function OperatorConsentStep({
     <OperatorConsentCard>
       <Heading level={5}>Authorize AntSeed Operator</Heading>
       <Text fontSize="$2" lineHeight="$3">
-        Your buyer key signs an EIP-712 SetOperator message on Base. The backend submits it to
+        Your buyer key signs an EIP-712 SetOperator message. The backend submits it to
         AntseedDeposits so the funding vault can act as your operator. No gas is required from
         you.
       </Text>
