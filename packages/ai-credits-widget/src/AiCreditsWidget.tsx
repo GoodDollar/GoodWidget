@@ -5,7 +5,6 @@ import {
   Button,
   ButtonText,
   Card,
-  Heading,
   Text,
   ToastContainer,
   XStack,
@@ -169,35 +168,6 @@ function AiCreditsInner({
   }
 
   // ---------------------------------------------------------------------------
-  // Render: disconnected state
-  // ---------------------------------------------------------------------------
-
-  if (state.status === 'disconnected') {
-    return (
-      <YStack gap="$4" padding="$4">
-        <Card>
-          <YStack gap="$4" padding="$4" alignItems="center">
-            <Heading level={4} textAlign="center">
-              Buy AI Credits with G$
-            </Heading>
-            <Text secondary center>
-              Connect your wallet to purchase AI coding credits on Base using your G$ on Celo.
-            </Text>
-            <Button
-              fullWidth
-              onPress={() => {
-                void actions.connect()
-              }}
-            >
-              <ButtonText>Connect Wallet</ButtonText>
-            </Button>
-          </YStack>
-        </Card>
-      </YStack>
-    )
-  }
-
-  // ---------------------------------------------------------------------------
   // Render: unsupported chain
   // ---------------------------------------------------------------------------
 
@@ -321,14 +291,14 @@ function AiCreditsInner({
 
   return (
     <YStack gap="$4" padding="$4">
-      {/* Hero: G$ balance + bonus */}
-      <AiCreditsHero
-        gBalance={state.gBalance}
-        isGoodIdVerified={state.isGoodIdVerified}
-        bonusPercent={state.bonusPercent}
-      />
+      {state.address && (
+        <AiCreditsHero
+          gBalance={state.gBalance}
+          isGoodIdVerified={state.isGoodIdVerified}
+          bonusPercent={state.bonusPercent}
+        />
+      )}
 
-      {/* Stepper overview */}
       <AiCreditsFlowStepper state={state} />
 
       {/* Step panels — shown progressively */}
