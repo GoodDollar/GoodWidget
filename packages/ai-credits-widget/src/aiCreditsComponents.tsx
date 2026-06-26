@@ -395,13 +395,18 @@ export function AmountPicker({
   onDepositChange,
   onStreamChange,
 }: AmountPickerProps) {
-  // Approximate G$ → USD conversion for display purposes
   const G_USD_RATE = 0.0015
-  const depositUsd = (Number.parseFloat(depositAmount) || 0) * G_USD_RATE
-  const streamUsd = (Number.parseFloat(streamAmount) || 0) * G_USD_RATE
+  const depositG = Number.parseFloat(depositAmount) || 0
+  const streamG = Number.parseFloat(streamAmount) || 0
+  const depositUsd = depositG * G_USD_RATE
+  const streamUsd = streamG * G_USD_RATE
+  const depositCredits = depositG > 0 ? depositUsd * 100 * (isGoodIdVerified ? 1.1 : 1) : 0
+  const streamCredits = streamG > 0 ? streamUsd * 100 * (isGoodIdVerified ? 1.2 : 1) : 0
   const balance = Number.parseFloat(gBalance ?? '0')
-  const totalG = (Number.parseFloat(depositAmount) || 0) + (Number.parseFloat(streamAmount) || 0)
+  const totalG = depositG + streamG
   const isOverBalance = totalG > balance
+
+  const formatCredits = (value: number) => (value < 10 ? value.toFixed(1) : value.toFixed(2))
 
   return (
     <AmountPickerCard>
@@ -421,10 +426,15 @@ export function AmountPicker({
           placeholder="Min 1 G$"
           error={Number.parseFloat(depositAmount) > 0 && Number.parseFloat(depositAmount) < 1}
         />
-        {Number.parseFloat(depositAmount) > 0 && (
-          <Text fontSize="$1" secondary>
-            ≈ ${depositUsd.toFixed(4)} USD
-          </Text>
+        {depositG > 0 && (
+          <YStack gap="$0.5">
+            <Text fontSize="$1" secondary>
+              ≈ ${depositUsd.toFixed(4)} USD
+            </Text>
+            <Text fontSize="$1" secondary>
+              ~{formatCredits(depositCredits)} credits
+            </Text>
+          </YStack>
         )}
       </YStack>
 
@@ -442,10 +452,15 @@ export function AmountPicker({
           placeholder="0 G$ (optional)"
           error={Number.parseFloat(streamAmount) > 0 && Number.parseFloat(streamAmount) < 1}
         />
-        {Number.parseFloat(streamAmount) > 0 && (
-          <Text fontSize="$1" secondary>
-            ≈ ${streamUsd.toFixed(4)} USD/month
-          </Text>
+        {streamG > 0 && (
+          <YStack gap="$0.5">
+            <Text fontSize="$1" secondary>
+              ≈ ${streamUsd.toFixed(4)} USD/month
+            </Text>
+            <Text fontSize="$1" secondary>
+              ~{formatCredits(streamCredits)} credits/month
+            </Text>
+          </YStack>
         )}
       </YStack>
 
