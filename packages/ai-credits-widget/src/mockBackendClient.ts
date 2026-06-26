@@ -138,6 +138,24 @@ function sourceLabel(source: GdCreditEntry['source']): string {
   return 'G$ stream'
 }
 
+function weiToGdAmount(rawWei: string | undefined): string | null {
+  if (!rawWei) return null
+  try {
+    const wei = BigInt(rawWei)
+    const whole = wei / 10n ** 18n
+    const decimals = (wei % 10n ** 18n) / 10n ** 16n
+    return `${whole.toString()}.${decimals.toString().padStart(2, '0')}`
+  } catch {
+    return null
+  }
+
+  function gdToWei(amount: string): bigint {
+    const parsed = Number.parseFloat(amount || '0')
+    if (!Number.isFinite(parsed) || parsed <= 0) return 0n
+    return BigInt(Math.round(parsed * 1e18))
+  }
+}
+
 function gdCreditsToUsageEntries(entries: GdCreditEntry[]): AiCreditsUsageEntry[] {
   return [...entries]
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
@@ -150,6 +168,8 @@ function gdCreditsToUsageEntries(entries: GdCreditEntry[]): AiCreditsUsageEntry[
           ? `${sourceLabel(entry.source)} (failed)`
           : sourceLabel(entry.source),
       kind: 'funding' as const,
+      source: entry.source,
+      gdAmount: weiToGdAmount(entry.gdAmountWei) ?? undefined,
     }))
 }
 
@@ -401,26 +421,57 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     const principalMicroUsd = (totalMicroUsd * 10000n) / (10000n + bonusPercent * 100n)
     const bonusMicroUsd = totalMicroUsd - principalMicroUsd
 
-    const entry: GdCreditEntry = {
-      id: `${txHash}:0`,
-      source: 'deposit',
-      totalCreditMicroUsd: totalMicroUsd.toString(),
-      principalMicroUsd: principalMicroUsd.toString(),
-      bonusMicroUsd: bonusMicroUsd.toString(),
-      fundingStatus: 'pending',
-      txHash,
-      logIndex: 0,
-      createdAt: new Date().toISOString(),
-      buyerAddress: ref.buyer,
-    }
-
     const state = this.getState(ref.payer)
-    const existing = state.transactions.find((item) => item.id === entry.id)
-    if (!existing) {
-      state.transactions.unshift(entry)
+    const depositAmount = Number.parseFloat(quote.depositAmountG || '0')
+    const streamAmount = Number.parseFloat(quote.streamAmountG || '0')
+    const totalAmount = Math.max(depositAmount + streamAmount, 1)
+
+    const entriesToInsert: GdCreditEntry[] = []
+
+    if (depositAmount > 0) {
+      const share = depositAmount / totalAmount
+      const depositTotalMicroUsd = BigInt(Math.round(Number(totalMicroUsd) * share))
+      entriesToInsert.push({
+        id: `${txHash}:0`,
+        source: 'deposit',
+        gdAmountWei: gdToWei(quote.depositAmountG).toString(),
+        totalCreditMicroUsd: depositTotalMicroUsd.toString(),
+        principalMicroUsd: ((principalMicroUsd * BigInt(Math.round(share * 1_000_000))) / 1_000_000n).toString(),
+        bonusMicroUsd: ((bonusMicroUsd * BigInt(Math.round(share * 1_000_000))) / 1_000_000n).toString(),
+        fundingStatus: 'pending',
+        txHash,
+        logIndex: 0,
+        createdAt: new Date().toISOString(),
+        buyerAddress: ref.buyer,
+      })
     }
 
-    return { txHash, events: [existing ?? entry] }
+    if (streamAmount > 0) {
+      const share = streamAmount / totalAmount
+      const streamTotalMicroUsd = BigInt(Math.round(Number(totalMicroUsd) * share))
+      entriesToInsert.push({
+        id: `${txHash}:1`,
+        source: 'streamRequest',
+        gdAmountWei: gdToWei(quote.streamAmountG).toString(),
+        totalCreditMicroUsd: streamTotalMicroUsd.toString(),
+        principalMicroUsd: ((principalMicroUsd * BigInt(Math.round(share * 1_000_000))) / 1_000_000n).toString(),
+        bonusMicroUsd: ((bonusMicroUsd * BigInt(Math.round(share * 1_000_000))) / 1_000_000n).toString(),
+        fundingStatus: 'pending',
+        txHash,
+        logIndex: 1,
+        createdAt: new Date().toISOString(),
+        buyerAddress: ref.buyer,
+      })
+    }
+
+    const persistedEntries = entriesToInsert.map((entry) => {
+      const existingEntry = state.transactions.find((item) => item.id === entry.id)
+      if (existingEntry) return existingEntry
+      state.transactions.unshift(entry)
+      return entry
+    })
+
+    return { txHash, events: persistedEntries }
   }
 
   async waitForSettlement(

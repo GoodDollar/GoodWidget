@@ -81,6 +81,8 @@ export interface AiCreditsUsageEntry {
   creditsUsed: number
   model: string
   kind?: 'funding' | 'usage'
+  source?: 'deposit' | 'streamUpdate' | 'streamRequest' | 'streamCron'
+  gdAmount?: string
 }
 
 // ---------------------------------------------------------------------------

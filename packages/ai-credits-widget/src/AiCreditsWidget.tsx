@@ -19,12 +19,10 @@ import {
   AiCreditsHero,
   AiCreditsFlowStepper,
   AiCreditsStatusNotice,
+  AiCreditsManagementDashboard,
   AmountPicker,
   BuyerKeyPanel,
   OperatorConsentStep,
-  CreditsBalance,
-  SetupSnippet,
-  UsageLog,
 } from './aiCreditsComponents'
 import type {
   AiCreditsWidgetProps,
@@ -137,33 +135,7 @@ function AiCreditsInner({
   if (isPostPurchase) {
     return (
       <YStack gap="$4" padding="$4">
-        <CreditsBalance aiCreditsBalance={state.aiCreditsBalance} />
-
-        {state.setupSnippet && <SetupSnippet snippet={state.setupSnippet} />}
-
-        {state.status === 'usage_empty' && (
-          <AiCreditsStatusNotice>
-            <Text secondary>Your AI credits are depleted. Purchase more to continue.</Text>
-            <Button
-              onPress={() => {
-                void actions.retry()
-              }}
-            >
-              <ButtonText>Buy More Credits</ButtonText>
-            </Button>
-          </AiCreditsStatusNotice>
-        )}
-
-        <UsageLog entries={state.usageLog} />
-
-        <Button
-          variant="ghost"
-          onPress={() => {
-            void actions.refresh()
-          }}
-        >
-          <ButtonText>Refresh Balance</ButtonText>
-        </Button>
+        <AiCreditsManagementDashboard state={state} actions={actions} />
       </YStack>
     )
   }

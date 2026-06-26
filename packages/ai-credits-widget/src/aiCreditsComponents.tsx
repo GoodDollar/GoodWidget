@@ -19,8 +19,10 @@ import {
 import type { StepperStepItem } from '@goodwidget/ui'
 import type {
   AiCreditsWidgetAdapterState,
+  AiCreditsWidgetAdapterActions,
   AiCreditsUsageEntry,
 } from './widgetRuntimeContract'
+import { ANTSEED_DEPOSITS_BASE_ADDRESS } from './operatorConsent'
 
 // ---------------------------------------------------------------------------
 // Named styled components — participate in the component sub-theme system.
@@ -566,15 +568,38 @@ interface UsageLogProps {
 }
 
 /**
- * Accordion list of usage sessions, showing credits used per model.
+ * Accordion list of historical credits with mandatory source filtering.
+ * `streamCron` is excluded by default until the user explicitly enables it.
  */
 export function UsageLog({ entries }: UsageLogProps) {
   const [expanded, setExpanded] = useState(false)
+  const [enabledSources, setEnabledSources] = useState<
+    Array<'deposit' | 'streamUpdate' | 'streamRequest' | 'streamCron'>
+  >(['deposit', 'streamUpdate', 'streamRequest'])
 
-  if (entries.length === 0) return null
+  const entriesWithSource = entries.filter((entry) => entry.source !== undefined)
+  const filteredEntries =
+    entriesWithSource.length === 0
+      ? entries
+      : entries.filter((entry) => !entry.source || enabledSources.includes(entry.source))
 
-  const isFundingHistory = entries.every((entry) => entry.kind === 'funding')
-  const total = entries.reduce((sum, e) => sum + e.creditsUsed, 0)
+  const total = filteredEntries.reduce((sum, e) => sum + e.creditsUsed, 0)
+
+  function toggleSource(source: 'deposit' | 'streamUpdate' | 'streamRequest' | 'streamCron') {
+    setEnabledSources((previousSources) => {
+      if (previousSources.includes(source)) {
+        return previousSources.filter((value) => value !== source)
+      }
+      return [...previousSources, source]
+    })
+  }
+
+  function sourceLabel(source: 'deposit' | 'streamUpdate' | 'streamRequest' | 'streamCron') {
+    if (source === 'deposit') return 'deposit'
+    if (source === 'streamUpdate') return 'streamUpdate'
+    if (source === 'streamRequest') return 'streamRequest'
+    return 'streamCron'
+  }
 
   return (
     <UsageLogCard>
@@ -584,7 +609,7 @@ export function UsageLog({ entries }: UsageLogProps) {
         onPress={() => setExpanded((v) => !v)}
         cursor="pointer"
       >
-        <Heading level={5}>{isFundingHistory ? 'Credit History' : 'Usage History'}</Heading>
+        <Heading level={5}>Historical Credits</Heading>
         <XStack gap="$2" alignItems="center">
           <Text fontSize="$2" secondary>
             {total.toFixed(1)} total credits
@@ -593,30 +618,281 @@ export function UsageLog({ entries }: UsageLogProps) {
         </XStack>
       </XStack>
 
+      <YStack gap="$2">
+        {/* Source filter is always visible and starts with streamCron disabled by default. */}
+        <Text fontSize="$1" secondary>
+          Source filter (required)
+        </Text>
+        <XStack gap="$2" flexWrap="wrap">
+          {(
+            ['deposit', 'streamUpdate', 'streamRequest', 'streamCron'] as const
+          ).map((source) => {
+            const isEnabled = enabledSources.includes(source)
+            return (
+              <Button
+                key={source}
+                size="sm"
+                variant={isEnabled ? 'secondary' : 'ghost'}
+                onPress={() => toggleSource(source)}
+              >
+                <ButtonText>{sourceLabel(source)}</ButtonText>
+              </Button>
+            )
+          })}
+        </XStack>
+      </YStack>
+
       {expanded && (
         <YStack gap="$2">
-          {entries.map((entry) => (
-            <YStack key={entry.sessionId} gap="$1">
-              <Separator />
-              <XStack justifyContent="space-between" alignItems="center">
-                <YStack>
-                  <Text fontSize="$2" fontWeight="600">
-                    {entry.model}
-                  </Text>
-                  <Text fontSize="$1" secondary>
-                    {new Date(entry.timestamp).toLocaleString()}
-                  </Text>
-                </YStack>
-                <Text fontSize="$2" color="$primary">
-                  {entry.kind === 'funding' ? '+' : '-'}
-                  {entry.creditsUsed.toFixed(1)} credits
-                </Text>
-              </XStack>
-            </YStack>
-          ))}
+          {filteredEntries.length === 0 ? (
+            <AiCreditsStatusNotice borderColor="$borderColor">
+              <Text secondary>No historical credit entries for the selected sources.</Text>
+            </AiCreditsStatusNotice>
+          ) : (
+            filteredEntries.map((entry) => (
+              <YStack key={entry.sessionId} gap="$1">
+                <Separator />
+                <XStack justifyContent="space-between" alignItems="center">
+                  <YStack>
+                    <Text fontSize="$2" fontWeight="600">
+                      {entry.model}
+                    </Text>
+                    <Text fontSize="$1" secondary>
+                      {new Date(entry.timestamp).toLocaleString()}
+                    </Text>
+                    {entry.source && (
+                      <Text fontSize="$1" secondary>
+                        source: {entry.source}
+                      </Text>
+                    )}
+                  </YStack>
+                  <YStack alignItems="flex-end" gap="$1">
+                    <Text fontSize="$2" color="$primary">
+                      {entry.kind === 'funding' ? '+' : '-'}
+                      {entry.creditsUsed.toFixed(1)} credits
+                    </Text>
+                    {entry.gdAmount && (
+                      <Text fontSize="$1" secondary>
+                        {entry.gdAmount} G$
+                      </Text>
+                    )}
+                  </YStack>
+                </XStack>
+              </YStack>
+            ))
+          )}
         </YStack>
       )}
     </UsageLogCard>
+  )
+}
+
+interface AiCreditsManagementDashboardProps {
+  state: AiCreditsWidgetAdapterState
+  actions: AiCreditsWidgetAdapterActions
+}
+
+/**
+ * Management dashboard that keeps all account and credits controls on one coherent screen.
+ * It intentionally includes routing stubs for "Buy/Add credit" and "Update flow".
+ */
+export function AiCreditsManagementDashboard({
+  state,
+  actions,
+}: AiCreditsManagementDashboardProps) {
+  const [showBonusHelp, setShowBonusHelp] = useState(false)
+  const [showPrivateKey, setShowPrivateKey] = useState(false)
+
+  const isAiCreditsLoading =
+    state.status === 'payment_pending' ||
+    state.status === 'payment_confirmed' ||
+    state.aiCreditsBalance === null
+  const isAiCreditsError =
+    state.status === 'backend_unavailable' || state.status === 'payment_failed'
+  const isOverviewLoading = state.gBalance === null
+  const depositedG = Number.parseFloat(state.depositAmount || '0').toFixed(2)
+  const estimatedMonthlyStream = Number.parseFloat(state.streamAmount || '0').toFixed(2)
+  const currentFlowLabel = Number.parseFloat(state.streamAmount || '0') > 0 ? 'Active' : 'Not active'
+
+  return (
+    <YStack gap="$4">
+      <Card>
+        <YStack gap="$3">
+          <XStack justifyContent="space-between" alignItems="center">
+            <Heading level={5}>AI credit management</Heading>
+            <BonusBadgeFrame backgroundColor="$backgroundPress">
+              <Text fontSize="$2" fontWeight="700" color="$primary">
+                +{state.bonusPercent}% Bonus
+              </Text>
+              <Button
+                size="sm"
+                variant="ghost"
+                onPress={() => {
+                  setShowBonusHelp((currentValue) => !currentValue)
+                }}
+              >
+                <Icon name="info" size="xs" color="primary" />
+              </Button>
+            </BonusBadgeFrame>
+          </XStack>
+          {showBonusHelp && (
+            <AiCreditsStatusNotice borderColor="$borderColor">
+              <Text secondary>
+                Bonus applies as +10% by default and +20% on stream funding for GoodID verified
+                accounts.
+              </Text>
+            </AiCreditsStatusNotice>
+          )}
+        </YStack>
+      </Card>
+
+      <Card>
+        <YStack gap="$3">
+          <Heading level={5}>AI credits</Heading>
+          {isAiCreditsLoading ? (
+            <XStack gap="$2" alignItems="center">
+              <Spinner size="sm" />
+              <Text secondary>Loading AI credits…</Text>
+            </XStack>
+          ) : isAiCreditsError ? (
+            <AiCreditsStatusNotice borderColor="$error">
+              <Text color="$error">{state.error ?? 'Could not load AI credits.'}</Text>
+            </AiCreditsStatusNotice>
+          ) : (
+            <YStack gap="$2">
+              <Text>Total AI credits now: {state.aiCreditsBalance ?? '0.00'}</Text>
+              <Text secondary>Estimated monthly stream: {estimatedMonthlyStream} G$</Text>
+            </YStack>
+          )}
+          <Button
+            onPress={() => {
+              // TODO: replace with route to the dedicated add-credit widget when available.
+              void actions.retry()
+            }}
+          >
+            <ButtonText>Buy/Add credit</ButtonText>
+          </Button>
+        </YStack>
+      </Card>
+
+      <Card>
+        <YStack gap="$3">
+          <Heading level={5}>G$ account overview</Heading>
+          {isOverviewLoading ? (
+            <XStack gap="$2" alignItems="center">
+              <Spinner size="sm" />
+              <Text secondary>Loading account overview…</Text>
+            </XStack>
+          ) : (
+            <YStack gap="$2">
+              <Text>G$ wallet balance: {state.gBalance ?? '0.00'} G$</Text>
+              <Text>Deposited G$: {depositedG} G$</Text>
+            </YStack>
+          )}
+
+          <Separator />
+
+          <YStack gap="$2">
+            <Heading level={6}>Stream management</Heading>
+            <Text>Current flow: {currentFlowLabel}</Text>
+            <Text secondary>Configured amount: {estimatedMonthlyStream} G$/month</Text>
+            <Button
+              variant="ghost"
+              onPress={() => {
+                // TODO: replace with route to stream update flow widget when available.
+                void actions.retry()
+              }}
+            >
+              <ButtonText>Update flow</ButtonText>
+            </Button>
+          </YStack>
+        </YStack>
+      </Card>
+
+      <Card>
+        <YStack gap="$3">
+          <Heading level={5}>Operator</Heading>
+          <Text>Operator address: {ANTSEED_DEPOSITS_BASE_ADDRESS}</Text>
+          <Text>
+            Consent state: {state.operatorConsentSigned ? 'accepted' : 'pending signature'}
+          </Text>
+          {!state.buyerKey && (
+            <AiCreditsStatusNotice borderColor="$borderColor">
+              <Text secondary>No operator key generated yet.</Text>
+            </AiCreditsStatusNotice>
+          )}
+          {state.error && !state.operatorConsentSigned && (
+            <AiCreditsStatusNotice borderColor="$error">
+              <Text color="$error">{state.error}</Text>
+            </AiCreditsStatusNotice>
+          )}
+          <XStack gap="$2">
+            <Button
+              variant="ghost"
+              onPress={() => {
+                void actions.generateBuyerKey()
+              }}
+            >
+              <ButtonText>Sign & Generate flow</ButtonText>
+            </Button>
+            <Button
+              onPress={() => {
+                void actions.signOperatorConsent()
+              }}
+            >
+              <ButtonText>Sign consent</ButtonText>
+            </Button>
+          </XStack>
+          <YStack gap="$2">
+            <Text variant="label" secondary>
+              Public key
+            </Text>
+            <Text fontFamily="$mono">{state.buyerKey ?? 'Not generated yet'}</Text>
+            <Text variant="label" secondary>
+              Private key
+            </Text>
+            <XStack gap="$2" alignItems="center">
+              <Text fontFamily="$mono">
+                {state.buyerKeyPrivate
+                  ? showPrivateKey
+                    ? state.buyerKeyPrivate
+                    : '•'.repeat(Math.min(48, state.buyerKeyPrivate.length))
+                  : 'Not generated yet'}
+              </Text>
+              {state.buyerKeyPrivate && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onPress={() => {
+                    setShowPrivateKey((currentValue) => !currentValue)
+                  }}
+                >
+                  <ButtonText>{showPrivateKey ? 'Hide' : 'Reveal'}</ButtonText>
+                </Button>
+              )}
+            </XStack>
+          </YStack>
+        </YStack>
+      </Card>
+
+      <Card>
+        <YStack gap="$3">
+          <Heading level={5}>Historical credits</Heading>
+          {state.status === 'payment_pending' || state.status === 'payment_confirmed' ? (
+            <XStack gap="$2" alignItems="center">
+              <Spinner size="sm" />
+              <Text secondary>Loading historical credits…</Text>
+            </XStack>
+          ) : state.status === 'backend_unavailable' ? (
+            <AiCreditsStatusNotice borderColor="$error">
+              <Text color="$error">{state.error ?? 'Could not load historical credits.'}</Text>
+            </AiCreditsStatusNotice>
+          ) : (
+            <UsageLog entries={state.usageLog} />
+          )}
+        </YStack>
+      </Card>
+    </YStack>
   )
 }
 
