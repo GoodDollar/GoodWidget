@@ -15,6 +15,7 @@ import {
   Icon,
   TokenAmount,
   Stepper,
+  copyTextToClipboard,
 } from '@goodwidget/ui'
 import type { StepperStepItem } from '@goodwidget/ui'
 import type {
@@ -184,14 +185,16 @@ export function BuyerKeyPanel({
 
   async function handleCopyAddress() {
     if (!buyerKey) return
-    await navigator.clipboard.writeText(buyerKey)
+    const copied = await copyTextToClipboard(buyerKey)
+    if (!copied) return
     setCopiedAddress(true)
     setTimeout(() => setCopiedAddress(false), 2000)
   }
 
   async function handleCopyPrivate() {
     if (!buyerKeyPrivate) return
-    await navigator.clipboard.writeText(buyerKeyPrivate)
+    const copied = await copyTextToClipboard(buyerKeyPrivate)
+    if (!copied) return
     setCopiedPrivate(true)
     setTimeout(() => setCopiedPrivate(false), 2000)
   }
@@ -542,7 +545,8 @@ export function SetupSnippet({ snippet }: SetupSnippetProps) {
   const lines = snippet.trim().split('\n')
 
   async function handleCopy() {
-    await navigator.clipboard.writeText(copyText)
+    const copied = await copyTextToClipboard(copyText)
+    if (!copied) return
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }

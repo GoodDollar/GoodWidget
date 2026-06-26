@@ -100,3 +100,5 @@ export type { StepperProps, StepperStepItem, StepperStepStatus } from './compone
 export { WidgetTabs } from './components/WidgetTabs'
 export { ActionSheet } from './components-test/ActionSheet'
 export { TokenInput } from './components-test/TokenInput'
+
+export { copyTextToClipboard } from './clipboard'
