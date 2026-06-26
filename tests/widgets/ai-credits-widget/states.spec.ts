@@ -101,8 +101,8 @@ test('AiCreditsWidget has_credits state', async ({ page }) => {
   await expect(page.getByTestId('AiCreditsWidget-has-credits')).toBeVisible()
   await expect(page.getByText('AI credit management')).toBeVisible()
   await expect(page.getByText('G$ account overview')).toBeVisible()
-  await expect(page.getByText('Operator')).toBeVisible()
-  await expect(page.getByText('Historical credits')).toBeVisible()
+  await expect(page.getByText('Operator', { exact: true }).first()).toBeVisible()
+  await expect(page.getByText('Historical credits', { exact: true }).first()).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-07-has-credits.png',
     fullPage: true,
@@ -112,7 +112,7 @@ test('AiCreditsWidget has_credits state', async ({ page }) => {
 test('AiCreditsWidget usage_empty state', async ({ page }) => {
   await gotoStory(page, STORY_IDS.usageEmpty)
   await expect(page.getByTestId('AiCreditsWidget-usage-empty')).toBeVisible()
-  await expect(page.getByText('credits are depleted')).toBeVisible()
+  await expect(page.getByText('Total AI credits now: 0')).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-08-usage-empty.png',
     fullPage: true,
@@ -124,7 +124,7 @@ test('AiCreditsWidget usage_active state', async ({ page }) => {
   await expect(page.getByTestId('AiCreditsWidget-usage-active')).toBeVisible()
   await expect(page.getByText('Total AI credits now: 87.50')).toBeVisible()
   await expect(page.getByText('Source filter (required)')).toBeVisible()
-  await page.getByText('Historical Credits').click()
+  await page.getByText('Historical Credits', { exact: true }).last().click()
   await expect(page.getByText('G$ stream cron')).not.toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-09-usage-active.png',

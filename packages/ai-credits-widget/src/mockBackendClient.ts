@@ -148,12 +148,12 @@ function weiToGdAmount(rawWei: string | undefined): string | null {
   } catch {
     return null
   }
+}
 
-  function gdToWei(amount: string): bigint {
-    const parsed = Number.parseFloat(amount || '0')
-    if (!Number.isFinite(parsed) || parsed <= 0) return 0n
-    return BigInt(Math.round(parsed * 1e18))
-  }
+function gdToWei(amount: string): bigint {
+  const parsed = Number.parseFloat(amount || '0')
+  if (!Number.isFinite(parsed) || parsed <= 0) return 0n
+  return BigInt(Math.round(parsed * 1e18))
 }
 
 function gdCreditsToUsageEntries(entries: GdCreditEntry[]): AiCreditsUsageEntry[] {
