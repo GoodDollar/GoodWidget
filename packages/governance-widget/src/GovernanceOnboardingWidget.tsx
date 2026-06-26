@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import { useMemo } from 'react'
 import { PageWizardProvider } from '@goodwidget/ui'
 import { GovernanceOnboardingFlow } from './onboarding/GovernanceOnboardingFlow'
 import { DEFAULT_FINAL_ACTIONS, DEFAULT_TRANSACTION_STEPS, ONBOARDING_STEPS } from './onboarding/constants'

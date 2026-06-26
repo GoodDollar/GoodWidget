@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { Card, Text, YStack } from '@goodwidget/ui'
 import {
@@ -55,7 +56,7 @@ function GovernanceStoryFrame({
   width = 440,
 }: {
   walletLabel: string
-  children: React.ReactNode
+  children: ReactNode
   dataTestId: string
   width?: number
 }) {

@@ -274,7 +274,7 @@ export function PageWizardShell({
                       }
                     >
                       {isCompletedStep ? (
-                        <Icon name="check" size="xs" color="white" />
+                        <Icon name="check" size="xs" color="$grey900" />
                       ) : (
                         <Text
                           fontSize={11}
@@ -314,9 +314,9 @@ export function PageWizardShell({
             })}
           </XStack>
 
-          <YStack gap="$1">
-            <Heading level={3}>{title}</Heading>
-            {description ? <Text tone="secondary">{description}</Text> : null}
+          <YStack gap="$1" alignItems="center">
+            <Heading level={3} textAlign="center">{title}</Heading>
+            {description ? <Text tone="secondary" textAlign="center">{description}</Text> : null}
           </YStack>
         </YStack>
       ) : null}

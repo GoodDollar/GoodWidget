@@ -83,7 +83,7 @@ const HousePill = createComponent(Stack, {
   borderRadius: '$full',
   borderWidth: 1,
   borderColor: '$borderColor',
-  backgroundColor: '$surface',
+  backgroundColor: '$background',
   paddingHorizontal: '$3',
   paddingVertical: '$1',
   alignItems: 'center',

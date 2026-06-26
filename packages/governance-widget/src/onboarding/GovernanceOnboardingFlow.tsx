@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { ReactNode } from 'react'
 import { Button, ButtonText, PageWizardShell, XStack, usePageWizard } from '@goodwidget/ui'
 import { HOUSE_COPY } from './copy'
 import { DEFAULT_TRANSACTION_STEPS, DEFAULT_FINAL_ACTIONS } from './constants'
@@ -90,8 +91,8 @@ export function GovernanceOnboardingFlow({
 
   let shellTitle = 'Governance onboarding'
   let shellDescription = ''
-  let shellContent: React.ReactNode = null
-  let shellFooter: React.ReactNode = null
+  let shellContent: ReactNode = null
+  let shellFooter: ReactNode = null
   let hideStepper = false
 
   switch (currentStep?.id as GovernanceOnboardingStepId | undefined) {
@@ -165,10 +166,7 @@ export function GovernanceOnboardingFlow({
         <StakeStepContent stakeAmountLabel={stakeAmountLabel} transactionSteps={transactionSteps} />
       )
       shellFooter = (
-        <XStack gap="$3" justifyContent="space-between" flexWrap="wrap">
-          <Button variant="secondary" onPress={back}>
-            <ButtonText>Back</ButtonText>
-          </Button>
+        <XStack gap="$3" justifyContent="flex-end" flexWrap="wrap">
           <Button onPress={next}>
             <ButtonText>Continue to success</ButtonText>
           </Button>

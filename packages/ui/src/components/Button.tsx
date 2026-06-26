@@ -211,9 +211,19 @@ export interface ButtonProps {
  */
 export function Button({ variant = 'primary', children, ...props }: ButtonProps) {
   const needsReset = variant !== 'primary'
+  const resolvedChildren = React.Children.map(children, (child) => {
+    if (React.isValidElement(child)) {
+      const childProps = child.props as Record<string, unknown>
+      if (needsReset && !childProps.color) {
+        return React.cloneElement(child, { color: '$textColor' })
+      }
+    }
+    return child
+  })
+
   return (
     <ButtonFrame variant={variant} {...props}>
-      {needsReset ? <Theme reset>{children}</Theme> : children}
+      {needsReset ? <Theme reset>{resolvedChildren}</Theme> : resolvedChildren}
     </ButtonFrame>
   )
 }

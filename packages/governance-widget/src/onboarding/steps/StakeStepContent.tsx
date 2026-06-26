@@ -35,7 +35,7 @@ export function StakeStepContent({ stakeAmountLabel, transactionSteps }: StakeSt
           </XStack>
 
           <XStack alignItems="center" gap="$3">
-            <YStack flex={1} height={8} borderRadius="$full" backgroundColor="$surface" overflow="hidden">
+            <YStack flex={1} height={8} borderRadius="$full" backgroundColor="$borderColor" overflow="hidden">
               <YStack
                 height="100%"
                 width={`${progress.percent}%`}

@@ -109,11 +109,11 @@ export function ProfileStepContent({
               gap="$3"
               padding="$3"
               borderRadius="$2"
-              backgroundColor="$errorMuted"
+              backgroundColor="$warningMuted"
               borderWidth={1}
-              borderColor="$error"
+              borderColor="$warning"
             >
-              <Icon name="alert-triangle" color="error" size="sm" />
+              <Icon name="alert-triangle" color="warning" size="sm" />
               <Text variant="caption" flex={1}>
                 {resolveStakeWarning(selectedHouse, stakeAmountLabel)}
               </Text>
