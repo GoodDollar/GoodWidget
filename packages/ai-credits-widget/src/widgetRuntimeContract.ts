@@ -156,6 +156,8 @@ export interface AiCreditsWidgetAdapterActions {
   pay: () => Promise<void>
   /** Reload credits balance and usage */
   refresh: () => Promise<void>
+  /** Open the purchase flow to add more credits */
+  startPurchase: () => void
   /** Retry after a failed payment or backend error */
   retry: () => Promise<void>
 }

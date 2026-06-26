@@ -62,6 +62,7 @@ function createAdapterFactory(
       setStreamAmount: () => {},
       pay: async () => {},
       refresh: async () => {},
+      startPurchase: () => {},
       retry: async () => {},
     },
   })

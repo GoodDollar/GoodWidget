@@ -187,6 +187,30 @@ function deriveStatus(params: {
   return 'connected_empty'
 }
 
+function derivePurchaseFlowState(
+  prev: AiCreditsWidgetAdapterState,
+): Pick<AiCreditsWidgetAdapterState, 'status' | 'primaryAction' | 'primaryLabel'> {
+  const nextStatus = deriveStatus({
+    isConnected: true,
+    chainId: prev.chainId,
+    gBalance: prev.gBalance,
+    aiCreditsBalance: null,
+    buyerKey: prev.buyerKey,
+    buyerKeyConfirmed: prev.buyerKeyConfirmed,
+    operatorConsentSigned: prev.operatorConsentSigned,
+    depositAmount: prev.depositAmount,
+    streamAmount: prev.streamAmount,
+    error: null,
+    currentStatus: 'connected_empty',
+  })
+  const primaryAction = derivePrimaryAction(nextStatus)
+  return {
+    status: nextStatus,
+    primaryAction,
+    primaryLabel: derivePrimaryLabel(primaryAction),
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Helper: derive primary action and label from current status
 // ---------------------------------------------------------------------------
@@ -815,10 +839,16 @@ export function useAiCreditsAdapter({
   const handleRetry = useCallback(async () => {
     setState((prev) => ({
       ...prev,
-      status: 'connected_empty',
+      ...derivePurchaseFlowState(prev),
       error: null,
-      primaryAction: 'generate_key',
-      primaryLabel: 'Set Up Buyer Key',
+    }))
+  }, [])
+
+  const handleStartPurchase = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      ...derivePurchaseFlowState(prev),
+      error: null,
     }))
   }, [])
 
@@ -837,6 +867,7 @@ export function useAiCreditsAdapter({
       setStreamAmount: handleSetStreamAmount,
       pay: handlePay,
       refresh: handleRefresh,
+      startPurchase: handleStartPurchase,
       retry: handleRetry,
     }),
     [
@@ -849,6 +880,7 @@ export function useAiCreditsAdapter({
       handleSetStreamAmount,
       handlePay,
       handleRefresh,
+      handleStartPurchase,
       handleRetry,
     ],
   )

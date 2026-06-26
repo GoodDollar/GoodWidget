@@ -143,17 +143,19 @@ function AiCreditsInner({
         {state.status === 'usage_empty' && (
           <AiCreditsStatusNotice>
             <Text secondary>Your AI credits are depleted. Purchase more to continue.</Text>
-            <Button
-              onPress={() => {
-                void actions.retry()
-              }}
-            >
-              <ButtonText>Buy More Credits</ButtonText>
-            </Button>
           </AiCreditsStatusNotice>
         )}
 
         <UsageLog entries={state.usageLog} />
+
+        <Button
+          fullWidth
+          onPress={() => {
+            actions.startPurchase()
+          }}
+        >
+          <ButtonText>Add Credit</ButtonText>
+        </Button>
 
         <Button
           variant="ghost"
