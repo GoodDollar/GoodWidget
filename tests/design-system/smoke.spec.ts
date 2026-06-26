@@ -103,3 +103,10 @@ test('ThemePlayground/DefaultPreset story renders', async ({ page }) => {
   await expect(frame.locator('text=Preset Baseline')).toBeVisible()
   await screenshotStory(page, 'tests/design-system/test-results/story-theme-default.png')
 })
+
+test('Stepper/Default story renders active-step hierarchy', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-stepper--default')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByTestId('Stepper-default')).toBeVisible()
+  await screenshotStory(page, 'tests/design-system/test-results/story-stepper-default.png')
+})
