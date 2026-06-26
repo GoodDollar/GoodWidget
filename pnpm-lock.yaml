@@ -167,6 +167,9 @@ importers:
 
   examples/storybook:
     dependencies:
+      '@goodwidget/ai-credits-widget':
+        specifier: workspace:*
+        version: link:../../packages/ai-credits-widget
       '@goodwidget/citizen-claim-widget':
         specifier: workspace:*
         version: link:../../packages/citizen-claim-widget
@@ -228,6 +231,40 @@ importers:
       storybook:
         specifier: ^8.6.17
         version: 8.6.18(prettier@3.8.1)
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  packages/ai-credits-widget:
+    dependencies:
+      '@goodwidget/core':
+        specifier: workspace:*
+        version: link:../core
+      '@goodwidget/embed':
+        specifier: workspace:*
+        version: link:../embed
+      '@goodwidget/ui':
+        specifier: workspace:*
+        version: link:../ui
+      viem:
+        specifier: ^2.0.0
+        version: 2.48.4(typescript@5.9.3)(zod@4.1.11)
+    devDependencies:
+      '@types/react':
+        specifier: ^18.3.0
+        version: 18.3.28
+      '@types/react-dom':
+        specifier: ^18.3.0
+        version: 18.3.7(@types/react@18.3.28)
+      react:
+        specifier: ^18.3.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.0
+        version: 18.3.1(react@18.3.1)
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(@swc/core@1.15.30)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.3)
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
