@@ -41,7 +41,7 @@ const FieldRow = createComponent(XStack, {
 export function OnboardingIdentityCard({
   identityStatus,
   walletAddress,
-  onVerifyPress,
+  onVerifyPress: _onVerifyPress,
   onProceedPress,
 }: OnboardingIdentityCardProps) {
   const isVerified = identityStatus === 'verified'

@@ -1,5 +1,5 @@
 import { Stack } from 'tamagui'
-import { Badge, BadgeText, Heading, Icon, PillText, Text, XStack, YStack, createComponent } from '@goodwidget/ui'
+import { Badge, BadgeText, Heading, Icon, PillText, Text, XStack, createComponent } from '@goodwidget/ui'
 import { HOUSE_COPY } from './copy'
 import type { GovernanceHouse } from '../types'
 

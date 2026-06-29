@@ -45,7 +45,7 @@ export function GovernanceOnboardingFlow({
   onFinalActionPress,
   dataTestId,
 }: GovernanceOnboardingFlowProps) {
-  const { currentStep, steps, data, setData, next, back, isFirst } = usePageWizard()
+  const { currentStep, steps, data, setData, next } = usePageWizard()
   // The success step is a terminal view and should not appear in the progress
   // indicator — Stitch design shows exactly 4 steps: Verify, Path, Profile, Transact.
   const stepperDisplaySteps = steps.filter((s) => s.id !== 'success')
