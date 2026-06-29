@@ -182,7 +182,7 @@ export const governanceWidgetConfig = {
       borderColor: 'transparent',
     },
 
-    // ----- Base Theme and Standard UI Component Overrides -----
+    // ----- Profile form fields -----
     light_ProfileTextAreaField: {
       background: '#FFFFFF',
       color: '#0D182D',
