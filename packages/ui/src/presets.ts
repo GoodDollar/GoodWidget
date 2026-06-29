@@ -232,15 +232,6 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
       shadowColorFocus: 'rgba(0, 0, 0, 0.08)',
     },
 
-    light_ProfileTextAreaField: {
-      background: color.white,
-      color: color.grey900,
-      borderColor: color.grey300,
-      borderColorHover: color.grey400,
-      borderColorFocus: color.primary,
-      placeholderColor: color.grey500,
-      shadowColorFocus: 'rgba(0, 0, 0, 0.08)',
-    },
 
     light_Toast: {
       background: color.white,
@@ -378,14 +369,6 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
     },
 
 
-    dark_ProfileTextAreaField: {
-      background: color.backgroundInput,
-      color: color.textDark,
-      borderColor: color.borderDark,
-      borderColorHover: color.borderLight,
-      borderColorFocus: color.primary,
-      placeholderColor: color.textSecondaryDark,
-    },
 
 
     dark_ClaimCard: {
