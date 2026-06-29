@@ -128,10 +128,7 @@ export function GovernanceOnboardingFlow({
         />
       )
       shellFooter = (
-        <XStack gap="$3" justifyContent="space-between" flexWrap="wrap">
-          <Button variant="secondary" onPress={back} disabled={isFirst}>
-            <ButtonText>Back</ButtonText>
-          </Button>
+        <XStack gap="$3" justifyContent="flex-end" flexWrap="wrap">
           <Button disabled={!selectedHouse} onPress={next}>
             <ButtonText>Continue to profile</ButtonText>
           </Button>

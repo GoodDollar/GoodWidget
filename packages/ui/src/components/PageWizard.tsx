@@ -274,7 +274,7 @@ export function PageWizardShell({
                       }
                     >
                       {isCompletedStep ? (
-                        <Icon name="check" size="xs" color="$grey900" />
+                        <Icon name="check" size="xs" color="white" />
                       ) : (
                         <Text
                           fontSize={11}

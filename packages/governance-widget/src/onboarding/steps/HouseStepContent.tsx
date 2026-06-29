@@ -1,4 +1,4 @@
-import { Card, Heading, Text, YStack } from '@goodwidget/ui'
+import { Card, YStack } from '@goodwidget/ui'
 import { HouseSelectionCard } from '../HouseSelectionCard'
 import type { GovernanceHouse } from '../../types'
 
@@ -18,14 +18,7 @@ export function HouseStepContent({
   return (
     <YStack gap="$3">
       <Card elevated>
-        <YStack gap="$3" role="radiogroup" aria-label="Select your governance house">
-          <YStack gap="$1">
-            <Heading level={5}>Pick a governance house</Heading>
-            <Text tone="secondary">
-              Each house holds a different profile and stake amount. Tap a card to select it, then continue
-              from the footer.
-            </Text>
-          </YStack>
+      <YStack gap="$3" role="radiogroup" aria-label="Select your governance house">
           <YStack gap="$3">
             <HouseSelectionCard
               house="citizenship"

@@ -22,17 +22,20 @@ export function StakeStepContent({ stakeAmountLabel, transactionSteps }: StakeSt
     <YStack gap="$3">
       <Card elevated>
         <YStack gap="$3">
-          <XStack alignItems="center" justifyContent="space-between" gap="$3" flexWrap="wrap">
-            <YStack gap="$1">
-              <Text variant="caption" tone="secondary">
-                {`${stakeAmountLabel} locked stake`}
-              </Text>
-              <Heading level={4}>Creating profile &amp; staking</Heading>
-            </YStack>
-            <Badge type={stakeSummary.badgeType}>
-              <BadgeText>{stakeSummary.title}</BadgeText>
-            </Badge>
-          </XStack>
+          <YStack gap="$2">
+            <XStack alignItems="flex-start" justifyContent="space-between" gap="$2" flexWrap="wrap">
+              <YStack gap="$1" flex={1} minWidth={0}>
+                <Text variant="caption" tone="secondary">
+                  {`${stakeAmountLabel} locked stake`}
+                </Text>
+                {/* level 5 avoids overflow on narrow mobile cards */}
+                <Heading level={5}>{`Creating profile & staking`}</Heading>
+              </YStack>
+              <Badge type={stakeSummary.badgeType}>
+                <BadgeText>{stakeSummary.title}</BadgeText>
+              </Badge>
+            </XStack>
+          </YStack>
 
           <XStack alignItems="center" gap="$3">
             <YStack flex={1} height={8} borderRadius="$full" backgroundColor="$borderColor" overflow="hidden">

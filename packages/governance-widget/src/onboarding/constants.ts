@@ -41,6 +41,7 @@ export const DEFAULT_TRANSACTION_STEPS: StepperStepItem[] = [
 ]
 
 export const DEFAULT_FINAL_ACTIONS: GovernanceOnboardingAction[] = [
-  { id: 'proposals', label: 'Explore Governance Proposals', variant: 'secondary' },
-  { id: 'profile', label: 'Go to my profile', variant: 'primary' },
+  // Figma: primary = white bg + blue text; secondary = semi-transparent + white text
+  { id: 'proposals', label: 'Explore Governance Proposals', variant: 'primary' },
+  { id: 'profile', label: 'Go to my profile', variant: 'secondary' },
 ]

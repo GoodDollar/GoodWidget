@@ -124,29 +124,19 @@ export function OnboardingIdentityCard({
           </AccentRow>
         </YStack>
 
-        {/* ── CTA buttons ───────────────────────────────────────── */}
-        <YStack gap="$2">
-          {!isVerified && (
-            <Button
-              fullWidth
-              onPress={onVerifyPress}
-              aria-label="Verify identity"
-              data-testid="GovernanceOnboardingWidget-verify-btn"
-            >
-              <ButtonText>Verify Identity</ButtonText>
-            </Button>
-          )}
-          <Button
-            fullWidth
-            disabled={!isVerified}
-            onPress={onProceedPress}
-            variant={isVerified ? 'primary' : 'secondary'}
-            aria-label="Proceed to Membership"
-            data-testid="GovernanceOnboardingWidget-proceed-btn"
-          >
-            <ButtonText>Proceed to Membership</ButtonText>
-          </Button>
-        </YStack>
+        {/* ── CTA button ─────────────────────────────────────────── */}
+        {/* Figma: single "Proceed to Membership" button, blue when verified,
+            disabled (grey outline) when unverified. No separate "Verify" button. */}
+        <Button
+          fullWidth
+          disabled={!isVerified}
+          onPress={isVerified ? onProceedPress : undefined}
+          variant="primary"
+          aria-label="Proceed to Membership"
+          data-testid="GovernanceOnboardingWidget-proceed-btn"
+        >
+          <ButtonText>Proceed to Membership</ButtonText>
+        </Button>
       </YStack>
     </Card>
   )

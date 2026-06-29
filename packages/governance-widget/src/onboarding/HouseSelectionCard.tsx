@@ -3,6 +3,13 @@ import { Badge, BadgeText, Heading, Icon, PillText, Text, XStack, YStack, create
 import { HOUSE_COPY } from './copy'
 import type { GovernanceHouse } from '../types'
 
+/** Maps each house to its Figma-specified icon name. */
+const HOUSE_ICON: Record<GovernanceHouse, string> = {
+  citizenship: 'user',
+  alignment: 'compass',
+}
+
+
 /**
  * Internal house-selection button. Uses createComponent to register for theme overrides.
  */
@@ -116,15 +123,17 @@ export function HouseSelectionCard({
       onPress={onPress}
       data-testid={`GovernanceOnboardingWidget-house-${house}`}
     >
+      {/* ── Header: icon + title + radio (matches Figma layout) ── */}
       <XStack alignItems="center" gap="$3" width="100%">
+        <Icon name={HOUSE_ICON[house]} size="sm" color="primary" />
+        <Heading level={5} flex={1}>{houseCopy.title}</Heading>
         <RadioBullet selected={isSelected}>
           <RadioDot selected={isSelected} />
         </RadioBullet>
-        <YStack flex={1} gap="$1">
-          <Heading level={5}>{houseCopy.title}</Heading>
-          <Text tone="secondary">{houseCopy.summary}</Text>
-        </YStack>
       </XStack>
+
+      {/* ── Summary text ─────────────────────────────────────────── */}
+      <Text tone="secondary">{houseCopy.summary}</Text>
 
       <XStack gap="$2" flexWrap="wrap" alignItems="center">
         <HousePill>
@@ -140,12 +149,7 @@ export function HouseSelectionCard({
         ) : null}
       </XStack>
 
-      <XStack alignItems="center" gap="$2" alignSelf="flex-end">
-        <Text color="$primary" fontWeight="700">
-          Continue with this house
-        </Text>
-        <Icon name="arrow-right" size="sm" color="primary" />
-      </XStack>
+      {/* "Continue with this house" row removed — not in Figma design */}
     </HouseOptionButton>
   )
 }

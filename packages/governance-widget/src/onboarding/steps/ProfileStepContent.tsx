@@ -83,16 +83,8 @@ export function ProfileStepContent({
           >
             {/* Amount row */}
             <XStack alignItems="center" gap="$3">
-              <XStack
-                width={36}
-                height={36}
-                borderRadius="$full"
-                alignItems="center"
-                justifyContent="center"
-                backgroundColor="$infoMuted"
-              >
-                <Icon name="shield-check" size="sm" color="primary" />
-              </XStack>
+              {/* Icon directly, no circle container (matches Figma) */}
+              <Icon name="shield-check" size="md" color="primary" />
               <YStack gap="$0.5">
                 <Text variant="caption" tone="secondary">
                   Membership Stake
@@ -103,17 +95,17 @@ export function ProfileStepContent({
               </YStack>
             </XStack>
 
-            {/* Warning row */}
+            {/* Warning row — Figma uses red/error styling, not orange/warning */}
             <XStack
               alignItems="flex-start"
               gap="$3"
               padding="$3"
               borderRadius="$2"
-              backgroundColor="$warningMuted"
+              backgroundColor="$errorMuted"
               borderWidth={1}
-              borderColor="$warning"
+              borderColor="$error"
             >
-              <Icon name="alert-triangle" color="warning" size="sm" />
+              <Icon name="alert-triangle" color="error" size="sm" />
               <Text variant="caption" flex={1}>
                 {resolveStakeWarning(selectedHouse, stakeAmountLabel)}
               </Text>

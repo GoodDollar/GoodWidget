@@ -260,6 +260,9 @@ export const CustodialStakeProgress: Story = {
 }
 
 export const CustodialSuccess: Story = {
+  parameters: {
+    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig },
+  },
   render: () => (
     <CustodialGovernanceStory
       walletLabel="Custodial wallet fixture"
@@ -268,11 +271,48 @@ export const CustodialSuccess: Story = {
         currentStepId: 'success',
         identityStatus: 'verified',
         initialHouse: 'alignment',
+        // Figma: proposals = primary (white bg, blue text), profile = secondary (transparent, white text)
         finalActions: [
-          { id: 'proposals', label: 'Explore Governance Proposals', variant: 'secondary' },
-          { id: 'profile', label: 'Go to my profile', variant: 'primary' },
+          { id: 'proposals', label: 'Explore Governance Proposals', variant: 'primary' },
+          { id: 'profile', label: 'Go to my profile', variant: 'secondary' },
         ],
         dataTestId: 'GovernanceOnboardingWidget-success',
+      }}
+    />
+  ),
+}
+
+/** Dark-theme welcome — demonstrates theme mapping works for the identity card */
+export const CustodialDarkWelcomeVerified: Story = {
+  parameters: {
+    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig, defaultTheme: 'dark' },
+  },
+  render: () => (
+    <CustodialGovernanceStory
+      walletLabel="Custodial wallet fixture"
+      dataTestId="GovernanceOnboardingWidget-custodial-dark-welcome"
+      storyProps={{
+        currentStepId: 'welcome',
+        identityStatus: 'verified',
+        dataTestId: 'GovernanceOnboardingWidget-dark-welcome',
+      }}
+    />
+  ),
+}
+
+/** Dark-theme house selection — demonstrates house card and radio-bullet theme mapping */
+export const CustodialDarkHouseSelection: Story = {
+  parameters: {
+    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig, defaultTheme: 'dark' },
+  },
+  render: () => (
+    <CustodialGovernanceStory
+      walletLabel="Custodial wallet fixture"
+      dataTestId="GovernanceOnboardingWidget-custodial-dark-house"
+      storyProps={{
+        currentStepId: 'house',
+        identityStatus: 'verified',
+        dataTestId: 'GovernanceOnboardingWidget-dark-house',
       }}
     />
   ),
