@@ -140,13 +140,12 @@ const color = tokenPreset.tokens.color
 // as soon as these values get repeated across components it should be looked to bubble it up to theme or tokens.
 //
 // REVIEW NOTE:
-// This preset now intentionally carries two visual directions:
-// - `light` / `light_*`: governance-ui aligned values
-// - `dark` / `dark_*`: GoodWalletV2 values
+// This preset now carries standard widget-agnostic design system defaults:
+// - `light` / `light_*`: generic light-mode tokens and component-specific presets
+// - `dark` / `dark_*`: generic dark-mode tokens and component-specific presets
 //
-// This is an architectural alignment pass only. The shared token seed and typography
-// contract are still preset-scoped rather than theme-scoped, so semantic cleanup and
-// final visual correctness for token-direct consumers remains a follow-up pass.
+// All widget-specific theme overrides (such as for the governance onboarding widget)
+// have been successfully migrated out to widget-local configurations.
 
 export const goodWalletV2Preset: WidgetDesignPreset = {
   id: 'goodwallet-v2',
