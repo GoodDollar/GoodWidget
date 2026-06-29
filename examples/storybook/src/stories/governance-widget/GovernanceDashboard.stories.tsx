@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Children, cloneElement, isValidElement, useState, type ReactNode } from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { Text, XStack, YStack } from '@goodwidget/ui'
 import {
@@ -7,6 +7,7 @@ import {
   FundingDistributionChart,
   ImpactCard,
   OptimisticVotingProposalCard,
+  governanceWidgetConfig,
 } from '@goodwidget/governance-widget'
 import type {
   FundingProjectAllocation,
@@ -20,7 +21,7 @@ const meta: Meta = {
   tags: ['autodocs'],
   parameters: {
     layout: 'centered',
-    goodWidgetProvider: { useShell: false, defaultTheme: 'light' },
+    goodWidgetProvider: { useShell: false, defaultTheme: 'light', config: governanceWidgetConfig },
   },
 }
 
@@ -79,18 +80,18 @@ function GovernanceStoryFrame({
   width = 520,
   theme = 'light',
 }: {
-  children: React.ReactNode
+  children: ReactNode
   width?: number
   theme?: 'light' | 'dark'
 }) {
   const [lastAction, setLastAction] = useState('No interaction yet')
 
-  const enhancedChildren = React.Children.map(children, (child) => {
-    if (!React.isValidElement(child)) {
+  const enhancedChildren = Children.map(children, (child) => {
+    if (!isValidElement(child)) {
       return child
     }
 
-    return React.cloneElement(child, {
+    return cloneElement(child, {
       onPress: (id: string) => setLastAction(`Opened ${id}`),
       onCtaPress: () => setLastAction('CTA pressed'),
       onProjectPress: (id: string) => setLastAction(`Opened project ${id}`),

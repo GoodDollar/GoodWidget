@@ -64,36 +64,7 @@ const tokenPreset = {
       glowError: 'rgba(240, 5, 5, 0.72)',
       shimmer: 'rgba(245, 249, 255, 0.22)',
 
-      // Governance light-mode tokens.
-      governancePrimary: '#00B0FF',
-      governancePrimaryDark: '#006493',
-      governancePrimaryLight: '#8DCDFF',
-      governanceSecondary: '#1FC2AF',
-      governanceBackground: '#F8F9FB',
-      governanceBackgroundHover: '#EDF5FC',
-      governanceBackgroundPress: '#EDF5FC',
-      governanceBackgroundFocus: '#EDF5FC',
-      governanceBackgroundDark: '#FFFFFF',
-      governanceBackgroundDarkHover: '#EDF5FC',
-      governanceSurface: '#FFFFFF',
-      governanceSurfaceAlt: '#EDF5FC',
-      governanceText: '#0D182D',
-      governanceTextSecondary: '#4F606F',
-      governanceTextSoft: '#8F9BB3',
-      governanceTextDim: '#4F606F',
-      governanceBorder: '#D0D9E4',
-      governanceBorderLight: '#BDCAD6',
-      governanceOverlay: 'rgba(13, 24, 45, 0.48)',
-      governancePrimaryMuted: 'rgba(0, 176, 255, 0.16)',
-      governanceSuccessMuted: 'rgba(19, 198, 54, 0.14)',
-      governanceErrorMuted: 'rgba(240, 5, 5, 0.14)',
-      governanceWarningMuted: 'rgba(255, 176, 32, 0.18)',
-      governanceInfoMuted: 'rgba(0, 176, 255, 0.12)',
-      governanceShadow: 'rgba(0, 176, 255, 0.06)',
-      governanceShadowHover: 'rgba(0, 176, 255, 0.1)',
-      governanceShadowPress: 'rgba(0, 176, 255, 0.04)',
-      governanceElevationShadow: 'rgba(0, 176, 255, 0.14)',
-      governanceGlowPrimary: 'rgba(0, 176, 255, 0.3)',
+
     },
     space: {
       1: 4,
@@ -182,57 +153,144 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
   version: '1.1.0',
   tokens: tokenPreset.tokens,
   themes: {
-    // Governance UI light-mode branch.
-    // This mirrors the separate governance preset direction so that one preset can
-    // theoretically switch between governance-light and wallet-v2-dark via theme mode.
     light: {
-      background: color.governanceBackground,
-      backgroundHover: color.governanceBackgroundHover,
-      backgroundPress: color.governanceBackgroundPress,
-      backgroundFocus: color.governanceBackgroundFocus,
-      // Legacy dark-suffixed lookups are intentionally mapped to light surfaces here.
-      // TODO: Eventually this will have to be fixed on widget and component level so that they use semantically correct lookups instead of dark/light-suffixed ones, but for now this allows us to reuse the existing governance-themed components that still have dark-suffixed lookups for their surfaces.
-      backgroundDark: color.governanceBackgroundDark,
-      backgroundDarkHover: color.governanceBackgroundDarkHover,
+      background: color.white,
+      backgroundHover: color.grey100,
+      backgroundPress: color.grey300,
+      backgroundFocus: color.grey100,
       backgroundTransparent: color.transparent,
-      backgroundOverlay: color.governanceOverlay,
+      backgroundOverlay: 'rgba(255, 255, 255, 0.8)',
 
-      color: color.governanceText,
-      colorHover: color.governanceText,
-      colorPress: color.grey700,
-      colorFocus: color.governanceText,
+      color: color.grey900,
+      colorHover: color.grey900,
+      colorPress: color.grey800,
+      colorFocus: color.grey900,
       colorTransparent: color.transparent,
-      colorSoft: color.governanceTextSoft,
-      colorDim: color.governanceTextDim,
-      text: color.governanceText,
-      primary: color.governancePrimary,
-      primaryDark: color.governancePrimaryDark,
-      primaryLight: color.governancePrimaryLight,
-      secondary: color.governanceSecondary,
+      colorSoft: color.grey500,
+      colorDim: color.grey600,
+      text: color.grey900,
+      primary: color.primary,
+      primaryDark: color.primaryDark,
+      primaryLight: color.primaryLight,
+      secondary: color.secondary,
       success: color.success,
       warning: color.warning,
       error: color.error,
-      info: color.governancePrimary,
-      secondaryColor: color.governanceTextSecondary,
-      successMuted: color.governanceSuccessMuted,
-      errorMuted: color.governanceErrorMuted,
-      warningMuted: color.governanceWarningMuted,
-      infoMuted: color.governanceInfoMuted,
+      info: color.info,
+      secondaryColor: color.grey500,
+      successMuted: color.successMuted,
+      errorMuted: color.errorMuted,
+      warningMuted: color.warningMuted,
+      infoMuted: color.infoMuted,
 
-      borderColor: color.governanceBorder,
-      borderColorHover: color.governanceBorderLight,
-      borderColorPress: color.governancePrimaryLight,
-      borderColorFocus: color.governancePrimary,
+      borderColor: color.grey300,
+      borderColorHover: color.grey400,
+      borderColorPress: color.grey400,
+      borderColorFocus: color.primary,
 
-      textColor: color.governanceText,
-      placeholderColor: color.governanceTextSecondary,
+      textColor: color.grey900,
+      placeholderColor: color.grey400,
 
-      shadowColor: color.governanceShadow,
-      shadowColorHover: color.governanceShadowHover,
-      shadowColorPress: color.governanceShadowPress,
-      shadowColorFocus: color.governanceShadowHover,
-      elevationShadowColor: color.governanceElevationShadow,
+      shadowColor: 'rgba(0, 0, 0, 0.08)',
+      shadowColorHover: 'rgba(0, 0, 0, 0.12)',
+      shadowColorPress: 'rgba(0, 0, 0, 0.06)',
+      shadowColorFocus: 'rgba(0, 0, 0, 0.12)',
+      elevationShadowColor: 'rgba(0, 0, 0, 0.15)',
     },
+
+    light_Card: {
+      background: color.white,
+      color: color.grey900,
+      borderColor: color.grey300,
+      shadowColor: 'rgba(0, 0, 0, 0.08)',
+    },
+
+    light_GlowCard: {
+      background: color.white,
+      color: color.grey900,
+      borderColor: color.primary,
+      shadowColor: color.glowPrimary,
+    },
+
+    light_Button: {
+      background: color.primary,
+      backgroundHover: color.primaryLight,
+      backgroundPress: color.primaryDark,
+      backgroundFocus: color.primaryLight,
+      color: color.white,
+      borderColor: color.primary,
+      borderColorFocus: color.primaryLight,
+      shadowColor: color.glowPrimary,
+    },
+
+    light_Input: {
+      background: color.white,
+      color: color.grey900,
+      borderColor: color.grey300,
+      borderColorHover: color.grey400,
+      borderColorFocus: color.primary,
+      placeholderColor: color.grey500,
+      shadowColorFocus: 'rgba(0, 0, 0, 0.08)',
+    },
+
+    light_ProfileTextAreaField: {
+      background: color.white,
+      color: color.grey900,
+      borderColor: color.grey300,
+      borderColorHover: color.grey400,
+      borderColorFocus: color.primary,
+      placeholderColor: color.grey500,
+      shadowColorFocus: 'rgba(0, 0, 0, 0.08)',
+    },
+
+    light_Toast: {
+      background: color.white,
+      color: color.grey900,
+      borderColor: color.grey300,
+      shadowColor: 'rgba(0, 0, 0, 0.15)',
+    },
+
+    light_Dialog: {
+      background: color.white,
+      color: color.grey900,
+      borderColor: color.grey300,
+      shadowColor: 'rgba(0, 0, 0, 0.15)',
+    },
+
+    light_ClaimCard: {
+      background: color.white,
+      borderColor: color.grey300,
+      shadowColor: 'rgba(0, 0, 0, 0.12)',
+    },
+
+    light_StreakCard: {
+      background: color.grey100,
+      borderColor: color.grey300,
+      shadowColor: 'rgba(0, 0, 0, 0.08)',
+    },
+
+    light_ClaimActionButton: {
+      background: color.transparent,
+      backgroundHover: color.primaryMuted,
+      backgroundPress: color.primaryMuted,
+      backgroundFocus: color.primaryMuted,
+      color: color.primaryDark,
+      borderColor: color.primary,
+      borderColorFocus: color.primary,
+      shadowColor: color.glowPrimary,
+    },
+
+    light_ClaimActionGlow: {
+      backgroundColor: color.glowPrimary,
+      opacity: '0.08',
+      glowOffset: '-4px',
+    },
+
+    light_TokenAmountText: {
+      color: color.grey900,
+      secondaryColor: color.grey500,
+    },
+
     // Legacy GoodWalletV2 dark-mode branch.
     dark: {
       background: color.backgroundDark,
@@ -282,12 +340,7 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
       elevationShadowColor: 'rgba(3, 7, 18, 0.9)',
     },
 
-    light_Card: {
-      background: color.governanceSurface,
-      color: color.governanceText,
-      borderColor: color.governanceBorder,
-      shadowColor: color.governanceShadowHover,
-    },
+
     dark_Card: {
       background: color.surfaceDark,
       color: color.textDark,
@@ -295,13 +348,7 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
       shadowColor: 'rgba(3, 7, 18, 0.68)',
     },
 
-    // Hero-only emphasis surface.
-    light_GlowCard: {
-      background: color.governanceSurfaceAlt,
-      color: color.governanceText,
-      borderColor: color.governancePrimary,
-      shadowColor: color.governanceGlowPrimary,
-    },
+
     dark_GlowCard: {
       background: color.surfaceDark,
       color: color.textDark,
@@ -309,16 +356,7 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
       shadowColor: 'rgba(26, 133, 255, 0.9)',
     },
 
-    light_Button: {
-      background: color.governancePrimary,
-      backgroundHover: color.governancePrimary,
-      backgroundPress: color.governancePrimaryDark,
-      backgroundFocus: color.governancePrimary,
-      color: color.white,
-      borderColor: color.governancePrimary,
-      borderColorFocus: color.governancePrimaryLight,
-      shadowColor: color.governanceGlowPrimary,
-    },
+
     dark_Button: {
       background: color.primary,
       backgroundHover: color.primaryLight,
@@ -330,15 +368,7 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
       shadowColor: 'rgba(26, 133, 255, 0.8)',
     },
 
-    light_Input: {
-      background: color.governanceSurface,
-      color: color.governanceText,
-      borderColor: color.governanceBorder,
-      borderColorHover: color.governanceBorderLight,
-      borderColorFocus: color.governancePrimary,
-      placeholderColor: color.governanceTextSecondary,
-      shadowColorFocus: color.governanceElevationShadow,
-    },
+
     dark_Input: {
       background: color.backgroundInput,
       color: color.textDark,
@@ -348,15 +378,7 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
       placeholderColor: color.textSecondaryDark,
     },
 
-    light_ProfileTextAreaField: {
-      background: color.governanceSurface,
-      color: color.governanceText,
-      borderColor: color.governanceBorder,
-      borderColorHover: color.governanceBorderLight,
-      borderColorFocus: color.governancePrimary,
-      placeholderColor: color.governanceTextSecondary,
-      shadowColorFocus: color.governanceElevationShadow,
-    },
+
     dark_ProfileTextAreaField: {
       background: color.backgroundInput,
       color: color.textDark,
@@ -366,41 +388,19 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
       placeholderColor: color.textSecondaryDark,
     },
 
-    light_ClaimCard: {
-      background: color.governanceSurface,
-      borderColor: color.governanceBorder,
-      shadowColor: color.governanceShadowHover,
-    },
+
     dark_ClaimCard: {
       background: color.backgroundDark,
       borderColor: color.borderDark,
       shadowColor: 'rgba(3, 7, 18, 0.9)',
     },
-    light_StreakCard: {
-      background: color.governanceSurfaceAlt,
-      borderColor: color.governanceBorder,
-      shadowColor: color.governanceShadow,
-    },
+
     dark_StreakCard: {
       background: color.surfaceDark,
       borderColor: color.borderDark,
       shadowColor: 'rgba(3, 7, 18, 0.64)',
     },
-    light_ClaimActionButton: {
-      background: color.transparent,
-      backgroundHover: color.governancePrimaryMuted,
-      backgroundPress: color.governancePrimaryMuted,
-      backgroundFocus: color.governancePrimaryMuted,
-      color: color.governancePrimaryDark,
-      borderColor: color.governancePrimary,
-      borderColorFocus: color.governancePrimary,
-      shadowColor: color.governanceGlowPrimary,
-    },
-    light_ClaimActionGlow: {
-      backgroundColor: color.governanceGlowPrimary,
-      opacity: '0.08',
-      glowOffset: '-4px',
-    },
+
     dark_ClaimActionGlow: {
       backgroundColor: color.primary,
       glowOpacity: '0.45',
@@ -417,18 +417,9 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
       shadowColor: 'rgba(26, 133, 255, 0.9)',
     },
 
-    light_TokenAmountText: {
-      color: color.governanceText,
-      secondaryColor: color.governanceTextSecondary,
-    },
 
-    // Toast — elevated notification surface inheriting from the surface token
-    light_Toast: {
-      background: color.governanceSurface,
-      color: color.governanceText,
-      borderColor: color.governanceBorder,
-      shadowColor: color.governanceElevationShadow,
-    },
+
+
     dark_Toast: {
       background: color.surface,
       color: color.white,
@@ -437,12 +428,7 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
     },
 
     // Dialog — modal container surface
-    light_Dialog: {
-      background: color.governanceSurface,
-      color: color.governanceText,
-      borderColor: color.governanceBorder,
-      shadowColor: color.governanceElevationShadow,
-    },
+
     dark_Dialog: {
       background: color.backgroundRaised,
       color: color.white,
