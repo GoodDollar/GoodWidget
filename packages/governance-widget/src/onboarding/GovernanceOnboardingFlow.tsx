@@ -155,7 +155,12 @@ export function GovernanceOnboardingFlow({
       shellFooter = null
       break
 
-    case 'stake':
+    case 'stake': {
+      // Disable the CTA until every on-chain transaction step has completed.
+      // L03TJ3 feedback: "I can continue to success while the progress is not finalized?"
+      const allStepsCompleted =
+        transactionSteps.length > 0 &&
+        transactionSteps.every((step) => step.status === 'completed')
       shellTitle = 'Creating profile & staking'
       shellDescription =
         'Please wait while your transaction is confirmed on-chain. You can review each step below.'
@@ -164,12 +169,13 @@ export function GovernanceOnboardingFlow({
       )
       shellFooter = (
         <XStack gap="$3" justifyContent="flex-end" flexWrap="wrap">
-          <Button onPress={next}>
+          <Button disabled={!allStepsCompleted} onPress={next}>
             <ButtonText>Continue to success</ButtonText>
           </Button>
         </XStack>
       )
       break
+    }
 
     case 'success':
       hideStepper = true
