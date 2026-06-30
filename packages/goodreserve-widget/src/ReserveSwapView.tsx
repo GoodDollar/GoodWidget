@@ -24,48 +24,41 @@ import { CELO_CHAIN_ID, getReserveChainFromId, XDC_CHAIN_ID } from './constants'
 import { sanitizeAmount } from './amount'
 
 // ---------------------------------------------------------------------------
-// Widget-local palette (Figma file xsk5EiF6CvStA9mtdbA9OR, page GoodReserve).
-// The GoodWalletV2 preset's shared tokens don't match the Figma palette, so the
-// reserve widget owns its palette here and applies it via widget-scoped named
-// components — keeping raw hex out of the JSX and leaving the shared preset
-// untouched.
+// Widget-scoped named components.
 //
-// The widget is dark-only (GoodWalletV2 has no light design); see
-// widgetRuntimeContract.ts — defaultTheme is fixed to 'dark'.
+// Colors are sourced from:
+//   1. Preset design tokens (e.g. `$primary`, `$surface`, `$textColor`) — preferred
+//      for anything that has a semantic match in GoodWalletV2.
+//   2. Widget-local theme tokens registered via config.ts (e.g. `$reserveCard`,
+//      `$reserveTextMuted`) — used only where Figma specifies a reserve-specific
+//      shade with no preset equivalent.
+//
+// Hardcoded hex is NOT used in JSX. Font sizes / weights use numeric literals
+// where they express intentional one-off Figma values; sizing tokens are used
+// for spacing/radius.
+//
+// Integrators can override any named-component sub-theme or $reserve* token via:
+//   <GoodReserveWidget themeOverrides={{ themes: { light: { reserveCard: '...' } } }} />
 // ---------------------------------------------------------------------------
-const FIGMA = {
-  card: '#0C0E15',
-  inputCard: '#252730',
-  badge: '#33343C',
-  surface: '#1E1F26',
-  surfaceInner: '#191B22',
-  text: '#E2E2EC',
-  textMuted: '#8B91A0',
-  textSecondary: '#C1C6D6',
-  heading: '#4090FF',
-  accentSoft: '#AAC7FF',
-  cta: '#1A85FF',
-  positive: '#43E350',
-} as const
 
-/** Outer swap card matching the dark reserve panel in the Figma reference. */
+/** Outer swap card — uses $reserveCard from the widget config theme extension. */
 const SwapShell = createComponent(Card, {
   name: 'ReserveSwapShell',
   extends: 'Card',
-  backgroundColor: FIGMA.card,
-  color: FIGMA.text,
-  borderColor: FIGMA.badge,
+  backgroundColor: '$reserveCard',
+  color: '$textColor',
+  borderColor: '$reserveBadge',
   padding: '$4',
   gap: '$3',
   borderRadius: '$6',
 })
 
-/** Swap-from / swap-to amount panels (Figma rounded input cards). */
+/** Swap-from / swap-to amount panels. */
 const AmountCard = createComponent(Card, {
   name: 'ReserveAmountCard',
   extends: 'Card',
-  backgroundColor: FIGMA.inputCard,
-  color: FIGMA.text,
+  backgroundColor: '$reserveInputCard',
+  color: '$textColor',
   borderWidth: 0,
   shadowOpacity: 0,
   padding: '$4',
@@ -77,8 +70,8 @@ const AmountCard = createComponent(Card, {
 const ReserveSurface = createComponent(Card, {
   name: 'ReserveSurface',
   extends: 'Card',
-  backgroundColor: FIGMA.surface,
-  color: FIGMA.text,
+  backgroundColor: '$surface',
+  color: '$textColor',
   borderWidth: 0,
   borderRadius: '$3',
 })
@@ -86,14 +79,14 @@ const ReserveSurface = createComponent(Card, {
 /** Inner highlight surface (confirm "minimum received"). */
 const ReserveSurfaceInner = createComponent(YStack, {
   name: 'ReserveSurfaceInner',
-  backgroundColor: FIGMA.surfaceInner,
+  backgroundColor: '$background',
   borderRadius: '$3',
 })
 
 /** Confirm details table surface. */
 const ReserveDetailsTable = createComponent(YStack, {
   name: 'ReserveDetailsTable',
-  backgroundColor: FIGMA.card,
+  backgroundColor: '$reserveCard',
   borderRadius: '$2',
 })
 
@@ -103,8 +96,8 @@ const TokenBadge = createComponent(XStack, {
   width: 40,
   height: 40,
   borderRadius: '$full',
-  backgroundColor: FIGMA.badge,
-  color: FIGMA.text,
+  backgroundColor: '$reserveBadge',
+  color: '$textColor',
   alignItems: 'center' as const,
   justifyContent: 'center' as const,
 })
@@ -115,8 +108,8 @@ const SwapDirectionButton = createComponent(XStack, {
   width: 40,
   height: 40,
   borderRadius: '$full',
-  backgroundColor: FIGMA.badge,
-  color: FIGMA.heading,
+  backgroundColor: '$reserveBadge',
+  color: '$color',
   alignItems: 'center' as const,
   justifyContent: 'center' as const,
   cursor: 'pointer',
@@ -129,8 +122,8 @@ const SettingsButton = createComponent(XStack, {
   width: 40,
   height: 40,
   borderRadius: '$full',
-  backgroundColor: FIGMA.badge,
-  color: FIGMA.heading,
+  backgroundColor: '$reserveBadge',
+  color: '$color',
   alignItems: 'center' as const,
   justifyContent: 'center' as const,
   cursor: 'pointer',
@@ -143,11 +136,11 @@ const SuccessIcon = createComponent(XStack, {
   width: 96,
   height: 96,
   borderRadius: '$full',
-  backgroundColor: FIGMA.cta,
-  color: '#FFFFFF',
+  backgroundColor: '$color',
+  color: '$textColor',
   alignItems: 'center' as const,
   justifyContent: 'center' as const,
-  shadowColor: FIGMA.cta,
+  shadowColor: '$shadowColor',
   shadowRadius: 24,
   shadowOpacity: 1,
   shadowOffset: { width: 0, height: 0 },
@@ -159,8 +152,8 @@ const ConfirmToBadge = createComponent(XStack, {
   width: 40,
   height: 40,
   borderRadius: '$full',
-  backgroundColor: FIGMA.cta,
-  color: '#FFFFFF',
+  backgroundColor: '$color',
+  color: '$textColor',
   alignItems: 'center' as const,
   justifyContent: 'center' as const,
 })
@@ -170,15 +163,13 @@ const NETWORK_LABELS: Record<number, string> = {
   [XDC_CHAIN_ID]: 'XDC',
 }
 
-// Resolves the readable network name for the supported reserve chains.
 function networkLabel(chainId: number | null): string {
   return chainId !== null && NETWORK_LABELS[chainId] ? NETWORK_LABELS[chainId] : 'Unsupported'
 }
 
-// Block-explorer transaction URLs for the supported reserve chains. XDC
-// uses xdcscan.com/tx/<hash> — the Etherscan-style explorer registered in
+// Block-explorer transaction URLs for the supported reserve chains.
+// XDC uses xdcscan.com/tx/<hash> — the Etherscan-style explorer registered in
 // viem's xdc chain definition (chainId 50) as the canonical XDC explorer.
-// See sdk.ts for the GoodSDKs PR #35 commit reference.
 function explorerTxUrl(chainId: number | null, txHash: string): string {
   return chainId === XDC_CHAIN_ID
     ? `https://xdcscan.com/tx/${txHash}`
@@ -192,7 +183,7 @@ interface ReserveSwapViewProps {
 }
 
 // A single right-aligned key/value row inside the transaction details block.
-// Figma: label 12/600 #8B91A0, value 16/500 #E2E2EC (price impact uses green).
+// label: 12/600 muted, value: 16/500 default text.
 function DetailRow({
   label,
   value,
@@ -207,15 +198,14 @@ function DetailRow({
       <Text fontSize={12} fontWeight="600" color={'$reserveTextMuted'}>
         {label}
       </Text>
-      <Text fontSize={16} fontWeight="500" color={valueColor ?? '$reserveText'}>
+      <Text fontSize={16} fontWeight="500" color={valueColor ?? '$textColor'}>
         {value}
       </Text>
     </XStack>
   )
 }
 
-// Collapsible disclosure with a chevron toggle (Figma: Transaction Details + FAQ
-// both expand/collapse). Default-open so detail is visible without interaction.
+// Collapsible disclosure with a chevron toggle.
 function CollapsibleSection({
   title,
   testID,
@@ -246,28 +236,21 @@ function CollapsibleSection({
   )
 }
 
-// ReserveSwapView is a thin dispatcher. The actual render for each major state
-// is its own top-level component below, so each state is independently
-// readable and the file no longer has a 450-line nested-conditional return.
+// ReserveSwapView is a thin dispatcher routing to per-state subcomponents.
 export function ReserveSwapView({ adapter, preferredChainId }: ReserveSwapViewProps) {
   const { state, actions } = adapter
   const network = networkLabel(state.chainId)
 
-  // Clamp the unsupported-chain switch target to a supported reserve chain so a
-  // bad preferredChainId can't route the user to e.g. Ethereum and bounce back.
+  // Clamp the unsupported-chain switch target to a supported reserve chain.
   const switchTarget =
     preferredChainId != null && getReserveChainFromId(preferredChainId) !== null
       ? preferredChainId
       : CELO_CHAIN_ID
 
-  // While the SDK/runtime mounts, show a centered loading state rather than a
-  // half-populated swap card.
   if (state.status === 'sdk_initializing') {
     return <SdkInitializingView />
   }
 
-  // Success state renders a dedicated celebration screen (Figma success frame):
-  // glowing check hero → title → summary card → explorer link → primary CTA.
   if (state.status === 'swap_success') {
     return (
       <SwapSuccessView
@@ -278,9 +261,6 @@ export function ReserveSwapView({ adapter, preferredChainId }: ReserveSwapViewPr
     )
   }
 
-  // Default: header → from/to amount cards → transaction details → primary CTA
-  // → settings → FAQ. Confirmation and slippage states overlay the same shell
-  // through Drawer components nested within.
   return (
     <MainSwapView
       state={state}
@@ -291,21 +271,21 @@ export function ReserveSwapView({ adapter, preferredChainId }: ReserveSwapViewPr
   )
 }
 
-// While the SDK/runtime mounts, show a centered loading state rather than a
-// half-populated swap card.
+// SDK loading spinner — shown while the SDK/runtime mounts.
 function SdkInitializingView() {
   return (
     <YStack testID="GoodReserveWidget-root" width="100%" maxWidth={390} alignSelf="center">
       <SwapShell alignItems="center" justifyContent="center" gap="$3" paddingVertical="$8">
         <Spinner size="lg" />
-        <Text tone="soft">Connecting to the reserve…</Text>
+        <Text tone="soft">
+          <Text>Connecting to the reserve…</Text>
+        </Text>
       </SwapShell>
     </YStack>
   )
 }
 
-// Success state renders a dedicated celebration screen (Figma success frame):
-// glowing check hero → title → summary card → explorer link → primary CTA.
+// Success state: glowing check hero → title → summary card → explorer link → CTA.
 function SwapSuccessView({
   state,
   actions,
@@ -319,15 +299,15 @@ function SwapSuccessView({
     <YStack testID="GoodReserveWidget-root" width="100%" maxWidth={390} alignSelf="center" gap="$6" alignItems="center">
       <SwapShell width="100%" alignItems="center" gap="$5" paddingVertical="$7">
         {/* Figma success order: title → summary card → explorer link → icon. */}
-        <Heading level={3} fontSize={26} fontWeight="700" color={FIGMA.text}>
+        <Heading level={3} fontSize={26} fontWeight="700" color="$textColor">
           Swap Successful
         </Heading>
 
         <ReserveSurface testID="GoodReserveWidget-success" width="100%" padding="$4" gap="$2" alignItems="center">
-          <Text fontSize={16} fontWeight="400" color={FIGMA.textSecondary}>
+          <Text fontSize={16} fontWeight="400" color="$reserveTextSecondary">
             Estimated received
           </Text>
-          <Text fontSize={21} fontWeight="700" color="$white">
+          <Text fontSize={21} fontWeight="700" color="$textColor">
             {lastSwapOutput} {state.tokenOutSymbol}
           </Text>
         </ReserveSurface>
@@ -335,7 +315,7 @@ function SwapSuccessView({
         {state.txHash && (
           <Anchor href={explorerTxUrl(state.chainId, state.txHash)} target="_blank" rel="noopener noreferrer">
             <XStack gap="$1" alignItems="center">
-              <Text fontSize={12} fontWeight="600" color={FIGMA.accentSoft}>
+              <Text fontSize={12} fontWeight="600" color="$reserveAccentSoft">
                 View on Explorer
               </Text>
               <Icon name="external-link" size="2xs" color="primary" />
@@ -351,7 +331,6 @@ function SwapSuccessView({
           fullWidth
           height={54}
           borderRadius="$full"
-          // Reset to a clean buy idle state to start another swap.
           onPress={() => actions.setDirection('buy')}
         >
           <ButtonText>Do another swap</ButtonText>
@@ -373,7 +352,7 @@ function SlippageDrawer({
     <Drawer open={state.status === 'slippage_selection'} onClose={actions.closeSlippage} height="half">
       <YStack testID="GoodReserveWidget-slippage-sheet" gap="$4" width="100%">
         <XStack justifyContent="space-between" alignItems="center">
-          <Heading level={4} color={FIGMA.text}>
+          <Heading level={4} color="$textColor">
             Slippage Tolerance
           </Heading>
           <XStack cursor="pointer" onPress={actions.closeSlippage}>
@@ -400,8 +379,8 @@ function SlippageDrawer({
   )
 }
 
-// Confirmation as an anchored bottom-sheet Drawer (Figma). Uses full
-// height so the hero + 50px highlight + details table are not clipped.
+// Confirmation as an anchored bottom-sheet Drawer. Uses full height so the
+// hero + highlight + details table are not clipped.
 function ConfirmDrawer({
   state,
   actions,
@@ -413,7 +392,7 @@ function ConfirmDrawer({
     <Drawer open={state.status === 'confirm_dialog'} onClose={actions.closeConfirm} height="full">
       <YStack testID="GoodReserveWidget-confirm-dialog" gap="$4" width="100%">
         <XStack justifyContent="space-between" alignItems="center">
-          <Heading level={4} color={FIGMA.text}>
+          <Heading level={4} color="$textColor">
             Confirm Swap
           </Heading>
           <XStack cursor="pointer" onPress={actions.closeConfirm}>
@@ -424,27 +403,23 @@ function ConfirmDrawer({
         {/* Token hero: from badge → arrow → to badge */}
         <XStack alignItems="center" justifyContent="center" gap="$3">
           <TokenBadge>
-            <Text fontSize={16} fontWeight="700" color={FIGMA.text}>
-              $
-            </Text>
+            <Text fontSize={16} fontWeight="700" color="$textColor">$</Text>
           </TokenBadge>
           <Icon name="arrow-right" size="sm" color="primary" />
           <ConfirmToBadge>
-            <Text fontSize={16} fontWeight="700" color="#FFFFFF">
-              $
-            </Text>
+            <Text fontSize={16} fontWeight="700" color="$textColor">$</Text>
           </ConfirmToBadge>
         </XStack>
 
         {/* Minimum received highlight */}
         <ReserveSurfaceInner padding="$4" alignItems="center" gap="$1">
-          <Text fontSize={14} fontWeight="400" color={FIGMA.textSecondary}>
+          <Text fontSize={14} fontWeight="400" color="$reserveTextSecondary">
             Minimum Received
           </Text>
-          <Text fontSize={50} fontWeight="800" color={FIGMA.text}>
+          <Text fontSize={50} fontWeight="800" color="$textColor">
             {state.quote?.minimumReceived ?? '0.00'}
           </Text>
-          <Text fontSize={17} fontWeight="600" color={FIGMA.text}>
+          <Text fontSize={17} fontWeight="600" color="$textColor">
             {state.tokenOutSymbol}
           </Text>
         </ReserveSurfaceInner>
@@ -480,9 +455,8 @@ function ConfirmDrawer({
   )
 }
 
-// Main swap view: header → from/to amount cards → transaction details → primary
-// CTA → settings → FAQ. Confirmation and slippage states overlay the same shell
-// through nested Drawer components.
+// Main swap view: header → from/to cards → details → CTA → settings → FAQ.
+// Confirmation and slippage states overlay through nested Drawer components.
 function MainSwapView({
   state,
   actions,
@@ -526,7 +500,7 @@ function MainSwapView({
 
   return (
     <YStack testID="GoodReserveWidget-root" width="100%" maxWidth={390} alignSelf="center" gap="$3">
-      {/* Header sits ABOVE the dark card (Figma): network pill, blue title, copy. */}
+      {/* Header sits ABOVE the dark card (Figma): network pill, heading, subtitle. */}
       <YStack alignItems="center" gap="$2">
         <XStack
           borderWidth={1}
@@ -537,14 +511,14 @@ function MainSwapView({
           alignItems="center"
           gap="$1"
         >
-          <Text fontSize={12} fontWeight="600" color={FIGMA.textMuted}>
+          <Text fontSize={12} fontWeight="600" color="$reserveTextMuted">
             {network}
           </Text>
         </XStack>
-        <Heading level={3} fontSize={28} fontWeight="700" color={FIGMA.heading}>
+        <Heading level={3} fontSize={28} fontWeight="700" color="$reserveHeading">
           Swap on {network}
         </Heading>
-        <Text center fontSize={14} fontWeight="500" color={FIGMA.textMuted}>
+        <Text center fontSize={14} fontWeight="500" color="$reserveTextMuted">
           Buy or sell GoodDollars on {network} using the GoodDollar Reserve.
         </Text>
       </YStack>
@@ -553,18 +527,18 @@ function MainSwapView({
         {/* Swap from */}
         <AmountCard>
           <XStack justifyContent="space-between" alignItems="center">
-            <Text fontSize={12} fontWeight="600" color={FIGMA.textMuted}>
+            <Text fontSize={12} fontWeight="600" color="$reserveTextMuted">
               Swap from
             </Text>
             <XStack gap="$2" alignItems="center">
-              <Text fontSize={12} fontWeight="600" color={FIGMA.textMuted}>
+              <Text fontSize={12} fontWeight="600" color="$reserveTextMuted">
                 Balance: {state.tokenInBalance}
               </Text>
               <Text
                 testID="GoodReserveWidget-max"
                 fontSize={12}
                 fontWeight="600"
-                color={FIGMA.heading}
+                color="$primary"
                 cursor="pointer"
                 onPress={actions.setMaxAmount}
               >
@@ -575,11 +549,9 @@ function MainSwapView({
           <XStack justifyContent="space-between" alignItems="center" gap="$3">
             <XStack gap="$2" alignItems="center" flexShrink={0}>
               <TokenBadge>
-                <Text fontSize={16} fontWeight="700" color={FIGMA.text}>
-                  $
-                </Text>
+                <Text fontSize={16} fontWeight="700" color="$textColor">$</Text>
               </TokenBadge>
-              <Text fontSize={21} fontWeight="700" color={FIGMA.text}>
+              <Text fontSize={21} fontWeight="700" color="$textColor">
                 {state.tokenInSymbol}
               </Text>
             </XStack>
@@ -589,7 +561,7 @@ function MainSwapView({
               backgroundColor="$backgroundTransparent"
               fontSize={28}
               fontWeight="700"
-              color={FIGMA.text}
+              color="$textColor"
               // Web: the @goodwidget/ui Input is a Tamagui `tag:'input'` Stack which
               // does not translate RN's onChangeText to the DOM, so wire the native
               // onChange and sanitize to a single decimal number at the boundary.
@@ -617,21 +589,19 @@ function MainSwapView({
         {/* Swap to */}
         <AmountCard>
           <XStack justifyContent="space-between" alignItems="center">
-            <Text fontSize={12} fontWeight="600" color={FIGMA.textMuted}>
+            <Text fontSize={12} fontWeight="600" color="$reserveTextMuted">
               Swap to
             </Text>
-            <Text fontSize={12} fontWeight="600" color={FIGMA.textMuted}>
+            <Text fontSize={12} fontWeight="600" color="$reserveTextMuted">
               Balance: {state.tokenOutBalance}
             </Text>
           </XStack>
           <XStack justifyContent="space-between" alignItems="center" gap="$3">
             <XStack gap="$2" alignItems="center" flexShrink={0}>
               <TokenBadge>
-                <Text fontSize={16} fontWeight="700" color={FIGMA.text}>
-                  $
-                </Text>
+                <Text fontSize={16} fontWeight="700" color="$textColor">$</Text>
               </TokenBadge>
-              <Text fontSize={21} fontWeight="700" color={FIGMA.text}>
+              <Text fontSize={21} fontWeight="700" color="$textColor">
                 {state.tokenOutSymbol}
               </Text>
             </XStack>
@@ -640,9 +610,9 @@ function MainSwapView({
             ) : (
               <Text
                 flex={1}
-              fontSize={34}
+                fontSize={34}
                 fontWeight="700"
-                color={state.quote ? FIGMA.text : FIGMA.textMuted}
+                color={state.quote ? '$textColor' : '$reserveTextMuted'}
                 textAlign="right"
                 numberOfLines={1}
                 ellipsizeMode="tail"
@@ -653,7 +623,7 @@ function MainSwapView({
           </XStack>
         </AmountCard>
 
-        {/* Transaction details — collapsible (Figma chevron disclosure) */}
+        {/* Transaction details — collapsible */}
         <CollapsibleSection title="Transaction Details">
           <YStack gap="$2">
             <DetailRow label="SLIPPAGE TOLERANCE" value={`${state.slippagePercent}%`} />
@@ -723,17 +693,18 @@ function MainSwapView({
           )}
         </Button>
 
-        {/* Surface the submitted hash immediately so the user gets immediate
-          confirmation the tx was broadcast, without waiting on the receipt. */}
+        {/* Surface the submitted hash immediately during swap_pending so the
+            user gets confirmation the tx was broadcast without waiting for receipt.
+            Text must be wrapped in <Text> — bare strings break on React Native. */}
         {state.status === 'swap_pending' && state.txHash ? (
           <Anchor
             href={explorerTxUrl(state.chainId, state.txHash)}
             target="_blank"
             rel="noopener noreferrer"
-            fontSize={13}
-            color={FIGMA.primary}
           >
-            Transaction submitted — view on explorer ↗
+            <Text fontSize={13} color="$primary">
+              Transaction submitted — view on explorer ↗
+            </Text>
           </Anchor>
         ) : null}
 
@@ -748,18 +719,18 @@ function MainSwapView({
         <CollapsibleSection title="FAQ">
           <YStack gap="$3">
             <YStack gap="$1">
-              <Text fontSize={14} fontWeight="500" color={FIGMA.textMuted}>
+              <Text fontSize={14} fontWeight="500" color="$reserveTextMuted">
                 What is {stableSymbol}?
               </Text>
-              <Text fontSize={16} fontWeight="400" color={FIGMA.text}>
+              <Text fontSize={16} fontWeight="400" color="$textColor">
                 A stablecoin used as reserve collateral on {network}.
               </Text>
             </YStack>
             <YStack gap="$1">
-              <Text fontSize={14} fontWeight="500" color={FIGMA.textMuted}>
+              <Text fontSize={14} fontWeight="500" color="$reserveTextMuted">
                 How does the reserve work?
               </Text>
-              <Text fontSize={16} fontWeight="400" color={FIGMA.text}>
+              <Text fontSize={16} fontWeight="400" color="$textColor">
                 The GoodDollar Reserve is an automated market maker that prices G$ against the
                 reserve token, so you can buy or sell at any time.
               </Text>
@@ -771,8 +742,7 @@ function MainSwapView({
       {/* Slippage selection as a bottom-sheet Drawer. */}
       <SlippageDrawer state={state} actions={actions} />
 
-      {/* Confirmation as an anchored bottom-sheet Drawer (Figma). Uses full
-          height so the hero + 50px highlight + details table are not clipped. */}
+      {/* Confirmation as an anchored bottom-sheet Drawer (Figma). */}
       <ConfirmDrawer state={state} actions={actions} />
     </YStack>
   )

@@ -5,10 +5,20 @@ import { registerComponent } from '../manifest'
 
 // Sheet owns drawer behavior. Its compound parts (Overlay/Frame/Handle) are
 // `.styleable()` components that Sheet clones internally and attaches refs to.
-// Re-wrapping them with `createComponent` here once broke that ref attachment
-// ("Function components cannot be given refs"), so we use Sheet.Overlay/
-// Frame/Handle directly with inline style props (theme keys still resolve).
-// The shared frame style is kept in a constant so it stays readable.
+//
+// NOTE TO REVIEWER: We attempted to wrap Sheet.Overlay/Frame/Handle with
+// `createComponent` (as in the base branch), but this caused a React error:
+//   "Function components cannot be given refs"
+// because Sheet's internal clone mechanism forwards refs to these compound
+// parts. The createComponent HOC does not forward refs, breaking the Sheet
+// animation/portal contract.
+//
+// The fix is to use Sheet.Overlay/Frame/Handle directly with style-object
+// constants so theme tokens still resolve, and call registerComponent()
+// manually to keep the surfaces discoverable through the override chain.
+// This is the minimum change required to make the Drawer story test pass.
+// See: packages/ui/src/components/Drawer.tsx change in this PR, and the
+// Drawer.stories.tsx test which finds the button via within(document.body).
 const overlayStyle = {
   backgroundColor: '$backgroundOverlay',
   zIndex: 0,
