@@ -12,7 +12,7 @@ import type { ReserveSwapWidgetAdapterState } from './widgetRuntimeContract'
 import {
   CELO_CHAIN_ID,
   DEFAULT_GD_DECIMALS,
-  DEFAULT_STABLE_DECIMALS,
+  getStableDecimals,
   XDC_CHAIN_ID,
 } from './constants'
 import { mapReserveError } from './errors'
@@ -76,7 +76,7 @@ export function useReserveRefs(
   return {
     sdkRef: useRef<GoodReserveSDK | null>(null),
     publicClientRef: useRef<ReturnType<typeof createPublicClient> | null>(null),
-    decimalsRef: useRef({ stable: DEFAULT_STABLE_DECIMALS, gd: DEFAULT_GD_DECIMALS }),
+    decimalsRef: useRef({ stable: getStableDecimals(null), gd: DEFAULT_GD_DECIMALS }),
     balancesRef: useRef({ stable: '0.00', gd: '0.00' }),
     tokenInBalanceRef: useRef(initialBalance),
     directionRef: useRef(initialDirection),
@@ -185,10 +185,9 @@ export function useReserveBootstrap(
       refs.sdkRef.current = sdk
       refs.publicClientRef.current = publicClient
       refs.decimalsRef.current = {
-        // Use the SDK stats value when available; fall back to DEFAULT_STABLE_DECIMALS (18).
-        // The reserve is not deployed on Fuse (where USDC is 6 decimals), so
-        // there is no valid per-chain override below 18.
-        stable: stats.stableTokenDecimals ?? DEFAULT_STABLE_DECIMALS,
+        // SDK stats are the canonical source; fall back to chain-aware defaults.
+        // Celo stable (USDm) = 18, XDC stable (USDC) = 6.
+        stable: stats.stableTokenDecimals ?? getStableDecimals(chainId),
         gd: stats.goodDollarDecimals ?? DEFAULT_GD_DECIMALS,
       }
       // exitContribution follows the GoodSDKs demo convention: / 10_000.
