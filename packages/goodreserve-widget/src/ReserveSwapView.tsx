@@ -455,6 +455,75 @@ function ConfirmDrawer({
   )
 }
 
+interface MainSwapStatusCta {
+  label: string
+  disabled: boolean
+  loading: boolean
+  action?: 'connect' | 'switchChain' | 'confirm'
+}
+
+const MAIN_SWAP_STATUS_CTA: Partial<
+  Record<ReserveSwapWidgetAdapterState['status'], MainSwapStatusCta>
+> = {
+  no_provider: {
+    label: 'Connect Wallet',
+    disabled: false,
+    loading: false,
+    action: 'connect',
+  },
+  unsupported_chain: {
+    label: 'Switch Network',
+    disabled: false,
+    loading: false,
+    action: 'switchChain',
+  },
+  swap_pending: {
+    label: 'Swapping…',
+    disabled: false,
+    loading: true,
+  },
+  quote_loading: {
+    label: 'Fetching Quote…',
+    disabled: true,
+    loading: false,
+  },
+  insufficient_balance: {
+    label: 'Insufficient Balance',
+    disabled: true,
+    loading: false,
+  },
+}
+
+function getMainSwapPrimaryCta(
+  state: ReserveSwapWidgetAdapterState,
+  hasAmount: boolean,
+): MainSwapStatusCta {
+  const statusCta = MAIN_SWAP_STATUS_CTA[state.status]
+  if (statusCta) {
+    return statusCta
+  }
+  if (!hasAmount) {
+    return {
+      label: 'Enter Amount',
+      disabled: true,
+      loading: false,
+    }
+  }
+  if (!state.quote) {
+    return {
+      label: 'Review Swap',
+      disabled: true,
+      loading: false,
+    }
+  }
+  return {
+    label: 'Review Swap',
+    disabled: false,
+    loading: false,
+    action: 'confirm',
+  }
+}
+
 // Main swap view: header → from/to cards → details → CTA → settings → FAQ.
 // Confirmation and slippage states overlay through nested Drawer components.
 function MainSwapView({
@@ -469,33 +538,7 @@ function MainSwapView({
   switchTarget: number
 }) {
   const hasAmount = Boolean(state.inputAmount) && Number(state.inputAmount) > 0
-  const isBlocked =
-    state.status === 'no_provider' ||
-    state.status === 'unsupported_chain' ||
-    state.status === 'swap_pending'
-
-  const ctaDisabled =
-    !isBlocked &&
-    (state.status === 'quote_loading' ||
-      state.status === 'insufficient_balance' ||
-      !hasAmount ||
-      !state.quote)
-
-  const ctaLabel =
-    state.status === 'swap_pending'
-      ? 'Swapping…'
-      : state.status === 'no_provider'
-        ? 'Connect Wallet'
-        : state.status === 'unsupported_chain'
-          ? 'Switch Network'
-          : state.status === 'insufficient_balance'
-            ? 'Insufficient Balance'
-            : !hasAmount
-              ? 'Enter Amount'
-              : state.status === 'quote_loading'
-                ? 'Fetching Quote…'
-                : 'Review Swap'
-
+  const primaryCta = getMainSwapPrimaryCta(state, hasAmount)
   const stableSymbol = state.tokenInSymbol === 'G$' ? state.tokenOutSymbol : state.tokenInSymbol
 
   return (
@@ -670,26 +713,28 @@ function MainSwapView({
           fullWidth
           height={54}
           borderRadius="$3"
-          disabled={ctaDisabled}
+          disabled={primaryCta.disabled}
           onPress={async () => {
-            if (state.status === 'no_provider') {
+            if (primaryCta.action === 'connect') {
               await actions.connect()
               return
             }
-            if (state.status === 'unsupported_chain') {
+            if (primaryCta.action === 'switchChain') {
               await actions.switchChain(switchTarget)
               return
             }
-            actions.openConfirm()
+            if (primaryCta.action === 'confirm') {
+              actions.openConfirm()
+            }
           }}
         >
-          {state.status === 'swap_pending' ? (
+          {primaryCta.loading ? (
             <XStack gap="$2" alignItems="center">
               <Spinner size="sm" color="$white" />
-              <ButtonText>{ctaLabel}</ButtonText>
+              <ButtonText>{primaryCta.label}</ButtonText>
             </XStack>
           ) : (
-            <ButtonText>{ctaLabel}</ButtonText>
+            <ButtonText>{primaryCta.label}</ButtonText>
           )}
         </Button>
 
