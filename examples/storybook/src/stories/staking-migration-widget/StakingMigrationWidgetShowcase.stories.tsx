@@ -1,16 +1,38 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { StakingMigrationWidget } from '@goodwidget/staking-migration-widget'
 import { InjectedWalletStory } from '../helpers/stakingMigrationWidgetStories'
+import { BRAND_PRESET_OPTIONS, brandPresetOverrides, type BrandPreset } from '../helpers/themeOverridePresets'
 
-const meta: Meta<typeof StakingMigrationWidget> = {
+interface StakingMigrationWidgetStoryArgs {
+  defaultTheme: 'light' | 'dark'
+  brandPreset: BrandPreset
+}
+
+const meta: Meta<StakingMigrationWidgetStoryArgs> = {
   title: 'Widgets/StakingMigrationWidget/Showcase',
   component: StakingMigrationWidget,
   tags: ['integrator', 'manual', 'showcase'],
   parameters: { layout: 'padded' },
+  argTypes: {
+    defaultTheme: {
+      control: 'radio',
+      options: ['dark', 'light'],
+      description: 'Base theme applied via the widget’s own defaultTheme prop.',
+    },
+    brandPreset: {
+      control: 'select',
+      options: BRAND_PRESET_OPTIONS,
+      description: 'Sample host-branding themeOverrides preset.',
+    },
+  },
+  args: {
+    defaultTheme: 'dark',
+    brandPreset: 'None',
+  },
 }
 
 export default meta
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<StakingMigrationWidgetStoryArgs>
 
 export const InjectedWallet: Story = {
   parameters: {
@@ -18,5 +40,7 @@ export const InjectedWallet: Story = {
       useShell: false,
     },
   },
-  render: () => <InjectedWalletStory />,
+  render: ({ defaultTheme, brandPreset }) => (
+    <InjectedWalletStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
 }
