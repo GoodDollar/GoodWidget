@@ -25,7 +25,8 @@ function isValidUrl(val: string): boolean {
   }
 }
 
-function getFieldError(
+/** Validates a single profile field value. Returns an error string or undefined. */
+export function validateField(
   fieldKey: GovernanceProfileFieldKey,
   fieldValue: string | undefined,
 ): string | undefined {
@@ -60,7 +61,7 @@ export function validateProfileDraft(
 ): GovernanceProfileFieldErrors {
   return REQUIRED_PROFILE_FIELDS[selectedHouse].reduce<GovernanceProfileFieldErrors>(
     (errors, fieldKey) => {
-      const error = getFieldError(fieldKey, profileDraft[fieldKey])
+      const error = validateField(fieldKey, profileDraft[fieldKey])
       if (error) errors[fieldKey] = error
       return errors
     },

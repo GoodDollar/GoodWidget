@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { Button, ButtonText, PageWizardShell, XStack, usePageWizard } from '@goodwidget/ui'
 import { HOUSE_COPY } from './copy'
 import { DEFAULT_TRANSACTION_STEPS, DEFAULT_FINAL_ACTIONS } from './constants'
-import { validateProfileDraft, isProfileDraftComplete } from './validation'
+import { validateProfileDraft, isProfileDraftComplete, validateField } from './validation'
 import { WelcomeStepContent } from './steps/WelcomeStepContent'
 import { HouseStepContent } from './steps/HouseStepContent'
 import { ProfileStepContent } from './steps/ProfileStepContent'
@@ -70,10 +70,26 @@ export function GovernanceOnboardingFlow({
       }
     })
 
+    // Clear the error as the user types so they get immediate positive feedback
     setFieldErrors((previousErrors) => {
       const nextErrors = { ...previousErrors }
       delete nextErrors[fieldKey]
       return nextErrors
+    })
+  }
+
+  // Validate a single field when the user leaves it (blur) so they see
+  // inline feedback before hitting the submit button.
+  const handleFieldBlur = (fieldKey: GovernanceProfileFieldKey) => {
+    const currentDraft = (data as GovernanceWizardData).profileDraft ?? {}
+    const error = validateField(fieldKey, currentDraft[fieldKey])
+    setFieldErrors((prev) => {
+      if (!error) {
+        const next = { ...prev }
+        delete next[fieldKey]
+        return next
+      }
+      return { ...prev, [fieldKey]: error }
     })
   }
 
@@ -148,6 +164,7 @@ export function GovernanceOnboardingFlow({
           fieldErrors={fieldErrors}
           stakeAmountLabel={stakeAmountLabel}
           onProfileFieldChange={updateProfileField}
+          onProfileFieldBlur={handleFieldBlur}
           ctaDisabled={!profileIsComplete}
           // CTA button lives inside the card — no shell footer button needed
           onContinuePress={handleProfileContinue}

@@ -57,6 +57,7 @@ interface ProfileTextAreaFieldProps {
   helperText?: string
   errorMessage?: string
   onChangeText: (nextValue: string) => void
+  onBlur?: () => void
 }
 
 export function ProfileTextAreaField({
@@ -66,6 +67,7 @@ export function ProfileTextAreaField({
   helperText,
   errorMessage,
   onChangeText,
+  onBlur,
 }: ProfileTextAreaFieldProps) {
   return (
     <YStack gap="$1">
@@ -78,6 +80,7 @@ export function ProfileTextAreaField({
         onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
           onChangeText(event.currentTarget.value)
         }}
+        onBlur={() => onBlur?.()}
       />
       {helperText ? <Text variant="caption">{helperText}</Text> : null}
       {errorMessage ? <InputError>{errorMessage}</InputError> : null}

@@ -1,4 +1,4 @@
-import type { ChangeEvent } from 'react'
+import type { ChangeEvent, FocusEvent } from 'react'
 import { XStack, YStack } from 'tamagui'
 import { Button, ButtonText, Card, Icon, Text } from '@goodwidget/ui'
 import { InputError, InputFrame, InputLabel } from '@goodwidget/ui'
@@ -17,6 +17,7 @@ interface ProfileStepContentProps {
   stakeAmountLabel: string
   ctaDisabled: boolean
   onProfileFieldChange: (fieldKey: GovernanceProfileFieldKey, nextValue: string) => void
+  onProfileFieldBlur: (fieldKey: GovernanceProfileFieldKey) => void
   onContinuePress: () => void
 }
 
@@ -30,19 +31,23 @@ function resolveStakeWarning(house: GovernanceHouse, stakeAmountLabel: string): 
   return STAKE_WARNING_GENERIC
 }
 
-// ── Inline profile field (avoids extra import of ProfileField) ───────────────
+// ── Inline single-line field ──────────────────────────────────────────────────
 function FormField({
   label,
   placeholder,
+  helperText,
   value,
   errorMessage,
   onChangeText,
+  onBlur,
 }: {
   label: string
   placeholder: string
+  helperText?: string
   value?: string
   errorMessage?: string
   onChangeText: (v: string) => void
+  onBlur?: () => void
 }) {
   return (
     <YStack gap="$1">
@@ -54,7 +59,14 @@ function FormField({
         onChange={(event: ChangeEvent<HTMLInputElement>) => {
           onChangeText(event.currentTarget.value)
         }}
+        onBlur={(_event: FocusEvent<HTMLInputElement>) => {
+          onBlur?.()
+        }}
       />
+      {/* Show the requirement hint only when there is no error showing */}
+      {helperText && !errorMessage ? (
+        <Text variant="caption" tone="secondary">{helperText}</Text>
+      ) : null}
       {errorMessage ? <InputError>{errorMessage}</InputError> : null}
     </YStack>
   )
@@ -67,6 +79,7 @@ export function ProfileStepContent({
   stakeAmountLabel,
   ctaDisabled,
   onProfileFieldChange,
+  onProfileFieldBlur,
   onContinuePress,
 }: ProfileStepContentProps) {
 
@@ -85,7 +98,6 @@ export function ProfileStepContent({
           >
             {/* Amount row */}
             <XStack alignItems="center" gap="$3">
-              {/* Icon directly, no circle container (matches Figma) */}
               <Icon name="shield-check" size="md" color="primary" />
               <YStack gap="$0.5">
                 <Text variant="caption" tone="secondary">
@@ -119,41 +131,51 @@ export function ProfileStepContent({
             <FormField
               label="Official Name"
               placeholder="John Doe or Organization"
+              helperText="Min. 3 characters"
               value={profileDraft.name}
               errorMessage={fieldErrors.name}
               onChangeText={(v) => onProfileFieldChange('name', v)}
+              onBlur={() => onProfileFieldBlur('name')}
             />
 
             {selectedHouse === 'citizenship' ? (
               <FormField
                 label="Social Profile Link"
                 placeholder="https://twitter.com/username"
+                helperText="Must start with https://"
                 value={profileDraft.socialLinks}
                 errorMessage={fieldErrors.socialLinks}
                 onChangeText={(v) => onProfileFieldChange('socialLinks', v)}
+                onBlur={() => onProfileFieldBlur('socialLinks')}
               />
             ) : (
               <>
                 <FormField
                   label="External Link"
                   placeholder="https://example.com"
+                  helperText="Must start with https://"
                   value={profileDraft.projectWebpage}
                   errorMessage={fieldErrors.projectWebpage}
                   onChangeText={(v) => onProfileFieldChange('projectWebpage', v)}
+                  onBlur={() => onProfileFieldBlur('projectWebpage')}
                 />
                 <ProfileTextAreaField
                   label="Mission Statement"
                   placeholder="What is the primary goal of your alignment?"
+                  helperText="Min. 20 characters"
                   value={profileDraft.missionStatement}
                   errorMessage={fieldErrors.missionStatement}
                   onChangeText={(v) => onProfileFieldChange('missionStatement', v)}
+                  onBlur={() => onProfileFieldBlur('missionStatement')}
                 />
                 <ProfileTextAreaField
                   label="Redistribution Strategy"
                   placeholder="How do you plan to allocate resources?"
+                  helperText="Min. 20 characters"
                   value={profileDraft.distributionStrategy}
                   errorMessage={fieldErrors.distributionStrategy}
                   onChangeText={(v) => onProfileFieldChange('distributionStrategy', v)}
+                  onBlur={() => onProfileFieldBlur('distributionStrategy')}
                 />
               </>
             )}
