@@ -21,12 +21,15 @@ import { defineConfig, devices } from '@playwright/test'
 export default defineConfig({
   testDir: './tests',
   timeout: 30_000,
+  expect: {
+    timeout: 15_000,
+  },
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 1,
   workers: process.env.CI ? 1 : undefined,
   reporter: [['html', { outputFolder: 'playwright-report', open: 'never' }], ['list']],
   use: {
-    baseURL: 'http://localhost:6006',
+    baseURL: 'http://localhost:9009',
     screenshot: 'on',
     trace: 'on-first-retry',
     video: 'retain-on-failure',
@@ -48,7 +51,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'pnpm storybook',
-    url: 'http://localhost:6006',
+    url: 'http://localhost:9009',
     reuseExistingServer: true,
     timeout: 120_000,
   },

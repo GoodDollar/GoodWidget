@@ -3,6 +3,7 @@ export {
   createGoodWidgetConfig,
   createGoodWidgetThemes,
   mergeThemeOverrides,
+  mergeOverrideMaps,
   defaultConfig,
   defaultPreset,
 } from './config'

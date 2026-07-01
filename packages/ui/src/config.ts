@@ -237,13 +237,19 @@ export function createGoodWidgetConfig(overrides?: GoodWidgetConfig) {
       body: bodyFont,
     },
     defaultFont: 'body',
+    media: {
+      sm: { maxWidth: 480 },
+      md: { maxWidth: 768 },
+      gtSm: { minWidth: 480 },
+      gtMd: { minWidth: 768 },
+    },
   })
 }
 
 /**
  * Merges partial theme override maps by theme name.
  */
-function mergeOverrideMaps(
+export function mergeOverrideMaps(
   base?: Record<string, Partial<GoodWidgetThemeValues>>,
   override?: Record<string, Partial<GoodWidgetThemeValues>>,
 ): Record<string, Partial<GoodWidgetThemeValues>> | undefined {

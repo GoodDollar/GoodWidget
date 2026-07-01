@@ -1,4 +1,7 @@
 export { GovernanceOnboardingWidget } from './GovernanceOnboardingWidget'
+export { GovernanceWidgetProvider } from './GovernanceWidgetProvider'
+export type { GovernanceWidgetProviderProps } from './GovernanceWidgetProvider'
+export { governanceWidgetConfig } from './config'
 export type {
   GovernanceHouse,
   GovernanceIdentityStatus,
@@ -8,6 +11,7 @@ export type {
   GovernanceProfileDraft,
   GovernanceProfileFieldErrors,
   GovernanceProfileFieldKey,
+  GovernanceWizardData,
 } from './types'
 export {
   ImpactCard,
@@ -30,3 +34,5 @@ export type {
   FundingProjectAllocation,
   FundingDistributionChartProps,
 } from './governanceComponents'
+
+export { DEFAULT_TRANSACTION_STEPS } from './onboarding/constants'

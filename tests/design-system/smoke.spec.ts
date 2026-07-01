@@ -77,7 +77,7 @@ test('TokenAmount/Default story renders', async ({ page }) => {
 })
 
 test('ClaimWidget/Default story renders in mock-connected state', async ({ page }) => {
-  await gotoStory(page, 'widgets-claimwidget--default')
+  await gotoStory(page, 'theme-claimwidgetthemedemo-light--default')
   const frame = getStoryFrame(page)
   await expect(frame.getByTestId('ClaimWidget-default')).toBeVisible()
   await page.screenshot({
@@ -87,7 +87,7 @@ test('ClaimWidget/Default story renders in mock-connected state', async ({ page 
 })
 
 test('ClaimWidget/CobaltBrand story renders', async ({ page }) => {
-  await gotoStory(page, 'widgets-claimwidget--cobalt-brand')
+  await gotoStory(page, 'theme-claimwidgetthemedemo-light--cobalt-brand')
   const frame = getStoryFrame(page)
   await expect(frame.getByTestId('ClaimWidget-cobalt')).toBeVisible()
   await page.screenshot({
@@ -97,7 +97,7 @@ test('ClaimWidget/CobaltBrand story renders', async ({ page }) => {
 })
 
 test('ClaimWidget/TealBrand story renders', async ({ page }) => {
-  await gotoStory(page, 'widgets-claimwidget--teal-brand')
+  await gotoStory(page, 'theme-claimwidgetthemedemo-light--teal-brand')
   const frame = getStoryFrame(page)
   await expect(frame.getByTestId('ClaimWidget-teal')).toBeVisible()
   await page.screenshot({

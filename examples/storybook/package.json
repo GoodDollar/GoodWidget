@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "storybook": "storybook dev -p 6006",
+    "storybook": "storybook dev -p 9009 --no-open",
     "build-storybook": "storybook build",
-    "test:storybook": "test-storybook --url http://localhost:6006"
+    "test:storybook": "test-storybook --url http://localhost:9009"
   },
   "dependencies": {
     "@goodwidget/core": "workspace:*",
@@ -17,8 +17,7 @@
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "react-native-web": "^0.19.13",
-    "viem": "^2.0.0",
-    "@goodwidget/governance-widget": "workspace:*"
+    "viem": "^2.0.0"
   },
   "devDependencies": {
     "@storybook/addon-essentials": "^8.6.17",

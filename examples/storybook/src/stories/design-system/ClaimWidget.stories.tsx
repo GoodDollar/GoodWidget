@@ -78,3 +78,27 @@ export const Default: Story = {
     </GoodWidgetProvider>
   ),
 }
+
+export const CobaltBrand: Story = {
+  render: () => (
+    <GoodWidgetProvider defaultTheme="light" themeOverrides={cobaltOverrides}>
+      <MiniAppShell>
+        <YStack data-testid="ClaimWidget-cobalt" style={{ width: 380 }}>
+          <ClaimWidget provider={mockProvider} defaultTheme="light" />
+        </YStack>
+      </MiniAppShell>
+    </GoodWidgetProvider>
+  ),
+}
+
+export const TealBrand: Story = {
+  render: () => (
+    <GoodWidgetProvider defaultTheme="light" themeOverrides={tealOverrides}>
+      <MiniAppShell>
+        <YStack data-testid="ClaimWidget-teal" style={{ width: 380 }}>
+          <ClaimWidget provider={mockProvider} defaultTheme="light" />
+        </YStack>
+      </MiniAppShell>
+    </GoodWidgetProvider>
+  ),
+}

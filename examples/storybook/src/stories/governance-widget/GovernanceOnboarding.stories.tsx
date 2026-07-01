@@ -1,9 +1,11 @@
-import React from 'react'
+import type { ReactNode } from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { Card, Text, YStack } from '@goodwidget/ui'
 import {
   GovernanceOnboardingWidget,
+  governanceWidgetConfig,
   type GovernanceOnboardingWidgetProps,
+  DEFAULT_TRANSACTION_STEPS,
 } from '@goodwidget/governance-widget'
 import {
   getInjectedEip1193Provider,
@@ -17,7 +19,7 @@ const meta: Meta<typeof GovernanceOnboardingWidget> = {
   tags: ['autodocs'],
   parameters: {
     layout: 'centered',
-    goodWidgetProvider: { useShell: false, defaultTheme: 'light' },
+    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig, defaultTheme: 'light' },
   },
 }
 
@@ -52,13 +54,15 @@ function GovernanceStoryFrame({
   walletLabel,
   children,
   dataTestId,
+  width = 440,
 }: {
   walletLabel: string
-  children: React.ReactNode
+  children: ReactNode
   dataTestId: string
+  width?: number
 }) {
   return (
-    <YStack width={440} maxWidth="100%" gap="$3" data-testid={dataTestId}>
+    <YStack width={width} maxWidth="100%" gap="$3" data-testid={dataTestId}>
       <Card outlined>
         <Text variant="caption" tone="secondary">
           {walletLabel}
@@ -105,22 +109,24 @@ function CustodialGovernanceStory({
   walletLabel,
   storyProps,
   dataTestId,
+  width,
 }: {
   walletLabel: string
   storyProps: GovernanceOnboardingWidgetProps
   dataTestId: string
+  width?: number
 }) {
   try {
     createCustodialEip1193Provider()
 
     return (
-      <GovernanceStoryFrame walletLabel={walletLabel} dataTestId={dataTestId}>
+      <GovernanceStoryFrame walletLabel={walletLabel} dataTestId={dataTestId} width={width}>
         <GovernanceOnboardingWidget {...storyProps} />
       </GovernanceStoryFrame>
     )
   } catch (error: unknown) {
     return (
-      <YStack width={440} gap="$3" data-testid="GovernanceOnboardingWidget-custodial-config-error">
+      <YStack width={width ?? 440} gap="$3" data-testid="GovernanceOnboardingWidget-custodial-config-error">
         <Card>
           <Text bold>Custodial fixture not configured</Text>
           <Text tone="secondary">
@@ -146,18 +152,55 @@ export const InjectedWelcomeUnverified: Story = {
   ),
 }
 
-export const CustodialInteractiveFlow: Story = {
-  render: () => (
+import { useState, useEffect } from 'react'
+
+function CustodialInteractiveFlowStory() {
+  const [stepsState, setStepsState] = useState<StepperStepItem[]>(() =>
+    DEFAULT_TRANSACTION_STEPS.map((s) => ({ ...s }))
+  )
+  const [currentStepId, setCurrentStepId] = useState<GovernanceOnboardingStepId>('welcome')
+
+  useEffect(() => {
+    if (currentStepId === 'stake') {
+      const interval = setInterval(() => {
+        setStepsState((prev) => {
+          const nextSteps = prev.map((s) => ({ ...s }))
+          const activeIndex = nextSteps.findIndex((s) => s.status !== 'completed')
+          if (activeIndex !== -1) {
+            nextSteps[activeIndex].status = 'completed'
+            if (activeIndex + 1 < nextSteps.length) {
+              nextSteps[activeIndex + 1].status = 'active'
+            }
+            return nextSteps
+          }
+          clearInterval(interval)
+          return prev
+        })
+      }, 500)
+      return () => clearInterval(interval)
+    }
+  }, [currentStepId])
+
+  return (
     <CustodialGovernanceStory
       walletLabel="Custodial wallet fixture"
       dataTestId="GovernanceOnboardingWidget-custodial-interactive"
       storyProps={{
         identityStatus: 'verified',
         initialStepId: 'welcome',
+        walletAddress: '0x4E5B2D7a45C2e31a8F0d09b4bE1fA11aD3aC9F08',
         dataTestId: 'GovernanceOnboardingWidget-interactive-flow',
+        transactionSteps: stepsState,
+        onStepChange: (stepId) => {
+          setCurrentStepId(stepId)
+        },
       }}
     />
-  ),
+  )
+}
+
+export const CustodialInteractiveFlow: Story = {
+  render: () => <CustodialInteractiveFlowStory />,
 }
 
 export const CustodialWelcomeUnverified: Story = {
@@ -168,6 +211,7 @@ export const CustodialWelcomeUnverified: Story = {
       storyProps={{
         currentStepId: 'welcome',
         identityStatus: 'unverified',
+        walletAddress: '0x4E5B2D7a45C2e31a8F0d09b4bE1fA11aD3aC9F08',
         dataTestId: 'GovernanceOnboardingWidget-welcome-unverified-custodial',
       }}
     />
@@ -209,7 +253,7 @@ export const CustodialCitizenshipProfileReady: Story = {
 
 export const CustodialAlignmentProfileError: Story = {
   parameters: {
-    goodWidgetProvider: { useShell: false, defaultTheme: 'dark' },
+    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig, defaultTheme: 'dark' },
   },
   render: () => (
     <CustodialGovernanceStory
@@ -235,7 +279,7 @@ export const CustodialAlignmentProfileError: Story = {
 
 export const CustodialStakeProgress: Story = {
   parameters: {
-    goodWidgetProvider: { useShell: false, defaultTheme: 'dark' },
+    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig, defaultTheme: 'dark' },
   },
   render: () => (
     <CustodialGovernanceStory
@@ -253,6 +297,9 @@ export const CustodialStakeProgress: Story = {
 }
 
 export const CustodialSuccess: Story = {
+  parameters: {
+    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig },
+  },
   render: () => (
     <CustodialGovernanceStory
       walletLabel="Custodial wallet fixture"
@@ -261,11 +308,115 @@ export const CustodialSuccess: Story = {
         currentStepId: 'success',
         identityStatus: 'verified',
         initialHouse: 'alignment',
+        // Figma: proposals = primary (white bg, blue text), profile = secondary (transparent, white text)
         finalActions: [
-          { id: 'dashboard', label: 'Open governance dashboard', variant: 'primary' },
-          { id: 'proposal', label: 'Review proposal queue', variant: 'secondary' },
+          { id: 'proposals', label: 'Explore Governance Proposals', variant: 'primary' },
+          { id: 'profile', label: 'Go to my profile', variant: 'secondary' },
         ],
         dataTestId: 'GovernanceOnboardingWidget-success',
+      }}
+    />
+  ),
+}
+
+/** Dark-theme welcome — demonstrates theme mapping works for the identity card */
+export const CustodialDarkWelcomeVerified: Story = {
+  parameters: {
+    goodWidgetProvider: { useShell: true, config: governanceWidgetConfig, defaultTheme: 'dark' },
+  },
+  render: () => (
+    <CustodialGovernanceStory
+      walletLabel="Custodial wallet fixture"
+      dataTestId="GovernanceOnboardingWidget-custodial-dark-welcome"
+      storyProps={{
+        currentStepId: 'welcome',
+        identityStatus: 'verified',
+        dataTestId: 'GovernanceOnboardingWidget-dark-welcome',
+      }}
+    />
+  ),
+}
+
+/** Dark-theme house selection — demonstrates house card and radio-bullet theme mapping */
+export const CustodialDarkHouseSelection: Story = {
+  parameters: {
+    goodWidgetProvider: { useShell: true, config: governanceWidgetConfig, defaultTheme: 'dark' },
+  },
+  render: () => (
+    <CustodialGovernanceStory
+      walletLabel="Custodial wallet fixture"
+      dataTestId="GovernanceOnboardingWidget-custodial-dark-house"
+      storyProps={{
+        currentStepId: 'house',
+        identityStatus: 'verified',
+        dataTestId: 'GovernanceOnboardingWidget-dark-house',
+      }}
+    />
+  ),
+}
+
+function CustodialGovernanceStoryAtWidth({
+  walletLabel,
+  storyProps,
+  dataTestId,
+  width,
+}: {
+  walletLabel: string
+  storyProps: GovernanceOnboardingWidgetProps
+  dataTestId: string
+  width: number
+}) {
+  return (
+    <CustodialGovernanceStory
+      walletLabel={walletLabel}
+      dataTestId={dataTestId}
+      storyProps={{
+        ...storyProps,
+        dataTestId,
+      }}
+      width={width}
+    />
+  )
+}
+
+export const CustodialMobileWelcome: Story = {
+  parameters: {
+    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig },
+    viewport: { defaultViewport: 'mobile1' },
+  },
+  render: () => (
+    <CustodialGovernanceStoryAtWidth
+      walletLabel="Custodial wallet fixture"
+      dataTestId="GovernanceOnboardingWidget-mobile-welcome"
+      width={328}
+      storyProps={{
+        currentStepId: 'welcome',
+        identityStatus: 'verified',
+      }}
+    />
+  ),
+}
+
+export const CustodialMobileDarkProfile: Story = {
+  parameters: {
+    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig, defaultTheme: 'dark' },
+    viewport: { defaultViewport: 'mobile1' },
+  },
+  render: () => (
+    <CustodialGovernanceStoryAtWidth
+      walletLabel="Custodial wallet fixture"
+      dataTestId="GovernanceOnboardingWidget-mobile-dark-profile"
+      width={328}
+      storyProps={{
+        currentStepId: 'profile',
+        identityStatus: 'verified',
+        initialHouse: 'alignment',
+        initialProfileDraft: { name: 'Solar Commons' },
+        initialFieldErrors: {
+          projectWebpage: 'Project webpage is required',
+          missionStatement: 'Mission statement is required',
+          distributionStrategy: 'Distribution strategy is required',
+        },
       }}
     />
   ),
