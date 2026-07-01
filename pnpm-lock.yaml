@@ -349,6 +349,9 @@ importers:
 
   packages/goodreserve-widget:
     dependencies:
+      '@goodsdks/good-reserve':
+        specifier: ^0.1.0
+        version: 0.1.0(@swc/core@1.15.30)(postcss@8.5.8)(typescript@5.9.3)(viem@2.48.4(typescript@5.9.3))(yaml@2.8.3)
       '@goodwidget/core':
         specifier: workspace:*
         version: link:../core
@@ -1637,6 +1640,11 @@ packages:
     peerDependencies:
       viem: '*'
       wagmi: '*'
+
+  '@goodsdks/good-reserve@0.1.0':
+    resolution: {integrity: sha512-hkrnCdlV8LAg5k7YigCp8yIyfZ36KwST69DtDJ21kYW0byrggllUI5qkkgsSitdq4VyrCaYFsW6IGxISJLdeVQ==}
+    peerDependencies:
+      viem: '*'
 
   '@hapi/hoek@9.3.0':
     resolution: {integrity: sha512-/c6rf4UJlmHlC9b5BaNvzAcFv7HZ2QHaV0D4/HNlBdvFnvQq8RI4kYdhyPCl7Xj+oWvTWQ8ujhqS53LIgAe6KQ==}
@@ -8783,6 +8791,20 @@ snapshots:
       tsup: 8.5.1(@swc/core@1.15.30)(postcss@8.5.8)(typescript@5.9.3)(yaml@2.8.3)
       viem: 2.48.4(typescript@5.9.3)
       wagmi: 3.6.8(@tanstack/query-core@5.100.6)(@tanstack/react-query@5.100.6(react@18.3.1))(@types/react@18.3.28)(react@18.3.1)(typescript@5.9.3)(viem@2.48.4(typescript@5.9.3))
+    transitivePeerDependencies:
+      - '@microsoft/api-extractor'
+      - '@swc/core'
+      - jiti
+      - postcss
+      - supports-color
+      - tsx
+      - typescript
+      - yaml
+
+  '@goodsdks/good-reserve@0.1.0(@swc/core@1.15.30)(postcss@8.5.8)(typescript@5.9.3)(viem@2.48.4(typescript@5.9.3))(yaml@2.8.3)':
+    dependencies:
+      tsup: 8.5.1(@swc/core@1.15.30)(postcss@8.5.8)(typescript@5.9.3)(yaml@2.8.3)
+      viem: 2.48.4(typescript@5.9.3)
     transitivePeerDependencies:
       - '@microsoft/api-extractor'
       - '@swc/core'

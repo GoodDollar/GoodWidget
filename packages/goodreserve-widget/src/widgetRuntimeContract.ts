@@ -6,7 +6,7 @@ export type ReserveSwapWidgetStatus =
   | 'no_provider'
   | 'unsupported_chain'
   | 'sdk_initializing'
-  | 'idle_buy'
+  | 'idle'
   | 'amount_editing'
   | 'quote_loading'
   | 'quote_ready'
@@ -22,6 +22,8 @@ export interface ReserveSwapQuoteView {
   outputAmount: string
   price: string
   minimumReceived: string
+  /** Raw minReturn (base units, BigInt-as-string) submitted on-chain. Matches `minimumReceived`. */
+  minReturnRaw?: string
   priceImpactPercent: string
   exitContributionPercent: string
 }
@@ -42,6 +44,10 @@ export interface ReserveSwapWidgetAdapterState {
   warning: string | null
   error: string | null
   txHash: string | null
+  /** Output amount of the most recent successful swap (preserved after quote is cleared). */
+  lastSwapOutput: string | null
+  /** Epoch ms after which the current quote is considered stale (null when no quote). */
+  quoteExpiresAt: number | null
 }
 
 export interface ReserveSwapWidgetAdapterActions {
@@ -80,7 +86,13 @@ export interface ReserveSwapWidgetProps {
   provider?: unknown
   config?: GoodWidgetConfig
   themeOverrides?: GoodWidgetThemeOverrides
-  defaultTheme?: 'light' | 'dark'
+  /**
+   * The GoodReserve widget is dark-only (the GoodWalletV2 design system has no
+   * light variant for it), so only 'dark' is supported.
+   */
+  defaultTheme?: 'dark'
+  /** Chain proposed by the unsupported-chain CTA. Defaults to Celo (42220). */
+  preferredChainId?: number
   onSwapSuccess?: (detail: ReserveSwapSuccessDetail) => void
   onSwapError?: (detail: ReserveSwapErrorDetail) => void
   mockState?: Partial<ReserveSwapWidgetAdapterState>

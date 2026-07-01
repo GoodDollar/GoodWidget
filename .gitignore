@@ -9,6 +9,9 @@ coverage/
 .vite/
 .codex
 /test-results/
+# Per-widget tests/<widget>/test-results/ folders are tracked as UI evidence
+# baselines (mirrors citizen-claim-widget's pattern). The root /test-results/
+# above is the Playwright transient trace/video output and stays ignored.
 playwright-report/
 **/storybook-static/
 **/.yalc

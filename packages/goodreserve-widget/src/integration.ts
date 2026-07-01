@@ -1,14 +1,15 @@
+import { CELO_CHAIN_ID, XDC_CHAIN_ID } from '@goodsdks/good-reserve'
+
 export const goodReserveWidgetIntegration = {
   id: 'goodreserve-swap',
   sdk: '@goodsdks/good-reserve',
-  capabilitySource: 'goodReserveSdkCapabilities',
   uses: ['getBuyQuote', 'getSellQuote', 'buy', 'sell', 'getReserveStats'],
-  chains: [42220, 50],
+  chains: [CELO_CHAIN_ID, XDC_CHAIN_ID],
   states: [
     'no_provider',
     'unsupported_chain',
     'sdk_initializing',
-    'idle_buy',
+    'idle',
     'amount_editing',
     'quote_loading',
     'quote_ready',

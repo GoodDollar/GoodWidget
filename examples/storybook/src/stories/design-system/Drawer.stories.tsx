@@ -46,6 +46,8 @@ export const Default: Story = {
     const trigger = canvas.getByRole('button', { name: /open drawer/i })
     await userEvent.click(trigger)
     // After clicking, the Close button should appear inside the Drawer
-    await expect(canvas.getByRole('button', { name: /close/i })).toBeDefined()
+    // The Drawer is rendered in a portal, so we need to search the entire document
+    const closeButton = await within(document.body).findByRole('button', { name: /close/i })
+    await expect(closeButton).toBeDefined()
   },
 }
