@@ -38,10 +38,6 @@ interface SuccessStepContentProps {
   onFinalActionPress?: (actionId: string) => void
 }
 
-/**
- * Inner component rendered within the active OnboardingSuccessCard theme context.
- * Styles the buttons directly with custom opacity overlays and standard theme keys.
- */
 function SuccessStepInner({
   finalActions,
   onFinalActionPress,
@@ -53,27 +49,19 @@ function SuccessStepInner({
     <YStack width="100%" gap="$3">
       {finalActions.map((action) => {
         const isPrimary = action.variant === 'primary'
-        const bg = isPrimary ? '$white' : 'rgba(255, 255, 255, 0.2)'
-        const hoverBg = isPrimary ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.3)'
-        const pressBg = isPrimary ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.15)'
-        const textColor = isPrimary ? '$background' : '$white'
 
         return (
           <Button
             key={action.id}
             fullWidth
-            variant={isPrimary ? 'primary' : 'ghost'}
+            theme={isPrimary ? 'OnboardingSuccessCardPrimary' : 'OnboardingSuccessCardSecondary'}
             disabled={action.disabled}
             onPress={() => onFinalActionPress?.(action.id)}
             data-testid={`GovernanceOnboardingWidget-success-${action.id}`}
-            backgroundColor={bg}
-            color={textColor}
             borderRadius="$3"
             paddingVertical="$4"
             height="auto"
             minHeight={isPrimary ? 88 : 62}
-            hoverStyle={{ backgroundColor: hoverBg }}
-            pressStyle={{ backgroundColor: pressBg }}
           >
             <XStack alignItems="center" justifyContent="center" gap="$3" width="100%" paddingHorizontal="$4">
               {isPrimary ? (
@@ -82,7 +70,6 @@ function SuccessStepInner({
                 <Icon name="user" size="xs" color="inherit" />
               )}
               <ButtonText
-                color={textColor}
                 fontSize="$5"
                 fontWeight="700"
                 textAlign="center"
