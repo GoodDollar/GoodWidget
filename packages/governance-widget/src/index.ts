@@ -34,3 +34,5 @@ export type {
   FundingProjectAllocation,
   FundingDistributionChartProps,
 } from './governanceComponents'
+
+export { DEFAULT_TRANSACTION_STEPS } from './onboarding/constants'

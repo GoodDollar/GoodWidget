@@ -5,6 +5,7 @@ import {
   GovernanceOnboardingWidget,
   governanceWidgetConfig,
   type GovernanceOnboardingWidgetProps,
+  DEFAULT_TRANSACTION_STEPS,
 } from '@goodwidget/governance-widget'
 import {
   getInjectedEip1193Provider,
@@ -18,7 +19,7 @@ const meta: Meta<typeof GovernanceOnboardingWidget> = {
   tags: ['autodocs'],
   parameters: {
     layout: 'centered',
-    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig },
+    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig, defaultTheme: 'light' },
   },
 }
 
@@ -151,8 +152,36 @@ export const InjectedWelcomeUnverified: Story = {
   ),
 }
 
-export const CustodialInteractiveFlow: Story = {
-  render: () => (
+import { useState, useEffect } from 'react'
+
+function CustodialInteractiveFlowStory() {
+  const [stepsState, setStepsState] = useState<StepperStepItem[]>(() =>
+    DEFAULT_TRANSACTION_STEPS.map((s) => ({ ...s }))
+  )
+  const [currentStepId, setCurrentStepId] = useState<GovernanceOnboardingStepId>('welcome')
+
+  useEffect(() => {
+    if (currentStepId === 'stake') {
+      const interval = setInterval(() => {
+        setStepsState((prev) => {
+          const nextSteps = prev.map((s) => ({ ...s }))
+          const activeIndex = nextSteps.findIndex((s) => s.status !== 'completed')
+          if (activeIndex !== -1) {
+            nextSteps[activeIndex].status = 'completed'
+            if (activeIndex + 1 < nextSteps.length) {
+              nextSteps[activeIndex + 1].status = 'active'
+            }
+            return nextSteps
+          }
+          clearInterval(interval)
+          return prev
+        })
+      }, 500)
+      return () => clearInterval(interval)
+    }
+  }, [currentStepId])
+
+  return (
     <CustodialGovernanceStory
       walletLabel="Custodial wallet fixture"
       dataTestId="GovernanceOnboardingWidget-custodial-interactive"
@@ -161,9 +190,17 @@ export const CustodialInteractiveFlow: Story = {
         initialStepId: 'welcome',
         walletAddress: '0x4E5B2D7a45C2e31a8F0d09b4bE1fA11aD3aC9F08',
         dataTestId: 'GovernanceOnboardingWidget-interactive-flow',
+        transactionSteps: stepsState,
+        onStepChange: (stepId) => {
+          setCurrentStepId(stepId)
+        },
       }}
     />
-  ),
+  )
+}
+
+export const CustodialInteractiveFlow: Story = {
+  render: () => <CustodialInteractiveFlowStory />,
 }
 
 export const CustodialWelcomeUnverified: Story = {
@@ -216,7 +253,7 @@ export const CustodialCitizenshipProfileReady: Story = {
 
 export const CustodialAlignmentProfileError: Story = {
   parameters: {
-    goodWidgetProvider: { useShell: false, defaultTheme: 'dark' },
+    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig, defaultTheme: 'dark' },
   },
   render: () => (
     <CustodialGovernanceStory
@@ -242,7 +279,7 @@ export const CustodialAlignmentProfileError: Story = {
 
 export const CustodialStakeProgress: Story = {
   parameters: {
-    goodWidgetProvider: { useShell: false, defaultTheme: 'dark' },
+    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig, defaultTheme: 'dark' },
   },
   render: () => (
     <CustodialGovernanceStory
@@ -285,7 +322,7 @@ export const CustodialSuccess: Story = {
 /** Dark-theme welcome — demonstrates theme mapping works for the identity card */
 export const CustodialDarkWelcomeVerified: Story = {
   parameters: {
-    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig, defaultTheme: 'dark' },
+    goodWidgetProvider: { useShell: true, config: governanceWidgetConfig, defaultTheme: 'dark' },
   },
   render: () => (
     <CustodialGovernanceStory
@@ -303,7 +340,7 @@ export const CustodialDarkWelcomeVerified: Story = {
 /** Dark-theme house selection — demonstrates house card and radio-bullet theme mapping */
 export const CustodialDarkHouseSelection: Story = {
   parameters: {
-    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig, defaultTheme: 'dark' },
+    goodWidgetProvider: { useShell: true, config: governanceWidgetConfig, defaultTheme: 'dark' },
   },
   render: () => (
     <CustodialGovernanceStory
@@ -344,7 +381,7 @@ function CustodialGovernanceStoryAtWidth({
 
 export const CustodialMobileWelcome: Story = {
   parameters: {
-    goodWidgetProvider: { useShell: false, defaultTheme: 'light' },
+    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig },
     viewport: { defaultViewport: 'mobile1' },
   },
   render: () => (
@@ -362,7 +399,7 @@ export const CustodialMobileWelcome: Story = {
 
 export const CustodialMobileDarkProfile: Story = {
   parameters: {
-    goodWidgetProvider: { useShell: false, defaultTheme: 'dark' },
+    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig, defaultTheme: 'dark' },
     viewport: { defaultViewport: 'mobile1' },
   },
   render: () => (

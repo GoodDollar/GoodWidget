@@ -173,7 +173,7 @@ export const ButtonText = styled(TamaguiText, {
   fontFamily: '$body',
   fontSize: '$3',
   fontWeight: '600',
-  color: '$color',
+  color: '$textColor',
   userSelect: 'none',
 })
 
@@ -211,19 +211,9 @@ export interface ButtonProps {
  */
 export function Button({ variant = 'primary', children, ...props }: ButtonProps) {
   const needsReset = variant !== 'primary'
-  const resolvedChildren = React.Children.map(children, (child) => {
-    if (React.isValidElement(child)) {
-      const childProps = child.props as Record<string, unknown>
-      if (needsReset && !childProps.color) {
-        return React.cloneElement(child, { color: '$textColor' })
-      }
-    }
-    return child
-  })
-
   return (
     <ButtonFrame variant={variant} {...props}>
-      {needsReset ? <Theme reset>{resolvedChildren}</Theme> : resolvedChildren}
+      {needsReset ? <Theme reset>{children}</Theme> : children}
     </ButtonFrame>
   )
 }

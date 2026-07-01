@@ -56,7 +56,7 @@ test('Governance onboarding interactive flow persists selected house into profil
   })
 
   await page.getByPlaceholder('John Doe or Organization').fill('Solar Commons')
-  await page.getByPlaceholder('https://...').fill('https://solar.example')
+  await page.getByPlaceholder('https://example.com').fill('https://solar.example')
   await page
     .getByPlaceholder(
       'What is the primary goal of your alignment?',
@@ -78,6 +78,7 @@ test('Governance onboarding interactive flow persists selected house into profil
   })
 
   await page.getByRole('button', { name: 'Continue to success' }).scrollIntoViewIfNeeded()
+  await expect(page.getByRole('button', { name: 'Continue to success' })).toBeEnabled()
   await page.getByRole('button', { name: 'Continue to success' }).click({ force: true })
   await expect(page.getByText('Welcome to Governance', { exact: true })).toBeVisible()
   await page.screenshot({
@@ -169,7 +170,7 @@ test('Profile field handles rapid typing without losing characters (stale-closur
 
   await expect(nameInput).toHaveValue(longName)
 
-  const webpageInput = page.getByPlaceholder('https://...')
+  const webpageInput = page.getByPlaceholder('https://example.com')
   const longWebpage = `https://${'y'.repeat(40)}.example`
   await webpageInput.click()
   await page.keyboard.type(longWebpage, { delay: 0 })

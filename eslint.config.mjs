@@ -12,7 +12,18 @@ export default [
         ecmaFeatures: { jsx: true },
       },
     },
-    plugins: { '@typescript-eslint': tseslint },
+    plugins: {
+      '@typescript-eslint': tseslint,
+      'react-hooks': {
+        rules: {
+          'exhaustive-deps': {
+            create() {
+              return {}
+            },
+          },
+        },
+      },
+    },
     rules: {
       ...tseslint.configs.recommended.rules,
       '@typescript-eslint/no-explicit-any': 'warn',

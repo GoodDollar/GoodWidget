@@ -134,7 +134,7 @@ export function ProfileStepContent({
               <>
                 <FormField
                   label="External Link"
-                  placeholder="https://..."
+                  placeholder="https://example.com"
                   value={profileDraft.projectWebpage}
                   errorMessage={fieldErrors.projectWebpage}
                   onChangeText={(v) => onProfileFieldChange('projectWebpage', v)}

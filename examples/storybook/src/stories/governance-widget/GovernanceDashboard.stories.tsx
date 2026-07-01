@@ -140,7 +140,7 @@ export const ImpactLight: Story = {
 
 export const ImpactDarkLongDisabledMobile: Story = {
   parameters: {
-    goodWidgetProvider: { useShell: false, defaultTheme: 'dark' },
+    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig, defaultTheme: 'dark' },
     viewport: { defaultViewport: 'mobile1' },
   },
   render: () => (
@@ -170,7 +170,7 @@ export const ImpactDarkLongDisabledMobile: Story = {
 
 export const BalanceVariantsLight: Story = {
   parameters: {
-    goodWidgetProvider: { useShell: false, defaultTheme: 'light' },
+    goodWidgetProvider: { useShell: false },
   },
   render: () => (
     <XStack flexWrap="wrap" gap="$3" padding="$3" width={560}>
@@ -194,7 +194,7 @@ export const BalanceVariantsLight: Story = {
 }
 
 export const BalanceDarkCompact: Story = {
-  parameters: { goodWidgetProvider: { useShell: false, defaultTheme: 'dark' } },
+  parameters: { goodWidgetProvider: { useShell: false, config: governanceWidgetConfig, defaultTheme: 'dark' } },
   render: () => (
     <GovernanceStoryFrame width={252} theme="dark">
       <BalanceCard
@@ -226,7 +226,7 @@ export const AlignmentDefaultLight: Story = {
 }
 
 export const AlignmentDarkLongOptions: Story = {
-  parameters: { goodWidgetProvider: { useShell: false, defaultTheme: 'dark' } },
+  parameters: { goodWidgetProvider: { useShell: false, config: governanceWidgetConfig, defaultTheme: 'dark' } },
   render: () => (
     <GovernanceStoryFrame theme="dark">
       <AlignmentVotingProposalCard
@@ -261,7 +261,7 @@ export const OptimisticHighQuorumLight: Story = {
 }
 
 export const OptimisticDarkLowQuorumMixed: Story = {
-  parameters: { goodWidgetProvider: { useShell: false, defaultTheme: 'dark' } },
+  parameters: { goodWidgetProvider: { useShell: false, config: governanceWidgetConfig, defaultTheme: 'dark' } },
   render: () => (
     <GovernanceStoryFrame theme="dark">
       <OptimisticVotingProposalCard
@@ -294,7 +294,7 @@ export const FundingDistributionLight: Story = {
 
 export const FundingDistributionDarkEmptyMobile: Story = {
   parameters: {
-    goodWidgetProvider: { useShell: false, defaultTheme: 'dark' },
+    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig, defaultTheme: 'dark' },
     viewport: { defaultViewport: 'mobile1' },
   },
   render: () => (

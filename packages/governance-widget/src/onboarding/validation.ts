@@ -23,6 +23,18 @@ function createRequiredFieldLabel(fieldKey: GovernanceProfileFieldKey): string {
   }
 }
 
+const URL_FIELDS: GovernanceProfileFieldKey[] = ['socialLinks', 'projectWebpage']
+
+function isValidUrl(val: string): boolean {
+  if (!/^https:\/\//i.test(val)) return false
+  try {
+    new URL(val)
+    return true
+  } catch (_) {
+    return false
+  }
+}
+
 export function validateProfileDraft(
   selectedHouse: GovernanceHouse,
   profileDraft: GovernanceProfileDraft,
@@ -32,6 +44,8 @@ export function validateProfileDraft(
       const fieldValue = profileDraft[fieldKey]?.trim()
       if (!fieldValue) {
         errors[fieldKey] = createRequiredFieldLabel(fieldKey)
+      } else if (URL_FIELDS.includes(fieldKey) && !isValidUrl(fieldValue)) {
+        errors[fieldKey] = 'Please enter a valid URL starting with https://'
       }
       return errors
     },

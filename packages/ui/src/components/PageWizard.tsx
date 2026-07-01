@@ -221,7 +221,19 @@ export function PageWizardShell({
   // This allows a terminal step (e.g. success) to be excluded from the track.
   const displaySteps = stepperSteps ?? steps
   const displayCurrentIndex = stepperSteps
-    ? Math.max(0, stepperSteps.findIndex((s) => s.id === currentStep?.id))
+    ? (() => {
+        const idx = stepperSteps.findIndex((s) => s.id === currentStep?.id)
+        if (idx !== -1) return idx
+        const fullIndex = steps.findIndex((s) => s.id === currentStep?.id)
+        if (fullIndex !== -1) {
+          const lastStepperStep = stepperSteps[stepperSteps.length - 1]
+          const lastStepperFullIndex = steps.findIndex((s) => s.id === lastStepperStep?.id)
+          if (lastStepperFullIndex !== -1 && fullIndex > lastStepperFullIndex) {
+            return stepperSteps.length
+          }
+        }
+        return 0
+      })()
     : currentIndex
 
   return (
