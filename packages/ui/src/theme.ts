@@ -156,15 +156,6 @@ export function createThemeValues(
       shadowColorPress: 'rgba(0,0,0,0.05)',
       shadowColorFocus: 'rgba(0,0,0,0.15)',
       elevationShadowColor: 'rgba(0,0,0,0.2)',
-
-      primaryButtonBackground: color.white,
-      primaryButtonBackgroundHover: 'rgba(255, 255, 255, 0.9)',
-      primaryButtonBackgroundPress: 'rgba(255, 255, 255, 0.8)',
-      primaryButtonColor: color.primary,
-      secondaryButtonBackground: 'rgba(255, 255, 255, 0.2)',
-      secondaryButtonBackgroundHover: 'rgba(255, 255, 255, 0.3)',
-      secondaryButtonBackgroundPress: 'rgba(255, 255, 255, 0.15)',
-      secondaryButtonColor: color.white,
     },
 
     dark: {

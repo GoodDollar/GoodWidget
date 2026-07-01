@@ -1,4 +1,4 @@
-import { YStack, XStack, Theme, useTheme } from 'tamagui'
+import { YStack, XStack, Theme } from 'tamagui'
 import { Button, ButtonText, Heading, Icon, Text, createComponent } from '@goodwidget/ui'
 import type { GovernanceOnboardingAction } from '../../types'
 
@@ -40,8 +40,7 @@ interface SuccessStepContentProps {
 
 /**
  * Inner component rendered within the active OnboardingSuccessCard theme context.
- * Uses useTheme() to resolve custom button color variables from the active theme,
- * keeping all raw color values in config.ts and this component free of hardcoded hex.
+ * Styles the buttons directly with custom opacity overlays and standard theme keys.
  */
 function SuccessStepInner({
   finalActions,
@@ -50,41 +49,24 @@ function SuccessStepInner({
   finalActions: GovernanceOnboardingAction[]
   onFinalActionPress?: (actionId: string) => void
 }) {
-  const theme = useTheme()
-
-  // Resolved from light_OnboardingSuccessCard / dark_OnboardingSuccessCard in config.ts
-  const primaryBg = theme.primaryButtonBackground?.get()
-  const primaryBgHover = theme.primaryButtonBackgroundHover?.get()
-  const primaryBgPress = theme.primaryButtonBackgroundPress?.get()
-  const primaryColor = theme.primaryButtonColor?.get()
-
-  const secondaryBg = theme.secondaryButtonBackground?.get()
-  const secondaryBgHover = theme.secondaryButtonBackgroundHover?.get()
-  const secondaryBgPress = theme.secondaryButtonBackgroundPress?.get()
-  const secondaryColor = theme.secondaryButtonColor?.get()
-
   return (
     <YStack width="100%" gap="$3">
       {finalActions.map((action) => {
         const isPrimary = action.variant === 'primary'
-        const bg = isPrimary ? primaryBg : secondaryBg
-        const textColor = isPrimary ? primaryColor : secondaryColor
-        const hoverBg = isPrimary ? primaryBgHover : secondaryBgHover
-        const pressBg = isPrimary ? primaryBgPress : secondaryBgPress
-
-        // Icon color must be a semantic key; primary button icon uses the brand blue
-        // resolved via $color on the primary theme, secondary stays white.
-        const iconColor = isPrimary ? 'primary' : 'white'
+        const bg = isPrimary ? '$white' : 'rgba(255, 255, 255, 0.2)'
+        const hoverBg = isPrimary ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.3)'
+        const pressBg = isPrimary ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.15)'
+        const textColor = isPrimary ? '$background' : '$white'
 
         return (
           <Button
             key={action.id}
             fullWidth
-            variant={action.variant}
             disabled={action.disabled}
             onPress={() => onFinalActionPress?.(action.id)}
             data-testid={`GovernanceOnboardingWidget-success-${action.id}`}
             backgroundColor={bg}
+            color={textColor}
             borderRadius="$3"
             paddingVertical="$4"
             height="auto"
@@ -94,9 +76,9 @@ function SuccessStepInner({
           >
             <XStack alignItems="center" justifyContent="center" gap="$3" width="100%" paddingHorizontal="$4">
               {isPrimary ? (
-                <Icon name="compass" size="sm" color={iconColor} />
+                <Icon name="compass" size="sm" color="inherit" />
               ) : (
-                <Icon name="user" size="xs" color={iconColor} />
+                <Icon name="user" size="xs" color="inherit" />
               )}
               <ButtonText
                 color={textColor}
