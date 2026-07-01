@@ -23,8 +23,15 @@ import {
   PopulatedStateStory,
   WrongChainStory,
 } from '../helpers/streamingWidgetStories'
+import { BRAND_PRESET_OPTIONS, brandPresetOverrides, type BrandPreset } from '../helpers/themeOverridePresets'
 
-const meta: Meta<typeof StreamingWidget> = {
+interface StreamingWidgetQAArgs {
+  apiKey?: string
+  defaultTheme: 'light' | 'dark'
+  brandPreset: BrandPreset
+}
+
+const meta: Meta<StreamingWidgetQAArgs> = {
   title: 'QA/StreamingWidget/Runtime Fixtures',
   component: StreamingWidget,
   tags: ['autodocs', 'qa'],
@@ -41,95 +48,167 @@ const meta: Meta<typeof StreamingWidget> = {
       description:
         'Optional TheGraph key passed to the SDK-backed streaming adapter for Base SUP reserve queries.',
     },
+    defaultTheme: {
+      control: 'radio',
+      options: ['dark', 'light'],
+      description: 'Base theme applied via the widget’s own defaultTheme prop.',
+    },
+    brandPreset: {
+      control: 'select',
+      options: BRAND_PRESET_OPTIONS,
+      description: 'Sample host-branding themeOverrides preset.',
+    },
   },
   args: {
     apiKey: '',
+    defaultTheme: 'dark',
+    brandPreset: 'None',
   },
 }
 
 export default meta
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<StreamingWidgetQAArgs>
 
 export const CustodialLocalFixture: Story = {
-  render: ({ apiKey }) => <CustodialLocalFixtureStory apiKey={apiKey} />,
+  render: ({ apiKey, defaultTheme, brandPreset }) => (
+    <CustodialLocalFixtureStory
+      apiKey={apiKey}
+      defaultTheme={defaultTheme}
+      themeOverrides={brandPresetOverrides(brandPreset)}
+    />
+  ),
 }
 
 export const NoWallet: Story = {
-  render: () => <NoWalletStory />,
+  render: ({ defaultTheme, brandPreset }) => (
+    <NoWalletStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
 }
 
 export const WrongChain: Story = {
-  render: () => <WrongChainStory />,
+  render: ({ defaultTheme, brandPreset }) => (
+    <WrongChainStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
 }
 
 export const LoadingState: Story = {
-  render: () => <LoadingStateStory />,
+  render: ({ defaultTheme, brandPreset }) => (
+    <LoadingStateStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
 }
 
 export const EmptyState: Story = {
-  render: () => <EmptyStateStory />,
+  render: ({ defaultTheme, brandPreset }) => (
+    <EmptyStateStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
 }
 
 export const ErrorState: Story = {
-  render: () => <ErrorStateStory />,
+  render: ({ defaultTheme, brandPreset }) => (
+    <ErrorStateStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
 }
 
 export const PopulatedState: Story = {
-  render: () => <PopulatedStateStory />,
+  render: ({ defaultTheme, brandPreset }) => (
+    <PopulatedStateStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
 }
 
+/** Always mounts with defaultTheme="light" regardless of the control, to demonstrate the
+ * explicit light-theme branch; brandPreset still applies on top. */
 export const LightThemePopulated: Story = {
-  render: () => <LightThemePopulatedStory />,
+  render: ({ brandPreset }) => (
+    <LightThemePopulatedStory themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
 }
 
 export const CreateUpdateForm: Story = {
-  render: () => <CreateUpdateFormStory />,
+  render: ({ defaultTheme, brandPreset }) => (
+    <CreateUpdateFormStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
 }
 
 export const CreateUpdateInvalidInput: Story = {
-  render: () => <CreateUpdateInvalidInputStory />,
+  render: ({ defaultTheme, brandPreset }) => (
+    <CreateUpdateInvalidInputStory
+      defaultTheme={defaultTheme}
+      themeOverrides={brandPresetOverrides(brandPreset)}
+    />
+  ),
 }
 
 export const CreateUpdatePending: Story = {
-  render: () => <CreateUpdatePendingStory />,
+  render: ({ defaultTheme, brandPreset }) => (
+    <CreateUpdatePendingStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
 }
 
 export const CreateUpdateSuccess: Story = {
-  render: () => <CreateUpdateSuccessStory />,
+  render: ({ defaultTheme, brandPreset }) => (
+    <CreateUpdateSuccessStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
 }
 
 export const CreateUpdateFailure: Story = {
-  render: () => <CreateUpdateFailureStory />,
+  render: ({ defaultTheme, brandPreset }) => (
+    <CreateUpdateFailureStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
 }
 
 export const PoolClaimState: Story = {
-  render: () => <PoolClaimStateStory />,
+  render: ({ defaultTheme, brandPreset }) => (
+    <PoolClaimStateStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
 }
 
 export const PoolConnectedState: Story = {
-  render: () => <PoolConnectedStateStory />,
+  render: ({ defaultTheme, brandPreset }) => (
+    <PoolConnectedStateStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
 }
 
 export const PoolClaimPending: Story = {
-  render: () => <PoolClaimPendingStory />,
+  render: ({ defaultTheme, brandPreset }) => (
+    <PoolClaimPendingStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
 }
 
 export const PoolClaimSuccess: Story = {
-  render: () => <PoolClaimSuccessStory />,
+  render: ({ defaultTheme, brandPreset }) => (
+    <PoolClaimSuccessStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
 }
 
 export const PoolClaimError: Story = {
-  render: () => <PoolClaimErrorStory />,
+  render: ({ defaultTheme, brandPreset }) => (
+    <PoolClaimErrorStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
 }
 
 export const PoolClaimableAmountError: Story = {
-  render: () => <PoolClaimableAmountErrorStory />,
+  render: ({ defaultTheme, brandPreset }) => (
+    <PoolClaimableAmountErrorStory
+      defaultTheme={defaultTheme}
+      themeOverrides={brandPresetOverrides(brandPreset)}
+    />
+  ),
 }
 
 export const BaseSupBalanceAndReserve: Story = {
-  render: () => <BaseSupBalanceAndReserveStory />,
+  render: ({ defaultTheme, brandPreset }) => (
+    <BaseSupBalanceAndReserveStory
+      defaultTheme={defaultTheme}
+      themeOverrides={brandPresetOverrides(brandPreset)}
+    />
+  ),
 }
 
 export const NonBaseSupReserveDisabled: Story = {
-  render: () => <NonBaseSupReserveDisabledStory />,
+  render: ({ defaultTheme, brandPreset }) => (
+    <NonBaseSupReserveDisabledStory
+      defaultTheme={defaultTheme}
+      themeOverrides={brandPresetOverrides(brandPreset)}
+    />
+  ),
 }
