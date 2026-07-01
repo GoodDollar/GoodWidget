@@ -62,6 +62,7 @@ function SuccessStepInner({
           <Button
             key={action.id}
             fullWidth
+            variant={isPrimary ? 'primary' : 'ghost'}
             disabled={action.disabled}
             onPress={() => onFinalActionPress?.(action.id)}
             data-testid={`GovernanceOnboardingWidget-success-${action.id}`}
