@@ -7,6 +7,7 @@ import {
   derivePrimaryLabel,
   type MigrationStep,
   type StakingMigrationWidgetAdapterFactory,
+  type StakingMigrationWidgetProps,
   type StakingMigrationWidgetState,
   type StakingMigrationWidgetStatus,
 } from '@goodwidget/staking-migration-widget'
@@ -99,7 +100,13 @@ function MockStoryShell({
   }
 }
 
-export function InjectedWalletStory() {
+export function InjectedWalletStory({
+  defaultTheme,
+  themeOverrides,
+}: {
+  defaultTheme?: 'light' | 'dark'
+  themeOverrides?: StakingMigrationWidgetProps['themeOverrides']
+} = {}) {
   const injectedProvider = getInjectedEip1193Provider()
   const migrationApiBaseUrl = import.meta.env.VITE_MIGRATION_API_BASE_URL
 
@@ -120,6 +127,8 @@ export function InjectedWalletStory() {
       <StakingMigrationWidget
         provider={injectedProvider}
         migrationApiBaseUrl={migrationApiBaseUrl}
+        defaultTheme={defaultTheme}
+        themeOverrides={themeOverrides}
       />
       {!migrationApiBaseUrl && (
         <YStack marginTop="$3">

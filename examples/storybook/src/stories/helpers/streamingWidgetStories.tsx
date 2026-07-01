@@ -234,11 +234,13 @@ function StreamingWidgetStoryShell({
   dataTestId,
   apiKey,
   defaultTheme,
+  themeOverrides,
 }: {
   provider: unknown
   dataTestId: string
   apiKey?: string
   defaultTheme?: 'light' | 'dark'
+  themeOverrides?: StreamingWidgetProps['themeOverrides']
 }) {
   const trimmedApiKey = apiKey?.trim()
 
@@ -249,12 +251,17 @@ function StreamingWidgetStoryShell({
         environment="production"
         apiKey={trimmedApiKey || undefined}
         defaultTheme={defaultTheme}
+        themeOverrides={themeOverrides}
       />
     </StoryShell>
   )
 }
 
-export function InjectedWalletStory({ apiKey }: Pick<StreamingWidgetProps, 'apiKey'>) {
+export function InjectedWalletStory({
+  apiKey,
+  defaultTheme,
+  themeOverrides,
+}: Pick<StreamingWidgetProps, 'apiKey' | 'defaultTheme' | 'themeOverrides'>) {
   const injectedProvider = getInjectedEip1193Provider()
   const usableProvider = isInjectedProviderUsable(injectedProvider)
 
@@ -272,6 +279,7 @@ export function InjectedWalletStory({ apiKey }: Pick<StreamingWidgetProps, 'apiK
           supTokenBalance: null,
         })}
         dataTestId="StreamingWidget-no-injected-wallet"
+        defaultTheme={defaultTheme}
       />
     )
   }
@@ -281,6 +289,8 @@ export function InjectedWalletStory({ apiKey }: Pick<StreamingWidgetProps, 'apiK
       provider={injectedProvider}
       dataTestId="StreamingWidget-injected-wallet"
       apiKey={apiKey}
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }

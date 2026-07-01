@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Card, Text, WidgetTabs, YStack } from '@goodwidget/ui'
-import { CitizenClaimWidget } from '@goodwidget/citizen-claim-widget'
+import { CitizenClaimWidget, type CitizenClaimWidgetProps } from '@goodwidget/citizen-claim-widget'
 import {
   getInjectedEip1193Provider,
   isInjectedProviderUsable,
@@ -12,9 +12,13 @@ type CitizenClaimTab = 'claim' | 'invite-rewards' | 'news-feed'
 function CitizenClaimWidgetStoryShell({
   provider,
   dataTestId,
+  defaultTheme,
+  themeOverrides,
 }: {
   provider: unknown
   dataTestId: string
+  defaultTheme?: 'light' | 'dark'
+  themeOverrides?: CitizenClaimWidgetProps['themeOverrides']
 }) {
   const [activeTab, setActiveTab] = useState<CitizenClaimTab>('claim')
   const [activeChainId, setActiveChainId] = useState<number | null>(null)
@@ -56,7 +60,12 @@ function CitizenClaimWidgetStoryShell({
       />
 
       {activeTab === 'claim' ? (
-        <CitizenClaimWidget provider={provider} environment="development" />
+        <CitizenClaimWidget
+          provider={provider}
+          environment="development"
+          defaultTheme={defaultTheme}
+          themeOverrides={themeOverrides}
+        />
       ) : (
         <Card>
           <YStack alignItems="center" justifyContent="center" minHeight={320}>
@@ -68,7 +77,13 @@ function CitizenClaimWidgetStoryShell({
   )
 }
 
-export function InjectedWalletStory() {
+export function InjectedWalletStory({
+  defaultTheme,
+  themeOverrides,
+}: {
+  defaultTheme?: 'light' | 'dark'
+  themeOverrides?: CitizenClaimWidgetProps['themeOverrides']
+} = {}) {
   const injectedProvider = getInjectedEip1193Provider()
   const usableProvider = isInjectedProviderUsable(injectedProvider)
 
@@ -88,6 +103,8 @@ export function InjectedWalletStory() {
     <CitizenClaimWidgetStoryShell
       provider={injectedProvider}
       dataTestId="CitizenClaimWidget-injected-wallet"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }

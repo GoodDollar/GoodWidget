@@ -13,6 +13,10 @@ const meta: Meta<typeof GlowCard> = {
   component: GlowCard,
   tags: ['autodocs', 'showcase'],
   parameters: { layout: 'padded' },
+  argTypes: {
+    elevated: { control: 'boolean', description: 'Applies the elevated shadow variant' },
+    outlined: { control: 'boolean', description: 'Applies the outlined border variant' },
+  },
 }
 export default meta
 type Story = StoryObj<typeof GlowCard>
@@ -26,6 +30,20 @@ export const Default: Story = {
         A Card variant with an animated glow effect driven by the <Text bold>primaryLight</Text>{' '}
         theme token. Used as the container for the ClaimWidget action.
       </Text>
+    </GlowCard>
+  ),
+}
+
+/** Controllable instance — edit args in the Controls panel. */
+export const Controllable: Story = {
+  args: {
+    elevated: true,
+    outlined: false,
+  },
+  render: (args) => (
+    <GlowCard data-testid="GlowCard-controllable" style={{ width: 320 }} {...args}>
+      <Heading level={4}>Controllable GlowCard</Heading>
+      <Text>Use the Controls panel to toggle variants.</Text>
     </GlowCard>
   ),
 }
