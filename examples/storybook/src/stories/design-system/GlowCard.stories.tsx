@@ -23,7 +23,8 @@ const meta: Meta<typeof GlowCard> = {
 export default meta
 type Story = StoryObj<typeof GlowCard>
 
-/** Default GlowCard with theme-driven glow colour. */
+/** Default GlowCard with theme-driven glow colour. Fixed reference story — the Controls
+ * panel is inert here; use "Controllable" below to drive props live. */
 export const Default: Story = {
   render: () => (
     <GlowCard data-testid="GlowCard-default" style={{ width: 320 }}>

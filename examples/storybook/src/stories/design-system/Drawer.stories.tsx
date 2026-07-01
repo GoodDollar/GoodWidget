@@ -26,7 +26,8 @@ const meta: Meta = {
 export default meta
 type Story = StoryObj
 
-/** Controlled Drawer triggered by a button. */
+/** Controlled Drawer triggered by a button. Fixed reference story (has an interaction
+ * test) — the Controls panel is inert here; use "Controllable" below to drive props live. */
 export const Default: Story = {
   render: () => {
     const [open, setOpen] = useState(false)

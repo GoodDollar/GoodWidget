@@ -36,6 +36,8 @@ const meta: Meta<typeof Stepper> = {
 export default meta
 type Story = StoryObj<typeof meta>
 
+/** Fixed reference story — the Controls panel is inert here; use "Controllable" below to
+ * drive props live. */
 export const Default: Story = {
   render: () => (
     <YStack width={420} data-testid="Stepper-default">

@@ -25,7 +25,8 @@ const meta: Meta<typeof Card> = {
 export default meta
 type Story = StoryObj<typeof Card>
 
-/** Default Card using base theme values. */
+/** Default Card using base theme values. Fixed reference story — the Controls panel is
+ * inert here; use "Controllable" below to drive props live. */
 export const Default: Story = {
   render: () => (
     <Card data-testid="Card-default" style={{ width: 320 }}>
