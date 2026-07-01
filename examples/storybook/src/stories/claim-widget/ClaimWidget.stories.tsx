@@ -7,13 +7,15 @@
  */
 import type { Meta, StoryObj } from '@storybook/react'
 import { ClaimWidget } from '@goodwidget/claim-widget-theme-demo'
-import {
-  ClaimWidgetStoryCanvas,
-  cobaltOverrides,
-  tealOverrides,
-} from '../helpers/claimWidgetStories'
+import { ClaimWidgetStoryCanvas } from '../helpers/claimWidgetStories'
+import { BRAND_PRESET_OPTIONS, brandPresetOverrides, type BrandPreset } from '../helpers/themeOverridePresets'
 
-const meta: Meta<typeof ClaimWidget> = {
+interface ClaimWidgetStoryArgs {
+  defaultTheme: 'light' | 'dark'
+  brandPreset: BrandPreset
+}
+
+const meta: Meta<ClaimWidgetStoryArgs> = {
   title: 'Widgets/ClaimWidget Theme Demo/Showcase',
   component: ClaimWidget,
   tags: ['integrator', 'showcase'],
@@ -22,33 +24,63 @@ const meta: Meta<typeof ClaimWidget> = {
     disableProvider: true,
     useShell: false,
   },
+  argTypes: {
+    defaultTheme: {
+      control: 'radio',
+      options: ['dark', 'light'],
+      description: 'Base theme applied via the widget’s own defaultTheme prop.',
+    },
+    brandPreset: {
+      control: 'select',
+      options: BRAND_PRESET_OPTIONS,
+      description: 'Sample host-branding themeOverrides preset.',
+    },
+  },
 }
 export default meta
 
-type Story = StoryObj<typeof ClaimWidget>
+type Story = StoryObj<ClaimWidgetStoryArgs>
 
 export const Default: Story = {
-  render: () => <ClaimWidgetStoryCanvas dataTestId="ClaimWidget-default" />,
+  args: { defaultTheme: 'dark', brandPreset: 'None' },
+  render: ({ defaultTheme, brandPreset }) => (
+    <ClaimWidgetStoryCanvas
+      dataTestId="ClaimWidget-default"
+      defaultTheme={defaultTheme}
+      themeOverrides={brandPresetOverrides(brandPreset)}
+    />
+  ),
 }
 
 export const LightTheme: Story = {
-  render: () => <ClaimWidgetStoryCanvas dataTestId="ClaimWidget-light" defaultTheme="light" />,
+  args: { defaultTheme: 'light', brandPreset: 'None' },
+  render: ({ defaultTheme, brandPreset }) => (
+    <ClaimWidgetStoryCanvas
+      dataTestId="ClaimWidget-light"
+      defaultTheme={defaultTheme}
+      themeOverrides={brandPresetOverrides(brandPreset)}
+    />
+  ),
 }
 
 export const CobaltBrand: Story = {
-  render: () => (
+  args: { defaultTheme: 'dark', brandPreset: 'Cobalt' },
+  render: ({ defaultTheme, brandPreset }) => (
     <ClaimWidgetStoryCanvas
       dataTestId="ClaimWidget-cobalt"
-      themeOverrides={cobaltOverrides}
+      defaultTheme={defaultTheme}
+      themeOverrides={brandPresetOverrides(brandPreset)}
     />
   ),
 }
 
 export const TealBrand: Story = {
-  render: () => (
+  args: { defaultTheme: 'dark', brandPreset: 'Teal' },
+  render: ({ defaultTheme, brandPreset }) => (
     <ClaimWidgetStoryCanvas
       dataTestId="ClaimWidget-teal"
-      themeOverrides={tealOverrides}
+      defaultTheme={defaultTheme}
+      themeOverrides={brandPresetOverrides(brandPreset)}
     />
   ),
 }
