@@ -19,6 +19,14 @@ export const cobaltOverrides: GoodWidgetThemeOverrides = {
     dark_ClaimActionRing: { primary: '#2E5DE8', primaryLight: '#6E8DFF' },
     dark_ClaimActionInner: { backgroundDark: '#0E1A3A', backgroundDarkHover: '#172B60' },
     dark_TokenAmountText: { color: '#BBD0FF', secondaryColor: '#7FA2FF' },
+    // StreamingWidget card surfaces — not part of the Claim component family, so they
+    // need their own entries for the brand preset to visibly affect that widget too.
+    dark_StreamRow: { borderColor: '#2E5DE8', shadowColor: 'rgba(46,93,232,0.7)' },
+    dark_PoolRow: { borderColor: '#2E5DE8', shadowColor: 'rgba(46,93,232,0.7)' },
+    dark_BalanceCard: { borderColor: '#2E5DE8', shadowColor: 'rgba(46,93,232,0.7)' },
+    dark_EmptyStateCard: { borderColor: '#2E5DE8', shadowColor: 'rgba(46,93,232,0.7)' },
+    dark_ErrorStateCard: { borderColor: '#2E5DE8', shadowColor: 'rgba(46,93,232,0.7)' },
+    dark_SetStreamFormCard: { borderColor: '#2E5DE8', shadowColor: 'rgba(46,93,232,0.7)' },
   },
 }
 
@@ -36,6 +44,13 @@ export const tealOverrides: GoodWidgetThemeOverrides = {
     dark_ClaimActionRing: { primary: '#00A884', primaryLight: '#33C9AA' },
     dark_ClaimActionInner: { backgroundDark: '#062A23', backgroundDarkHover: '#0B3B31' },
     dark_TokenAmountText: { color: '#BFF5E7', secondaryColor: '#66D5BB' },
+    // StreamingWidget card surfaces — see cobaltOverrides comment above.
+    dark_StreamRow: { borderColor: '#00A884', shadowColor: 'rgba(0,168,132,0.65)' },
+    dark_PoolRow: { borderColor: '#00A884', shadowColor: 'rgba(0,168,132,0.65)' },
+    dark_BalanceCard: { borderColor: '#00A884', shadowColor: 'rgba(0,168,132,0.65)' },
+    dark_EmptyStateCard: { borderColor: '#00A884', shadowColor: 'rgba(0,168,132,0.65)' },
+    dark_ErrorStateCard: { borderColor: '#00A884', shadowColor: 'rgba(0,168,132,0.65)' },
+    dark_SetStreamFormCard: { borderColor: '#00A884', shadowColor: 'rgba(0,168,132,0.65)' },
   },
 }
 
