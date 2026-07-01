@@ -210,12 +210,14 @@ function PreviewStoryShell({
   initialTab = 'streams',
   initialStreamsFormOpen = false,
   defaultTheme,
+  themeOverrides,
 }: {
   adapter: StreamingWidgetAdapterResult
   dataTestId: string
   initialTab?: StreamingWidgetTab
   initialStreamsFormOpen?: boolean
   defaultTheme?: 'light' | 'dark'
+  themeOverrides?: StreamingWidgetProps['themeOverrides']
 }) {
   return (
     <StoryShell dataTestId={dataTestId}>
@@ -224,6 +226,7 @@ function PreviewStoryShell({
         initialTab={initialTab}
         initialStreamsFormOpen={initialStreamsFormOpen}
         defaultTheme={defaultTheme}
+        themeOverrides={themeOverrides}
       />
     </StoryShell>
   )
@@ -280,6 +283,7 @@ export function InjectedWalletStory({
         })}
         dataTestId="StreamingWidget-no-injected-wallet"
         defaultTheme={defaultTheme}
+        themeOverrides={themeOverrides}
       />
     )
   }
