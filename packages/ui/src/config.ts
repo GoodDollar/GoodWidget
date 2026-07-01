@@ -240,8 +240,8 @@ export function createGoodWidgetConfig(overrides?: GoodWidgetConfig) {
     media: {
       sm: { maxWidth: 480 },
       md: { maxWidth: 768 },
-      gtSm: { minWidth: 481 },
-      gtMd: { minWidth: 769 },
+      gtSm: { minWidth: 480 },
+      gtMd: { minWidth: 768 },
     },
   })
 }
