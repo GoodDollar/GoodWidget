@@ -131,7 +131,7 @@ test('swap-pending state shows the swapping CTA', async ({ page }) => {
 test('swap-success state shows the received amount, not the wallet balance', async ({ page }) => {
   await gotoStory(page, 'widgets-goodreservewidget--swap-success')
   await expect(page.getByText('Swap Successful')).toBeVisible()
-  await expect(page.getByText('Estimated received')).toBeVisible()
+  await expect(page.getByText('Final amount received')).toBeVisible()
   // The fixture's lastSwapOutput is 10,230 while the wallet balance is 12,500;
   // the success card must show the amount received from the swap.
   await expect(page.getByText('10,230 G$')).toBeVisible()

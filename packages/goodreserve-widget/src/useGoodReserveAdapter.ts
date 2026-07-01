@@ -61,7 +61,16 @@ export function useGoodReserveAdapter(
   // Guarded setState — ignores updates after unmount.
   const applyStatePatch = useCallback((patch: Partial<ReserveSwapWidgetAdapterState>) => {
     if (!refs.mountedRef.current) return
-    setState((current) => ({ ...current, ...patch }))
+    setState((current) => {
+      let hasChanges = false
+      for (const key in patch) {
+        if (current[key as keyof ReserveSwapWidgetAdapterState] !== patch[key as keyof ReserveSwapWidgetAdapterState]) {
+          hasChanges = true
+          break
+        }
+      }
+      return hasChanges ? { ...current, ...patch } : current
+    })
   }, [refs.mountedRef])
 
   // Sync critical state slices into refs for cross-effect reads.

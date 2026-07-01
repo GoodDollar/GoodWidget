@@ -136,8 +136,8 @@ const SuccessIcon = createComponent(XStack, {
   width: 96,
   height: 96,
   borderRadius: '$full',
-  backgroundColor: '$color',
-  color: '$textColor',
+  backgroundColor: '$primary',
+  color: 'white',
   alignItems: 'center' as const,
   justifyContent: 'center' as const,
   shadowColor: '$shadowColor',
@@ -285,7 +285,6 @@ function SdkInitializingView() {
   )
 }
 
-// Success state: glowing check hero → title → summary card → explorer link → CTA.
 function SwapSuccessView({
   state,
   actions,
@@ -295,37 +294,41 @@ function SwapSuccessView({
   actions: ReserveSwapWidgetAdapterActions
   lastSwapOutput: string
 }) {
+  const formattedOutput = isNaN(Number(lastSwapOutput))
+    ? lastSwapOutput
+    : new Intl.NumberFormat('en-US', { maximumFractionDigits: 6 }).format(Number(lastSwapOutput))
+
   return (
-    <YStack testID="GoodReserveWidget-root" width="100%" maxWidth={390} alignSelf="center" gap="$6" alignItems="center">
-      <SwapShell width="100%" alignItems="center" gap="$5" paddingVertical="$7">
-        {/* Figma success order: title → summary card → explorer link → icon. */}
-        <Heading level={3} fontSize={26} fontWeight="700" color="$textColor">
+    <YStack testID="GoodReserveWidget-root" width="100%" maxWidth={390} alignSelf="center" gap="$6" alignItems="center" flex={1}>
+      <SwapShell width="100%" alignItems="center" gap="$5" paddingVertical="$8" flex={1}>
+        <SuccessIcon marginTop="$4">
+          <Icon name="check" size="xl" color="inherit" />
+        </SuccessIcon>
+
+        <Heading level={3} fontSize={26} fontWeight="700" color="$textColor" textAlign="center">
           Swap Successful
         </Heading>
 
-        <ReserveSurface testID="GoodReserveWidget-success" width="100%" padding="$4" gap="$2" alignItems="center">
-          <Text fontSize={16} fontWeight="400" color="$reserveTextSecondary">
-            Estimated received
+        <ReserveSurface testID="GoodReserveWidget-success" width="100%" padding="$5" gap="$2" alignItems="center">
+          <Text fontSize={14} fontWeight="500" color="$reserveTextSecondary">
+            Final amount received
           </Text>
-          <Text fontSize={21} fontWeight="700" color="$textColor">
-            {lastSwapOutput} {state.tokenOutSymbol}
+          <Text fontSize={24} fontWeight="800" color="$textColor">
+            {formattedOutput} {state.tokenOutSymbol}
           </Text>
         </ReserveSurface>
 
         {state.txHash && (
-          <Anchor href={explorerTxUrl(state.chainId, state.txHash)} target="_blank" rel="noopener noreferrer">
-            <XStack gap="$1" alignItems="center">
-              <Text fontSize={12} fontWeight="600" color="$reserveAccentSoft">
-                View on Explorer
+          <Anchor href={explorerTxUrl(state.chainId, state.txHash)} target="_blank" rel="noopener noreferrer" textDecorationLine="none">
+            <XStack gap="$2" alignItems="center">
+              <Text fontSize={12} fontWeight="600" color="$reserveTextSecondary">
+                View on Explorer ↗
               </Text>
-              <Icon name="external-link" size="2xs" color="primary" />
             </XStack>
           </Anchor>
         )}
 
-        <SuccessIcon>
-          <Icon name="check" size="xl" color="text" />
-        </SuccessIcon>
+        <YStack flex={1} minHeight={40} />
 
         <Button
           fullWidth

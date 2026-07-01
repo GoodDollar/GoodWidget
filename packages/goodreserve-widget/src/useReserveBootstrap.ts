@@ -1,13 +1,15 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useWallet } from '@goodwidget/core'
 import { erc20ABI, GoodReserveSDK, getReserveChainFromId } from '@goodsdks/good-reserve'
 import {
   createPublicClient,
   createWalletClient,
   custom,
+  http,
   formatUnits,
   type Chain,
 } from 'viem'
+import { celo, xdc } from 'viem/chains'
 import type { ReserveSwapWidgetAdapterState } from './widgetRuntimeContract'
 import {
   CELO_CHAIN_ID,
@@ -17,22 +19,12 @@ import {
 } from './constants'
 import { mapReserveError } from './errors'
 
-// Minimal viem Chain definitions for the supported reserve chains.
+// Use viem's native chain definitions which include required formatters (especially for Celo)
 // The GoodReserve SDK constructor reads publicClient.chain.id and throws when
 // it is missing, so the public client must be chain-aware.
 export const RESERVE_CHAINS: Record<number, Chain> = {
-  [CELO_CHAIN_ID]: {
-    id: CELO_CHAIN_ID,
-    name: 'Celo',
-    nativeCurrency: { name: 'Celo', symbol: 'CELO', decimals: 18 },
-    rpcUrls: { default: { http: ['https://forno.celo.org'] } },
-  } as Chain,
-  [XDC_CHAIN_ID]: {
-    id: XDC_CHAIN_ID,
-    name: 'XDC Network',
-    nativeCurrency: { name: 'XDC', symbol: 'XDC', decimals: 18 },
-    rpcUrls: { default: { http: ['https://rpc.ankr.com/xdc'] } },
-  } as Chain,
+  [CELO_CHAIN_ID]: celo,
+  [XDC_CHAIN_ID]: xdc,
 }
 
 export function getStableSymbol(chainId: number | null): string {
@@ -73,18 +65,32 @@ export function useReserveRefs(
   initialBalance: string,
   initialDirection: ReserveSwapWidgetAdapterState['direction'],
 ): ReserveRefs {
-  return {
-    sdkRef: useRef<GoodReserveSDK | null>(null),
-    publicClientRef: useRef<ReturnType<typeof createPublicClient> | null>(null),
-    decimalsRef: useRef({ stable: getStableDecimals(null), gd: DEFAULT_GD_DECIMALS }),
-    balancesRef: useRef({ stable: '0.00', gd: '0.00' }),
-    tokenInBalanceRef: useRef(initialBalance),
-    directionRef: useRef(initialDirection),
-    exitContributionRef: useRef('0%'),
-    previousStatusRef: useRef<ReserveSwapWidgetAdapterState['status']>(initialStatus),
-    statusRef: useRef<ReserveSwapWidgetAdapterState['status']>(initialStatus),
-    mountedRef: useRef(true),
-  }
+  const sdkRef = useRef<GoodReserveSDK | null>(null)
+  const publicClientRef = useRef<ReturnType<typeof createPublicClient> | null>(null)
+  const decimalsRef = useRef({ stable: getStableDecimals(null), gd: DEFAULT_GD_DECIMALS })
+  const balancesRef = useRef({ stable: '0.00', gd: '0.00' })
+  const tokenInBalanceRef = useRef(initialBalance)
+  const directionRef = useRef(initialDirection)
+  const exitContributionRef = useRef('0%')
+  const previousStatusRef = useRef<ReserveSwapWidgetAdapterState['status']>(initialStatus)
+  const statusRef = useRef<ReserveSwapWidgetAdapterState['status']>(initialStatus)
+  const mountedRef = useRef(true)
+
+  return useMemo(
+    () => ({
+      sdkRef,
+      publicClientRef,
+      decimalsRef,
+      balancesRef,
+      tokenInBalanceRef,
+      directionRef,
+      exitContributionRef,
+      previousStatusRef,
+      statusRef,
+      mountedRef,
+    }),
+    [],
+  )
 }
 
 // Syncs key state slices into refs so effects can read them without adding
@@ -168,8 +174,8 @@ export function useReserveBootstrap(
 
     try {
       const chain = RESERVE_CHAINS[chainId]
+      const publicClient = createPublicClient({ chain, transport: http() })
       const transport = custom(provider as Parameters<typeof custom>[0])
-      const publicClient = createPublicClient({ chain, transport })
       const walletClient = createWalletClient({
         account: address as `0x${string}`,
         chain,

@@ -131,7 +131,7 @@ export const LiveWallet: Story = {
     const walletProvider = (window as any).ethereum
 
     return (
-      <div data-testid="GoodReserveWidget-live-wallet" style={{ width: 390 }}>
+      <div data-testid="GoodReserveWidget-live-wallet" style={{ width: 390, minHeight: 600, paddingBottom: 40 }}>
         <div style={{ marginBottom: '10px', padding: '10px', backgroundColor: '#fff3cd', border: '1px solid #ffc107', borderRadius: '4px' }}>
           <strong>⚠️ Live Wallet Test</strong><br />
           Using real wallet: {walletProvider.isMetaMask ? 'MetaMask' : 'Wallet Extension'}<br />
