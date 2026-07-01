@@ -87,13 +87,21 @@ export function InjectedWalletStory({
   )
 }
 
-export function CustodialLocalFixtureStory() {
+export function CustodialLocalFixtureStory({
+  defaultTheme,
+  themeOverrides,
+}: {
+  defaultTheme?: 'light' | 'dark'
+  themeOverrides?: CitizenClaimWidgetProps['themeOverrides']
+} = {}) {
   try {
     const provider = createCustodialEip1193Provider()
     return (
       <CitizenClaimWidgetStoryShell
         provider={provider}
         dataTestId="CitizenClaimWidget-custodial-wallet"
+        defaultTheme={defaultTheme}
+        themeOverrides={themeOverrides}
       />
     )
   } catch (error: unknown) {
