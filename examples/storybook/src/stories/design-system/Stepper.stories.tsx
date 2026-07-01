@@ -49,18 +49,29 @@ export const Default: Story = {
   ),
 }
 
+/** Recomputes each step's status relative to the chosen active step, so moving the
+ * `activeStepId` control actually restyles the list instead of only scrolling to it. */
+function stepsWithActive(activeStepId: string): StepperStepItem[] {
+  const activeIndex = STEPS.findIndex((step) => step.id === activeStepId)
+  return STEPS.map((step, index) => ({
+    ...step,
+    status: index < activeIndex ? 'completed' : index === activeIndex ? 'active' : 'pending',
+  }))
+}
+
 /** Controllable instance — edit args in the Controls panel. */
 export const Controllable: Story = {
   args: {
     activeStepId: 'submit',
     maxHeight: 280,
   },
-  render: (args) => (
+  render: ({ activeStepId, maxHeight }) => (
     <YStack width={420} data-testid="Stepper-controllable">
       <Stepper
-        steps={STEPS}
+        steps={stepsWithActive(activeStepId ?? 'submit')}
+        activeStepId={activeStepId}
         header={<Text fontWeight="700">Transaction steps</Text>}
-        {...args}
+        maxHeight={maxHeight}
       />
     </YStack>
   ),
