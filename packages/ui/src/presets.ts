@@ -130,9 +130,9 @@ const color = tokenPreset.tokens.color
 // Tokens: should be highest level of primitives for pallette, spacing, colors.
 
 // Themes: should map these primitives to semantic roles
-// (e.g. "primaryButtonBackground", "cardBackground", etcolor.) for light/dark modes and component-specific overrides.
+// (e.g. "primaryButtonBackground", "cardBackground", etc.) for light/dark modes and component-specific overrides.
 
-// Component themes: should map semantic roles to specific components (e.g. "Button", "Card", etcolor.)
+// Component themes: should map semantic roles to specific components (e.g. "Button", "Card", etc.)
 // for targeted overrides of specific components within the manifest/host override chain.
 
 // lower-level component-themes should use as much as possible existing themes and only for
