@@ -15,6 +15,7 @@ interface ProfileStepContentProps {
   profileDraft: GovernanceProfileDraft
   fieldErrors: GovernanceProfileFieldErrors
   stakeAmountLabel: string
+  ctaDisabled: boolean
   onProfileFieldChange: (fieldKey: GovernanceProfileFieldKey, nextValue: string) => void
   onContinuePress: () => void
 }
@@ -64,6 +65,7 @@ export function ProfileStepContent({
   profileDraft,
   fieldErrors,
   stakeAmountLabel,
+  ctaDisabled,
   onProfileFieldChange,
   onContinuePress,
 }: ProfileStepContentProps) {
@@ -160,6 +162,7 @@ export function ProfileStepContent({
           {/* ── CTA button (Figma: inside card at bottom) ───────────────── */}
           <Button
             fullWidth
+            disabled={ctaDisabled}
             onPress={onContinuePress}
             aria-label="Create Profile and Stake"
             data-testid="GovernanceOnboardingWidget-profile-cta"

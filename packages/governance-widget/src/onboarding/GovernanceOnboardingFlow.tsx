@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { Button, ButtonText, PageWizardShell, XStack, usePageWizard } from '@goodwidget/ui'
 import { HOUSE_COPY } from './copy'
 import { DEFAULT_TRANSACTION_STEPS, DEFAULT_FINAL_ACTIONS } from './constants'
-import { validateProfileDraft } from './validation'
+import { validateProfileDraft, isProfileDraftComplete } from './validation'
 import { WelcomeStepContent } from './steps/WelcomeStepContent'
 import { HouseStepContent } from './steps/HouseStepContent'
 import { ProfileStepContent } from './steps/ProfileStepContent'
@@ -56,6 +56,7 @@ export function GovernanceOnboardingFlow({
   const profileDraft = wizardData.profileDraft ?? {}
   const resolvedHouse: GovernanceHouse = selectedHouse ?? 'citizenship'
   const isIdentityVerified = identityStatus === 'verified'
+  const profileIsComplete = isProfileDraftComplete(resolvedHouse, profileDraft)
 
   const updateProfileField = (fieldKey: GovernanceProfileFieldKey, nextValue: string) => {
     setData((previousData) => {
@@ -147,6 +148,7 @@ export function GovernanceOnboardingFlow({
           fieldErrors={fieldErrors}
           stakeAmountLabel={stakeAmountLabel}
           onProfileFieldChange={updateProfileField}
+          ctaDisabled={!profileIsComplete}
           // CTA button lives inside the card — no shell footer button needed
           onContinuePress={handleProfileContinue}
         />
