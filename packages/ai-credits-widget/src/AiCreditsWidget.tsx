@@ -33,7 +33,7 @@ import type {
   AiCreditsPayErrorDetail,
   AiCreditsWidgetAdapterFactory,
 } from './widgetRuntimeContract'
-import { getPaymentAmountValidation } from './vaultMinimums'
+import { getPaymentAmountValidation, getPayDisabledMessage } from './vaultMinimums'
 
 // ---------------------------------------------------------------------------
 // Inner component — renders inside GoodWidgetProvider
@@ -104,6 +104,15 @@ function AiCreditsInner({
     minsLoaded &&
     paymentValidation.vaultMinimumsMet &&
     !paymentValidation.overBalance
+
+  const payDisabledMessage = getPayDisabledMessage({
+    canPay,
+    minsLoaded,
+    status: state.status,
+    minDepositG: state.minDepositG,
+    minStreamG: state.minStreamG,
+    validation: paymentValidation,
+  })
 
   const handlePay = useCallback(async () => {
     const toastId = createToast({
@@ -374,20 +383,15 @@ function AiCreditsInner({
           minDepositG={state.minDepositG}
           minStreamG={state.minStreamG}
           quote={state.quote}
+          canPay={canPay}
+          payDisabledMessage={payDisabledMessage}
+          isPayPending={isPending}
           onDepositChange={actions.setDepositAmount}
           onStreamChange={actions.setStreamAmount}
-        />
-      )}
-
-      {state.operatorConsentSigned && canPay && (
-        <Button
-          fullWidth
-          onPress={() => {
+          onPay={() => {
             void handlePay()
           }}
-        >
-          <ButtonText>Buy AI Credits</ButtonText>
-        </Button>
+        />
       )}
 
       {!state.operatorConsentSigned &&

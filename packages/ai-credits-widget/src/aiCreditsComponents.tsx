@@ -95,9 +95,11 @@ function TooltipBubble({ message }: { message: string }) {
 function HoverTooltip({
   message,
   children,
+  fullWidth = false,
 }: {
   message: string | null
   children: React.ReactNode
+  fullWidth?: boolean
 }) {
   const [open, setOpen] = useState(false)
   if (!message) return <>{children}</>
@@ -106,6 +108,7 @@ function HoverTooltip({
     <XStack
       position="relative"
       flexShrink={0}
+      width={fullWidth ? '100%' : undefined}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
       onFocus={() => setOpen(true)}
@@ -501,8 +504,12 @@ interface AmountPickerProps {
   minDepositG: string | null
   minStreamG: string | null
   quote: AiCreditsQuote | null
+  canPay: boolean
+  payDisabledMessage: string | null
+  isPayPending: boolean
   onDepositChange: (v: string) => void
   onStreamChange: (v: string) => void
+  onPay: () => void
 }
 
 export function AmountPicker({
@@ -512,8 +519,12 @@ export function AmountPicker({
   minDepositG,
   minStreamG,
   quote,
+  canPay,
+  payDisabledMessage,
+  isPayPending,
   onDepositChange,
   onStreamChange,
+  onPay,
 }: AmountPickerProps) {
   const depositG = parseGAmount(depositAmount)
   const streamG = parseGAmount(streamAmount)
@@ -646,6 +657,25 @@ export function AmountPicker({
           </Text>
         </AiCreditsStatusNotice>
       )}
+
+      <HoverTooltip message={payDisabledMessage} fullWidth>
+        <Button
+          fullWidth
+          disabled={!canPay || isPayPending}
+          onPress={() => {
+            onPay()
+          }}
+        >
+          {isPayPending ? (
+            <XStack gap="$2" alignItems="center">
+              <ButtonText>Buy AI Credits</ButtonText>
+              <Spinner size="sm" />
+            </XStack>
+          ) : (
+            <ButtonText>Buy AI Credits</ButtonText>
+          )}
+        </Button>
+      </HoverTooltip>
     </AmountPickerCard>
   )
 }

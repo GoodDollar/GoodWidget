@@ -63,6 +63,35 @@ export function getPaymentAmountValidation(params: {
   }
 }
 
+export function getPayDisabledMessage(params: {
+  canPay: boolean
+  minsLoaded: boolean
+  status: string
+  minDepositG: string | null
+  minStreamG: string | null
+  validation: {
+    depositBelowMin: boolean
+    streamBelowMin: boolean
+    overBalance: boolean
+  }
+}): string | null {
+  if (params.canPay) return null
+  if (!params.minsLoaded) return 'Loading vault minimums…'
+  if (params.validation.overBalance) {
+    return 'Total exceeds your G$ balance. Reduce the amounts.'
+  }
+  if (params.validation.depositBelowMin && params.minDepositG) {
+    return `First deposit must be at least ${formatMinGDisplayLocale(params.minDepositG)} G$.`
+  }
+  if (params.validation.streamBelowMin && params.minStreamG) {
+    return `Monthly stream must be at least ${formatMinGDisplayLocale(params.minStreamG)} G$.`
+  }
+  if (params.status !== 'quote_ready') {
+    return 'Enter a deposit or monthly stream amount to continue.'
+  }
+  return 'Adjust the amounts to continue.'
+}
+
 function formatUsd18(usd18: bigint): string {
   return (Number(usd18) / 1e18).toFixed(2)
 }
