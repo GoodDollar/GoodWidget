@@ -10,8 +10,15 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
   lead="Buy AI coding credits with G$ on Celo. Credits settle on Base and are redeemable with AntSeed-compatible AI coding tools like Cursor and Cline."
 >
   <DocsSection
-    title="Manual wallet showcase"
-    description="Use this story when reviewing the widget in a browser that has an injected wallet available."
+    title="Interactive showcase (mock backend)"
+    description="Uses your browser wallet (`window.ethereum`, e.g. Rabby) with the in-memory mock backend — no local antseed worker required."
+  >
+    <Canvas of={ShowcaseStories.MockBackend} />
+  </DocsSection>
+
+  <DocsSection
+    title="Injected wallet (local backend)"
+    description="Uses your browser wallet (`window.ethereum`, e.g. Rabby) and the URL from `VITE_AI_CREDITS_BACKEND_URL` in `examples/storybook/.env.local` (default `http://localhost:8787`)."
   >
     <Canvas of={ShowcaseStories.InjectedWallet} />
   </DocsSection>
@@ -24,27 +31,25 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
       title="Open the QA fixture demo"
       href="?path=/story/qa-aicreditswidget-runtime-fixtures--disconnected"
     >
-      All 13 widget states as deterministic mock fixtures — ideal for automation and debugging.
+      All 10 widget states as deterministic mock fixtures — ideal for automation and debugging.
     </DocsCard>
   </DocsSection>
 
   <DocsSection
     title="Widget states"
-    description="The widget models 13 distinct states across the purchase and credits lifecycle."
+    description="The widget uses a flat status union, consistent with other GoodWidget packages."
   >
     <DocsGrid>
-      <DocsCard title="S1 – Disconnected">No wallet connected; show connect CTA.</DocsCard>
-      <DocsCard title="S2 – Connected Empty">Wallet connected; G$ balance = 0.</DocsCard>
-      <DocsCard title="S3 – Quote Ready">G$ balance &gt; 0; amounts set; cost breakdown visible.</DocsCard>
-      <DocsCard title="S4 – Payment Pending">Celo tx submitted; spinner active.</DocsCard>
-      <DocsCard title="S5 – Payment Confirmed">Celo tx mined; settling on Base.</DocsCard>
-      <DocsCard title="S6 – Has Credits">Credits landed; setup snippet visible.</DocsCard>
-      <DocsCard title="S7 – Usage Empty">Credits exhausted; upsell shown.</DocsCard>
-      <DocsCard title="S8 – Usage Active">Credits &gt; 0; usage log visible.</DocsCard>
-      <DocsCard title="S9 – Insufficient G$">Balance below minimum; top-up guidance.</DocsCard>
-      <DocsCard title="S11 – Payment Failed">Celo tx reverted or backend error.</DocsCard>
-      <DocsCard title="S12 – Backend Unavailable">Backend unreachable; retry toast.</DocsCard>
-      <DocsCard title="S13 – Unsupported Chain">Wrong chain; switch to Celo CTA.</DocsCard>
+      <DocsCard title="S1 – Disconnected">No wallet connected.</DocsCard>
+      <DocsCard title="S2 – Purchase Setup">Wallet connected; purchase flow in progress.</DocsCard>
+      <DocsCard title="S3 – Quote Ready">Setup complete; ready to pay.</DocsCard>
+      <DocsCard title="S4 – Payment Pending">Celo tx submitted.</DocsCard>
+      <DocsCard title="S5 – Payment Confirmed">Settling on Base.</DocsCard>
+      <DocsCard title="S6 – Credits Account">AI credits balance &gt; 0.</DocsCard>
+      <DocsCard title="S7 – Insufficient G$">G$ below minimum.</DocsCard>
+      <DocsCard title="S8 – Payment Failed">Transaction or settlement error.</DocsCard>
+      <DocsCard title="S9 – Backend Unavailable">Backend unreachable.</DocsCard>
+      <DocsCard title="S10 – Unsupported Chain">Wrong network.</DocsCard>
     </DocsGrid>
   </DocsSection>
 

@@ -28,29 +28,16 @@ import type {
   AiCreditsWidgetAdapterResult,
   AiCreditsWidgetAdapterState,
   AiCreditsWidgetEnvironment,
+  AiCreditsWidgetPrimaryAction,
+  AiCreditsWidgetStatus,
   AiCreditsPaySuccessDetail,
   AiCreditsPayErrorDetail,
   AiCreditsQuote,
 } from './widgetRuntimeContract'
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-/** Celo mainnet chain ID — the payer chain */
 const CELO_CHAIN_ID = 42220
-
-/** Minimum G$ deposit amount in formatted units */
 const MIN_DEPOSIT_AMOUNT = '1'
-
-/** Minimum G$ stream amount in formatted units */
 const MIN_STREAM_AMOUNT = '1'
-
-/**
- * CeloGdAntSeedVault contract address on Celo.
- * Set via adapter option (from env / backend config).
- * Falls back to this placeholder until a canonical address is deployed.
- */
 const CELO_GD_ANTSEED_VAULT_FALLBACK: Address = '0x0000000000000000000000000000000000000002'
 
 const G_TOKEN_ABI = parseAbi([
@@ -72,10 +59,6 @@ const CELO_CHAIN: Chain = {
     public: { http: ['https://forno.celo.org'] },
   },
 }
-
-// ---------------------------------------------------------------------------
-// Initial adapter state
-// ---------------------------------------------------------------------------
 
 const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   status: 'disconnected',
@@ -105,9 +88,9 @@ function validProfileBuyer(buyer: string | undefined): string | null {
   return buyer.toLowerCase()
 }
 
-// ---------------------------------------------------------------------------
-// Helper: derive next status from current wallet + widget data
-// ---------------------------------------------------------------------------
+function hasCredits(balance: string | null): boolean {
+  return balance !== null && Number.parseFloat(balance) > 0
+}
 
 function deriveStatus(params: {
   isConnected: boolean
@@ -120,8 +103,8 @@ function deriveStatus(params: {
   depositAmount: string
   streamAmount: string
   error: string | null
-  currentStatus: AiCreditsWidgetAdapterState['status']
-}): AiCreditsWidgetAdapterState['status'] {
+  currentStatus: AiCreditsWidgetStatus
+}): AiCreditsWidgetStatus {
   const {
     isConnected,
     chainId,
@@ -136,7 +119,6 @@ function deriveStatus(params: {
     currentStatus,
   } = params
 
-  // Preserve terminal states set explicitly by action handlers
   if (
     currentStatus === 'payment_pending' ||
     currentStatus === 'payment_confirmed' ||
@@ -150,21 +132,17 @@ function deriveStatus(params: {
 
   if (chainId !== null && chainId !== CELO_CHAIN_ID) return 'unsupported_chain'
 
-  if (error && currentStatus !== 'has_credits' && currentStatus !== 'usage_active') {
-    return 'payment_failed'
-  }
+  if (error && currentStatus !== 'credits_account') return 'payment_failed'
 
-  if (aiCreditsBalance !== null) {
-    const credits = Number.parseFloat(aiCreditsBalance)
-    if (credits > 0) return 'usage_active'
-    if (currentStatus === 'has_credits') return 'usage_empty'
-    if (credits === 0 && currentStatus === 'usage_active') return 'usage_empty'
-  }
+  const inPurchaseFlow =
+    currentStatus === 'purchase_setup' || currentStatus === 'quote_ready'
 
-  if (gBalance === null) return 'connected_empty'
+  if (!inPurchaseFlow && hasCredits(aiCreditsBalance)) return 'credits_account'
+
+  if (gBalance === null) return 'purchase_setup'
 
   const balance = Number.parseFloat(gBalance)
-  if (balance <= 0) return 'connected_empty'
+  if (balance <= 0) return 'purchase_setup'
 
   const deposit = Number.parseFloat(depositAmount)
   const stream = Number.parseFloat(streamAmount)
@@ -176,54 +154,21 @@ function deriveStatus(params: {
   const hasValidDeposit = deposit >= minDeposit
   const hasValidStream = stream === 0 || stream >= minStream
 
-  if (!buyerKey) return 'connected_empty'
-  if (!buyerKeyConfirmed) return 'connected_empty'
-  if (!operatorConsentSigned) return 'connected_empty'
+  if (!buyerKey || !buyerKeyConfirmed || !operatorConsentSigned) return 'purchase_setup'
 
-  const readyToPay =
-    (hasValidDeposit || stream >= minStream) && hasValidStream
+  const readyToPay = (hasValidDeposit || stream >= minStream) && hasValidStream
   if (readyToPay) return 'quote_ready'
 
-  return 'connected_empty'
+  return 'purchase_setup'
 }
 
-function derivePurchaseFlowState(
-  prev: AiCreditsWidgetAdapterState,
-): Pick<AiCreditsWidgetAdapterState, 'status' | 'primaryAction' | 'primaryLabel'> {
-  const nextStatus = deriveStatus({
-    isConnected: true,
-    chainId: prev.chainId,
-    gBalance: prev.gBalance,
-    aiCreditsBalance: null,
-    buyerKey: prev.buyerKey,
-    buyerKeyConfirmed: prev.buyerKeyConfirmed,
-    operatorConsentSigned: prev.operatorConsentSigned,
-    depositAmount: prev.depositAmount,
-    streamAmount: prev.streamAmount,
-    error: null,
-    currentStatus: 'connected_empty',
-  })
-  const primaryAction = derivePrimaryAction(nextStatus)
-  return {
-    status: nextStatus,
-    primaryAction,
-    primaryLabel: derivePrimaryLabel(primaryAction),
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Helper: derive primary action and label from current status
-// ---------------------------------------------------------------------------
-
-function derivePrimaryAction(
-  status: AiCreditsWidgetAdapterState['status'],
-): AiCreditsWidgetAdapterState['primaryAction'] {
+function derivePrimaryAction(status: AiCreditsWidgetStatus): AiCreditsWidgetPrimaryAction {
   switch (status) {
     case 'disconnected':
       return 'connect'
     case 'unsupported_chain':
       return 'switch_chain'
-    case 'connected_empty':
+    case 'purchase_setup':
       return 'generate_key'
     case 'quote_ready':
       return 'pay'
@@ -233,19 +178,15 @@ function derivePrimaryAction(
     case 'payment_failed':
     case 'backend_unavailable':
       return 'retry'
-    case 'has_credits':
-    case 'usage_active':
-    case 'usage_empty':
-      return 'refresh'
+    case 'credits_account':
     case 'insufficient_g_balance':
-    case 'insufficient_ai_credits':
       return 'refresh'
     default:
       return 'none'
   }
 }
 
-function derivePrimaryLabel(action: AiCreditsWidgetAdapterState['primaryAction']): string {
+function derivePrimaryLabel(action: AiCreditsWidgetPrimaryAction): string {
   switch (action) {
     case 'connect':
       return 'Connect Wallet'
@@ -266,26 +207,41 @@ function derivePrimaryLabel(action: AiCreditsWidgetAdapterState['primaryAction']
   }
 }
 
-// ---------------------------------------------------------------------------
-// Adapter hook options
-// ---------------------------------------------------------------------------
+function withDerivedStatus(
+  prev: AiCreditsWidgetAdapterState,
+  overrides: Partial<AiCreditsWidgetAdapterState>,
+  isConnected = true,
+): AiCreditsWidgetAdapterState {
+  const merged = { ...prev, ...overrides }
+  const status = deriveStatus({
+    isConnected,
+    chainId: merged.chainId,
+    gBalance: merged.gBalance,
+    aiCreditsBalance: merged.aiCreditsBalance,
+    buyerKey: merged.buyerKey,
+    buyerKeyConfirmed: merged.buyerKeyConfirmed,
+    operatorConsentSigned: merged.operatorConsentSigned,
+    depositAmount: merged.depositAmount,
+    streamAmount: merged.streamAmount,
+    error: merged.error,
+    currentStatus: merged.status,
+  })
+  const primaryAction = derivePrimaryAction(status)
+  return {
+    ...merged,
+    status,
+    primaryAction,
+    primaryLabel: derivePrimaryLabel(primaryAction),
+  }
+}
 
 export interface UseAiCreditsAdapterOptions {
   environment?: AiCreditsWidgetEnvironment
   backendUrl?: string
-  /**
-   * CeloGdAntSeedVault address on Celo mainnet.
-   * Pass from env (e.g. import.meta.env.VITE_AI_CREDITS_VAULT_ADDRESS).
-   * Falls back to a placeholder until the vault is deployed.
-   */
   vaultAddress?: Address
   onPaySuccess?: (detail: AiCreditsPaySuccessDetail) => void
   onPayError?: (detail: AiCreditsPayErrorDetail) => void
 }
-
-// ---------------------------------------------------------------------------
-// Main adapter hook
-// ---------------------------------------------------------------------------
 
 export function useAiCreditsAdapter({
   backendUrl,
@@ -296,11 +252,9 @@ export function useAiCreditsAdapter({
   const { address, chainId, isConnected, provider, connect } = useWallet()
   const [state, setState] = useState<AiCreditsWidgetAdapterState>(INITIAL_STATE)
 
-  // Stable ref to latest provider to avoid stale closures in async callbacks
   const providerRef = useRef<EIP1193Provider | null>(null)
   providerRef.current = provider as EIP1193Provider | null
 
-  // Instantiate the correct backend client once — mock if no backendUrl, production otherwise
   const backendClient = useMemo<AiCreditsBackendClient>(() => {
     if (!backendUrl) {
       return new MockAiCreditsBackendClient({ isGoodIdVerified: false })
@@ -308,12 +262,9 @@ export function useAiCreditsAdapter({
     return new ProductionAiCreditsBackendClient(backendUrl)
   }, [backendUrl])
 
-  // ---------------------------------------------------------------------------
-  // Load G$ balance and GoodID status whenever wallet state changes
-  // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!isConnected || !address) {
-      setState((prev) => ({ ...prev, gBalance: null, isGoodIdVerified: false, status: 'disconnected' }))
+      setState({ ...INITIAL_STATE })
       return
     }
 
@@ -351,45 +302,34 @@ export function useAiCreditsAdapter({
         if (cancelled) return
 
         const formatted = formatUnits(rawBalance as bigint, decimals as number)
-        setState((prev) => {
-          const nextStatus = deriveStatus({
-            isConnected: true,
-            chainId,
-            gBalance: formatted,
-            aiCreditsBalance: prev.aiCreditsBalance,
-            buyerKey: prev.buyerKey,
-            buyerKeyConfirmed: prev.buyerKeyConfirmed,
-            operatorConsentSigned: prev.operatorConsentSigned,
-            depositAmount: prev.depositAmount,
-            streamAmount: prev.streamAmount,
-            error: prev.error,
-            currentStatus: prev.status,
-          })
-          const primaryAction = derivePrimaryAction(nextStatus)
-          return {
-            ...prev,
-            address,
-            chainId,
-            gBalance: formatted,
-            isGoodIdVerified: goodIdVerified,
-            status: nextStatus,
-            primaryAction,
-            primaryLabel: derivePrimaryLabel(primaryAction),
-          }
-        })
+        setState((prev) =>
+          withDerivedStatus(
+            prev,
+            { address, chainId, gBalance: formatted, isGoodIdVerified: goodIdVerified },
+            true,
+          ),
+        )
       } catch {
         if (cancelled) return
-        setState((prev) => ({
-          ...prev,
-          address,
-          chainId,
-          gBalance: '0',
-          status:
-            chainId !== null && chainId !== CELO_CHAIN_ID ? 'unsupported_chain' : 'connected_empty',
-          primaryAction: chainId !== null && chainId !== CELO_CHAIN_ID ? 'switch_chain' : 'generate_key',
-          primaryLabel:
-            chainId !== null && chainId !== CELO_CHAIN_ID ? 'Switch to Celo' : 'Set Up Buyer Key',
-        }))
+        setState((prev) =>
+          withDerivedStatus(
+            prev,
+            {
+              address,
+              chainId,
+              gBalance: '0',
+              status:
+                chainId !== null && chainId !== CELO_CHAIN_ID
+                  ? 'unsupported_chain'
+                  : 'purchase_setup',
+              primaryAction:
+                chainId !== null && chainId !== CELO_CHAIN_ID ? 'switch_chain' : 'generate_key',
+              primaryLabel:
+                chainId !== null && chainId !== CELO_CHAIN_ID ? 'Switch to Celo' : 'Set Up Buyer Key',
+            },
+            true,
+          ),
+        )
       }
     }
 
@@ -413,35 +353,20 @@ export function useAiCreditsAdapter({
         if (!buyer) return
 
         const balance = creditsBalanceFromStatus(status)
-        const hasCredits = Number.parseFloat(balance) > 0
 
-        setState((prev) => {
-          const nextStatus = deriveStatus({
-            isConnected: true,
-            chainId: prev.chainId,
-            gBalance: prev.gBalance,
-            aiCreditsBalance: hasCredits ? balance : prev.aiCreditsBalance,
-            buyerKey: buyer,
-            buyerKeyConfirmed: true,
-            operatorConsentSigned: true,
-            depositAmount: prev.depositAmount,
-            streamAmount: prev.streamAmount,
-            error: prev.error,
-            currentStatus: prev.status,
-          })
-          const primaryAction = derivePrimaryAction(nextStatus)
-          return {
-            ...prev,
-            buyerKey: buyer,
-            buyerKeyConfirmed: true,
-            operatorConsentSigned: true,
-            aiCreditsBalance: hasCredits ? balance : prev.aiCreditsBalance,
-            setupSnippet: hasCredits ? buildSetupSnippet(buyer) : prev.setupSnippet,
-            status: nextStatus,
-            primaryAction,
-            primaryLabel: derivePrimaryLabel(primaryAction),
-          }
-        })
+        setState((prev) =>
+          withDerivedStatus(
+            prev,
+            {
+              buyerKey: buyer,
+              buyerKeyConfirmed: true,
+              operatorConsentSigned: true,
+              aiCreditsBalance: hasCredits(balance) ? balance : prev.aiCreditsBalance,
+              setupSnippet: hasCredits(balance) ? buildSetupSnippet(buyer) : prev.setupSnippet,
+            },
+            true,
+          ),
+        )
       } catch {
       }
     }
@@ -451,10 +376,6 @@ export function useAiCreditsAdapter({
       cancelled = true
     }
   }, [address, backendClient])
-
-  // ---------------------------------------------------------------------------
-  // Actions
-  // ---------------------------------------------------------------------------
 
   const handleConnect = useCallback(async () => {
     await connect()
@@ -493,15 +414,21 @@ export function useAiCreditsAdapter({
       const privateKey = deriveBuyerPrivateKeyFromSignature(signature)
       const account = privateKeyToAccount(privateKey)
 
-      setState((prev) => ({
-        ...prev,
-        buyerKey: account.address,
-        buyerKeyPrivate: privateKey,
-        buyerKeyConfirmed: false,
-        operatorConsentSigned: false,
-        apiKey: null,
-        error: null,
-      }))
+      setState((prev) =>
+        withDerivedStatus(
+          prev,
+          {
+            buyerKey: account.address,
+            buyerKeyPrivate: privateKey,
+            buyerKeyConfirmed: false,
+            operatorConsentSigned: false,
+            apiKey: null,
+            error: null,
+            status: 'purchase_setup',
+          },
+          true,
+        ),
+      )
     } catch (err: unknown) {
       setState((prev) => ({
         ...prev,
@@ -511,7 +438,7 @@ export function useAiCreditsAdapter({
   }, [address])
 
   const handleConfirmBuyerKey = useCallback(() => {
-    setState((prev) => ({ ...prev, buyerKeyConfirmed: true }))
+    setState((prev) => withDerivedStatus(prev, { buyerKeyConfirmed: true, status: 'purchase_setup' }, true))
   }, [])
 
   const handleSignOperatorConsent = useCallback(async () => {
@@ -534,30 +461,13 @@ export function useAiCreditsAdapter({
       }
 
       if (operatorStatus.operatorAccepted) {
-        setState((prev) => {
-          const nextStatus = deriveStatus({
-            isConnected: true,
-            chainId: prev.chainId,
-            gBalance: prev.gBalance,
-            aiCreditsBalance: prev.aiCreditsBalance,
-            buyerKey: prev.buyerKey,
-            buyerKeyConfirmed: true,
-            operatorConsentSigned: true,
-            depositAmount: prev.depositAmount,
-            streamAmount: prev.streamAmount,
-            error: null,
-            currentStatus: 'connected_empty',
-          })
-          const primaryAction = derivePrimaryAction(nextStatus)
-          return {
-            ...prev,
-            operatorConsentSigned: true,
-            error: null,
-            status: nextStatus,
-            primaryAction,
-            primaryLabel: derivePrimaryLabel(primaryAction),
-          }
-        })
+        setState((prev) =>
+          withDerivedStatus(
+            prev,
+            { operatorConsentSigned: true, error: null, status: 'purchase_setup' },
+            true,
+          ),
+        )
         return
       }
 
@@ -578,30 +488,13 @@ export function useAiCreditsAdapter({
         throw new Error('Operator consent was not accepted')
       }
 
-      setState((prev) => {
-        const nextStatus = deriveStatus({
-          isConnected: true,
-          chainId: prev.chainId,
-          gBalance: prev.gBalance,
-          aiCreditsBalance: prev.aiCreditsBalance,
-          buyerKey: prev.buyerKey,
-          buyerKeyConfirmed: true,
-          operatorConsentSigned: true,
-          depositAmount: prev.depositAmount,
-          streamAmount: prev.streamAmount,
-          error: null,
-          currentStatus: 'connected_empty',
-        })
-        const primaryAction = derivePrimaryAction(nextStatus)
-        return {
-          ...prev,
-          operatorConsentSigned: true,
-          error: null,
-          status: nextStatus,
-          primaryAction,
-          primaryLabel: derivePrimaryLabel(primaryAction),
-        }
-      })
+      setState((prev) =>
+        withDerivedStatus(
+          prev,
+          { operatorConsentSigned: true, error: null, status: 'purchase_setup' },
+          true,
+        ),
+      )
     } catch (err: unknown) {
       setState((prev) => ({
         ...prev,
@@ -611,58 +504,32 @@ export function useAiCreditsAdapter({
   }, [state, backendClient])
 
   const handleSetDepositAmount = useCallback((amount: string) => {
-    setState((prev) => {
-      const nextStatus = deriveStatus({
-        isConnected: true,
-        chainId: prev.chainId,
-        gBalance: prev.gBalance,
-        aiCreditsBalance: prev.aiCreditsBalance,
-        buyerKey: prev.buyerKey,
-        buyerKeyConfirmed: prev.buyerKeyConfirmed,
-        operatorConsentSigned: prev.operatorConsentSigned,
-        depositAmount: amount,
-        streamAmount: prev.streamAmount,
-        error: prev.error,
-        currentStatus: prev.status === 'payment_pending' ? 'payment_pending' : 'connected_empty',
-      })
-      const primaryAction = derivePrimaryAction(nextStatus)
-      return {
-        ...prev,
-        depositAmount: amount,
-        quote: null,
-        status: nextStatus,
-        primaryAction,
-        primaryLabel: derivePrimaryLabel(primaryAction),
-      }
-    })
+    setState((prev) =>
+      withDerivedStatus(
+        prev,
+        {
+          depositAmount: amount,
+          quote: null,
+          status: prev.status === 'payment_pending' ? 'payment_pending' : 'purchase_setup',
+        },
+        true,
+      ),
+    )
   }, [])
 
   const handleSetStreamAmount = useCallback((amount: string) => {
     setState((prev) => {
       const bonusPercent = Number.parseFloat(amount) > 0 && prev.isGoodIdVerified ? 20 : 10
-      const nextStatus = deriveStatus({
-        isConnected: true,
-        chainId: prev.chainId,
-        gBalance: prev.gBalance,
-        aiCreditsBalance: prev.aiCreditsBalance,
-        buyerKey: prev.buyerKey,
-        buyerKeyConfirmed: prev.buyerKeyConfirmed,
-        operatorConsentSigned: prev.operatorConsentSigned,
-        depositAmount: prev.depositAmount,
-        streamAmount: amount,
-        error: prev.error,
-        currentStatus: prev.status === 'payment_pending' ? 'payment_pending' : 'connected_empty',
-      })
-      const primaryAction = derivePrimaryAction(nextStatus)
-      return {
-        ...prev,
-        streamAmount: amount,
-        bonusPercent,
-        quote: null,
-        status: nextStatus,
-        primaryAction,
-        primaryLabel: derivePrimaryLabel(primaryAction),
-      }
+      return withDerivedStatus(
+        prev,
+        {
+          streamAmount: amount,
+          bonusPercent,
+          quote: null,
+          status: prev.status === 'payment_pending' ? 'payment_pending' : 'purchase_setup',
+        },
+        true,
+      )
     })
   }, [])
 
@@ -677,7 +544,6 @@ export function useAiCreditsAdapter({
     const hasStream = streamAmountG > 0
     if (!hasDeposit && !hasStream) return
 
-    // Fetch a fresh quote before sending the transaction
     let quote: AiCreditsQuote
     try {
       quote = await backendClient.getQuote(
@@ -765,15 +631,16 @@ export function useAiCreditsAdapter({
       } catch {
       }
 
-      setState((prev) => ({
-        ...prev,
-        aiCreditsBalance: balance,
-        setupSnippet,
-        status: 'has_credits',
-        primaryAction: 'refresh',
-        primaryLabel: 'Refresh',
-        error: null,
-      }))
+      setState((prev) =>
+        withDerivedStatus(prev, {
+          aiCreditsBalance: balance,
+          setupSnippet,
+          error: null,
+          status: 'credits_account',
+          primaryAction: 'refresh',
+          primaryLabel: 'Refresh',
+        }),
+      )
 
       onPaySuccess?.({
         address: currentState.address!,
@@ -810,21 +677,19 @@ export function useAiCreditsAdapter({
       ])
       const balance = creditsBalanceFromStatus(status)
 
-      setState((prev) => {
-        const credits = Number.parseFloat(balance)
-        const nextStatus = credits > 0 ? 'usage_active' : 'usage_empty'
-        const primaryAction = derivePrimaryAction(nextStatus)
-        return {
-          ...prev,
-          aiCreditsBalance: balance,
-          setupSnippet:
-            prev.buyerKey !== null ? buildSetupSnippet(prev.buyerKey) : prev.setupSnippet,
-          usageLog,
-          status: nextStatus,
-          primaryAction,
-          primaryLabel: derivePrimaryLabel(primaryAction),
-        }
-      })
+      setState((prev) =>
+        withDerivedStatus(
+          prev,
+          {
+            aiCreditsBalance: balance,
+            setupSnippet:
+              prev.buyerKey !== null ? buildSetupSnippet(prev.buyerKey) : prev.setupSnippet,
+            usageLog,
+            status: hasCredits(balance) ? 'credits_account' : 'purchase_setup',
+          },
+          true,
+        ),
+      )
     } catch {
       setState((prev) => ({
         ...prev,
@@ -837,24 +702,16 @@ export function useAiCreditsAdapter({
   }, [state, backendClient])
 
   const handleRetry = useCallback(async () => {
-    setState((prev) => ({
-      ...prev,
-      ...derivePurchaseFlowState(prev),
-      error: null,
-    }))
+    setState((prev) =>
+      withDerivedStatus(prev, { status: 'purchase_setup', error: null }, true),
+    )
   }, [])
 
   const handleStartPurchase = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      ...derivePurchaseFlowState(prev),
-      error: null,
-    }))
+    setState((prev) =>
+      withDerivedStatus(prev, { status: 'purchase_setup', error: null }, true),
+    )
   }, [])
-
-  // ---------------------------------------------------------------------------
-  // Stable actions object
-  // ---------------------------------------------------------------------------
 
   const actions: AiCreditsWidgetAdapterActions = useMemo(
     () => ({
@@ -887,10 +744,6 @@ export function useAiCreditsAdapter({
 
   return { state, actions }
 }
-
-// ---------------------------------------------------------------------------
-// Helper: build the copyable API setup snippet shown after first purchase
-// ---------------------------------------------------------------------------
 
 function buildSetupSnippet(buyerAddress: string): string {
   return [

@@ -25,8 +25,9 @@ export {
   MockAiCreditsBackendClient,
   ProductionAiCreditsBackendClient,
   createBackendClient,
-  microUsdToCredits,
+  usdToCredits,
 } from './mockBackendClient'
+export type { GdCreditEntry } from './mockBackendClient'
 export type { BuyerOperatorStatus, Eip712SigningPayload } from './operatorConsent'
 
 // Adapter hook

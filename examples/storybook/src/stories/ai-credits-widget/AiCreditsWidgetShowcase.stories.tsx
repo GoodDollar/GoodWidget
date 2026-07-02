@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { AiCreditsWidget } from '@goodwidget/ai-credits-widget'
-import { InjectedWalletStory } from '../helpers/aiCreditsWidgetStories'
+import { InjectedWalletStory, MockBackendStory } from '../helpers/aiCreditsWidgetStories'
 
 const meta: Meta<typeof AiCreditsWidget> = {
   title: 'Widgets/AiCreditsWidget/Showcase',
@@ -12,7 +12,12 @@ const meta: Meta<typeof AiCreditsWidget> = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-/** Live wallet integration showcase — requires an injected EIP-1193 wallet */
+export const MockBackend: Story = {
+  name: 'Mock Backend (browser wallet)',
+  render: () => <MockBackendStory />,
+}
+
 export const InjectedWallet: Story = {
+  name: 'Injected Wallet (local backend)',
   render: () => <InjectedWalletStory />,
 }

@@ -12,10 +12,6 @@ import {
   isInjectedProviderUsable,
 } from '../../fixtures/injectedEip1193'
 
-// ---------------------------------------------------------------------------
-// Mock state factory — creates deterministic adapter state for each story
-// ---------------------------------------------------------------------------
-
 function createMockState(
   status: AiCreditsWidgetStatus,
   overrides: Partial<AiCreditsWidgetAdapterState> = {},
@@ -45,7 +41,6 @@ function createMockState(
   return { ...base, ...overrides }
 }
 
-/** Creates a mock adapter factory returning deterministic state for stories */
 function createAdapterFactory(
   status: AiCreditsWidgetStatus,
   overrides: Partial<AiCreditsWidgetAdapterState> = {},
@@ -67,10 +62,6 @@ function createAdapterFactory(
     },
   })
 }
-
-// ---------------------------------------------------------------------------
-// Shell wrapper — provides a consistent width for all story variants
-// ---------------------------------------------------------------------------
 
 function MockStoryShell({
   adapterFactory,
@@ -98,11 +89,8 @@ function MockStoryShell({
   }
 }
 
-// ---------------------------------------------------------------------------
-// Exported story components — one per widget state
-// ---------------------------------------------------------------------------
+const SETUP_SNIPPET = `export ANTSEED_IDENTITY_HEX=<buyer-private-key>\nexport ANTHROPIC_BASE_URL=http://localhost:8377`
 
-/** S1: disconnected — no wallet connected */
 export function DisconnectedStory() {
   return (
     <MockStoryShell
@@ -118,12 +106,11 @@ export function DisconnectedStory() {
   )
 }
 
-/** S2: connected_empty — wallet connected, G$ balance = 0 */
-export function ConnectedEmptyStory() {
+export function PurchaseSetupStory() {
   return (
     <MockStoryShell
-      dataTestId="AiCreditsWidget-connected-empty"
-      adapterFactory={createAdapterFactory('connected_empty', {
+      dataTestId="AiCreditsWidget-purchase-setup"
+      adapterFactory={createAdapterFactory('purchase_setup', {
         gBalance: '0',
         primaryAction: 'generate_key',
         primaryLabel: 'Set Up Buyer Key',
@@ -132,7 +119,6 @@ export function ConnectedEmptyStory() {
   )
 }
 
-/** S3: quote_ready — amounts set, buyer key confirmed, consent signed */
 export function QuoteReadyStory() {
   return (
     <MockStoryShell
@@ -159,7 +145,6 @@ export function QuoteReadyStory() {
   )
 }
 
-/** S3 with GoodID — 20% streaming bonus visible */
 export function QuoteReadyGoodIdStory() {
   return (
     <MockStoryShell
@@ -187,7 +172,6 @@ export function QuoteReadyGoodIdStory() {
   )
 }
 
-/** S4: payment_pending — Celo tx submitted */
 export function PaymentPendingStory() {
   return (
     <MockStoryShell
@@ -203,7 +187,6 @@ export function PaymentPendingStory() {
   )
 }
 
-/** S5: payment_confirmed — Celo tx mined, Base settling */
 export function PaymentConfirmedStory() {
   return (
     <MockStoryShell
@@ -219,59 +202,21 @@ export function PaymentConfirmedStory() {
   )
 }
 
-/** S6: has_credits — credits landed, setup snippet visible */
-export function HasCreditsStory() {
+export function CreditsAccountStory() {
   return (
     <MockStoryShell
-      dataTestId="AiCreditsWidget-has-credits"
-      adapterFactory={createAdapterFactory('has_credits', {
+      dataTestId="AiCreditsWidget-credits-account"
+      adapterFactory={createAdapterFactory('credits_account', {
         aiCreditsBalance: '110.00',
         buyerKey: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a',
-        setupSnippet: `export ANTSEED_IDENTITY_HEX=<buyer-private-key>\nexport ANTHROPIC_BASE_URL=http://localhost:8377`,
-        primaryAction: 'refresh',
-        primaryLabel: 'Refresh',
-      })}
-    />
-  )
-}
-
-/** S7: usage_empty — credits exhausted after prior purchase */
-export function UsageEmptyStory() {
-  return (
-    <MockStoryShell
-      dataTestId="AiCreditsWidget-usage-empty"
-      adapterFactory={createAdapterFactory('usage_empty', {
-        aiCreditsBalance: '0',
-        buyerKey: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a',
-        setupSnippet: `export ANTSEED_IDENTITY_HEX=<buyer-private-key>\nexport ANTHROPIC_BASE_URL=http://localhost:8377`,
-        primaryAction: 'refresh',
-        primaryLabel: 'Refresh',
-      })}
-    />
-  )
-}
-
-/** S8: usage_active — credits > 0 with usage log */
-export function UsageActiveStory() {
-  return (
-    <MockStoryShell
-      dataTestId="AiCreditsWidget-usage-active"
-      adapterFactory={createAdapterFactory('usage_active', {
-        aiCreditsBalance: '87.50',
-        buyerKey: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a',
-        setupSnippet: `export ANTSEED_IDENTITY_HEX=<buyer-private-key>\nexport ANTHROPIC_BASE_URL=http://localhost:8377`,
+        setupSnippet: SETUP_SNIPPET,
         usageLog: [
           {
             sessionId: 'sess-001',
             timestamp: '2025-06-20T10:00:00Z',
             creditsUsed: 12.5,
-            model: 'claude-3-5-sonnet',
-          },
-          {
-            sessionId: 'sess-002',
-            timestamp: '2025-06-21T14:30:00Z',
-            creditsUsed: 8.0,
-            model: 'gpt-4o',
+            model: 'G$ deposit',
+            kind: 'funding',
           },
         ],
         primaryAction: 'refresh',
@@ -281,7 +226,6 @@ export function UsageActiveStory() {
   )
 }
 
-/** S9: insufficient_g_balance — balance below minimum */
 export function InsufficientGBalanceStory() {
   return (
     <MockStoryShell
@@ -295,7 +239,6 @@ export function InsufficientGBalanceStory() {
   )
 }
 
-/** S11: payment_failed — Celo tx reverted */
 export function PaymentFailedStory() {
   return (
     <MockStoryShell
@@ -312,7 +255,6 @@ export function PaymentFailedStory() {
   )
 }
 
-/** S12: backend_unavailable — service unreachable */
 export function BackendUnavailableStory() {
   return (
     <MockStoryShell
@@ -326,13 +268,12 @@ export function BackendUnavailableStory() {
   )
 }
 
-/** S13: unsupported_chain — wrong chain connected */
 export function UnsupportedChainStory() {
   return (
     <MockStoryShell
       dataTestId="AiCreditsWidget-unsupported-chain"
       adapterFactory={createAdapterFactory('unsupported_chain', {
-        chainId: 1, // Ethereum mainnet
+        chainId: 1,
         primaryAction: 'switch_chain',
         primaryLabel: 'Switch to Celo',
       })}
@@ -340,7 +281,28 @@ export function UnsupportedChainStory() {
   )
 }
 
-/** Injected wallet — live integration showcase */
+export function MockBackendStory() {
+  const injectedProvider = getInjectedEip1193Provider()
+
+  if (!isInjectedProviderUsable(injectedProvider)) {
+    return (
+      <YStack data-testid="AiCreditsWidget-no-wallet" style={{ width: 420 }} gap="$3">
+        <strong>No injected wallet found</strong>
+        <span>
+          Install or enable Rabby (or another EIP-1193 wallet) in this browser, then refresh
+          Storybook.
+        </span>
+      </YStack>
+    )
+  }
+
+  return (
+    <YStack data-testid="AiCreditsWidget-mock-backend" style={{ width: 420 }}>
+      <AiCreditsWidget provider={injectedProvider} />
+    </YStack>
+  )
+}
+
 export function InjectedWalletStory() {
   const injectedProvider = getInjectedEip1193Provider()
   const backendUrl = import.meta.env.VITE_AI_CREDITS_BACKEND_URL

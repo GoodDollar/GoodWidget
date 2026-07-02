@@ -52,7 +52,6 @@ function AiCreditsInner({
   onPaySuccess,
   onPayError,
 }: AiCreditsInnerProps) {
-  // Use the injected adapter factory (for Storybook/tests) or the real adapter
   const defaultAdapter = useAiCreditsAdapter({
     environment,
     backendUrl,
@@ -125,13 +124,10 @@ function AiCreditsInner({
     state.status === 'payment_pending' || state.status === 'payment_confirmed'
 
   // ---------------------------------------------------------------------------
-  // Render: post-purchase states (has_credits, usage_active, usage_empty)
+  // Render: credits account dashboard
   // ---------------------------------------------------------------------------
 
-  const isPostPurchase =
-    state.status === 'has_credits' ||
-    state.status === 'usage_active' ||
-    state.status === 'usage_empty'
+  const isPostPurchase = state.status === 'credits_account'
 
   if (isPostPurchase) {
     return (
@@ -139,12 +135,6 @@ function AiCreditsInner({
         <CreditsBalance aiCreditsBalance={state.aiCreditsBalance} />
 
         {state.setupSnippet && <SetupSnippet snippet={state.setupSnippet} />}
-
-        {state.status === 'usage_empty' && (
-          <AiCreditsStatusNotice>
-            <Text secondary>Your AI credits are depleted. Purchase more to continue.</Text>
-          </AiCreditsStatusNotice>
-        )}
 
         <UsageLog entries={state.usageLog} />
 
@@ -288,7 +278,7 @@ function AiCreditsInner({
   }
 
   // ---------------------------------------------------------------------------
-  // Render: main connected flow (connected_empty → quote_ready)
+  // Render: main purchase flow (purchase_setup → quote_ready)
   // ---------------------------------------------------------------------------
 
   return (
@@ -299,6 +289,12 @@ function AiCreditsInner({
           isGoodIdVerified={state.isGoodIdVerified}
           bonusPercent={state.bonusPercent}
         />
+      )}
+
+      {state.gBalance !== null && Number.parseFloat(state.gBalance) <= 0 && (
+        <AiCreditsStatusNotice>
+          <Text secondary>You need G$ before you can buy AI credits.</Text>
+        </AiCreditsStatusNotice>
       )}
 
       <AiCreditsFlowStepper state={state} />
@@ -346,7 +342,9 @@ function AiCreditsInner({
       )}
 
       {/* Primary action button */}
-      {state.primaryAction !== 'none' && state.primaryAction !== 'generate_key' && (
+      {state.primaryAction !== 'none' &&
+        state.primaryAction !== 'generate_key' &&
+        state.primaryAction !== 'sign_consent' && (
         <Button
           fullWidth
           disabled={isPending}

@@ -540,6 +540,7 @@ interface SetupSnippetProps {
 }
 
 export function SetupSnippet({ snippet }: SetupSnippetProps) {
+  const [expanded, setExpanded] = useState(false)
   const [copied, setCopied] = useState(false)
   const copyText = snippet.replace(/\n\n+/g, '\n').trim()
   const lines = snippet.trim().split('\n')
@@ -554,24 +555,38 @@ export function SetupSnippet({ snippet }: SetupSnippetProps) {
   return (
     <SetupSnippetCard>
       <XStack justifyContent="space-between" alignItems="center">
-        <Heading level={5}>API Setup</Heading>
+        <XStack
+          flex={1}
+          justifyContent="space-between"
+          alignItems="center"
+          onPress={() => setExpanded((value) => !value)}
+          cursor="pointer"
+        >
+          <Heading level={5}>API Setup</Heading>
+          <Icon name={expanded ? 'chevron-up' : 'chevron-down'} size="sm" />
+        </XStack>
         <Button size="sm" variant="ghost" onPress={handleCopy}>
           <ButtonText>{copied ? 'Copied!' : 'Copy'}</ButtonText>
         </Button>
       </XStack>
-      <YStack backgroundColor="$backgroundMuted" borderRadius="$2" padding="$3" width="100%" gap="$1">
-        {lines.map((line, index) => (
-          <Text key={index} color="$text" style={setupSnippetLineStyle}>
-            {line.length > 0 ? line : ' '}
+
+      {expanded && (
+        <YStack gap="$2">
+          <YStack backgroundColor="$backgroundMuted" borderRadius="$2" padding="$3" width="100%" gap="$1">
+            {lines.map((line, index) => (
+              <Text key={index} color="$text" style={setupSnippetLineStyle}>
+                {line.length > 0 ? line : ' '}
+              </Text>
+            ))}
+          </YStack>
+          <Text fontSize="$1" secondary>
+            Setup guide:{' '}
+            <Anchor href={ANTSEED_API_DOCS_URL} target="_blank">
+              antseed.com/docs
+            </Anchor>
           </Text>
-        ))}
-      </YStack>
-      <Text fontSize="$1" secondary>
-        Setup guide:{' '}
-        <Anchor href={ANTSEED_API_DOCS_URL} target="_blank">
-          antseed.com/docs
-        </Anchor>
-      </Text>
+        </YStack>
+      )}
     </SetupSnippetCard>
   )
 }
@@ -590,23 +605,22 @@ interface UsageLogProps {
 export function UsageLog({ entries }: UsageLogProps) {
   const [expanded, setExpanded] = useState(false)
 
-  if (entries.length === 0) return null
-
-  const isFundingHistory = entries.every((entry) => entry.kind === 'funding')
-  const total = entries.reduce((sum, e) => sum + e.creditsUsed, 0)
+  const isFundingHistory = entries.length === 0 || entries.every((entry) => entry.kind === 'funding')
+  const total = entries.reduce((sum, entry) => sum + entry.creditsUsed, 0)
+  const title = isFundingHistory ? 'Credit History' : 'Usage History'
 
   return (
     <UsageLogCard>
       <XStack
         justifyContent="space-between"
         alignItems="center"
-        onPress={() => setExpanded((v) => !v)}
+        onPress={() => setExpanded((value) => !value)}
         cursor="pointer"
       >
-        <Heading level={5}>{isFundingHistory ? 'Credit History' : 'Usage History'}</Heading>
+        <Heading level={5}>{title}</Heading>
         <XStack gap="$2" alignItems="center">
           <Text fontSize="$2" secondary>
-            {total.toFixed(1)} total credits
+            {entries.length === 0 ? 'No entries yet' : `${total.toFixed(1)} total credits`}
           </Text>
           <Icon name={expanded ? 'chevron-up' : 'chevron-down'} size="sm" />
         </XStack>
@@ -614,25 +628,31 @@ export function UsageLog({ entries }: UsageLogProps) {
 
       {expanded && (
         <YStack gap="$2">
-          {entries.map((entry) => (
-            <YStack key={entry.sessionId} gap="$1">
-              <Separator />
-              <XStack justifyContent="space-between" alignItems="center">
-                <YStack>
-                  <Text fontSize="$2" fontWeight="600">
-                    {entry.model}
+          {entries.length === 0 ? (
+            <Text fontSize="$2" secondary>
+              Purchases and funding activity will appear here.
+            </Text>
+          ) : (
+            entries.map((entry) => (
+              <YStack key={entry.sessionId} gap="$1">
+                <Separator />
+                <XStack justifyContent="space-between" alignItems="center">
+                  <YStack>
+                    <Text fontSize="$2" fontWeight="600">
+                      {entry.model}
+                    </Text>
+                    <Text fontSize="$1" secondary>
+                      {new Date(entry.timestamp).toLocaleString()}
+                    </Text>
+                  </YStack>
+                  <Text fontSize="$2" color="$primary">
+                    {entry.kind === 'funding' ? '+' : '-'}
+                    {entry.creditsUsed.toFixed(1)} credits
                   </Text>
-                  <Text fontSize="$1" secondary>
-                    {new Date(entry.timestamp).toLocaleString()}
-                  </Text>
-                </YStack>
-                <Text fontSize="$2" color="$primary">
-                  {entry.kind === 'funding' ? '+' : '-'}
-                  {entry.creditsUsed.toFixed(1)} credits
-                </Text>
-              </XStack>
-            </YStack>
-          ))}
+                </XStack>
+              </YStack>
+            ))
+          )}
         </YStack>
       )}
     </UsageLogCard>
@@ -644,7 +664,7 @@ export function UsageLog({ entries }: UsageLogProps) {
 // ---------------------------------------------------------------------------
 
 /** Map of step IDs for the AI credits purchase flow */
-export type AiCreditsFlowStep = 'connect' | 'buyer_key' | 'consent' | 'amount' | 'pay'
+export type AiCreditsFlowStep = 'connect' | 'buyer_key' | 'consent' | 'pay'
 
 interface AiCreditsFlowStepperProps {
   state: AiCreditsWidgetAdapterState
@@ -656,8 +676,8 @@ function mapStatusToActiveStep(
   if (state.status === 'disconnected') return 'connect'
   if (!state.buyerKey || !state.buyerKeyConfirmed) return 'buyer_key'
   if (!state.operatorConsentSigned) return 'consent'
-  if (state.status === 'connected_empty') return 'amount'
   if (
+    state.status === 'purchase_setup' ||
     state.status === 'quote_ready' ||
     state.status === 'payment_pending' ||
     state.status === 'payment_confirmed'
@@ -678,8 +698,6 @@ export function AiCreditsFlowStepper({ state }: AiCreditsFlowStepperProps) {
     const isConnected = state.address !== null
     const hasBuyerKey = state.buyerKey !== null && state.buyerKeyConfirmed
     const hasConsent = state.operatorConsentSigned
-    const hasAmount =
-      Number.parseFloat(state.depositAmount) >= 1 || Number.parseFloat(state.streamAmount) >= 1
 
     switch (step) {
       case 'connect':
@@ -694,21 +712,11 @@ export function AiCreditsFlowStepper({ state }: AiCreditsFlowStepperProps) {
         if (hasConsent) return 'completed'
         if (!hasBuyerKey) return 'pending'
         return activeStep === 'consent' ? 'active' : 'pending'
-      case 'amount':
-        if (hasAmount && hasConsent) return 'completed'
-        if (!hasConsent) return 'pending'
-        return activeStep === 'amount' ? 'active' : 'pending'
       case 'pay':
-        if (
-          state.status === 'has_credits' ||
-          state.status === 'usage_active' ||
-          state.status === 'usage_empty' ||
-          state.status === 'payment_confirmed'
-        )
+        if (state.status === 'credits_account' || state.status === 'payment_confirmed')
           return 'completed'
         if (state.status === 'payment_failed') return 'failed'
-        if (state.status === 'payment_pending') return 'active'
-        if (!hasAmount) return 'pending'
+        if (!hasConsent) return 'pending'
         return activeStep === 'pay' ? 'active' : 'pending'
       default:
         return 'pending'
@@ -734,12 +742,6 @@ export function AiCreditsFlowStepper({ state }: AiCreditsFlowStepperProps) {
       title: 'Operator Consent',
       description: 'Sign permission for the AntseedBuyerOperator',
       status: getStepStatus('consent'),
-    },
-    {
-      id: 'amount',
-      title: 'Choose Amounts',
-      description: 'Set deposit and/or monthly stream amounts',
-      status: getStepStatus('amount'),
     },
     {
       id: 'pay',

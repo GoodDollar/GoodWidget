@@ -1,3 +1,4 @@
+import { parseUnits } from 'viem'
 import type { AiCreditsQuote, AiCreditsUsageEntry } from './widgetRuntimeContract'
 import {
   ANTSEED_DEPOSITS_BASE_ADDRESS,
@@ -15,25 +16,34 @@ export type AccountRef = {
 type UserCreditProfile = {
   account: string
   rootAccount: string
-  totalPrincipalMicroUsd: string
-  totalBonusMicroUsd: string
-  totalOutstandingFundingMicroUsd?: string
+  totalPrincipalUsd: string
+  totalBonusUsd: string
+  totalOutstandingFundingUsd?: string
   buyer?: string
+  createdAt?: string
+  updatedAt?: string
+  totalGdDepositedWei?: string
+  totalGDStreamedWei?: string
+  streamFlowRateWeiPerSecond?: string
+  lastStreamCreditAt?: string
 }
 
 export type GdCreditEntry = {
   id: string
+  account?: string
+  rootAccount?: string
   source: 'deposit' | 'streamUpdate' | 'streamRequest' | 'streamCron'
   gdAmountWei?: string
-  principalMicroUsd?: string
-  bonusMicroUsd?: string
-  totalCreditMicroUsd: string
+  principalUsd?: string
+  bonusUsd?: string
+  totalCreditUsd: string
   fundingStatus: 'pending' | 'funded' | 'failed'
   fundingTxHash?: string
   fundingError?: string
   txHash?: string
   logIndex?: number
   createdAt: string
+  streamUpdateMonth?: string
   buyerAddress?: string
 }
 
@@ -48,8 +58,8 @@ export type AccountStatusResponse = {
   buyer: string | null
   profile: UserCreditProfile
   operator: BuyerOperatorStatus
-  withdrawableMicroUsd: string
-  outstandingFundingMicroUsd: string
+  withdrawableUsd: string
+  outstandingFundingUsd: string
   outstandingFundingCount: number
 }
 
@@ -104,7 +114,17 @@ export interface AiCreditsBackendClient {
 }
 
 const MOCK_DELAY_MS = 600
-const CREDITS_PER_MICRO_USD = 10_000
+const CREDITS_PER_USD = 10_000
+const REGULAR_BONUS_BPS = 1_000n
+const STREAMING_BONUS_BPS = 2_000n
+const BPS = 10_000n
+
+type GdToCreditQuoteResponse = {
+  direction: 'gd-to-credit'
+  gdAmountWei: string
+  gdPrice: string
+  creditUsd: string
+}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -114,23 +134,33 @@ function normalizeAddress(address: string): string {
   return address.toLowerCase()
 }
 
-export function microUsdToCredits(microUsd: string): string {
-  const value = BigInt(microUsd || '0')
-  const credits = Number(value) / CREDITS_PER_MICRO_USD
+function gToWei(amountG: string): bigint {
+  const trimmed = amountG.trim()
+  if (!trimmed || Number.parseFloat(trimmed) <= 0) return 0n
+  return parseUnits(trimmed, 18)
+}
+
+function formatProfileUsd(usd: bigint): string {
+  return (Number(usd) / 1_000_000).toFixed(4)
+}
+
+export function usdToCredits(usd: string): string {
+  const value = BigInt(usd || '0')
+  const credits = Number(value) / CREDITS_PER_USD
   return credits.toFixed(2)
 }
 
 export function creditsBalanceFromStatus(status: AccountStatusResponse): string {
-  const microUsd =
-    BigInt(status.profile.totalPrincipalMicroUsd || '0') +
-    BigInt(status.profile.totalBonusMicroUsd || '0')
-  return microUsdToCredits(microUsd.toString())
+  const totalUsd =
+    BigInt(status.profile.totalPrincipalUsd || '0') +
+    BigInt(status.profile.totalBonusUsd || '0')
+  return usdToCredits(totalUsd.toString())
 }
 
 function balanceFromProfile(profile: UserCreditProfile): string {
-  const principal = BigInt(profile.totalPrincipalMicroUsd || '0')
-  const bonus = BigInt(profile.totalBonusMicroUsd || '0')
-  return microUsdToCredits((principal + bonus).toString())
+  const principal = BigInt(profile.totalPrincipalUsd || '0')
+  const bonus = BigInt(profile.totalBonusUsd || '0')
+  return usdToCredits((principal + bonus).toString())
 }
 
 function sourceLabel(source: GdCreditEntry['source']): string {
@@ -144,7 +174,7 @@ function gdCreditsToUsageEntries(entries: GdCreditEntry[]): AiCreditsUsageEntry[
     .map((entry) => ({
       sessionId: entry.id,
       timestamp: entry.createdAt,
-      creditsUsed: Number.parseFloat(microUsdToCredits(entry.totalCreditMicroUsd)),
+      creditsUsed: Number.parseFloat(usdToCredits(entry.totalCreditUsd)),
       model:
         entry.fundingStatus === 'failed'
           ? `${sourceLabel(entry.source)} (failed)`
@@ -174,6 +204,56 @@ function calculateMockQuote(
     streamAmountUsd: streamUsd.toFixed(4),
     bonusPercent,
     totalCredits: totalCredits.toFixed(2),
+  }
+}
+
+async function fetchGdToCreditQuote(
+  backendUrl: string,
+  gdAmountWei: bigint,
+): Promise<GdToCreditQuoteResponse> {
+  if (gdAmountWei === 0n) {
+    return { direction: 'gd-to-credit', gdAmountWei: '0', gdPrice: '0', creditUsd: '0' }
+  }
+  const response = await fetch(
+    `${backendUrl}/v1/quote/gd-to-credit?gdAmountWei=${gdAmountWei.toString()}`,
+  )
+  if (!response.ok) throw new Error(`Quote request failed: ${response.status}`)
+  return response.json() as Promise<GdToCreditQuoteResponse>
+}
+
+async function buildProductionQuote(
+  backendUrl: string,
+  depositG: string,
+  streamG: string,
+  isGoodIdVerified: boolean,
+): Promise<AiCreditsQuote> {
+  const depositWei = gToWei(depositG)
+  const streamWei = gToWei(streamG)
+  const [depositQuote, streamQuote] = await Promise.all([
+    fetchGdToCreditQuote(backendUrl, depositWei),
+    fetchGdToCreditQuote(backendUrl, streamWei),
+  ])
+
+  const depositPrincipalUsd = BigInt(depositQuote.creditUsd)
+  const streamPrincipalUsd = BigInt(streamQuote.creditUsd)
+  const depositBonusUsd = isGoodIdVerified
+    ? (depositPrincipalUsd * REGULAR_BONUS_BPS) / BPS
+    : 0n
+  const streamBonusUsd = isGoodIdVerified
+    ? (streamPrincipalUsd * STREAMING_BONUS_BPS) / BPS
+    : 0n
+  const totalUsd =
+    depositPrincipalUsd + depositBonusUsd + streamPrincipalUsd + streamBonusUsd
+  const hasStream = streamWei > 0n
+  const bonusPercent = hasStream && isGoodIdVerified ? 20 : 10
+
+  return {
+    depositAmountG: depositG,
+    streamAmountG: streamG,
+    depositAmountUsd: formatProfileUsd(depositPrincipalUsd),
+    streamAmountUsd: formatProfileUsd(streamPrincipalUsd),
+    bonusPercent,
+    totalCredits: usdToCredits(totalUsd.toString()),
   }
 }
 
@@ -230,8 +310,8 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
   private readonly accountStates = new Map<
     string,
     {
-      principalMicroUsd: bigint
-      bonusMicroUsd: bigint
+      principalUsd: bigint
+      bonusUsd: bigint
       transactions: GdCreditEntry[]
       operatorAccepted: boolean
       buyer: string | null
@@ -247,8 +327,8 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
   }
 
   private getState(payer: string): {
-    principalMicroUsd: bigint
-    bonusMicroUsd: bigint
+    principalUsd: bigint
+    bonusUsd: bigint
     transactions: GdCreditEntry[]
     operatorAccepted: boolean
     buyer: string | null
@@ -256,8 +336,8 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     const key = normalizeAddress(payer)
     if (!this.accountStates.has(key)) {
       this.accountStates.set(key, {
-        principalMicroUsd: 0n,
-        bonusMicroUsd: 0n,
+        principalUsd: 0n,
+        bonusUsd: 0n,
         transactions: [],
         operatorAccepted: false,
         buyer: null,
@@ -270,13 +350,13 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     const state = this.getState(payer)
     const outstanding = state.transactions
       .filter((entry) => entry.fundingStatus === 'pending' || entry.fundingStatus === 'failed')
-      .reduce((sum, entry) => sum + BigInt(entry.totalCreditMicroUsd || '0'), 0n)
+      .reduce((sum, entry) => sum + BigInt(entry.totalCreditUsd || '0'), 0n)
     return {
       account: normalizeAddress(payer),
       rootAccount: normalizeAddress(payer),
-      totalPrincipalMicroUsd: state.principalMicroUsd.toString(),
-      totalBonusMicroUsd: state.bonusMicroUsd.toString(),
-      totalOutstandingFundingMicroUsd: outstanding.toString(),
+      totalPrincipalUsd: state.principalUsd.toString(),
+      totalBonusUsd: state.bonusUsd.toString(),
+      totalOutstandingFundingUsd: outstanding.toString(),
       buyer: state.buyer ?? undefined,
     }
   }
@@ -315,8 +395,8 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
       buyer: state.buyer,
       profile,
       operator,
-      withdrawableMicroUsd: state.principalMicroUsd.toString(),
-      outstandingFundingMicroUsd: profile.totalOutstandingFundingMicroUsd ?? '0',
+      withdrawableUsd: state.principalUsd.toString(),
+      outstandingFundingUsd: profile.totalOutstandingFundingUsd ?? '0',
       outstandingFundingCount: outstandingFundingCredits.length,
     }
   }
@@ -394,19 +474,19 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     }
 
     const quote = this.lastQuote ?? calculateMockQuote('10', '0', this.isGoodIdVerified)
-    const totalMicroUsd = BigInt(
-      Math.round(Number.parseFloat(quote.totalCredits) * CREDITS_PER_MICRO_USD),
+    const totalUsd = BigInt(
+      Math.round(Number.parseFloat(quote.totalCredits) * CREDITS_PER_USD),
     )
     const bonusPercent = BigInt(quote.bonusPercent)
-    const principalMicroUsd = (totalMicroUsd * 10000n) / (10000n + bonusPercent * 100n)
-    const bonusMicroUsd = totalMicroUsd - principalMicroUsd
+    const principalUsd = (totalUsd * 10000n) / (10000n + bonusPercent * 100n)
+    const bonusUsd = totalUsd - principalUsd
 
     const entry: GdCreditEntry = {
       id: `${txHash}:0`,
       source: 'deposit',
-      totalCreditMicroUsd: totalMicroUsd.toString(),
-      principalMicroUsd: principalMicroUsd.toString(),
-      bonusMicroUsd: bonusMicroUsd.toString(),
+      totalCreditUsd: totalUsd.toString(),
+      principalUsd: principalUsd.toString(),
+      bonusUsd: bonusUsd.toString(),
       fundingStatus: 'pending',
       txHash,
       logIndex: 0,
@@ -451,8 +531,8 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
         if (pending.length > 0 && attempt === MAX_ATTEMPTS - 1) {
           for (const entry of pending) {
             entry.fundingStatus = 'funded'
-            state.principalMicroUsd += BigInt(entry.principalMicroUsd ?? '0')
-            state.bonusMicroUsd += BigInt(entry.bonusMicroUsd ?? '0')
+            state.principalUsd += BigInt(entry.principalUsd ?? '0')
+            state.bonusUsd += BigInt(entry.bonusUsd ?? '0')
           }
         } else if (pending.length > 0) {
           continue
@@ -476,8 +556,8 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
       if (entry.fundingStatus !== 'pending') continue
       if (txHashes.size > 0 && entry.txHash && !txHashes.has(entry.txHash.toLowerCase())) continue
       entry.fundingStatus = 'funded'
-      state.principalMicroUsd += BigInt(entry.principalMicroUsd ?? '0')
-      state.bonusMicroUsd += BigInt(entry.bonusMicroUsd ?? '0')
+      state.principalUsd += BigInt(entry.principalUsd ?? '0')
+      state.bonusUsd += BigInt(entry.bonusUsd ?? '0')
     }
 
     return { credits: balanceFromProfile(this.buildProfile(ref.payer)) }
@@ -511,7 +591,12 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
     streamG: string,
     options?: { isGoodIdVerified?: boolean },
   ): Promise<AiCreditsQuote> {
-    return calculateMockQuote(depositG, streamG, options?.isGoodIdVerified ?? false)
+    return buildProductionQuote(
+      this.backendUrl,
+      depositG,
+      streamG,
+      options?.isGoodIdVerified ?? false,
+    )
   }
 
   async getPayerStatus(payer: string): Promise<AccountStatusResponse> {
