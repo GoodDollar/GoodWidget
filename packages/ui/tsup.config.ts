@@ -6,5 +6,5 @@ export default defineConfig({
   dts: true,
   sourcemap: true,
   clean: true,
-  external: ['react', 'react-dom', 'react-native', 'react-native-web'],
+  external: ['react', 'react-dom', 'react-native', 'react-native-web', '@react-native-clipboard/clipboard'],
 })

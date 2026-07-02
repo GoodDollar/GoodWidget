@@ -1,6 +1,7 @@
 import React from 'react'
 import { styled, Stack, Text as TamaguiText } from 'tamagui'
 import { createComponent } from '../createComponent'
+import { createInputChangeHandlers } from './inputChangeHandlers'
 
 const InputFrame = createComponent(Stack, {
   name: 'Input',
@@ -66,26 +67,35 @@ const InputError = styled(TamaguiText, {
   marginTop: '$1',
 })
 
-export interface InputProps {
+export interface InputProps
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'onChange'> {
   label?: string
   errorMessage?: string
   error?: boolean
   size?: 'sm' | 'md' | 'lg'
-  disabled?: boolean
-  placeholder?: string
-  value?: string
+  onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void
   onChangeText?: (text: string) => void
-  [key: string]: unknown
 }
 
 const InputWithLabel = React.forwardRef<unknown, InputProps>(function InputWithLabel(
-  { label, errorMessage, error, ...props },
+  { label, errorMessage, error, onChangeText, onChange, ...props },
   ref,
 ) {
+  const { onChange: handleChange, onChangeText: handleChangeText } = React.useMemo(
+    () => createInputChangeHandlers({ onChange, onChangeText }),
+    [onChange, onChangeText],
+  )
+
   return (
     <Stack gap="$1">
       {label && <InputLabel>{label}</InputLabel>}
-      <InputFrame ref={ref} error={error || !!errorMessage} {...props} />
+      <InputFrame
+        ref={ref}
+        error={error || !!errorMessage}
+        onChange={handleChange}
+        onChangeText={handleChangeText}
+        {...props}
+      />
       {errorMessage && <InputError>{errorMessage}</InputError>}
     </Stack>
   )

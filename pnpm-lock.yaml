@@ -167,6 +167,9 @@ importers:
 
   examples/storybook:
     dependencies:
+      '@goodwidget/ai-credits-widget':
+        specifier: workspace:*
+        version: link:../../packages/ai-credits-widget
       '@goodwidget/citizen-claim-widget':
         specifier: workspace:*
         version: link:../../packages/citizen-claim-widget
@@ -228,6 +231,40 @@ importers:
       storybook:
         specifier: ^8.6.17
         version: 8.6.18(prettier@3.8.1)
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  packages/ai-credits-widget:
+    dependencies:
+      '@goodwidget/core':
+        specifier: workspace:*
+        version: link:../core
+      '@goodwidget/embed':
+        specifier: workspace:*
+        version: link:../embed
+      '@goodwidget/ui':
+        specifier: workspace:*
+        version: link:../ui
+      viem:
+        specifier: ^2.0.0
+        version: 2.48.4(typescript@5.9.3)(zod@4.1.11)
+    devDependencies:
+      '@types/react':
+        specifier: ^18.3.0
+        version: 18.3.28
+      '@types/react-dom':
+        specifier: ^18.3.0
+        version: 18.3.7(@types/react@18.3.28)
+      react:
+        specifier: ^18.3.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.0
+        version: 18.3.1(react@18.3.1)
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(@swc/core@1.15.30)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.3)
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
@@ -429,6 +466,9 @@ importers:
 
   packages/ui:
     dependencies:
+      '@react-native-clipboard/clipboard':
+        specifier: '>=1.14.0'
+        version: 1.16.3(react-native@0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)
       '@tamagui/animations-react-native':
         specifier: ^1.121.0
         version: 1.121.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -2342,6 +2382,19 @@ packages:
     resolution: {integrity: sha512-avutXAFL1ehGvAXtPquu0YK5oz6ctS474iM3vNGQIkswrVhdrS52e3uoMQBzZhNRAIE0jBnUyXWNmSjGHhCFcw==}
     peerDependencies:
       react: ^16.8 || ^17.0 || ^18.0
+
+  '@react-native-clipboard/clipboard@1.16.3':
+    resolution: {integrity: sha512-cMIcvoZKIrShzJHEaHbTAp458R9WOv0fB6UyC7Ek4Qk561Ow/DrzmmJmH/rAZg21Z6ixJ4YSdFDC14crqIBmCQ==}
+    peerDependencies:
+      react: '>= 16.9.0'
+      react-native: '>= 0.61.5'
+      react-native-macos: '>= 0.61.0'
+      react-native-windows: '>= 0.61.0'
+    peerDependenciesMeta:
+      react-native-macos:
+        optional: true
+      react-native-windows:
+        optional: true
 
   '@react-native/assets-registry@0.76.9':
     resolution: {integrity: sha512-pN0Ws5xsjWOZ8P37efh0jqHHQmq+oNGKT4AyAoKRpxBDDDmlAmpaYjer9Qz7PpDKF+IUyRjF/+rBsM50a8JcUg==}
@@ -10668,6 +10721,11 @@ snapshots:
       '@babel/runtime': 7.29.2
       '@radix-ui/react-compose-refs': 1.0.0(react@18.3.1)
       react: 18.3.1
+
+  '@react-native-clipboard/clipboard@1.16.3(react-native@0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      react: 18.3.1
+      react-native: 0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1)
 
   '@react-native/assets-registry@0.76.9': {}
 

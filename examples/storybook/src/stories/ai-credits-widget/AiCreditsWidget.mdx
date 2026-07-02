@@ -1,0 +1,80 @@
+import { Canvas, Meta } from '@storybook/blocks';
+import * as ShowcaseStories from './AiCreditsWidgetShowcase.stories';
+import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/DocsLayout';
+
+<Meta of={ShowcaseStories} />
+
+<DocsPage
+  eyebrow="Widget Guide"
+  title="AiCreditsWidget"
+  lead="Buy AI coding credits with G$ on Celo. Credits settle on Base and are redeemable with AntSeed-compatible AI coding tools like Cursor and Cline."
+>
+  <DocsSection
+    title="Interactive showcase (mock backend)"
+    description="Uses your browser wallet (`window.ethereum`, e.g. Rabby) with the in-memory mock backend — no local antseed worker required."
+  >
+    <Canvas of={ShowcaseStories.MockBackend} />
+  </DocsSection>
+
+  <DocsSection
+    title="Injected wallet (local backend)"
+    description="Uses your browser wallet (`window.ethereum`, e.g. Rabby), `VITE_AI_CREDITS_BACKEND_URL`, `VITE_AI_CREDITS_BASE_RPC_URL`, and `VITE_AI_CREDITS_FUNDING_VAULT_ADDRESS` from `examples/storybook/.env.local`."
+  >
+    <Canvas of={ShowcaseStories.InjectedWallet} />
+  </DocsSection>
+
+  <DocsSection
+    title="QA coverage"
+    description="Use the QA demo when you need reproducible fixture states, Playwright screenshots, or fixture-driven debugging."
+  >
+    <DocsCard
+      title="Open the QA fixture demo"
+      href="?path=/story/qa-aicreditswidget-runtime-fixtures--disconnected"
+    >
+      All 10 widget states as deterministic mock fixtures — ideal for automation and debugging.
+    </DocsCard>
+  </DocsSection>
+
+  <DocsSection
+    title="Widget states"
+    description="The widget uses a flat 10-state status union, consistent with other GoodWidget packages."
+  >
+    <DocsGrid>
+      <DocsCard title="S1 – Disconnected">No wallet connected.</DocsCard>
+      <DocsCard title="S2 – Purchase Setup">Wallet connected; buyer key / consent / amounts in progress.</DocsCard>
+      <DocsCard title="S3 – Quote Ready">Setup complete; on-chain quote built; ready to pay.</DocsCard>
+      <DocsCard title="S4 – Payment Pending">Celo tx submitted.</DocsCard>
+      <DocsCard title="S5 – Payment Confirmed">Settling on Base.</DocsCard>
+      <DocsCard title="S6 – Credits Management">AI credits balance &gt; 0; management dashboard with stream, history, and API setup.</DocsCard>
+      <DocsCard title="S7 – Insufficient G$">G$ below minimum purchase threshold.</DocsCard>
+      <DocsCard title="S8 – Payment Failed">Transaction or settlement error.</DocsCard>
+      <DocsCard title="S9 – Backend Unavailable">Backend unreachable.</DocsCard>
+      <DocsCard title="S10 – Unsupported Chain">Wrong network (Celo required).</DocsCard>
+    </DocsGrid>
+  </DocsSection>
+
+  <DocsSection
+    title="Known limitations"
+    description="Features present in the management UI but not yet production-complete."
+  >
+    <DocsCallout title="Withdraw signing" tone="warning">
+      The withdraw form displays user-friendly USD amounts and on-chain withdrawable principal, but
+      buyer EIP-712 signing is not wired in the UI yet (`buyerSig` is a placeholder). Do not treat
+      withdraw as production-ready against a real backend.
+    </DocsCallout>
+    <DocsCallout title="Close channel" tone="info">
+      Close channel posts to the backend API and is suitable for integration testing; validate against
+      your deployment before relying on it in production.
+    </DocsCallout>
+  </DocsSection>
+
+  <DocsSection
+    title="Workflow guidance"
+    description="Choose the story type based on the job you are trying to do."
+  >
+    <DocsCallout title="Rule of use" tone="info">
+      Use the showcase story when validating the product-facing integration flow. Use the QA fixture
+      stories when you need state-flow coverage, screenshots, or reproducible runtime conditions.
+    </DocsCallout>
+  </DocsSection>
+</DocsPage>
