@@ -48,17 +48,46 @@ function useCopyFeedback() {
 }
 
 function InfoTooltip({ message }: { message: string }) {
+  const [open, setOpen] = useState(false)
+
   return (
-    <XStack alignItems="center" cursor="help" accessibilityLabel={message}>
-      <span title={message} style={{ display: 'inline-flex', lineHeight: 0 }}>
-        <Icon name="info" size="xs" color="primary" />
-      </span>
+    <XStack
+      position="relative"
+      alignItems="center"
+      cursor="help"
+      tabIndex={0}
+      accessibilityLabel={message}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onFocus={() => setOpen(true)}
+      onBlur={() => setOpen(false)}
+    >
+      <Icon name="info" size="xs" color="primary" />
+      {open && (
+        <YStack
+          position="absolute"
+          bottom="100%"
+          left={0}
+          marginBottom="$1"
+          backgroundColor="$background"
+          borderWidth={1}
+          borderColor="$borderColor"
+          borderRadius="$2"
+          padding="$2"
+          maxWidth={280}
+          zIndex={100}
+          pointerEvents="none"
+        >
+          <Text fontSize="$1" lineHeight="$2" color="$color">
+            {message}
+          </Text>
+        </YStack>
+      )}
     </XStack>
   )
 }
 
-const WITHDRAW_TOOLTIP =
-  'Withdraw requires a buyer EIP-712 signature. UI signing is not implemented yet — mock backend only.'
+const WITHDRAW_TOOLTIP = 'Withdraw requires a buyer EIP-712 signature.'
 
 function AddressView({ label, address }: { label: string; address: string }) {
   const { copied, copy } = useCopyFeedback()

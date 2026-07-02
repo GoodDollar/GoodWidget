@@ -236,6 +236,22 @@ function withDerivedStatus(
   }
 }
 
+function mergeStatePreservingManagement(
+  prev: AiCreditsWidgetAdapterState,
+  overrides: Partial<AiCreditsWidgetAdapterState>,
+): AiCreditsWidgetAdapterState {
+  if (prev.status !== 'credits_management') {
+    return withDerivedStatus(prev, overrides, true)
+  }
+  return {
+    ...prev,
+    ...overrides,
+    status: 'credits_management',
+    primaryAction: 'refresh',
+    primaryLabel: 'Refresh',
+  }
+}
+
 function viewToStatePatch(
   view: AccountView,
   enriched: AccountEnrichment,
@@ -463,21 +479,21 @@ export function useAiCreditsAdapter({
       const privateKey = deriveBuyerPrivateKeyFromSignature(signature)
       const account = privateKeyToAccount(privateKey)
 
-      setState((prev) =>
-        withDerivedStatus(
-          prev,
-          {
-            buyerKey: account.address,
-            buyerKeyPrivate: privateKey,
-            buyerKeyConfirmed: false,
-            operatorConsentSigned: false,
-            apiKey: null,
-            error: null,
-            status: 'purchase_setup',
-          },
-          true,
-        ),
-      )
+      setState((prev) => {
+        const inManagement = prev.status === 'credits_management'
+        return mergeStatePreservingManagement(prev, {
+          buyerKey: account.address,
+          buyerKeyPrivate: privateKey,
+          buyerKeyConfirmed: inManagement,
+          operatorConsentSigned: false,
+          apiKey: null,
+          error: null,
+          ...(inManagement && hasCredits(prev.aiCreditsBalance)
+            ? { setupSnippet: buildSetupSnippet(account.address) }
+            : {}),
+          ...(!inManagement ? { status: 'purchase_setup' } : {}),
+        })
+      })
     } catch (err: unknown) {
       setState((prev) => ({
         ...prev,
@@ -501,6 +517,7 @@ export function useAiCreditsAdapter({
     }
 
     const ref: AccountRef = { payer: currentState.address, buyer: currentState.buyerKey }
+    const inManagement = currentState.status === 'credits_management'
 
     try {
       const operatorStatus = await chainClient.getBuyerOperatorStatus(ref)
@@ -511,11 +528,11 @@ export function useAiCreditsAdapter({
 
       if (operatorStatus.operatorAccepted) {
         setState((prev) =>
-          withDerivedStatus(
-            prev,
-            { operatorConsentSigned: true, error: null, status: 'purchase_setup' },
-            true,
-          ),
+          mergeStatePreservingManagement(prev, {
+            operatorConsentSigned: true,
+            error: null,
+            ...(!inManagement ? { status: 'purchase_setup' } : {}),
+          }),
         )
         return
       }
@@ -534,11 +551,11 @@ export function useAiCreditsAdapter({
       await backendClient.acceptOperator(ref, buyerSig, operatorStatus.consentNonce)
 
       setState((prev) =>
-        withDerivedStatus(
-          prev,
-          { operatorConsentSigned: true, error: null, status: 'purchase_setup' },
-          true,
-        ),
+        mergeStatePreservingManagement(prev, {
+          operatorConsentSigned: true,
+          error: null,
+          ...(!inManagement ? { status: 'purchase_setup' } : {}),
+        }),
       )
     } catch (err: unknown) {
       setState((prev) => ({
