@@ -337,8 +337,7 @@ function AiCreditsInner({
           depositAmount={state.depositAmount}
           streamAmount={state.streamAmount}
           gBalance={state.gBalance}
-          bonusPercent={state.bonusPercent}
-          isGoodIdVerified={state.isGoodIdVerified}
+          quote={state.quote}
           onDepositChange={actions.setDepositAmount}
           onStreamChange={actions.setStreamAmount}
         />

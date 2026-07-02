@@ -18,7 +18,7 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
 
   <DocsSection
     title="Injected wallet (local backend)"
-    description="Uses your browser wallet (`window.ethereum`, e.g. Rabby) and the URL from `VITE_AI_CREDITS_BACKEND_URL` in `examples/storybook/.env.local` (default `http://localhost:8787`)."
+    description="Uses your browser wallet (`window.ethereum`, e.g. Rabby), `VITE_AI_CREDITS_BACKEND_URL`, `VITE_AI_CREDITS_BASE_RPC_URL`, and `VITE_AI_CREDITS_FUNDING_VAULT_ADDRESS` from `examples/storybook/.env.local`."
   >
     <Canvas of={ShowcaseStories.InjectedWallet} />
   </DocsSection>
@@ -37,20 +37,35 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
 
   <DocsSection
     title="Widget states"
-    description="The widget uses a flat status union, consistent with other GoodWidget packages."
+    description="The widget uses a flat 10-state status union, consistent with other GoodWidget packages."
   >
     <DocsGrid>
       <DocsCard title="S1 – Disconnected">No wallet connected.</DocsCard>
-      <DocsCard title="S2 – Purchase Setup">Wallet connected; purchase flow in progress.</DocsCard>
-      <DocsCard title="S3 – Quote Ready">Setup complete; ready to pay.</DocsCard>
+      <DocsCard title="S2 – Purchase Setup">Wallet connected; buyer key / consent / amounts in progress.</DocsCard>
+      <DocsCard title="S3 – Quote Ready">Setup complete; on-chain quote built; ready to pay.</DocsCard>
       <DocsCard title="S4 – Payment Pending">Celo tx submitted.</DocsCard>
       <DocsCard title="S5 – Payment Confirmed">Settling on Base.</DocsCard>
-      <DocsCard title="S6 – Credits Account">AI credits balance &gt; 0.</DocsCard>
-      <DocsCard title="S7 – Insufficient G$">G$ below minimum.</DocsCard>
+      <DocsCard title="S6 – Credits Management">AI credits balance &gt; 0; management dashboard with stream, history, and API setup.</DocsCard>
+      <DocsCard title="S7 – Insufficient G$">G$ below minimum purchase threshold.</DocsCard>
       <DocsCard title="S8 – Payment Failed">Transaction or settlement error.</DocsCard>
       <DocsCard title="S9 – Backend Unavailable">Backend unreachable.</DocsCard>
-      <DocsCard title="S10 – Unsupported Chain">Wrong network.</DocsCard>
+      <DocsCard title="S10 – Unsupported Chain">Wrong network (Celo required).</DocsCard>
     </DocsGrid>
+  </DocsSection>
+
+  <DocsSection
+    title="Known limitations"
+    description="Features present in the management UI but not yet production-complete."
+  >
+    <DocsCallout title="Withdraw signing" tone="warning">
+      The withdraw form displays user-friendly USD amounts and on-chain withdrawable principal, but
+      buyer EIP-712 signing is not wired in the UI yet (`buyerSig` is a placeholder). Do not treat
+      withdraw as production-ready against a real backend.
+    </DocsCallout>
+    <DocsCallout title="Close channel" tone="info">
+      Close channel posts to the backend API and is suitable for integration testing; validate against
+      your deployment before relying on it in production.
+    </DocsCallout>
   </DocsSection>
 
   <DocsSection

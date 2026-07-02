@@ -26,6 +26,18 @@ export function formatProfileUsd(usd: bigint): string {
   return (Number(usd) / 1_000_000).toFixed(4)
 }
 
+export function formatUsdMicro(usdMicro: string): string {
+  return (Number(usdMicro || '0') / 1_000_000).toFixed(4)
+}
+
+export function usdDisplayToMicro(usdDisplay: string): string {
+  const value = Number.parseFloat(usdDisplay)
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new Error('Enter a valid USD amount')
+  }
+  return Math.round(value * 1_000_000).toString()
+}
+
 export function usdToCredits(usd: string): string {
   const value = BigInt(usd || '0')
   const credits = Number(value) / CREDITS_PER_USD

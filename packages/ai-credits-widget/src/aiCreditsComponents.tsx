@@ -22,7 +22,9 @@ import type {
   AiCreditsWidgetAdapterActions,
   AiCreditsWidgetAdapterState,
   AiCreditsUsageEntry,
+  AiCreditsQuote,
 } from './widgetRuntimeContract'
+import { formatUsdMicro } from './quoteMath'
 
 const monospaceSingleLineStyle: React.CSSProperties = {
   fontFamily: 'monospace',
@@ -398,43 +400,35 @@ interface AmountPickerProps {
   depositAmount: string
   streamAmount: string
   gBalance: string | null
-  bonusPercent: number
-  isGoodIdVerified: boolean
+  quote: AiCreditsQuote | null
   onDepositChange: (v: string) => void
   onStreamChange: (v: string) => void
 }
 
-/**
- * Two-field picker for the one-time deposit and monthly stream amounts.
- * Shows USD equivalent estimates and the applicable bonus badge.
- */
 export function AmountPicker({
   depositAmount,
   streamAmount,
   gBalance,
-  bonusPercent,
-  isGoodIdVerified,
+  quote,
   onDepositChange,
   onStreamChange,
 }: AmountPickerProps) {
-  const G_USD_RATE = 0.0015
   const depositG = Number.parseFloat(depositAmount) || 0
   const streamG = Number.parseFloat(streamAmount) || 0
-  const depositUsd = depositG * G_USD_RATE
-  const streamUsd = streamG * G_USD_RATE
-  const depositCredits = depositG > 0 ? depositUsd * 100 * (isGoodIdVerified ? 1.1 : 1) : 0
-  const streamCredits = streamG > 0 ? streamUsd * 100 * (isGoodIdVerified ? 1.2 : 1) : 0
   const balance = Number.parseFloat(gBalance ?? '0')
   const totalG = depositG + streamG
   const isOverBalance = totalG > balance
+  const bonusPercent = quote?.bonusPercent ?? 10
 
-  const formatCredits = (value: number) => (value < 10 ? value.toFixed(1) : value.toFixed(2))
+  const formatCredits = (value: string) => {
+    const parsed = Number.parseFloat(value)
+    return parsed < 10 ? parsed.toFixed(1) : parsed.toFixed(2)
+  }
 
   return (
     <AmountPickerCard>
       <Heading level={5}>Buy Credits</Heading>
 
-      {/* One-time deposit field */}
       <YStack gap="$1">
         <XStack justifyContent="space-between" alignItems="center">
           <Text variant="label">One-time Deposit (G$)</Text>
@@ -448,24 +442,21 @@ export function AmountPicker({
           placeholder="Min 1 G$"
           error={Number.parseFloat(depositAmount) > 0 && Number.parseFloat(depositAmount) < 1}
         />
-        {depositG > 0 && (
-          <YStack gap="$0.5">
-            <Text fontSize="$1" secondary>
-              ≈ ${depositUsd.toFixed(4)} USD
-            </Text>
-            <Text fontSize="$1" secondary>
-              ~{formatCredits(depositCredits)} credits
-            </Text>
-          </YStack>
+        {depositG > 0 && quote && (
+          <Text fontSize="$1" secondary>
+            ≈ ${quote.depositAmountUsd} USD
+          </Text>
+        )}
+        {depositG > 0 && !quote && (
+          <Spinner size="sm" />
         )}
       </YStack>
 
-      {/* Monthly stream field */}
       <YStack gap="$1">
         <XStack justifyContent="space-between" alignItems="center">
           <Text variant="label">Monthly Stream (G$)</Text>
           <Text fontSize="$1" secondary>
-            {isGoodIdVerified ? '+20% bonus (GoodID)' : '+20% with GoodID'}
+            {bonusPercent >= 20 ? '+20% bonus (GoodID)' : '+20% with GoodID'}
           </Text>
         </XStack>
         <Input
@@ -474,25 +465,35 @@ export function AmountPicker({
           placeholder="0 G$ (optional)"
           error={Number.parseFloat(streamAmount) > 0 && Number.parseFloat(streamAmount) < 1}
         />
-        {streamG > 0 && (
+        {streamG > 0 && quote && (
           <YStack gap="$0.5">
             <Text fontSize="$1" secondary>
-              ≈ ${streamUsd.toFixed(4)} USD/month
-            </Text>
-            <Text fontSize="$1" secondary>
-              ~{formatCredits(streamCredits)} credits/month
+              ≈ ${quote.streamAmountUsd} USD/month
             </Text>
           </YStack>
+        )}
+        {streamG > 0 && !quote && (
+          <Spinner size="sm" />
         )}
       </YStack>
 
       <Separator />
 
-      {/* Total row */}
       <XStack justifyContent="space-between" alignItems="center">
         <Text variant="label">Total</Text>
         <TokenAmount token="G$" amount={totalG.toFixed(2)} size="md" />
       </XStack>
+
+      {quote && (
+        <XStack justifyContent="space-between" alignItems="center">
+          <Text variant="label" secondary>
+            Est. credits
+          </Text>
+          <Text fontSize="$2" color="$primary" fontWeight="700">
+            {formatCredits(quote.totalCredits)}
+          </Text>
+        </XStack>
+      )}
 
       <XStack justifyContent="space-between" alignItems="center">
         <Text fontSize="$1" secondary>
@@ -530,7 +531,6 @@ interface CreditsManagementCardProps {
 
 export function CreditsManagementCard({ state, actions }: CreditsManagementCardProps) {
   const [isClosing, setIsClosing] = useState(false)
-  const [isWithdrawing, setIsWithdrawing] = useState(false)
   const {
     aiCreditsBalance,
     gBalance,
@@ -541,6 +541,9 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
     channelId,
     withdrawAmount,
   } = state
+
+  const withdrawableDisplay =
+    withdrawableUsd && BigInt(withdrawableUsd) > 0n ? formatUsdMicro(withdrawableUsd) : null
 
   return (
     <CreditsManagementCardFrame>
@@ -592,14 +595,12 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
           </XStack>
         )}
 
-        {withdrawableUsd && BigInt(withdrawableUsd) > 0n && (
+        {withdrawableDisplay && (
           <XStack justifyContent="space-between" alignItems="center">
             <Text variant="label" secondary>
-              Withdrawable (USD)
+              Withdrawable
             </Text>
-            <Text fontSize="$2">
-              {(Number(withdrawableUsd) / 1_000_000).toFixed(4)}
-            </Text>
+            <Text fontSize="$2">${withdrawableDisplay}</Text>
           </XStack>
         )}
       </YStack>
@@ -628,17 +629,16 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
         <Input
           value={withdrawAmount}
           onChangeText={actions.setWithdrawAmount}
-          placeholder="Amount (USD micro)"
+          placeholder={withdrawableDisplay ? `Amount in USD (max $${withdrawableDisplay})` : 'Amount in USD'}
         />
-        <Button
-          variant="outline"
-          disabled={isWithdrawing || !withdrawAmount.trim()}
-          onPress={() => {
-            setIsWithdrawing(true)
-            void Promise.resolve(actions.withdrawCredits()).finally(() => setIsWithdrawing(false))
-          }}
-        >
-          <ButtonText>{isWithdrawing ? 'Withdrawing…' : 'Withdraw'}</ButtonText>
+        <AiCreditsStatusNotice>
+          <Text fontSize="$2" secondary>
+            Withdraw requires a buyer EIP-712 signature. UI signing is not implemented yet — mock
+            backend only.
+          </Text>
+        </AiCreditsStatusNotice>
+        <Button variant="outline" disabled>
+          <ButtonText>Withdraw (coming soon)</ButtonText>
         </Button>
       </YStack>
     </CreditsManagementCardFrame>

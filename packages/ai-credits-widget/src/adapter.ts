@@ -26,7 +26,7 @@ import { createChainClient } from './chainClient'
 import type { AiCreditsChainClient } from './chainClient'
 import { signOperatorConsentFromTypedData } from './operatorConsent'
 import { executeCeloPayment, G_TOKEN_CELO_ADDRESS } from './celoPayment'
-import { CREDITS_PER_USD } from './quoteMath'
+import { CREDITS_PER_USD, usdDisplayToMicro } from './quoteMath'
 import type {
   AiCreditsWidgetAdapterActions,
   AiCreditsWidgetAdapterResult,
@@ -388,6 +388,44 @@ export function useAiCreditsAdapter({
     }
   }, [isConnected, address, chainId, backendClient, chainClient])
 
+  useEffect(() => {
+    if (!isConnected || !address) return
+    if (!state.operatorConsentSigned) return
+    if (state.status === 'payment_pending' || state.status === 'payment_confirmed') return
+
+    let cancelled = false
+
+    async function refreshQuote() {
+      try {
+        const quote = await chainClient.buildQuote(
+          state.depositAmount,
+          state.streamAmount,
+          state.isGoodIdVerified,
+        )
+        if (cancelled) return
+        setState((prev) =>
+          withDerivedStatus(prev, { quote, bonusPercent: quote.bonusPercent }, true),
+        )
+      } catch {
+        if (!cancelled) setState((prev) => ({ ...prev, quote: null }))
+      }
+    }
+
+    void refreshQuote()
+    return () => {
+      cancelled = true
+    }
+  }, [
+    isConnected,
+    address,
+    state.operatorConsentSigned,
+    state.depositAmount,
+    state.streamAmount,
+    state.isGoodIdVerified,
+    state.status,
+    chainClient,
+  ])
+
   const handleConnect = useCallback(async () => {
     await connect()
   }, [connect])
@@ -516,7 +554,6 @@ export function useAiCreditsAdapter({
         prev,
         {
           depositAmount: amount,
-          quote: null,
           status: prev.status === 'payment_pending' ? 'payment_pending' : 'purchase_setup',
         },
         true,
@@ -525,19 +562,16 @@ export function useAiCreditsAdapter({
   }, [])
 
   const handleSetStreamAmount = useCallback((amount: string) => {
-    setState((prev) => {
-      const bonusPercent = Number.parseFloat(amount) > 0 && prev.isGoodIdVerified ? 20 : 10
-      return withDerivedStatus(
+    setState((prev) =>
+      withDerivedStatus(
         prev,
         {
           streamAmount: amount,
-          bonusPercent,
-          quote: null,
           status: prev.status === 'payment_pending' ? 'payment_pending' : 'purchase_setup',
         },
         true,
-      )
-    })
+      ),
+    )
   }, [])
 
   const handleSetChannelId = useCallback((channelId: string) => {
@@ -559,13 +593,15 @@ export function useAiCreditsAdapter({
     const hasStream = streamAmountG > 0
     if (!hasDeposit && !hasStream) return
 
-    let quote: AiCreditsQuote
+    let quote: AiCreditsQuote | null = currentState.quote
     try {
-      quote = await chainClient.buildQuote(
-        currentState.depositAmount,
-        currentState.streamAmount,
-        currentState.isGoodIdVerified,
-      )
+      if (!quote) {
+        quote = await chainClient.buildQuote(
+          currentState.depositAmount,
+          currentState.streamAmount,
+          currentState.isGoodIdVerified,
+        )
+      }
     } catch {
       setState((prev) => ({
         ...prev,
@@ -576,6 +612,8 @@ export function useAiCreditsAdapter({
       }))
       return
     }
+
+    if (!quote) return
 
     setState((prev) => ({
       ...prev,
@@ -742,9 +780,10 @@ export function useAiCreditsAdapter({
       return
     }
     try {
+      const amountUsd = usdDisplayToMicro(currentState.withdrawAmount.trim())
       await backendClient.withdrawCredits(currentState.address, {
         buyerAddress: currentState.buyerKey,
-        amountUsd: currentState.withdrawAmount.trim(),
+        amountUsd,
         recipient: currentState.address,
         timestamp: Math.floor(Date.now() / 1000),
         buyerSig: '0x',
