@@ -181,6 +181,7 @@ export function gdCreditsToUsageEntries(entries: GdCreditEntry[]): AiCreditsUsag
           ? `${sourceLabel(entry.source)} (failed)`
           : sourceLabel(entry.source),
       kind: 'funding' as const,
+      fundingStatus: entry.fundingStatus,
     }))
 }
 

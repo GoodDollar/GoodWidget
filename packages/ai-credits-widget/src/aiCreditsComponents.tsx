@@ -1032,7 +1032,10 @@ export function UsageLog({ entries }: UsageLogProps) {
   const [expanded, setExpanded] = useState(false)
 
   const isFundingHistory = entries.length === 0 || entries.every((entry) => entry.kind === 'funding')
-  const total = entries.reduce((sum, entry) => sum + entry.creditsUsed, 0)
+  const total = entries.reduce((sum, entry) => {
+    if (entry.kind === 'funding' && entry.fundingStatus !== 'funded') return sum
+    return sum + entry.creditsUsed
+  }, 0)
   const title = isFundingHistory ? 'Credit History' : 'Usage History'
 
   return (

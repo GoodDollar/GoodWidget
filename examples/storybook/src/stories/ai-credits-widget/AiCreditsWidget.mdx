@@ -17,8 +17,8 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
   </DocsSection>
 
   <DocsSection
-    title="Injected wallet (local backend)"
-    description="Uses your browser wallet (`window.ethereum`, e.g. Rabby), `VITE_AI_CREDITS_BACKEND_URL`, `VITE_AI_CREDITS_BASE_RPC_URL`, and `VITE_AI_CREDITS_FUNDING_VAULT_ADDRESS` from `examples/storybook/.env.local`."
+    title="Injected wallet"
+    description="Uses your browser wallet (`window.ethereum`, e.g. Rabby), `VITE_AI_CREDITS_BACKEND_URL`, `VITE_AI_CREDITS_BASE_RPC_URL`, `VITE_AI_CREDITS_FUNDING_VAULT_ADDRESS`, and `VITE_AI_CREDITS_VAULT_ADDRESS` from `examples/storybook/.env.local`."
   >
     <Canvas of={ShowcaseStories.InjectedWallet} />
   </DocsSection>
@@ -54,17 +54,39 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
   </DocsSection>
 
   <DocsSection
-    title="Known limitations"
-    description="Features present in the management UI but not yet production-complete."
+    title="Backend API usage"
+    description="Production stories call the antseed-integration worker for reads, settlement, and management actions."
   >
-    <DocsCallout title="Withdraw signing" tone="warning">
-      The withdraw form displays user-friendly USD amounts and on-chain withdrawable principal, but
-      buyer EIP-712 signing is not wired in the UI yet (`buyerSig` is a placeholder). Do not treat
-      withdraw as production-ready against a real backend.
+    <DocsGrid>
+      <DocsCard title="GET …/credit">Credits profile and funding history for the payer wallet.</DocsCard>
+      <DocsCard title="GET …/outstanding">Pending or failed Base funding entries.</DocsCard>
+      <DocsCard title="POST …/celo/events/record">Notify `{ txHash }` after a successful Celo payment.</DocsCard>
+      <DocsCard title="POST …/channels/:channelId/close">Buyer-signed channel close from credits management.</DocsCard>
+      <DocsCard title="POST …/accounts/:buyer/withdraw">Buyer-signed principal withdraw to the payer wallet.</DocsCard>
+    </DocsGrid>
+    <DocsCallout title="On-chain (not backend)" tone="info">
+      Operator consent, vault minimum reads, quotes, withdrawable principal, and Celo deposit/stream
+      transactions are handled on-chain via RPC. There is no channel-list API — paste the channel ID
+      manually.
     </DocsCallout>
-    <DocsCallout title="Close channel" tone="info">
-      Close channel posts to the backend API and is suitable for integration testing; validate against
-      your deployment before relying on it in production.
+  </DocsSection>
+
+  <DocsSection
+    title="Known limitations"
+    description="Features that still need operator care in production."
+  >
+    <DocsCallout title="Buyer private key session" tone="warning">
+      Close channel and withdraw require the buyer private key in the current browser session. Use
+      Sign &amp; Generate in Buyer &amp; Operator on the credits management screen if the key was
+      lost after refresh.
+    </DocsCallout>
+    <DocsCallout title="Vault minimums" tone="info">
+      First-deposit USD minimum applies only when `totalDepositedGd(payer)` is zero. Monthly stream
+      USD minimum applies on every stream create/update.
+    </DocsCallout>
+    <DocsCallout title="Base bridge" tone="info">
+      Close, withdraw, and credit funding require the worker&apos;s Base operator bridge to be
+      configured (`bridge.enabled: true` in API responses).
     </DocsCallout>
   </DocsSection>
 

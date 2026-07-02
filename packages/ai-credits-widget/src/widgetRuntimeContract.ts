@@ -40,6 +40,7 @@ export interface AiCreditsUsageEntry {
   creditsUsed: number
   model: string
   kind?: 'funding' | 'usage'
+  fundingStatus?: 'pending' | 'funded' | 'failed'
 }
 
 export interface AiCreditsWidgetAdapterState {
