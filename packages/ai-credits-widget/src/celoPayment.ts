@@ -57,6 +57,10 @@ function monthlyToFlowRate(monthlyAmountG: number): bigint {
   return monthlyWei / SECONDS_PER_MONTH
 }
 
+function encodeBuyerUserData(buyer: Address): `0x${string}` {
+  return encodeAbiParameters([{ type: 'address' }], [buyer])
+}
+
 async function submitStreamSetup(
   walletClient: WalletClient,
   publicClient: PublicClient,
@@ -70,7 +74,7 @@ async function submitStreamSetup(
     throw new Error('Stream amount must be greater than zero')
   }
 
-  const buyerData = encodeAbiParameters([{ type: 'address' }], [buyer])
+  const userData = encodeBuyerUserData(buyer)
   const txHashes: `0x${string}`[] = []
 
   const flowInfo = (await publicClient.readContract({
@@ -114,7 +118,7 @@ async function submitStreamSetup(
     address: CFA_V1_FORWARDER_ADDRESS,
     abi: CFA_FORWARDER_ABI,
     functionName: flowFunction,
-    args: [G_TOKEN_CELO_ADDRESS, payer, vault, flowRatePerSecond, buyerData],
+    args: [G_TOKEN_CELO_ADDRESS, payer, vault, flowRatePerSecond, userData],
   })
   txHashes.push(flowTx)
 
@@ -129,7 +133,7 @@ async function submitOneTimeDeposit(
   depositAmountG: number,
 ): Promise<`0x${string}`> {
   const depositWei = parseUnits(depositAmountG.toString(), 18)
-  const buyerData = encodeAbiParameters([{ type: 'address' }], [buyer])
+  const userData = encodeBuyerUserData(buyer)
 
   return walletClient.writeContract({
     account: payer,
@@ -137,7 +141,7 @@ async function submitOneTimeDeposit(
     address: G_TOKEN_CELO_ADDRESS,
     abi: G_TOKEN_ABI,
     functionName: 'transferAndCall',
-    args: [vault, depositWei, buyerData],
+    args: [vault, depositWei, userData],
   })
 }
 

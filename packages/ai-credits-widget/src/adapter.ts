@@ -26,6 +26,7 @@ import { createChainClient, CELO_GD_ANTSEED_VAULT_ADDRESS } from './chainClient'
 import type { AiCreditsChainClient } from './chainClient'
 import { signOperatorConsentFromTypedData } from './operatorConsent'
 import { executeCeloPayment, G_TOKEN_CELO_ADDRESS } from './celoPayment'
+import { fetchVaultPaymentMinimums, validateVaultPaymentAmounts } from './vaultMinimums'
 import { CREDITS_PER_USD, usdDisplayToMicro } from './quoteMath'
 import type {
   AiCreditsWidgetAdapterActions,
@@ -74,6 +75,8 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   apiKey: null,
   depositAmount: MIN_DEPOSIT_AMOUNT,
   streamAmount: '0',
+  minDepositG: null,
+  minStreamG: null,
   bonusPercent: 10,
   quote: null,
   setupSnippet: null,
@@ -355,10 +358,21 @@ export function useAiCreditsAdapter({
         }))
         .catch(() => null)
 
+      const minimumsPromise =
+        backendClient instanceof MockAiCreditsBackendClient
+          ? Promise.resolve({
+              minDepositG: '1',
+              minStreamG: '1',
+              minDepositUsd: '1.00',
+              minStreamUsd: '1.00',
+            })
+          : fetchVaultPaymentMinimums(publicClient, celoVault, address as Address).catch(() => null)
+
       try {
-        const [[rawBalance, decimals], account] = await Promise.all([
+        const [[rawBalance, decimals], account, minimums] = await Promise.all([
           balancePromise,
           accountPromise,
+          minimumsPromise,
         ])
         if (cancelled) return
 
@@ -366,6 +380,8 @@ export function useAiCreditsAdapter({
           address,
           chainId,
           gBalance: formatUnits(rawBalance as bigint, decimals as number),
+          minDepositG: minimums?.minDepositG ?? null,
+          minStreamG: minimums?.minStreamG ?? null,
         }
 
         setState((prev) => {
@@ -402,7 +418,7 @@ export function useAiCreditsAdapter({
     return () => {
       cancelled = true
     }
-  }, [isConnected, address, chainId, backendClient, chainClient])
+  }, [isConnected, address, chainId, backendClient, chainClient, celoVault])
 
   useEffect(() => {
     if (!isConnected || !address) return
@@ -636,6 +652,34 @@ export function useAiCreditsAdapter({
     }
 
     if (!quote) return
+
+    if (!(backendClient instanceof MockAiCreditsBackendClient)) {
+      try {
+        const publicClient = createPublicClient({ chain: CELO_CHAIN, transport: http() })
+        await validateVaultPaymentAmounts({
+          publicClient,
+          vault: celoVault,
+          payer: currentState.address as Address,
+          depositAmount: currentState.depositAmount,
+          streamAmount: currentState.streamAmount,
+        })
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Payment amount below vault minimum'
+        setState((prev) => ({
+          ...prev,
+          status: 'payment_failed',
+          primaryAction: 'retry',
+          primaryLabel: 'Retry',
+          error: message,
+        }))
+        onPayError?.({
+          address: currentState.address,
+          chainId: CELO_CHAIN_ID,
+          message,
+        })
+        return
+      }
+    }
 
     setState((prev) => ({
       ...prev,

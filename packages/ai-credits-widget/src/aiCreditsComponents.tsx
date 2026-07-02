@@ -24,7 +24,8 @@ import type {
   AiCreditsUsageEntry,
   AiCreditsQuote,
 } from './widgetRuntimeContract'
-import { formatUsdMicro } from './quoteMath'
+import { formatUsdMicro, parseGAmount } from './quoteMath'
+import { formatMinGDisplayLocale, getPaymentAmountValidation } from './vaultMinimums'
 
 const monospaceSingleLineStyle: React.CSSProperties = {
   fontFamily: 'monospace',
@@ -461,6 +462,8 @@ interface AmountPickerProps {
   depositAmount: string
   streamAmount: string
   gBalance: string | null
+  minDepositG: string | null
+  minStreamG: string | null
   quote: AiCreditsQuote | null
   onDepositChange: (v: string) => void
   onStreamChange: (v: string) => void
@@ -470,16 +473,33 @@ export function AmountPicker({
   depositAmount,
   streamAmount,
   gBalance,
+  minDepositG,
+  minStreamG,
   quote,
   onDepositChange,
   onStreamChange,
 }: AmountPickerProps) {
-  const depositG = Number.parseFloat(depositAmount) || 0
-  const streamG = Number.parseFloat(streamAmount) || 0
-  const balance = Number.parseFloat(gBalance ?? '0')
-  const totalG = depositG + streamG
-  const isOverBalance = totalG > balance
+  const depositG = parseGAmount(depositAmount)
+  const streamG = parseGAmount(streamAmount)
   const bonusPercent = quote?.bonusPercent ?? 10
+  const { depositBelowMin, streamBelowMin, overBalance } = getPaymentAmountValidation({
+    depositAmount,
+    streamAmount,
+    minDepositG,
+    minStreamG,
+    gBalance,
+  })
+  const totalG = depositG + streamG
+  const depositPlaceholder =
+    minDepositG === null
+      ? 'Loading minimum…'
+      : parseGAmount(minDepositG) > 0
+        ? `Min ${formatMinGDisplayLocale(minDepositG)} G$`
+        : '0 G$ (optional)'
+  const streamPlaceholder =
+    minStreamG === null
+      ? 'Loading minimum…'
+      : `Min ${formatMinGDisplayLocale(minStreamG)} G$ (optional)`
 
   const formatCredits = (value: string) => {
     const parsed = Number.parseFloat(value)
@@ -500,8 +520,8 @@ export function AmountPicker({
         <Input
           value={depositAmount}
           onChangeText={onDepositChange}
-          placeholder="Min 1 G$"
-          error={Number.parseFloat(depositAmount) > 0 && Number.parseFloat(depositAmount) < 1}
+          placeholder={depositPlaceholder}
+          error={depositBelowMin}
         />
         {depositG > 0 && quote && (
           <Text fontSize="$1" secondary>
@@ -523,8 +543,8 @@ export function AmountPicker({
         <Input
           value={streamAmount}
           onChangeText={onStreamChange}
-          placeholder="0 G$ (optional)"
-          error={Number.parseFloat(streamAmount) > 0 && Number.parseFloat(streamAmount) < 1}
+          placeholder={streamPlaceholder}
+          error={streamBelowMin}
         />
         {streamG > 0 && quote && (
           <YStack gap="$0.5">
@@ -567,10 +587,26 @@ export function AmountPicker({
         </BonusBadgeFrame>
       </XStack>
 
-      {isOverBalance && (
+      {overBalance && (
         <AiCreditsStatusNotice borderColor="$warning">
           <Text color="$warning" fontSize="$2">
             Total exceeds your G$ balance. Reduce the amounts.
+          </Text>
+        </AiCreditsStatusNotice>
+      )}
+
+      {depositBelowMin && minDepositG && (
+        <AiCreditsStatusNotice borderColor="$warning">
+          <Text color="$warning" fontSize="$2">
+            First deposit must be at least {formatMinGDisplayLocale(minDepositG)} G$.
+          </Text>
+        </AiCreditsStatusNotice>
+      )}
+
+      {streamBelowMin && minStreamG && (
+        <AiCreditsStatusNotice borderColor="$warning">
+          <Text color="$warning" fontSize="$2">
+            Monthly stream must be at least {formatMinGDisplayLocale(minStreamG)} G$.
           </Text>
         </AiCreditsStatusNotice>
       )}

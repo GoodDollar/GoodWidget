@@ -33,6 +33,7 @@ import type {
   AiCreditsPayErrorDetail,
   AiCreditsWidgetAdapterFactory,
 } from './widgetRuntimeContract'
+import { getPaymentAmountValidation } from './vaultMinimums'
 
 // ---------------------------------------------------------------------------
 // Inner component — renders inside GoodWidgetProvider
@@ -78,6 +79,31 @@ function AiCreditsInner({
   )
 
   const { state, actions } = activeAdapter
+
+  const paymentValidation = useMemo(
+    () =>
+      getPaymentAmountValidation({
+        depositAmount: state.depositAmount,
+        streamAmount: state.streamAmount,
+        minDepositG: state.minDepositG,
+        minStreamG: state.minStreamG,
+        gBalance: state.gBalance,
+      }),
+    [
+      state.depositAmount,
+      state.streamAmount,
+      state.minDepositG,
+      state.minStreamG,
+      state.gBalance,
+    ],
+  )
+
+  const minsLoaded = state.minDepositG !== null && state.minStreamG !== null
+  const canPay =
+    state.status === 'quote_ready' &&
+    minsLoaded &&
+    paymentValidation.vaultMinimumsMet &&
+    !paymentValidation.overBalance
 
   const handlePay = useCallback(async () => {
     const toastId = createToast({
@@ -337,14 +363,27 @@ function AiCreditsInner({
           depositAmount={state.depositAmount}
           streamAmount={state.streamAmount}
           gBalance={state.gBalance}
+          minDepositG={state.minDepositG}
+          minStreamG={state.minStreamG}
           quote={state.quote}
           onDepositChange={actions.setDepositAmount}
           onStreamChange={actions.setStreamAmount}
         />
       )}
 
-      {/* Primary action button */}
-      {state.primaryAction !== 'none' &&
+      {state.operatorConsentSigned && canPay && (
+        <Button
+          fullWidth
+          onPress={() => {
+            void handlePay()
+          }}
+        >
+          <ButtonText>Buy AI Credits</ButtonText>
+        </Button>
+      )}
+
+      {!state.operatorConsentSigned &&
+        state.primaryAction !== 'none' &&
         state.primaryAction !== 'generate_key' &&
         state.primaryAction !== 'sign_consent' && (
         <Button

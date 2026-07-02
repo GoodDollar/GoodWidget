@@ -7,6 +7,13 @@ const BPS = 10_000n
 const SECONDS_PER_MONTH = 30n * 24n * 60n * 60n
 const USD_18_TO_MICRO = 1_000_000_000_000n
 
+export function parseGAmount(amount: string): number {
+  const normalized = amount.trim().replace(/,/g, '')
+  if (!normalized) return 0
+  const value = Number.parseFloat(normalized)
+  return Number.isFinite(value) ? value : 0
+}
+
 export function gToWei(amountG: string): bigint {
   const trimmed = amountG.trim()
   if (!trimmed || Number.parseFloat(trimmed) <= 0) return 0n
