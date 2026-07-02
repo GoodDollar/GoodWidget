@@ -27,6 +27,7 @@ function createMockState(
     buyerKeyPrivate: null,
     buyerKeyConfirmed: false,
     operatorConsentSigned: false,
+    operatorAddress: null,
     apiKey: null,
     depositAmount: '5',
     streamAmount: '0',
@@ -34,6 +35,12 @@ function createMockState(
     quote: null,
     setupSnippet: null,
     usageLog: [],
+    totalGdDepositedG: null,
+    monthlyStreamG: null,
+    monthlyStreamCredits: null,
+    withdrawableUsd: null,
+    channelId: '',
+    withdrawAmount: '',
     error: null,
     primaryAction: 'generate_key',
     primaryLabel: 'Set Up Buyer Key',
@@ -55,9 +62,13 @@ function createAdapterFactory(
       signOperatorConsent: async () => {},
       setDepositAmount: () => {},
       setStreamAmount: () => {},
+      setChannelId: () => {},
+      setWithdrawAmount: () => {},
       pay: async () => {},
       refresh: async () => {},
       startPurchase: () => {},
+      closeChannel: async () => {},
+      withdrawCredits: async () => {},
       retry: async () => {},
     },
   })
@@ -202,13 +213,20 @@ export function PaymentConfirmedStory() {
   )
 }
 
-export function CreditsAccountStory() {
+export function CreditsManagementStory() {
   return (
     <MockStoryShell
-      dataTestId="AiCreditsWidget-credits-account"
-      adapterFactory={createAdapterFactory('credits_account', {
+      dataTestId="AiCreditsWidget-credits-management"
+      adapterFactory={createAdapterFactory('credits_management', {
         aiCreditsBalance: '110.00',
         buyerKey: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a',
+        buyerKeyConfirmed: true,
+        operatorConsentSigned: true,
+        operatorAddress: '0x0000000000000000000000000000000000000004',
+        totalGdDepositedG: '50.00',
+        monthlyStreamG: '5.00',
+        monthlyStreamCredits: '7.50',
+        gBalance: '42.50',
         setupSnippet: SETUP_SNIPPET,
         usageLog: [
           {
@@ -306,6 +324,8 @@ export function MockBackendStory() {
 export function InjectedWalletStory() {
   const injectedProvider = getInjectedEip1193Provider()
   const backendUrl = import.meta.env.VITE_AI_CREDITS_BACKEND_URL
+  const baseRpcUrl = import.meta.env.VITE_AI_CREDITS_BASE_RPC_URL
+  const fundingVaultAddress = import.meta.env.VITE_AI_CREDITS_FUNDING_VAULT_ADDRESS
 
   if (!isInjectedProviderUsable(injectedProvider)) {
     return (
@@ -321,7 +341,12 @@ export function InjectedWalletStory() {
 
   return (
     <YStack data-testid="AiCreditsWidget-injected-wallet" style={{ width: 420 }}>
-      <AiCreditsWidget provider={injectedProvider} backendUrl={backendUrl} />
+      <AiCreditsWidget
+        provider={injectedProvider}
+        backendUrl={backendUrl}
+        baseRpcUrl={baseRpcUrl}
+        fundingVaultAddress={fundingVaultAddress}
+      />
       {!backendUrl && (
         <YStack marginTop="$3">
           <span>

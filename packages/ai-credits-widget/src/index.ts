@@ -1,8 +1,6 @@
-// Integration metadata
 export { aiCreditsIntegration } from './integration'
 export type { AiCreditsIntegration } from './integration'
 
-// Adapter contract types
 export type {
   AiCreditsWidgetStatus,
   AiCreditsWidgetPrimaryAction,
@@ -19,20 +17,29 @@ export type {
   AiCreditsUsageEntry,
 } from './widgetRuntimeContract'
 
-// Backend client
-export type { AiCreditsBackendClient, AccountRef, AccountStatusResponse } from './mockBackendClient'
+export type {
+  AiCreditsBackendClient,
+  AccountRef,
+  AccountStatusResponse,
+  AccountView,
+  AccountEnrichment,
+  GdCreditEntry,
+} from './backendClient'
 export {
   MockAiCreditsBackendClient,
   ProductionAiCreditsBackendClient,
   createBackendClient,
+  buildAccountView,
+  enrichAccountView,
+  balanceFromProfile,
+  creditsBalanceFromStatus,
   usdToCredits,
-} from './mockBackendClient'
-export type { GdCreditEntry } from './mockBackendClient'
+} from './backendClient'
 export type { BuyerOperatorStatus, Eip712SigningPayload } from './operatorConsent'
+export type { AiCreditsChainClient } from './chainClient'
+export { createChainClient, DEFAULT_BASE_RPC_URL } from './chainClient'
 
-// Adapter hook
 export { useAiCreditsAdapter } from './adapter'
 export type { UseAiCreditsAdapterOptions } from './adapter'
 
-// Widget component
 export { AiCreditsWidget } from './AiCreditsWidget'

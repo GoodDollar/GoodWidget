@@ -19,9 +19,44 @@ import {
 } from '@goodwidget/ui'
 import type { StepperStepItem } from '@goodwidget/ui'
 import type {
+  AiCreditsWidgetAdapterActions,
   AiCreditsWidgetAdapterState,
   AiCreditsUsageEntry,
 } from './widgetRuntimeContract'
+
+const monospaceSingleLineStyle: React.CSSProperties = {
+  fontFamily: 'monospace',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+}
+
+function truncateAddress(address: string): string {
+  return `${address.slice(0, 10)}…${address.slice(-6)}`
+}
+
+function useCopyFeedback() {
+  const [copied, setCopied] = useState(false)
+  const copy = async (text: string) => {
+    if (!(await copyTextToClipboard(text))) return
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+  return { copied, copy }
+}
+
+function AddressLabel({ label, address }: { label: string; address: string }) {
+  return (
+    <YStack gap="$1">
+      <Text variant="label" secondary>
+        {label}
+      </Text>
+      <Text fontSize="$2" fontFamily="$mono">
+        {truncateAddress(address)}
+      </Text>
+    </YStack>
+  )
+}
 
 // ---------------------------------------------------------------------------
 // Named styled components — participate in the component sub-theme system.
@@ -56,9 +91,16 @@ export const AmountPickerCard = createComponent(Card, {
   gap: '$4',
 })
 
-/** Credits balance display card */
-export const CreditsBalanceCard = createComponent(Card, {
-  name: 'CreditsBalanceCard',
+/** Credits management dashboard card */
+export const CreditsManagementCardFrame = createComponent(Card, {
+  name: 'CreditsManagementCard',
+  extends: 'Card',
+  gap: '$4',
+})
+
+/** Buyer and operator management card */
+export const BuyerOperatorCardFrame = createComponent(Card, {
+  name: 'BuyerOperatorCard',
   extends: 'Card',
   gap: '$3',
 })
@@ -162,8 +204,8 @@ export function BuyerKeyPanel({
   onGenerate,
   onConfirm,
 }: BuyerKeyPanelProps) {
-  const [copiedAddress, setCopiedAddress] = useState(false)
-  const [copiedPrivate, setCopiedPrivate] = useState(false)
+  const { copied: copiedAddress, copy: copyAddress } = useCopyFeedback()
+  const { copied: copiedPrivate, copy: copyPrivate } = useCopyFeedback()
   const [isPrivateKeyVisible, setIsPrivateKeyVisible] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
 
@@ -174,29 +216,6 @@ export function BuyerKeyPanel({
     } finally {
       setIsGenerating(false)
     }
-  }
-
-  const monospaceSingleLineStyle = {
-    fontFamily: 'monospace',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  } as React.CSSProperties
-
-  async function handleCopyAddress() {
-    if (!buyerKey) return
-    const copied = await copyTextToClipboard(buyerKey)
-    if (!copied) return
-    setCopiedAddress(true)
-    setTimeout(() => setCopiedAddress(false), 2000)
-  }
-
-  async function handleCopyPrivate() {
-    if (!buyerKeyPrivate) return
-    const copied = await copyTextToClipboard(buyerKeyPrivate)
-    if (!copied) return
-    setCopiedPrivate(true)
-    setTimeout(() => setCopiedPrivate(false), 2000)
   }
 
   return (
@@ -233,7 +252,7 @@ export function BuyerKeyPanel({
                 >
                   {buyerKey}
                 </Text>
-                <Button size="sm" variant="ghost" iconSize="sm" onPress={handleCopyAddress}>
+                <Button size="sm" variant="ghost" iconSize="sm" onPress={() => void copyAddress(buyerKey)}>
                   <Icon name={copiedAddress ? 'check' : 'copy'} size="xs" color={copiedAddress ? 'success' : 'text'} />
                 </Button>
               </XStack>
@@ -276,7 +295,7 @@ export function BuyerKeyPanel({
                     >
                       {isPrivateKeyVisible ? buyerKeyPrivate : '•'.repeat(Math.min(48, buyerKeyPrivate.length))}
                     </Text>
-                    <Button size="sm" variant="ghost" iconSize="sm" onPress={handleCopyPrivate}>
+                    <Button size="sm" variant="ghost" iconSize="sm" onPress={() => void copyPrivate(buyerKeyPrivate)}>
                       <Icon name={copiedPrivate ? 'check' : 'copy'} size="xs" color={copiedPrivate ? 'success' : 'text'} />
                     </Button>
                   </XStack>
@@ -337,7 +356,7 @@ export function OperatorConsentStep({
         <Text fontSize="$2" lineHeight="$2">
           Buyer address:{' '}
           <Text fontFamily="$mono" fontSize="$2">
-            {buyerKey.slice(0, 10)}…{buyerKey.slice(-6)}
+            {truncateAddress(buyerKey)}
           </Text>
         </Text>
       )}
@@ -413,7 +432,7 @@ export function AmountPicker({
 
   return (
     <AmountPickerCard>
-      <Heading level={5}>Choose Amounts</Heading>
+      <Heading level={5}>Buy Credits</Heading>
 
       {/* One-time deposit field */}
       <YStack gap="$1">
@@ -498,26 +517,241 @@ export function AmountPicker({
 }
 
 // ---------------------------------------------------------------------------
-// CreditsBalanceCard component
+// CreditsManagementCard component
 // ---------------------------------------------------------------------------
 
-interface CreditsBalanceProps {
-  aiCreditsBalance: string | null
+interface CreditsManagementCardProps {
+  state: AiCreditsWidgetAdapterState
+  actions: Pick<
+    AiCreditsWidgetAdapterActions,
+    'startPurchase' | 'setChannelId' | 'setWithdrawAmount' | 'closeChannel' | 'withdrawCredits'
+  >
 }
 
-export function CreditsBalance({ aiCreditsBalance }: CreditsBalanceProps) {
+export function CreditsManagementCard({ state, actions }: CreditsManagementCardProps) {
+  const [isClosing, setIsClosing] = useState(false)
+  const [isWithdrawing, setIsWithdrawing] = useState(false)
+  const {
+    aiCreditsBalance,
+    gBalance,
+    totalGdDepositedG,
+    monthlyStreamG,
+    monthlyStreamCredits,
+    withdrawableUsd,
+    channelId,
+    withdrawAmount,
+  } = state
+
   return (
-    <CreditsBalanceCard>
-      <XStack justifyContent="space-between" alignItems="center">
-        <Text variant="label">AI Credits</Text>
-        <Icon name="zap" size="sm" color="primary" />
-      </XStack>
-      {aiCreditsBalance !== null ? (
-        <Heading level={3}>{Number.parseFloat(aiCreditsBalance).toFixed(2)} credits</Heading>
-      ) : (
-        <Spinner size="sm" />
+    <CreditsManagementCardFrame>
+      <Heading level={5}>AI Credits</Heading>
+
+      <YStack gap="$2">
+        <XStack justifyContent="space-between" alignItems="center">
+          <Text variant="label">Total Credits</Text>
+          {aiCreditsBalance !== null ? (
+            <Heading level={4}>{Number.parseFloat(aiCreditsBalance).toFixed(2)}</Heading>
+          ) : (
+            <Spinner size="sm" />
+          )}
+        </XStack>
+
+        <XStack justifyContent="space-between" alignItems="center">
+          <Text variant="label" secondary>
+            Payer G$ Balance
+          </Text>
+          {gBalance !== null ? (
+            <TokenAmount token="G$" amount={gBalance} size="sm" />
+          ) : (
+            <Spinner size="sm" />
+          )}
+        </XStack>
+
+        <XStack justifyContent="space-between" alignItems="center">
+          <Text variant="label" secondary>
+            Total Deposited
+          </Text>
+          <TokenAmount token="G$" amount={totalGdDepositedG ?? '0.00'} size="sm" />
+        </XStack>
+
+        <Separator />
+
+        <XStack justifyContent="space-between" alignItems="center">
+          <Text variant="label">Monthly Stream</Text>
+          <TokenAmount token="G$" amount={monthlyStreamG ?? '0.00'} size="sm" />
+        </XStack>
+
+        {monthlyStreamCredits && Number.parseFloat(monthlyStreamCredits) > 0 && (
+          <XStack justifyContent="space-between" alignItems="center">
+            <Text variant="label" secondary>
+              Est. Monthly Credits
+            </Text>
+            <Text fontSize="$2" color="$primary">
+              ~{Number.parseFloat(monthlyStreamCredits).toFixed(2)} credits/mo
+            </Text>
+          </XStack>
+        )}
+
+        {withdrawableUsd && BigInt(withdrawableUsd) > 0n && (
+          <XStack justifyContent="space-between" alignItems="center">
+            <Text variant="label" secondary>
+              Withdrawable (USD)
+            </Text>
+            <Text fontSize="$2">
+              {(Number(withdrawableUsd) / 1_000_000).toFixed(4)}
+            </Text>
+          </XStack>
+        )}
+      </YStack>
+
+      <Button fullWidth onPress={actions.startPurchase}>
+        <ButtonText>Add Credits / Update Stream</ButtonText>
+      </Button>
+
+      <YStack gap="$2">
+        <Text variant="label">Close Channel</Text>
+        <Input value={channelId} onChangeText={actions.setChannelId} placeholder="Channel ID" />
+        <Button
+          variant="outline"
+          disabled={isClosing || !channelId.trim()}
+          onPress={() => {
+            setIsClosing(true)
+            void Promise.resolve(actions.closeChannel()).finally(() => setIsClosing(false))
+          }}
+        >
+          <ButtonText>{isClosing ? 'Closing…' : 'Close Channel'}</ButtonText>
+        </Button>
+      </YStack>
+
+      <YStack gap="$2">
+        <Text variant="label">Withdraw</Text>
+        <Input
+          value={withdrawAmount}
+          onChangeText={actions.setWithdrawAmount}
+          placeholder="Amount (USD micro)"
+        />
+        <Button
+          variant="outline"
+          disabled={isWithdrawing || !withdrawAmount.trim()}
+          onPress={() => {
+            setIsWithdrawing(true)
+            void Promise.resolve(actions.withdrawCredits()).finally(() => setIsWithdrawing(false))
+          }}
+        >
+          <ButtonText>{isWithdrawing ? 'Withdrawing…' : 'Withdraw'}</ButtonText>
+        </Button>
+      </YStack>
+    </CreditsManagementCardFrame>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// BuyerOperatorCard component
+// ---------------------------------------------------------------------------
+
+interface BuyerOperatorCardProps {
+  state: Pick<
+    AiCreditsWidgetAdapterState,
+    'address' | 'buyerKey' | 'buyerKeyPrivate' | 'operatorAddress' | 'operatorConsentSigned'
+  >
+  actions: Pick<AiCreditsWidgetAdapterActions, 'generateBuyerKey' | 'signOperatorConsent'>
+}
+
+export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
+  const { address, buyerKey, buyerKeyPrivate, operatorAddress, operatorConsentSigned } = state
+  const { copied: copiedPrivate, copy: copyPrivate } = useCopyFeedback()
+  const [isPrivateKeyVisible, setIsPrivateKeyVisible] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [isSigning, setIsSigning] = useState(false)
+
+  return (
+    <BuyerOperatorCardFrame>
+      <Heading level={5}>Buyer &amp; Operator</Heading>
+
+      {address && <AddressLabel label="Payer" address={address} />}
+      {buyerKey && <AddressLabel label="Buyer" address={buyerKey} />}
+      {operatorAddress && <AddressLabel label="Operator" address={operatorAddress} />}
+
+      <Button
+        onPress={() => {
+          setIsGenerating(true)
+          void Promise.resolve(actions.generateBuyerKey()).finally(() => setIsGenerating(false))
+        }}
+        disabled={isGenerating}
+      >
+        <ButtonText>{isGenerating ? 'Waiting for signature…' : 'Sign & Generate Key'}</ButtonText>
+      </Button>
+
+      {buyerKeyPrivate && (
+        <YStack gap="$2">
+          <XStack justifyContent="space-between" alignItems="center">
+            <Text variant="label" secondary>
+              Private Key
+            </Text>
+            <Button
+              variant="text"
+              size="sm"
+              onPress={() => setIsPrivateKeyVisible((prev) => !prev)}
+            >
+              <ButtonText>{isPrivateKeyVisible ? 'Hide' : 'Reveal'}</ButtonText>
+            </Button>
+          </XStack>
+          <XStack
+            backgroundColor="$backgroundMuted"
+            borderRadius="$2"
+            padding="$3"
+            justifyContent="space-between"
+            alignItems="center"
+          >
+            <Text fontSize="$2" style={monospaceSingleLineStyle} flex={1} numberOfLines={1}>
+              {isPrivateKeyVisible
+                ? buyerKeyPrivate
+                : '•'.repeat(Math.min(48, buyerKeyPrivate.length))}
+            </Text>
+            <Button
+              size="sm"
+              variant="ghost"
+              iconSize="sm"
+              onPress={() => void copyPrivate(buyerKeyPrivate)}
+            >
+              <Icon
+                name={copiedPrivate ? 'check' : 'copy'}
+                size="xs"
+                color={copiedPrivate ? 'success' : 'text'}
+              />
+            </Button>
+          </XStack>
+        </YStack>
       )}
-    </CreditsBalanceCard>
+
+      <Button
+        onPress={() => {
+          setIsSigning(true)
+          void Promise.resolve(actions.signOperatorConsent()).finally(() => setIsSigning(false))
+        }}
+        disabled={operatorConsentSigned || isSigning || !buyerKeyPrivate}
+      >
+        {isSigning ? (
+          <XStack gap="$2" alignItems="center">
+            <ButtonText>Signing…</ButtonText>
+            <Spinner size="sm" />
+          </XStack>
+        ) : (
+          <ButtonText>
+            {operatorConsentSigned ? 'Operator Consented' : 'Sign Operator Consent'}
+          </ButtonText>
+        )}
+      </Button>
+
+      {operatorConsentSigned && (
+        <XStack gap="$2" alignItems="center">
+          <Icon name="check" size="sm" color="success" />
+          <Text color="$success" fontSize="$2">
+            Operator consent active
+          </Text>
+        </XStack>
+      )}
+    </BuyerOperatorCardFrame>
   )
 }
 
@@ -713,7 +947,7 @@ export function AiCreditsFlowStepper({ state }: AiCreditsFlowStepperProps) {
         if (!hasBuyerKey) return 'pending'
         return activeStep === 'consent' ? 'active' : 'pending'
       case 'pay':
-        if (state.status === 'credits_account' || state.status === 'payment_confirmed')
+        if (state.status === 'credits_management' || state.status === 'payment_confirmed')
           return 'completed'
         if (state.status === 'payment_failed') return 'failed'
         if (!hasConsent) return 'pending'

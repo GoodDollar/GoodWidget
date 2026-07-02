@@ -7,7 +7,7 @@ import {
   QuoteReadyGoodIdStory,
   PaymentPendingStory,
   PaymentConfirmedStory,
-  CreditsAccountStory,
+  CreditsManagementStory,
   InsufficientGBalanceStory,
   PaymentFailedStory,
   BackendUnavailableStory,
@@ -48,8 +48,8 @@ export const PaymentConfirmed: Story = {
   render: () => <PaymentConfirmedStory />,
 }
 
-export const CreditsAccount: Story = {
-  render: () => <CreditsAccountStory />,
+export const CreditsManagement: Story = {
+  render: () => <CreditsManagementStory />,
 }
 
 export const InsufficientGBalance: Story = {

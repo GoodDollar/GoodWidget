@@ -1,3 +1,4 @@
+import type { Address } from 'viem'
 import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
 
 export type AiCreditsWidgetEnvironment = 'production' | 'staging' | 'development'
@@ -8,7 +9,7 @@ export type AiCreditsWidgetStatus =
   | 'quote_ready'
   | 'payment_pending'
   | 'payment_confirmed'
-  | 'credits_account'
+  | 'credits_management'
   | 'insufficient_g_balance'
   | 'payment_failed'
   | 'backend_unavailable'
@@ -52,6 +53,7 @@ export interface AiCreditsWidgetAdapterState {
   buyerKeyPrivate: string | null
   buyerKeyConfirmed: boolean
   operatorConsentSigned: boolean
+  operatorAddress: string | null
   apiKey: string | null
   depositAmount: string
   streamAmount: string
@@ -59,6 +61,12 @@ export interface AiCreditsWidgetAdapterState {
   quote: AiCreditsQuote | null
   setupSnippet: string | null
   usageLog: AiCreditsUsageEntry[]
+  totalGdDepositedG: string | null
+  monthlyStreamG: string | null
+  monthlyStreamCredits: string | null
+  withdrawableUsd: string | null
+  channelId: string
+  withdrawAmount: string
   error: string | null
   primaryAction: AiCreditsWidgetPrimaryAction
   primaryLabel: string
@@ -72,9 +80,13 @@ export interface AiCreditsWidgetAdapterActions {
   signOperatorConsent: () => Promise<void>
   setDepositAmount: (amount: string) => void
   setStreamAmount: (amount: string) => void
+  setChannelId: (channelId: string) => void
+  setWithdrawAmount: (amount: string) => void
   pay: () => Promise<void>
   refresh: () => Promise<void>
   startPurchase: () => void
+  closeChannel: () => Promise<void>
+  withdrawCredits: () => Promise<void>
   retry: () => Promise<void>
 }
 
@@ -110,6 +122,9 @@ export interface AiCreditsWidgetProps {
   provider?: unknown
   environment?: AiCreditsWidgetEnvironment
   backendUrl?: string
+  baseRpcUrl?: string
+  fundingVaultAddress?: Address
+  vaultAddress?: Address
   themeOverrides?: GoodWidgetThemeOverrides
   config?: GoodWidgetConfig
   defaultTheme?: 'light' | 'dark'

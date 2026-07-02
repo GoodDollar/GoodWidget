@@ -21,7 +21,8 @@ import {
   AmountPicker,
   BuyerKeyPanel,
   OperatorConsentStep,
-  CreditsBalance,
+  CreditsManagementCard,
+  BuyerOperatorCard,
   SetupSnippet,
   UsageLog,
 } from './aiCreditsComponents'
@@ -40,6 +41,9 @@ import type {
 interface AiCreditsInnerProps {
   environment?: AiCreditsWidgetEnvironment
   backendUrl?: string
+  baseRpcUrl?: string
+  fundingVaultAddress?: string
+  vaultAddress?: string
   adapterFactory?: AiCreditsWidgetAdapterFactory
   onPaySuccess?: (detail: AiCreditsPaySuccessDetail) => void
   onPayError?: (detail: AiCreditsPayErrorDetail) => void
@@ -48,6 +52,9 @@ interface AiCreditsInnerProps {
 function AiCreditsInner({
   environment,
   backendUrl,
+  baseRpcUrl,
+  fundingVaultAddress,
+  vaultAddress,
   adapterFactory,
   onPaySuccess,
   onPayError,
@@ -55,6 +62,9 @@ function AiCreditsInner({
   const defaultAdapter = useAiCreditsAdapter({
     environment,
     backendUrl,
+    baseRpcUrl,
+    fundingVaultAddress: fundingVaultAddress as `0x${string}` | undefined,
+    vaultAddress: vaultAddress as `0x${string}` | undefined,
     onPaySuccess,
     onPayError,
   })
@@ -124,28 +134,21 @@ function AiCreditsInner({
     state.status === 'payment_pending' || state.status === 'payment_confirmed'
 
   // ---------------------------------------------------------------------------
-  // Render: credits account dashboard
+  // Render: credits management dashboard
   // ---------------------------------------------------------------------------
 
-  const isPostPurchase = state.status === 'credits_account'
+  const isPostPurchase = state.status === 'credits_management'
 
   if (isPostPurchase) {
     return (
       <YStack gap="$4" padding="$4">
-        <CreditsBalance aiCreditsBalance={state.aiCreditsBalance} />
+        <CreditsManagementCard state={state} actions={actions} />
+
+        <BuyerOperatorCard state={state} actions={actions} />
 
         {state.setupSnippet && <SetupSnippet snippet={state.setupSnippet} />}
 
         <UsageLog entries={state.usageLog} />
-
-        <Button
-          fullWidth
-          onPress={() => {
-            actions.startPurchase()
-          }}
-        >
-          <ButtonText>Add Credit</ButtonText>
-        </Button>
 
         <Button
           variant="ghost"
@@ -300,7 +303,7 @@ function AiCreditsInner({
       <AiCreditsFlowStepper state={state} />
 
       {/* Step panels — shown progressively */}
-      {state.address && !state.buyerKey && (
+      {state.address && !state.buyerKey && !state.operatorConsentSigned && (
         <BuyerKeyPanel
           buyerKey={null}
           buyerKeyPrivate={null}
@@ -310,7 +313,7 @@ function AiCreditsInner({
         />
       )}
 
-      {state.buyerKey && !state.buyerKeyConfirmed && (
+      {state.buyerKey && !state.buyerKeyConfirmed && !state.operatorConsentSigned && (
         <BuyerKeyPanel
           buyerKey={state.buyerKey}
           buyerKeyPrivate={state.buyerKeyPrivate ?? null}
@@ -391,6 +394,9 @@ export function AiCreditsWidget({
   provider,
   environment = 'production',
   backendUrl,
+  baseRpcUrl,
+  fundingVaultAddress,
+  vaultAddress,
   themeOverrides,
   config,
   defaultTheme = 'dark',
@@ -408,6 +414,9 @@ export function AiCreditsWidget({
       <AiCreditsInner
         environment={environment}
         backendUrl={backendUrl}
+        baseRpcUrl={baseRpcUrl}
+        fundingVaultAddress={fundingVaultAddress}
+        vaultAddress={vaultAddress}
         adapterFactory={adapterFactory}
         onPaySuccess={onPaySuccess}
         onPayError={onPayError}

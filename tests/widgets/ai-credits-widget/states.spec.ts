@@ -13,8 +13,8 @@ const STORY_IDS = {
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--payment-pending&viewMode=story',
   paymentConfirmed:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--payment-confirmed&viewMode=story',
-  creditsAccount:
-    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--credits-account&viewMode=story',
+  creditsManagement:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--credits-management&viewMode=story',
   insufficientBalance:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--insufficient-g-balance&viewMode=story',
   paymentFailed:
@@ -88,13 +88,13 @@ test('AiCreditsWidget payment_confirmed', async ({ page }) => {
   })
 })
 
-test('AiCreditsWidget credits_account', async ({ page }) => {
-  await gotoStory(page, STORY_IDS.creditsAccount)
-  await expect(page.getByTestId('AiCreditsWidget-credits-account')).toBeVisible()
-  await expect(page.getByText('110.00 credits')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Add Credit' })).toBeVisible()
+test('AiCreditsWidget credits_management', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.creditsManagement)
+  await expect(page.getByTestId('AiCreditsWidget-credits-management')).toBeVisible()
+  await expect(page.getByText('110.00')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Add Credits / Update Stream' })).toBeVisible()
   await page.screenshot({
-    path: 'tests/widgets/ai-credits-widget/test-results/acw-07-credits-account.png',
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-07-credits-management.png',
     fullPage: true,
   })
 })

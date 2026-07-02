@@ -36,9 +36,45 @@ export type OperatorConsentPayloadResponse = {
 export type OperatorAcceptResponse = {
   account: string
   buyerAddress: string
-  operator: BuyerOperatorStatus
   bridge?: { txHash?: string }
-  message?: string
+}
+
+export const SET_OPERATOR_TYPES = {
+  SetOperator: [
+    { name: 'operator', type: 'address' },
+    { name: 'nonce', type: 'uint256' },
+  ],
+} as const
+
+export function buildSetOperatorPayload(
+  chainId: number,
+  depositsAddress: string,
+  operatorAddress: string,
+  nonce: bigint,
+  domain: { name: string; version: string },
+): Eip712SigningPayload {
+  return {
+    primaryType: 'SetOperator',
+    domain: {
+      name: domain.name,
+      version: domain.version,
+      chainId,
+      verifyingContract: depositsAddress.toLowerCase(),
+    },
+    types: {
+      EIP712Domain: [
+        { name: 'name', type: 'string' },
+        { name: 'version', type: 'string' },
+        { name: 'chainId', type: 'uint256' },
+        { name: 'verifyingContract', type: 'address' },
+      ],
+      ...SET_OPERATOR_TYPES,
+    },
+    message: {
+      operator: operatorAddress.toLowerCase(),
+      nonce: nonce.toString(),
+    },
+  }
 }
 
 export async function signOperatorConsentFromTypedData(
