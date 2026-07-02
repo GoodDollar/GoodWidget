@@ -176,16 +176,6 @@ function AiCreditsInner({
           </AiCreditsStatusNotice>
         )}
 
-        {!state.buyerKeyPrivate && (
-          <BuyerKeyPanel
-            buyerKey={state.buyerKey}
-            buyerKeyPrivate={null}
-            buyerKeyConfirmed={state.buyerKeyConfirmed}
-            onGenerate={actions.generateBuyerKey}
-            onConfirm={actions.confirmBuyerKey}
-          />
-        )}
-
         <CreditsManagementCard state={state} actions={actions} />
 
         <BuyerOperatorCard state={state} actions={actions} />
