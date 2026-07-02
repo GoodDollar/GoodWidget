@@ -47,15 +47,47 @@ function useCopyFeedback() {
   return { copied, copy }
 }
 
-function AddressLabel({ label, address }: { label: string; address: string }) {
+function InfoTooltip({ message }: { message: string }) {
+  return (
+    <XStack alignItems="center" cursor="help" accessibilityLabel={message}>
+      <span title={message} style={{ display: 'inline-flex', lineHeight: 0 }}>
+        <Icon name="info" size="xs" color="primary" />
+      </span>
+    </XStack>
+  )
+}
+
+const WITHDRAW_TOOLTIP =
+  'Withdraw requires a buyer EIP-712 signature. UI signing is not implemented yet — mock backend only.'
+
+function AddressView({ label, address }: { label: string; address: string }) {
+  const { copied, copy } = useCopyFeedback()
+
   return (
     <YStack gap="$1">
       <Text variant="label" secondary>
         {label}
       </Text>
-      <Text fontSize="$2" fontFamily="$mono">
-        {truncateAddress(address)}
-      </Text>
+      <XStack
+        backgroundColor="$backgroundMuted"
+        borderRadius="$2"
+        padding="$3"
+        justifyContent="space-between"
+        alignItems="center"
+      >
+        <Text
+          fontSize="$2"
+          fontFamily="$mono"
+          flex={1}
+          numberOfLines={1}
+          style={monospaceSingleLineStyle}
+        >
+          {truncateAddress(address)}
+        </Text>
+        <Button size="sm" variant="ghost" iconSize="sm" onPress={() => void copy(address)}>
+          <Icon name={copied ? 'check' : 'copy'} size="xs" color={copied ? 'success' : 'text'} />
+        </Button>
+      </XStack>
     </YStack>
   )
 }
@@ -609,37 +641,50 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
         <ButtonText>Add Credits / Update Stream</ButtonText>
       </Button>
 
-      <YStack gap="$2">
+      <YStack gap="$1">
         <Text variant="label">Close Channel</Text>
-        <Input value={channelId} onChangeText={actions.setChannelId} placeholder="Channel ID" />
-        <Button
-          variant="outline"
-          disabled={isClosing || !channelId.trim()}
-          onPress={() => {
-            setIsClosing(true)
-            void Promise.resolve(actions.closeChannel()).finally(() => setIsClosing(false))
-          }}
-        >
-          <ButtonText>{isClosing ? 'Closing…' : 'Close Channel'}</ButtonText>
-        </Button>
+        <XStack gap="$2" alignItems="center">
+          <YStack flex={1}>
+            <Input
+              value={channelId}
+              onChangeText={actions.setChannelId}
+              placeholder="Channel ID"
+            />
+          </YStack>
+          <Button
+            variant="outline"
+            size="sm"
+            flexShrink={0}
+            disabled={isClosing || !channelId.trim()}
+            onPress={() => {
+              setIsClosing(true)
+              void Promise.resolve(actions.closeChannel()).finally(() => setIsClosing(false))
+            }}
+          >
+            <ButtonText>{isClosing ? 'Closing…' : 'Close'}</ButtonText>
+          </Button>
+        </XStack>
       </YStack>
 
-      <YStack gap="$2">
-        <Text variant="label">Withdraw</Text>
-        <Input
-          value={withdrawAmount}
-          onChangeText={actions.setWithdrawAmount}
-          placeholder={withdrawableDisplay ? `Amount in USD (max $${withdrawableDisplay})` : 'Amount in USD'}
-        />
-        <AiCreditsStatusNotice>
-          <Text fontSize="$2" secondary>
-            Withdraw requires a buyer EIP-712 signature. UI signing is not implemented yet — mock
-            backend only.
-          </Text>
-        </AiCreditsStatusNotice>
-        <Button variant="outline" disabled>
-          <ButtonText>Withdraw (coming soon)</ButtonText>
-        </Button>
+      <YStack gap="$1">
+        <XStack gap="$1" alignItems="center">
+          <Text variant="label">Withdraw</Text>
+          <InfoTooltip message={WITHDRAW_TOOLTIP} />
+        </XStack>
+        <XStack gap="$2" alignItems="center">
+          <YStack flex={1}>
+            <Input
+              value={withdrawAmount}
+              onChangeText={actions.setWithdrawAmount}
+              placeholder={
+                withdrawableDisplay ? `USD (max $${withdrawableDisplay})` : 'Amount in USD'
+              }
+            />
+          </YStack>
+          <Button variant="outline" size="sm" flexShrink={0} disabled>
+            <ButtonText>Withdraw</ButtonText>
+          </Button>
+        </XStack>
       </YStack>
     </CreditsManagementCardFrame>
   )
@@ -652,13 +697,13 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
 interface BuyerOperatorCardProps {
   state: Pick<
     AiCreditsWidgetAdapterState,
-    'address' | 'buyerKey' | 'buyerKeyPrivate' | 'operatorAddress' | 'operatorConsentSigned'
+    'address' | 'buyerKey' | 'buyerKeyPrivate' | 'operatorConsentSigned'
   >
   actions: Pick<AiCreditsWidgetAdapterActions, 'generateBuyerKey' | 'signOperatorConsent'>
 }
 
 export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
-  const { address, buyerKey, buyerKeyPrivate, operatorAddress, operatorConsentSigned } = state
+  const { address, buyerKey, buyerKeyPrivate, operatorConsentSigned } = state
   const { copied: copiedPrivate, copy: copyPrivate } = useCopyFeedback()
   const [isPrivateKeyVisible, setIsPrivateKeyVisible] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -668,19 +713,38 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
     <BuyerOperatorCardFrame>
       <Heading level={5}>Buyer &amp; Operator</Heading>
 
-      {address && <AddressLabel label="Payer" address={address} />}
-      {buyerKey && <AddressLabel label="Buyer" address={buyerKey} />}
-      {operatorAddress && <AddressLabel label="Operator" address={operatorAddress} />}
+      {address && <AddressView label="Payer" address={address} />}
+      {buyerKey && <AddressView label="Buyer" address={buyerKey} />}
 
-      <Button
-        onPress={() => {
-          setIsGenerating(true)
-          void Promise.resolve(actions.generateBuyerKey()).finally(() => setIsGenerating(false))
-        }}
-        disabled={isGenerating}
-      >
-        <ButtonText>{isGenerating ? 'Waiting for signature…' : 'Sign & Generate Key'}</ButtonText>
-      </Button>
+      <XStack gap="$2" alignItems="stretch">
+        <Button
+          flex={1}
+          size="sm"
+          onPress={() => {
+            setIsGenerating(true)
+            void Promise.resolve(actions.generateBuyerKey()).finally(() => setIsGenerating(false))
+          }}
+          disabled={isGenerating}
+        >
+          <ButtonText>{isGenerating ? 'Signing…' : 'Sign & Generate'}</ButtonText>
+        </Button>
+
+        <Button
+          flex={1}
+          size="sm"
+          onPress={() => {
+            setIsSigning(true)
+            void Promise.resolve(actions.signOperatorConsent()).finally(() => setIsSigning(false))
+          }}
+          disabled={operatorConsentSigned || isSigning || !buyerKeyPrivate}
+        >
+          {isSigning ? (
+            <Spinner size="sm" />
+          ) : (
+            <ButtonText>{operatorConsentSigned ? 'Consented' : 'Sign Consent'}</ButtonText>
+          )}
+        </Button>
+      </XStack>
 
       {buyerKeyPrivate && (
         <YStack gap="$2">
@@ -722,34 +786,6 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
             </Button>
           </XStack>
         </YStack>
-      )}
-
-      <Button
-        onPress={() => {
-          setIsSigning(true)
-          void Promise.resolve(actions.signOperatorConsent()).finally(() => setIsSigning(false))
-        }}
-        disabled={operatorConsentSigned || isSigning || !buyerKeyPrivate}
-      >
-        {isSigning ? (
-          <XStack gap="$2" alignItems="center">
-            <ButtonText>Signing…</ButtonText>
-            <Spinner size="sm" />
-          </XStack>
-        ) : (
-          <ButtonText>
-            {operatorConsentSigned ? 'Operator Consented' : 'Sign Operator Consent'}
-          </ButtonText>
-        )}
-      </Button>
-
-      {operatorConsentSigned && (
-        <XStack gap="$2" alignItems="center">
-          <Icon name="check" size="sm" color="success" />
-          <Text color="$success" fontSize="$2">
-            Operator consent active
-          </Text>
-        </XStack>
       )}
     </BuyerOperatorCardFrame>
   )

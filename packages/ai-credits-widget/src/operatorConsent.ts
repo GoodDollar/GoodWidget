@@ -39,12 +39,12 @@ export type OperatorAcceptResponse = {
   bridge?: { txHash?: string }
 }
 
-export const SET_OPERATOR_TYPES = {
+export const SET_OPERATOR_TYPES: Record<string, Array<{ name: string; type: string }>> = {
   SetOperator: [
     { name: 'operator', type: 'address' },
     { name: 'nonce', type: 'uint256' },
   ],
-} as const
+}
 
 export function buildSetOperatorPayload(
   chainId: number,
