@@ -14,6 +14,11 @@ import {
 import { privateKeyToAccount } from 'viem/accounts'
 import { buildBuyerKeyMessage, deriveBuyerPrivateKeyFromSignature } from './buyerKeyDerivation'
 import {
+  normalizeChannelId,
+  signRequestClose,
+  signWithdrawPrincipal,
+} from './buyerSignatures'
+import {
   MockAiCreditsBackendClient,
   balanceFromProfile,
   buildAccountView,
@@ -823,12 +828,39 @@ export function useAiCreditsAdapter({
 
   const handleCloseChannel = useCallback(async () => {
     const currentState = state
-    if (!currentState.channelId.trim()) {
-      setState((prev) => ({ ...prev, error: 'Enter a channel ID to close' }))
+    const channelId = normalizeChannelId(currentState.channelId)
+    if (!channelId) {
+      setState((prev) => ({
+        ...prev,
+        error: 'Enter a valid channel ID (0x followed by 64 hex characters)',
+      }))
       return
     }
+    if (!currentState.buyerKeyPrivate) {
+      setState((prev) => ({
+        ...prev,
+        error: 'Sign with your payer wallet to generate the buyer private key before closing a channel',
+      }))
+      return
+    }
+    if (!fundingVaultAddress) {
+      setState((prev) => ({
+        ...prev,
+        error: 'Funding vault address is not configured',
+      }))
+      return
+    }
+
     try {
-      await backendClient.closeChannel(currentState.channelId.trim())
+      const timestamp = Math.floor(Date.now() / 1000)
+      const signature = await signRequestClose({
+        buyerPrivateKey: currentState.buyerKeyPrivate as `0x${string}`,
+        fundingVaultAddress,
+        channelId,
+        timestamp,
+      })
+
+      await backendClient.closeChannel(channelId, { timestamp, signature })
       setState((prev) => ({ ...prev, error: null, channelId: '' }))
     } catch (err: unknown) {
       setState((prev) => ({
@@ -836,22 +868,60 @@ export function useAiCreditsAdapter({
         error: err instanceof Error ? err.message : 'Close channel failed',
       }))
     }
-  }, [state, backendClient])
+  }, [state, backendClient, fundingVaultAddress])
 
   const handleWithdrawCredits = useCallback(async () => {
     const currentState = state
     if (!currentState.address || !currentState.buyerKey) return
+    if (!currentState.buyerKeyPrivate) {
+      setState((prev) => ({
+        ...prev,
+        error:
+          'Sign with your payer wallet to generate the buyer private key before withdrawing funds',
+      }))
+      return
+    }
+    if (!fundingVaultAddress) {
+      setState((prev) => ({
+        ...prev,
+        error: 'Funding vault address is not configured',
+      }))
+      return
+    }
     if (!currentState.withdrawAmount.trim()) {
       setState((prev) => ({ ...prev, error: 'Enter an amount to withdraw' }))
       return
     }
+
     try {
       const amount = usdDisplayToMicro(currentState.withdrawAmount.trim())
-      await backendClient.withdrawCredits(currentState.buyerKey, {
+      const withdrawable = BigInt(currentState.withdrawableUsd ?? '0')
+      if (BigInt(amount) <= 0n) {
+        setState((prev) => ({ ...prev, error: 'Enter a valid USD amount' }))
+        return
+      }
+      if (BigInt(amount) > withdrawable) {
+        setState((prev) => ({ ...prev, error: 'Amount exceeds withdrawable principal' }))
+        return
+      }
+
+      const buyer = currentState.buyerKey as Address
+      const payer = currentState.address as Address
+      const timestamp = Math.floor(Date.now() / 1000)
+      const signature = await signWithdrawPrincipal({
+        buyerPrivateKey: currentState.buyerKeyPrivate as `0x${string}`,
+        fundingVaultAddress,
+        buyer,
+        amountMicro: BigInt(amount),
+        recipient: payer,
+        timestamp,
+      })
+
+      await backendClient.withdrawCredits(buyer, {
         amount,
-        recipient: currentState.buyerKey,
-        timestamp: Math.floor(Date.now() / 1000),
-        signature: '0x',
+        recipient: payer,
+        timestamp,
+        signature,
       })
       setState((prev) => ({ ...prev, error: null, withdrawAmount: '' }))
       await handleRefresh()
@@ -861,7 +931,7 @@ export function useAiCreditsAdapter({
         error: err instanceof Error ? err.message : 'Withdraw failed',
       }))
     }
-  }, [state, backendClient, handleRefresh])
+  }, [state, backendClient, fundingVaultAddress, handleRefresh])
 
   const handleRetry = useCallback(async () => {
     setState((prev) =>

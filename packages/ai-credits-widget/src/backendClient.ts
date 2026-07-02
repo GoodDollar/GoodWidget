@@ -48,6 +48,50 @@ export type WithdrawPrincipalRequest = {
   signature: string
 }
 
+export type ChannelOperationRequest = {
+  timestamp?: number
+  signature?: string
+}
+
+export type BridgeResponse = {
+  enabled: boolean
+  txHash?: string
+}
+
+export type ChannelOperationResponse = {
+  channelId: string
+  action: 'close' | 'withdraw'
+  bridge: BridgeResponse
+}
+
+export type WithdrawPrincipalResponse = {
+  account: string
+  amountUsd: string
+  bridge: BridgeResponse
+}
+
+async function parseBridgeResponse(
+  response: Response,
+  actionLabel: string,
+): Promise<BridgeResponse> {
+  if (!response.ok) {
+    let detail = ''
+    try {
+      const body = (await response.json()) as { error?: unknown }
+      if (body.error) detail = ` — ${JSON.stringify(body.error)}`
+    } catch {
+      detail = ''
+    }
+    throw new Error(`${actionLabel} failed: ${response.status}${detail}`)
+  }
+  const body = (await response.json()) as { bridge?: BridgeResponse }
+  const bridge = body.bridge ?? { enabled: false }
+  if (!bridge.enabled) {
+    throw new Error(`${actionLabel} bridge is not configured on the backend`)
+  }
+  return bridge
+}
+
 function filterGdCredits(
   entries: GdCreditEntry[],
   options: { status?: 'pending' | 'funded' | 'failed'; limit?: number } = {},
@@ -153,8 +197,14 @@ export interface AiCreditsBackendClient {
     ref: AccountRef,
     options?: { txHashes?: string[]; previousBalance?: string },
   ): Promise<SettlementResult>
-  closeChannel(channelId: string): Promise<{ ok: boolean }>
-  withdrawCredits(buyer: string, body: WithdrawPrincipalRequest): Promise<{ ok: boolean }>
+  closeChannel(
+    channelId: string,
+    body?: ChannelOperationRequest,
+  ): Promise<ChannelOperationResponse>
+  withdrawCredits(
+    buyer: string,
+    body: WithdrawPrincipalRequest,
+  ): Promise<WithdrawPrincipalResponse>
 }
 
 const MOCK_DELAY_MS = 600
@@ -295,14 +345,24 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     return { credits: balanceFromProfile(this.buildProfile(ref.payer)) }
   }
 
-  async closeChannel(_channelId: string): Promise<{ ok: boolean }> {
+  async closeChannel(
+    channelId: string,
+    _body: ChannelOperationRequest = {},
+  ): Promise<ChannelOperationResponse> {
     await sleep(MOCK_DELAY_MS)
-    return { ok: true }
+    return { channelId, action: 'close', bridge: { enabled: true, txHash: '0xmock' } }
   }
 
-  async withdrawCredits(_buyer: string, _body: WithdrawPrincipalRequest): Promise<{ ok: boolean }> {
+  async withdrawCredits(
+    _buyer: string,
+    body: WithdrawPrincipalRequest,
+  ): Promise<WithdrawPrincipalResponse> {
     await sleep(MOCK_DELAY_MS)
-    return { ok: true }
+    return {
+      account: _buyer,
+      amountUsd: body.amount,
+      bridge: { enabled: true, txHash: '0xmock' },
+    }
   }
 }
 
@@ -398,24 +458,33 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
     throw new Error('Settlement polling timeout — credits may still be arriving')
   }
 
-  async closeChannel(channelId: string): Promise<{ ok: boolean }> {
-    const response = await fetch(`${this.backendUrl}/v1/channels/${encodeURIComponent(channelId)}/close`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
-    })
-    if (!response.ok) throw new Error(`Close channel request failed: ${response.status}`)
-    return { ok: true }
+  async closeChannel(
+    channelId: string,
+    body: ChannelOperationRequest = {},
+  ): Promise<ChannelOperationResponse> {
+    const response = await fetch(
+      `${this.backendUrl}/v1/channels/${encodeURIComponent(channelId)}/close`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      },
+    )
+    const bridge = await parseBridgeResponse(response, 'Close channel')
+    return { channelId, action: 'close', bridge }
   }
 
-  async withdrawCredits(buyer: string, body: WithdrawPrincipalRequest): Promise<{ ok: boolean }> {
+  async withdrawCredits(
+    buyer: string,
+    body: WithdrawPrincipalRequest,
+  ): Promise<WithdrawPrincipalResponse> {
     const response = await fetch(`${this.accountBase(buyer)}/withdraw`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })
-    if (!response.ok) throw new Error(`Withdraw request failed: ${response.status}`)
-    return { ok: true }
+    const bridge = await parseBridgeResponse(response, 'Withdraw')
+    return { account: normalizeAddress(buyer), amountUsd: body.amount, bridge }
   }
 }
 

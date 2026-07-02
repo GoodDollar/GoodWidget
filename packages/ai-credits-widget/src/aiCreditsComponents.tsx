@@ -64,31 +64,67 @@ function InfoTooltip({ message }: { message: string }) {
       onBlur={() => setOpen(false)}
     >
       <Icon name="info" size="xs" color="primary" />
-      {open && (
-        <YStack
-          position="absolute"
-          bottom="100%"
-          left={0}
-          marginBottom="$1"
-          backgroundColor="$background"
-          borderWidth={1}
-          borderColor="$borderColor"
-          borderRadius="$2"
-          padding="$2"
-          maxWidth={280}
-          zIndex={100}
-          pointerEvents="none"
-        >
-          <Text fontSize="$1" lineHeight="$2" color="$color">
-            {message}
-          </Text>
-        </YStack>
-      )}
+      {open && <TooltipBubble message={message} />}
     </XStack>
   )
 }
 
-const WITHDRAW_TOOLTIP = 'Withdraw requires a buyer EIP-712 signature.'
+function TooltipBubble({ message }: { message: string }) {
+  return (
+    <YStack
+      position="absolute"
+      bottom="100%"
+      right={0}
+      marginBottom="$1"
+      backgroundColor="$background"
+      borderWidth={1}
+      borderColor="$borderColor"
+      borderRadius="$2"
+      padding="$2"
+      maxWidth={280}
+      zIndex={100}
+      pointerEvents="none"
+    >
+      <Text fontSize="$1" lineHeight="$2" color="$color">
+        {message}
+      </Text>
+    </YStack>
+  )
+}
+
+function HoverTooltip({
+  message,
+  children,
+}: {
+  message: string | null
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(false)
+  if (!message) return <>{children}</>
+
+  return (
+    <XStack
+      position="relative"
+      flexShrink={0}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onFocus={() => setOpen(true)}
+      onBlur={() => setOpen(false)}
+    >
+      {children}
+      {open && <TooltipBubble message={message} />}
+    </XStack>
+  )
+}
+
+const BUYER_KEY_REQUIRED_CLOSE_TOOLTIP =
+  'Sign with your payer wallet above to generate the buyer private key before closing a channel.'
+
+const BUYER_KEY_REQUIRED_WITHDRAW_TOOLTIP =
+  'Sign with your payer wallet above to generate the buyer private key before withdrawing funds.'
+
+const WITHDRAW_TOOLTIP =
+  'Withdraws principal to your payer wallet (not bonus). Requires the buyer private key from this session.'
 
 function AddressView({ label, address }: { label: string; address: string }) {
   const { copied, copy } = useCopyFeedback()
@@ -628,6 +664,7 @@ interface CreditsManagementCardProps {
 
 export function CreditsManagementCard({ state, actions }: CreditsManagementCardProps) {
   const [isClosing, setIsClosing] = useState(false)
+  const [isWithdrawing, setIsWithdrawing] = useState(false)
   const {
     aiCreditsBalance,
     gBalance,
@@ -635,12 +672,19 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
     monthlyStreamG,
     monthlyStreamCredits,
     withdrawableUsd,
+    buyerKeyPrivate,
     channelId,
     withdrawAmount,
   } = state
 
   const withdrawableDisplay =
     withdrawableUsd && BigInt(withdrawableUsd) > 0n ? formatUsdMicro(withdrawableUsd) : null
+  const canClose = Boolean(buyerKeyPrivate) && Boolean(channelId.trim()) && !isClosing
+  const canWithdraw =
+    Boolean(buyerKeyPrivate) &&
+    Boolean(withdrawableDisplay) &&
+    Boolean(withdrawAmount.trim()) &&
+    !isWithdrawing
 
   return (
     <CreditsManagementCardFrame>
@@ -713,21 +757,25 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
             <Input
               value={channelId}
               onChangeText={actions.setChannelId}
-              placeholder="Channel ID"
+              placeholder="0x… (64 hex chars)"
             />
           </YStack>
-          <Button
-            variant="outline"
-            size="sm"
-            flexShrink={0}
-            disabled={isClosing || !channelId.trim()}
-            onPress={() => {
-              setIsClosing(true)
-              void Promise.resolve(actions.closeChannel()).finally(() => setIsClosing(false))
-            }}
+          <HoverTooltip
+            message={!buyerKeyPrivate ? BUYER_KEY_REQUIRED_CLOSE_TOOLTIP : null}
           >
-            <ButtonText>{isClosing ? 'Closing…' : 'Close'}</ButtonText>
-          </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              flexShrink={0}
+              disabled={!canClose}
+              onPress={() => {
+                setIsClosing(true)
+                void Promise.resolve(actions.closeChannel()).finally(() => setIsClosing(false))
+              }}
+            >
+              <ButtonText>{isClosing ? 'Closing…' : 'Close'}</ButtonText>
+            </Button>
+          </HoverTooltip>
         </XStack>
       </YStack>
 
@@ -746,9 +794,22 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
               }
             />
           </YStack>
-          <Button variant="outline" size="sm" flexShrink={0} disabled>
-            <ButtonText>Withdraw</ButtonText>
-          </Button>
+          <HoverTooltip
+            message={!buyerKeyPrivate ? BUYER_KEY_REQUIRED_WITHDRAW_TOOLTIP : null}
+          >
+            <Button
+              variant="outline"
+              size="sm"
+              flexShrink={0}
+              disabled={!canWithdraw}
+              onPress={() => {
+                setIsWithdrawing(true)
+                void Promise.resolve(actions.withdrawCredits()).finally(() => setIsWithdrawing(false))
+              }}
+            >
+              <ButtonText>{isWithdrawing ? 'Withdrawing…' : 'Withdraw'}</ButtonText>
+            </Button>
+          </HoverTooltip>
         </XStack>
       </YStack>
     </CreditsManagementCardFrame>
