@@ -326,6 +326,7 @@ export function InjectedWalletStory() {
   const backendUrl = import.meta.env.VITE_AI_CREDITS_BACKEND_URL
   const baseRpcUrl = import.meta.env.VITE_AI_CREDITS_BASE_RPC_URL
   const fundingVaultAddress = import.meta.env.VITE_AI_CREDITS_FUNDING_VAULT_ADDRESS
+  const vaultAddress = import.meta.env.VITE_AI_CREDITS_VAULT_ADDRESS
 
   if (!isInjectedProviderUsable(injectedProvider)) {
     return (
@@ -346,6 +347,7 @@ export function InjectedWalletStory() {
         backendUrl={backendUrl}
         baseRpcUrl={baseRpcUrl}
         fundingVaultAddress={fundingVaultAddress}
+        vaultAddress={vaultAddress}
       />
       {!backendUrl && (
         <YStack marginTop="$3">

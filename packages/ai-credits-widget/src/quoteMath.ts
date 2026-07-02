@@ -5,6 +5,7 @@ const REGULAR_BONUS_BPS = 1_000n
 const STREAMING_BONUS_BPS = 2_000n
 const BPS = 10_000n
 const SECONDS_PER_MONTH = 30n * 24n * 60n * 60n
+const USD_18_TO_MICRO = 1_000_000_000_000n
 
 export function gToWei(amountG: string): bigint {
   const trimmed = amountG.trim()
@@ -48,6 +49,46 @@ export function flowRateWeiToMonthlyG(flowRateWeiPerSecond: string): string {
   const rate = BigInt(flowRateWeiPerSecond || '0')
   if (rate <= 0n) return '0.00'
   return weiToG(rate * SECONDS_PER_MONTH)
+}
+
+export function vaultUsd18ToMicro(usd18: bigint): bigint {
+  return usd18 / USD_18_TO_MICRO
+}
+
+export function buildQuoteFromPrincipalUsd(
+  depositG: string,
+  streamG: string,
+  depositPrincipalUsd: bigint,
+  streamPrincipalUsd: bigint,
+  isGoodIdVerified: boolean,
+): {
+  depositAmountG: string
+  streamAmountG: string
+  depositAmountUsd: string
+  streamAmountUsd: string
+  bonusPercent: number
+  totalCredits: string
+} {
+  const streamWei = gToWei(streamG)
+  const depositBonusUsd = isGoodIdVerified
+    ? (depositPrincipalUsd * REGULAR_BONUS_BPS) / BPS
+    : 0n
+  const streamBonusUsd = isGoodIdVerified
+    ? (streamPrincipalUsd * STREAMING_BONUS_BPS) / BPS
+    : 0n
+  const totalUsd =
+    depositPrincipalUsd + depositBonusUsd + streamPrincipalUsd + streamBonusUsd
+  const hasStream = streamWei > 0n
+  const bonusPercent = !isGoodIdVerified ? 0 : hasStream ? 20 : 10
+
+  return {
+    depositAmountG: depositG,
+    streamAmountG: streamG,
+    depositAmountUsd: formatProfileUsd(depositPrincipalUsd),
+    streamAmountUsd: formatProfileUsd(streamPrincipalUsd),
+    bonusPercent,
+    totalCredits: usdToCredits(totalUsd.toString()),
+  }
 }
 
 export function buildQuoteFromGdAmounts(

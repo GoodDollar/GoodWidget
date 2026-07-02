@@ -1,19 +1,24 @@
 import {
   createPublicClient,
+  createWalletClient,
   http,
   parseAbi,
   type Address,
   type Chain,
+  type Hash,
   type PublicClient,
 } from 'viem'
+import { privateKeyToAccount } from 'viem/accounts'
 import type { AiCreditsQuote } from './widgetRuntimeContract'
 import type { BuyerOperatorStatus, OperatorConsentPayloadResponse } from './operatorConsent'
 import { ANTSEED_DEPOSITS_BASE_ADDRESS, buildSetOperatorPayload } from './operatorConsent'
 import type { AccountRef } from './backendTypes'
-import { buildQuoteFromGdAmounts } from './quoteMath'
+import { buildQuoteFromGdAmounts, buildQuoteFromPrincipalUsd, gToWei, vaultUsd18ToMicro } from './quoteMath'
 
 export const BASE_CHAIN_ID = 8453
 export const DEFAULT_BASE_RPC_URL = 'https://mainnet.base.org'
+export const CELO_GD_ANTSEED_VAULT_ADDRESS =
+  '0x4Dd0136b9aabD5823cf0F65d89e8fB882C660885' as const
 
 const BASE_CHAIN: Chain = {
   id: BASE_CHAIN_ID,
@@ -31,9 +36,9 @@ const CELO_VAULT_ABI = parseAbi([
 
 const DEPOSITS_ABI = parseAbi([
   'function getOperator(address buyer) view returns (address)',
-  'function operatorNonces(address buyer) view returns (uint256)',
-  'function nonces(address buyer) view returns (uint256)',
+  'function getOperatorNonce(address buyer) view returns (uint256)',
   'function eip712Domain() view returns (bytes1 fields, string name, string version, uint256 chainId, address verifyingContract, bytes32 salt, uint256[] extensions)',
+  'function setOperator(address buyer, address operator, uint256 nonce, bytes buyerSig)',
 ])
 
 const FUNDING_VAULT_ABI = parseAbi([
@@ -65,10 +70,17 @@ export interface AiCreditsChainClient {
     operatorStatus?: BuyerOperatorStatus,
   ): Promise<OperatorConsentPayloadResponse>
   getWithdrawableUsd(buyer: string): Promise<string>
+  submitOperatorConsent(
+    buyerPrivateKey: `0x${string}`,
+    ref: AccountRef,
+    buyerSig: `0x${string}`,
+    operatorStatus: BuyerOperatorStatus,
+  ): Promise<Hash | null>
 }
 
 export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
   private readonly baseClient: PublicClient
+  private readonly baseRpcUrl: string
   private readonly celoClient: PublicClient | null
   private readonly fundingVaultAddress?: Address
   private readonly celoVaultAddress?: Address
@@ -76,6 +88,7 @@ export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
 
   constructor(options: AiCreditsChainClientOptions = {}) {
     const baseRpcUrl = options.baseRpcUrl ?? DEFAULT_BASE_RPC_URL
+    this.baseRpcUrl = baseRpcUrl
     this.baseClient = createPublicClient({ chain: BASE_CHAIN, transport: http(baseRpcUrl) })
     this.fundingVaultAddress = options.fundingVaultAddress
     this.celoVaultAddress = options.celoVaultAddress
@@ -97,13 +110,13 @@ export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
 
   async fetchGdUsdPerToken(): Promise<number> {
     if (!this.celoClient || !this.celoVaultAddress) return 0.0015
-    const quoteWei = await this.celoClient.readContract({
+    const usd18 = await this.celoClient.readContract({
       address: this.celoVaultAddress,
       abi: CELO_VAULT_ABI,
       functionName: 'gdUsdPerToken',
       args: [10n ** 18n],
     })
-    return Number(quoteWei) / 1e18
+    return Number(usd18) / 1e18
   }
 
   async buildQuote(
@@ -111,8 +124,36 @@ export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
     streamG: string,
     isGoodIdVerified: boolean,
   ): Promise<AiCreditsQuote> {
+    const depositWei = gToWei(depositG)
+    const streamWei = gToWei(streamG)
+
+    if (this.celoClient && this.celoVaultAddress) {
+      const [depositPrincipalUsd, streamPrincipalUsd] = await Promise.all([
+        this.readGdUsdMicro(depositWei),
+        this.readGdUsdMicro(streamWei),
+      ])
+      return buildQuoteFromPrincipalUsd(
+        depositG,
+        streamG,
+        depositPrincipalUsd,
+        streamPrincipalUsd,
+        isGoodIdVerified,
+      )
+    }
+
     const gdUsdPerToken = await this.fetchGdUsdPerToken()
     return buildQuoteFromGdAmounts(depositG, streamG, gdUsdPerToken, isGoodIdVerified)
+  }
+
+  private async readGdUsdMicro(gdAmountWei: bigint): Promise<bigint> {
+    if (gdAmountWei <= 0n) return 0n
+    const usd18 = await this.celoClient!.readContract({
+      address: this.celoVaultAddress!,
+      abi: CELO_VAULT_ABI,
+      functionName: 'gdUsdPerToken',
+      args: [gdAmountWei],
+    })
+    return vaultUsd18ToMicro(usd18)
   }
 
   async getBuyerOperatorStatus(ref: AccountRef): Promise<BuyerOperatorStatus> {
@@ -192,22 +233,41 @@ export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
     return amount.toString()
   }
 
-  private async readOperatorNonce(buyer: Address): Promise<bigint> {
-    try {
-      return await this.baseClient.readContract({
-        address: this.depositsAddress,
-        abi: DEPOSITS_ABI,
-        functionName: 'operatorNonces',
-        args: [buyer],
-      })
-    } catch {
-      return this.baseClient.readContract({
-        address: this.depositsAddress,
-        abi: DEPOSITS_ABI,
-        functionName: 'nonces',
-        args: [buyer],
-      })
+  async submitOperatorConsent(
+    buyerPrivateKey: `0x${string}`,
+    ref: AccountRef,
+    buyerSig: `0x${string}`,
+    operatorStatus: BuyerOperatorStatus,
+  ): Promise<Hash> {
+    if (!operatorStatus.operatorAddress) {
+      throw new Error('Operator consent is not available')
     }
+    const buyer = privateKeyToAccount(buyerPrivateKey)
+    const walletClient = createWalletClient({
+      account: buyer,
+      chain: BASE_CHAIN,
+      transport: http(this.baseRpcUrl),
+    })
+    return walletClient.writeContract({
+      address: this.depositsAddress,
+      abi: DEPOSITS_ABI,
+      functionName: 'setOperator',
+      args: [
+        normalizeAddress(ref.buyer) as Address,
+        operatorStatus.operatorAddress as Address,
+        BigInt(operatorStatus.consentNonce),
+        buyerSig,
+      ],
+    })
+  }
+
+  private async readOperatorNonce(buyer: Address): Promise<bigint> {
+    return this.baseClient.readContract({
+      address: this.depositsAddress,
+      abi: DEPOSITS_ABI,
+      functionName: 'getOperatorNonce',
+      args: [buyer],
+    })
   }
 
   private async readDepositsDomain(): Promise<{ name: string; version: string }> {
@@ -225,7 +285,7 @@ export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
 }
 
 export class MockAiCreditsChainClient implements AiCreditsChainClient {
-  private readonly operatorAccepted: boolean
+  private operatorAccepted: boolean
   private readonly gdUsdPerToken: number
 
   constructor(options: { operatorAccepted?: boolean; gdUsdPerToken?: number } = {}) {
@@ -288,6 +348,16 @@ export class MockAiCreditsChainClient implements AiCreditsChainClient {
 
   async getWithdrawableUsd(_buyer: string): Promise<string> {
     return '0'
+  }
+
+  async submitOperatorConsent(
+    _buyerPrivateKey: `0x${string}`,
+    _ref: AccountRef,
+    _buyerSig: `0x${string}`,
+    _operatorStatus: BuyerOperatorStatus,
+  ): Promise<null> {
+    this.operatorAccepted = true
+    return null
   }
 }
 

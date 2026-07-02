@@ -22,7 +22,7 @@ import {
 } from './backendClient'
 import type { AccountEnrichment, AiCreditsBackendClient } from './backendClient'
 import type { AccountRef, AccountView } from './backendTypes'
-import { createChainClient } from './chainClient'
+import { createChainClient, CELO_GD_ANTSEED_VAULT_ADDRESS } from './chainClient'
 import type { AiCreditsChainClient } from './chainClient'
 import { signOperatorConsentFromTypedData } from './operatorConsent'
 import { executeCeloPayment, G_TOKEN_CELO_ADDRESS } from './celoPayment'
@@ -42,7 +42,7 @@ import type {
 const CELO_CHAIN_ID = 42220
 const MIN_DEPOSIT_AMOUNT = '1'
 const MIN_STREAM_AMOUNT = '1'
-const CELO_GD_ANTSEED_VAULT_FALLBACK: Address = '0x0000000000000000000000000000000000000002'
+const CELO_GD_ANTSEED_VAULT_FALLBACK: Address = CELO_GD_ANTSEED_VAULT_ADDRESS
 
 const G_TOKEN_ABI = parseAbi([
   'function balanceOf(address account) view returns (uint256)',
@@ -548,7 +548,12 @@ export function useAiCreditsAdapter({
         payload.typedData,
       )
 
-      await backendClient.acceptOperator(ref, buyerSig, operatorStatus.consentNonce)
+      await chainClient.submitOperatorConsent(
+        currentState.buyerKeyPrivate as `0x${string}`,
+        ref,
+        buyerSig,
+        operatorStatus,
+      )
 
       setState((prev) =>
         mergeStatePreservingManagement(prev, {
@@ -797,13 +802,12 @@ export function useAiCreditsAdapter({
       return
     }
     try {
-      const amountUsd = usdDisplayToMicro(currentState.withdrawAmount.trim())
-      await backendClient.withdrawCredits(currentState.address, {
-        buyerAddress: currentState.buyerKey,
-        amountUsd,
-        recipient: currentState.address,
+      const amount = usdDisplayToMicro(currentState.withdrawAmount.trim())
+      await backendClient.withdrawCredits(currentState.buyerKey, {
+        amount,
+        recipient: currentState.buyerKey,
         timestamp: Math.floor(Date.now() / 1000),
-        buyerSig: '0x',
+        signature: '0x',
       })
       setState((prev) => ({ ...prev, error: null, withdrawAmount: '' }))
       await handleRefresh()

@@ -18,6 +18,6 @@ export const MockBackend: Story = {
 }
 
 export const InjectedWallet: Story = {
-  name: 'Injected Wallet (local backend)',
+  name: 'Injected Wallet',
   render: () => <InjectedWalletStory />,
 }
