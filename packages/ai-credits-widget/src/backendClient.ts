@@ -9,7 +9,7 @@ import type {
   TransactionsResponse,
   UserCreditProfile,
 } from './backendTypes'
-import type { AiCreditsChainClient } from './chainClient'
+import { markMockOperatorConsent, type AiCreditsChainClient } from './chainClient'
 import {
   flowRateWeiToMonthlyG,
   isGoodIdVerifiedFromProfile,
@@ -67,6 +67,16 @@ export type ChannelOperationResponse = {
 export type WithdrawPrincipalResponse = {
   account: string
   amountUsd: string
+  bridge: BridgeResponse
+}
+
+export type OperatorConsentRequest = {
+  nonce: string
+  signature: string
+}
+
+export type OperatorConsentResponse = {
+  buyer: string
   bridge: BridgeResponse
 }
 
@@ -206,6 +216,10 @@ export interface AiCreditsBackendClient {
     buyer: string,
     body: WithdrawPrincipalRequest,
   ): Promise<WithdrawPrincipalResponse>
+  submitOperatorConsent(
+    buyer: string,
+    body: OperatorConsentRequest,
+  ): Promise<OperatorConsentResponse>
 }
 
 const MOCK_DELAY_MS = 600
@@ -365,6 +379,18 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
       bridge: { enabled: true, txHash: '0xmock' },
     }
   }
+
+  async submitOperatorConsent(buyer: string, _body: OperatorConsentRequest): Promise<OperatorConsentResponse> {
+    await sleep(MOCK_DELAY_MS)
+    const normalizedBuyer = normalizeAddress(buyer)
+    markMockOperatorConsent(normalizedBuyer)
+    for (const state of this.accountStates.values()) {
+      if (state.buyer === normalizedBuyer) {
+        state.operatorAccepted = true
+      }
+    }
+    return { buyer: normalizedBuyer, bridge: { enabled: true, txHash: '0xmock' } }
+  }
 }
 
 export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient {
@@ -487,6 +513,33 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
     const bridge = await parseBridgeResponse(response, 'Withdraw')
     return { account: normalizeAddress(buyer), amountUsd: body.amount, bridge }
   }
+
+  async submitOperatorConsent(
+    buyer: string,
+    body: OperatorConsentRequest,
+  ): Promise<OperatorConsentResponse> {
+    const response = await fetch(`${this.accountBase(buyer)}/operator-consent`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    if (!response.ok) {
+      let detail = ''
+      try {
+        const errBody = (await response.json()) as { error?: unknown }
+        if (errBody.error) detail = ` — ${JSON.stringify(errBody.error)}`
+      } catch {
+        detail = ''
+      }
+      throw new Error(`Operator consent failed: ${response.status}${detail}`)
+    }
+    const payload = (await response.json()) as OperatorConsentResponse
+    const bridge = payload.bridge ?? { enabled: false }
+    if (!bridge.enabled) {
+      throw new Error('Operator consent bridge is not configured on the backend')
+    }
+    return { buyer: normalizeAddress(payload.buyer ?? buyer), bridge }
+  }
 }
 
 export function createBackendClient(backendUrl: string | undefined): AiCreditsBackendClient {
@@ -494,6 +547,22 @@ export function createBackendClient(backendUrl: string | undefined): AiCreditsBa
     return new MockAiCreditsBackendClient()
   }
   return new ProductionAiCreditsBackendClient(backendUrl)
+}
+
+export async function waitForOperatorConsent(
+  chain: AiCreditsChainClient,
+  ref: AccountRef,
+): Promise<void> {
+  const POLL_INTERVAL_MS = 3000
+  const MAX_ATTEMPTS = 20
+
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    if (attempt > 0) await sleep(POLL_INTERVAL_MS)
+    const status = await chain.getBuyerOperatorStatus(ref)
+    if (status.operatorAccepted) return
+  }
+
+  throw new Error('Operator consent confirmation timeout — check Base transaction status')
 }
 
 export async function buildAccountView(

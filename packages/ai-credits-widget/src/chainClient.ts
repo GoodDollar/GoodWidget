@@ -1,14 +1,11 @@
 import {
   createPublicClient,
-  createWalletClient,
   http,
   parseAbi,
   type Address,
   type Chain,
-  type Hash,
   type PublicClient,
 } from 'viem'
-import { privateKeyToAccount } from 'viem/accounts'
 import type { AiCreditsQuote } from './widgetRuntimeContract'
 import type { BuyerOperatorStatus, OperatorConsentPayloadResponse } from './operatorConsent'
 import { ANTSEED_DEPOSITS_BASE_ADDRESS, buildSetOperatorPayload } from './operatorConsent'
@@ -38,7 +35,6 @@ const DEPOSITS_ABI = parseAbi([
   'function getOperator(address buyer) view returns (address)',
   'function getOperatorNonce(address buyer) view returns (uint256)',
   'function eip712Domain() view returns (bytes1 fields, string name, string version, uint256 chainId, address verifyingContract, bytes32 salt, uint256[] extensions)',
-  'function setOperator(address buyer, address operator, uint256 nonce, bytes buyerSig)',
 ])
 
 const FUNDING_VAULT_ABI = parseAbi([
@@ -47,6 +43,12 @@ const FUNDING_VAULT_ABI = parseAbi([
 
 function normalizeAddress(address: string): string {
   return address.toLowerCase()
+}
+
+const mockOperatorAcceptedBuyers = new Set<string>()
+
+export function markMockOperatorConsent(buyer: string): void {
+  mockOperatorAcceptedBuyers.add(normalizeAddress(buyer))
 }
 
 export type AiCreditsChainClientOptions = {
@@ -70,17 +72,10 @@ export interface AiCreditsChainClient {
     operatorStatus?: BuyerOperatorStatus,
   ): Promise<OperatorConsentPayloadResponse>
   getWithdrawableUsd(buyer: string): Promise<string>
-  submitOperatorConsent(
-    buyerPrivateKey: `0x${string}`,
-    ref: AccountRef,
-    buyerSig: `0x${string}`,
-    operatorStatus: BuyerOperatorStatus,
-  ): Promise<Hash | null>
 }
 
 export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
   private readonly baseClient: PublicClient
-  private readonly baseRpcUrl: string
   private readonly celoClient: PublicClient | null
   private readonly fundingVaultAddress?: Address
   private readonly celoVaultAddress?: Address
@@ -88,7 +83,6 @@ export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
 
   constructor(options: AiCreditsChainClientOptions = {}) {
     const baseRpcUrl = options.baseRpcUrl ?? DEFAULT_BASE_RPC_URL
-    this.baseRpcUrl = baseRpcUrl
     this.baseClient = createPublicClient({ chain: BASE_CHAIN, transport: http(baseRpcUrl) })
     this.fundingVaultAddress = options.fundingVaultAddress
     this.celoVaultAddress = options.celoVaultAddress
@@ -233,34 +227,6 @@ export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
     return amount.toString()
   }
 
-  async submitOperatorConsent(
-    buyerPrivateKey: `0x${string}`,
-    ref: AccountRef,
-    buyerSig: `0x${string}`,
-    operatorStatus: BuyerOperatorStatus,
-  ): Promise<Hash> {
-    if (!operatorStatus.operatorAddress) {
-      throw new Error('Operator consent is not available')
-    }
-    const buyer = privateKeyToAccount(buyerPrivateKey)
-    const walletClient = createWalletClient({
-      account: buyer,
-      chain: BASE_CHAIN,
-      transport: http(this.baseRpcUrl),
-    })
-    return walletClient.writeContract({
-      address: this.depositsAddress,
-      abi: DEPOSITS_ABI,
-      functionName: 'setOperator',
-      args: [
-        normalizeAddress(ref.buyer) as Address,
-        operatorStatus.operatorAddress as Address,
-        BigInt(operatorStatus.consentNonce),
-        buyerSig,
-      ],
-    })
-  }
-
   private async readOperatorNonce(buyer: Address): Promise<bigint> {
     return this.baseClient.readContract({
       address: this.depositsAddress,
@@ -309,13 +275,14 @@ export class MockAiCreditsChainClient implements AiCreditsChainClient {
     const payer = normalizeAddress(ref.payer)
     const buyer = normalizeAddress(ref.buyer)
     const operatorAddress = '0x0000000000000000000000000000000000000004'
+    const operatorAccepted = this.operatorAccepted || mockOperatorAcceptedBuyers.has(buyer)
     return {
       enabled: true,
       account: payer,
       buyerAddress: buyer,
       operatorAddress,
-      currentOperator: this.operatorAccepted ? operatorAddress : '0x0000000000000000000000000000000000000000',
-      operatorAccepted: this.operatorAccepted,
+      currentOperator: operatorAccepted ? operatorAddress : '0x0000000000000000000000000000000000000000',
+      operatorAccepted,
       consentNonce: '0',
     }
   }
@@ -348,16 +315,6 @@ export class MockAiCreditsChainClient implements AiCreditsChainClient {
 
   async getWithdrawableUsd(_buyer: string): Promise<string> {
     return '0'
-  }
-
-  async submitOperatorConsent(
-    _buyerPrivateKey: `0x${string}`,
-    _ref: AccountRef,
-    _buyerSig: `0x${string}`,
-    _operatorStatus: BuyerOperatorStatus,
-  ): Promise<null> {
-    this.operatorAccepted = true
-    return null
   }
 }
 

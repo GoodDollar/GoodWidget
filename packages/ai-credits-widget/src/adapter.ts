@@ -24,6 +24,7 @@ import {
   buildAccountView,
   createBackendClient,
   enrichAccountView,
+  waitForOperatorConsent,
 } from './backendClient'
 import type { AccountEnrichment, AiCreditsBackendClient } from './backendClient'
 import type { AccountRef, AccountView } from './backendTypes'
@@ -569,12 +570,11 @@ export function useAiCreditsAdapter({
         payload.typedData,
       )
 
-      await chainClient.submitOperatorConsent(
-        currentState.buyerKeyPrivate as `0x${string}`,
-        ref,
-        buyerSig,
-        operatorStatus,
-      )
+      await backendClient.submitOperatorConsent(ref.buyer, {
+        nonce: operatorStatus.consentNonce,
+        signature: buyerSig,
+      })
+      await waitForOperatorConsent(chainClient, ref)
 
       setState((prev) =>
         mergeStatePreservingManagement(prev, {
