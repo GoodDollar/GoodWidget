@@ -37,6 +37,9 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+const BRIDGE_POLL_INTERVAL_MS = 3000
+const BRIDGE_POLL_MAX_ATTEMPTS = 20
+
 function normalizeAddress(address: string): string {
   return address.toLowerCase()
 }
@@ -80,10 +83,10 @@ export type OperatorConsentResponse = {
   bridge: BridgeResponse
 }
 
-async function parseBridgeResponse(
+async function readBridgeResponseBody<T extends { bridge?: BridgeResponse }>(
   response: Response,
   actionLabel: string,
-): Promise<BridgeResponse> {
+): Promise<T & { bridge: BridgeResponse }> {
   if (!response.ok) {
     let detail = ''
     try {
@@ -94,12 +97,20 @@ async function parseBridgeResponse(
     }
     throw new Error(`${actionLabel} failed: ${response.status}${detail}`)
   }
-  const body = (await response.json()) as { bridge?: BridgeResponse }
+  const body = (await response.json()) as T
   const bridge = body.bridge ?? { enabled: false }
   if (!bridge.enabled) {
     throw new Error(`${actionLabel} bridge is not configured on the backend`)
   }
-  return bridge
+  return { ...body, bridge }
+}
+
+async function parseBridgeResponse(
+  response: Response,
+  actionLabel: string,
+): Promise<BridgeResponse> {
+  const body = await readBridgeResponseBody(response, actionLabel)
+  return body.bridge
 }
 
 function filterGdCredits(
@@ -234,7 +245,6 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
       principalUsd: bigint
       bonusUsd: bigint
       transactions: GdCreditEntry[]
-      operatorAccepted: boolean
       buyer: string | null
       rootAccount: string
     }
@@ -247,7 +257,6 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
         principalUsd: 0n,
         bonusUsd: 0n,
         transactions: [],
-        operatorAccepted: false,
         buyer: null,
         rootAccount: key,
       })
@@ -384,11 +393,6 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     await sleep(MOCK_DELAY_MS)
     const normalizedBuyer = normalizeAddress(buyer)
     markMockOperatorConsent(normalizedBuyer)
-    for (const state of this.accountStates.values()) {
-      if (state.buyer === normalizedBuyer) {
-        state.operatorAccepted = true
-      }
-    }
     return { buyer: normalizedBuyer, bridge: { enabled: true, txHash: '0xmock' } }
   }
 }
@@ -451,13 +455,11 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
     ref: AccountRef,
     options: { txHashes?: string[]; previousBalance?: string } = {},
   ): Promise<SettlementResult> {
-    const POLL_INTERVAL_MS = 3000
-    const MAX_ATTEMPTS = 20
     const baseline = options.previousBalance ? Number.parseFloat(options.previousBalance) : 0
     const txHashes = new Set((options.txHashes ?? []).map((hash) => hash.toLowerCase()))
 
-    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-      if (attempt > 0) await sleep(POLL_INTERVAL_MS)
+    for (let attempt = 0; attempt < BRIDGE_POLL_MAX_ATTEMPTS; attempt++) {
+      if (attempt > 0) await sleep(BRIDGE_POLL_INTERVAL_MS)
 
       if (txHashes.size > 0) {
         const credit = await this.getAccountCredit(ref.payer)
@@ -523,22 +525,8 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })
-    if (!response.ok) {
-      let detail = ''
-      try {
-        const errBody = (await response.json()) as { error?: unknown }
-        if (errBody.error) detail = ` — ${JSON.stringify(errBody.error)}`
-      } catch {
-        detail = ''
-      }
-      throw new Error(`Operator consent failed: ${response.status}${detail}`)
-    }
-    const payload = (await response.json()) as OperatorConsentResponse
-    const bridge = payload.bridge ?? { enabled: false }
-    if (!bridge.enabled) {
-      throw new Error('Operator consent bridge is not configured on the backend')
-    }
-    return { buyer: normalizeAddress(payload.buyer ?? buyer), bridge }
+    const payload = await readBridgeResponseBody<OperatorConsentResponse>(response, 'Operator consent')
+    return { buyer: normalizeAddress(payload.buyer ?? buyer), bridge: payload.bridge }
   }
 }
 
@@ -553,11 +541,8 @@ export async function waitForOperatorConsent(
   chain: AiCreditsChainClient,
   ref: AccountRef,
 ): Promise<void> {
-  const POLL_INTERVAL_MS = 3000
-  const MAX_ATTEMPTS = 20
-
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    if (attempt > 0) await sleep(POLL_INTERVAL_MS)
+  for (let attempt = 0; attempt < BRIDGE_POLL_MAX_ATTEMPTS; attempt++) {
+    if (attempt > 0) await sleep(BRIDGE_POLL_INTERVAL_MS)
     const status = await chain.getBuyerOperatorStatus(ref)
     if (status.operatorAccepted) return
   }

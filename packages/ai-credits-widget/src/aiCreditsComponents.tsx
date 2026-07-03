@@ -1049,7 +1049,11 @@ export function UsageLog({ entries }: UsageLogProps) {
         <Heading level={5}>{title}</Heading>
         <XStack gap="$2" alignItems="center">
           <Text fontSize="$2" secondary>
-            {entries.length === 0 ? 'No entries yet' : `${total.toFixed(1)} total credits`}
+            {entries.length === 0
+              ? 'No entries yet'
+              : isFundingHistory
+                ? `${total.toFixed(1)} funded in history`
+                : `${total.toFixed(1)} total credits`}
           </Text>
           <Icon name={expanded ? 'chevron-up' : 'chevron-down'} size="sm" />
         </XStack>
