@@ -7,6 +7,7 @@ import { OperatorConsentStep } from '../buy/OperatorConsentStep'
 import { AiCreditsFlowStepper } from './AiCreditsFlowStepper'
 import type { AiCreditsFlowStep } from './types'
 import { getActiveFlowStepActionLabel, getAiCreditsActiveFlowStep } from './purchaseFlowUtils'
+import { compactButtonProps } from '../shared/styles'
 
 interface AiCreditsPurchaseFlowProps {
   state: AiCreditsWidgetAdapterState
@@ -112,6 +113,8 @@ export function AiCreditsPurchaseFlow({
       {!drawerOpen && actionLabel && activeStep && (
         <Button
           fullWidth
+          size="sm"
+          {...compactButtonProps}
           onPress={() => {
             openDrawer(activeStep)
           }}

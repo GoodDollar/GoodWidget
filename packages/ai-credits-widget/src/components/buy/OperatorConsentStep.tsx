@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Button, ButtonText, Card, Heading, Icon, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
-import { truncateAddress } from '../shared/styles'
+import { truncateAddress, compactButtonProps } from '../shared/styles'
 
 interface OperatorConsentStepProps {
   buyerKey: string | null
@@ -47,6 +47,8 @@ export function OperatorConsentStep({
         </XStack>
       ) : (
         <Button
+          size="sm"
+          {...compactButtonProps}
           onPress={() => {
             setIsSigning(true)
             void onSign().finally(() => {
@@ -68,4 +70,3 @@ export function OperatorConsentStep({
     </Shell>
   )
 }
-

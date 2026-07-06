@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Button, ButtonText, Card, Heading, Icon, Text, XStack, YStack } from '@goodwidget/ui'
 import { AiCreditsStatusNotice } from '../theme/cards'
-import { monospaceSingleLineStyle } from '../shared/styles'
+import { monospaceSingleLineStyle, compactButtonProps } from '../shared/styles'
 import { useCopyFeedback } from '../shared/useCopyFeedback'
 
 interface BuyerKeyPanelProps {
@@ -46,99 +46,101 @@ export function BuyerKeyPanel({
       </Text>
 
       <YStack gap="$3">
-        <Button onPress={handleGenerate} disabled={isGenerating}>
+        <Button size="sm" {...compactButtonProps} onPress={handleGenerate} disabled={isGenerating}>
           <ButtonText>{isGenerating ? 'Waiting for signature…' : 'Sign & Generate Key'}</ButtonText>
         </Button>
 
         {buyerKey && (
-            <YStack gap="$2">
-              {/* Address row */}
-              <Text variant="label" secondary>
-                Address (registered on-chain)
+          <YStack gap="$2">
+            <Text variant="label" secondary>
+              Address (registered on-chain)
+            </Text>
+            <XStack
+              backgroundColor="$backgroundMuted"
+              borderRadius="$2"
+              padding="$3"
+              justifyContent="space-between"
+              alignItems="center"
+            >
+              <Text fontSize="$2" style={monospaceSingleLineStyle} flex={1} numberOfLines={1}>
+                {buyerKey}
               </Text>
-              <XStack
-                backgroundColor="$backgroundMuted"
-                borderRadius="$2"
-                padding="$3"
-                justifyContent="space-between"
-                alignItems="center"
-              >
-                <Text
-                  fontSize="$2"
-                  style={monospaceSingleLineStyle}
-                  flex={1}
-                  numberOfLines={1}
-                >
-                  {buyerKey}
-                </Text>
-                <Button size="sm" variant="ghost" iconSize="sm" onPress={() => void copyAddress(buyerKey)}>
-                  <Icon name={copiedAddress ? 'check' : 'copy'} size="xs" color={copiedAddress ? 'success' : 'text'} />
-                </Button>
-              </XStack>
+              <Button size="sm" variant="ghost" iconSize="sm" onPress={() => void copyAddress(buyerKey)}>
+                <Icon
+                  name={copiedAddress ? 'check' : 'copy'}
+                  size="xs"
+                  color={copiedAddress ? 'success' : 'text'}
+                />
+              </Button>
+            </XStack>
 
-              {/* Private key row — only shown for generated keys */}
-              {buyerKeyPrivate && (
-                <>
-                  <XStack justifyContent="space-between" alignItems="center">
-                    <Text variant="label" secondary>
-                      Private Key — save this securely
-                    </Text>
-                    <Button
-                      variant="text"
-                      size="sm"
-                      onPress={() => {
-                        setIsPrivateKeyVisible((prev) => !prev)
-                      }}
-                    >
-                      <ButtonText>{isPrivateKeyVisible ? 'Hide' : 'Reveal'}</ButtonText>
-                    </Button>
-                  </XStack>
-                  <AiCreditsStatusNotice borderColor="$warning">
-                    <Text color="$warning" fontSize="$2">
-                      ⚠ Revealing your private key can expose your account. Never share it — store it in a
-                      secure place.
-                    </Text>
-                  </AiCreditsStatusNotice>
-                  <XStack
-                    backgroundColor="$backgroundMuted"
-                    borderRadius="$2"
-                    padding="$3"
-                    justifyContent="space-between"
-                    alignItems="center"
-                  >
-                    <Text
-                      fontSize="$2"
-                      style={monospaceSingleLineStyle}
-                      flex={1}
-                      numberOfLines={1}
-                    >
-                      {isPrivateKeyVisible ? buyerKeyPrivate : '•'.repeat(Math.min(48, buyerKeyPrivate.length))}
-                    </Text>
-                    <Button size="sm" variant="ghost" iconSize="sm" onPress={() => void copyPrivate(buyerKeyPrivate)}>
-                      <Icon name={copiedPrivate ? 'check' : 'copy'} size="xs" color={copiedPrivate ? 'success' : 'text'} />
-                    </Button>
-                  </XStack>
-                </>
-              )}
-
-              {!buyerKeyConfirmed && (
-                <Button onPress={onConfirm}>
-                  <ButtonText>I've Saved My Private Key</ButtonText>
-                </Button>
-              )}
-
-              {buyerKeyConfirmed && (
-                <XStack gap="$2" alignItems="center">
-                  <Icon name="check" size="sm" color="success" />
-                  <Text color="$success" fontSize="$2">
-                    Key confirmed — you can proceed
+            {buyerKeyPrivate && (
+              <>
+                <XStack justifyContent="space-between" alignItems="center">
+                  <Text variant="label" secondary>
+                    Private Key — save this securely
                   </Text>
+                  <Button
+                    variant="text"
+                    size="sm"
+                    onPress={() => {
+                      setIsPrivateKeyVisible((prev) => !prev)
+                    }}
+                  >
+                    <ButtonText>{isPrivateKeyVisible ? 'Hide' : 'Reveal'}</ButtonText>
+                  </Button>
                 </XStack>
-              )}
-            </YStack>
-          )}
+                <AiCreditsStatusNotice borderColor="$warning">
+                  <Text color="$warning" fontSize="$2">
+                    ⚠ Revealing your private key can expose your account. Never share it — store it in a
+                    secure place.
+                  </Text>
+                </AiCreditsStatusNotice>
+                <XStack
+                  backgroundColor="$backgroundMuted"
+                  borderRadius="$2"
+                  padding="$3"
+                  justifyContent="space-between"
+                  alignItems="center"
+                >
+                  <Text fontSize="$2" style={monospaceSingleLineStyle} flex={1} numberOfLines={1}>
+                    {isPrivateKeyVisible
+                      ? buyerKeyPrivate
+                      : '•'.repeat(Math.min(48, buyerKeyPrivate.length))}
+                  </Text>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    iconSize="sm"
+                    onPress={() => void copyPrivate(buyerKeyPrivate)}
+                  >
+                    <Icon
+                      name={copiedPrivate ? 'check' : 'copy'}
+                      size="xs"
+                      color={copiedPrivate ? 'success' : 'text'}
+                    />
+                  </Button>
+                </XStack>
+              </>
+            )}
+
+            {!buyerKeyConfirmed && (
+              <Button size="sm" {...compactButtonProps} onPress={onConfirm}>
+                <ButtonText>I've Saved My Private Key</ButtonText>
+              </Button>
+            )}
+
+            {buyerKeyConfirmed && (
+              <XStack gap="$2" alignItems="center">
+                <Icon name="check" size="sm" color="success" />
+                <Text color="$success" fontSize="$2">
+                  Key confirmed — you can proceed
+                </Text>
+              </XStack>
+            )}
+          </YStack>
+        )}
       </YStack>
     </Shell>
   )
 }
-

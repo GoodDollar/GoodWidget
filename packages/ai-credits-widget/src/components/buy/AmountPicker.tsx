@@ -4,6 +4,7 @@ import { parseGAmount } from '../../quoteMath'
 import { formatMinGDisplayLocale, getPaymentAmountValidation } from '../../vaultMinimums'
 import { AiCreditsStatusNotice, BonusBadgeFrame } from '../theme/cards'
 import { HoverTooltip } from '../shared/tooltips'
+import { compactButtonProps } from '../shared/styles'
 
 interface AmountPickerProps {
   depositAmount: string
@@ -185,6 +186,8 @@ export function AmountPicker({
       <HoverTooltip message={payDisabledMessage} fullWidth>
         <Button
           fullWidth
+          size="sm"
+          {...compactButtonProps}
           disabled={!canPay || isPayPending}
           onPress={() => {
             onPay()
