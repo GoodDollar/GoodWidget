@@ -78,6 +78,8 @@ test('Governance onboarding interactive flow persists selected house into profil
   })
 
   await page.getByRole('button', { name: 'Continue to success' }).scrollIntoViewIfNeeded()
+  // Wait for all transaction steps to complete (indicated by the progress text reaching 4/4)
+  await expect(page.getByText('4/4')).toBeVisible({ timeout: 10000 })
   await expect(page.getByRole('button', { name: 'Continue to success' })).toBeEnabled()
   await page.getByRole('button', { name: 'Continue to success' }).click({ force: true })
   await expect(page.getByText('Welcome to Governance', { exact: true })).toBeVisible()

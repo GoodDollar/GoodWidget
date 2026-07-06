@@ -54,6 +54,5 @@ export interface GovernanceOnboardingWidgetProps {
   finalActions?: GovernanceOnboardingAction[]
   dataTestId?: string
   onStepChange?: (stepId: GovernanceOnboardingStepId) => void
-  onVerifyIdentity?: () => void
   onFinalActionPress?: (actionId: string) => void
 }

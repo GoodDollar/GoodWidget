@@ -253,7 +253,7 @@ export const CustodialCitizenshipProfileReady: Story = {
 
 export const CustodialAlignmentProfileError: Story = {
   parameters: {
-    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig, defaultTheme: 'dark' },
+    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig },
   },
   render: () => (
     <CustodialGovernanceStory
@@ -279,7 +279,7 @@ export const CustodialAlignmentProfileError: Story = {
 
 export const CustodialStakeProgress: Story = {
   parameters: {
-    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig, defaultTheme: 'dark' },
+    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig },
   },
   render: () => (
     <CustodialGovernanceStory
@@ -399,7 +399,7 @@ export const CustodialMobileWelcome: Story = {
 
 export const CustodialMobileDarkProfile: Story = {
   parameters: {
-    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig, defaultTheme: 'dark' },
+    goodWidgetProvider: { useShell: true, config: governanceWidgetConfig, defaultTheme: 'dark' },
     viewport: { defaultViewport: 'mobile1' },
   },
   render: () => (

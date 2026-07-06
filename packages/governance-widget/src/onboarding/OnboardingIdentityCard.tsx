@@ -5,7 +5,6 @@ import type { GovernanceIdentityStatus } from '../types'
 interface OnboardingIdentityCardProps {
   identityStatus: GovernanceIdentityStatus
   walletAddress?: string
-  onVerifyPress?: () => void
   onProceedPress?: () => void
 }
 
@@ -41,7 +40,6 @@ const FieldRow = createComponent(XStack, {
 export function OnboardingIdentityCard({
   identityStatus,
   walletAddress,
-  onVerifyPress: _onVerifyPress,
   onProceedPress,
 }: OnboardingIdentityCardProps) {
   const isVerified = identityStatus === 'verified'

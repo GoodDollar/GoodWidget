@@ -12,22 +12,10 @@ export default [
         ecmaFeatures: { jsx: true },
       },
     },
-    plugins: {
-      '@typescript-eslint': tseslint,
-      'react-hooks': {
-        rules: {
-          'exhaustive-deps': {
-            create() {
-              return {}
-            },
-          },
-        },
-      },
-    },
+    plugins: { '@typescript-eslint': tseslint },
     rules: {
       ...tseslint.configs.recommended.rules,
       '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
     },
   },
   { ignores: ['**/dist/**', '**/node_modules/**', '**/.turbo/**'] },

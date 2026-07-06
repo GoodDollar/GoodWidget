@@ -82,8 +82,11 @@ export function ProfileTextAreaField({
         }}
         onBlur={() => onBlur?.()}
       />
-      {helperText ? <Text variant="caption">{helperText}</Text> : null}
-      {errorMessage ? <InputError>{errorMessage}</InputError> : null}
+      {errorMessage ? (
+        <InputError>{errorMessage}</InputError>
+      ) : helperText ? (
+        <Text variant="caption">{helperText}</Text>
+      ) : null}
     </YStack>
   )
 }

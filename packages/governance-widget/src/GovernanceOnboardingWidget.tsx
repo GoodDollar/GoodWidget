@@ -27,7 +27,6 @@ export function GovernanceOnboardingWidget({
   finalActions = DEFAULT_FINAL_ACTIONS,
   dataTestId,
   onStepChange,
-  onVerifyIdentity,
   onFinalActionPress,
 }: GovernanceOnboardingWidgetProps) {
   const initialWizardData = useMemo<GovernanceWizardData>(
@@ -54,7 +53,6 @@ export function GovernanceOnboardingWidget({
         stakeAmountLabel={stakeAmountLabel}
         transactionSteps={transactionSteps}
         finalActions={finalActions}
-        onVerifyIdentity={onVerifyIdentity}
         onFinalActionPress={onFinalActionPress}
         dataTestId={dataTestId}
       />

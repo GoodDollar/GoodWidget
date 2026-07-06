@@ -6,7 +6,6 @@ interface WelcomeStepContentProps {
   identityStatus: GovernanceIdentityStatus
   walletAddress?: string
   isIdentityVerified: boolean
-  onVerifyPress?: () => void
   onProceedPress?: () => void
 }
 
@@ -14,7 +13,6 @@ export function WelcomeStepContent({
   identityStatus,
   walletAddress,
   isIdentityVerified,
-  onVerifyPress,
   onProceedPress,
 }: WelcomeStepContentProps) {
   return (
@@ -22,7 +20,6 @@ export function WelcomeStepContent({
       <OnboardingIdentityCard
         identityStatus={identityStatus}
         walletAddress={walletAddress}
-        onVerifyPress={onVerifyPress}
         onProceedPress={isIdentityVerified ? onProceedPress : undefined}
       />
     </YStack>

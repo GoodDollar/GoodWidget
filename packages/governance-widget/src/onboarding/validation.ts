@@ -20,7 +20,7 @@ function isValidUrl(val: string): boolean {
   try {
     new URL(val)
     return true
-  } catch (_) {
+  } catch {
     return false
   }
 }

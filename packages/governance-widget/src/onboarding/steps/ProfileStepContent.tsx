@@ -59,7 +59,7 @@ function FormField({
         onChange={(event: ChangeEvent<HTMLInputElement>) => {
           onChangeText(event.currentTarget.value)
         }}
-        onBlur={(_event: FocusEvent<HTMLInputElement>) => {
+        onBlur={() => {
           onBlur?.()
         }}
       />

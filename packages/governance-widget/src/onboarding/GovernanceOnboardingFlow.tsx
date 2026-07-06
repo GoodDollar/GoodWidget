@@ -28,7 +28,6 @@ interface GovernanceOnboardingFlowProps {
   stakeAmountLabel: string
   transactionSteps: StepperStepItem[]
   finalActions: GovernanceOnboardingAction[]
-  onVerifyIdentity?: () => void
   onFinalActionPress?: (actionId: string) => void
   dataTestId?: string
 }
@@ -41,7 +40,6 @@ export function GovernanceOnboardingFlow({
   stakeAmountLabel,
   transactionSteps = DEFAULT_TRANSACTION_STEPS,
   finalActions = DEFAULT_FINAL_ACTIONS,
-  onVerifyIdentity,
   onFinalActionPress,
   dataTestId,
 }: GovernanceOnboardingFlowProps) {
@@ -123,8 +121,6 @@ export function GovernanceOnboardingFlow({
           identityStatus={identityStatus}
           walletAddress={walletAddress}
           isIdentityVerified={isIdentityVerified}
-          onVerifyPress={onVerifyIdentity}
-          // CTA button lives inside the card — no shell footer button needed
           onProceedPress={next}
         />
       )
