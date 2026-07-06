@@ -30,11 +30,19 @@ interface CreditsManagementCardProps {
 
 function StatCell({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <YStack flex={1} flexBasis={0} gap="$1" minWidth={0}>
-      <Text fontSize="$1" secondary numberOfLines={2}>
+    <YStack
+      flex={1}
+      flexBasis={0}
+      gap="$1"
+      minWidth={0}
+      backgroundColor="$backgroundHover"
+      borderRadius="$2"
+      padding="$2"
+    >
+      <Text fontSize="$1" secondary numberOfLines={2} minHeight={32}>
         {label}
       </Text>
-      <YStack minHeight={18} justifyContent="center">
+      <YStack minHeight={20} justifyContent="center">
         {children}
       </YStack>
     </YStack>
@@ -93,61 +101,51 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
     <Card gap="$3">
       <Heading level={6}>AI Credits</Heading>
 
-      <YStack gap="$2">
-        <Text fontSize="$1" secondary>
-          Total Credits
-        </Text>
-        {aiCreditsBalance !== null ? (
-          <Heading level={5}>{Number.parseFloat(aiCreditsBalance).toFixed(2)}</Heading>
-        ) : (
-          <Spinner size="sm" />
-        )}
-      </YStack>
-
-      <XStack
-        backgroundColor="$backgroundMuted"
-        borderRadius="$2"
-        padding="$2"
-        width="100%"
-        gap="$2"
-      >
-        <StatCell label="Payer G$ Balance">
-          {gBalance !== null ? (
-            <StatValueText>{formatCompactG(gBalance)}</StatValueText>
+      <XStack gap="$4" width="100%" alignItems="flex-start">
+        <YStack gap="$2" flex={1} minWidth={0}>
+          <Text fontSize="$1" secondary>
+            Total Credits
+          </Text>
+          {aiCreditsBalance !== null ? (
+            <Heading level={5}>{Number.parseFloat(aiCreditsBalance).toFixed(2)}</Heading>
           ) : (
             <Spinner size="sm" />
           )}
-        </StatCell>
-        <StatCell label="Total Deposited">
-          <StatValueText>{formatCompactG(totalGdDepositedG ?? '0.00')}</StatValueText>
-        </StatCell>
-        <StatCell label="Monthly Stream">
-          <StatValueText>{formatCompactG(monthlyStreamG ?? '0.00')}</StatValueText>
-        </StatCell>
-        <StatCell label="Est. Monthly Credits">
-          {monthlyStreamCredits && Number.parseFloat(monthlyStreamCredits) > 0 ? (
-            <StatValueText color="$primary">
-              ~{Number.parseFloat(monthlyStreamCredits).toFixed(2)}/mo
-            </StatValueText>
-          ) : (
-            <StatValueText>—</StatValueText>
-          )}
-        </StatCell>
+        </YStack>
+        {withdrawableDisplay && (
+          <YStack gap="$2" flex={1} minWidth={0}>
+            <Text fontSize="$1" secondary>
+              Withdrawable
+            </Text>
+            <Heading level={5}>${withdrawableDisplay}</Heading>
+          </YStack>
+        )}
       </XStack>
-      {withdrawableDisplay && (
-        <XStack
-          justifyContent="space-between"
-          alignItems="center"
-          backgroundColor="$backgroundMuted"
-          borderRadius="$2"
-          padding="$2"
-        >
-          <Text fontSize="$1" secondary>
-            Withdrawable
-          </Text>
-          <StatValueText>${withdrawableDisplay}</StatValueText>
-        </XStack>
-      )}
+
+      <XStack gap="$2" width="100%">
+          <StatCell label="Payer G$ Balance">
+            {gBalance !== null ? (
+              <StatValueText>{formatCompactG(gBalance)}</StatValueText>
+            ) : (
+              <Spinner size="sm" />
+            )}
+          </StatCell>
+          <StatCell label="Total Deposited">
+            <StatValueText>{formatCompactG(totalGdDepositedG ?? '0.00')}</StatValueText>
+          </StatCell>
+          <StatCell label="Monthly Stream">
+            <StatValueText>{formatCompactG(monthlyStreamG ?? '0.00')}</StatValueText>
+          </StatCell>
+          <StatCell label="Est. Monthly Credits">
+            {monthlyStreamCredits && Number.parseFloat(monthlyStreamCredits) > 0 ? (
+              <StatValueText color="$primary">
+                ~{Number.parseFloat(monthlyStreamCredits).toFixed(2)}/mo
+              </StatValueText>
+            ) : (
+              <StatValueText>—</StatValueText>
+            )}
+          </StatCell>
+      </XStack>
 
       <YStack gap="$1">
         <Text fontSize="$1" variant="label">
