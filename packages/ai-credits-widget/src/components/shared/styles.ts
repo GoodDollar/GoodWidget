@@ -11,3 +11,8 @@ export function truncateAddress(address: string): string {
   return `${address.slice(0, 10)}…${address.slice(-6)}`
 }
 
+export const compactButtonProps = {
+  borderRadius: '$2',
+  height: '$7',
+} as const
+

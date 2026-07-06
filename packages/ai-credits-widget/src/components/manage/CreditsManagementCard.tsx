@@ -18,6 +18,7 @@ import {
   WITHDRAW_TOOLTIP,
 } from '../shared/constants'
 import { HoverTooltip, InfoTooltip } from '../shared/tooltips'
+import { compactButtonProps } from '../shared/styles'
 
 interface CreditsManagementCardProps {
   state: AiCreditsWidgetAdapterState
@@ -29,19 +30,11 @@ interface CreditsManagementCardProps {
 
 function StatCell({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <YStack
-      flex={1}
-      flexBasis={0}
-      gap="$1"
-      minWidth={0}
-      backgroundColor="$backgroundMuted"
-      borderRadius="$2"
-      padding="$2"
-    >
-      <Text fontSize="$1" secondary numberOfLines={2} minHeight={32}>
+    <YStack flex={1} flexBasis={0} gap="$1" minWidth={0}>
+      <Text fontSize="$1" secondary numberOfLines={2}>
         {label}
       </Text>
-      <YStack minHeight={20} justifyContent="center">
+      <YStack minHeight={18} justifyContent="center">
         {children}
       </YStack>
     </YStack>
@@ -111,48 +104,50 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
         )}
       </YStack>
 
-      <YStack gap="$2" width="100%">
-        <XStack gap="$2" width="100%">
-          <StatCell label="Payer G$ Balance">
-            {gBalance !== null ? (
-              <StatValueText>{formatCompactG(gBalance)}</StatValueText>
-            ) : (
-              <Spinner size="sm" />
-            )}
-          </StatCell>
-          <StatCell label="Total Deposited">
-            <StatValueText>{formatCompactG(totalGdDepositedG ?? '0.00')}</StatValueText>
-          </StatCell>
+      <XStack
+        backgroundColor="$backgroundMuted"
+        borderRadius="$2"
+        padding="$2"
+        width="100%"
+        gap="$2"
+      >
+        <StatCell label="Payer G$ Balance">
+          {gBalance !== null ? (
+            <StatValueText>{formatCompactG(gBalance)}</StatValueText>
+          ) : (
+            <Spinner size="sm" />
+          )}
+        </StatCell>
+        <StatCell label="Total Deposited">
+          <StatValueText>{formatCompactG(totalGdDepositedG ?? '0.00')}</StatValueText>
+        </StatCell>
+        <StatCell label="Monthly Stream">
+          <StatValueText>{formatCompactG(monthlyStreamG ?? '0.00')}</StatValueText>
+        </StatCell>
+        <StatCell label="Est. Monthly Credits">
+          {monthlyStreamCredits && Number.parseFloat(monthlyStreamCredits) > 0 ? (
+            <StatValueText color="$primary">
+              ~{Number.parseFloat(monthlyStreamCredits).toFixed(2)}/mo
+            </StatValueText>
+          ) : (
+            <StatValueText>—</StatValueText>
+          )}
+        </StatCell>
+      </XStack>
+      {withdrawableDisplay && (
+        <XStack
+          justifyContent="space-between"
+          alignItems="center"
+          backgroundColor="$backgroundMuted"
+          borderRadius="$2"
+          padding="$2"
+        >
+          <Text fontSize="$1" secondary>
+            Withdrawable
+          </Text>
+          <StatValueText>${withdrawableDisplay}</StatValueText>
         </XStack>
-        <XStack gap="$2" width="100%">
-          <StatCell label="Monthly Stream">
-            <StatValueText>{formatCompactG(monthlyStreamG ?? '0.00')}</StatValueText>
-          </StatCell>
-          <StatCell label="Est. Monthly Credits">
-            {monthlyStreamCredits && Number.parseFloat(monthlyStreamCredits) > 0 ? (
-              <StatValueText color="$primary">
-                ~{Number.parseFloat(monthlyStreamCredits).toFixed(2)}/mo
-              </StatValueText>
-            ) : (
-              <StatValueText>—</StatValueText>
-            )}
-          </StatCell>
-        </XStack>
-        {withdrawableDisplay && (
-          <XStack
-            justifyContent="space-between"
-            alignItems="center"
-            backgroundColor="$backgroundMuted"
-            borderRadius="$2"
-            padding="$2"
-          >
-            <Text fontSize="$1" secondary>
-              Withdrawable
-            </Text>
-            <StatValueText>${withdrawableDisplay}</StatValueText>
-          </XStack>
-        )}
-      </YStack>
+      )}
 
       <YStack gap="$1">
         <Text fontSize="$1" variant="label">
@@ -174,6 +169,7 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
               minWidth="$14"
               flexShrink={0}
               disabled={!canClose}
+              {...compactButtonProps}
               onPress={() => {
                 setIsClosing(true)
                 void Promise.resolve(actions.closeChannel()).finally(() => setIsClosing(false))
@@ -210,6 +206,7 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
               minWidth="$14"
               flexShrink={0}
               disabled={!canWithdraw}
+              {...compactButtonProps}
               onPress={() => {
                 setIsWithdrawing(true)
                 void Promise.resolve(actions.withdrawCredits()).finally(() => setIsWithdrawing(false))

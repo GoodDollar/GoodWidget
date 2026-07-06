@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Button, ButtonText, Card, Heading, Icon, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
 import type { AiCreditsWidgetAdapterActions, AiCreditsWidgetAdapterState } from '../../widgetRuntimeContract'
 import { AddressView } from '../shared/AddressView'
-import { monospaceSingleLineStyle } from '../shared/styles'
+import { monospaceSingleLineStyle, compactButtonProps } from '../shared/styles'
 import { useCopyFeedback } from '../shared/useCopyFeedback'
 
 interface BuyerOperatorCardProps {
@@ -33,6 +33,7 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
           flexBasis={0}
           minWidth={0}
           size="sm"
+          {...compactButtonProps}
           onPress={() => {
             setIsGenerating(true)
             void Promise.resolve(actions.generateBuyerKey()).finally(() => setIsGenerating(false))
@@ -47,6 +48,7 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
           flexBasis={0}
           minWidth={0}
           size="sm"
+          {...compactButtonProps}
           onPress={() => {
             setIsSigning(true)
             void Promise.resolve(actions.signOperatorConsent()).finally(() => setIsSigning(false))

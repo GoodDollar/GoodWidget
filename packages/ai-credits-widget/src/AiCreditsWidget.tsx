@@ -38,6 +38,7 @@ import type {
   AiCreditsWidgetTab,
 } from './widgetRuntimeContract'
 import { getPaymentAmountValidation, getPayDisabledMessage } from './vaultMinimums'
+import { compactButtonProps } from './components/shared/styles'
 
 const CELO_CHAIN_ID = 42220
 
@@ -258,6 +259,7 @@ function ManagePanel({
         size="sm"
         alignSelf="center"
         gap="$2"
+        {...compactButtonProps}
         onPress={() => {
           void actions.refresh()
         }}
