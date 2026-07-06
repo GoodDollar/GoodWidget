@@ -17,7 +17,7 @@ interface ProfileStepContentProps {
   stakeAmountLabel: string
   ctaDisabled: boolean
   onProfileFieldChange: (fieldKey: GovernanceProfileFieldKey, nextValue: string) => void
-  onProfileFieldBlur: (fieldKey: GovernanceProfileFieldKey) => void
+  onProfileFieldBlur: (fieldKey: GovernanceProfileFieldKey, value: string) => void
   onContinuePress: () => void
 }
 
@@ -137,7 +137,7 @@ export function ProfileStepContent({
               value={profileDraft.name}
               errorMessage={fieldErrors.name}
               onChangeText={(v) => onProfileFieldChange('name', v)}
-              onBlur={() => onProfileFieldBlur('name')}
+              onBlur={() => onProfileFieldBlur('name', profileDraft.name ?? '')}
             />
 
             {selectedHouse === 'citizenship' ? (
@@ -148,7 +148,7 @@ export function ProfileStepContent({
                 value={profileDraft.socialLinks}
                 errorMessage={fieldErrors.socialLinks}
                 onChangeText={(v) => onProfileFieldChange('socialLinks', v)}
-                onBlur={() => onProfileFieldBlur('socialLinks')}
+                onBlur={() => onProfileFieldBlur('socialLinks', profileDraft.socialLinks ?? '')}
               />
             ) : (
               <>
@@ -159,7 +159,7 @@ export function ProfileStepContent({
                   value={profileDraft.projectWebpage}
                   errorMessage={fieldErrors.projectWebpage}
                   onChangeText={(v) => onProfileFieldChange('projectWebpage', v)}
-                  onBlur={() => onProfileFieldBlur('projectWebpage')}
+                  onBlur={() => onProfileFieldBlur('projectWebpage', profileDraft.projectWebpage ?? '')}
                 />
                 <ProfileTextAreaField
                   label="Mission Statement"
@@ -168,7 +168,7 @@ export function ProfileStepContent({
                   value={profileDraft.missionStatement}
                   errorMessage={fieldErrors.missionStatement}
                   onChangeText={(v) => onProfileFieldChange('missionStatement', v)}
-                  onBlur={() => onProfileFieldBlur('missionStatement')}
+                  onBlur={() => onProfileFieldBlur('missionStatement', profileDraft.missionStatement ?? '')}
                 />
                 <ProfileTextAreaField
                   label="Redistribution Strategy"
@@ -177,7 +177,7 @@ export function ProfileStepContent({
                   value={profileDraft.distributionStrategy}
                   errorMessage={fieldErrors.distributionStrategy}
                   onChangeText={(v) => onProfileFieldChange('distributionStrategy', v)}
-                  onBlur={() => onProfileFieldBlur('distributionStrategy')}
+                  onBlur={() => onProfileFieldBlur('distributionStrategy', profileDraft.distributionStrategy ?? '')}
                 />
               </>
             )}

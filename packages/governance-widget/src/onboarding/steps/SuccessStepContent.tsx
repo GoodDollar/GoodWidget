@@ -88,7 +88,7 @@ function SuccessStepInner({
 
 export function SuccessStepContent({
   finalActions,
-  stakeAmountLabel = '1,000 G$',
+  stakeAmountLabel = '250 G$',
   onFinalActionPress,
 }: SuccessStepContentProps) {
   return (
