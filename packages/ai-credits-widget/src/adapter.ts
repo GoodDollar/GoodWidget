@@ -84,7 +84,7 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   streamAmount: '0',
   minDepositG: null,
   minStreamG: null,
-  bonusPercent: 10,
+  bonusPercent: 0,
   quote: null,
   setupSnippet: null,
   usageLog: [],

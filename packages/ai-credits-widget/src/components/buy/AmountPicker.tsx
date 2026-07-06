@@ -12,6 +12,8 @@ interface AmountPickerProps {
   minDepositG: string | null
   minStreamG: string | null
   quote: AiCreditsQuote | null
+  isGoodIdVerified: boolean
+  bonusPercent: number
   canPay: boolean
   payDisabledMessage: string | null
   isPayPending: boolean
@@ -28,6 +30,8 @@ export function AmountPicker({
   minDepositG,
   minStreamG,
   quote,
+  isGoodIdVerified,
+  bonusPercent,
   canPay,
   payDisabledMessage,
   isPayPending,
@@ -38,7 +42,9 @@ export function AmountPicker({
 }: AmountPickerProps) {
   const depositG = parseGAmount(depositAmount)
   const streamG = parseGAmount(streamAmount)
-  const bonusPercent = quote?.bonusPercent ?? 10
+  const appliedBonusPercent = quote?.bonusPercent ?? bonusPercent
+  const depositBonusLabel = isGoodIdVerified ? '+10% bonus' : '+10% with GoodID'
+  const streamBonusLabel = isGoodIdVerified ? '+20% bonus (GoodID)' : '+20% with GoodID'
   const { depositBelowMin, streamBelowMin, overBalance } = getPaymentAmountValidation({
     depositAmount,
     streamAmount,
@@ -73,7 +79,7 @@ export function AmountPicker({
         <XStack justifyContent="space-between" alignItems="center">
           <Text variant="label">One-time Deposit (G$)</Text>
           <Text fontSize="$1" secondary>
-            +10% bonus
+            {depositBonusLabel}
           </Text>
         </XStack>
         <Input
@@ -96,7 +102,7 @@ export function AmountPicker({
         <XStack justifyContent="space-between" alignItems="center">
           <Text variant="label">Monthly Stream (G$)</Text>
           <Text fontSize="$1" secondary>
-            {bonusPercent >= 20 ? '+20% bonus (GoodID)' : '+20% with GoodID'}
+            {streamBonusLabel}
           </Text>
         </XStack>
         <Input
@@ -140,9 +146,15 @@ export function AmountPicker({
           Applied bonus
         </Text>
         <BonusBadgeFrame backgroundColor="$backgroundPress">
-          <Text fontSize="$2" fontWeight="700" color="$primary">
-            +{bonusPercent}%
-          </Text>
+          {appliedBonusPercent > 0 ? (
+            <Text fontSize="$2" fontWeight="700" color="$primary">
+              +{appliedBonusPercent}%
+            </Text>
+          ) : (
+            <Text fontSize="$2" fontWeight="700" secondary>
+              No bonus
+            </Text>
+          )}
         </BonusBadgeFrame>
       </XStack>
 
