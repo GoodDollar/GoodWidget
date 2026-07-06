@@ -172,7 +172,6 @@ function Countdown({ nextClaim }: { nextClaim: Date }) {
   useEffect(() => {
     const id = setInterval(() => setTimeLeft(getTimeLeft()), 1000)
     return () => clearInterval(id)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nextClaim])
 
   const h = Math.floor(timeLeft / 3600)
@@ -191,14 +190,12 @@ function Countdown({ nextClaim }: { nextClaim: Date }) {
 // ---------------------------------------------------------------------------
 interface CitizenClaimInnerProps {
   environment?: CitizenClaimWidgetEnvironment
-  walletMode: 'custodial' | 'injected'
   onClaimSuccess?: (detail: CitizenClaimWidgetSuccessDetail) => void
   onClaimError?: (detail: CitizenClaimWidgetErrorDetail) => void
 }
 
 function CitizenClaimInner({
   environment,
-  walletMode,
   onClaimSuccess,
   onClaimError,
 }: CitizenClaimInnerProps) {
@@ -533,12 +530,7 @@ export function CitizenClaimWidget({
   onClaimSuccess,
   onClaimError,
 }: CitizenClaimWidgetProps) {
-  const walletMode =
-    provider &&
-    typeof provider === 'object' &&
-    (provider as { __gwWalletMode?: string }).__gwWalletMode === 'custodial'
-      ? 'custodial'
-      : 'injected'
+
 
   return (
     <GoodWidgetProvider
@@ -549,7 +541,6 @@ export function CitizenClaimWidget({
     >
       <CitizenClaimInner
         environment={environment}
-        walletMode={walletMode}
         onClaimSuccess={onClaimSuccess}
         onClaimError={onClaimError}
       />

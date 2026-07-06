@@ -420,7 +420,6 @@ export function useCitizenClaimAdapter(
   // Auto-refresh claim status whenever wallet connection or chain changes
   useEffect(() => {
     void loadClaimStatus()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isConnected, address, chainId])
 
   // ---------------------------------------------------------------------------

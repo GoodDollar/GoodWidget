@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from 'react'
 import { styled, Stack, Text as TamaguiText } from 'tamagui'
-import type { GetProps } from 'tamagui'
 
 const SelectFrame = styled(Stack, {
   name: 'Select',
