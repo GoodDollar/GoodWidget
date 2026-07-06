@@ -27,9 +27,11 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
       {address && <AddressView label="Payer" address={address} />}
       {buyerKey && <AddressView label="Buyer" address={buyerKey} />}
 
-      <XStack gap="$2" alignItems="stretch">
+      <XStack gap="$2" alignItems="stretch" width="100%">
         <Button
           flex={1}
+          flexBasis={0}
+          minWidth={0}
           size="sm"
           onPress={() => {
             setIsGenerating(true)
@@ -42,6 +44,8 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
 
         <Button
           flex={1}
+          flexBasis={0}
+          minWidth={0}
           size="sm"
           onPress={() => {
             setIsSigning(true)
@@ -60,8 +64,8 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
       {buyerKeyPrivate && (
         <YStack gap="$2">
           <XStack justifyContent="space-between" alignItems="center">
-            <Text variant="label" secondary>
-              Private Key
+            <Text fontSize="$1" secondary>
+              Buyer Private Key
             </Text>
             <Button
               variant="text"

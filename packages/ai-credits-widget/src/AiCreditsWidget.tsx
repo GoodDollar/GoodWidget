@@ -257,14 +257,13 @@ function ManagePanel({
         variant="ghost"
         size="sm"
         alignSelf="center"
+        gap="$2"
         onPress={() => {
           void actions.refresh()
         }}
       >
-        <XStack gap="$1" alignItems="center">
-          <Icon name="refresh" size="xs" color="primary" />
-          <ButtonText>Refresh Balance</ButtonText>
-        </XStack>
+        <Icon name="refresh" size="sm" color="primary" />
+        <ButtonText>Refresh Balance</ButtonText>
       </Button>
     </YStack>
   )

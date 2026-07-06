@@ -7,7 +7,6 @@ import {
   Input,
   Spinner,
   Text,
-  TokenAmount,
   XStack,
   YStack,
 } from '@goodwidget/ui'
@@ -30,13 +29,47 @@ interface CreditsManagementCardProps {
 
 function StatCell({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <YStack flex={1} gap="$0.5" minWidth={0}>
-      <Text fontSize="$1" secondary numberOfLines={2}>
+    <YStack
+      flex={1}
+      flexBasis={0}
+      gap="$1"
+      minWidth={0}
+      backgroundColor="$backgroundMuted"
+      borderRadius="$2"
+      padding="$2"
+    >
+      <Text fontSize="$1" secondary numberOfLines={2} minHeight={32}>
         {label}
       </Text>
-      {children}
+      <YStack minHeight={20} justifyContent="center">
+        {children}
+      </YStack>
     </YStack>
   )
+}
+
+function StatValueText({
+  children,
+  color,
+}: {
+  children: React.ReactNode
+  color?: string
+}) {
+  return (
+    <Text fontSize="$2" fontWeight="700" numberOfLines={1} color={color}>
+      {children}
+    </Text>
+  )
+}
+
+function formatCompactG(amount: string): string {
+  const value = Number.parseFloat(amount)
+  if (!Number.isFinite(value)) return '0 G$'
+  const formatted = new Intl.NumberFormat('en-US', {
+    notation: 'compact',
+    maximumFractionDigits: 2,
+  }).format(value)
+  return `${formatted} G$`
 }
 
 export function CreditsManagementCard({ state, actions }: CreditsManagementCardProps) {
@@ -78,41 +111,45 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
         )}
       </YStack>
 
-      <YStack gap="$2">
-        <XStack gap="$2">
+      <YStack gap="$2" width="100%">
+        <XStack gap="$2" width="100%">
           <StatCell label="Payer G$ Balance">
             {gBalance !== null ? (
-              <TokenAmount token="G$" amount={gBalance} size="sm" />
+              <StatValueText>{formatCompactG(gBalance)}</StatValueText>
             ) : (
               <Spinner size="sm" />
             )}
           </StatCell>
           <StatCell label="Total Deposited">
-            <TokenAmount token="G$" amount={totalGdDepositedG ?? '0.00'} size="sm" />
+            <StatValueText>{formatCompactG(totalGdDepositedG ?? '0.00')}</StatValueText>
           </StatCell>
         </XStack>
-        <XStack gap="$2">
+        <XStack gap="$2" width="100%">
           <StatCell label="Monthly Stream">
-            <TokenAmount token="G$" amount={monthlyStreamG ?? '0.00'} size="sm" />
+            <StatValueText>{formatCompactG(monthlyStreamG ?? '0.00')}</StatValueText>
           </StatCell>
           <StatCell label="Est. Monthly Credits">
             {monthlyStreamCredits && Number.parseFloat(monthlyStreamCredits) > 0 ? (
-              <Text fontSize="$2" color="$primary" numberOfLines={1}>
+              <StatValueText color="$primary">
                 ~{Number.parseFloat(monthlyStreamCredits).toFixed(2)}/mo
-              </Text>
+              </StatValueText>
             ) : (
-              <Text fontSize="$2" secondary>
-                —
-              </Text>
+              <StatValueText>—</StatValueText>
             )}
           </StatCell>
         </XStack>
         {withdrawableDisplay && (
-          <XStack justifyContent="space-between" alignItems="center">
+          <XStack
+            justifyContent="space-between"
+            alignItems="center"
+            backgroundColor="$backgroundMuted"
+            borderRadius="$2"
+            padding="$2"
+          >
             <Text fontSize="$1" secondary>
               Withdrawable
             </Text>
-            <Text fontSize="$2">${withdrawableDisplay}</Text>
+            <StatValueText>${withdrawableDisplay}</StatValueText>
           </XStack>
         )}
       </YStack>
@@ -134,6 +171,7 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
             <Button
               variant="outline"
               size="sm"
+              minWidth="$14"
               flexShrink={0}
               disabled={!canClose}
               onPress={() => {
@@ -169,6 +207,7 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
             <Button
               variant="outline"
               size="sm"
+              minWidth="$14"
               flexShrink={0}
               disabled={!canWithdraw}
               onPress={() => {
