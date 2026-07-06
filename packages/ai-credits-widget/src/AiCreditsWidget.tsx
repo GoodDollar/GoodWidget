@@ -25,7 +25,7 @@ import {
   BuyerOperatorCard,
   SetupSnippet,
   UsageLog,
-} from './aiCreditsComponents'
+} from './components'
 import type {
   AiCreditsWidgetProps,
   AiCreditsWidgetEnvironment,
