@@ -19,7 +19,7 @@ const meta: Meta<typeof AiCreditsWidget> = {
   component: AiCreditsWidget,
   tags: ['autodocs', 'qa'],
   parameters: {
-    layout: 'fullscreen',
+    layout: 'padded',
     goodWidgetProvider: {
       disableProvider: true,
       useShell: false,

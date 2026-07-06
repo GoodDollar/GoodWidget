@@ -7,7 +7,7 @@ const meta: Meta<typeof AiCreditsWidget> = {
   component: AiCreditsWidget,
   tags: ['integrator', 'manual', 'showcase'],
   parameters: {
-    layout: 'fullscreen',
+    layout: 'padded',
     goodWidgetProvider: {
       disableProvider: true,
       useShell: false,
