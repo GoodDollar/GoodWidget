@@ -93,7 +93,6 @@ const InputWithLabel = React.forwardRef<unknown, InputProps>(function InputWithL
         ref={ref}
         error={error || !!errorMessage}
         onChange={handleChange}
-        onChangeText={handleChangeText}
         {...props}
       />
       {errorMessage && <InputError>{errorMessage}</InputError>}

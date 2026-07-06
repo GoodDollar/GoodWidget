@@ -160,7 +160,7 @@ function StepperStepRow({
             <XStack alignItems="center" gap="$2" flex={1} flexWrap="wrap">
               <Text
                 color={style.titleColor}
-                fontWeight={style.active ? '700' : step.status === 'completed' ? '600' : '400'}
+                fontWeight={style.active || step.status === 'failed' ? '700' : step.status === 'completed' ? '600' : '400'}
                 fontSize={style.active ? '$4' : undefined}
               >
                 {step.title}

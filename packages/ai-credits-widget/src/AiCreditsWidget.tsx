@@ -349,13 +349,13 @@ function AiCreditsInner({
     try {
       await actions.pay()
       updateToast(toastId, {
-        message: 'Payment submitted! Waiting for credits…',
+        message: 'Credits added successfully!',
         status: 'success',
         duration: 4000,
       })
-    } catch {
+    } catch (err) {
       updateToast(toastId, {
-        message: state.error ?? 'Payment failed',
+        message: err instanceof Error ? err.message : (state.error ?? 'Payment failed'),
         status: 'error',
         duration: 0,
       })

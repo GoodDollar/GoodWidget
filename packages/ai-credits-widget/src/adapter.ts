@@ -531,10 +531,9 @@ export function useAiCreditsAdapter({
 
   const handleGenerateBuyerKey = useCallback(async () => {
     if (!address || !providerRef.current) {
-      setState((prev) => ({
-        ...prev,
-        error: 'Connect your wallet before generating a buyer key',
-      }))
+      setState((prev) =>
+        withDerivedStatus(prev, { error: 'Connect your wallet before generating a buyer key' }, true),
+      )
       return
     }
 
@@ -567,10 +566,11 @@ export function useAiCreditsAdapter({
         })
       })
     } catch (err: unknown) {
-      setState((prev) => ({
-        ...prev,
-        error: err instanceof Error ? err.message : 'Buyer key generation was rejected',
-      }))
+      setState((prev) =>
+        withDerivedStatus(prev, {
+          error: err instanceof Error ? err.message : 'Buyer key generation was rejected',
+        }, true),
+      )
     }
   }, [address])
 
@@ -581,10 +581,9 @@ export function useAiCreditsAdapter({
   const handleSignOperatorConsent = useCallback(async () => {
     const currentState = state
     if (!currentState.address || !currentState.buyerKey || !currentState.buyerKeyPrivate) {
-      setState((prev) => ({
-        ...prev,
-        error: 'Generate a buyer key before signing operator consent',
-      }))
+      setState((prev) =>
+        withDerivedStatus(prev, { error: 'Generate a buyer key before signing operator consent' }, true),
+      )
       return
     }
 
