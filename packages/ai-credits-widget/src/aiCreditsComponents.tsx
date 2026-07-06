@@ -171,6 +171,7 @@ export const AiCreditsHeroCard = createComponent(Card, {
   name: 'AiCreditsHeroCard',
   extends: 'Card',
   gap: '$4',
+  backgroundColor: '$backgroundHover',
 })
 
 /** Panel for buyer key generation and confirmation */
@@ -185,6 +186,7 @@ export const OperatorConsentCard = createComponent(Card, {
   name: 'OperatorConsentCard',
   extends: 'Card',
   gap: '$3',
+  backgroundColor: '$backgroundHover',
 })
 
 /** Amount picker container for deposit and stream inputs */
