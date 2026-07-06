@@ -5,6 +5,7 @@ import {
   Button,
   ButtonText,
   Card,
+  CircularActionButton,
   Text,
   ToastContainer,
   WidgetTabs,
@@ -50,6 +51,26 @@ interface AiCreditsInnerProps {
   adapterFactory?: AiCreditsWidgetAdapterFactory
   onPaySuccess?: (detail: AiCreditsPaySuccessDetail) => void
   onPayError?: (detail: AiCreditsPayErrorDetail) => void
+}
+
+function DisconnectedPanel({
+  onConnect,
+}: {
+  onConnect: () => Promise<void>
+}) {
+  return (
+    <Card>
+      <YStack gap="$5" paddingVertical="$6" alignItems="center">
+        <Text secondary>Connect your wallet to buy AI credits</Text>
+        <CircularActionButton
+          label="Connect Wallet"
+          onPress={() => {
+            void onConnect()
+          }}
+        />
+      </YStack>
+    </Card>
+  )
 }
 
 interface BuyPanelProps {
@@ -419,8 +440,6 @@ function AiCreditsInner({
   const isPending =
     state.status === 'payment_pending' || state.status === 'payment_confirmed'
 
-  const showTabs = Boolean(state.address)
-
   const handleTabChange = useCallback(
     (tabId: string) => {
       actions.setActiveTab(tabId as AiCreditsWidgetTab)
@@ -440,20 +459,10 @@ function AiCreditsInner({
     />
   )
 
-  if (!showTabs) {
+  if (state.status === 'disconnected') {
     return (
       <YStack gap="$4" padding="$4">
-        <AiCreditsFlowStepper state={state} />
-        {state.primaryAction === 'connect' && (
-          <Button
-            fullWidth
-            onPress={() => {
-              void handlePrimaryAction()
-            }}
-          >
-            <ButtonText>{state.primaryLabel}</ButtonText>
-          </Button>
-        )}
+        <DisconnectedPanel onConnect={actions.connect} />
       </YStack>
     )
   }

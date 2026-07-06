@@ -33,7 +33,9 @@ async function gotoStory(page: Page, storyUrl: string): Promise<void> {
 test('AiCreditsWidget disconnected', async ({ page }) => {
   await gotoStory(page, STORY_IDS.disconnected)
   await expect(page.getByTestId('AiCreditsWidget-disconnected')).toBeVisible()
+  await expect(page.getByText('Connect your wallet to buy AI credits')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Connect Wallet' })).toBeVisible()
+  await expect(page.getByText('Purchase Flow')).not.toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-01-disconnected.png',
     fullPage: true,

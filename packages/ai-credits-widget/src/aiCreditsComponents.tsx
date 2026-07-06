@@ -1094,8 +1094,7 @@ export function UsageLog({ entries }: UsageLogProps) {
 // AiCreditsFlowStepper component
 // ---------------------------------------------------------------------------
 
-/** Map of step IDs for the AI credits purchase flow */
-export type AiCreditsFlowStep = 'connect' | 'buyer_key' | 'consent' | 'pay'
+export type AiCreditsFlowStep = 'buyer_key' | 'consent' | 'pay'
 
 interface AiCreditsFlowStepperProps {
   state: AiCreditsWidgetAdapterState
@@ -1108,7 +1107,6 @@ function hasCreditsBalance(balance: string | null | undefined): boolean {
 function mapStatusToActiveStep(
   state: AiCreditsWidgetAdapterState,
 ): AiCreditsFlowStep | null {
-  if (state.status === 'disconnected') return 'connect'
   if (!state.buyerKey || !state.buyerKeyConfirmed) return 'buyer_key'
   if (!state.operatorConsentSigned) return 'consent'
   if (
@@ -1130,18 +1128,12 @@ export function AiCreditsFlowStepper({ state }: AiCreditsFlowStepperProps) {
   function getStepStatus(
     step: AiCreditsFlowStep,
   ): StepperStepItem['status'] {
-    const isConnected = state.address !== null
     const hasBuyerKey = state.buyerKey !== null && state.buyerKeyConfirmed
     const hasConsent = state.operatorConsentSigned
 
     switch (step) {
-      case 'connect':
-        if (isConnected) return 'completed'
-        if (state.status === 'unsupported_chain') return 'failed'
-        return activeStep === 'connect' ? 'active' : 'pending'
       case 'buyer_key':
         if (hasBuyerKey) return 'completed'
-        if (!isConnected) return 'pending'
         return activeStep === 'buyer_key' ? 'active' : 'pending'
       case 'consent':
         if (hasConsent) return 'completed'
@@ -1159,13 +1151,6 @@ export function AiCreditsFlowStepper({ state }: AiCreditsFlowStepperProps) {
   }
 
   const steps: StepperStepItem[] = [
-    {
-      id: 'connect',
-      title: 'Connect Wallet',
-      description:
-        state.status === 'unsupported_chain' ? 'Switch to Celo to continue' : undefined,
-      status: getStepStatus('connect'),
-    },
     {
       id: 'buyer_key',
       title: 'Buyer Key',
