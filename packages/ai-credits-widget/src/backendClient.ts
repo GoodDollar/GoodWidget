@@ -12,7 +12,6 @@ import type {
 import { markMockOperatorConsent, type AiCreditsChainClient } from './chainClient'
 import {
   flowRateWeiToMonthlyG,
-  isGoodIdVerifiedFromProfile,
   usdToCredits,
   weiToG,
 } from './quoteMath'
@@ -166,7 +165,7 @@ export async function enrichAccountView(
   chain: AiCreditsChainClient,
 ): Promise<AccountEnrichment> {
   const { profile } = view
-  const goodIdVerified = isGoodIdVerifiedFromProfile(profile.account, profile.rootAccount)
+  const goodIdVerified = await chain.isGoodIdVerified(profile.account)
   const monthlyStreamG = flowRateWeiToMonthlyG(profile.streamFlowRateWeiPerSecond ?? '0')
   let monthlyStreamCredits: string | null = null
   if (Number.parseFloat(monthlyStreamG) > 0) {
@@ -177,7 +176,11 @@ export async function enrichAccountView(
   return {
     balance: balanceFromProfile(profile),
     goodIdVerified,
-    bonusPercent: goodIdVerified ? 20 : 10,
+    bonusPercent: goodIdVerified
+      ? Number.parseFloat(monthlyStreamG) > 0
+        ? 20
+        : 10
+      : 0,
     buyer,
     totalGdDepositedG: depositedWei > 0n ? weiToG(depositedWei) : '0.00',
     monthlyStreamG,

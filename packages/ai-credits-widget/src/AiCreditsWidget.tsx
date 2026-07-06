@@ -44,8 +44,10 @@ interface AiCreditsInnerProps {
   environment?: AiCreditsWidgetEnvironment
   backendUrl?: string
   baseRpcUrl?: string
+  celoRpcUrl?: string
   fundingVaultAddress?: string
   vaultAddress?: string
+  goodIdAddress?: string
   adapterFactory?: AiCreditsWidgetAdapterFactory
   onPaySuccess?: (detail: AiCreditsPaySuccessDetail) => void
   onPayError?: (detail: AiCreditsPayErrorDetail) => void
@@ -266,8 +268,10 @@ function AiCreditsInner({
   environment,
   backendUrl,
   baseRpcUrl,
+  celoRpcUrl,
   fundingVaultAddress,
   vaultAddress,
+  goodIdAddress,
   adapterFactory,
   onPaySuccess,
   onPayError,
@@ -276,8 +280,10 @@ function AiCreditsInner({
     environment,
     backendUrl,
     baseRpcUrl,
+    celoRpcUrl,
     fundingVaultAddress: fundingVaultAddress as `0x${string}` | undefined,
     vaultAddress: vaultAddress as `0x${string}` | undefined,
+    goodIdAddress: goodIdAddress as `0x${string}` | undefined,
     onPaySuccess,
     onPayError,
   })
@@ -405,8 +411,10 @@ export function AiCreditsWidget({
   environment = 'production',
   backendUrl,
   baseRpcUrl,
+  celoRpcUrl,
   fundingVaultAddress,
   vaultAddress,
+  goodIdAddress,
   themeOverrides,
   config,
   defaultTheme = 'dark',
@@ -425,8 +433,10 @@ export function AiCreditsWidget({
         environment={environment}
         backendUrl={backendUrl}
         baseRpcUrl={baseRpcUrl}
+        celoRpcUrl={celoRpcUrl}
         fundingVaultAddress={fundingVaultAddress}
         vaultAddress={vaultAddress}
+        goodIdAddress={goodIdAddress}
         adapterFactory={adapterFactory}
         onPaySuccess={onPaySuccess}
         onPayError={onPayError}

@@ -334,8 +334,10 @@ export function InjectedWalletStory() {
   const injectedProvider = getInjectedEip1193Provider()
   const backendUrl = import.meta.env.VITE_AI_CREDITS_BACKEND_URL
   const baseRpcUrl = import.meta.env.VITE_AI_CREDITS_BASE_RPC_URL
+  const celoRpcUrl = import.meta.env.VITE_AI_CREDITS_CELO_RPC_URL
   const fundingVaultAddress = import.meta.env.VITE_AI_CREDITS_FUNDING_VAULT_ADDRESS
   const vaultAddress = import.meta.env.VITE_AI_CREDITS_VAULT_ADDRESS
+  const goodIdAddress = import.meta.env.VITE_AI_CREDITS_GOODID_ADDRESS
 
   if (!isInjectedProviderUsable(injectedProvider)) {
     return (
@@ -355,8 +357,10 @@ export function InjectedWalletStory() {
         provider={injectedProvider}
         backendUrl={backendUrl}
         baseRpcUrl={baseRpcUrl}
+        celoRpcUrl={celoRpcUrl}
         fundingVaultAddress={fundingVaultAddress}
         vaultAddress={vaultAddress}
+        goodIdAddress={goodIdAddress}
       />
       {!backendUrl && (
         <YStack marginTop="$3">

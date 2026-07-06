@@ -16,6 +16,18 @@ export const BASE_CHAIN_ID = 8453
 export const DEFAULT_BASE_RPC_URL = 'https://mainnet.base.org'
 export const CELO_GD_ANTSEED_VAULT_ADDRESS =
   '0x4Dd0136b9aabD5823cf0F65d89e8fB882C660885' as const
+export const CELO_GOODID_ADDRESS = '0xC361A6E67822a0EDc17D899227dd9FC50BD62F42' as const
+export const DEFAULT_CELO_RPC_URL = 'https://forno.celo.org'
+
+const CELO_CHAIN: Chain = {
+  id: 42220,
+  name: 'Celo',
+  nativeCurrency: { name: 'Celo', symbol: 'CELO', decimals: 18 },
+  rpcUrls: {
+    default: { http: [DEFAULT_CELO_RPC_URL] },
+    public: { http: [DEFAULT_CELO_RPC_URL] },
+  },
+}
 
 const BASE_CHAIN: Chain = {
   id: BASE_CHAIN_ID,
@@ -41,6 +53,10 @@ const FUNDING_VAULT_ABI = parseAbi([
   'function withdrawablePrincipal(address buyer) view returns (uint256)',
 ])
 
+const GOODID_ABI = parseAbi([
+  'function getWhitelistedRoot(address account) view returns (address)',
+])
+
 function normalizeAddress(address: string): string {
   return address.toLowerCase()
 }
@@ -56,11 +72,13 @@ export type AiCreditsChainClientOptions = {
   fundingVaultAddress?: Address
   celoRpcUrl?: string
   celoVaultAddress?: Address
+  celoGoodIdAddress?: Address
   depositsAddress?: Address
 }
 
 export interface AiCreditsChainClient {
   fetchGdUsdPerToken(): Promise<number>
+  isGoodIdVerified(account: string): Promise<boolean>
   buildQuote(
     depositG: string,
     streamG: string,
@@ -79,27 +97,37 @@ export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
   private readonly celoClient: PublicClient | null
   private readonly fundingVaultAddress?: Address
   private readonly celoVaultAddress?: Address
+  private readonly celoGoodIdAddress?: Address
   private readonly depositsAddress: Address
 
   constructor(options: AiCreditsChainClientOptions = {}) {
     const baseRpcUrl = options.baseRpcUrl ?? DEFAULT_BASE_RPC_URL
+    const celoRpcUrl = options.celoRpcUrl ?? DEFAULT_CELO_RPC_URL
     this.baseClient = createPublicClient({ chain: BASE_CHAIN, transport: http(baseRpcUrl) })
     this.fundingVaultAddress = options.fundingVaultAddress
     this.celoVaultAddress = options.celoVaultAddress
+    this.celoGoodIdAddress = options.celoGoodIdAddress ?? CELO_GOODID_ADDRESS
     this.depositsAddress = options.depositsAddress ?? ANTSEED_DEPOSITS_BASE_ADDRESS
-    this.celoClient = options.celoVaultAddress
-      ? createPublicClient({
-          chain: {
-            id: 42220,
-            name: 'Celo',
-            nativeCurrency: { name: 'Celo', symbol: 'CELO', decimals: 18 },
-            rpcUrls: {
-              default: { http: [options.celoRpcUrl ?? 'https://forno.celo.org'] },
-            },
-          },
-          transport: http(options.celoRpcUrl ?? 'https://forno.celo.org'),
-        })
-      : null
+    this.celoClient =
+      this.celoVaultAddress || this.celoGoodIdAddress
+        ? createPublicClient({ chain: CELO_CHAIN, transport: http(celoRpcUrl) })
+        : null
+  }
+
+  async isGoodIdVerified(account: string): Promise<boolean> {
+    if (!this.celoClient || !this.celoGoodIdAddress) return false
+    try {
+      const root = await this.celoClient.readContract({
+        address: this.celoGoodIdAddress,
+        abi: GOODID_ABI,
+        functionName: 'getWhitelistedRoot',
+        args: [normalizeAddress(account) as Address],
+      })
+      const rootAddress = String(root).toLowerCase()
+      return rootAddress !== '0x0000000000000000000000000000000000000000'
+    } catch {
+      return false
+    }
   }
 
   async fetchGdUsdPerToken(): Promise<number> {
@@ -253,10 +281,18 @@ export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
 export class MockAiCreditsChainClient implements AiCreditsChainClient {
   private operatorAccepted: boolean
   private readonly gdUsdPerToken: number
+  private readonly goodIdVerified: boolean
 
-  constructor(options: { operatorAccepted?: boolean; gdUsdPerToken?: number } = {}) {
+  constructor(
+    options: { operatorAccepted?: boolean; gdUsdPerToken?: number; goodIdVerified?: boolean } = {},
+  ) {
     this.operatorAccepted = options.operatorAccepted ?? false
     this.gdUsdPerToken = options.gdUsdPerToken ?? 0.0015
+    this.goodIdVerified = options.goodIdVerified ?? false
+  }
+
+  async isGoodIdVerified(_account: string): Promise<boolean> {
+    return this.goodIdVerified
   }
 
   async fetchGdUsdPerToken(): Promise<number> {
@@ -325,5 +361,8 @@ export function createChainClient(
   if (!backendUrl) {
     return new MockAiCreditsChainClient()
   }
-  return new ProductionAiCreditsChainClient(options)
+  return new ProductionAiCreditsChainClient({
+    ...options,
+    celoGoodIdAddress: options.celoGoodIdAddress ?? CELO_GOODID_ADDRESS,
+  })
 }

@@ -28,7 +28,7 @@ import {
 } from './backendClient'
 import type { AccountEnrichment, AiCreditsBackendClient } from './backendClient'
 import type { AccountRef, AccountView } from './backendTypes'
-import { createChainClient, CELO_GD_ANTSEED_VAULT_ADDRESS } from './chainClient'
+import { createChainClient, CELO_GD_ANTSEED_VAULT_ADDRESS, CELO_GOODID_ADDRESS } from './chainClient'
 import type { AiCreditsChainClient } from './chainClient'
 import { signOperatorConsentFromTypedData } from './operatorConsent'
 import { executeCeloPayment, G_TOKEN_CELO_ADDRESS } from './celoPayment'
@@ -343,8 +343,10 @@ export interface UseAiCreditsAdapterOptions {
   environment?: AiCreditsWidgetEnvironment
   backendUrl?: string
   baseRpcUrl?: string
+  celoRpcUrl?: string
   fundingVaultAddress?: Address
   vaultAddress?: Address
+  goodIdAddress?: Address
   onPaySuccess?: (detail: AiCreditsPaySuccessDetail) => void
   onPayError?: (detail: AiCreditsPayErrorDetail) => void
 }
@@ -352,8 +354,10 @@ export interface UseAiCreditsAdapterOptions {
 export function useAiCreditsAdapter({
   backendUrl,
   baseRpcUrl,
+  celoRpcUrl,
   fundingVaultAddress,
   vaultAddress,
+  goodIdAddress,
   onPaySuccess,
   onPayError,
 }: UseAiCreditsAdapterOptions): AiCreditsWidgetAdapterResult {
@@ -374,10 +378,12 @@ export function useAiCreditsAdapter({
     () =>
       createChainClient(backendUrl, {
         baseRpcUrl,
+        celoRpcUrl,
         fundingVaultAddress,
         celoVaultAddress: celoVault,
+        celoGoodIdAddress: goodIdAddress ?? CELO_GOODID_ADDRESS,
       }),
-    [backendUrl, baseRpcUrl, fundingVaultAddress, celoVault],
+    [backendUrl, baseRpcUrl, celoRpcUrl, fundingVaultAddress, celoVault, goodIdAddress],
   )
 
   useEffect(() => {

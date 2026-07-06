@@ -38,7 +38,7 @@ export {
 } from './backendClient'
 export type { BuyerOperatorStatus, Eip712SigningPayload } from './operatorConsent'
 export type { AiCreditsChainClient } from './chainClient'
-export { createChainClient, DEFAULT_BASE_RPC_URL } from './chainClient'
+export { createChainClient, DEFAULT_BASE_RPC_URL, CELO_GOODID_ADDRESS, DEFAULT_CELO_RPC_URL } from './chainClient'
 
 export { useAiCreditsAdapter } from './adapter'
 export type { UseAiCreditsAdapterOptions } from './adapter'

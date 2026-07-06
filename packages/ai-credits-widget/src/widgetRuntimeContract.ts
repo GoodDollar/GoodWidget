@@ -129,8 +129,10 @@ export interface AiCreditsWidgetProps {
   environment?: AiCreditsWidgetEnvironment
   backendUrl?: string
   baseRpcUrl?: string
+  celoRpcUrl?: string
   fundingVaultAddress?: Address
   vaultAddress?: Address
+  goodIdAddress?: Address
   themeOverrides?: GoodWidgetThemeOverrides
   config?: GoodWidgetConfig
   defaultTheme?: 'light' | 'dark'

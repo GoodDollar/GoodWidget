@@ -18,7 +18,7 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
 
   <DocsSection
     title="Injected wallet"
-    description="Uses your browser wallet (`window.ethereum`, e.g. Rabby), `VITE_AI_CREDITS_BACKEND_URL`, `VITE_AI_CREDITS_BASE_RPC_URL`, `VITE_AI_CREDITS_FUNDING_VAULT_ADDRESS`, and `VITE_AI_CREDITS_VAULT_ADDRESS` from `examples/storybook/.env.local`."
+    description="Uses your browser wallet (`window.ethereum`, e.g. Rabby), `VITE_AI_CREDITS_BACKEND_URL`, `VITE_AI_CREDITS_BASE_RPC_URL`, `VITE_AI_CREDITS_CELO_RPC_URL` (optional), `VITE_AI_CREDITS_FUNDING_VAULT_ADDRESS`, `VITE_AI_CREDITS_VAULT_ADDRESS`, and optional `VITE_AI_CREDITS_GOODID_ADDRESS` from `examples/storybook/.env.local`. GoodID verification uses on-chain `getWhitelistedRoot` via the Celo RPC (defaults to mainnet GoodID contract)."
   >
     <Canvas of={ShowcaseStories.InjectedWallet} />
   </DocsSection>

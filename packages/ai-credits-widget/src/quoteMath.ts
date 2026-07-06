@@ -135,7 +135,3 @@ export function buildQuoteFromGdAmounts(
     totalCredits: usdToCredits(totalUsd.toString()),
   }
 }
-
-export function isGoodIdVerifiedFromProfile(account: string, rootAccount: string): boolean {
-  return rootAccount.toLowerCase() !== account.toLowerCase()
-}
