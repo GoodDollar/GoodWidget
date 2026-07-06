@@ -18,6 +18,7 @@ const DEFAULT_TAG_NAME = 'ai-credits-widget'
  *   const tag = register('my-ai-credits-widget')
  */
 export function register(tagName: string = DEFAULT_TAG_NAME): string {
+  if (typeof customElements === 'undefined') return tagName
   if (!customElements.get(tagName)) {
     customElements.define(tagName, AiCreditsWidgetElement)
   }
