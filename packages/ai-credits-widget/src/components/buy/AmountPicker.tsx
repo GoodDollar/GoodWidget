@@ -1,8 +1,8 @@
-import { Button, ButtonText, Heading, Input, Separator, Spinner, Text, TokenAmount, XStack, YStack } from '@goodwidget/ui'
+import { Button, ButtonText, Card, Heading, Input, Separator, Spinner, Text, TokenAmount, XStack, YStack } from '@goodwidget/ui'
 import type { AiCreditsQuote } from '../../widgetRuntimeContract'
 import { parseGAmount } from '../../quoteMath'
 import { formatMinGDisplayLocale, getPaymentAmountValidation } from '../../vaultMinimums'
-import { AiCreditsStatusNotice, AmountPickerCard, BonusBadgeFrame } from '../theme/cards'
+import { AiCreditsStatusNotice, BonusBadgeFrame } from '../theme/cards'
 import { HoverTooltip } from '../shared/tooltips'
 
 interface AmountPickerProps {
@@ -69,7 +69,7 @@ export function AmountPicker({
     return parsed < 10 ? parsed.toFixed(1) : parsed.toFixed(2)
   }
 
-  const Shell = embedded ? YStack : AmountPickerCard
+  const Shell = embedded ? YStack : Card
 
   return (
     <Shell gap="$3">

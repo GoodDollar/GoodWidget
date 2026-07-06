@@ -1,5 +1,5 @@
-import { Icon, Spinner, Text, TokenAmount, XStack, YStack } from '@goodwidget/ui'
-import { AiCreditsHeroCard, BonusBadgeFrame } from '../theme/cards'
+import { Card, Icon, Spinner, Text, TokenAmount, XStack, YStack } from '@goodwidget/ui'
+import { BonusBadgeFrame } from '../theme/cards'
 
 interface HeroCardProps {
   gBalance: string | null
@@ -15,7 +15,7 @@ export function AiCreditsHero({ gBalance, isGoodIdVerified, bonusPercent }: Hero
     bonusPercent > 0
 
   return (
-    <AiCreditsHeroCard>
+    <Card gap="$4" backgroundColor="$backgroundHover">
       <XStack justifyContent="space-between" alignItems="flex-start">
         <YStack gap="$1">
           <Text variant="label" secondary>
@@ -40,7 +40,7 @@ export function AiCreditsHero({ gBalance, isGoodIdVerified, bonusPercent }: Hero
           </BonusBadgeFrame>
         )}
       </XStack>
-    </AiCreditsHeroCard>
+    </Card>
   )
 }
 

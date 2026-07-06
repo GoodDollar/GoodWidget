@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
-import { Anchor, Button, ButtonText, Heading, Icon, Text, XStack, YStack, copyTextToClipboard } from '@goodwidget/ui'
-import { SetupSnippetCard } from '../theme/cards'
+import { Anchor, Button, ButtonText, Card, Heading, Icon, Text, XStack, YStack, copyTextToClipboard } from '@goodwidget/ui'
 
 const ANTSEED_API_DOCS_URL = 'https://antseed.com/docs/guides/using-the-api'
 
@@ -30,7 +29,7 @@ export function SetupSnippet({ snippet }: SetupSnippetProps) {
   }
 
   return (
-    <SetupSnippetCard>
+    <Card gap="$3">
       <XStack justifyContent="space-between" alignItems="center">
         <XStack
           flex={1}
@@ -64,7 +63,7 @@ export function SetupSnippet({ snippet }: SetupSnippetProps) {
           </Text>
         </YStack>
       )}
-    </SetupSnippetCard>
+    </Card>
   )
 }
 

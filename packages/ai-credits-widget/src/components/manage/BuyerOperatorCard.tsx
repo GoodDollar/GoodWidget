@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
-import { Button, ButtonText, Heading, Icon, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
+import { Button, ButtonText, Card, Heading, Icon, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
 import type { AiCreditsWidgetAdapterActions, AiCreditsWidgetAdapterState } from '../../widgetRuntimeContract'
-import { BuyerOperatorCardFrame } from '../theme/cards'
 import { AddressView } from '../shared/AddressView'
 import { monospaceSingleLineStyle } from '../shared/styles'
 import { useCopyFeedback } from '../shared/useCopyFeedback'
@@ -22,7 +21,7 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
   const [isSigning, setIsSigning] = useState(false)
 
   return (
-    <BuyerOperatorCardFrame>
+    <Card gap="$3">
       <Heading level={5}>Buyer &amp; Operator</Heading>
 
       {address && <AddressView label="Payer" address={address} />}
@@ -99,7 +98,7 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
           </XStack>
         </YStack>
       )}
-    </BuyerOperatorCardFrame>
+    </Card>
   )
 }
 

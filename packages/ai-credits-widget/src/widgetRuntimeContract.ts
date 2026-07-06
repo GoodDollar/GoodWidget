@@ -139,4 +139,5 @@ export interface AiCreditsWidgetProps {
   onPaySuccess?: (detail: AiCreditsPaySuccessDetail) => void
   onPayError?: (detail: AiCreditsPayErrorDetail) => void
   adapterFactory?: AiCreditsWidgetAdapterFactory
+  testId?: string
 }

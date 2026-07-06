@@ -421,6 +421,7 @@ export function AiCreditsWidget({
   onPaySuccess,
   onPayError,
   adapterFactory,
+  testId,
 }: AiCreditsWidgetProps) {
   return (
     <GoodWidgetProvider
@@ -429,19 +430,21 @@ export function AiCreditsWidget({
       themeOverrides={themeOverrides}
       defaultTheme={defaultTheme}
     >
-      <AiCreditsInner
-        environment={environment}
-        backendUrl={backendUrl}
-        baseRpcUrl={baseRpcUrl}
-        celoRpcUrl={celoRpcUrl}
-        fundingVaultAddress={fundingVaultAddress}
-        vaultAddress={vaultAddress}
-        goodIdAddress={goodIdAddress}
-        adapterFactory={adapterFactory}
-        onPaySuccess={onPaySuccess}
-        onPayError={onPayError}
-      />
-      <ToastContainer />
+      <YStack backgroundColor="$background" data-testid={testId}>
+        <AiCreditsInner
+          environment={environment}
+          backendUrl={backendUrl}
+          baseRpcUrl={baseRpcUrl}
+          celoRpcUrl={celoRpcUrl}
+          fundingVaultAddress={fundingVaultAddress}
+          vaultAddress={vaultAddress}
+          goodIdAddress={goodIdAddress}
+          adapterFactory={adapterFactory}
+          onPaySuccess={onPaySuccess}
+          onPayError={onPayError}
+        />
+        <ToastContainer />
+      </YStack>
     </GoodWidgetProvider>
   )
 }

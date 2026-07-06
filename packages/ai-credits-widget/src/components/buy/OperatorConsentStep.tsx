@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
-import { Button, ButtonText, Heading, Icon, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
-import { OperatorConsentCard } from '../theme/cards'
+import { Button, ButtonText, Card, Heading, Icon, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
 import { truncateAddress } from '../shared/styles'
 
 interface OperatorConsentStepProps {
@@ -21,10 +20,10 @@ export function OperatorConsentStep({
   const [isSigning, setIsSigning] = useState(false)
   const canSign = Boolean(buyerKey && buyerKeyPrivate)
 
-  const Shell = embedded ? YStack : OperatorConsentCard
+  const Shell = embedded ? YStack : Card
 
   return (
-    <Shell gap="$3">
+    <Shell gap="$3" {...(!embedded ? { backgroundColor: '$backgroundHover' } : {})}>
       <Heading level={5}>Authorize AntSeed Operator</Heading>
       <Text fontSize="$2" lineHeight="$3">
         Your buyer key signs an EIP-712 SetOperator message. The backend submits it to

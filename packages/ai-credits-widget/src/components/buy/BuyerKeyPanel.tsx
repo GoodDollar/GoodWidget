@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
-import { Button, ButtonText, Heading, Icon, Text, XStack, YStack } from '@goodwidget/ui'
-import { AiCreditsStatusNotice, BuyerKeyPanelCard } from '../theme/cards'
+import { Button, ButtonText, Card, Heading, Icon, Text, XStack, YStack } from '@goodwidget/ui'
+import { AiCreditsStatusNotice } from '../theme/cards'
 import { monospaceSingleLineStyle } from '../shared/styles'
 import { useCopyFeedback } from '../shared/useCopyFeedback'
 
@@ -35,7 +35,7 @@ export function BuyerKeyPanel({
     }
   }
 
-  const Shell = embedded ? YStack : BuyerKeyPanelCard
+  const Shell = embedded ? YStack : Card
 
   return (
     <Shell gap="$3">

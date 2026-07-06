@@ -1,8 +1,7 @@
 import React, { useState } from 'react'
-import { Button, ButtonText, Heading, Input, Separator, Spinner, Text, TokenAmount, XStack, YStack } from '@goodwidget/ui'
+import { Button, ButtonText, Card, Heading, Input, Separator, Spinner, Text, TokenAmount, XStack, YStack } from '@goodwidget/ui'
 import type { AiCreditsWidgetAdapterActions, AiCreditsWidgetAdapterState } from '../../widgetRuntimeContract'
 import { formatUsdMicro } from '../../quoteMath'
-import { CreditsManagementCardFrame } from '../theme/cards'
 import {
   BUYER_KEY_REQUIRED_CLOSE_TOOLTIP,
   BUYER_KEY_REQUIRED_WITHDRAW_TOOLTIP,
@@ -43,7 +42,7 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
     !isWithdrawing
 
   return (
-    <CreditsManagementCardFrame>
+    <Card gap="$4">
       <Heading level={5}>AI Credits</Heading>
 
       <YStack gap="$2">
@@ -164,7 +163,7 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
           </HoverTooltip>
         </XStack>
       </YStack>
-    </CreditsManagementCardFrame>
+    </Card>
   )
 }
 

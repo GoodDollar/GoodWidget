@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
-import { Heading, Icon, Separator, Text, XStack, YStack } from '@goodwidget/ui'
+import { Card, Heading, Icon, Separator, Text, XStack, YStack } from '@goodwidget/ui'
 import type { AiCreditsUsageEntry } from '../../widgetRuntimeContract'
-import { UsageLogCard } from '../theme/cards'
 
 interface UsageLogProps {
   entries: AiCreditsUsageEntry[]
@@ -21,7 +20,7 @@ export function UsageLog({ entries }: UsageLogProps) {
   const title = isFundingHistory ? 'Credit History' : 'Usage History'
 
   return (
-    <UsageLogCard>
+    <Card gap="$2">
       <XStack
         justifyContent="space-between"
         alignItems="center"
@@ -70,7 +69,7 @@ export function UsageLog({ entries }: UsageLogProps) {
           )}
         </YStack>
       )}
-    </UsageLogCard>
+    </Card>
   )
 }
 
