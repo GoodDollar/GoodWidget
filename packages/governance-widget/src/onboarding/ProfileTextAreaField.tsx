@@ -1,4 +1,4 @@
-import type { ChangeEvent } from 'react'
+import type { ChangeEvent, FocusEvent } from 'react'
 import { TextArea } from 'tamagui'
 import { createComponent, InputError, InputLabel, Text, YStack } from '@goodwidget/ui'
 
@@ -57,7 +57,7 @@ interface ProfileTextAreaFieldProps {
   helperText?: string
   errorMessage?: string
   onChangeText: (nextValue: string) => void
-  onBlur?: () => void
+  onBlur?: (value: string) => void
 }
 
 export function ProfileTextAreaField({
@@ -80,7 +80,9 @@ export function ProfileTextAreaField({
         onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
           onChangeText(event.currentTarget.value)
         }}
-        onBlur={() => onBlur?.()}
+        onBlur={(event: FocusEvent<HTMLTextAreaElement>) => {
+          onBlur?.(event.currentTarget.value)
+        }}
       />
       {errorMessage ? (
         <InputError>{errorMessage}</InputError>

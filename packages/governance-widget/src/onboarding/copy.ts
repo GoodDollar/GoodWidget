@@ -25,7 +25,3 @@ export const HOUSE_COPY: Record<GovernanceHouse, HouseCopy> = {
   },
 }
 
-export function resolveHouseStakeAmount(house: GovernanceHouse, defaultLabel?: string): string {
-  return defaultLabel ?? HOUSE_COPY[house].defaultStakeAmount
-}
-

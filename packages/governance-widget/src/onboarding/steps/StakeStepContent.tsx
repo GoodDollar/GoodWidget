@@ -53,7 +53,7 @@ export function StakeStepContent({ stakeAmountLabel, transactionSteps }: StakeSt
 
           <Text tone="secondary">{stakeSummary.description}</Text>
 
-          <Stepper steps={transactionSteps} palette="primary" maxHeight={320} />
+          <Stepper steps={transactionSteps} maxHeight={320} />
         </YStack>
       </Card>
     </YStack>

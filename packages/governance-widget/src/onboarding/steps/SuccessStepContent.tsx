@@ -53,6 +53,7 @@ function SuccessStepInner({
         return (
           <Button
             key={action.id}
+            variant={action.variant}
             fullWidth
             theme={isPrimary ? 'OnboardingSuccessCardPrimary' : 'OnboardingSuccessCardSecondary'}
             disabled={action.disabled}

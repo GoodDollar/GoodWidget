@@ -78,9 +78,8 @@ export function GovernanceOnboardingFlow({
 
   // Validate a single field when the user leaves it (blur) so they see
   // inline feedback before hitting the submit button.
-  const handleFieldBlur = (fieldKey: GovernanceProfileFieldKey) => {
-    const currentDraft = (data as GovernanceWizardData).profileDraft ?? {}
-    const error = validateField(fieldKey, currentDraft[fieldKey])
+  const handleFieldBlur = (fieldKey: GovernanceProfileFieldKey, fieldValue: string) => {
+    const error = validateField(fieldKey, fieldValue)
     setFieldErrors((prev) => {
       if (!error) {
         const next = { ...prev }

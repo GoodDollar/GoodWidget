@@ -10,7 +10,6 @@ const ROW_GAP_PX = 8
 
 export type StepperStepStatus = 'pending' | 'active' | 'completed' | 'failed' | 'attention'
 
-export type StepperPalette = 'primary' | 'purple'
 
 export interface StepperStepItem {
   id: string
@@ -24,13 +23,7 @@ export interface StepperProps {
   activeStepId?: string | null
   header?: ReactNode
   maxHeight?: number
-  /**
-   * Visual palette for the stepper. `primary` matches the rest of the design
-   * system (cyan accent). `purple` switches the active/completed fills and
-   * the connector track to the lavender tones used by the governance stake
-   * progress screen.
-   */
-  palette?: StepperPalette
+
 }
 
 interface PaletteTokens {
@@ -61,23 +54,7 @@ const PRIMARY_PALETTE: PaletteTokens = {
   failedText: '$error',
 }
 
-const PURPLE_PALETTE: PaletteTokens = {
-  activeFill: '$primary',
-  activeText: '$primaryDark',
-  activeRingFill: '$primaryMuted',
-  activeRingText: '$primaryDark',
-  completedFill: '$primary',
-  completedText: '$primaryDark',
-  pendingTrack: '$borderColorHover',
-  pendingBorder: '$borderColor',
-  pendingText: '$placeholderColor',
-  failedFill: '$error',
-  failedText: '$error',
-}
 
-function resolvePalette(palette: StepperPalette | undefined): PaletteTokens {
-  return palette === 'purple' ? PURPLE_PALETTE : PRIMARY_PALETTE
-}
 
 function connectorColor(status: StepperStepStatus, palette: PaletteTokens): string {
   if (status === 'completed') {
@@ -344,10 +321,9 @@ function resolveActiveStepId(steps: StepperStepItem[], activeStepId?: string | n
   return prioritizedStep?.id ?? null
 }
 
-export function Stepper({ steps, activeStepId, header, maxHeight = 360, palette = 'primary' }: StepperProps) {
+export function Stepper({ steps, activeStepId, header, maxHeight = 360 }: StepperProps) {
   const stepRefs = useRef(new Map<string, HTMLElement>())
   const resolvedActiveStepId = resolveActiveStepId(steps, activeStepId)
-  const resolvedPalette = resolvePalette(palette)
 
   useEffect(() => {
     ensureScrollbarHidden()
@@ -381,7 +357,7 @@ export function Stepper({ steps, activeStepId, header, maxHeight = 360, palette 
               step={step}
               isFirst={index === 0}
               isLast={index === steps.length - 1}
-              connectorAboveColor={index === 0 ? undefined : connectorColor(steps[index - 1].status, resolvedPalette)}
+              connectorAboveColor={index === 0 ? undefined : connectorColor(steps[index - 1].status, PRIMARY_PALETTE)}
               stepRef={(node) => {
                 if (node) {
                   stepRefs.current.set(step.id, node)
@@ -390,7 +366,7 @@ export function Stepper({ steps, activeStepId, header, maxHeight = 360, palette 
 
                 stepRefs.current.delete(step.id)
               }}
-              palette={resolvedPalette}
+              palette={PRIMARY_PALETTE}
             />
           ))}
         </YStack>
