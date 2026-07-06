@@ -4,9 +4,7 @@ import type { AiCreditsWidgetAdapterState } from '../../widgetRuntimeContract'
 import type { AiCreditsFlowStep } from './types'
 import { mapStatusToActiveStep } from './purchaseFlowUtils'
 
-function hasCreditsBalance(balance: string | null | undefined): boolean {
-  return balance !== null && balance !== undefined && Number.parseFloat(balance) > 0
-}
+const STEP_ORDER: AiCreditsFlowStep[] = ['buyer_key', 'consent', 'pay']
 
 interface AiCreditsFlowStepperProps {
   state: AiCreditsWidgetAdapterState
@@ -19,29 +17,19 @@ interface AiCreditsFlowStepperProps {
 export function AiCreditsFlowStepper({ state, onStepPress }: AiCreditsFlowStepperProps) {
   const activeStep = mapStatusToActiveStep(state)
 
-  function getStepStatus(
-    step: AiCreditsFlowStep,
-  ): StepperStepItem['status'] {
-    const hasBuyerKey = state.buyerKey !== null && state.buyerKeyConfirmed
-    const hasConsent = state.operatorConsentSigned
+  function getStepStatus(step: AiCreditsFlowStep): StepperStepItem['status'] {
+    const stepIndex = STEP_ORDER.indexOf(step)
+    if (!activeStep) return 'pending'
 
-    switch (step) {
-      case 'buyer_key':
-        if (hasBuyerKey) return 'completed'
-        return activeStep === 'buyer_key' ? 'active' : 'pending'
-      case 'consent':
-        if (hasConsent) return 'completed'
-        if (!hasBuyerKey) return 'pending'
-        return activeStep === 'consent' ? 'active' : 'pending'
-      case 'pay':
-        if (hasCreditsBalance(state.aiCreditsBalance) || state.status === 'payment_confirmed')
-          return 'completed'
-        if (state.status === 'payment_failed') return 'failed'
-        if (!hasConsent) return 'pending'
-        return activeStep === 'pay' ? 'active' : 'pending'
-      default:
-        return 'pending'
-    }
+    const activeIndex = STEP_ORDER.indexOf(activeStep)
+    if (activeIndex < 0) return 'pending'
+
+    if (stepIndex > activeIndex) return 'pending'
+    if (stepIndex < activeIndex) return 'completed'
+
+    if (step === 'pay' && state.status === 'payment_failed') return 'failed'
+    if (step === 'pay' && state.status === 'payment_confirmed') return 'completed'
+    return 'active'
   }
 
   const steps: StepperStepItem[] = [
@@ -72,11 +60,17 @@ export function AiCreditsFlowStepper({ state, onStepPress }: AiCreditsFlowSteppe
     },
   ]
 
+  function handleStepPress(stepId: string) {
+    const step = steps.find((item) => item.id === stepId)
+    if (!step || step.status === 'completed' || step.status === 'pending') return
+    onStepPress?.(stepId)
+  }
+
   return (
     <Stepper
       steps={steps}
       activeStepId={activeStep}
-      onStepPress={onStepPress}
+      onStepPress={onStepPress ? handleStepPress : undefined}
       header={
         <Heading level={5} secondary>
           Purchase Flow

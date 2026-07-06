@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { Button, ButtonText, Drawer, YStack } from '@goodwidget/ui'
+import { Button, ButtonText, Drawer, ScrollArea, YStack } from '@goodwidget/ui'
 import type { AiCreditsWidgetAdapterActions, AiCreditsWidgetAdapterState } from '../../widgetRuntimeContract'
 import { AmountPicker } from '../buy/AmountPicker'
 import { BuyerKeyPanel } from '../buy/BuyerKeyPanel'
@@ -38,10 +38,14 @@ export function AiCreditsPurchaseFlow({
     setDrawerOpen(true)
   }, [activeStep])
 
-  const openDrawer = useCallback((step: AiCreditsFlowStep) => {
-    setDrawerStep(step)
-    setDrawerOpen(true)
-  }, [])
+  const openDrawer = useCallback(
+    (step: AiCreditsFlowStep) => {
+      if (step !== activeStep && !(step === 'pay' && state.status === 'payment_failed')) return
+      setDrawerStep(step)
+      setDrawerOpen(true)
+    },
+    [activeStep, state.status],
+  )
 
   const handleStepPress = useCallback(
     (stepId: string) => {
@@ -120,11 +124,13 @@ export function AiCreditsPurchaseFlow({
         onClose={() => {
           setDrawerOpen(false)
         }}
-        height={drawerStep === 'pay' ? 'full' : 'half'}
+        height="full"
       >
-        <YStack gap="$3" paddingBottom="$2">
-          {renderDrawerContent(drawerStep)}
-        </YStack>
+        <ScrollArea width="100%">
+          <YStack gap="$3" paddingBottom="$4" width="100%">
+            {renderDrawerContent(drawerStep)}
+          </YStack>
+        </ScrollArea>
       </Drawer>
     </>
   )
