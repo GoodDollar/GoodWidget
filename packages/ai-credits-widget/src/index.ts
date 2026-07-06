@@ -3,6 +3,7 @@ export type { AiCreditsIntegration } from './integration'
 
 export type {
   AiCreditsWidgetStatus,
+  AiCreditsWidgetTab,
   AiCreditsWidgetPrimaryAction,
   AiCreditsWidgetAdapterState,
   AiCreditsWidgetAdapterActions,

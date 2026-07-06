@@ -46,6 +46,7 @@ function createMockState(
     error: null,
     primaryAction: 'generate_key',
     primaryLabel: 'Set Up Buyer Key',
+    activeTab: 'buy',
   }
   return { ...base, ...overrides }
 }
@@ -69,6 +70,7 @@ function createAdapterFactory(
       pay: async () => {},
       refresh: async () => {},
       startPurchase: () => {},
+      setActiveTab: () => {},
       closeChannel: async () => {},
       withdrawCredits: async () => {},
       retry: async () => {},
@@ -241,6 +243,7 @@ export function CreditsManagementStory() {
         ],
         primaryAction: 'refresh',
         primaryLabel: 'Refresh',
+        activeTab: 'manage',
       })}
     />
   )

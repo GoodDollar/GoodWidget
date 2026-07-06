@@ -41,6 +41,7 @@ import type {
   AiCreditsWidgetEnvironment,
   AiCreditsWidgetPrimaryAction,
   AiCreditsWidgetStatus,
+  AiCreditsWidgetTab,
   AiCreditsPaySuccessDetail,
   AiCreditsPayErrorDetail,
   AiCreditsQuote,
@@ -96,6 +97,30 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   error: null,
   primaryAction: 'connect',
   primaryLabel: 'Connect Wallet',
+  activeTab: 'buy',
+}
+
+function isInBuyFlowStatus(status: AiCreditsWidgetStatus): boolean {
+  return (
+    status === 'purchase_setup' ||
+    status === 'quote_ready' ||
+    status === 'payment_pending' ||
+    status === 'payment_confirmed' ||
+    status === 'payment_failed'
+  )
+}
+
+function resolveActiveTab(
+  prev: AiCreditsWidgetAdapterState,
+  overrides: Partial<AiCreditsWidgetAdapterState>,
+  status: AiCreditsWidgetStatus,
+): AiCreditsWidgetTab {
+  if (overrides.activeTab !== undefined) return overrides.activeTab
+  if (status === 'credits_management') {
+    if (isInBuyFlowStatus(prev.status) && prev.activeTab === 'buy') return 'buy'
+    return 'manage'
+  }
+  return prev.activeTab ?? 'buy'
 }
 
 function hasCredits(balance: string | null): boolean {
@@ -240,6 +265,7 @@ function withDerivedStatus(
   return {
     ...merged,
     status,
+    activeTab: resolveActiveTab(prev, overrides, status),
     primaryAction,
     primaryLabel: derivePrimaryLabel(primaryAction),
   }
@@ -256,6 +282,7 @@ function mergeStatePreservingManagement(
     ...prev,
     ...overrides,
     status: 'credits_management',
+    activeTab: overrides.activeTab ?? prev.activeTab ?? 'manage',
     primaryAction: 'refresh',
     primaryLabel: 'Refresh',
   }
@@ -762,6 +789,7 @@ export function useAiCreditsAdapter({
           setupSnippet,
           error: null,
           status: 'credits_management',
+          activeTab: 'manage',
           primaryAction: 'refresh',
           primaryLabel: 'Refresh',
         }),
@@ -935,15 +963,30 @@ export function useAiCreditsAdapter({
 
   const handleRetry = useCallback(async () => {
     setState((prev) =>
-      withDerivedStatus(prev, { status: 'purchase_setup', error: null }, true),
+      withDerivedStatus(prev, { activeTab: 'buy', status: 'purchase_setup', error: null }, true),
     )
   }, [])
 
-  const handleStartPurchase = useCallback(() => {
-    setState((prev) =>
-      withDerivedStatus(prev, { status: 'purchase_setup', error: null }, true),
-    )
+  const handleSetActiveTab = useCallback((tab: AiCreditsWidgetTab) => {
+    if (tab === 'buy') {
+      setState((prev) =>
+        withDerivedStatus(prev, { activeTab: 'buy', status: 'purchase_setup', error: null }, true),
+      )
+      return
+    }
+    setState((prev) => ({
+      ...prev,
+      activeTab: 'manage',
+      status: 'credits_management',
+      primaryAction: 'refresh',
+      primaryLabel: 'Refresh',
+      error: null,
+    }))
   }, [])
+
+  const handleStartPurchase = useCallback(() => {
+    handleSetActiveTab('buy')
+  }, [handleSetActiveTab])
 
   const actions: AiCreditsWidgetAdapterActions = useMemo(
     () => ({
@@ -959,6 +1002,7 @@ export function useAiCreditsAdapter({
       pay: handlePay,
       refresh: handleRefresh,
       startPurchase: handleStartPurchase,
+      setActiveTab: handleSetActiveTab,
       closeChannel: handleCloseChannel,
       withdrawCredits: handleWithdrawCredits,
       retry: handleRetry,
@@ -976,6 +1020,7 @@ export function useAiCreditsAdapter({
       handlePay,
       handleRefresh,
       handleStartPurchase,
+      handleSetActiveTab,
       handleCloseChannel,
       handleWithdrawCredits,
       handleRetry,

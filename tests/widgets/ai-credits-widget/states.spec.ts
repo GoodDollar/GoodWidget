@@ -91,8 +91,9 @@ test('AiCreditsWidget payment_confirmed', async ({ page }) => {
 test('AiCreditsWidget credits_management', async ({ page }) => {
   await gotoStory(page, STORY_IDS.creditsManagement)
   await expect(page.getByTestId('AiCreditsWidget-credits-management')).toBeVisible()
+  await expect(page.getByText('Buy Credits')).toBeVisible()
+  await expect(page.getByText('Manage')).toBeVisible()
   await expect(page.getByText('110.00')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Add Credits / Update Stream' })).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-07-credits-management.png',
     fullPage: true,

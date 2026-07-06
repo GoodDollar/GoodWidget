@@ -7,6 +7,7 @@ import {
   Card,
   Text,
   ToastContainer,
+  WidgetTabs,
   XStack,
   YStack,
   Spinner,
@@ -32,12 +33,13 @@ import type {
   AiCreditsPaySuccessDetail,
   AiCreditsPayErrorDetail,
   AiCreditsWidgetAdapterFactory,
+  AiCreditsWidgetAdapterActions,
+  AiCreditsWidgetAdapterState,
+  AiCreditsWidgetTab,
 } from './widgetRuntimeContract'
 import { getPaymentAmountValidation, getPayDisabledMessage } from './vaultMinimums'
 
-// ---------------------------------------------------------------------------
-// Inner component — renders inside GoodWidgetProvider
-// ---------------------------------------------------------------------------
+const CELO_CHAIN_ID = 42220
 
 interface AiCreditsInnerProps {
   environment?: AiCreditsWidgetEnvironment
@@ -48,6 +50,255 @@ interface AiCreditsInnerProps {
   adapterFactory?: AiCreditsWidgetAdapterFactory
   onPaySuccess?: (detail: AiCreditsPaySuccessDetail) => void
   onPayError?: (detail: AiCreditsPayErrorDetail) => void
+}
+
+interface BuyPanelProps {
+  state: AiCreditsWidgetAdapterState
+  actions: AiCreditsWidgetAdapterActions
+  canPay: boolean
+  payDisabledMessage: string | null
+  isPending: boolean
+  onPay: () => Promise<void>
+  onPrimaryAction: () => Promise<void>
+}
+
+function BuyCreditsPanel({
+  state,
+  actions,
+  canPay,
+  payDisabledMessage,
+  isPending,
+  onPay,
+  onPrimaryAction,
+}: BuyPanelProps) {
+  if (state.status === 'unsupported_chain') {
+    return (
+      <AiCreditsStatusNotice>
+        <XStack gap="$2" alignItems="center">
+          <Text color="$warning" fontWeight="700">
+            Wrong Network
+          </Text>
+        </XStack>
+        <Text secondary>Please switch to the Celo network to continue.</Text>
+        <Button
+          onPress={() => {
+            void actions.switchChain()
+          }}
+        >
+          <ButtonText>Switch to Celo</ButtonText>
+        </Button>
+      </AiCreditsStatusNotice>
+    )
+  }
+
+  if (state.status === 'payment_failed') {
+    return (
+      <YStack gap="$4">
+        <AiCreditsStatusNotice>
+          <Text color="$error" fontWeight="700">
+            Payment Failed
+          </Text>
+          {state.error && <Text secondary>{state.error}</Text>}
+          <Button
+            onPress={() => {
+              void actions.retry()
+            }}
+          >
+            <ButtonText>Try Again</ButtonText>
+          </Button>
+        </AiCreditsStatusNotice>
+        <AiCreditsFlowStepper state={state} />
+      </YStack>
+    )
+  }
+
+  if (state.status === 'backend_unavailable') {
+    return (
+      <AiCreditsStatusNotice>
+        <Text color="$warning" fontWeight="700">
+          Service Unavailable
+        </Text>
+        <Text secondary>
+          The AI credits service is temporarily unavailable. Your wallet has not been charged.
+        </Text>
+        <Button
+          onPress={() => {
+            void actions.retry()
+          }}
+        >
+          <ButtonText>Retry</ButtonText>
+        </Button>
+      </AiCreditsStatusNotice>
+    )
+  }
+
+  if (state.status === 'insufficient_g_balance') {
+    return (
+      <YStack gap="$4">
+        <AiCreditsHero
+          gBalance={state.gBalance}
+          isGoodIdVerified={state.isGoodIdVerified}
+          bonusPercent={state.bonusPercent}
+        />
+        <AiCreditsStatusNotice>
+          <Text color="$warning" fontWeight="700">
+            Insufficient G$ Balance
+          </Text>
+          <Text secondary>
+            You need at least 1 G$ to purchase AI credits. Top up your wallet and try again.
+          </Text>
+        </AiCreditsStatusNotice>
+      </YStack>
+    )
+  }
+
+  if (state.status === 'payment_pending' || state.status === 'payment_confirmed') {
+    const message =
+      state.status === 'payment_pending'
+        ? 'Transaction submitted — waiting for confirmation…'
+        : 'Payment confirmed — settling credits on Base…'
+
+    return (
+      <YStack gap="$4">
+        <Card>
+          <YStack gap="$4" alignItems="center" padding="$4">
+            <Spinner size="lg" />
+            <Text center secondary>
+              {message}
+            </Text>
+          </YStack>
+        </Card>
+        <AiCreditsFlowStepper state={state} />
+      </YStack>
+    )
+  }
+
+  return (
+    <YStack gap="$4">
+      {state.address && (
+        <AiCreditsHero
+          gBalance={state.gBalance}
+          isGoodIdVerified={state.isGoodIdVerified}
+          bonusPercent={state.bonusPercent}
+        />
+      )}
+
+      {state.gBalance !== null && Number.parseFloat(state.gBalance) <= 0 && (
+        <AiCreditsStatusNotice>
+          <Text secondary>You need G$ before you can buy AI credits.</Text>
+        </AiCreditsStatusNotice>
+      )}
+
+      <AiCreditsFlowStepper state={state} />
+
+      {state.address && !state.buyerKey && !state.operatorConsentSigned && (
+        <BuyerKeyPanel
+          buyerKey={null}
+          buyerKeyPrivate={null}
+          buyerKeyConfirmed={false}
+          onGenerate={actions.generateBuyerKey}
+          onConfirm={actions.confirmBuyerKey}
+        />
+      )}
+
+      {state.buyerKey && !state.buyerKeyConfirmed && !state.operatorConsentSigned && (
+        <BuyerKeyPanel
+          buyerKey={state.buyerKey}
+          buyerKeyPrivate={state.buyerKeyPrivate ?? null}
+          buyerKeyConfirmed={state.buyerKeyConfirmed}
+          onGenerate={actions.generateBuyerKey}
+          onConfirm={actions.confirmBuyerKey}
+        />
+      )}
+
+      {state.buyerKey && state.buyerKeyConfirmed && !state.operatorConsentSigned && (
+        <OperatorConsentStep
+          buyerKey={state.buyerKey}
+          buyerKeyPrivate={state.buyerKeyPrivate ?? null}
+          operatorConsentSigned={state.operatorConsentSigned}
+          onSign={actions.signOperatorConsent}
+        />
+      )}
+
+      {state.operatorConsentSigned && (
+        <AmountPicker
+          depositAmount={state.depositAmount}
+          streamAmount={state.streamAmount}
+          gBalance={state.gBalance}
+          minDepositG={state.minDepositG}
+          minStreamG={state.minStreamG}
+          quote={state.quote}
+          canPay={canPay}
+          payDisabledMessage={payDisabledMessage}
+          isPayPending={isPending}
+          onDepositChange={actions.setDepositAmount}
+          onStreamChange={actions.setStreamAmount}
+          onPay={() => {
+            void onPay()
+          }}
+        />
+      )}
+
+      {!state.operatorConsentSigned &&
+        state.primaryAction !== 'none' &&
+        state.primaryAction !== 'generate_key' &&
+        state.primaryAction !== 'sign_consent' && (
+          <Button
+            fullWidth
+            disabled={isPending}
+            onPress={() => {
+              void onPrimaryAction()
+            }}
+          >
+            {isPending ? (
+              <XStack gap="$2" alignItems="center">
+                <ButtonText>{state.primaryLabel}</ButtonText>
+                <Spinner size="sm" />
+              </XStack>
+            ) : (
+              <ButtonText>{state.primaryLabel}</ButtonText>
+            )}
+          </Button>
+        )}
+    </YStack>
+  )
+}
+
+function ManagePanel({
+  state,
+  actions,
+}: {
+  state: AiCreditsWidgetAdapterState
+  actions: AiCreditsWidgetAdapterActions
+}) {
+  return (
+    <YStack gap="$4">
+      {state.error && (
+        <AiCreditsStatusNotice>
+          <Text color="$error" fontSize="$2">
+            {state.error}
+          </Text>
+        </AiCreditsStatusNotice>
+      )}
+
+      <CreditsManagementCard state={state} actions={actions} />
+
+      <BuyerOperatorCard state={state} actions={actions} />
+
+      {state.setupSnippet && <SetupSnippet snippet={state.setupSnippet} />}
+
+      <UsageLog entries={state.usageLog} />
+
+      <Button
+        variant="ghost"
+        onPress={() => {
+          void actions.refresh()
+        }}
+      >
+        <ButtonText>Refresh Balance</ButtonText>
+      </Button>
+    </YStack>
+  )
 }
 
 function AiCreditsInner({
@@ -168,278 +419,65 @@ function AiCreditsInner({
   const isPending =
     state.status === 'payment_pending' || state.status === 'payment_confirmed'
 
-  // ---------------------------------------------------------------------------
-  // Render: credits management dashboard
-  // ---------------------------------------------------------------------------
+  const showTabs = Boolean(state.address)
 
-  const isPostPurchase = state.status === 'credits_management'
+  const handleTabChange = useCallback(
+    (tabId: string) => {
+      actions.setActiveTab(tabId as AiCreditsWidgetTab)
+    },
+    [actions],
+  )
 
-  if (isPostPurchase) {
+  const buyPanel = (
+    <BuyCreditsPanel
+      state={state}
+      actions={actions}
+      canPay={canPay}
+      payDisabledMessage={payDisabledMessage}
+      isPending={isPending}
+      onPay={handlePay}
+      onPrimaryAction={handlePrimaryAction}
+    />
+  )
+
+  if (!showTabs) {
     return (
       <YStack gap="$4" padding="$4">
-        {state.error && (
-          <AiCreditsStatusNotice>
-            <Text color="$error" fontSize="$2">
-              {state.error}
-            </Text>
-          </AiCreditsStatusNotice>
+        <AiCreditsFlowStepper state={state} />
+        {state.primaryAction === 'connect' && (
+          <Button
+            fullWidth
+            onPress={() => {
+              void handlePrimaryAction()
+            }}
+          >
+            <ButtonText>{state.primaryLabel}</ButtonText>
+          </Button>
         )}
-
-        <CreditsManagementCard state={state} actions={actions} />
-
-        <BuyerOperatorCard state={state} actions={actions} />
-
-        {state.setupSnippet && <SetupSnippet snippet={state.setupSnippet} />}
-
-        <UsageLog entries={state.usageLog} />
-
-        <Button
-          variant="ghost"
-          onPress={() => {
-            void actions.refresh()
-          }}
-        >
-          <ButtonText>Refresh Balance</ButtonText>
-        </Button>
       </YStack>
     )
   }
-
-  // ---------------------------------------------------------------------------
-  // Render: unsupported chain
-  // ---------------------------------------------------------------------------
-
-  if (state.status === 'unsupported_chain') {
-    return (
-      <YStack gap="$4" padding="$4">
-        <AiCreditsStatusNotice>
-          <XStack gap="$2" alignItems="center">
-            <Text color="$warning" fontWeight="700">
-              Wrong Network
-            </Text>
-          </XStack>
-          <Text secondary>Please switch to the Celo network to continue.</Text>
-          <Button
-            onPress={() => {
-              void actions.switchChain()
-            }}
-          >
-            <ButtonText>Switch to Celo</ButtonText>
-          </Button>
-        </AiCreditsStatusNotice>
-      </YStack>
-    )
-  }
-
-  // ---------------------------------------------------------------------------
-  // Render: error states
-  // ---------------------------------------------------------------------------
-
-  if (state.status === 'payment_failed') {
-    return (
-      <YStack gap="$4" padding="$4">
-        <AiCreditsStatusNotice>
-          <Text color="$error" fontWeight="700">
-            Payment Failed
-          </Text>
-          {state.error && <Text secondary>{state.error}</Text>}
-          <Button
-            onPress={() => {
-              void actions.retry()
-            }}
-          >
-            <ButtonText>Try Again</ButtonText>
-          </Button>
-        </AiCreditsStatusNotice>
-        <AiCreditsFlowStepper state={state} />
-      </YStack>
-    )
-  }
-
-  if (state.status === 'backend_unavailable') {
-    return (
-      <YStack gap="$4" padding="$4">
-        <AiCreditsStatusNotice>
-          <Text color="$warning" fontWeight="700">
-            Service Unavailable
-          </Text>
-          <Text secondary>
-            The AI credits service is temporarily unavailable. Your wallet has not been charged.
-          </Text>
-          <Button
-            onPress={() => {
-              void actions.retry()
-            }}
-          >
-            <ButtonText>Retry</ButtonText>
-          </Button>
-        </AiCreditsStatusNotice>
-      </YStack>
-    )
-  }
-
-  if (state.status === 'insufficient_g_balance') {
-    return (
-      <YStack gap="$4" padding="$4">
-        <AiCreditsHero
-          gBalance={state.gBalance}
-          isGoodIdVerified={state.isGoodIdVerified}
-          bonusPercent={state.bonusPercent}
-        />
-        <AiCreditsStatusNotice>
-          <Text color="$warning" fontWeight="700">
-            Insufficient G$ Balance
-          </Text>
-          <Text secondary>
-            You need at least 1 G$ to purchase AI credits. Top up your wallet and try again.
-          </Text>
-        </AiCreditsStatusNotice>
-      </YStack>
-    )
-  }
-
-  // ---------------------------------------------------------------------------
-  // Render: pending payment states
-  // ---------------------------------------------------------------------------
-
-  if (state.status === 'payment_pending' || state.status === 'payment_confirmed') {
-    const message =
-      state.status === 'payment_pending'
-        ? 'Transaction submitted — waiting for confirmation…'
-        : 'Payment confirmed — settling credits on Base…'
-
-    return (
-      <YStack gap="$4" padding="$4">
-        <Card>
-          <YStack gap="$4" alignItems="center" padding="$4">
-            <Spinner size="lg" />
-            <Text center secondary>
-              {message}
-            </Text>
-          </YStack>
-        </Card>
-        <AiCreditsFlowStepper state={state} />
-      </YStack>
-    )
-  }
-
-  // ---------------------------------------------------------------------------
-  // Render: main purchase flow (purchase_setup → quote_ready)
-  // ---------------------------------------------------------------------------
 
   return (
     <YStack gap="$4" padding="$4">
-      {state.address && (
-        <AiCreditsHero
-          gBalance={state.gBalance}
-          isGoodIdVerified={state.isGoodIdVerified}
-          bonusPercent={state.bonusPercent}
-        />
-      )}
-
-      {state.gBalance !== null && Number.parseFloat(state.gBalance) <= 0 && (
-        <AiCreditsStatusNotice>
-          <Text secondary>You need G$ before you can buy AI credits.</Text>
-        </AiCreditsStatusNotice>
-      )}
-
-      <AiCreditsFlowStepper state={state} />
-
-      {/* Step panels — shown progressively */}
-      {state.address && !state.buyerKey && !state.operatorConsentSigned && (
-        <BuyerKeyPanel
-          buyerKey={null}
-          buyerKeyPrivate={null}
-          buyerKeyConfirmed={false}
-          onGenerate={actions.generateBuyerKey}
-          onConfirm={actions.confirmBuyerKey}
-        />
-      )}
-
-      {state.buyerKey && !state.buyerKeyConfirmed && !state.operatorConsentSigned && (
-        <BuyerKeyPanel
-          buyerKey={state.buyerKey}
-          buyerKeyPrivate={state.buyerKeyPrivate ?? null}
-          buyerKeyConfirmed={state.buyerKeyConfirmed}
-          onGenerate={actions.generateBuyerKey}
-          onConfirm={actions.confirmBuyerKey}
-        />
-      )}
-
-      {state.buyerKey && state.buyerKeyConfirmed && !state.operatorConsentSigned && (
-        <OperatorConsentStep
-          buyerKey={state.buyerKey}
-          buyerKeyPrivate={state.buyerKeyPrivate ?? null}
-          operatorConsentSigned={state.operatorConsentSigned}
-          onSign={actions.signOperatorConsent}
-        />
-      )}
-
-      {state.operatorConsentSigned && (
-        <AmountPicker
-          depositAmount={state.depositAmount}
-          streamAmount={state.streamAmount}
-          gBalance={state.gBalance}
-          minDepositG={state.minDepositG}
-          minStreamG={state.minStreamG}
-          quote={state.quote}
-          canPay={canPay}
-          payDisabledMessage={payDisabledMessage}
-          isPayPending={isPending}
-          onDepositChange={actions.setDepositAmount}
-          onStreamChange={actions.setStreamAmount}
-          onPay={() => {
-            void handlePay()
-          }}
-        />
-      )}
-
-      {!state.operatorConsentSigned &&
-        state.primaryAction !== 'none' &&
-        state.primaryAction !== 'generate_key' &&
-        state.primaryAction !== 'sign_consent' && (
-        <Button
-          fullWidth
-          disabled={isPending}
-          onPress={() => {
-            void handlePrimaryAction()
-          }}
-        >
-          {isPending ? (
-            <XStack gap="$2" alignItems="center">
-              <ButtonText>{state.primaryLabel}</ButtonText>
-              <Spinner size="sm" />
-            </XStack>
-          ) : (
-            <ButtonText>{state.primaryLabel}</ButtonText>
-          )}
-        </Button>
+      <WidgetTabs
+        tabs={[
+          { id: 'buy', label: 'Buy Credits' },
+          { id: 'manage', label: 'Manage' },
+        ]}
+        activeTab={state.activeTab}
+        onTabChange={handleTabChange}
+        chainId={state.chainId ?? CELO_CHAIN_ID}
+      />
+      {state.activeTab === 'manage' ? (
+        <ManagePanel state={state} actions={actions} />
+      ) : (
+        buyPanel
       )}
     </YStack>
   )
 }
 
-// ---------------------------------------------------------------------------
-// Public component
-// ---------------------------------------------------------------------------
-
-/**
- * AiCreditsWidget — purchase AI coding credits with G$ on Celo.
- *
- * The widget guides the user through:
- *   1. Connect wallet (Celo)
- *   2. Generate or provide a buyer key (real private key, user must save it)
- *   3. Sign backend-issued nonce → receive `gd_live_...` API key
- *   4. Set deposit / stream amounts
- *   5. Submit G$ approve + CeloGdAntSeedVault.deposit (buyer address ABI-encoded)
- *   6. Wait for credit settlement (Worker verifies vault events)
- *   7. View credits balance, setup snippet, and usage log
- *
- * Usage as a React component:
- *   <AiCreditsWidget provider={eip1193Provider} backendUrl="https://api.example.com" />
- *
- * Also available as a Web Component via the `element` or `register` entry points.
- */
 export function AiCreditsWidget({
   provider,
   environment = 'production',

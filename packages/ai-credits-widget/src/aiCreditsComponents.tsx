@@ -690,7 +690,7 @@ interface CreditsManagementCardProps {
   state: AiCreditsWidgetAdapterState
   actions: Pick<
     AiCreditsWidgetAdapterActions,
-    'startPurchase' | 'setChannelId' | 'setWithdrawAmount' | 'closeChannel' | 'withdrawCredits'
+    'setChannelId' | 'setWithdrawAmount' | 'closeChannel' | 'withdrawCredits'
   >
 }
 
@@ -777,10 +777,6 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
           </XStack>
         )}
       </YStack>
-
-      <Button fullWidth onPress={actions.startPurchase}>
-        <ButtonText>Add Credits / Update Stream</ButtonText>
-      </Button>
 
       <YStack gap="$1">
         <Text variant="label">Close Channel</Text>

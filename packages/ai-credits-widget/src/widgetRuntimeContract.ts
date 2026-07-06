@@ -15,6 +15,8 @@ export type AiCreditsWidgetStatus =
   | 'backend_unavailable'
   | 'unsupported_chain'
 
+export type AiCreditsWidgetTab = 'buy' | 'manage'
+
 export type AiCreditsWidgetPrimaryAction =
   | 'connect'
   | 'switch_chain'
@@ -73,6 +75,7 @@ export interface AiCreditsWidgetAdapterState {
   error: string | null
   primaryAction: AiCreditsWidgetPrimaryAction
   primaryLabel: string
+  activeTab: AiCreditsWidgetTab
 }
 
 export interface AiCreditsWidgetAdapterActions {
@@ -88,6 +91,7 @@ export interface AiCreditsWidgetAdapterActions {
   pay: () => Promise<void>
   refresh: () => Promise<void>
   startPurchase: () => void
+  setActiveTab: (tab: AiCreditsWidgetTab) => void
   closeChannel: () => Promise<void>
   withdrawCredits: () => Promise<void>
   retry: () => Promise<void>
