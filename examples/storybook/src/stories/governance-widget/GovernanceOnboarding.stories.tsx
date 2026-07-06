@@ -252,9 +252,6 @@ export const CustodialCitizenshipProfileReady: Story = {
 }
 
 export const CustodialAlignmentProfileError: Story = {
-  parameters: {
-    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig },
-  },
   render: () => (
     <CustodialGovernanceStory
       walletLabel="Custodial wallet fixture"
@@ -278,9 +275,6 @@ export const CustodialAlignmentProfileError: Story = {
 }
 
 export const CustodialStakeProgress: Story = {
-  parameters: {
-    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig },
-  },
   render: () => (
     <CustodialGovernanceStory
       walletLabel="Custodial wallet fixture"
@@ -297,9 +291,6 @@ export const CustodialStakeProgress: Story = {
 }
 
 export const CustodialSuccess: Story = {
-  parameters: {
-    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig },
-  },
   render: () => (
     <CustodialGovernanceStory
       walletLabel="Custodial wallet fixture"
@@ -381,7 +372,6 @@ function CustodialGovernanceStoryAtWidth({
 
 export const CustodialMobileWelcome: Story = {
   parameters: {
-    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig },
     viewport: { defaultViewport: 'mobile1' },
   },
   render: () => (

@@ -1,5 +1,5 @@
-import type { ChangeEvent, FocusEvent } from 'react'
-import { XStack, YStack } from 'tamagui'
+import type { ChangeEvent } from 'react'
+import { Theme, XStack, YStack } from 'tamagui'
 import { Button, ButtonText, Card, Icon, Text } from '@goodwidget/ui'
 import { InputError, InputFrame, InputLabel } from '@goodwidget/ui'
 import { ProfileTextAreaField } from '../ProfileTextAreaField'
@@ -88,43 +88,45 @@ export function ProfileStepContent({
       <Card elevated>
         <YStack gap="$4">
           {/* ── Membership Stake banner (Figma: inline inside card) ──────── */}
-          <YStack
-            borderRadius="$3"
-            borderWidth={1}
-            borderColor="$primary"
-            backgroundColor="$backgroundHover"
-            padding="$3"
-            gap="$3"
-          >
-            {/* Amount row */}
-            <XStack alignItems="center" gap="$3">
-              <Icon name="shield-check" size="md" color="primary" />
-              <YStack gap="$0.5">
-                <Text variant="caption" tone="secondary">
-                  Membership Stake
-                </Text>
-                <Text fontWeight="700" fontSize="$6" lineHeight="$6" color="$color">
-                  {stakeAmountLabel}
-                </Text>
-              </YStack>
-            </XStack>
-
-            {/* Warning row — Figma uses red/error styling, not orange/warning */}
-            <XStack
-              alignItems="flex-start"
-              gap="$3"
-              padding="$3"
-              borderRadius="$2"
-              backgroundColor="$errorMuted"
+          <Theme name="OnboardingAccentRow">
+            <YStack
+              borderRadius="$3"
               borderWidth={1}
-              borderColor="$error"
+              borderColor="$primary"
+              backgroundColor="$backgroundHover"
+              padding="$3"
+              gap="$3"
             >
-              <Icon name="alert-triangle" color="error" size="sm" />
-              <Text variant="caption" flex={1}>
-                {resolveStakeWarning(selectedHouse, stakeAmountLabel)}
-              </Text>
-            </XStack>
-          </YStack>
+              {/* Amount row */}
+              <XStack alignItems="center" gap="$3">
+                <Icon name="shield-check" size="md" color="primary" />
+                <YStack gap="$0.5">
+                  <Text variant="caption" tone="secondary">
+                    Membership Stake
+                  </Text>
+                  <Text fontWeight="700" fontSize="$6" lineHeight="$6" color="$color">
+                    {stakeAmountLabel}
+                  </Text>
+                </YStack>
+              </XStack>
+
+              {/* Warning row — Figma uses red/error styling, not orange/warning */}
+              <XStack
+                alignItems="flex-start"
+                gap="$3"
+                padding="$3"
+                borderRadius="$2"
+                backgroundColor="$errorMuted"
+                borderWidth={1}
+                borderColor="$error"
+              >
+                <Icon name="alert-triangle" color="error" size="sm" />
+                <Text variant="caption" flex={1}>
+                  {resolveStakeWarning(selectedHouse, stakeAmountLabel)}
+                </Text>
+              </XStack>
+            </YStack>
+          </Theme>
 
           {/* ── Profile fields ──────────────────────────────────────────── */}
           <YStack gap="$3">
