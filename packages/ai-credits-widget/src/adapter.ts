@@ -116,10 +116,17 @@ function resolveActiveTab(
   status: AiCreditsWidgetStatus,
 ): AiCreditsWidgetTab {
   if (overrides.activeTab !== undefined) return overrides.activeTab
-  if (status === 'credits_management') {
-    if (isInBuyFlowStatus(prev.status) && prev.activeTab === 'buy') return 'buy'
-    return 'manage'
-  }
+
+  const balance = overrides.aiCreditsBalance ?? prev.aiCreditsBalance
+  const justConnected = !prev.address && Boolean(overrides.address)
+  const creditsAdded =
+    overrides.aiCreditsBalance !== undefined &&
+    hasCredits(overrides.aiCreditsBalance) &&
+    !hasCredits(prev.aiCreditsBalance)
+
+  if (justConnected && hasCredits(balance)) return 'manage'
+  if (creditsAdded && !isInBuyFlowStatus(status)) return 'manage'
+
   return prev.activeTab ?? 'buy'
 }
 
@@ -131,7 +138,6 @@ function deriveStatus(params: {
   isConnected: boolean
   chainId: number | null
   gBalance: string | null
-  aiCreditsBalance: string | null
   buyerKey: string | null
   buyerKeyConfirmed: boolean
   operatorConsentSigned: boolean
@@ -139,12 +145,12 @@ function deriveStatus(params: {
   streamAmount: string
   error: string | null
   currentStatus: AiCreditsWidgetStatus
+  activeTab: AiCreditsWidgetTab
 }): AiCreditsWidgetStatus {
   const {
     isConnected,
     chainId,
     gBalance,
-    aiCreditsBalance,
     buyerKey,
     buyerKeyConfirmed,
     operatorConsentSigned,
@@ -152,6 +158,7 @@ function deriveStatus(params: {
     streamAmount,
     error,
     currentStatus,
+    activeTab,
   } = params
 
   if (
@@ -167,12 +174,7 @@ function deriveStatus(params: {
 
   if (chainId !== null && chainId !== CELO_CHAIN_ID) return 'unsupported_chain'
 
-  if (error && currentStatus !== 'credits_management') return 'payment_failed'
-
-  const inPurchaseFlow =
-    currentStatus === 'purchase_setup' || currentStatus === 'quote_ready'
-
-  if (!inPurchaseFlow && hasCredits(aiCreditsBalance)) return 'credits_management'
+  if (error && activeTab !== 'manage') return 'payment_failed'
 
   if (gBalance === null) return 'purchase_setup'
 
@@ -197,7 +199,12 @@ function deriveStatus(params: {
   return 'purchase_setup'
 }
 
-function derivePrimaryAction(status: AiCreditsWidgetStatus): AiCreditsWidgetPrimaryAction {
+function derivePrimaryAction(
+  status: AiCreditsWidgetStatus,
+  activeTab: AiCreditsWidgetTab,
+): AiCreditsWidgetPrimaryAction {
+  if (activeTab === 'manage') return 'refresh'
+
   switch (status) {
     case 'disconnected':
       return 'connect'
@@ -213,7 +220,6 @@ function derivePrimaryAction(status: AiCreditsWidgetStatus): AiCreditsWidgetPrim
     case 'payment_failed':
     case 'backend_unavailable':
       return 'retry'
-    case 'credits_management':
     case 'insufficient_g_balance':
       return 'refresh'
     default:
@@ -252,7 +258,6 @@ function withDerivedStatus(
     isConnected,
     chainId: merged.chainId,
     gBalance: merged.gBalance,
-    aiCreditsBalance: merged.aiCreditsBalance,
     buyerKey: merged.buyerKey,
     buyerKeyConfirmed: merged.buyerKeyConfirmed,
     operatorConsentSigned: merged.operatorConsentSigned,
@@ -260,8 +265,10 @@ function withDerivedStatus(
     streamAmount: merged.streamAmount,
     error: merged.error,
     currentStatus: merged.status,
+    activeTab: merged.activeTab,
   })
-  const primaryAction = derivePrimaryAction(status)
+  const activeTab = resolveActiveTab(prev, overrides, status)
+  const primaryAction = derivePrimaryAction(status, activeTab)
   return {
     ...merged,
     status,
@@ -271,18 +278,31 @@ function withDerivedStatus(
   }
 }
 
-function mergeStatePreservingManagement(
+function mergeStatePreservingManageTab(
   prev: AiCreditsWidgetAdapterState,
   overrides: Partial<AiCreditsWidgetAdapterState>,
 ): AiCreditsWidgetAdapterState {
-  if (prev.status !== 'credits_management') {
+  if (prev.activeTab !== 'manage') {
     return withDerivedStatus(prev, overrides, true)
   }
+  const status = deriveStatus({
+    isConnected: true,
+    chainId: overrides.chainId ?? prev.chainId,
+    gBalance: overrides.gBalance ?? prev.gBalance,
+    buyerKey: overrides.buyerKey ?? prev.buyerKey,
+    buyerKeyConfirmed: overrides.buyerKeyConfirmed ?? prev.buyerKeyConfirmed,
+    operatorConsentSigned: overrides.operatorConsentSigned ?? prev.operatorConsentSigned,
+    depositAmount: overrides.depositAmount ?? prev.depositAmount,
+    streamAmount: overrides.streamAmount ?? prev.streamAmount,
+    error: overrides.error ?? prev.error,
+    currentStatus: overrides.status ?? prev.status,
+    activeTab: 'manage',
+  })
   return {
     ...prev,
     ...overrides,
-    status: 'credits_management',
-    activeTab: overrides.activeTab ?? prev.activeTab ?? 'manage',
+    status,
+    activeTab: 'manage',
     primaryAction: 'refresh',
     primaryLabel: 'Refresh',
   }
@@ -529,18 +549,18 @@ export function useAiCreditsAdapter({
       const account = privateKeyToAccount(privateKey)
 
       setState((prev) => {
-        const inManagement = prev.status === 'credits_management'
-        return mergeStatePreservingManagement(prev, {
+        const onManageTab = prev.activeTab === 'manage'
+        return mergeStatePreservingManageTab(prev, {
           buyerKey: account.address,
           buyerKeyPrivate: privateKey,
-          buyerKeyConfirmed: inManagement,
+          buyerKeyConfirmed: onManageTab,
           operatorConsentSigned: false,
           apiKey: null,
           error: null,
-          ...(inManagement && hasCredits(prev.aiCreditsBalance)
+          ...(onManageTab && hasCredits(prev.aiCreditsBalance)
             ? { setupSnippet: buildSetupSnippet(account.address) }
             : {}),
-          ...(!inManagement ? { status: 'purchase_setup' } : {}),
+          ...(!onManageTab ? { status: 'purchase_setup' } : {}),
         })
       })
     } catch (err: unknown) {
@@ -566,7 +586,7 @@ export function useAiCreditsAdapter({
     }
 
     const ref: AccountRef = { payer: currentState.address, buyer: currentState.buyerKey }
-    const inManagement = currentState.status === 'credits_management'
+    const onManageTab = currentState.activeTab === 'manage'
 
     try {
       const operatorStatus = await chainClient.getBuyerOperatorStatus(ref)
@@ -577,10 +597,10 @@ export function useAiCreditsAdapter({
 
       if (operatorStatus.operatorAccepted) {
         setState((prev) =>
-          mergeStatePreservingManagement(prev, {
+          mergeStatePreservingManageTab(prev, {
             operatorConsentSigned: true,
             error: null,
-            ...(!inManagement ? { status: 'purchase_setup' } : {}),
+            ...(!onManageTab ? { status: 'purchase_setup' } : {}),
           }),
         )
         return
@@ -604,10 +624,10 @@ export function useAiCreditsAdapter({
       await waitForOperatorConsent(chainClient, ref)
 
       setState((prev) =>
-        mergeStatePreservingManagement(prev, {
+        mergeStatePreservingManageTab(prev, {
           operatorConsentSigned: true,
           error: null,
-          ...(!inManagement ? { status: 'purchase_setup' } : {}),
+          ...(!onManageTab ? { status: 'purchase_setup' } : {}),
         }),
       )
     } catch (err: unknown) {
@@ -788,10 +808,7 @@ export function useAiCreditsAdapter({
           aiCreditsBalance: credits,
           setupSnippet,
           error: null,
-          status: 'credits_management',
           activeTab: 'manage',
-          primaryAction: 'refresh',
-          primaryLabel: 'Refresh',
         }),
       )
 
@@ -838,7 +855,7 @@ export function useAiCreditsAdapter({
               usageLog,
               balanceMode: 'always',
             }),
-            status: hasCredits(enriched.balance) ? 'credits_management' : 'purchase_setup',
+            activeTab: prev.activeTab,
           },
           true,
         ),
@@ -974,14 +991,7 @@ export function useAiCreditsAdapter({
       )
       return
     }
-    setState((prev) => ({
-      ...prev,
-      activeTab: 'manage',
-      status: 'credits_management',
-      primaryAction: 'refresh',
-      primaryLabel: 'Refresh',
-      error: null,
-    }))
+    setState((prev) => mergeStatePreservingManageTab(prev, { activeTab: 'manage', error: null }))
   }, [])
 
   const handleStartPurchase = useCallback(() => {

@@ -1101,6 +1101,10 @@ interface AiCreditsFlowStepperProps {
   state: AiCreditsWidgetAdapterState
 }
 
+function hasCreditsBalance(balance: string | null | undefined): boolean {
+  return balance !== null && balance !== undefined && Number.parseFloat(balance) > 0
+}
+
 function mapStatusToActiveStep(
   state: AiCreditsWidgetAdapterState,
 ): AiCreditsFlowStep | null {
@@ -1144,7 +1148,7 @@ export function AiCreditsFlowStepper({ state }: AiCreditsFlowStepperProps) {
         if (!hasBuyerKey) return 'pending'
         return activeStep === 'consent' ? 'active' : 'pending'
       case 'pay':
-        if (state.status === 'credits_management' || state.status === 'payment_confirmed')
+        if (hasCreditsBalance(state.aiCreditsBalance) || state.status === 'payment_confirmed')
           return 'completed'
         if (state.status === 'payment_failed') return 'failed'
         if (!hasConsent) return 'pending'

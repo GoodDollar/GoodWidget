@@ -31,21 +31,21 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
       title="Open the QA fixture demo"
       href="?path=/story/qa-aicreditswidget-runtime-fixtures--disconnected"
     >
-      All 10 widget states as deterministic mock fixtures — ideal for automation and debugging.
+      All QA fixture states as deterministic mock stories — ideal for automation and debugging.
     </DocsCard>
   </DocsSection>
 
   <DocsSection
     title="Widget states"
-    description="The widget uses a flat 10-state status union, consistent with other GoodWidget packages."
+    description="Buy-flow status describes purchase progress and errors. The Manage tab (activeTab) is separate — use it when the wallet has credits or after a successful purchase."
   >
     <DocsGrid>
-      <DocsCard title="S1 – Disconnected">No wallet connected.</DocsCard>
-      <DocsCard title="S2 – Purchase Setup">Wallet connected; buyer key / consent / amounts in progress.</DocsCard>
-      <DocsCard title="S3 – Quote Ready">Setup complete; on-chain quote built; ready to pay.</DocsCard>
-      <DocsCard title="S4 – Payment Pending">Celo tx submitted.</DocsCard>
-      <DocsCard title="S5 – Payment Confirmed">Settling on Base.</DocsCard>
-      <DocsCard title="S6 – Credits Management">AI credits balance &gt; 0; management dashboard with stream, history, and API setup.</DocsCard>
+      <DocsCard title="S1 – Disconnected">No wallet connected; tabs hidden.</DocsCard>
+      <DocsCard title="S2 – Purchase Setup">Buy tab — buyer key / consent / amounts in progress.</DocsCard>
+      <DocsCard title="S3 – Quote Ready">Buy tab — on-chain quote built; ready to pay.</DocsCard>
+      <DocsCard title="S4 – Payment Pending">Buy tab — Celo tx submitted.</DocsCard>
+      <DocsCard title="S5 – Payment Confirmed">Buy tab — settling on Base.</DocsCard>
+      <DocsCard title="S6 – Manage tab">Manage tab — balance, stream, history, close/withdraw, API setup.</DocsCard>
       <DocsCard title="S7 – Insufficient G$">G$ below minimum purchase threshold.</DocsCard>
       <DocsCard title="S8 – Payment Failed">Transaction or settlement error.</DocsCard>
       <DocsCard title="S9 – Backend Unavailable">Backend unreachable.</DocsCard>

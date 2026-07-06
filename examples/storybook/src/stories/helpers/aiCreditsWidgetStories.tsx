@@ -217,11 +217,11 @@ export function PaymentConfirmedStory() {
   )
 }
 
-export function CreditsManagementStory() {
+export function ManageTabStory() {
   return (
     <MockStoryShell
-      dataTestId="AiCreditsWidget-credits-management"
-      adapterFactory={createAdapterFactory('credits_management', {
+      dataTestId="AiCreditsWidget-manage-tab"
+      adapterFactory={createAdapterFactory('quote_ready', {
         aiCreditsBalance: '110.00',
         buyerKey: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a',
         buyerKeyConfirmed: true,
@@ -247,6 +247,10 @@ export function CreditsManagementStory() {
       })}
     />
   )
+}
+
+export function CreditsManagementStory() {
+  return <ManageTabStory />
 }
 
 export function InsufficientGBalanceStory() {

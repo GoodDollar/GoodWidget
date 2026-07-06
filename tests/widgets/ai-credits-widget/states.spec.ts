@@ -88,9 +88,9 @@ test('AiCreditsWidget payment_confirmed', async ({ page }) => {
   })
 })
 
-test('AiCreditsWidget credits_management', async ({ page }) => {
+test('AiCreditsWidget manage tab', async ({ page }) => {
   await gotoStory(page, STORY_IDS.creditsManagement)
-  await expect(page.getByTestId('AiCreditsWidget-credits-management')).toBeVisible()
+  await expect(page.getByTestId('AiCreditsWidget-manage-tab')).toBeVisible()
   await expect(page.getByText('Buy Credits')).toBeVisible()
   await expect(page.getByText('Manage')).toBeVisible()
   await expect(page.getByText('110.00')).toBeVisible()

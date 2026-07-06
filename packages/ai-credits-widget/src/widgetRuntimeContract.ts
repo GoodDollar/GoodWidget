@@ -9,7 +9,6 @@ export type AiCreditsWidgetStatus =
   | 'quote_ready'
   | 'payment_pending'
   | 'payment_confirmed'
-  | 'credits_management'
   | 'insufficient_g_balance'
   | 'payment_failed'
   | 'backend_unavailable'
