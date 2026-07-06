@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Card, Heading, Icon, Separator, Text, XStack, YStack } from '@goodwidget/ui'
+import { Card, Icon, Separator, Text, XStack, YStack } from '@goodwidget/ui'
 import type { AiCreditsUsageEntry } from '../../widgetRuntimeContract'
 
 interface UsageLogProps {
@@ -27,16 +27,18 @@ export function UsageLog({ entries }: UsageLogProps) {
         onPress={() => setExpanded((value) => !value)}
         cursor="pointer"
       >
-        <Heading level={5}>{title}</Heading>
+        <Text fontSize="$3" fontWeight="600">
+          {title}
+        </Text>
         <XStack gap="$2" alignItems="center">
-          <Text fontSize="$2" secondary>
+          <Text fontSize="$1" secondary>
             {entries.length === 0
               ? 'No entries yet'
               : isFundingHistory
-                ? `${total.toFixed(1)} funded in history`
-                : `${total.toFixed(1)} total credits`}
+                ? `${total.toFixed(1)} funded`
+                : `${total.toFixed(1)} credits`}
           </Text>
-          <Icon name={expanded ? 'chevron-up' : 'chevron-down'} size="sm" />
+          <Icon name={expanded ? 'chevron-up' : 'chevron-right'} size="xs" color="muted" />
         </XStack>
       </XStack>
 

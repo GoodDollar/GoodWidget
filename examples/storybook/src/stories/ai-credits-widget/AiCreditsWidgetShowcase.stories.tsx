@@ -6,7 +6,13 @@ const meta: Meta<typeof AiCreditsWidget> = {
   title: 'Widgets/AiCreditsWidget/Showcase',
   component: AiCreditsWidget,
   tags: ['integrator', 'manual', 'showcase'],
-  parameters: { layout: 'padded' },
+  parameters: {
+    layout: 'fullscreen',
+    goodWidgetProvider: {
+      disableProvider: true,
+      useShell: false,
+    },
+  },
 }
 
 export default meta

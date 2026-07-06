@@ -6,6 +6,7 @@ import {
   ButtonText,
   Card,
   CircularActionButton,
+  Icon,
   Text,
   ToastContainer,
   WidgetTabs,
@@ -235,7 +236,7 @@ function ManagePanel({
   actions: AiCreditsWidgetAdapterActions
 }) {
   return (
-    <YStack gap="$4">
+    <YStack gap="$3" width="100%">
       {state.error && (
         <AiCreditsStatusNotice>
           <Text color="$error" fontSize="$2">
@@ -254,11 +255,16 @@ function ManagePanel({
 
       <Button
         variant="ghost"
+        size="sm"
+        alignSelf="center"
         onPress={() => {
           void actions.refresh()
         }}
       >
-        <ButtonText>Refresh Balance</ButtonText>
+        <XStack gap="$1" alignItems="center">
+          <Icon name="refresh" size="xs" color="primary" />
+          <ButtonText>Refresh Balance</ButtonText>
+        </XStack>
       </Button>
     </YStack>
   )
@@ -380,14 +386,14 @@ function AiCreditsInner({
 
   if (state.status === 'disconnected') {
     return (
-      <YStack gap="$4" padding="$4">
+      <YStack gap="$3" padding="$3" width="100%">
         <DisconnectedPanel onConnect={actions.connect} />
       </YStack>
     )
   }
 
   return (
-    <YStack gap="$4" padding="$4">
+    <YStack gap="$3" padding="$3" width="100%">
       <WidgetTabs
         tabs={[
           { id: 'buy', label: 'Buy Credits' },
@@ -430,7 +436,7 @@ export function AiCreditsWidget({
       themeOverrides={themeOverrides}
       defaultTheme={defaultTheme}
     >
-      <YStack backgroundColor="$background" data-testid={testId}>
+      <YStack backgroundColor="$background" width="100%" data-testid={testId}>
         <AiCreditsInner
           environment={environment}
           backendUrl={backendUrl}

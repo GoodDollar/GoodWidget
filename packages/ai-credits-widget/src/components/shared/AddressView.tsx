@@ -7,13 +7,13 @@ export function AddressView({ label, address }: { label: string; address: string
 
   return (
     <YStack gap="$1">
-      <Text variant="label" secondary>
+      <Text fontSize="$1" secondary>
         {label}
       </Text>
       <XStack
         backgroundColor="$backgroundMuted"
         borderRadius="$2"
-        padding="$3"
+        padding="$2"
         justifyContent="space-between"
         alignItems="center"
       >

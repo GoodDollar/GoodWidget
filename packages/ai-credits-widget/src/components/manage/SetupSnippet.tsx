@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Anchor, Button, ButtonText, Card, Heading, Icon, Text, XStack, YStack, copyTextToClipboard } from '@goodwidget/ui'
+import { Anchor, Button, Card, Icon, Text, XStack, YStack, copyTextToClipboard } from '@goodwidget/ui'
 
 const ANTSEED_API_DOCS_URL = 'https://antseed.com/docs/guides/using-the-api'
 
@@ -29,7 +29,7 @@ export function SetupSnippet({ snippet }: SetupSnippetProps) {
   }
 
   return (
-    <Card gap="$3">
+    <Card gap="$2">
       <XStack justifyContent="space-between" alignItems="center">
         <XStack
           flex={1}
@@ -38,11 +38,13 @@ export function SetupSnippet({ snippet }: SetupSnippetProps) {
           onPress={() => setExpanded((value) => !value)}
           cursor="pointer"
         >
-          <Heading level={5}>API Setup</Heading>
-          <Icon name={expanded ? 'chevron-up' : 'chevron-down'} size="sm" />
+          <Text fontSize="$3" fontWeight="600">
+            API Setup
+          </Text>
+          <Icon name={expanded ? 'chevron-up' : 'chevron-right'} size="xs" color="muted" />
         </XStack>
-        <Button size="sm" variant="ghost" onPress={handleCopy}>
-          <ButtonText>{copied ? 'Copied!' : 'Copy'}</ButtonText>
+        <Button size="sm" variant="ghost" iconSize="sm" onPress={handleCopy}>
+          <Icon name={copied ? 'check' : 'copy'} size="xs" color={copied ? 'success' : 'text'} />
         </Button>
       </XStack>
 

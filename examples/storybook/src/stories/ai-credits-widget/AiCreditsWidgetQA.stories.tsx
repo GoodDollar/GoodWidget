@@ -18,7 +18,13 @@ const meta: Meta<typeof AiCreditsWidget> = {
   title: 'QA/AiCreditsWidget/Runtime Fixtures',
   component: AiCreditsWidget,
   tags: ['autodocs', 'qa'],
-  parameters: { layout: 'padded' },
+  parameters: {
+    layout: 'fullscreen',
+    goodWidgetProvider: {
+      disableProvider: true,
+      useShell: false,
+    },
+  },
 }
 
 export default meta

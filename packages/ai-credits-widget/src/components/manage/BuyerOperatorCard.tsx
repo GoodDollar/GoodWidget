@@ -21,8 +21,8 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
   const [isSigning, setIsSigning] = useState(false)
 
   return (
-    <Card gap="$3">
-      <Heading level={5}>Buyer &amp; Operator</Heading>
+    <Card gap="$2">
+      <Heading level={6}>Buyer &amp; Operator</Heading>
 
       {address && <AddressView label="Payer" address={address} />}
       {buyerKey && <AddressView label="Buyer" address={buyerKey} />}
@@ -74,7 +74,7 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
           <XStack
             backgroundColor="$backgroundMuted"
             borderRadius="$2"
-            padding="$3"
+            padding="$2"
             justifyContent="space-between"
             alignItems="center"
           >
