@@ -63,7 +63,7 @@ export interface AiCreditsWidgetAdapterState {
   minStreamG: string | null
   bonusPercent: number
   quote: AiCreditsQuote | null
-  setupSnippet: string | null
+  setupSnippet: string
   usageLog: AiCreditsUsageEntry[]
   totalGdDepositedG: string | null
   monthlyStreamG: string | null

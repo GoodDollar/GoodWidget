@@ -86,7 +86,7 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   minStreamG: null,
   bonusPercent: 0,
   quote: null,
-  setupSnippet: null,
+  setupSnippet: buildSetupSnippet(),
   usageLog: [],
   totalGdDepositedG: null,
   monthlyStreamG: null,
@@ -329,8 +329,7 @@ function viewToStatePatch(
     operatorConsentSigned: operatorAccepted,
     operatorAddress: view.operator.operatorAddress ?? null,
     withdrawableUsd: view.withdrawableUsd,
-    setupSnippet:
-      keyForSnippet && hasCredits(balance) ? buildSetupSnippet(keyForSnippet) : prev.setupSnippet,
+    setupSnippet: buildSetupSnippet(keyForSnippet),
     bonusPercent: enriched.bonusPercent,
     totalGdDepositedG: enriched.totalGdDepositedG,
     monthlyStreamG: enriched.monthlyStreamG,
@@ -563,9 +562,7 @@ export function useAiCreditsAdapter({
           operatorConsentSigned: false,
           apiKey: null,
           error: null,
-          ...(onManageTab && hasCredits(prev.aiCreditsBalance)
-            ? { setupSnippet: buildSetupSnippet(account.address) }
-            : {}),
+          setupSnippet: buildSetupSnippet(account.address),
           ...(!onManageTab ? { status: 'purchase_setup' } : {}),
         })
       })
@@ -1046,7 +1043,11 @@ export function useAiCreditsAdapter({
   return { state, actions }
 }
 
-function buildSetupSnippet(buyerAddress: string): string {
+function buildSetupSnippet(buyerAddress?: string | null): string {
+  const buyerLine = buyerAddress
+    ? `GOODDOLLAR_BUYER_ADDRESS=${buyerAddress}`
+    : 'GOODDOLLAR_BUYER_ADDRESS=<buyer-address>'
+
   return [
     'npm install -g @antseed/cli',
     '',
@@ -1060,6 +1061,6 @@ function buildSetupSnippet(buyerAddress: string): string {
     'export OPENAI_BASE_URL=http://localhost:8377',
     'export OPENAI_API_KEY=placeholder',
     '',
-    `GOODDOLLAR_BUYER_ADDRESS=${buyerAddress}`,
+    buyerLine,
   ].join('\n')
 }

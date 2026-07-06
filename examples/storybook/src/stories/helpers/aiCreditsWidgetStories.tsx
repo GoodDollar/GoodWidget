@@ -12,6 +12,8 @@ import {
   isInjectedProviderUsable,
 } from '../../fixtures/injectedEip1193'
 
+const SETUP_SNIPPET = `export ANTSEED_IDENTITY_HEX=<buyer-private-key>\nexport ANTHROPIC_BASE_URL=http://localhost:8377`
+
 function createMockState(
   status: AiCreditsWidgetStatus,
   overrides: Partial<AiCreditsWidgetAdapterState> = {},
@@ -35,7 +37,7 @@ function createMockState(
     minStreamG: '1',
     bonusPercent: 0,
     quote: null,
-    setupSnippet: null,
+    setupSnippet: SETUP_SNIPPET,
     usageLog: [],
     totalGdDepositedG: null,
     monthlyStreamG: null,
@@ -103,8 +105,6 @@ function MockStoryShell({
     )
   }
 }
-
-const SETUP_SNIPPET = `export ANTSEED_IDENTITY_HEX=<buyer-private-key>\nexport ANTHROPIC_BASE_URL=http://localhost:8377`
 
 export function DisconnectedStory() {
   return (

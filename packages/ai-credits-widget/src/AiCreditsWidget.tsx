@@ -250,7 +250,7 @@ function ManagePanel({
 
       <BuyerOperatorCard state={state} actions={actions} />
 
-      {state.setupSnippet && <SetupSnippet snippet={state.setupSnippet} />}
+      <SetupSnippet snippet={state.setupSnippet} />
 
       <UsageLog entries={state.usageLog} />
 
