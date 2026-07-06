@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import {
   createComponent,
   Card,
@@ -15,6 +15,7 @@ import {
   Icon,
   TokenAmount,
   Stepper,
+  Drawer,
   copyTextToClipboard,
 } from '@goodwidget/ui'
 import type { StepperStepItem } from '@goodwidget/ui'
@@ -300,6 +301,7 @@ interface BuyerKeyPanelProps {
   buyerKeyConfirmed: boolean
   onGenerate: () => void | Promise<void>
   onConfirm: () => void
+  embedded?: boolean
 }
 
 export function BuyerKeyPanel({
@@ -308,6 +310,7 @@ export function BuyerKeyPanel({
   buyerKeyConfirmed,
   onGenerate,
   onConfirm,
+  embedded = false,
 }: BuyerKeyPanelProps) {
   const { copied: copiedAddress, copy: copyAddress } = useCopyFeedback()
   const { copied: copiedPrivate, copy: copyPrivate } = useCopyFeedback()
@@ -323,8 +326,10 @@ export function BuyerKeyPanel({
     }
   }
 
+  const Shell = embedded ? YStack : BuyerKeyPanelCard
+
   return (
-    <BuyerKeyPanelCard>
+    <Shell gap="$3">
       <Heading level={5}>Buyer Key</Heading>
       <Text>
         Sign a message with your payer wallet to derive a deterministic AntSeed buyer key. Save the
@@ -424,7 +429,7 @@ export function BuyerKeyPanel({
             </YStack>
           )}
       </YStack>
-    </BuyerKeyPanelCard>
+    </Shell>
   )
 }
 
@@ -437,6 +442,7 @@ interface OperatorConsentStepProps {
   buyerKeyPrivate: string | null
   operatorConsentSigned: boolean
   onSign: () => Promise<void>
+  embedded?: boolean
 }
 
 export function OperatorConsentStep({
@@ -444,12 +450,15 @@ export function OperatorConsentStep({
   buyerKeyPrivate,
   operatorConsentSigned,
   onSign,
+  embedded = false,
 }: OperatorConsentStepProps) {
   const [isSigning, setIsSigning] = useState(false)
   const canSign = Boolean(buyerKey && buyerKeyPrivate)
 
+  const Shell = embedded ? YStack : OperatorConsentCard
+
   return (
-    <OperatorConsentCard>
+    <Shell gap="$3">
       <Heading level={5}>Authorize AntSeed Operator</Heading>
       <Text fontSize="$2" lineHeight="$3">
         Your buyer key signs an EIP-712 SetOperator message. The backend submits it to
@@ -491,7 +500,7 @@ export function OperatorConsentStep({
           )}
         </Button>
       )}
-    </OperatorConsentCard>
+    </Shell>
   )
 }
 
@@ -512,6 +521,7 @@ interface AmountPickerProps {
   onDepositChange: (v: string) => void
   onStreamChange: (v: string) => void
   onPay: () => void
+  embedded?: boolean
 }
 
 export function AmountPicker({
@@ -527,6 +537,7 @@ export function AmountPicker({
   onDepositChange,
   onStreamChange,
   onPay,
+  embedded = false,
 }: AmountPickerProps) {
   const depositG = parseGAmount(depositAmount)
   const streamG = parseGAmount(streamAmount)
@@ -555,8 +566,10 @@ export function AmountPicker({
     return parsed < 10 ? parsed.toFixed(1) : parsed.toFixed(2)
   }
 
+  const Shell = embedded ? YStack : AmountPickerCard
+
   return (
-    <AmountPickerCard>
+    <Shell gap="$3">
       <Heading level={5}>Buy Credits</Heading>
 
       <YStack gap="$1">
@@ -678,7 +691,7 @@ export function AmountPicker({
           )}
         </Button>
       </HoverTooltip>
-    </AmountPickerCard>
+    </Shell>
   )
 }
 
@@ -1096,10 +1109,6 @@ export function UsageLog({ entries }: UsageLogProps) {
 
 export type AiCreditsFlowStep = 'buyer_key' | 'consent' | 'pay'
 
-interface AiCreditsFlowStepperProps {
-  state: AiCreditsWidgetAdapterState
-}
-
 function hasCreditsBalance(balance: string | null | undefined): boolean {
   return balance !== null && balance !== undefined && Number.parseFloat(balance) > 0
 }
@@ -1113,16 +1122,48 @@ function mapStatusToActiveStep(
     state.status === 'purchase_setup' ||
     state.status === 'quote_ready' ||
     state.status === 'payment_pending' ||
-    state.status === 'payment_confirmed'
+    state.status === 'payment_confirmed' ||
+    state.status === 'payment_failed'
   )
     return 'pay'
   return null
 }
 
+export function getAiCreditsActiveFlowStep(
+  state: AiCreditsWidgetAdapterState,
+): AiCreditsFlowStep | null {
+  return mapStatusToActiveStep(state)
+}
+
+function getActiveFlowStepActionLabel(
+  state: AiCreditsWidgetAdapterState,
+  step: AiCreditsFlowStep | null,
+): string | null {
+  if (!step) return null
+
+  switch (step) {
+    case 'buyer_key':
+      if (!state.buyerKey) return 'Sign & Generate Key'
+      if (!state.buyerKeyConfirmed) return "Continue Buyer Key"
+      return 'View Buyer Key'
+    case 'consent':
+      return state.operatorConsentSigned ? 'View Operator Consent' : 'Sign Operator Consent'
+    case 'pay':
+      return 'Set Amounts & Pay'
+    default:
+      return null
+  }
+}
+
+interface AiCreditsFlowStepperProps {
+  state: AiCreditsWidgetAdapterState
+  onStepPress?: (stepId: string) => void
+}
+
 /**
  * Wraps the Stepper component with widget-specific steps for the purchase flow.
  */
-export function AiCreditsFlowStepper({ state }: AiCreditsFlowStepperProps) {
+export function AiCreditsFlowStepper({ state, onStepPress }: AiCreditsFlowStepperProps) {
   const activeStep = mapStatusToActiveStep(state)
 
   function getStepStatus(
@@ -1182,11 +1223,132 @@ export function AiCreditsFlowStepper({ state }: AiCreditsFlowStepperProps) {
     <Stepper
       steps={steps}
       activeStepId={activeStep}
+      onStepPress={onStepPress}
       header={
         <Heading level={5} secondary>
           Purchase Flow
         </Heading>
       }
     />
+  )
+}
+
+interface AiCreditsPurchaseFlowProps {
+  state: AiCreditsWidgetAdapterState
+  actions: AiCreditsWidgetAdapterActions
+  canPay: boolean
+  payDisabledMessage: string | null
+  isPending: boolean
+  onPay: () => void
+}
+
+export function AiCreditsPurchaseFlow({
+  state,
+  actions,
+  canPay,
+  payDisabledMessage,
+  isPending,
+  onPay,
+}: AiCreditsPurchaseFlowProps) {
+  const activeStep = getAiCreditsActiveFlowStep(state)
+  const [drawerOpen, setDrawerOpen] = useState(true)
+  const [drawerStep, setDrawerStep] = useState<AiCreditsFlowStep | null>(activeStep)
+
+  useEffect(() => {
+    if (!activeStep) {
+      setDrawerOpen(false)
+      return
+    }
+    setDrawerStep(activeStep)
+    setDrawerOpen(true)
+  }, [activeStep])
+
+  const openDrawer = useCallback((step: AiCreditsFlowStep) => {
+    setDrawerStep(step)
+    setDrawerOpen(true)
+  }, [])
+
+  const handleStepPress = useCallback(
+    (stepId: string) => {
+      openDrawer(stepId as AiCreditsFlowStep)
+    },
+    [openDrawer],
+  )
+
+  const actionLabel = getActiveFlowStepActionLabel(state, activeStep)
+
+  function renderDrawerContent(step: AiCreditsFlowStep | null) {
+    if (!step) return null
+
+    switch (step) {
+      case 'buyer_key':
+        return (
+          <BuyerKeyPanel
+            embedded
+            buyerKey={state.buyerKey}
+            buyerKeyPrivate={state.buyerKeyPrivate ?? null}
+            buyerKeyConfirmed={state.buyerKeyConfirmed}
+            onGenerate={actions.generateBuyerKey}
+            onConfirm={actions.confirmBuyerKey}
+          />
+        )
+      case 'consent':
+        return (
+          <OperatorConsentStep
+            embedded
+            buyerKey={state.buyerKey}
+            buyerKeyPrivate={state.buyerKeyPrivate ?? null}
+            operatorConsentSigned={state.operatorConsentSigned}
+            onSign={actions.signOperatorConsent}
+          />
+        )
+      case 'pay':
+        return (
+          <AmountPicker
+            embedded
+            depositAmount={state.depositAmount}
+            streamAmount={state.streamAmount}
+            gBalance={state.gBalance}
+            minDepositG={state.minDepositG}
+            minStreamG={state.minStreamG}
+            quote={state.quote}
+            canPay={canPay}
+            payDisabledMessage={payDisabledMessage}
+            isPayPending={isPending}
+            onDepositChange={actions.setDepositAmount}
+            onStreamChange={actions.setStreamAmount}
+            onPay={onPay}
+          />
+        )
+      default:
+        return null
+    }
+  }
+
+  return (
+    <>
+      <AiCreditsFlowStepper state={state} onStepPress={handleStepPress} />
+      {!drawerOpen && actionLabel && activeStep && (
+        <Button
+          fullWidth
+          onPress={() => {
+            openDrawer(activeStep)
+          }}
+        >
+          <ButtonText>{actionLabel}</ButtonText>
+        </Button>
+      )}
+      <Drawer
+        open={drawerOpen && drawerStep !== null}
+        onClose={() => {
+          setDrawerOpen(false)
+        }}
+        height={drawerStep === 'pay' ? 'full' : 'half'}
+      >
+        <YStack gap="$3" paddingBottom="$2">
+          {renderDrawerContent(drawerStep)}
+        </YStack>
+      </Drawer>
+    </>
   )
 }

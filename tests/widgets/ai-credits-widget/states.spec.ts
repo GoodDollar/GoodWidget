@@ -46,6 +46,8 @@ test('AiCreditsWidget purchase_setup', async ({ page }) => {
   await gotoStory(page, STORY_IDS.purchaseSetup)
   await expect(page.getByTestId('AiCreditsWidget-purchase-setup')).toBeVisible()
   await expect(page.getByText('You need G$ before you can buy AI credits.')).toBeVisible()
+  await expect(page.getByText('Purchase Flow')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Sign & Generate Key' })).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-02-purchase-setup.png',
     fullPage: true,

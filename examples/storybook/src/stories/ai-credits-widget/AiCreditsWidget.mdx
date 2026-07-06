@@ -41,8 +41,8 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
   >
     <DocsGrid>
       <DocsCard title="S1 – Disconnected">No wallet connected; tabs and purchase stepper hidden; circular Connect Wallet button.</DocsCard>
-      <DocsCard title="S2 – Purchase Setup">Buy tab — buyer key / consent / amounts in progress.</DocsCard>
-      <DocsCard title="S3 – Quote Ready">Buy tab — on-chain quote built; ready to pay.</DocsCard>
+      <DocsCard title="S2 – Purchase Setup">Buy tab — stepper with active step opened in a bottom drawer.</DocsCard>
+      <DocsCard title="S3 – Quote Ready">Buy tab — pay step in drawer; ready to confirm Celo transaction.</DocsCard>
       <DocsCard title="S4 – Payment Pending">Buy tab — Celo tx submitted.</DocsCard>
       <DocsCard title="S5 – Payment Confirmed">Buy tab — settling on Base.</DocsCard>
       <DocsCard title="S6 – Manage tab">Manage tab — balance, stream, history, close/withdraw, API setup.</DocsCard>
@@ -58,7 +58,7 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
     description="When a wallet is connected, Buy Credits and Manage appear as tabs at the top (with the GoodDollar header and chain badge). Switch tabs anytime — including during payment pending or failed states."
   >
     <DocsGrid>
-      <DocsCard title="Buy Credits">Purchase flow: buyer key, operator consent, amounts, and pay.</DocsCard>
+      <DocsCard title="Buy Credits">Stepper for buyer key, consent, and pay — each step opens in a drawer.</DocsCard>
       <DocsCard title="Manage">Credits balance, stream info, close/withdraw, API setup, and history.</DocsCard>
     </DocsGrid>
   </DocsSection>

@@ -19,10 +19,8 @@ import { useAiCreditsAdapter } from './adapter'
 import {
   AiCreditsHero,
   AiCreditsFlowStepper,
+  AiCreditsPurchaseFlow,
   AiCreditsStatusNotice,
-  AmountPicker,
-  BuyerKeyPanel,
-  OperatorConsentStep,
   CreditsManagementCard,
   BuyerOperatorCard,
   SetupSnippet,
@@ -79,8 +77,7 @@ interface BuyPanelProps {
   canPay: boolean
   payDisabledMessage: string | null
   isPending: boolean
-  onPay: () => Promise<void>
-  onPrimaryAction: () => Promise<void>
+  onPay: () => void
 }
 
 function BuyCreditsPanel({
@@ -90,7 +87,6 @@ function BuyCreditsPanel({
   payDisabledMessage,
   isPending,
   onPay,
-  onPrimaryAction,
 }: BuyPanelProps) {
   if (state.status === 'unsupported_chain') {
     return (
@@ -128,7 +124,14 @@ function BuyCreditsPanel({
             <ButtonText>Try Again</ButtonText>
           </Button>
         </AiCreditsStatusNotice>
-        <AiCreditsFlowStepper state={state} />
+        <AiCreditsPurchaseFlow
+          state={state}
+          actions={actions}
+          canPay={canPay}
+          payDisabledMessage={payDisabledMessage}
+          isPending={isPending}
+          onPay={onPay}
+        />
       </YStack>
     )
   }
@@ -210,77 +213,14 @@ function BuyCreditsPanel({
         </AiCreditsStatusNotice>
       )}
 
-      <AiCreditsFlowStepper state={state} />
-
-      {state.address && !state.buyerKey && !state.operatorConsentSigned && (
-        <BuyerKeyPanel
-          buyerKey={null}
-          buyerKeyPrivate={null}
-          buyerKeyConfirmed={false}
-          onGenerate={actions.generateBuyerKey}
-          onConfirm={actions.confirmBuyerKey}
-        />
-      )}
-
-      {state.buyerKey && !state.buyerKeyConfirmed && !state.operatorConsentSigned && (
-        <BuyerKeyPanel
-          buyerKey={state.buyerKey}
-          buyerKeyPrivate={state.buyerKeyPrivate ?? null}
-          buyerKeyConfirmed={state.buyerKeyConfirmed}
-          onGenerate={actions.generateBuyerKey}
-          onConfirm={actions.confirmBuyerKey}
-        />
-      )}
-
-      {state.buyerKey && state.buyerKeyConfirmed && !state.operatorConsentSigned && (
-        <OperatorConsentStep
-          buyerKey={state.buyerKey}
-          buyerKeyPrivate={state.buyerKeyPrivate ?? null}
-          operatorConsentSigned={state.operatorConsentSigned}
-          onSign={actions.signOperatorConsent}
-        />
-      )}
-
-      {state.operatorConsentSigned && (
-        <AmountPicker
-          depositAmount={state.depositAmount}
-          streamAmount={state.streamAmount}
-          gBalance={state.gBalance}
-          minDepositG={state.minDepositG}
-          minStreamG={state.minStreamG}
-          quote={state.quote}
-          canPay={canPay}
-          payDisabledMessage={payDisabledMessage}
-          isPayPending={isPending}
-          onDepositChange={actions.setDepositAmount}
-          onStreamChange={actions.setStreamAmount}
-          onPay={() => {
-            void onPay()
-          }}
-        />
-      )}
-
-      {!state.operatorConsentSigned &&
-        state.primaryAction !== 'none' &&
-        state.primaryAction !== 'generate_key' &&
-        state.primaryAction !== 'sign_consent' && (
-          <Button
-            fullWidth
-            disabled={isPending}
-            onPress={() => {
-              void onPrimaryAction()
-            }}
-          >
-            {isPending ? (
-              <XStack gap="$2" alignItems="center">
-                <ButtonText>{state.primaryLabel}</ButtonText>
-                <Spinner size="sm" />
-              </XStack>
-            ) : (
-              <ButtonText>{state.primaryLabel}</ButtonText>
-            )}
-          </Button>
-        )}
+      <AiCreditsPurchaseFlow
+        state={state}
+        actions={actions}
+        canPay={canPay}
+        payDisabledMessage={payDisabledMessage}
+        isPending={isPending}
+        onPay={onPay}
+      />
     </YStack>
   )
 }
@@ -409,34 +349,6 @@ function AiCreditsInner({
     }
   }, [actions, state.error])
 
-  const handlePrimaryAction = useCallback(async () => {
-    switch (state.primaryAction) {
-      case 'connect':
-        await actions.connect()
-        break
-      case 'switch_chain':
-        await actions.switchChain()
-        break
-      case 'generate_key':
-        await actions.generateBuyerKey()
-        break
-      case 'sign_consent':
-        await actions.signOperatorConsent()
-        break
-      case 'pay':
-        await handlePay()
-        break
-      case 'retry':
-        await actions.retry()
-        break
-      case 'refresh':
-        await actions.refresh()
-        break
-      default:
-        break
-    }
-  }, [state.primaryAction, actions, handlePay])
-
   const isPending =
     state.status === 'payment_pending' || state.status === 'payment_confirmed'
 
@@ -454,8 +366,9 @@ function AiCreditsInner({
       canPay={canPay}
       payDisabledMessage={payDisabledMessage}
       isPending={isPending}
-      onPay={handlePay}
-      onPrimaryAction={handlePrimaryAction}
+      onPay={() => {
+        void handlePay()
+      }}
     />
   )
 
