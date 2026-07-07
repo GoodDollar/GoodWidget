@@ -10,6 +10,7 @@ import { Stack } from 'tamagui'
 import { createComponent } from '../createComponent'
 import { XStack, YStack } from '../components-test/Stacks'
 import { Heading } from './Heading'
+import { Icon } from './Icon'
 import { Text } from './Text'
 
 export interface PageWizardStep {
@@ -23,7 +24,7 @@ export interface PageWizardContextValue {
   currentStep?: PageWizardStep
   steps: PageWizardStep[]
   data: Record<string, unknown>
-  setData: (patch: Record<string, unknown>) => void
+  setData: (patch: PageWizardDataPatch) => void
   next: () => void
   back: () => void
   goTo: (index: number) => void
@@ -31,6 +32,10 @@ export interface PageWizardContextValue {
   isFirst: boolean
   isLast: boolean
 }
+
+export type PageWizardDataPatch =
+  | Record<string, unknown>
+  | ((previous: Record<string, unknown>) => Record<string, unknown>)
 
 interface PageWizardProviderProps {
   steps: PageWizardStep[]
@@ -47,20 +52,55 @@ interface PageWizardShellProps {
   footer?: ReactNode
   children: ReactNode
   dataTestId?: string
+  /**
+   * Renders the horizontal step track and mobile summary when true. Use false
+   * for end-state views (e.g. a celebration screen) where the wizard progress
+   * should be hidden from the user.
+   */
+  showStepper?: boolean
+  /**
+   * Optional subset of steps to render in the visual stepper indicator.
+   * When provided, only these steps appear in the step track while the full
+   * steps array from context is still used for navigation. Useful when the
+   * wizard has a terminal/celebration step that should not appear in the
+   * progress track (e.g. a success screen).
+   */
+  stepperSteps?: PageWizardStep[]
 }
 
 const PageWizardContext = createContext<PageWizardContextValue | null>(null)
 
-const PageWizardStepCircle = createComponent(Stack, {
-  name: 'PageWizardStepCircle',
-  width: 32,
-  height: 32,
+/**
+ * Individual step bullet — a small numbered circle.
+ * Active: filled with $primary, white number.
+ * Completed: filled with $success, white checkmark icon.
+ * Pending: transparent background, $borderColor border, $placeholderColor number.
+ *
+ * Design reference: Figma/Stitch GoodWidget Library node 2373-2 — the stepper
+ * is always rendered horizontally at the top of the screen on all breakpoints.
+ */
+const PageWizardStepBullet = createComponent(Stack, {
+  name: 'PageWizardStepBullet',
+  width: 28,
+  height: 28,
   borderRadius: '$full',
   alignItems: 'center',
   justifyContent: 'center',
-  borderWidth: 1,
+  borderWidth: 1.5,
   borderColor: '$borderColor',
   backgroundColor: '$background',
+})
+
+/**
+ * Connector line between two step bullets.
+ * Filled ($primary) when the left step is completed, grey ($borderColor) otherwise.
+ */
+const PageWizardConnector = createComponent(Stack, {
+  name: 'PageWizardConnector',
+  flex: 1,
+  height: 2,
+  borderRadius: '$full',
+  backgroundColor: '$borderColor',
 })
 
 function resolveStepIndex(steps: PageWizardStep[], stepId?: string): number {
@@ -86,11 +126,14 @@ export function PageWizardProvider({
   const resolvedStepId = currentStepId ?? uncontrolledStepId ?? steps[0]?.id
   const currentIndex = resolveStepIndex(steps, resolvedStepId)
 
-  const setData = useCallback((patch: Record<string, unknown>) => {
-    setDataState((previousData) => ({
-      ...previousData,
-      ...patch,
-    }))
+  const setData = useCallback((patch: PageWizardDataPatch) => {
+    setDataState((previousData) => {
+      const resolvedPatch = typeof patch === 'function' ? patch(previousData) : patch
+      return {
+        ...previousData,
+        ...resolvedPatch,
+      }
+    })
   }, [])
 
   const updateStep = useCallback(
@@ -169,61 +212,126 @@ export function PageWizardShell({
   footer,
   children,
   dataTestId,
+  showStepper = true,
+  stepperSteps,
 }: PageWizardShellProps) {
-  const { currentIndex, steps } = usePageWizard()
+  const { currentIndex, steps, currentStep } = usePageWizard()
+
+  // Use the provided stepperSteps for visual display, falling back to all steps.
+  // This allows a terminal step (e.g. success) to be excluded from the track.
+  const displaySteps = stepperSteps ?? steps
+  const displayCurrentIndex = stepperSteps
+    ? (() => {
+        const idx = stepperSteps.findIndex((s) => s.id === currentStep?.id)
+        if (idx !== -1) return idx
+        const fullIndex = steps.findIndex((s) => s.id === currentStep?.id)
+        if (fullIndex !== -1) {
+          const lastStepperStep = stepperSteps[stepperSteps.length - 1]
+          const lastStepperFullIndex = steps.findIndex((s) => s.id === lastStepperStep?.id)
+          if (lastStepperFullIndex !== -1 && fullIndex > lastStepperFullIndex) {
+            return stepperSteps.length
+          }
+        }
+        return 0
+      })()
+    : currentIndex
 
   return (
     <YStack gap="$4" width="100%" data-testid={dataTestId}>
-      <YStack gap="$3">
-        <XStack
-          gap="$3"
-          overflow="auto"
-          paddingBottom="$1"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-        >
-          {steps.map((step, index) => {
-            const isActiveStep = index === currentIndex
-            const isCompletedStep = index < currentIndex
-            const stepColor = isActiveStep || isCompletedStep ? '$white' : '$placeholderColor'
-            const connectorColor = index < currentIndex ? '$success' : '$borderColor'
+      {showStepper ? (
+        <YStack gap="$3">
+          {/*
+           * Horizontal step track — always rendered on all breakpoints.
+           * Design: Figma node 2373-2 / Stitch preview shows the numbered bullet
+           * track at the top of the screen on every screen size. There is no
+           * mobile-only text fallback replacing the track; only the track itself
+           * is shown. The "Step X of Y" label has been removed in favour of the
+           * always-visible numbered bullets per the requested design.
+           */}
+          <XStack
+            alignItems="center"
+            gap="$2"
+            width="100%"
+            data-testid="PageWizardStep-track"
+          >
+            {displaySteps.map((step, index) => {
+              const isActiveStep = index === displayCurrentIndex
+              const isCompletedStep = index < displayCurrentIndex
+              const isLastStep = index === displaySteps.length - 1
+              const connectorColor =
+                index < displayCurrentIndex ? '$primary' : '$borderColor'
 
-            return (
-              <XStack key={step.id} alignItems="center" gap="$2" minWidth={120} flexShrink={0}>
-                <YStack alignItems="center" gap="$1.5">
-                  <PageWizardStepCircle
-                    backgroundColor={
-                      isActiveStep ? '$primary' : isCompletedStep ? '$success' : '$background'
-                    }
-                    borderColor={
-                      isActiveStep ? '$primary' : isCompletedStep ? '$success' : '$borderColor'
-                    }
+              return (
+                <React.Fragment key={step.id}>
+                  <YStack
+                    alignItems="center"
+                    gap="$1"
+                    data-testid={`PageWizardStep-${step.id}`}
+                    data-state={isActiveStep ? 'active' : isCompletedStep ? 'completed' : 'pending'}
                   >
-                    <Text color={stepColor} fontWeight="700">
-                      {index + 1}
+                    <PageWizardStepBullet
+                      backgroundColor={
+                        isCompletedStep
+                          ? '$success'
+                          : isActiveStep
+                            ? '$primary'
+                            : '$background'
+                      }
+                      borderColor={
+                        isCompletedStep
+                          ? '$success'
+                          : isActiveStep
+                            ? '$primary'
+                            : '$borderColor'
+                      }
+                    >
+                      {isCompletedStep ? (
+                        <Icon name="check" size="xs" color="white" />
+                      ) : (
+                        <Text
+                          fontSize={11}
+                          lineHeight={14}
+                          color={
+                            isActiveStep ? '$white' : '$placeholderColor'
+                          }
+                          fontWeight="700"
+                        >
+                          {index + 1}
+                        </Text>
+                      )}
+                    </PageWizardStepBullet>
+                    <Text
+                      variant="caption"
+                      color={isActiveStep ? '$color' : '$placeholderColor'}
+                      fontWeight={isActiveStep ? '700' : '500'}
+                      textAlign="center"
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {step.title}
                     </Text>
-                  </PageWizardStepCircle>
-                  <Text
-                    variant="caption"
-                    color={isActiveStep ? '$color' : '$placeholderColor'}
-                    fontWeight={isActiveStep ? '700' : '500'}
-                    center
-                  >
-                    {step.title}
-                  </Text>
-                </YStack>
-                {index < steps.length - 1 ? (
-                  <YStack flex={1} height={2} borderRadius="$full" backgroundColor={connectorColor} />
-                ) : null}
-              </XStack>
-            )
-          })}
-        </XStack>
+                  </YStack>
+                  {!isLastStep ? (
+                    <PageWizardConnector
+                      backgroundColor={connectorColor}
+                      data-testid={`PageWizardConnector-${index}`}
+                      // Align connector with the center of the bullet circles,
+                      // not the bottom of the label text. marginBottom offsets
+                      // the label height so the line sits at bullet midpoint.
+                      marginBottom="$3"
+                    />
+                  ) : null}
+                </React.Fragment>
+              )
+            })}
+          </XStack>
 
-        <YStack gap="$1">
-          <Heading level={3}>{title}</Heading>
-          {description ? <Text tone="secondary">{description}</Text> : null}
+          <YStack gap="$1" alignItems="center">
+            <Heading level={3} textAlign="center">{title}</Heading>
+            {description ? <Text tone="secondary" textAlign="center">{description}</Text> : null}
+          </YStack>
         </YStack>
-      </YStack>
+      ) : null}
 
       {children}
       {footer}

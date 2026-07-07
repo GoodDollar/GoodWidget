@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { Children, cloneElement, isValidElement, useState, type ReactNode } from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { Text, XStack, YStack } from '@goodwidget/ui'
 import {
@@ -7,6 +7,7 @@ import {
   FundingDistributionChart,
   ImpactCard,
   OptimisticVotingProposalCard,
+  governanceWidgetConfig,
 } from '@goodwidget/governance-widget'
 import type {
   FundingProjectAllocation,
@@ -20,7 +21,7 @@ const meta: Meta = {
   tags: ['autodocs'],
   parameters: {
     layout: 'centered',
-    goodWidgetProvider: { useShell: false, defaultTheme: 'light' },
+    goodWidgetProvider: { useShell: false, defaultTheme: 'light', config: governanceWidgetConfig },
   },
 }
 
@@ -77,18 +78,20 @@ const fundingProjects: FundingProjectAllocation[] = [
 function GovernanceStoryFrame({
   children,
   width = 520,
+  theme = 'light',
 }: {
-  children: React.ReactNode
+  children: ReactNode
   width?: number
+  theme?: 'light' | 'dark'
 }) {
   const [lastAction, setLastAction] = useState('No interaction yet')
 
-  const enhancedChildren = React.Children.map(children, (child) => {
-    if (!React.isValidElement(child)) {
+  const enhancedChildren = Children.map(children, (child) => {
+    if (!isValidElement(child)) {
       return child
     }
 
-    return React.cloneElement(child, {
+    return cloneElement(child, {
       onPress: (id: string) => setLastAction(`Opened ${id}`),
       onCtaPress: () => setLastAction('CTA pressed'),
       onProjectPress: (id: string) => setLastAction(`Opened project ${id}`),
@@ -137,11 +140,11 @@ export const ImpactLight: Story = {
 
 export const ImpactDarkLongDisabledMobile: Story = {
   parameters: {
-    goodWidgetProvider: { useShell: false, defaultTheme: 'dark' },
+    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig, defaultTheme: 'dark' },
     viewport: { defaultViewport: 'mobile1' },
   },
   render: () => (
-    <GovernanceStoryFrame width={328}>
+    <GovernanceStoryFrame width={328} theme="dark">
       <ImpactCard
         testID="ImpactCard-dark-mobile-disabled"
         title="Long-running regional resilience campaign with intentionally verbose title"
@@ -166,6 +169,9 @@ export const ImpactDarkLongDisabledMobile: Story = {
 }
 
 export const BalanceVariantsLight: Story = {
+  parameters: {
+    goodWidgetProvider: { useShell: false },
+  },
   render: () => (
     <XStack flexWrap="wrap" gap="$3" padding="$3" width={560}>
       <BalanceCard
@@ -188,9 +194,9 @@ export const BalanceVariantsLight: Story = {
 }
 
 export const BalanceDarkCompact: Story = {
-  parameters: { goodWidgetProvider: { useShell: false, defaultTheme: 'dark' } },
+  parameters: { goodWidgetProvider: { useShell: false, config: governanceWidgetConfig, defaultTheme: 'dark' } },
   render: () => (
-    <GovernanceStoryFrame width={252}>
+    <GovernanceStoryFrame width={252} theme="dark">
       <BalanceCard
         testID="BalanceCard-dark-compact"
         compact
@@ -220,9 +226,9 @@ export const AlignmentDefaultLight: Story = {
 }
 
 export const AlignmentDarkLongOptions: Story = {
-  parameters: { goodWidgetProvider: { useShell: false, defaultTheme: 'dark' } },
+  parameters: { goodWidgetProvider: { useShell: false, config: governanceWidgetConfig, defaultTheme: 'dark' } },
   render: () => (
-    <GovernanceStoryFrame>
+    <GovernanceStoryFrame theme="dark">
       <AlignmentVotingProposalCard
         testID="AlignmentVotingProposalCard-dark-long"
         id="alignment-long"
@@ -255,9 +261,9 @@ export const OptimisticHighQuorumLight: Story = {
 }
 
 export const OptimisticDarkLowQuorumMixed: Story = {
-  parameters: { goodWidgetProvider: { useShell: false, defaultTheme: 'dark' } },
+  parameters: { goodWidgetProvider: { useShell: false, config: governanceWidgetConfig, defaultTheme: 'dark' } },
   render: () => (
-    <GovernanceStoryFrame>
+    <GovernanceStoryFrame theme="dark">
       <OptimisticVotingProposalCard
         testID="OptimisticVotingProposalCard-low-quorum"
         id="gip-44"
@@ -288,11 +294,11 @@ export const FundingDistributionLight: Story = {
 
 export const FundingDistributionDarkEmptyMobile: Story = {
   parameters: {
-    goodWidgetProvider: { useShell: false, defaultTheme: 'dark' },
+    goodWidgetProvider: { useShell: false, config: governanceWidgetConfig, defaultTheme: 'dark' },
     viewport: { defaultViewport: 'mobile1' },
   },
   render: () => (
-    <GovernanceStoryFrame width={328}>
+    <GovernanceStoryFrame width={328} theme="dark">
       <FundingDistributionChart
         testID="FundingDistributionChart-empty-dark-mobile"
         totalAmount={{ value: 0, token: 'G$', isStreaming: true, streamLabel: 'No active stream' }}
