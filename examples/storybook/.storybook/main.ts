@@ -11,8 +11,13 @@ import type { StorybookConfig } from '@storybook/react-vite'
 const reactNativeSvgShim = fileURLToPath(new URL('../src/shims/reactNativeSvg.tsx', import.meta.url))
 
 const config: StorybookConfig = {
-  stories: ['../src/**/*.stories.@(ts|tsx)'],
+  stories: ['../src/**/*.mdx', '../src/**/*.stories.@(ts|tsx)'],
   addons: ['@storybook/addon-essentials', '@storybook/addon-interactions'],
+  tags: {
+    manual: {
+      defaultFilterSelection: 'exclude',
+    },
+  },
   framework: {
     name: '@storybook/react-vite',
     options: {},

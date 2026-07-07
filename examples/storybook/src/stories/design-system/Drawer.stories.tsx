@@ -6,12 +6,12 @@
  */
 import React, { useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
-import { expect, within, userEvent } from '@storybook/test'
+import { expect, screen, within, userEvent } from '@storybook/test'
 import { Drawer, Card, Heading, Text, Button, ButtonText, YStack } from '@goodwidget/ui'
 
 const meta: Meta = {
-  title: 'Primitives/Drawer',
-  tags: ['autodocs'],
+  title: 'Design System/Primitives/Drawer',
+  tags: ['autodocs', 'showcase'],
   parameters: { layout: 'padded' },
 }
 export default meta
@@ -45,7 +45,7 @@ export const Default: Story = {
     const canvas = within(canvasElement)
     const trigger = canvas.getByRole('button', { name: /open drawer/i })
     await userEvent.click(trigger)
-    // After clicking, the Close button should appear inside the Drawer
-    await expect(canvas.getByRole('button', { name: /close/i })).toBeDefined()
+    // Drawer content is portaled, so query the document-level screen instead of the canvas.
+    await expect(await screen.findByRole('button', { name: /close/i })).toBeVisible()
   },
 }

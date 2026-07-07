@@ -1,0 +1,114 @@
+import { Canvas, Meta, Source } from '@storybook/blocks';
+import * as ThemeStories from '../design-system/ThemePlayground.stories';
+import * as ClaimWidgetStories from '../claim-widget/ClaimWidget.stories';
+import { DocsCallout, DocsCard, DocsGrid, DocsList, DocsPage, DocsSection } from './DocsLayout';
+
+<Meta title="Integrators/Theming And Overrides" />
+
+<DocsPage
+  eyebrow="Integrator Guide"
+  title="Theme the widget without guessing how the override system works"
+  lead="GoodWidget supports both light and dark roots, and the override API is layered. This page explains which layer to use, what `light_` and `dark_` keys mean, and how to preview the result in live demos."
+>
+  <DocsSection
+    title="What light and dark mean"
+    description="The widget root theme is chosen by `defaultTheme`. Component sub-theme keys follow that root theme name."
+  >
+    <DocsGrid>
+      <DocsCard title="`defaultTheme='light'`">
+        The widget resolves `light`, `light_Card`, `light_ClaimCard`, and other light-prefixed
+        semantic values.
+      </DocsCard>
+      <DocsCard title="`defaultTheme='dark'`">
+        The widget resolves `dark`, `dark_Card`, `dark_ClaimCard`, and other dark-prefixed semantic
+        values.
+      </DocsCard>
+      <DocsCard title="What this means for overrides">
+        If you are rendering a dark widget, overriding `light_ClaimCard` will not change the result.
+        The override key must match the active root theme.
+      </DocsCard>
+    </DocsGrid>
+  </DocsSection>
+
+  <DocsSection
+    title="Public host override example"
+    description="This example uses the claim-flow theme demo to show the supported host-facing override path on the default dark preset: keep the boilerplate flow intact, but brand it through token and theme overrides."
+  >
+    <Canvas of={ClaimWidgetStories.CobaltBrand} />
+  </DocsSection>
+
+  <DocsSection
+    title="Override playground"
+    description="The playground stories are the canonical behavioral reference for how override precedence works. They now render in isolated docs iframes so multiple themed examples do not fight over shared theme state."
+  >
+    <Canvas of={ThemeStories.HostOverrideCobalt} />
+  </DocsSection>
+
+  <DocsSection
+    title="Which override layer to use"
+    description="Prefer the narrowest layer that solves the problem. Broader layers have more visual blast radius."
+  >
+    <DocsGrid>
+      <DocsCard title="Preset default">
+        Use the default preset when the existing GoodWidget visual system already matches your needs.
+      </DocsCard>
+      <DocsCard title="Token override">
+        Use `config.tokens` or `themeOverrides.tokens` for broad palette and scale changes that
+        should cascade through derived themes.
+      </DocsCard>
+      <DocsCard title="Theme override">
+        Use named theme keys for targeted surface changes such as `dark_ClaimCard` or
+        `light_ClaimActionGlow`.
+      </DocsCard>
+      <DocsCard title="Inline props">
+        Use inline styling only for one-off local treatment. It is not the host-facing design
+        system contract.
+      </DocsCard>
+    </DocsGrid>
+  </DocsSection>
+
+  <DocsSection
+    title="Host-side example"
+    description="This is the integration shape to copy when a host app wants to keep widget logic unchanged but align visuals to its brand."
+  >
+    <Source
+      dark
+      language="tsx"
+      code={`import { ClaimWidget } from '@goodwidget/claim-widget-theme-demo'
+
+const themeOverrides = {
+  tokens: {
+    color: {
+      primary: '#2E5DE8',
+      primaryDark: '#1D3EB2',
+      primaryLight: '#6E8DFF',
+    },
+  },
+  themes: {
+    dark_ClaimCard: {
+      borderColor: '#2E5DE8',
+    },
+    dark_ClaimActionGlow: {
+      primary: '#4F7DFF',
+      primaryLight: '#9DB4FF',
+    },
+  },
+}
+
+export function RewardsPanel() {
+  return <ClaimWidget defaultTheme="dark" themeOverrides={themeOverrides} />
+}`}
+    />
+  </DocsSection>
+
+  <DocsSection
+    title="Common mistake"
+    description="Most override confusion comes from mixing up token changes, theme changes, and the active root theme."
+  >
+    <DocsCallout title="Check the active root theme first" tone="warning">
+      If the widget is mounted with `defaultTheme=&quot;dark&quot;`, use `dark_*` override keys. If it is
+      mounted with `defaultTheme=&quot;light&quot;`, use `light_*` keys. The key family must match the active
+      theme branch.
+    </DocsCallout>
+  </DocsSection>
+</DocsPage>

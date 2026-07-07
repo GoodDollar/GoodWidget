@@ -6,9 +6,9 @@ import type { Meta, StoryObj } from '@storybook/react'
 import { TokenAmount, Card, Heading, YStack } from '@goodwidget/ui'
 
 const meta: Meta<typeof TokenAmount> = {
-  title: 'Primitives/TokenAmount',
+  title: 'Design System/Primitives/TokenAmount',
   component: TokenAmount,
-  tags: ['autodocs'],
+  tags: ['autodocs', 'showcase'],
   parameters: { layout: 'padded' },
   argTypes: {
     amount: { control: 'text', description: 'Token amount to display' },
