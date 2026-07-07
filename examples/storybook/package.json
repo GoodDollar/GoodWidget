@@ -14,6 +14,8 @@
     "@goodwidget/claim-widget-theme-demo": "workspace:*",
     "@goodwidget/citizen-claim-widget": "workspace:*",
     "@goodwidget/governance-widget": "workspace:*",
+    "@goodwidget/streaming-widget": "workspace:*",
+    "@goodwidget/staking-migration-widget": "workspace:*",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "react-native-web": "^0.19.13",

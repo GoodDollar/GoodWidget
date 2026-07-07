@@ -2,8 +2,8 @@
 export {
   createGoodWidgetConfig,
   createGoodWidgetThemes,
-  mergeThemeOverrides,
   mergeOverrideMaps,
+  mergeThemeOverrides,
   defaultConfig,
   defaultPreset,
 } from './config'
@@ -26,7 +26,7 @@ export type {
 
 // Theme
 export { defaultTokenValues, createGoodWidgetTokens, createThemeValues } from './theme'
-export { goodWalletV2Preset } from './presets'
+export { defaultTokenPreset, goodWalletV2Preset } from './presets'
 
 // createComponent + Manifest
 export { createComponent } from './createComponent'
@@ -102,6 +102,8 @@ export { WalletInfo } from './components-test/WalletInfo'
 
 // Patterns / Composites
 export { MiniAppShell } from './components/MiniAppShell'
+export { CircularActionButton } from './components/CircularActionButton'
+export type { CircularActionButtonProps } from './components/CircularActionButton'
 export { WidgetTabs } from './components/WidgetTabs'
 export { ActionSheet } from './components-test/ActionSheet'
 export { TokenInput } from './components-test/TokenInput'

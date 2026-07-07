@@ -1,7 +1,11 @@
 import { useMemo } from 'react'
 import { GoodWidgetProvider } from '@goodwidget/core'
-import type { EIP1193Provider, GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/core'
 import { mergeOverrideMaps } from '@goodwidget/ui'
+import type {
+  EIP1193Provider,
+  GoodWidgetConfig,
+  GoodWidgetThemeOverrides,
+} from '@goodwidget/core'
 import type { ReactNode } from 'react'
 import { governanceWidgetConfig } from './config'
 
@@ -18,9 +22,8 @@ export interface GovernanceWidgetProviderProps {
  * applied by GoodWidgetProvider.
  *
  * Governance component-level theme definitions are kept local to this package
- * (in ./config.ts) and merged here at the author config layer. This follows
- * the pattern from PR #54: widget-level themes stay in the widget package;
- * integrators override them through the themeOverrides prop.
+ * and merged here at the author config layer. Integrators can still override
+ * them through the themeOverrides prop.
  */
 function createGovernanceWidgetConfig(config?: GoodWidgetConfig): GoodWidgetConfig {
   return {

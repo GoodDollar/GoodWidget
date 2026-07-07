@@ -1,266 +1,242 @@
-import type { GoodWidgetConfig } from '@goodwidget/ui'
-import type { GoodWidgetThemeValues } from '@goodwidget/ui'
+import type { GoodWidgetConfig } from '@goodwidget/core'
+import { defaultTokenPreset } from '@goodwidget/ui'
 
-// ---------------------------------------------------------------------------
-// Shared surface shapes — reuse across component themes to keep values DRY
-// and to make future token-aligned migrations easier to diff.
-// ---------------------------------------------------------------------------
+const color = defaultTokenPreset.tokens.color
 
-const governanceLightSurface = {
-  background: '#FFFFFF',
-  backgroundHover: '#EDF5FC',
-  backgroundPress: '#EDF5FC',
-  backgroundFocus: '#EDF5FC',
-  color: '#0D182D',
-  colorHover: '#0D182D',
-  colorPress: '#434B59',
-  colorFocus: '#0D182D',
-  colorSoft: '#4F606F',
-  colorDim: '#4F606F',
-  primary: '#00B0FF',
-  success: '#13C636',
-  warning: '#FFB020',
-  error: '#F00505',
-  borderColor: '#D0D9E4',
-  borderColorHover: 'rgba(0, 176, 255, 0.12)',
-  borderColorPress: '#8DCDFF',
-  borderColorFocus: '#00B0FF',
-  placeholderColor: '#4F606F',
-  shadowColor: 'rgba(0, 176, 255, 0.14)',
-  shadowColorHover: 'rgba(0, 176, 255, 0.1)',
-  shadowColorPress: 'rgba(0, 176, 255, 0.04)',
-  shadowColorFocus: 'rgba(0, 176, 255, 0.1)',
-} satisfies GoodWidgetThemeValues
+const governanceTokenPreset = {
+  impactOverlay: 'rgba(255, 255, 255, 0.12)',
+  impactOverlayPressed: 'rgba(255, 255, 255, 0.08)',
+  impactOverlayStrong: 'rgba(255, 255, 255, 0.18)',
+  impactTextSoft: 'rgba(255, 255, 255, 0.88)',
+  impactTextDim: 'rgba(255, 255, 255, 0.92)',
+  impactBorder: 'rgba(255, 255, 255, 0.12)',
+  impactBorderHover: 'rgba(255, 255, 255, 0.20)',
+  impactBorderFocus: 'rgba(255, 255, 255, 0.24)',
+} as const
 
-const governanceDarkSurface = {
-  background: '#1E1F26',
-  backgroundHover: '#333333',
-  backgroundPress: '#333333',
-  backgroundFocus: '#1E1F26',
-  color: '#FFFFFF',
-  colorHover: '#FFFFFF',
-  colorPress: '#808080',
-  colorFocus: '#FFFFFF',
-  colorSoft: '#CCC',
-  colorDim: '#4B5563',
-  primary: '#1A85FF',
-  success: '#13C636',
-  warning: '#FFB020',
-  error: '#F00505',
-  borderColor: '#4D4D4D',
-  borderColorHover: '#666666',
-  borderColorPress: '#666666',
-  borderColorFocus: '#1A85FF',
-  placeholderColor: '#808080',
+const transparentTheme = {
+  borderColor: color.transparent,
+  borderColorHover: color.transparent,
+  borderColorPress: color.transparent,
+  borderColorFocus: color.transparent,
+  shadowColor: color.transparent,
+  shadowColorHover: color.transparent,
+  shadowColorPress: color.transparent,
+  shadowColorFocus: color.transparent,
+} as const
+
+const successCardSecondaryButtonTheme = {
+  background: 'rgba(255, 255, 255, 0.2)',
+  backgroundHover: 'rgba(255, 255, 255, 0.3)',
+  backgroundPress: 'rgba(255, 255, 255, 0.15)',
+  backgroundFocus: 'rgba(255, 255, 255, 0.3)',
+  color: color.white,
+  textColor: color.white,
+  colorHover: color.white,
+  colorPress: color.white,
+  colorFocus: color.white,
+  ...transparentTheme,
+} as const
+
+const lightOnboardingSurface = {
+  background: color.governanceSurfaceAlt,
+  backgroundHover: color.governanceSurfaceAlt,
+  backgroundPress: color.governanceSurfaceAlt,
+  backgroundFocus: color.governanceSurfaceAlt,
+  color: color.governanceText,
+  textColor: color.governanceText,
+  colorHover: color.governanceText,
+  colorPress: color.grey700,
+  colorFocus: color.governanceText,
+  colorSoft: color.governanceTextSecondary,
+  colorDim: color.governanceTextDim,
+  primary: color.governancePrimary,
+  success: color.success,
+  warning: color.warning,
+  error: color.error,
+  borderColor: color.governanceBorder,
+  borderColorHover: color.governanceBorderLight,
+  borderColorPress: color.governancePrimaryLight,
+  borderColorFocus: color.governancePrimary,
+  placeholderColor: color.governanceTextSecondary,
+  shadowColor: color.governanceElevationShadow,
+  shadowColorHover: color.governanceShadowHover,
+  shadowColorPress: color.governanceShadowPress,
+  shadowColorFocus: color.governanceShadowHover,
+} as const
+
+const darkOnboardingSurface = {
+  background: color.surfaceDark,
+  backgroundHover: color.backgroundInput,
+  backgroundPress: color.backgroundInput,
+  backgroundFocus: color.surfaceDark,
+  color: color.textDark,
+  textColor: color.textDark,
+  colorHover: color.textDark,
+  colorPress: color.textSecondaryDark,
+  colorFocus: color.textDark,
+  colorSoft: color.grey350,
+  colorDim: color.grey600,
+  primary: color.primary,
+  success: color.success,
+  warning: color.warning,
+  error: color.error,
+  borderColor: color.borderDark,
+  borderColorHover: color.borderLight,
+  borderColorPress: color.borderLight,
+  borderColorFocus: color.primary,
+  placeholderColor: color.textSecondaryDark,
   shadowColor: 'rgba(3, 7, 18, 0.68)',
   shadowColorHover: 'rgba(3, 7, 18, 0.82)',
   shadowColorPress: 'rgba(3, 7, 18, 0.58)',
   shadowColorFocus: 'rgba(3, 7, 18, 0.82)',
-} satisfies GoodWidgetThemeValues
+} as const
+
+export const governanceSurfaceTheme = {
+  backgroundColor: '$background',
+  borderColor: '$borderColor',
+  color: '$color',
+  shadowColor: '$shadowColor',
+} as const
+
+const governanceImpactTheme = {
+  governanceImpactOverlay: governanceTokenPreset.impactOverlay,
+  governanceImpactOverlayPressed: governanceTokenPreset.impactOverlayPressed,
+  governanceImpactOverlayStrong: governanceTokenPreset.impactOverlayStrong,
+  governanceImpactTextSoft: governanceTokenPreset.impactTextSoft,
+  governanceImpactTextDim: governanceTokenPreset.impactTextDim,
+  governanceImpactBorder: governanceTokenPreset.impactBorder,
+  governanceImpactBorderHover: governanceTokenPreset.impactBorderHover,
+  governanceImpactBorderFocus: governanceTokenPreset.impactBorderFocus,
+} as const
 
 /**
- * Governance widget component-level theme overrides.
+ * Governance-local author defaults.
  *
- * These are kept local to the governance-widget package so that:
- *  - @goodwidget/ui remains widget-agnostic
- *  - integrators can narrow or override them via GovernanceWidgetProvider's
- *    themeOverrides prop without touching the shared preset
- *
- * Pattern: PR #54 — GovernanceWidgetProvider merges these at the author-config
- * layer through mergeOverrideMaps before handing off to GoodWidgetProvider.
+ * Shared preset values stay in @goodwidget/ui. This config only adds widget
+ * semantics and component-level themes that governance components cannot inherit
+ * from the shared preset.
  */
 export const governanceWidgetConfig = {
   themes: {
-    // ----- Onboarding layout rows -----
-    light_OnboardingAccentRow: {
-      ...governanceLightSurface,
-      background: '#EDF5FC',
-      borderColor: '#D0D9E4',
+    light: governanceImpactTheme,
+    dark: governanceImpactTheme,
+
+    light_GovernanceWrapper: {
+      background: color.governanceSurface,
     },
-    dark_OnboardingAccentRow: {
-      ...governanceDarkSurface,
-      background: '#1E1F26',
-      borderColor: '#4D4D4D',
+    dark_GovernanceWrapper: {
+      background: color.surfaceDark,
+    },
+    light_ImpactCard: {
+      background: color.governancePrimary,
+      shadowColor: color.governanceElevationShadow,
+    },
+    dark_ImpactCard: {
+      background: color.primary,
+      shadowColor: 'rgba(3, 7, 18, 0.9)',
     },
 
-    light_OnboardingFieldRow: {
-      ...governanceLightSurface,
-      background: '#EDF5FC',
-    },
-    dark_OnboardingFieldRow: {
-      ...governanceDarkSurface,
-      background: '#1E1F26',
-    },
+    light_OnboardingAccentRow: lightOnboardingSurface,
+    dark_OnboardingAccentRow: darkOnboardingSurface,
+    light_OnboardingFieldRow: lightOnboardingSurface,
+    dark_OnboardingFieldRow: darkOnboardingSurface,
 
-    // ----- House selection -----
     light_GovernanceHouseOptionButton: {
-      ...governanceLightSurface,
-      backgroundHover: '#EDF5FC',
-      backgroundPress: '#EDF5FC',
-      borderColorFocus: '#00B0FF',
+      background: color.governanceSurface,
+      backgroundHover: color.governanceSurfaceAlt,
+      backgroundPress: color.governanceSurfaceAlt,
+      borderColorFocus: color.governancePrimary,
     },
     dark_GovernanceHouseOptionButton: {
-      ...governanceDarkSurface,
-      backgroundHover: '#333333',
-      backgroundPress: '#333333',
-      borderColorFocus: '#1A85FF',
+      background: color.surfaceDark,
+      backgroundHover: color.backgroundInput,
+      backgroundPress: color.backgroundInput,
+      borderColorFocus: color.primary,
     },
-
     light_GovernanceRadioBullet: {
-      ...governanceLightSurface,
-      background: '#FFFFFF',
-      borderColor: '#D0D9E4',
+      background: color.governanceSurface,
+      borderColor: color.governanceBorder,
     },
     dark_GovernanceRadioBullet: {
-      ...governanceDarkSurface,
-      background: '#13151C',
-      borderColor: '#4D4D4D',
+      background: color.backgroundDark,
+      borderColor: color.borderDark,
     },
-
     light_GovernanceRadioDot: {
-      ...governanceLightSurface,
-      background: '#00B0FF',
+      background: color.governancePrimary,
     },
     dark_GovernanceRadioDot: {
-      ...governanceDarkSurface,
-      background: '#1A85FF',
+      background: color.primary,
     },
+    light_GovernanceHousePill: lightOnboardingSurface,
+    dark_GovernanceHousePill: darkOnboardingSurface,
 
-    light_GovernanceHousePill: {
-      ...governanceLightSurface,
-      background: '#EDF5FC',
-      borderColor: '#D0D9E4',
-    },
-    dark_GovernanceHousePill: {
-      ...governanceDarkSurface,
-      background: '#1E1F26',
-      borderColor: '#4D4D4D',
-    },
-
-    // ----- Success / celebration -----
     light_OnboardingSuccessCard: {
-      ...governanceLightSurface,
-      background: '#00B0FF',
-      color: '#FFFFFF',
-      colorHover: '#FFFFFF',
-      colorPress: '#FFFFFF',
-      colorFocus: '#FFFFFF',
+      background: color.governancePrimary,
+      color: color.white,
+      colorHover: color.white,
+      colorPress: color.white,
+      colorFocus: color.white,
     },
     dark_OnboardingSuccessCard: {
-      ...governanceDarkSurface,
-      background: '#1A85FF',
-      color: '#FFFFFF',
-      colorHover: '#FFFFFF',
-      colorPress: '#FFFFFF',
-      colorFocus: '#FFFFFF',
+      background: color.primary,
+      color: color.white,
+      colorHover: color.white,
+      colorPress: color.white,
+      colorFocus: color.white,
+    },
+    light_OnboardingCelebrationIcon: {
+      background: 'rgba(255, 255, 255, 0.2)',
+      borderColor: color.transparent,
+    },
+    dark_OnboardingCelebrationIcon: {
+      background: 'rgba(255, 255, 255, 0.2)',
+      borderColor: color.transparent,
     },
 
     light_OnboardingSuccessCardPrimary_Button: {
-      background: '#FFFFFF',
+      background: color.white,
       backgroundHover: 'rgba(255, 255, 255, 0.9)',
       backgroundPress: 'rgba(255, 255, 255, 0.8)',
       backgroundFocus: 'rgba(255, 255, 255, 0.9)',
-      color: '#00B0FF',
-      textColor: '#00B0FF',
-      colorHover: '#00B0FF',
-      colorPress: '#00B0FF',
-      colorFocus: '#00B0FF',
-      borderColor: 'transparent',
-      borderColorHover: 'transparent',
-      borderColorPress: 'transparent',
-      borderColorFocus: 'transparent',
-      shadowColor: 'transparent',
-      shadowColorHover: 'transparent',
-      shadowColorPress: 'transparent',
-      shadowColorFocus: 'transparent',
+      color: color.governancePrimary,
+      textColor: color.governancePrimary,
+      colorHover: color.governancePrimary,
+      colorPress: color.governancePrimary,
+      colorFocus: color.governancePrimary,
+      ...transparentTheme,
     },
     dark_OnboardingSuccessCardPrimary_Button: {
-      background: '#FFFFFF',
+      background: color.white,
       backgroundHover: 'rgba(255, 255, 255, 0.9)',
       backgroundPress: 'rgba(255, 255, 255, 0.8)',
       backgroundFocus: 'rgba(255, 255, 255, 0.9)',
-      color: '#1A85FF',
-      textColor: '#1A85FF',
-      colorHover: '#1A85FF',
-      colorPress: '#1A85FF',
-      colorFocus: '#1A85FF',
-      borderColor: 'transparent',
-      borderColorHover: 'transparent',
-      borderColorPress: 'transparent',
-      borderColorFocus: 'transparent',
-      shadowColor: 'transparent',
-      shadowColorHover: 'transparent',
-      shadowColorPress: 'transparent',
-      shadowColorFocus: 'transparent',
+      color: color.primary,
+      textColor: color.primary,
+      colorHover: color.primary,
+      colorPress: color.primary,
+      colorFocus: color.primary,
+      ...transparentTheme,
     },
+    light_OnboardingSuccessCardSecondary_Button: successCardSecondaryButtonTheme,
+    dark_OnboardingSuccessCardSecondary_Button: successCardSecondaryButtonTheme,
 
-    light_OnboardingSuccessCardSecondary_Button: {
-      background: 'rgba(255, 255, 255, 0.2)',
-      backgroundHover: 'rgba(255, 255, 255, 0.3)',
-      backgroundPress: 'rgba(255, 255, 255, 0.15)',
-      backgroundFocus: 'rgba(255, 255, 255, 0.3)',
-      color: '#FFFFFF',
-      textColor: '#FFFFFF',
-      colorHover: '#FFFFFF',
-      colorPress: '#FFFFFF',
-      colorFocus: '#FFFFFF',
-      borderColor: 'transparent',
-      borderColorHover: 'transparent',
-      borderColorPress: 'transparent',
-      borderColorFocus: 'transparent',
-      shadowColor: 'transparent',
-      shadowColorHover: 'transparent',
-      shadowColorPress: 'transparent',
-      shadowColorFocus: 'transparent',
-    },
-    dark_OnboardingSuccessCardSecondary_Button: {
-      background: 'rgba(255, 255, 255, 0.2)',
-      backgroundHover: 'rgba(255, 255, 255, 0.3)',
-      backgroundPress: 'rgba(255, 255, 255, 0.15)',
-      backgroundFocus: 'rgba(255, 255, 255, 0.3)',
-      color: '#FFFFFF',
-      textColor: '#FFFFFF',
-      colorHover: '#FFFFFF',
-      colorPress: '#FFFFFF',
-      colorFocus: '#FFFFFF',
-      borderColor: 'transparent',
-      borderColorHover: 'transparent',
-      borderColorPress: 'transparent',
-      borderColorFocus: 'transparent',
-      shadowColor: 'transparent',
-      shadowColorHover: 'transparent',
-      shadowColorPress: 'transparent',
-      shadowColorFocus: 'transparent',
-    },
-
-    light_OnboardingCelebrationIcon: {
-      ...governanceLightSurface,
-      background: 'rgba(255, 255, 255, 0.2)',
-      borderColor: 'transparent',
-    },
-    dark_OnboardingCelebrationIcon: {
-      ...governanceDarkSurface,
-      background: 'rgba(255, 255, 255, 0.2)',
-      borderColor: 'transparent',
-    },
-
-    // ----- Profile form fields -----
     light_ProfileTextAreaField: {
-      background: '#FFFFFF',
-      color: '#0D182D',
-      borderColor: '#D0D9E4',
-      borderColorHover: '#BDCAD6',
-      borderColorFocus: '#00B0FF',
-      placeholderColor: '#4F606F',
-      shadowColorFocus: 'rgba(0, 176, 255, 0.14)',
+      background: color.governanceSurface,
+      color: color.governanceText,
+      borderColor: color.governanceBorder,
+      borderColorHover: color.governanceBorderLight,
+      borderColorFocus: color.governancePrimary,
+      placeholderColor: color.governanceTextSecondary,
+      shadowColorFocus: color.governanceElevationShadow,
     },
     dark_ProfileTextAreaField: {
-      background: '#333333',
-      color: '#FFFFFF',
-      borderColor: '#4D4D4D',
-      borderColorHover: '#666666',
-      borderColorFocus: '#1A85FF',
-      placeholderColor: '#808080',
+      background: color.backgroundInput,
+      color: color.textDark,
+      borderColor: color.borderDark,
+      borderColorHover: color.borderLight,
+      borderColorFocus: color.primary,
+      placeholderColor: color.textSecondaryDark,
     },
   },
 } satisfies GoodWidgetConfig

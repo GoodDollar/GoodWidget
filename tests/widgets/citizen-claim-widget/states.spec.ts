@@ -8,7 +8,7 @@
  * The error state is tested by intercepting and blocking all RPC network calls.
  *
  * Story URL:
- *   /iframe.html?id=widgets-citizenclaimwidget--custodial-local-fixture&viewMode=story
+ *   /iframe.html?id=qa-citizenclaimwidget-runtime-fixtures--custodial-local-fixture&viewMode=story
  *
  * Browser flags required in CI/sandbox environments:
  *   --disable-web-security     : allows viem fetch calls from localhost to external HTTPS RPC
@@ -29,7 +29,7 @@
 import { test, expect, Page } from '@playwright/test'
 
 const STORY_URL =
-  '/iframe.html?id=widgets-citizenclaimwidget--custodial-local-fixture&viewMode=story'
+  '/iframe.html?id=qa-citizenclaimwidget-runtime-fixtures--custodial-local-fixture&viewMode=story'
 
 /** Navigate directly to the story iframe (bypasses Storybook shell for speed). */
 async function gotoStory(page: Page): Promise<void> {

@@ -6,8 +6,8 @@ import { createComponent, InputError, InputLabel, Text, YStack } from '@goodwidg
  * ProfileTextAreaFrame — styled base for the profile text area.
  * Named 'ProfileTextAreaField' so Tamagui resolves the
  * light_ProfileTextAreaField / dark_ProfileTextAreaField component sub-themes
- * defined in the preset. All visual values come from the active theme —
- * no hardcoded hex colors here.
+ * defined in the governance widget config. All visual values come from the
+ * active theme — no hardcoded hex colors here.
  */
 const ProfileTextAreaFrame = createComponent(TextArea, {
   name: 'ProfileTextAreaField',

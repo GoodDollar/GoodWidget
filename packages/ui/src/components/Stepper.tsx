@@ -4,12 +4,16 @@ import { Icon } from './Icon'
 import { Text } from './Text'
 import { XStack, YStack } from '../components-test/Stacks'
 import { createComponent } from '../createComponent'
+import {
+  FOCUSED_STATUSES,
+  MARKER_SIZE,
+  ROW_GAP_PX,
+  STEP_STYLE,
+  type MarkerStyle,
+  type StepperStepStatus,
+} from './stepperStyles'
 
-const MARKER_SIZE = 28
-const ROW_GAP_PX = 8
-
-export type StepperStepStatus = 'pending' | 'active' | 'completed' | 'failed' | 'attention'
-
+export type { StepperStepStatus } from './stepperStyles'
 
 export interface StepperStepItem {
   id: string
@@ -23,168 +27,86 @@ export interface StepperProps {
   activeStepId?: string | null
   header?: ReactNode
   maxHeight?: number
-
 }
 
-interface PaletteTokens {
-  activeFill: string
-  activeText: string
-  completedFill: string
-  completedText: string
-  pendingTrack: string
-  pendingBorder: string
-  pendingText: string
-  failedFill: string
-  failedText: string
-  activeRingFill: string
-  activeRingText: string
-}
+const markerBase = { width: MARKER_SIZE, height: MARKER_SIZE, borderRadius: '$full' as const }
 
-const PRIMARY_PALETTE: PaletteTokens = {
-  activeFill: '$primary',
-  activeText: '$primaryDark',
-  activeRingFill: '$primaryMuted',
-  activeRingText: '$primaryDark',
-  completedFill: '$success',
-  completedText: '$primaryDark',
-  pendingTrack: '$borderColorHover',
-  pendingBorder: '$borderColor',
-  pendingText: '$placeholderColor',
-  failedFill: '$error',
-  failedText: '$error',
-}
-
-
-
-function connectorColor(status: StepperStepStatus, palette: PaletteTokens): string {
-  if (status === 'completed') {
-    return palette.completedFill
-  }
-
-  if (status === 'active' || status === 'attention') {
-    return palette.activeFill
-  }
-
-  if (status === 'failed') {
-    return palette.failedFill
-  }
-
-  return palette.pendingTrack
-}
-
-function statusLabel(status: StepperStepStatus): string {
-  if (status === 'failed') {
-    return 'Needs attention'
-  }
-
-  if (status === 'completed') {
-    return 'Completed'
-  }
-
-  if (status === 'active' || status === 'attention') {
-    return 'In progress'
-  }
-
-  return 'Pending'
-}
-
-function statusColor(status: StepperStepStatus, palette: PaletteTokens): string | undefined {
-  if (status === 'failed' || status === 'attention') {
-    return palette.failedText
-  }
-
-  if (status === 'completed') {
-    return palette.completedText
-  }
-
-  if (status === 'active') {
-    return palette.activeText
-  }
-
-  return undefined
-}
-
-type StepperMarkerVariant = 'completed' | 'active' | 'failed' | 'pending' | 'attention'
-
-function resolveMarkerVariant(status: StepperStepStatus): StepperMarkerVariant {
-  if (status === 'completed') {
-    return 'completed'
-  }
-
-  if (status === 'failed') {
-    return 'failed'
-  }
-
-  if (status === 'attention') {
-    return 'attention'
-  }
-
-  if (status === 'active') {
-    return 'active'
-  }
-
-  return 'pending'
-}
-
-function StepperMarker({ variant, palette }: { variant: StepperMarkerVariant; palette: PaletteTokens }) {
-  if (variant === 'pending') {
+function StepperMarker({ marker }: { marker: MarkerStyle }) {
+  if (marker.type === 'ring') {
     return (
       <YStack
-        width={MARKER_SIZE}
-        height={MARKER_SIZE}
-        borderRadius="$full"
+        {...markerBase}
         borderWidth={2}
-        borderColor={palette.pendingBorder}
-        backgroundColor="transparent"
+        borderColor={marker.border}
+        backgroundColor={marker.fill ?? 'transparent'}
       />
     )
   }
-
-  if (variant === 'attention') {
-    return (
-      <YStack
-        width={MARKER_SIZE}
-        height={MARKER_SIZE}
-        borderRadius="$full"
-        borderWidth={2}
-        borderColor={palette.failedFill}
-        backgroundColor="transparent"
-      />
-    )
-  }
-
-  const fillColor = variant === 'failed' ? palette.failedFill : palette.completedFill
-  const glyph =
-    variant === 'completed' ? (
-      <Icon name="check" size="xs" color="white" />
-    ) : variant === 'failed' ? (
-      <Icon name="alert-triangle" size="xs" color="white" />
-    ) : (
-      <Icon name="loader" size="sm" color="white" spin />
-    )
 
   return (
     <YStack
-      width={MARKER_SIZE}
-      height={MARKER_SIZE}
-      borderRadius="$full"
-      backgroundColor={fillColor}
+      {...markerBase}
+      backgroundColor={marker.color}
       alignItems="center"
       justifyContent="center"
+      color="$white"
     >
-      {glyph}
+      <Icon
+        name={marker.icon}
+        size={marker.icon === 'loader' ? 'sm' : 'xs'}
+        color="inherit"
+        spin={marker.spin}
+      />
     </YStack>
   )
 }
 
-interface StepperStepRowProps {
-  step: StepperStepItem
-  isFirst: boolean
-  isLast: boolean
-  connectorAboveColor?: string
-  stepRef: (node: HTMLElement | null) => void
-  palette: PaletteTokens
+function Connector({
+  color,
+  minHeight,
+  marginTop,
+  marginBottom,
+}: {
+  color: string
+  minHeight: number
+  marginTop?: number
+  marginBottom?: number
+}) {
+  return (
+    <YStack
+      width={2}
+      flex={1}
+      minHeight={minHeight}
+      backgroundColor={color}
+      marginTop={marginTop}
+      marginBottom={marginBottom}
+    />
+  )
 }
+
+const StepperStepContent = createComponent(YStack, {
+  name: 'StepperStepContent',
+  flex: 1,
+  paddingTop: '$1',
+  variants: {
+    emphasis: {
+      true: {
+        gap: '$2',
+        paddingHorizontal: '$3',
+        paddingVertical: '$3',
+        borderRadius: '$3',
+        borderWidth: 1,
+      },
+      false: {
+        gap: '$1',
+        paddingBottom: '$3',
+      },
+    },
+  } as const,
+  defaultVariants: {
+    emphasis: false,
+  },
+})
 
 function StepperStepRow({
   step,
@@ -192,93 +114,69 @@ function StepperStepRow({
   isLast,
   connectorAboveColor,
   stepRef,
-  palette,
-}: StepperStepRowProps) {
-  const isActiveStep = step.status === 'active' || step.status === 'attention'
-  const isFailedStep = step.status === 'failed'
-  const isAttentionStep = step.status === 'attention'
-  const connectorBelowColor = connectorColor(step.status, palette)
-  const titleColor = isAttentionStep
-    ? palette.failedText
-    : isFailedStep
-      ? palette.failedText
-      : step.status === 'completed' || isActiveStep
-        ? palette.activeText
-        : palette.pendingText
-  const contentBackgroundColor = isActiveStep ? palette.activeRingFill : undefined
-  const contentBorderColor = isAttentionStep
-    ? palette.failedFill
-    : isFailedStep
-      ? palette.failedFill
-      : isActiveStep
-        ? palette.activeFill
-        : 'transparent'
-  const shouldShowDescription = Boolean(step.description) && (isActiveStep || isFailedStep)
-  const railOffset = isActiveStep || isFailedStep ? '$2' : '$1'
+}: {
+  step: StepperStepItem
+  isFirst: boolean
+  isLast: boolean
+  connectorAboveColor?: string
+  stepRef: (node: HTMLElement | null) => void
+}) {
+  const style = STEP_STYLE[step.status]
+  const showDescription = Boolean(step.description) && (style.active || style.failed)
+  const emphasized = style.active || style.failed
 
   return (
     <YStack ref={stepRef} width="100%">
       <XStack alignItems="stretch" gap="$3">
-        <YStack alignItems="center" width={MARKER_SIZE} flexShrink={0} marginTop={railOffset}>
-          {!isFirst && connectorAboveColor ? (
-            <YStack
-              width={2}
-              flex={1}
-              minHeight={6}
-              backgroundColor={connectorAboveColor}
-              marginTop={-ROW_GAP_PX}
-            />
-          ) : null}
-          <StepperMarker variant={resolveMarkerVariant(step.status)} palette={palette} />
-          {!isLast ? (
-            <YStack
-              width={2}
-              flex={1}
-              minHeight={16}
-              backgroundColor={connectorBelowColor}
-              marginBottom={-ROW_GAP_PX}
-            />
-          ) : null}
+        <YStack
+          alignItems="center"
+          width={MARKER_SIZE}
+          flexShrink={0}
+          marginTop={emphasized ? '$2' : '$1'}
+        >
+          {!isFirst && connectorAboveColor && (
+            <Connector color={connectorAboveColor} minHeight={6} marginTop={-ROW_GAP_PX} />
+          )}
+          <StepperMarker marker={style.marker} />
+          {!isLast && (
+            <Connector color={style.connector} minHeight={16} marginBottom={-ROW_GAP_PX} />
+          )}
         </YStack>
 
-        <YStack
-          flex={1}
-          gap={isActiveStep ? '$2' : '$1'}
-          paddingTop="$1"
-          paddingBottom={isLast ? '$0' : '$3'}
-          paddingHorizontal={isActiveStep || isFailedStep ? '$3' : '$0'}
-          paddingVertical={isActiveStep || isFailedStep ? '$3' : '$0'}
-          borderRadius="$3"
-          borderWidth={isActiveStep || isFailedStep ? 1 : 0}
-          borderColor={contentBorderColor}
-          backgroundColor={contentBackgroundColor}
+        <StepperStepContent
+          emphasis={emphasized}
+          paddingBottom={isLast ? '$0' : undefined}
+          borderColor={style.borderColor}
         >
           <XStack alignItems="center" justifyContent="space-between" gap="$2">
             <XStack alignItems="center" gap="$2" flex={1} flexWrap="wrap">
               <Text
-                color={titleColor}
-                fontWeight={isActiveStep || step.status === 'completed' || isFailedStep ? '700' : '600'}
-                fontSize={isActiveStep ? '$4' : undefined}
+                color={style.titleColor}
+                fontWeight={emphasized || step.status === 'completed' ? '700' : '600'}
+                fontSize={style.active ? '$4' : undefined}
               >
                 {step.title}
               </Text>
-              {isAttentionStep ? <Icon name="alert-triangle" size="xs" color="inherit" /> : null}
+              {style.attention && <Icon name="alert-triangle" size="xs" color="inherit" />}
             </XStack>
             <Text
               variant="caption"
-              secondary={!statusColor(step.status, palette)}
-              color={statusColor(step.status, palette)}
+              secondary={!style.statusColor}
+              color={style.statusColor}
               fontWeight="700"
             >
-              {statusLabel(step.status)}
+              {style.label}
             </Text>
           </XStack>
-          {shouldShowDescription ? (
-            <Text secondary={!isActiveStep && !isFailedStep} color={isFailedStep || isAttentionStep ? palette.failedText : undefined}>
+          {showDescription && (
+            <Text
+              secondary={!emphasized}
+              color={style.failed || style.attention ? '$warning' : undefined}
+            >
               {step.description}
             </Text>
-          ) : null}
-        </YStack>
+          )}
+        </StepperStepContent>
       </XStack>
     </YStack>
   )
@@ -286,19 +184,13 @@ function StepperStepRow({
 
 const SCROLL_HIDE_CLASS = 'gw-stepper-scroll-hide'
 
-const SCROLL_HIDE_STYLE_ID = 'gw-stepper-scroll-hide-style'
+let scrollbarStyleInjected = false
 
-function ensureScrollbarHidden(): void {
-  if (typeof document === 'undefined') {
-    return
-  }
-
-  if (document.getElementById(SCROLL_HIDE_STYLE_ID)) {
-    return
-  }
-
+function ensureScrollbarHidden() {
+  if (scrollbarStyleInjected || typeof document === 'undefined') return
+  scrollbarStyleInjected = true
   const style = document.createElement('style')
-  style.id = SCROLL_HIDE_STYLE_ID
+  style.id = 'gw-stepper-scroll-hide'
   style.textContent = `.${SCROLL_HIDE_CLASS}::-webkit-scrollbar { display: none; width: 0; height: 0; }`
   document.head.appendChild(style)
 }
@@ -309,38 +201,24 @@ const StepperScrollFrame = createComponent(YStack, {
   overflow: 'auto' as const,
 })
 
-function resolveActiveStepId(steps: StepperStepItem[], activeStepId?: string | null): string | null {
-  if (activeStepId) {
-    return activeStepId
-  }
-
-  const prioritizedStep = steps.find(
-    (step) => step.status === 'active' || step.status === 'failed' || step.status === 'attention',
-  )
-
-  return prioritizedStep?.id ?? null
-}
-
 export function Stepper({ steps, activeStepId, header, maxHeight = 360 }: StepperProps) {
   const stepRefs = useRef(new Map<string, HTMLElement>())
-  const resolvedActiveStepId = resolveActiveStepId(steps, activeStepId)
+  const resolvedActiveStepId =
+    activeStepId ?? steps.find((step) => FOCUSED_STATUSES.has(step.status))?.id ?? null
+
+  ensureScrollbarHidden()
 
   useEffect(() => {
-    ensureScrollbarHidden()
-  }, [])
-
-  useEffect(() => {
-    if (!resolvedActiveStepId) {
-      return undefined
-    }
+    if (!resolvedActiveStepId) return undefined
 
     const frame = requestAnimationFrame(() => {
-      const node = stepRefs.current.get(resolvedActiveStepId)
-      node?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      stepRefs.current
+        .get(resolvedActiveStepId)
+        ?.scrollIntoView({ block: 'center', behavior: 'smooth' })
     })
 
     return () => cancelAnimationFrame(frame)
-  }, [resolvedActiveStepId])
+  }, [resolvedActiveStepId, steps])
 
   return (
     <YStack gap="$3" width="100%">
@@ -357,16 +235,13 @@ export function Stepper({ steps, activeStepId, header, maxHeight = 360 }: Steppe
               step={step}
               isFirst={index === 0}
               isLast={index === steps.length - 1}
-              connectorAboveColor={index === 0 ? undefined : connectorColor(steps[index - 1].status, PRIMARY_PALETTE)}
+              connectorAboveColor={
+                index === 0 ? undefined : STEP_STYLE[steps[index - 1].status].connector
+              }
               stepRef={(node) => {
-                if (node) {
-                  stepRefs.current.set(step.id, node)
-                  return
-                }
-
-                stepRefs.current.delete(step.id)
+                if (node) stepRefs.current.set(step.id, node)
+                else stepRefs.current.delete(step.id)
               }}
-              palette={PRIMARY_PALETTE}
             />
           ))}
         </YStack>
