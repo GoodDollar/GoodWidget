@@ -1,22 +1,25 @@
-name: Deploy Storybook
+name: Deploy AI Credits Web
 
 on:
   push:
     branches:
       - main
     paths:
-      - 'examples/storybook/**'
-      - 'packages/**'
+      - 'apps/ai-credits-web/**'
+      - 'packages/ai-credits-widget/**'
+      - 'packages/core/**'
+      - 'packages/ui/**'
+      - 'packages/embed/**'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
 
 concurrency:
-  group: deploy-storybook-${{ github.ref }}
+  group: deploy-ai-credits-web-${{ github.ref }}
   cancel-in-progress: true
 
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_AI_CREDITS_WEB_PROJECT_ID }}
 
 jobs:
   production:
@@ -26,7 +29,7 @@ jobs:
       url: ${{ steps.deploy.outputs.url }}
     defaults:
       run:
-        working-directory: examples/storybook
+        working-directory: apps/ai-credits-web
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -49,7 +52,7 @@ jobs:
       - name: Pull Vercel project settings
         run: pnpm exec vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
-      - name: Build Storybook deployment
+      - name: Build deployment
         run: pnpm exec vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Deploy production
