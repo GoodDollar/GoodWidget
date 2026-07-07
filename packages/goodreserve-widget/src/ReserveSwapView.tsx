@@ -21,7 +21,7 @@ import type {
   ReserveSwapWidgetAdapterState,
 } from './widgetRuntimeContract'
 import { CELO_CHAIN_ID, getReserveChainFromId, XDC_CHAIN_ID } from './constants'
-import { sanitizeAmount } from './amount'
+
 
 // ---------------------------------------------------------------------------
 // Widget-scoped named components.
@@ -618,7 +618,7 @@ function MainSwapView({
               value={state.inputAmount}
               placeholder="0.00"
               onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                actions.setInputAmount(sanitizeAmount(event.target.value))
+                actions.setInputAmount(event.target.value)
               }
             />
           </XStack>

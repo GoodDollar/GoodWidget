@@ -2,6 +2,10 @@ import React from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { GoodReserveWidget } from '@goodwidget/goodreserve-widget'
 import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
+import {
+  getInjectedEip1193Provider,
+  isInjectedProviderUsable,
+} from '../../fixtures/injectedEip1193'
 import { reserveWidgetMockStates } from '../../fixtures/goodReserveWidgetMock'
 
 const provider = createCustodialEip1193Provider()
@@ -105,12 +109,40 @@ export const Interactive: Story = {
   ),
 }
 
-// Live wallet test - uses real MetaMask/wallet extension for end-to-end testing.
+// Injected wallet story — uses the browser's EIP-1193 provider (MetaMask, Rabby, etc).
+// Matches the citizen-claim-widget InjectedWallet pattern. NOT for CI.
+function InjectedWalletStory() {
+  const injectedProvider = getInjectedEip1193Provider()
+  const usableProvider = isInjectedProviderUsable(injectedProvider)
+
+  if (!usableProvider) {
+    return (
+      <div data-testid="GoodReserveWidget-no-wallet" style={{ padding: '20px', maxWidth: '400px' }}>
+        <strong>No injected wallet found</strong>
+        <p>
+          Install/enable MetaMask (or another EIP-1193 wallet) in this browser, then refresh
+          Storybook.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div data-testid="GoodReserveWidget-injected-wallet" style={{ width: 390 }}>
+      <GoodReserveWidget provider={injectedProvider} />
+    </div>
+  )
+}
+
+export const InjectedWallet: Story = {
+  render: () => <InjectedWalletStory />,
+}
+
+// Live wallet test — uses real MetaMask/wallet extension for end-to-end testing.
 // This story requires a browser wallet extension (MetaMask, etc.) to be installed.
-// NOT for CI - requires manual testing with real wallet connection.
+// NOT for CI — requires manual testing with real wallet connection.
 export const LiveWallet: Story = {
   render: () => {
-    // Check if window.ethereum exists (MetaMask or other wallet extension)
     if (typeof window === 'undefined' || !(window as any).ethereum) {
       return (
         <div style={{ padding: '20px', maxWidth: '400px' }}>
@@ -127,15 +159,14 @@ export const LiveWallet: Story = {
       )
     }
 
-    // Use the real wallet provider
     const walletProvider = (window as any).ethereum
 
     return (
       <div data-testid="GoodReserveWidget-live-wallet" style={{ width: 390, minHeight: 600, paddingBottom: 40 }}>
         <div style={{ marginBottom: '10px', padding: '10px', backgroundColor: '#fff3cd', border: '1px solid #ffc107', borderRadius: '4px' }}>
-          <strong>⚠️ Live Wallet Test</strong><br />
+          <strong>Live Wallet Test</strong><br />
           Using real wallet: {walletProvider.isMetaMask ? 'MetaMask' : 'Wallet Extension'}<br />
-          <small>Test the full swap flow: quote → confirm → execute → success</small>
+          <small>Test the full swap flow: quote - confirm - execute - success</small>
         </div>
         <GoodReserveWidget provider={walletProvider} />
       </div>

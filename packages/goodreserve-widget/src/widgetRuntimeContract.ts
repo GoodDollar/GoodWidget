@@ -87,10 +87,11 @@ export interface ReserveSwapWidgetProps {
   config?: GoodWidgetConfig
   themeOverrides?: GoodWidgetThemeOverrides
   /**
-   * The GoodReserve widget is dark-only (the GoodWalletV2 design system has no
-   * light variant for it), so only 'dark' is supported.
+   * Default theme for the GoodReserve widget. Defaults to 'dark' which
+   * matches the Figma reference. Both light and dark themes are supported;
+   * light should be verified to look reasonable when used.
    */
-  defaultTheme?: 'dark'
+  defaultTheme?: 'light' | 'dark'
   /** Chain proposed by the unsupported-chain CTA. Defaults to Celo (42220). */
   preferredChainId?: number
   onSwapSuccess?: (detail: ReserveSwapSuccessDetail) => void

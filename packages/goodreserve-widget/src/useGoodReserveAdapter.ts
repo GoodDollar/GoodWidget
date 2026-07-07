@@ -7,7 +7,7 @@ import type {
 import {
   DEFAULT_SLIPPAGE_PERCENT,
 } from './constants'
-import { sanitizeAmount } from './amount'
+
 import {
   balancesForDirection,
   getStableSymbol,
@@ -140,12 +140,11 @@ export function useGoodReserveAdapter(
         })
       },
       setInputAmount: (value: string) => {
-        const clean = sanitizeAmount(value)
-        applyStatePatch({ inputAmount: clean, status: clean ? 'amount_editing' : 'idle' })
+        applyStatePatch({ inputAmount: value, status: value ? 'amount_editing' : 'idle' })
       },
       setMaxAmount: () => {
         applyStatePatch({
-          inputAmount: sanitizeAmount(state.tokenInBalance),
+          inputAmount: state.tokenInBalance,
           status: 'amount_editing',
         })
       },

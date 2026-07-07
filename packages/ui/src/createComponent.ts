@@ -1,3 +1,4 @@
+import React from 'react'
 import { styled } from 'tamagui'
 import type { GetProps, TamaguiComponent } from 'tamagui'
 import { registerComponent } from './manifest'
@@ -43,7 +44,17 @@ export function createComponent(base: TamaguiComponent, options: Record<string, 
   const { extends: extendsName, ...rest } = options
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const component = styled(base as any, rest)
+  const styledComponent = styled(base as any, rest) as any
+  const component =
+    typeof styledComponent.styleable === 'function'
+      ? styledComponent.styleable((props: any, ref: React.Ref<unknown>) =>
+          React.createElement(styledComponent, { ...props, ref }),
+        )
+      : React.forwardRef<unknown, any>((props, ref) =>
+          React.createElement(styledComponent, { ...props, ref }),
+        )
+
+  component.displayName = rest.name
 
   const variantKeys = rest.variants ? Object.keys(rest.variants) : []
 

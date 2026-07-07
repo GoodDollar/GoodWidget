@@ -50,85 +50,18 @@ const reserveTheme = {
  * Reserve-widget author defaults.
  *
  * Shared preset values stay in @goodwidget/ui. This config only adds
- * widget-local token extensions that the reserve components consume directly.
+ * widget-local token extensions that the reserve components consume directly
+ * via `$reserveCard`, `$reserveBadge`, etc. in their createComponent calls.
  *
- * Integrators can override any of these values via:
+ * Sub-theme overrides per component (light_ReserveSwapShell, etc.) are not
+ * needed here because createComponent already defines the default values via
+ * Tamagui token references. Integrators who want to change a specific
+ * component's styling can do so via themeOverrides:
  *   <GoodReserveWidget themeOverrides={{ themes: { light: { reserveCard: '...' } } }} />
  */
 export const goodReserveWidgetConfig = {
   themes: {
     light: reserveTheme,
     dark: reserveTheme,
-    // Named component sub-themes — define light_/dark_ only when the two modes
-    // need different values. The reserve widget is dark-only by design, so most
-    // components use identical light/dark values.
-    light_ReserveSwapShell: {
-      background: reserveTokenPreset.reserveCard,
-      borderColor: reserveTokenPreset.reserveBadge,
-      color: '$textColor',
-    },
-    dark_ReserveSwapShell: {
-      background: reserveTokenPreset.reserveCard,
-      borderColor: reserveTokenPreset.reserveBadge,
-      color: '$textColor',
-    },
-    light_ReserveAmountCard: {
-      background: reserveTokenPreset.reserveInputCard,
-      color: '$textColor',
-    },
-    dark_ReserveAmountCard: {
-      background: reserveTokenPreset.reserveInputCard,
-      color: '$textColor',
-    },
-    light_ReserveTokenBadge: {
-      background: reserveTokenPreset.reserveBadge,
-      color: '$textColor',
-    },
-    dark_ReserveTokenBadge: {
-      background: reserveTokenPreset.reserveBadge,
-      color: '$textColor',
-    },
-    light_ReserveSwapDirectionButton: {
-      background: reserveTokenPreset.reserveBadge,
-      color: '$primary',
-    },
-    dark_ReserveSwapDirectionButton: {
-      background: reserveTokenPreset.reserveBadge,
-      color: '$primary',
-    },
-    light_ReserveSettingsButton: {
-      background: reserveTokenPreset.reserveBadge,
-      color: '$primary',
-    },
-    dark_ReserveSettingsButton: {
-      background: reserveTokenPreset.reserveBadge,
-      color: '$primary',
-    },
-    light_ReserveSurface: {
-      background: '$surface',
-      color: '$textColor',
-    },
-    dark_ReserveSurface: {
-      background: '$surface',
-      color: '$textColor',
-    },
-    light_ReserveSuccessIcon: {
-      background: '$primary',
-      color: '$white',
-      shadowColor: '$primary',
-    },
-    dark_ReserveSuccessIcon: {
-      background: '$primary',
-      color: '$white',
-      shadowColor: '$primary',
-    },
-    light_ReserveConfirmToBadge: {
-      background: '$primary',
-      color: '$white',
-    },
-    dark_ReserveConfirmToBadge: {
-      background: '$primary',
-      color: '$white',
-    },
   },
 } satisfies GoodWidgetConfig
