@@ -18,3 +18,7 @@ playwright-report/
 local-reference-assets
 .vercel
 .env*
+
+
+.agents
+skills-lock.json

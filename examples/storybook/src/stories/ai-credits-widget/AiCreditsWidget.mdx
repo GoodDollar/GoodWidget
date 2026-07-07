@@ -1,0 +1,116 @@
+import { Canvas, Meta } from '@storybook/blocks';
+import * as ShowcaseStories from './AiCreditsWidgetShowcase.stories';
+import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/DocsLayout';
+
+<Meta of={ShowcaseStories} />
+
+<DocsPage
+  eyebrow="Widget Guide"
+  title="AiCreditsWidget"
+  lead="Buy AI coding credits with G$ on Celo. Credits settle on Base and are redeemable with AntSeed-compatible AI coding tools like Cursor and Cline."
+>
+  <DocsSection
+    title="Interactive showcase (mock backend)"
+    description="Uses your browser wallet (`window.ethereum`, e.g. Rabby) with the in-memory mock backend — no local antseed worker required."
+  >
+    <Canvas of={ShowcaseStories.MockBackend} />
+  </DocsSection>
+
+  <DocsSection
+    title="Injected wallet"
+    description="Uses your browser wallet (`window.ethereum`, e.g. Rabby), `VITE_AI_CREDITS_BACKEND_URL`, `VITE_AI_CREDITS_BASE_RPC_URL`, `VITE_AI_CREDITS_CELO_RPC_URL` (optional), `VITE_AI_CREDITS_FUNDING_VAULT_ADDRESS`, `VITE_AI_CREDITS_VAULT_ADDRESS`, and optional `VITE_AI_CREDITS_GOODID_ADDRESS` from `examples/storybook/.env.local`. GoodID verification uses on-chain `getWhitelistedRoot` via the Celo RPC (defaults to mainnet GoodID contract)."
+  >
+    <Canvas of={ShowcaseStories.InjectedWallet} />
+  </DocsSection>
+
+  <DocsSection
+    title="QA coverage"
+    description="Use the QA demo when you need reproducible fixture states, Playwright screenshots, or fixture-driven debugging."
+  >
+    <DocsCard
+      title="Open the QA fixture demo"
+      href="?path=/story/qa-aicreditswidget-runtime-fixtures--disconnected"
+    >
+      All QA fixture states as deterministic mock stories — ideal for automation and debugging.
+    </DocsCard>
+  </DocsSection>
+
+  <DocsSection
+    title="Widget states"
+    description="Buy-flow status describes purchase progress and errors. The Manage tab (activeTab) is separate — use it when the wallet has credits or after a successful purchase."
+  >
+    <DocsGrid>
+      <DocsCard title="S1 – Disconnected">No wallet connected; tabs and purchase stepper hidden; circular Connect Wallet button.</DocsCard>
+      <DocsCard title="S2 – Purchase Setup">Buy tab — stepper with active step opened in a bottom drawer.</DocsCard>
+      <DocsCard title="S3 – Quote Ready">Buy tab — pay step in drawer; ready to confirm Celo transaction.</DocsCard>
+      <DocsCard title="S4 – Payment Pending">Buy tab — Celo tx submitted.</DocsCard>
+      <DocsCard title="S5 – Payment Confirmed">Buy tab — settling on Base.</DocsCard>
+      <DocsCard title="S6 – Manage tab">Manage tab — balance, stream, history, close/withdraw, API setup.</DocsCard>
+      <DocsCard title="S7 – Insufficient G$">G$ below minimum purchase threshold.</DocsCard>
+      <DocsCard title="S8 – Payment Failed">Transaction or settlement error.</DocsCard>
+      <DocsCard title="S9 – Backend Unavailable">Backend unreachable.</DocsCard>
+      <DocsCard title="S10 – Unsupported Chain">Wrong network (Celo required).</DocsCard>
+    </DocsGrid>
+  </DocsSection>
+
+  <DocsSection
+    title="Widget navigation"
+    description="When a wallet is connected, Buy Credits and Manage appear as tabs at the top (with the GoodDollar header and chain badge). Switch tabs anytime — including during payment pending or failed states."
+  >
+    <DocsGrid>
+      <DocsCard title="Buy Credits">Stepper for buyer key, consent, and pay — each step opens in a drawer.</DocsCard>
+      <DocsCard title="Manage">Credits balance, stream info, close/withdraw, API setup, and history.</DocsCard>
+    </DocsGrid>
+  </DocsSection>
+
+  <DocsSection
+    title="Backend API usage"
+    description="Production stories call the antseed-integration worker for reads, settlement, and management actions."
+  >
+    <DocsGrid>
+      <DocsCard title="GET …/credit">Credits profile and funding history for the payer wallet.</DocsCard>
+      <DocsCard title="GET …/outstanding">Pending or failed Base funding entries.</DocsCard>
+      <DocsCard title="POST …/celo/events/record">Notify `{ txHash }` after a successful Celo payment.</DocsCard>
+      <DocsCard title="POST …/accounts/:buyer/operator-consent">
+        Buyer-signed SetOperator relay — backend submits `acceptBuyerOperator` on Base (no buyer gas).
+      </DocsCard>
+      <DocsCard title="POST …/channels/:channelId/close">Buyer-signed channel close from credits management.</DocsCard>
+      <DocsCard title="POST …/accounts/:buyer/withdraw">Buyer-signed principal withdraw to the payer wallet.</DocsCard>
+    </DocsGrid>
+    <DocsCallout title="On-chain (not backend)" tone="info">
+      Vault minimum reads, quotes, withdrawable principal, and Celo deposit/stream transactions are
+      handled on-chain via RPC. Buyer EIP-712 signing for operator consent, close, and withdraw
+      happens in the widget; only the Base submission is relayed by the worker. There is no
+      channel-list API — paste the channel ID manually.
+    </DocsCallout>
+  </DocsSection>
+
+  <DocsSection
+    title="Known limitations"
+    description="Features that still need operator care in production."
+  >
+    <DocsCallout title="Buyer private key session" tone="warning">
+      Close channel and withdraw require the buyer private key in the current browser session. Use
+      Sign &amp; Generate in Buyer &amp; Operator on the credits management screen if the key was
+      lost after refresh.
+    </DocsCallout>
+    <DocsCallout title="Vault minimums" tone="info">
+      First-deposit USD minimum applies only when `totalDepositedGd(payer)` is zero. Monthly stream
+      USD minimum applies on every stream create/update.
+    </DocsCallout>
+    <DocsCallout title="Base bridge" tone="info">
+      Operator consent, close, withdraw, and credit funding require the worker&apos;s Base operator
+      bridge to be configured (`bridge.enabled: true` in API responses).
+    </DocsCallout>
+  </DocsSection>
+
+  <DocsSection
+    title="Workflow guidance"
+    description="Choose the story type based on the job you are trying to do."
+  >
+    <DocsCallout title="Rule of use" tone="info">
+      Use the showcase story when validating the product-facing integration flow. Use the QA fixture
+      stories when you need state-flow coverage, screenshots, or reproducible runtime conditions.
+    </DocsCallout>
+  </DocsSection>
+</DocsPage>

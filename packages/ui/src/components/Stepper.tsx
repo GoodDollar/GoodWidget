@@ -27,6 +27,7 @@ export interface StepperProps {
   activeStepId?: string | null
   header?: ReactNode
   maxHeight?: number
+  onStepPress?: (stepId: string) => void
 }
 
 const markerBase = { width: MARKER_SIZE, height: MARKER_SIZE, borderRadius: '$full' as const }
@@ -114,16 +115,21 @@ function StepperStepRow({
   isLast,
   connectorAboveColor,
   stepRef,
+  onStepPress,
 }: {
   step: StepperStepItem
   isFirst: boolean
   isLast: boolean
   connectorAboveColor?: string
   stepRef: (node: HTMLElement | null) => void
+  onStepPress?: (stepId: string) => void
 }) {
   const style = STEP_STYLE[step.status]
   const showDescription = Boolean(step.description) && (style.active || style.failed)
   const emphasized = style.active || style.failed
+  const pressable =
+    Boolean(onStepPress) &&
+    (step.status === 'active' || step.status === 'failed' || step.status === 'completed')
 
   return (
     <YStack ref={stepRef} width="100%">
@@ -147,12 +153,14 @@ function StepperStepRow({
           emphasis={emphasized}
           paddingBottom={isLast ? '$0' : undefined}
           borderColor={style.borderColor}
+          onPress={pressable ? () => onStepPress?.(step.id) : undefined}
+          cursor={pressable ? 'pointer' : undefined}
         >
           <XStack alignItems="center" justifyContent="space-between" gap="$2">
             <XStack alignItems="center" gap="$2" flex={1} flexWrap="wrap">
               <Text
                 color={style.titleColor}
-                fontWeight={emphasized || step.status === 'completed' ? '700' : '600'}
+                fontWeight={style.active || step.status === 'failed' ? '700' : step.status === 'completed' ? '600' : '400'}
                 fontSize={style.active ? '$4' : undefined}
               >
                 {step.title}
@@ -201,7 +209,7 @@ const StepperScrollFrame = createComponent(YStack, {
   overflow: 'auto' as const,
 })
 
-export function Stepper({ steps, activeStepId, header, maxHeight = 360 }: StepperProps) {
+export function Stepper({ steps, activeStepId, header, maxHeight = 360, onStepPress }: StepperProps) {
   const stepRefs = useRef(new Map<string, HTMLElement>())
   const resolvedActiveStepId =
     activeStepId ?? steps.find((step) => FOCUSED_STATUSES.has(step.status))?.id ?? null
@@ -242,6 +250,7 @@ export function Stepper({ steps, activeStepId, header, maxHeight = 360 }: Steppe
                 if (node) stepRefs.current.set(step.id, node)
                 else stepRefs.current.delete(step.id)
               }}
+              onStepPress={onStepPress}
             />
           ))}
         </YStack>

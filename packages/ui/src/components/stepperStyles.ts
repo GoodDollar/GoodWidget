@@ -46,7 +46,7 @@ export const STEP_STYLE: Record<StepperStepStatus, StepStyle> = {
     connector: '$borderColorFocus',
     label: 'Completed',
     statusColor: '$success',
-    titleColor: '$color',
+    titleColor: '$colorSoft',
     borderColor: 'transparent',
     active: false,
     failed: false,

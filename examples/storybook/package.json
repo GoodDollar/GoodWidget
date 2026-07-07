@@ -16,6 +16,7 @@
     "@goodwidget/governance-widget": "workspace:*",
     "@goodwidget/streaming-widget": "workspace:*",
     "@goodwidget/staking-migration-widget": "workspace:*",
+    "@goodwidget/ai-credits-widget": "workspace:*",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "react-native-web": "^0.19.13",

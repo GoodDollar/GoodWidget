@@ -1,6 +1,7 @@
-import React, { useCallback } from 'react'
+import React, { useCallback, useMemo } from 'react'
 import { Stack, Text as TamaguiText } from 'tamagui'
 import { createComponent } from '../createComponent'
+import { createInputChangeHandlers } from './inputChangeHandlers'
 
 const TokenInputFrame = createComponent(Stack, {
   name: 'TokenInput',
@@ -43,6 +44,11 @@ export function TokenInput({ value, onChangeText, token, balance, onMax }: Token
     onMax?.()
   }, [onMax])
 
+  const { onChange, onChangeText: handleChangeText } = useMemo(
+    () => createInputChangeHandlers({ onChangeText }),
+    [onChangeText],
+  )
+
   return (
     <TokenInputFrame>
       <Stack flexDirection="row" alignItems="center" justifyContent="space-between">
@@ -79,7 +85,8 @@ export function TokenInput({ value, onChangeText, token, balance, onMax }: Token
         <AmountInput
           value={value}
           placeholder="0.00"
-          onChangeText={onChangeText}
+          onChange={onChange}
+          onChangeText={handleChangeText}
         />
         <Stack
           paddingHorizontal="$3"

@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'examples/storybook/**'
+      - 'packages/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
 
 concurrency:
   group: deploy-storybook-${{ github.ref }}
@@ -19,6 +24,9 @@ jobs:
     environment:
       name: production
       url: ${{ steps.deploy.outputs.url }}
+    defaults:
+      run:
+        working-directory: examples/storybook
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,6 +44,7 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+        working-directory: ${{ github.workspace }}
 
       - name: Pull Vercel project settings
         run: pnpm exec vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}

@@ -107,3 +107,5 @@ export type { CircularActionButtonProps } from './components/CircularActionButto
 export { WidgetTabs } from './components/WidgetTabs'
 export { ActionSheet } from './components-test/ActionSheet'
 export { TokenInput } from './components-test/TokenInput'
+
+export { copyTextToClipboard } from './clipboard'

@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react'
 import { Stack, Text as TamaguiText } from 'tamagui'
+import { copyTextToClipboard } from '../clipboard'
 import { createComponent } from '../createComponent'
 
 const AddressFrame = createComponent(Stack, {
@@ -47,15 +48,10 @@ export function AddressDisplay({
 
   const handleCopy = useCallback(async () => {
     if (!copyable) return
-    try {
-      if (typeof navigator !== 'undefined' && navigator.clipboard) {
-        await navigator.clipboard.writeText(address)
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
-      }
-    } catch {
-      // clipboard not available
-    }
+    const copied = await copyTextToClipboard(address)
+    if (!copied) return
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }, [address, copyable])
 
   const displayText = ensName ?? (truncate ? truncateAddress(address) : address)
