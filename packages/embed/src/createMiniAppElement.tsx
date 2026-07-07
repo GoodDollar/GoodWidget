@@ -91,7 +91,7 @@ export function createMiniAppElement(
 
     static get observedAttributes(): string[] {
       return Object.entries(normalizedProps)
-        .filter(([, def]) => def.type === 'attribute')
+        .filter(([_, def]) => def.type === 'attribute')
         .map(([name]) => toKebabCase(name))
     }
 
