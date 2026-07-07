@@ -70,6 +70,14 @@ export type { ToastStatus, ToastConfig, ToastItem } from './components/Toast'
 export { Alert } from './components-test/Alert'
 export { Badge, BadgeText } from './components-test/Badge'
 export { Drawer } from './components/Drawer'
+export {
+  PageWizardProvider,
+  PageWizardShell,
+  usePageWizard,
+} from './components/PageWizard'
+export type { PageWizardContextValue, PageWizardStep } from './components/PageWizard'
+export { Stepper } from './components/Stepper'
+export type { StepperProps, StepperStepItem, StepperStepStatus } from './components/Stepper'
 
 // Icon — new component with inline SVG registry and semantic color/size props
 export { Icon } from './components/Icon'
@@ -96,8 +104,6 @@ export { WalletInfo } from './components-test/WalletInfo'
 export { MiniAppShell } from './components/MiniAppShell'
 export { CircularActionButton } from './components/CircularActionButton'
 export type { CircularActionButtonProps } from './components/CircularActionButton'
-export { Stepper } from './components/Stepper'
-export type { StepperProps, StepperStepItem, StepperStepStatus } from './components/Stepper'
 export { WidgetTabs } from './components/WidgetTabs'
 export { ActionSheet } from './components-test/ActionSheet'
 export { TokenInput } from './components-test/TokenInput'

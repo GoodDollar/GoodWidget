@@ -59,8 +59,18 @@ const voters: VoterPreview[] = [
 ]
 
 const fundingProjects: FundingProjectAllocation[] = [
-  { id: 'education', name: 'Education Hubs', amount: { value: 157500, token: 'G$' }, percentage: 35 },
-  { id: 'merchant', name: 'Merchant Onboard', amount: { value: 112500, token: 'G$' }, percentage: 25 },
+  {
+    id: 'education',
+    name: 'Education Hubs',
+    amount: { value: 157500, token: 'G$' },
+    percentage: 35,
+  },
+  {
+    id: 'merchant',
+    name: 'Merchant Onboard',
+    amount: { value: 112500, token: 'G$' },
+    percentage: 25,
+  },
   { id: 'grants', name: 'Dev Grants', amount: { value: 90000, token: 'G$' }, percentage: 20 },
   { id: 'creator', name: 'Creator Fund', amount: { value: 90000, token: 'G$' }, percentage: 20 },
 ]
@@ -111,7 +121,15 @@ export const ImpactLight: Story = {
         title="Distributed"
         metrics={[
           { label: 'UBI Pool', amount: { value: 12400000, token: 'G$' } },
-          { label: 'Impact Pool', amount: { value: 5234891, token: 'G$', isStreaming: true, streamLabel: 'Live stream active' } },
+          {
+            label: 'Impact Pool',
+            amount: {
+              value: 5234891,
+              token: 'G$',
+              isStreaming: true,
+              streamLabel: 'Live stream active',
+            },
+          },
         ]}
         description="Empowering 640k+ people worldwide through transparent, decentralized funding for public goods."
         ctaLabel="View Impact Report Q3"
@@ -129,7 +147,15 @@ export const ImpactDarkLongDisabledMobile: Story = {
         title="Distributed"
         metrics={[
           { label: 'UBI Pool', amount: { value: 12400000, token: 'G$' } },
-          { label: 'Impact Pool', amount: { value: 5234891, token: 'G$', isStreaming: true, streamLabel: 'Live stream active' } },
+          {
+            label: 'Impact Pool',
+            amount: {
+              value: 5234891,
+              token: 'G$',
+              isStreaming: true,
+              streamLabel: 'Live stream active',
+            },
+          },
         ]}
         description="Empowering 640k+ people worldwide through transparent, decentralized funding for public goods."
         ctaLabel="View Impact Report Q3"
@@ -141,7 +167,13 @@ export const ImpactDarkLongDisabledMobile: Story = {
 export const BalanceVariantsLight: Story = {
   render: () => (
     <GovernanceWidgetProvider>
-      <XStack data-testid="BalanceCard-light-variants" flexWrap="wrap" gap="$3" padding="$3" width={600}>
+      <XStack
+        data-testid="BalanceCard-light-variants"
+        flexWrap="wrap"
+        gap="$3"
+        padding="$3"
+        width={600}
+      >
         <BalanceCard
           testID="BalanceCard-token-growth"
           icon="wallet"
@@ -281,7 +313,15 @@ export const ImpactLightComponentOverride: Story = {
         title="Distributed"
         metrics={[
           { label: 'UBI Pool', amount: { value: 12400000, token: 'G$' } },
-          { label: 'Impact Pool', amount: { value: 5234891, token: 'G$', isStreaming: true, streamLabel: 'Live stream active' } },
+          {
+            label: 'Impact Pool',
+            amount: {
+              value: 5234891,
+              token: 'G$',
+              isStreaming: true,
+              streamLabel: 'Live stream active',
+            },
+          },
         ]}
         description="This story verifies the ImpactCard preset target can be branded without local component styles."
         ctaLabel="View Impact Report Q3"

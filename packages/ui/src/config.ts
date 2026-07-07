@@ -237,6 +237,12 @@ export function createGoodWidgetConfig(overrides?: GoodWidgetConfig) {
       body: bodyFont,
     },
     defaultFont: 'body',
+    media: {
+      sm: { maxWidth: 480 },
+      md: { maxWidth: 768 },
+      gtSm: { minWidth: 480 },
+      gtMd: { minWidth: 768 },
+    },
   })
 }
 

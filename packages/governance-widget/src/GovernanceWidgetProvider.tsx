@@ -20,6 +20,10 @@ export interface GovernanceWidgetProviderProps {
 /**
  * Builds the governance author configuration before host theme overrides are
  * applied by GoodWidgetProvider.
+ *
+ * Governance component-level theme definitions are kept local to this package
+ * and merged here at the author config layer. Integrators can still override
+ * them through the themeOverrides prop.
  */
 function createGovernanceWidgetConfig(config?: GoodWidgetConfig): GoodWidgetConfig {
   return {
