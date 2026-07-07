@@ -1,9 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
-  "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm --filter @goodwidget/ai-credits-web build",
-  "outputDirectory": "apps/ai-credits-web/dist",
   "devCommand": "pnpm dev",
   "git": {
     "deploymentEnabled": false
