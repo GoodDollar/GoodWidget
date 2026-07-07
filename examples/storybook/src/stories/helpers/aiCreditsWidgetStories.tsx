@@ -90,13 +90,13 @@ function MockStoryShell({
   try {
     const provider = createCustodialEip1193Provider()
     return (
-      <YStack data-testid={dataTestId} style={{ width: 420 }}>
+      <YStack data-testid={dataTestId} style={{ width: 380 }}>
         <AiCreditsWidget provider={provider} adapterFactory={adapterFactory} />
       </YStack>
     )
   } catch (error: unknown) {
     return (
-      <YStack data-testid="AiCreditsWidget-custodial-config-error" style={{ width: 420 }} gap="$3">
+      <YStack data-testid="AiCreditsWidget-custodial-config-error" style={{ width: 380 }} gap="$3">
         <strong>Custodial fixture not configured</strong>
         <span>
           {error instanceof Error ? error.message : 'Set a local private key in custodialEip1193.ts'}
@@ -313,7 +313,7 @@ export function MockBackendStory() {
 
   if (!isInjectedProviderUsable(injectedProvider)) {
     return (
-      <YStack data-testid="AiCreditsWidget-no-wallet" style={{ width: 420 }} gap="$3">
+      <YStack data-testid="AiCreditsWidget-no-wallet" style={{ width: 380 }} gap="$3">
         <strong>No injected wallet found</strong>
         <span>
           Install or enable Rabby (or another EIP-1193 wallet) in this browser, then refresh
@@ -324,7 +324,7 @@ export function MockBackendStory() {
   }
 
   return (
-    <YStack data-testid="AiCreditsWidget-mock-backend" style={{ width: 420 }}>
+    <YStack data-testid="AiCreditsWidget-mock-backend" style={{ width: 380 }}>
       <AiCreditsWidget provider={injectedProvider} />
     </YStack>
   )
@@ -341,7 +341,7 @@ export function InjectedWalletStory() {
 
   if (!isInjectedProviderUsable(injectedProvider)) {
     return (
-      <YStack data-testid="AiCreditsWidget-no-wallet" style={{ width: 420 }} gap="$3">
+      <YStack data-testid="AiCreditsWidget-no-wallet" style={{ width: 380 }} gap="$3">
         <strong>No injected wallet found</strong>
         <span>
           Install or enable MetaMask (or another EIP-1193 wallet) in this browser, then refresh
@@ -352,7 +352,7 @@ export function InjectedWalletStory() {
   }
 
   return (
-    <YStack data-testid="AiCreditsWidget-injected-wallet" style={{ width: 420 }} gap="$3">
+    <YStack data-testid="AiCreditsWidget-injected-wallet" style={{ width: 380 }} gap="$3">
       <AiCreditsWidget
         provider={injectedProvider}
         backendUrl={backendUrl}
