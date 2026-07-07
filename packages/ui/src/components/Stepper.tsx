@@ -220,7 +220,9 @@ export function Stepper({ steps, activeStepId, header, maxHeight = 360, onStepPr
     if (!resolvedActiveStepId) return undefined
 
     const frame = requestAnimationFrame(() => {
-      stepRefs.current.get(resolvedActiveStepId)?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      stepRefs.current
+        .get(resolvedActiveStepId)
+        ?.scrollIntoView({ block: 'center', behavior: 'smooth' })
     })
 
     return () => cancelAnimationFrame(frame)

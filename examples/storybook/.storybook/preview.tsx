@@ -40,6 +40,14 @@ const preview: Preview = {
     (Story, context) => {
       const params = (context.parameters.goodWidgetProvider ?? {}) as StoryGoodWidgetParameters
       const story = <Story />
+      const content =
+        params.useShell === false ? (
+          story
+        ) : (
+          <MiniAppShell title="GoodWidgetDemos" headerRight={undefined}>
+            {story}
+          </MiniAppShell>
+        )
 
       if (params.disableProvider) {
         return params.useShell === false ? (
@@ -53,13 +61,7 @@ const preview: Preview = {
 
       return (
         <GoodWidgetProvider config={params.config} defaultTheme={params.defaultTheme ?? 'dark'}>
-          {params.useShell === false ? (
-            story
-          ) : (
-            <MiniAppShell title="GoodWidgetDemos" headerRight={undefined}>
-              {story}
-            </MiniAppShell>
-          )}
+          {content}
         </GoodWidgetProvider>
       )
     },

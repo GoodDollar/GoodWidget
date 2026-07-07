@@ -173,7 +173,7 @@ export const ButtonText = styled(TamaguiText, {
   fontFamily: '$body',
   fontSize: '$3',
   fontWeight: '600',
-  color: '$color',
+  color: '$textColor',
   userSelect: 'none',
 })
 
