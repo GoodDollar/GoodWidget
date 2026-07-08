@@ -36,8 +36,8 @@ export function formatProfileUsd(usd: bigint): string {
 
 export function formatUsdDisplay(usd: string, decimals = 2): string {
   const value = Number.parseFloat(usd)
-  if (!Number.isFinite(value) || value <= 0) return `US$${(0).toFixed(decimals)}`
-  return `US$${value.toFixed(decimals)}`
+  if (!Number.isFinite(value) || value <= 0) return `US$ ${(0).toFixed(decimals)}`
+  return `US$ ${value.toFixed(decimals)}`
 }
 
 export function formatUsdWithBonus(principalUsd: string, bonusPercent: number): string {
