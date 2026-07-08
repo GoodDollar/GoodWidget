@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useWallet } from '@goodwidget/core'
-import type { Address, Hex } from 'viem'
+import type { Address } from 'viem'
 import type { StepperStepItem } from '@goodwidget/ui'
 import type { GovernanceHouse, GovernanceProfileDraft } from './types'
 import type {
