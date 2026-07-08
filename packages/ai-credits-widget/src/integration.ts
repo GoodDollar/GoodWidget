@@ -4,6 +4,7 @@ export const aiCreditsIntegration = {
   settlementChains: [8453],
   states: [
     'disconnected',
+    'connecting',
     'purchase_setup',
     'quote_ready',
     'payment_pending',

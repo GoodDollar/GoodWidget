@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react'
 import { AiCreditsWidget } from '@goodwidget/ai-credits-widget'
 import {
   DisconnectedStory,
+  ConnectingStory,
   PurchaseSetupStory,
   QuoteReadyStory,
   QuoteReadyGoodIdStory,
@@ -32,6 +33,10 @@ type Story = StoryObj<typeof meta>
 
 export const Disconnected: Story = {
   render: () => <DisconnectedStory />,
+}
+
+export const Connecting: Story = {
+  render: () => <ConnectingStory />,
 }
 
 export const PurchaseSetup: Story = {

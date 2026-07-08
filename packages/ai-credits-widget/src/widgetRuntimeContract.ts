@@ -5,6 +5,7 @@ export type AiCreditsWidgetEnvironment = 'production' | 'staging' | 'development
 
 export type AiCreditsWidgetStatus =
   | 'disconnected'
+  | 'connecting'
   | 'purchase_setup'
   | 'quote_ready'
   | 'payment_pending'

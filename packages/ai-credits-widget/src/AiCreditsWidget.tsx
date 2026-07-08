@@ -57,15 +57,19 @@ interface AiCreditsInnerProps {
 
 function DisconnectedPanel({
   onConnect,
+  connecting,
 }: {
   onConnect: () => Promise<void>
+  connecting: boolean
 }) {
   return (
     <Card>
       <YStack gap="$5" paddingVertical="$6" alignItems="center">
         <Text secondary>Connect your wallet to buy AI credits</Text>
         <CircularActionButton
-          label="Connect Wallet"
+          label={connecting ? 'Connecting...' : 'Connect Wallet'}
+          pending={connecting}
+          disabled={connecting}
           onPress={() => {
             void onConnect()
           }}
@@ -385,10 +389,13 @@ function AiCreditsInner({
     />
   )
 
-  if (state.status === 'disconnected') {
+  if (state.status === 'disconnected' || state.status === 'connecting') {
     return (
       <YStack gap="$3" padding="$3" width="100%">
-        <DisconnectedPanel onConnect={actions.connect} />
+        <DisconnectedPanel
+          onConnect={actions.connect}
+          connecting={state.status === 'connecting'}
+        />
       </YStack>
     )
   }

@@ -121,6 +121,21 @@ export function DisconnectedStory() {
   )
 }
 
+export function ConnectingStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-connecting"
+      adapterFactory={createAdapterFactory('connecting', {
+        address: '0x329377cbeeF39f01b0Ea04B80465c9eB47D3ED1',
+        chainId: 42220,
+        gBalance: null,
+        primaryAction: 'connect',
+        primaryLabel: 'Connecting...',
+      })}
+    />
+  )
+}
+
 export function PurchaseSetupStory() {
   return (
     <MockStoryShell

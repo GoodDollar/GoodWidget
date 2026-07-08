@@ -3,6 +3,8 @@ import { expect, test, type Page } from '@playwright/test'
 const STORY_IDS = {
   disconnected:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--disconnected&viewMode=story',
+  connecting:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--connecting&viewMode=story',
   purchaseSetup:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--purchase-setup&viewMode=story',
   quoteReady:
@@ -136,6 +138,16 @@ test('AiCreditsWidget unsupported_chain', async ({ page }) => {
   await expect(page.getByTestId('AiCreditsWidget-unsupported-chain')).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-11-unsupported-chain.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget connecting', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.connecting)
+  await expect(page.getByTestId('AiCreditsWidget-connecting')).toBeVisible()
+  await expect(page.getByText('Connecting...')).toBeVisible()
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-12-connecting.png',
     fullPage: true,
   })
 })

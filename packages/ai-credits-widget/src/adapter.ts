@@ -170,7 +170,9 @@ function deriveStatus(params: {
     return currentStatus
   }
 
-  if (!isConnected) return 'disconnected'
+  if (!isConnected) {
+    return currentStatus === 'connecting' ? 'connecting' : 'disconnected'
+  }
 
   if (chainId !== null && chainId !== CELO_CHAIN_ID) return 'unsupported_chain'
 
@@ -206,6 +208,7 @@ function derivePrimaryAction(
   if (activeTab === 'manage') return 'refresh'
 
   switch (status) {
+    case 'connecting':
     case 'disconnected':
       return 'connect'
     case 'unsupported_chain':
@@ -227,10 +230,13 @@ function derivePrimaryAction(
   }
 }
 
-function derivePrimaryLabel(action: AiCreditsWidgetPrimaryAction): string {
+function derivePrimaryLabel(
+  action: AiCreditsWidgetPrimaryAction,
+  status: AiCreditsWidgetStatus,
+): string {
   switch (action) {
     case 'connect':
-      return 'Connect Wallet'
+      return status === 'connecting' ? 'Connecting...' : 'Connect Wallet'
     case 'switch_chain':
       return 'Switch to Celo'
     case 'generate_key':
@@ -274,7 +280,7 @@ function withDerivedStatus(
     status,
     activeTab: resolveActiveTab(prev, overrides, status),
     primaryAction,
-    primaryLabel: derivePrimaryLabel(primaryAction),
+    primaryLabel: derivePrimaryLabel(primaryAction, status),
   }
 }
 
@@ -387,11 +393,29 @@ export function useAiCreditsAdapter({
 
   useEffect(() => {
     if (!isConnected || !address) {
-      setState({ ...INITIAL_STATE })
+      setState((prev) => (prev.status === 'connecting' ? prev : { ...INITIAL_STATE }))
       return
     }
 
     let cancelled = false
+    setState((prev) => {
+      if (
+        prev.status === 'payment_pending' ||
+        prev.status === 'payment_confirmed' ||
+        prev.status === 'payment_failed' ||
+        prev.status === 'backend_unavailable' ||
+        prev.status === 'connecting'
+      ) {
+        return prev
+      }
+      return {
+        ...prev,
+        status: 'connecting',
+        error: null,
+        primaryAction: 'connect',
+        primaryLabel: 'Connecting...',
+      }
+    })
 
     async function loadWalletData() {
       const publicClient = createPublicClient({ chain: CELO_CHAIN, transport: http() })
@@ -481,7 +505,12 @@ export function useAiCreditsAdapter({
   useEffect(() => {
     if (!isConnected || !address) return
     if (!state.operatorConsentSigned) return
-    if (state.status === 'payment_pending' || state.status === 'payment_confirmed') return
+    if (
+      state.status === 'payment_pending' ||
+      state.status === 'payment_confirmed' ||
+      state.status === 'connecting'
+    )
+      return
 
     let cancelled = false
 
@@ -517,7 +546,14 @@ export function useAiCreditsAdapter({
   ])
 
   const handleConnect = useCallback(async () => {
-    await connect()
+    setState((prev) => withDerivedStatus(prev, { status: 'connecting', error: null }, false))
+    try {
+      await connect()
+    } catch {
+      setState((prev) =>
+        withDerivedStatus(prev, { status: 'disconnected', error: null }, false),
+      )
+    }
   }, [connect])
 
   const handleSwitchChain = useCallback(async () => {
