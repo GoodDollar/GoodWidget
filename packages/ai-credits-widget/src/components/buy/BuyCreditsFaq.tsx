@@ -51,10 +51,16 @@ const FAQ_ITEMS = [
       'After your Celo payment confirms, credits are funded on Base. Funding usually completes within a short time; check the Manage tab for your updated balance.',
   },
   {
+    id: 'buyer-operator',
+    question: 'What is Buyer & Operator?',
+    answer:
+      'Payer is the wallet that pays G$ on Celo. Buyer is the key that manages your credits on Base. Sign & Generate creates the buyer key for the connected payer. Sign Consent enables credit management without Base gas. The private key is saved in this browser session per payer — switch accounts in MetaMask and this section updates.',
+  },
+  {
     id: 'api-setup',
     question: 'What is API setup?',
     answer:
-      'After you have credits, open Manage → API Setup and copy the commands into your terminal. ANTSEED_IDENTITY_HEX is your buyer private key. it links your purchases to the credit balance your AI tools should use.',
+      'After you have credits, open Manage → API Setup and copy the commands into your terminal. ANTSEED_IDENTITY_HEX is your buyer private key. GOODDOLLAR_BUYER_ADDRESS is your buyer address — it links your purchases to the credit balance your AI tools should use.',
   },
 ] as const
 

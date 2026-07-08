@@ -31,6 +31,11 @@ import type { AccountRef, AccountView } from './backendTypes'
 import { createChainClient, CELO_GD_ANTSEED_VAULT_ADDRESS, CELO_GOODID_ADDRESS } from './chainClient'
 import type { AiCreditsChainClient } from './chainClient'
 import { signOperatorConsentFromTypedData } from './operatorConsent'
+import {
+  addressesMatch,
+  patchPayerSessionFields,
+  writePayerSession,
+} from './payerSession'
 import { executeCeloPayment, G_TOKEN_CELO_ADDRESS } from './celoPayment'
 import { fetchVaultPaymentMinimums, validateVaultPaymentAmounts } from './vaultMinimums'
 import { CREDITS_PER_USD, usdDisplayToMicro } from './quoteMath'
@@ -312,20 +317,30 @@ function viewToStatePatch(
   view: AccountView,
   enriched: AccountEnrichment,
   prev: AiCreditsWidgetAdapterState,
-  options?: { usageLog?: AiCreditsWidgetAdapterState['usageLog']; balanceMode?: 'if_positive' | 'always' },
+  options?: {
+    usageLog?: AiCreditsWidgetAdapterState['usageLog']
+    balanceMode?: 'if_positive' | 'always'
+    allowPrevBuyerKey?: boolean
+  },
 ): Partial<AiCreditsWidgetAdapterState> {
   const operatorAccepted = view.operator.operatorAccepted
   const buyer = enriched.buyer
   const balance = enriched.balance
   const balanceMode = options?.balanceMode ?? 'if_positive'
-  const keyForSnippet = buyer ?? prev.buyerKey
+  const allowPrevBuyerKey = options?.allowPrevBuyerKey ?? true
+  const keyForSnippet = buyer ?? (allowPrevBuyerKey ? prev.buyerKey : null)
 
   return {
     aiCreditsBalance:
       balanceMode === 'always' || hasCredits(balance) ? balance : prev.aiCreditsBalance,
     isGoodIdVerified: enriched.goodIdVerified,
-    buyerKey: buyer ?? prev.buyerKey,
-    buyerKeyConfirmed: buyer && operatorAccepted ? true : prev.buyerKeyConfirmed,
+    buyerKey: buyer ?? (allowPrevBuyerKey ? prev.buyerKey : null),
+    buyerKeyConfirmed:
+      buyer && operatorAccepted
+        ? true
+        : allowPrevBuyerKey
+          ? prev.buyerKeyConfirmed
+          : false,
     operatorConsentSigned: operatorAccepted,
     operatorAddress: view.operator.operatorAddress ?? null,
     withdrawableUsd: view.withdrawableUsd,
@@ -459,10 +474,35 @@ export function useAiCreditsAdapter({
         }
 
         setState((prev) => {
+          const accountSwitched = !addressesMatch(prev.address, address)
+          const sessionPatch = patchPayerSessionFields(address)
           const accountPatch = account
-            ? viewToStatePatch(account.view, account.enriched, prev, { balanceMode: 'if_positive' })
+            ? viewToStatePatch(account.view, account.enriched, prev, {
+                balanceMode: 'if_positive',
+                allowPrevBuyerKey: !accountSwitched,
+              })
             : {}
-          return withDerivedStatus(prev, { ...patch, ...accountPatch }, true)
+          return withDerivedStatus(
+            prev,
+            {
+              ...patch,
+              ...accountPatch,
+              buyerKey:
+                accountPatch.buyerKey ??
+                sessionPatch.buyerKey ??
+                (accountSwitched ? null : prev.buyerKey),
+              buyerKeyPrivate:
+                sessionPatch.buyerKeyPrivate ?? (accountSwitched ? null : prev.buyerKeyPrivate),
+              buyerKeyConfirmed: accountPatch.operatorConsentSigned
+                ? true
+                : sessionPatch.buyerKeyPrivate
+                  ? sessionPatch.buyerKeyConfirmed
+                  : accountSwitched
+                    ? false
+                    : prev.buyerKeyConfirmed,
+            },
+            true,
+          )
         })
       } catch {
         if (cancelled) return
@@ -580,8 +620,22 @@ export function useAiCreditsAdapter({
       const privateKey = deriveBuyerPrivateKeyFromSignature(signature)
       const account = privateKeyToAccount(privateKey)
 
+      writePayerSession(payerAddress, {
+        buyerKey: account.address,
+        buyerKeyPrivate: privateKey,
+        buyerKeyConfirmed: false,
+      })
+
       setState((prev) => {
         const onManageTab = prev.activeTab === 'manage'
+        const confirmed = onManageTab
+        if (confirmed) {
+          writePayerSession(payerAddress, {
+            buyerKey: account.address,
+            buyerKeyPrivate: privateKey,
+            buyerKeyConfirmed: true,
+          })
+        }
         return mergeStatePreservingManageTab(prev, {
           buyerKey: account.address,
           buyerKeyPrivate: privateKey,
@@ -603,7 +657,16 @@ export function useAiCreditsAdapter({
   }, [address])
 
   const handleConfirmBuyerKey = useCallback(() => {
-    setState((prev) => withDerivedStatus(prev, { buyerKeyConfirmed: true, status: 'purchase_setup' }, true))
+    setState((prev) => {
+      if (prev.address && prev.buyerKey && prev.buyerKeyPrivate) {
+        writePayerSession(prev.address, {
+          buyerKey: prev.buyerKey,
+          buyerKeyPrivate: prev.buyerKeyPrivate,
+          buyerKeyConfirmed: true,
+        })
+      }
+      return withDerivedStatus(prev, { buyerKeyConfirmed: true, status: 'purchase_setup' }, true)
+    })
   }, [])
 
   const handleSignOperatorConsent = useCallback(async () => {
