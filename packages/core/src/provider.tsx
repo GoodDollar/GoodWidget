@@ -24,7 +24,7 @@ export interface WalletContextValue extends WalletState {
   connect: () => Promise<void>
 }
 
-export interface HostContextValue extends HostState {}
+export type HostContextValue = HostState
 
 export interface GoodWidgetContextValue extends GoodWidgetState {
   connect: () => Promise<void>
