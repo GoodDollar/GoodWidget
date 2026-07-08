@@ -145,6 +145,14 @@ function GovernanceDashboard({
         testID="GovernanceWidget-active-governance"
         onPress={() => actions.openVote()}
       />
+      {state.dashboard.alignmentVoting.options.length === 0 ? (
+        <Card data-testid="GovernanceWidget-empty-recipients">
+          <Text tone="secondary">
+            {state.dashboard.alignmentVoting.disabledReason ??
+              'No active Alignment recipients are available for this vote.'}
+          </Text>
+        </Card>
+      ) : null}
       {state.dashboard.alignmentVoting.hasVoted ? (
         <Card data-testid="GovernanceWidget-already-voted">
           <Text tone="secondary">

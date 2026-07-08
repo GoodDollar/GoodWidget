@@ -129,7 +129,7 @@ for (const storyCase of RUNTIME_STORIES) {
 
     await gotoStory(page, storyCase.id)
 
-    await expect(page.getByTestId(storyCase.testId)).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByTestId(storyCase.testId).first()).toBeVisible({ timeout: 15_000 })
     await expect(page.getByText(storyCase.expectedText).first()).toBeVisible()
     await page.screenshot({ path: storyCase.screenshot, fullPage: true })
   })
