@@ -9,6 +9,7 @@ import type {
   TransactionsResponse,
   UserCreditProfile,
 } from './backendTypes'
+import type { BuyerOperatorStatus } from './operatorConsent'
 import { markMockOperatorConsent, type AiCreditsChainClient } from './chainClient'
 import {
   flowRateWeiToMonthlyG,
@@ -127,15 +128,24 @@ function filterGdCredits(
 }
 
 export function resolveBuyerAddress(credit: AccountCreditResponse): string | null {
-  if (credit.profile.buyer && isAddress(credit.profile.buyer)) {
-    return normalizeAddress(credit.profile.buyer)
-  }
-  for (const entry of credit.gdCredits ?? []) {
+  for (const entry of credit.gdCredits) {
     if (entry.buyerAddress && isAddress(entry.buyerAddress)) {
       return normalizeAddress(entry.buyerAddress)
     }
   }
   return null
+}
+
+function defaultOperatorStatus(payer: string): BuyerOperatorStatus {
+  const account = normalizeAddress(payer)
+  return {
+    enabled: false,
+    account,
+    buyerAddress: account,
+    currentOperator: '0x0000000000000000000000000000000000000000',
+    operatorAccepted: false,
+    consentNonce: '0',
+  }
 }
 
 export function balanceFromProfile(
@@ -168,12 +178,12 @@ export async function enrichAccountView(
 ): Promise<AccountEnrichment> {
   const { profile } = view
   const goodIdVerified = await chain.isGoodIdVerified(profile.account)
-  const monthlyStreamG = flowRateWeiToMonthlyG(profile.streamFlowRateWeiPerSecond ?? '0')
+  const monthlyStreamG = flowRateWeiToMonthlyG(profile.streamFlowRateWeiPerSecond)
   let monthlyStreamCredits: string | null = null
   if (Number.parseFloat(monthlyStreamG) > 0) {
     monthlyStreamCredits = (await chain.buildQuote('0', monthlyStreamG, goodIdVerified)).totalCredits
   }
-  const depositedWei = BigInt(profile.totalGdDepositedWei ?? '0')
+  const depositedWei = BigInt(profile.totalGdDepositedWei)
   const buyer = view.buyer
   return {
     balance: balanceFromProfile(profile),
@@ -208,7 +218,7 @@ export function gdCreditsToUsageEntries(entries: GdCreditEntry[]): AiCreditsUsag
           : sourceLabel(entry.source),
       kind: 'funding' as const,
       fundingStatus: entry.fundingStatus,
-      ...(entry.gdAmountWei ? { gdAmountG: weiToG(BigInt(entry.gdAmountWei)) } : {}),
+      gdAmountG: weiToG(BigInt(entry.gdAmountWei)),
       totalCreditUsdMicro: entry.totalCreditUsd,
     }))
 }
@@ -252,7 +262,6 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
       principalUsd: bigint
       bonusUsd: bigint
       transactions: GdCreditEntry[]
-      buyer: string | null
       rootAccount: string
     }
   >()
@@ -264,7 +273,6 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
         principalUsd: 0n,
         bonusUsd: 0n,
         transactions: [],
-        buyer: null,
         rootAccount: key,
       })
     }
@@ -273,17 +281,20 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
 
   private buildProfile(payer: string): UserCreditProfile {
     const state = this.getState(payer)
+    const now = new Date().toISOString()
     const outstanding = state.transactions
       .filter((entry) => entry.fundingStatus === 'pending' || entry.fundingStatus === 'failed')
-      .reduce((sum, entry) => sum + BigInt(entry.totalCreditUsd || '0'), 0n)
+      .reduce((sum, entry) => sum + BigInt(entry.totalCreditUsd), 0n)
     return {
       account: normalizeAddress(payer),
       rootAccount: state.rootAccount,
+      createdAt: now,
+      updatedAt: now,
+      totalGdDepositedWei: '0',
       totalPrincipalUsd: state.principalUsd.toString(),
       totalBonusUsd: state.bonusUsd.toString(),
+      totalGDStreamedWei: '0',
       totalOutstandingFundingUsd: outstanding.toString(),
-      buyer: state.buyer ?? undefined,
-      totalGdDepositedWei: '0',
       streamFlowRateWeiPerSecond: '0',
     }
   }
@@ -327,7 +338,7 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
 
   async getUsageLog(payer: string): Promise<AiCreditsUsageEntry[]> {
     const credit = await this.getAccountCredit(payer)
-    return gdCreditsToUsageEntries(filterGdCredits(credit.gdCredits ?? []))
+    return gdCreditsToUsageEntries(filterGdCredits(credit.gdCredits))
   }
 
   prepareSettlement(ref: AccountRef, creditUsd: bigint): void {
@@ -341,16 +352,21 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     if (!ref) return { txHash, events: [] }
 
     const totalUsd = this.lastCreditUsd
+    const now = new Date().toISOString()
     const entry: GdCreditEntry = {
       id: `${txHash}:0`,
+      account: ref.payer,
+      rootAccount: ref.payer,
       source: 'deposit',
+      gdAmountWei: '0',
       totalCreditUsd: totalUsd.toString(),
       principalUsd: totalUsd.toString(),
       bonusUsd: '0',
       fundingStatus: 'pending',
       txHash,
       logIndex: 0,
-      createdAt: new Date().toISOString(),
+      createdAt: now,
+      streamUpdateMonth: now.slice(0, 7),
       buyerAddress: ref.buyer,
     }
 
@@ -370,8 +386,8 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     for (const entry of state.transactions) {
       if (entry.fundingStatus !== 'pending') continue
       entry.fundingStatus = 'funded'
-      state.principalUsd += BigInt(entry.principalUsd ?? '0')
-      state.bonusUsd += BigInt(entry.bonusUsd ?? '0')
+      state.principalUsd += BigInt(entry.principalUsd)
+      state.bonusUsd += BigInt(entry.bonusUsd)
     }
     return { credits: balanceFromProfile(this.buildProfile(ref.payer)) }
   }
@@ -439,13 +455,13 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
     options: { status?: 'pending' | 'funded' | 'failed'; limit?: number; cursor?: string } = {},
   ): Promise<TransactionsResponse> {
     const credit = await this.getAccountCredit(payer)
-    const transactions = filterGdCredits(credit.gdCredits ?? [], options)
+    const transactions = filterGdCredits(credit.gdCredits, options)
     return { account: normalizeAddress(payer), transactions }
   }
 
   async getUsageLog(payer: string): Promise<AiCreditsUsageEntry[]> {
     const credit = await this.getAccountCredit(payer)
-    return gdCreditsToUsageEntries(filterGdCredits(credit.gdCredits ?? []))
+    return gdCreditsToUsageEntries(filterGdCredits(credit.gdCredits))
   }
 
   async notifyPayment(txHash: string): Promise<CeloEventsRecordResponse> {
@@ -470,7 +486,7 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
 
       if (txHashes.size > 0) {
         const credit = await this.getAccountCredit(ref.payer)
-        const matching = (credit.gdCredits ?? []).filter(
+        const matching = credit.gdCredits.filter(
           (entry) => entry.txHash && txHashes.has(entry.txHash.toLowerCase()),
         )
         const failed = matching.find((entry) => entry.fundingStatus === 'failed')
@@ -562,18 +578,21 @@ export async function buildAccountView(
   backend: AiCreditsBackendClient,
   chain: AiCreditsChainClient,
 ): Promise<AccountView> {
+  const normalizedPayer = normalizeAddress(payer)
   const [credit, outstanding] = await Promise.all([
     backend.getAccountCredit(payer),
     backend.getOutstanding(payer),
   ])
-  const buyer = resolveBuyerAddress(credit) ?? normalizeAddress(payer)
-  const [operator, withdrawableUsd] = await Promise.all([
-    chain.getBuyerOperatorStatus({ payer: normalizeAddress(payer), buyer }),
-    chain.getWithdrawableUsd(buyer),
-  ])
+  const buyer = resolveBuyerAddress(credit)
+  const [operator, withdrawableUsd] = buyer
+    ? await Promise.all([
+        chain.getBuyerOperatorStatus({ payer: normalizedPayer, buyer }),
+        chain.getWithdrawableUsd(buyer),
+      ])
+    : [defaultOperatorStatus(normalizedPayer), '0']
   return {
-    account: normalizeAddress(payer),
-    buyer: resolveBuyerAddress(credit),
+    account: normalizedPayer,
+    buyer,
     profile: credit.profile,
     operator,
     withdrawableUsd,

@@ -8,26 +8,25 @@ export type AccountRef = {
 export type UserCreditProfile = {
   account: string
   rootAccount: string
+  createdAt: string
+  updatedAt: string
+  totalGdDepositedWei: string
   totalPrincipalUsd: string
   totalBonusUsd: string
-  totalOutstandingFundingUsd?: string
-  buyer?: string
-  createdAt?: string
-  updatedAt?: string
-  totalGdDepositedWei?: string
-  totalGDStreamedWei?: string
-  streamFlowRateWeiPerSecond?: string
+  totalGDStreamedWei: string
+  totalOutstandingFundingUsd: string
+  streamFlowRateWeiPerSecond: string
   lastStreamCreditAt?: string
 }
 
 export type GdCreditEntry = {
   id: string
-  account?: string
-  rootAccount?: string
+  account: string
+  rootAccount: string
   source: 'deposit' | 'streamUpdate' | 'streamRequest' | 'streamCron'
-  gdAmountWei?: string
-  principalUsd?: string
-  bonusUsd?: string
+  gdAmountWei: string
+  principalUsd: string
+  bonusUsd: string
   totalCreditUsd: string
   fundingStatus: 'pending' | 'funded' | 'failed'
   fundingTxHash?: string
@@ -35,7 +34,7 @@ export type GdCreditEntry = {
   txHash?: string
   logIndex?: number
   createdAt: string
-  streamUpdateMonth?: string
+  streamUpdateMonth: string
   buyerAddress?: string
 }
 
