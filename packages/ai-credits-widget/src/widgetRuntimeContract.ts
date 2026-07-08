@@ -46,6 +46,8 @@ export interface AiCreditsUsageEntry {
   model: string
   kind?: 'funding' | 'usage'
   fundingStatus?: 'pending' | 'funded' | 'failed'
+  gdAmountG?: string
+  totalCreditUsdMicro?: string
 }
 
 export interface AiCreditsWidgetAdapterState {

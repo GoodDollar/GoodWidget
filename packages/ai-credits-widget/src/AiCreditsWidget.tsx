@@ -242,6 +242,17 @@ function ManagePanel({
   state: AiCreditsWidgetAdapterState
   actions: AiCreditsWidgetAdapterActions
 }) {
+  const [refreshing, setRefreshing] = React.useState(false)
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    try {
+      await actions.refresh()
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
   return (
     <YStack gap="$3" width="100%">
       {state.error && (
@@ -260,19 +271,31 @@ function ManagePanel({
 
       <UsageLog entries={state.usageLog} />
 
-      <Button
-        variant="ghost"
-        size="sm"
-        alignSelf="center"
-        gap="$2"
-        {...compactButtonProps}
-        onPress={() => {
-          void actions.refresh()
-        }}
-      >
-        <Icon name="refresh" size="sm" color="primary" />
-        <ButtonText>Refresh Balance</ButtonText>
-      </Button>
+      <YStack gap="$2" width="100%" alignItems="center">
+        {state.error && (
+          <Text color="$error" fontSize="$2" textAlign="center">
+            {state.error}
+          </Text>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          alignSelf="stretch"
+          gap="$2"
+          disabled={refreshing}
+          {...compactButtonProps}
+          onPress={() => {
+            void handleRefresh()
+          }}
+        >
+          {refreshing ? (
+            <Spinner size="sm" />
+          ) : (
+            <Icon name="refresh" size="sm" color="muted" />
+          )}
+          <ButtonText>{refreshing ? 'Refreshing…' : 'Refresh Balance'}</ButtonText>
+        </Button>
+      </YStack>
     </YStack>
   )
 }

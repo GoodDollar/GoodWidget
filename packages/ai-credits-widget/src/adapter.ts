@@ -501,11 +501,14 @@ export function useAiCreditsAdapter({
             })
           : fetchVaultPaymentMinimums(publicClient, celoVault, address as Address).catch(() => null)
 
+      const usageLogPromise = backendClient.getUsageLog(address!).catch(() => [])
+
       try {
-        const [[rawBalance, decimals], account, minimums] = await Promise.all([
+        const [[rawBalance, decimals], account, minimums, usageLog] = await Promise.all([
           balancePromise,
           accountPromise,
           minimumsPromise,
+          usageLogPromise,
         ])
         if (cancelled) return
 
@@ -540,6 +543,7 @@ export function useAiCreditsAdapter({
               ...patch,
               ...accountPatch,
               ...buyerFields,
+              usageLog,
             },
             true,
           )
@@ -1026,18 +1030,20 @@ export function useAiCreditsAdapter({
             ...accountPatch,
             ...sessionFields,
             activeTab: prev.activeTab,
+            error: null,
           },
           true,
         )
       })
     } catch {
-      setState((prev) => ({
-        ...prev,
-        status: 'backend_unavailable',
-        primaryAction: 'retry',
-        primaryLabel: 'Retry',
-        error: 'Could not reach backend — check your connection',
-      }))
+      setState((prev) =>
+        mergeStatePreservingManageTab(prev, {
+          status: 'backend_unavailable',
+          primaryAction: 'retry',
+          primaryLabel: 'Retry',
+          error: 'Could not reach backend — check your connection',
+        }),
+      )
     }
   }, [state, backendClient, chainClient])
 
