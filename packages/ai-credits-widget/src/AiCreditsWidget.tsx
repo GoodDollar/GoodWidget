@@ -21,6 +21,7 @@ import {
   AiCreditsHero,
   AiCreditsFlowStepper,
   AiCreditsPurchaseFlow,
+  BuyCreditsFaq,
   AiCreditsStatusNotice,
   CreditsManagementCard,
   BuyerOperatorCard,
@@ -96,8 +97,10 @@ function BuyCreditsPanel({
   isPending,
   onPay,
 }: BuyPanelProps) {
+  let content: React.ReactNode
+
   if (state.status === 'unsupported_chain') {
-    return (
+    content = (
       <AiCreditsStatusNotice>
         <XStack gap="$2" alignItems="center">
           <Text color="$warning" fontWeight="700">
@@ -114,11 +117,9 @@ function BuyCreditsPanel({
         </Button>
       </AiCreditsStatusNotice>
     )
-  }
-
-  if (state.status === 'payment_failed') {
-    return (
-      <YStack gap="$4">
+  } else if (state.status === 'payment_failed') {
+    content = (
+      <>
         <AiCreditsStatusNotice>
           <Text color="$error" fontWeight="700">
             Payment Failed
@@ -140,12 +141,10 @@ function BuyCreditsPanel({
           isPending={isPending}
           onPay={onPay}
         />
-      </YStack>
+      </>
     )
-  }
-
-  if (state.status === 'backend_unavailable') {
-    return (
+  } else if (state.status === 'backend_unavailable') {
+    content = (
       <AiCreditsStatusNotice>
         <Text color="$warning" fontWeight="700">
           Service Unavailable
@@ -162,11 +161,9 @@ function BuyCreditsPanel({
         </Button>
       </AiCreditsStatusNotice>
     )
-  }
-
-  if (state.status === 'insufficient_g_balance') {
-    return (
-      <YStack gap="$4">
+  } else if (state.status === 'insufficient_g_balance') {
+    content = (
+      <>
         <AiCreditsHero
           gBalance={state.gBalance}
           isGoodIdVerified={state.isGoodIdVerified}
@@ -180,18 +177,16 @@ function BuyCreditsPanel({
             You need at least 1 G$ to purchase AI credits. Top up your wallet and try again.
           </Text>
         </AiCreditsStatusNotice>
-      </YStack>
+      </>
     )
-  }
-
-  if (state.status === 'payment_pending' || state.status === 'payment_confirmed') {
+  } else if (state.status === 'payment_pending' || state.status === 'payment_confirmed') {
     const message =
       state.status === 'payment_pending'
         ? 'Transaction submitted — waiting for confirmation…'
         : 'Payment confirmed — settling credits on Base…'
 
-    return (
-      <YStack gap="$4">
+    content = (
+      <>
         <Card>
           <YStack gap="$4" alignItems="center" padding="$4">
             <Spinner size="lg" />
@@ -201,34 +196,41 @@ function BuyCreditsPanel({
           </YStack>
         </Card>
         <AiCreditsFlowStepper state={state} />
-      </YStack>
+      </>
+    )
+  } else {
+    content = (
+      <>
+        {state.address && (
+          <AiCreditsHero
+            gBalance={state.gBalance}
+            isGoodIdVerified={state.isGoodIdVerified}
+            bonusPercent={state.bonusPercent}
+          />
+        )}
+
+        {state.gBalance !== null && Number.parseFloat(state.gBalance) <= 0 && (
+          <AiCreditsStatusNotice>
+            <Text secondary>You need G$ before you can buy AI credits.</Text>
+          </AiCreditsStatusNotice>
+        )}
+
+        <AiCreditsPurchaseFlow
+          state={state}
+          actions={actions}
+          canPay={canPay}
+          payDisabledMessage={payDisabledMessage}
+          isPending={isPending}
+          onPay={onPay}
+        />
+      </>
     )
   }
 
   return (
     <YStack gap="$4">
-      {state.address && (
-        <AiCreditsHero
-          gBalance={state.gBalance}
-          isGoodIdVerified={state.isGoodIdVerified}
-          bonusPercent={state.bonusPercent}
-        />
-      )}
-
-      {state.gBalance !== null && Number.parseFloat(state.gBalance) <= 0 && (
-        <AiCreditsStatusNotice>
-          <Text secondary>You need G$ before you can buy AI credits.</Text>
-        </AiCreditsStatusNotice>
-      )}
-
-      <AiCreditsPurchaseFlow
-        state={state}
-        actions={actions}
-        canPay={canPay}
-        payDisabledMessage={payDisabledMessage}
-        isPending={isPending}
-        onPay={onPay}
-      />
+      {content}
+      <BuyCreditsFaq />
     </YStack>
   )
 }
