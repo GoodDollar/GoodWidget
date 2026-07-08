@@ -1,21 +1,9 @@
 import { useMemo } from 'react'
 import { GoodWidgetProvider } from '@goodwidget/core'
-import { mergeOverrideMaps } from '@goodwidget/ui'
-import type {
-  EIP1193Provider,
-  GoodWidgetConfig,
-  GoodWidgetThemeOverrides,
-} from '@goodwidget/core'
-import type { ReactNode } from 'react'
-import { governanceWidgetConfig } from './config'
+import { YStack } from '@goodwidget/ui'
 
-export interface GovernanceWidgetProviderProps {
-  provider?: EIP1193Provider
-  config?: GoodWidgetConfig
-  themeOverrides?: GoodWidgetThemeOverrides
-  defaultTheme?: 'light' | 'dark'
-  children: ReactNode
-}
+import type { GovernanceWidgetProviderProps } from './types'
+import { createGovernanceWidgetConfig } from './config'
 
 /**
  * Builds the governance author configuration before host theme overrides are
@@ -25,13 +13,6 @@ export interface GovernanceWidgetProviderProps {
  * and merged here at the author config layer. Integrators can still override
  * them through the themeOverrides prop.
  */
-function createGovernanceWidgetConfig(config?: GoodWidgetConfig): GoodWidgetConfig {
-  return {
-    preset: config?.preset,
-    tokens: config?.tokens,
-    themes: mergeOverrideMaps(governanceWidgetConfig.themes, config?.themes),
-  }
-}
 
 export function GovernanceWidgetProvider({
   provider,
@@ -49,7 +30,9 @@ export function GovernanceWidgetProvider({
       themeOverrides={themeOverrides}
       defaultTheme={defaultTheme}
     >
-      {children}
+      <YStack padding="$4" width="100%">
+        {children}
+      </YStack>
     </GoodWidgetProvider>
   )
 }

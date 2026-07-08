@@ -1,5 +1,5 @@
 import type { GoodWidgetConfig } from '@goodwidget/core'
-import { defaultTokenPreset } from '@goodwidget/ui'
+import { defaultTokenPreset, mergeOverrideMaps } from '@goodwidget/ui'
 
 const color = defaultTokenPreset.tokens.color
 
@@ -66,10 +66,10 @@ const lightOnboardingSurface = {
 } as const
 
 const darkOnboardingSurface = {
-  background: color.surfaceDark,
+  background: color.surfaceAlt,
   backgroundHover: color.backgroundInput,
   backgroundPress: color.backgroundInput,
-  backgroundFocus: color.surfaceDark,
+  backgroundFocus: color.surfaceAlt,
   color: color.textDark,
   textColor: color.textDark,
   colorHover: color.textDark,
@@ -126,7 +126,7 @@ export const governanceWidgetConfig = {
       background: color.governanceSurface,
     },
     dark_GovernanceWrapper: {
-      background: color.surfaceDark,
+      background: color.surfaceAlt,
     },
     light_ImpactCard: {
       background: color.governancePrimary,
@@ -149,7 +149,7 @@ export const governanceWidgetConfig = {
       borderColorFocus: color.governancePrimary,
     },
     dark_GovernanceHouseOptionButton: {
-      background: color.surfaceDark,
+      background: color.surfaceAlt,
       backgroundHover: color.backgroundInput,
       backgroundPress: color.backgroundInput,
       borderColorFocus: color.primary,
@@ -240,3 +240,11 @@ export const governanceWidgetConfig = {
     },
   },
 } satisfies GoodWidgetConfig
+
+export function createGovernanceWidgetConfig(config?: GoodWidgetConfig): GoodWidgetConfig {
+  return {
+    preset: config?.preset,
+    tokens: config?.tokens,
+    themes: mergeOverrideMaps(governanceWidgetConfig.themes, config?.themes),
+  }
+}

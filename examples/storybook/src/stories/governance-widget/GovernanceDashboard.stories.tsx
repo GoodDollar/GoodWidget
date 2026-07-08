@@ -21,7 +21,7 @@ const meta: Meta = {
   title: 'Widgets/GovernanceWidget',
   tags: ['autodocs'],
   parameters: {
-    layout: 'centered',
+    layout: 'padded',
     goodWidgetProvider: { useShell: false, useProvider: false },
   },
 }
@@ -77,7 +77,6 @@ const fundingProjects: FundingProjectAllocation[] = [
 
 function GovernanceStoryFrame({
   children,
-  width = 520,
   defaultTheme = 'light',
   themeOverrides,
 }: {
@@ -103,19 +102,17 @@ function GovernanceStoryFrame({
 
   return (
     <GovernanceWidgetProvider defaultTheme={defaultTheme} themeOverrides={themeOverrides}>
-      <YStack width={width} maxWidth="100%" gap="$3" padding="$3">
-        {enhancedChildren}
-        <Text variant="caption" tone="secondary" data-testid="GovernanceWidget-last-action">
-          {lastAction}
-        </Text>
-      </YStack>
+      {enhancedChildren}
+      <Text variant="caption" tone="secondary" data-testid="GovernanceWidget-last-action">
+        {lastAction}
+      </Text>
     </GovernanceWidgetProvider>
   )
 }
 
 export const ImpactLight: Story = {
   render: () => (
-    <GovernanceStoryFrame width={390}>
+    <GovernanceStoryFrame>
       <ImpactCard
         testID="ImpactCard-light"
         title="Distributed"
