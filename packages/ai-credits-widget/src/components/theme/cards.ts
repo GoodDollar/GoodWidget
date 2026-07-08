@@ -10,8 +10,9 @@ export const AiCreditsStatusNotice = createComponent(Card, {
 export const BonusBadgeFrame = createComponent(XStack, {
   name: 'BonusBadgeFrame',
   borderRadius: '$full',
-  paddingHorizontal: '$3',
-  paddingVertical: '$1',
+  paddingHorizontal: '$2',
+  paddingVertical: 2,
   alignItems: 'center' as const,
+  alignSelf: 'flex-start' as const,
   gap: '$1',
 })

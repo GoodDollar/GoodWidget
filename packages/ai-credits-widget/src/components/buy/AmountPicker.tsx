@@ -9,6 +9,47 @@ import { AiCreditsStatusNotice, BonusBadgeFrame } from '../theme/cards'
 import { HoverTooltip } from '../shared/tooltips'
 import { compactButtonProps } from '../shared/styles'
 
+function BonusLabel({ label, active }: { label: string; active: boolean }) {
+  return (
+    <BonusBadgeFrame
+      backgroundColor={active ? '$successMuted' : '$warningMuted'}
+      borderWidth={1}
+      borderColor={active ? '$success' : '$warning'}
+    >
+      <Text fontSize="$1" fontWeight="700" lineHeight={16} color={active ? '$success' : '$warning'}>
+        {label}
+      </Text>
+    </BonusBadgeFrame>
+  )
+}
+
+function BonusSummaryValue({
+  quote,
+  isGoodIdVerified,
+}: {
+  quote: AiCreditsQuote
+  isGoodIdVerified: boolean
+}) {
+  if (!isGoodIdVerified) {
+    return (
+      <BonusBadgeFrame backgroundColor="$warningMuted" borderWidth={1} borderColor="$warning">
+        <Text fontSize="$1" fontWeight="700" lineHeight={16} color="$warning">
+          no bonus
+        </Text>
+      </BonusBadgeFrame>
+    )
+  }
+
+  return (
+    <Text fontSize="$2" fontWeight="700" color="$success">
+      {formatMinUsdDisplay(quote.depositBonusUsd) +
+        ' + ' +
+        formatMinUsdDisplay(quote.streamBonusUsd) +
+        '/month'}
+    </Text>
+  )
+}
+
 interface AmountPickerProps {
   depositAmount: string
   streamAmount: string
@@ -24,24 +65,6 @@ interface AmountPickerProps {
   onStreamChange: (v: string) => void
   onPay: () => void
   embedded?: boolean
-}
-
-function BonusLabel({ label, active }: { label: string; active: boolean }) {
-  if (!active) {
-    return (
-      <Text fontSize="$1" secondary>
-        {label}
-      </Text>
-    )
-  }
-
-  return (
-    <BonusBadgeFrame backgroundColor="$backgroundPress">
-      <Text fontSize="$2" fontWeight="700" color="$primary">
-        {label}
-      </Text>
-    </BonusBadgeFrame>
-  )
 }
 
 export function AmountPicker({
@@ -62,8 +85,8 @@ export function AmountPicker({
 }: AmountPickerProps) {
   const depositG = parseGAmount(depositAmount)
   const streamG = parseGAmount(streamAmount)
-  const depositBonusLabel = isGoodIdVerified ? '+10% bonus' : 'goodid not verified'
-  const streamBonusLabel = isGoodIdVerified ? '+20% bonus' : 'goodid not verified'
+  const depositBonusLabel = isGoodIdVerified ? '+10% bonus' : 'no bonus'
+  const streamBonusLabel = isGoodIdVerified ? '+20% bonus' : 'no bonus'
   const { depositBelowMin, streamBelowMin, overBalance } = getPaymentAmountValidation({
     depositAmount,
     streamAmount,
@@ -76,8 +99,8 @@ export function AmountPicker({
     minStreamUsd === null
       ? 'Loading minimum…'
       : minDepositUsd !== null
-        ? `Minimum ${formatMinUsdDisplay(minDepositUsd)} first deposit`
-        : 'One-time deposit (no minimum after your first deposit)'
+        ? `Minimum ${formatMinUsdDisplay(minDepositUsd)} for your first deposit`
+        : 'One-time deposit (no minimum after first deposit)'
   const streamMinUsdLabel =
     minStreamUsd !== null
       ? `Minimum ${formatMinUsdDisplay(minStreamUsd)}/month`
@@ -190,9 +213,7 @@ export function AmountPicker({
             <Text fontSize="$1">
               Bonuses
             </Text>
-            <Text fontSize="$2" fontWeight="700" color="$primary">
-              {formatMinUsdDisplay(quote.depositBonusUsd) + " + " + formatMinUsdDisplay(quote.streamBonusUsd) + "/month"}
-            </Text>
+            <BonusSummaryValue quote={quote} isGoodIdVerified={isGoodIdVerified} />
           </XStack>
         </>
       )}
