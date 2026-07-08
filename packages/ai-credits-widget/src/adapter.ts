@@ -320,36 +320,61 @@ function viewToStatePatch(
   options?: {
     usageLog?: AiCreditsWidgetAdapterState['usageLog']
     balanceMode?: 'if_positive' | 'always'
-    allowPrevBuyerKey?: boolean
   },
 ): Partial<AiCreditsWidgetAdapterState> {
   const operatorAccepted = view.operator.operatorAccepted
   const buyer = enriched.buyer
   const balance = enriched.balance
   const balanceMode = options?.balanceMode ?? 'if_positive'
-  const allowPrevBuyerKey = options?.allowPrevBuyerKey ?? true
-  const keyForSnippet = buyer ?? (allowPrevBuyerKey ? prev.buyerKey : null)
 
   return {
     aiCreditsBalance:
       balanceMode === 'always' || hasCredits(balance) ? balance : prev.aiCreditsBalance,
     isGoodIdVerified: enriched.goodIdVerified,
-    buyerKey: buyer ?? (allowPrevBuyerKey ? prev.buyerKey : null),
-    buyerKeyConfirmed:
-      buyer && operatorAccepted
-        ? true
-        : allowPrevBuyerKey
-          ? prev.buyerKeyConfirmed
-          : false,
+    ...(buyer
+      ? {
+          buyerKey: buyer,
+          buyerKeyConfirmed: operatorAccepted ? true : undefined,
+        }
+      : {}),
     operatorConsentSigned: operatorAccepted,
     operatorAddress: view.operator.operatorAddress ?? null,
     withdrawableUsd: view.withdrawableUsd,
-    setupSnippet: buildSetupSnippet(keyForSnippet),
     bonusPercent: enriched.bonusPercent,
     totalGdDepositedG: enriched.totalGdDepositedG,
     monthlyStreamG: enriched.monthlyStreamG,
     monthlyStreamCredits: enriched.monthlyStreamCredits,
     ...(options?.usageLog !== undefined ? { usageLog: options.usageLog } : {}),
+  }
+}
+
+function mergeBuyerFields(
+  prev: AiCreditsWidgetAdapterState,
+  sessionPatch: ReturnType<typeof patchPayerSessionFields>,
+  accountPatch: Partial<AiCreditsWidgetAdapterState>,
+  accountSwitched: boolean,
+): Partial<Pick<AiCreditsWidgetAdapterState, 'buyerKey' | 'buyerKeyPrivate' | 'buyerKeyConfirmed' | 'setupSnippet'>> {
+  const buyerKey =
+    sessionPatch.buyerKey ??
+    accountPatch.buyerKey ??
+    (accountSwitched ? null : prev.buyerKey)
+  const buyerKeyPrivate =
+    sessionPatch.buyerKeyPrivate ?? (accountSwitched ? null : prev.buyerKeyPrivate)
+  const operatorConsented =
+    accountPatch.operatorConsentSigned ?? prev.operatorConsentSigned
+  const buyerKeyConfirmed =
+    operatorConsented && buyerKey
+      ? true
+      : sessionPatch.buyerKeyPrivate
+        ? sessionPatch.buyerKeyConfirmed
+        : accountPatch.buyerKeyConfirmed ??
+          (accountSwitched ? false : prev.buyerKeyConfirmed)
+
+  return {
+    buyerKey,
+    buyerKeyPrivate,
+    buyerKeyConfirmed,
+    ...(buyerKey ? { setupSnippet: buildSetupSnippet(buyerKey) } : {}),
   }
 }
 
@@ -479,27 +504,20 @@ export function useAiCreditsAdapter({
           const accountPatch = account
             ? viewToStatePatch(account.view, account.enriched, prev, {
                 balanceMode: 'if_positive',
-                allowPrevBuyerKey: !accountSwitched,
               })
             : {}
+          const buyerFields = mergeBuyerFields(
+            prev,
+            sessionPatch,
+            accountPatch,
+            accountSwitched,
+          )
           return withDerivedStatus(
             prev,
             {
               ...patch,
               ...accountPatch,
-              buyerKey:
-                accountPatch.buyerKey ??
-                sessionPatch.buyerKey ??
-                (accountSwitched ? null : prev.buyerKey),
-              buyerKeyPrivate:
-                sessionPatch.buyerKeyPrivate ?? (accountSwitched ? null : prev.buyerKeyPrivate),
-              buyerKeyConfirmed: accountPatch.operatorConsentSigned
-                ? true
-                : sessionPatch.buyerKeyPrivate
-                  ? sessionPatch.buyerKeyConfirmed
-                  : accountSwitched
-                    ? false
-                    : prev.buyerKeyConfirmed,
+              ...buyerFields,
             },
             true,
           )
@@ -640,7 +658,6 @@ export function useAiCreditsAdapter({
           buyerKey: account.address,
           buyerKeyPrivate: privateKey,
           buyerKeyConfirmed: onManageTab,
-          operatorConsentSigned: false,
           apiKey: null,
           error: null,
           setupSnippet: buildSetupSnippet(account.address),
@@ -940,19 +957,22 @@ export function useAiCreditsAdapter({
       ])
       const enriched = await enrichAccountView(view, chainClient)
 
-      setState((prev) =>
-        withDerivedStatus(
+      setState((prev) => {
+        const accountPatch = viewToStatePatch(view, enriched, prev, {
+          usageLog,
+          balanceMode: 'always',
+        })
+        const buyerFields = mergeBuyerFields(prev, patchPayerSessionFields(currentState.address), accountPatch, false)
+        return withDerivedStatus(
           prev,
           {
-            ...viewToStatePatch(view, enriched, prev, {
-              usageLog,
-              balanceMode: 'always',
-            }),
+            ...accountPatch,
+            ...buyerFields,
             activeTab: prev.activeTab,
           },
           true,
-        ),
-      )
+        )
+      })
     } catch {
       setState((prev) => ({
         ...prev,
