@@ -34,7 +34,7 @@ import { signOperatorConsentFromTypedData } from './operatorConsent'
 import {
   addressesMatch,
   patchPayerSessionFields,
-  writePayerSession,
+  patchPayerSession,
 } from './payerSession'
 import { executeCeloPayment, G_TOKEN_CELO_ADDRESS } from './celoPayment'
 import { fetchVaultPaymentMinimums, validateVaultPaymentAmounts } from './vaultMinimums'
@@ -348,22 +348,32 @@ function viewToStatePatch(
   }
 }
 
-function mergeBuyerFields(
+function mergeSessionFields(
   prev: AiCreditsWidgetAdapterState,
   sessionPatch: ReturnType<typeof patchPayerSessionFields>,
   accountPatch: Partial<AiCreditsWidgetAdapterState>,
   accountSwitched: boolean,
-): Partial<Pick<AiCreditsWidgetAdapterState, 'buyerKey' | 'buyerKeyPrivate' | 'buyerKeyConfirmed' | 'setupSnippet'>> {
+): Partial<
+  Pick<
+    AiCreditsWidgetAdapterState,
+    'buyerKey' | 'buyerKeyPrivate' | 'buyerKeyConfirmed' | 'operatorConsentSigned' | 'setupSnippet'
+  >
+> {
   const buyerKey =
     sessionPatch.buyerKey ??
     accountPatch.buyerKey ??
     (accountSwitched ? null : prev.buyerKey)
   const buyerKeyPrivate =
     sessionPatch.buyerKeyPrivate ?? (accountSwitched ? null : prev.buyerKeyPrivate)
-  const operatorConsented =
-    accountPatch.operatorConsentSigned ?? prev.operatorConsentSigned
+  const operatorConsentSigned = accountSwitched
+    ? (sessionPatch.operatorConsentSigned ??
+      accountPatch.operatorConsentSigned ??
+      false)
+    : (accountPatch.operatorConsentSigned ??
+      sessionPatch.operatorConsentSigned ??
+      prev.operatorConsentSigned)
   const buyerKeyConfirmed =
-    operatorConsented && buyerKey
+    operatorConsentSigned && buyerKey
       ? true
       : sessionPatch.buyerKeyPrivate
         ? sessionPatch.buyerKeyConfirmed
@@ -374,8 +384,17 @@ function mergeBuyerFields(
     buyerKey,
     buyerKeyPrivate,
     buyerKeyConfirmed,
+    operatorConsentSigned,
     ...(buyerKey ? { setupSnippet: buildSetupSnippet(buyerKey) } : {}),
   }
+}
+
+function syncOperatorConsentSession(
+  address: string,
+  operatorConsentSigned: boolean | undefined,
+): void {
+  if (operatorConsentSigned === undefined) return
+  patchPayerSession(address, { operatorConsentSigned })
 }
 
 export interface UseAiCreditsAdapterOptions {
@@ -506,12 +525,15 @@ export function useAiCreditsAdapter({
                 balanceMode: 'if_positive',
               })
             : {}
-          const buyerFields = mergeBuyerFields(
+          const buyerFields = mergeSessionFields(
             prev,
             sessionPatch,
             accountPatch,
             accountSwitched,
           )
+          if (address && accountPatch.operatorConsentSigned !== undefined) {
+            syncOperatorConsentSession(address, accountPatch.operatorConsentSigned)
+          }
           return withDerivedStatus(
             prev,
             {
@@ -638,7 +660,7 @@ export function useAiCreditsAdapter({
       const privateKey = deriveBuyerPrivateKeyFromSignature(signature)
       const account = privateKeyToAccount(privateKey)
 
-      writePayerSession(payerAddress, {
+      patchPayerSession(payerAddress, {
         buyerKey: account.address,
         buyerKeyPrivate: privateKey,
         buyerKeyConfirmed: false,
@@ -648,7 +670,7 @@ export function useAiCreditsAdapter({
         const onManageTab = prev.activeTab === 'manage'
         const confirmed = onManageTab
         if (confirmed) {
-          writePayerSession(payerAddress, {
+          patchPayerSession(payerAddress, {
             buyerKey: account.address,
             buyerKeyPrivate: privateKey,
             buyerKeyConfirmed: true,
@@ -676,7 +698,7 @@ export function useAiCreditsAdapter({
   const handleConfirmBuyerKey = useCallback(() => {
     setState((prev) => {
       if (prev.address && prev.buyerKey && prev.buyerKeyPrivate) {
-        writePayerSession(prev.address, {
+        patchPayerSession(prev.address, {
           buyerKey: prev.buyerKey,
           buyerKeyPrivate: prev.buyerKeyPrivate,
           buyerKeyConfirmed: true,
@@ -706,6 +728,7 @@ export function useAiCreditsAdapter({
       }
 
       if (operatorStatus.operatorAccepted) {
+        patchPayerSession(currentState.address, { operatorConsentSigned: true })
         setState((prev) =>
           mergeStatePreservingManageTab(prev, {
             operatorConsentSigned: true,
@@ -733,6 +756,7 @@ export function useAiCreditsAdapter({
       })
       await waitForOperatorConsent(chainClient, ref)
 
+      patchPayerSession(currentState.address, { operatorConsentSigned: true })
       setState((prev) =>
         mergeStatePreservingManageTab(prev, {
           operatorConsentSigned: true,
@@ -747,6 +771,31 @@ export function useAiCreditsAdapter({
       }))
     }
   }, [state, backendClient, chainClient])
+
+  const handleSyncOperatorConsentFromChain = useCallback(async () => {
+    const currentState = state
+    if (!currentState.address || !currentState.buyerKey || currentState.operatorConsentSigned) {
+      return
+    }
+
+    try {
+      const ref: AccountRef = { payer: currentState.address, buyer: currentState.buyerKey }
+      const operatorStatus = await chainClient.getBuyerOperatorStatus(ref)
+      if (!operatorStatus.operatorAccepted) return
+
+      patchPayerSession(currentState.address, { operatorConsentSigned: true })
+      const onManageTab = currentState.activeTab === 'manage'
+      setState((prev) =>
+        mergeStatePreservingManageTab(prev, {
+          operatorConsentSigned: true,
+          error: null,
+          ...(!onManageTab ? { status: 'purchase_setup' } : {}),
+        }),
+      )
+    } catch {
+      return
+    }
+  }, [state, chainClient])
 
   const handleSetDepositAmount = useCallback((amount: string) => {
     setState((prev) =>
@@ -962,12 +1011,20 @@ export function useAiCreditsAdapter({
           usageLog,
           balanceMode: 'always',
         })
-        const buyerFields = mergeBuyerFields(prev, patchPayerSessionFields(currentState.address), accountPatch, false)
+        const sessionFields = mergeSessionFields(
+          prev,
+          patchPayerSessionFields(currentState.address),
+          accountPatch,
+          false,
+        )
+        if (accountPatch.operatorConsentSigned !== undefined && currentState.address) {
+          syncOperatorConsentSession(currentState.address, accountPatch.operatorConsentSigned)
+        }
         return withDerivedStatus(
           prev,
           {
             ...accountPatch,
-            ...buyerFields,
+            ...sessionFields,
             activeTab: prev.activeTab,
           },
           true,
@@ -1118,6 +1175,7 @@ export function useAiCreditsAdapter({
       generateBuyerKey: handleGenerateBuyerKey,
       confirmBuyerKey: handleConfirmBuyerKey,
       signOperatorConsent: handleSignOperatorConsent,
+      syncOperatorConsentFromChain: handleSyncOperatorConsentFromChain,
       setDepositAmount: handleSetDepositAmount,
       setStreamAmount: handleSetStreamAmount,
       setChannelId: handleSetChannelId,
@@ -1136,6 +1194,7 @@ export function useAiCreditsAdapter({
       handleGenerateBuyerKey,
       handleConfirmBuyerKey,
       handleSignOperatorConsent,
+      handleSyncOperatorConsentFromChain,
       handleSetDepositAmount,
       handleSetStreamAmount,
       handleSetChannelId,

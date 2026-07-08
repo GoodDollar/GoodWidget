@@ -87,6 +87,7 @@ export interface AiCreditsWidgetAdapterActions {
   generateBuyerKey: () => Promise<void>
   confirmBuyerKey: () => void
   signOperatorConsent: () => Promise<void>
+  syncOperatorConsentFromChain: () => Promise<void>
   setDepositAmount: (amount: string) => void
   setStreamAmount: (amount: string) => void
   setChannelId: (channelId: string) => void

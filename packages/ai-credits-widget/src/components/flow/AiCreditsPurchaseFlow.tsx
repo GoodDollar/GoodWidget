@@ -31,6 +31,12 @@ export function AiCreditsPurchaseFlow({
   const [drawerStep, setDrawerStep] = useState<AiCreditsFlowStep | null>(activeStep)
 
   useEffect(() => {
+    if (activeStep !== 'consent' || state.operatorConsentSigned) return
+    if (!state.address || !state.buyerKey) return
+    void actions.syncOperatorConsentFromChain()
+  }, [activeStep, state.operatorConsentSigned, state.address, state.buyerKey, actions])
+
+  useEffect(() => {
     if (!activeStep) {
       setDrawerOpen(false)
       setDrawerStep(null)

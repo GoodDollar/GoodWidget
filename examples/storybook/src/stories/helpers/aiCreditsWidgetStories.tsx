@@ -65,6 +65,7 @@ function createAdapterFactory(
       generateBuyerKey: async () => {},
       confirmBuyerKey: () => {},
       signOperatorConsent: async () => {},
+      syncOperatorConsentFromChain: async () => {},
       setDepositAmount: () => {},
       setStreamAmount: () => {},
       setChannelId: () => {},
