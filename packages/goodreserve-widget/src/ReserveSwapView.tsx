@@ -21,33 +21,15 @@ import type {
   ReserveSwapWidgetAdapterState,
 } from './widgetRuntimeContract'
 import { CELO_CHAIN_ID, getReserveChainFromId, XDC_CHAIN_ID } from './constants'
+import { sanitizeAmount } from './amount'
 
-
-// ---------------------------------------------------------------------------
-// Widget-scoped named components.
-//
-// Colors are sourced from:
-//   1. Preset design tokens (e.g. `$primary`, `$surface`, `$textColor`) — preferred
-//      for anything that has a semantic match in GoodWalletV2.
-//   2. Widget-local theme tokens registered via config.ts (e.g. `$reserveCard`,
-//      `$reserveTextMuted`) — used only where Figma specifies a reserve-specific
-//      shade with no preset equivalent.
-//
-// Hardcoded hex is NOT used in JSX. Font sizes / weights use numeric literals
-// where they express intentional one-off Figma values; sizing tokens are used
-// for spacing/radius.
-//
-// Integrators can override any named-component sub-theme or $reserve* token via:
-//   <GoodReserveWidget themeOverrides={{ themes: { light: { reserveCard: '...' } } }} />
-// ---------------------------------------------------------------------------
-
-/** Outer swap card — uses $reserveCard from the widget config theme extension. */
+/** Outer swap card. */
 const SwapShell = createComponent(Card, {
   name: 'ReserveSwapShell',
   extends: 'Card',
-  backgroundColor: '$reserveCard',
+  backgroundColor: '$backgroundSurface',
   color: '$textColor',
-  borderColor: '$reserveBadge',
+  borderColor: '$borderColor',
   padding: '$4',
   gap: '$3',
   borderRadius: '$6',
@@ -57,7 +39,7 @@ const SwapShell = createComponent(Card, {
 const AmountCard = createComponent(Card, {
   name: 'ReserveAmountCard',
   extends: 'Card',
-  backgroundColor: '$reserveInputCard',
+  backgroundColor: '$backgroundInput',
   color: '$textColor',
   borderWidth: 0,
   shadowOpacity: 0,
@@ -70,7 +52,7 @@ const AmountCard = createComponent(Card, {
 const ReserveSurface = createComponent(Card, {
   name: 'ReserveSurface',
   extends: 'Card',
-  backgroundColor: '$surface',
+  backgroundColor: '$backgroundSurface',
   color: '$textColor',
   borderWidth: 0,
   borderRadius: '$3',
@@ -79,14 +61,14 @@ const ReserveSurface = createComponent(Card, {
 /** Inner highlight surface (confirm "minimum received"). */
 const ReserveSurfaceInner = createComponent(YStack, {
   name: 'ReserveSurfaceInner',
-  backgroundColor: '$background',
+  backgroundColor: '$backgroundSurfaceAlt',
   borderRadius: '$3',
 })
 
 /** Confirm details table surface. */
 const ReserveDetailsTable = createComponent(YStack, {
   name: 'ReserveDetailsTable',
-  backgroundColor: '$reserveCard',
+  backgroundColor: '$backgroundInput',
   borderRadius: '$2',
 })
 
@@ -96,7 +78,7 @@ const TokenBadge = createComponent(XStack, {
   width: 40,
   height: 40,
   borderRadius: '$full',
-  backgroundColor: '$reserveBadge',
+  backgroundColor: '$backgroundSurfaceAlt',
   color: '$textColor',
   alignItems: 'center' as const,
   justifyContent: 'center' as const,
@@ -108,7 +90,7 @@ const SwapDirectionButton = createComponent(XStack, {
   width: 40,
   height: 40,
   borderRadius: '$full',
-  backgroundColor: '$reserveBadge',
+  backgroundColor: '$backgroundInput',
   color: '$color',
   alignItems: 'center' as const,
   justifyContent: 'center' as const,
@@ -122,7 +104,7 @@ const SettingsButton = createComponent(XStack, {
   width: 40,
   height: 40,
   borderRadius: '$full',
-  backgroundColor: '$reserveBadge',
+  backgroundColor: '$backgroundInput',
   color: '$color',
   alignItems: 'center' as const,
   justifyContent: 'center' as const,
@@ -137,7 +119,7 @@ const SuccessIcon = createComponent(XStack, {
   height: 96,
   borderRadius: '$full',
   backgroundColor: '$primary',
-  color: 'white',
+  color: '$white',
   alignItems: 'center' as const,
   justifyContent: 'center' as const,
   shadowColor: '$shadowColor',
@@ -162,6 +144,9 @@ const NETWORK_LABELS: Record<number, string> = {
   [CELO_CHAIN_ID]: 'CELO',
   [XDC_CHAIN_ID]: 'XDC',
 }
+
+const AMOUNT_VALUE_FONT_SIZE = 32
+const AMOUNT_VALUE_LINE_HEIGHT = 36
 
 function networkLabel(chainId: number | null): string {
   return chainId !== null && NETWORK_LABELS[chainId] ? NETWORK_LABELS[chainId] : 'Unsupported'
@@ -195,7 +180,7 @@ function DetailRow({
 }) {
   return (
     <XStack justifyContent="space-between" alignItems="center">
-      <Text fontSize={12} fontWeight="600" color={'$reserveTextMuted'}>
+      <Text fontSize={12} fontWeight="600" color="$secondaryColor">
         {label}
       </Text>
       <Text fontSize={16} fontWeight="500" color={valueColor ?? '$textColor'}>
@@ -209,7 +194,7 @@ function DetailRow({
 function CollapsibleSection({
   title,
   testID,
-  defaultOpen = true,
+  defaultOpen = false,
   children,
 }: {
   title: string
@@ -226,7 +211,7 @@ function CollapsibleSection({
         cursor="pointer"
         onPress={() => setOpen((v) => !v)}
       >
-        <Text fontSize={12} fontWeight="600" color={'$reserveTextMuted'}>
+        <Text fontSize={12} fontWeight="600" color="$secondaryColor">
           {title}
         </Text>
         <Icon name={open ? 'chevron-up' : 'chevron-down'} size="xs" color="muted" />
@@ -262,12 +247,7 @@ export function ReserveSwapView({ adapter, preferredChainId }: ReserveSwapViewPr
   }
 
   return (
-    <MainSwapView
-      state={state}
-      actions={actions}
-      network={network}
-      switchTarget={switchTarget}
-    />
+    <MainSwapView state={state} actions={actions} network={network} switchTarget={switchTarget} />
   )
 }
 
@@ -299,7 +279,16 @@ function SwapSuccessView({
     : new Intl.NumberFormat('en-US', { maximumFractionDigits: 6 }).format(Number(lastSwapOutput))
 
   return (
-    <YStack testID="GoodReserveWidget-root" width="100%" maxWidth={390} alignSelf="center" gap="$6" alignItems="center" flex={1}>
+    <YStack
+      testID="GoodReserveWidget-root"
+      width="100%"
+      maxWidth={390}
+      alignSelf="center"
+      gap="$6"
+      alignItems="center"
+      flex={1}
+      padding="$4"
+    >
       <SwapShell width="100%" alignItems="center" gap="$5" paddingVertical="$8" flex={1}>
         <SuccessIcon marginTop="$4">
           <Icon name="check" size="xl" color="inherit" />
@@ -309,8 +298,14 @@ function SwapSuccessView({
           Swap Successful
         </Heading>
 
-        <ReserveSurface testID="GoodReserveWidget-success" width="100%" padding="$5" gap="$2" alignItems="center">
-          <Text fontSize={14} fontWeight="500" color="$reserveTextSecondary">
+        <ReserveSurface
+          testID="GoodReserveWidget-success"
+          width="100%"
+          padding="$5"
+          gap="$2"
+          alignItems="center"
+        >
+          <Text fontSize={14} fontWeight="500" color="$colorSoft">
             Final amount received
           </Text>
           <Text fontSize={24} fontWeight="800" color="$textColor">
@@ -319,9 +314,14 @@ function SwapSuccessView({
         </ReserveSurface>
 
         {state.txHash && (
-          <Anchor href={explorerTxUrl(state.chainId, state.txHash)} target="_blank" rel="noopener noreferrer" textDecorationLine="none">
+          <Anchor
+            href={explorerTxUrl(state.chainId, state.txHash)}
+            target="_blank"
+            rel="noopener noreferrer"
+            textDecorationLine="none"
+          >
             <XStack gap="$2" alignItems="center">
-              <Text fontSize={12} fontWeight="600" color="$reserveTextSecondary">
+              <Text fontSize={12} fontWeight="600" color="$colorSoft">
                 View on Explorer ↗
               </Text>
             </XStack>
@@ -352,7 +352,11 @@ function SlippageDrawer({
   actions: ReserveSwapWidgetAdapterActions
 }) {
   return (
-    <Drawer open={state.status === 'slippage_selection'} onClose={actions.closeSlippage} height="half">
+    <Drawer
+      open={state.status === 'slippage_selection'}
+      onClose={actions.closeSlippage}
+      height="half"
+    >
       <YStack testID="GoodReserveWidget-slippage-sheet" gap="$4" width="100%">
         <XStack justifyContent="space-between" alignItems="center">
           <Heading level={4} color="$textColor">
@@ -406,17 +410,21 @@ function ConfirmDrawer({
         {/* Token hero: from badge → arrow → to badge */}
         <XStack alignItems="center" justifyContent="center" gap="$3">
           <TokenBadge>
-            <Text fontSize={16} fontWeight="700" color="$textColor">$</Text>
+            <Text fontSize={16} fontWeight="700" color="$textColor">
+              $
+            </Text>
           </TokenBadge>
           <Icon name="arrow-right" size="sm" color="primary" />
           <ConfirmToBadge>
-            <Text fontSize={16} fontWeight="700" color="$textColor">$</Text>
+            <Text fontSize={16} fontWeight="700" color="$textColor">
+              $
+            </Text>
           </ConfirmToBadge>
         </XStack>
 
         {/* Minimum received highlight */}
         <ReserveSurfaceInner padding="$4" alignItems="center" gap="$1">
-          <Text fontSize={14} fontWeight="400" color="$reserveTextSecondary">
+          <Text fontSize={14} fontWeight="400" color="$colorSoft">
             Minimum Received
           </Text>
           <Text fontSize={50} fontWeight="800" color="$textColor">
@@ -545,39 +553,39 @@ function MainSwapView({
   const stableSymbol = state.tokenInSymbol === 'G$' ? state.tokenOutSymbol : state.tokenInSymbol
 
   return (
-    <YStack testID="GoodReserveWidget-root" width="100%" maxWidth={390} alignSelf="center" gap="$3">
+    <YStack testID="GoodReserveWidget-root" width="100%" alignSelf="center" gap="$3">
       {/* Header sits ABOVE the dark card (Figma): network pill, heading, subtitle. */}
       <YStack alignItems="center" gap="$2">
         <XStack
           borderWidth={1}
-          borderColor="$primaryMuted"
+          borderColor="$infoMuted"
           borderRadius="$full"
           paddingHorizontal="$3"
           paddingVertical="$1"
           alignItems="center"
           gap="$1"
         >
-          <Text fontSize={12} fontWeight="600" color="$reserveTextMuted">
+          <Text fontSize={12} fontWeight="600" color="$secondaryColor">
             {network}
           </Text>
         </XStack>
-        <Heading level={3} fontSize={28} fontWeight="700" color="$reserveHeading">
+        <Heading level={3} fontSize={28} fontWeight="700" color="$primary">
           Swap on {network}
         </Heading>
-        <Text center fontSize={14} fontWeight="500" color="$reserveTextMuted">
+        <Text center fontSize={14} fontWeight="500" color="$secondaryColor">
           Buy or sell GoodDollars on {network} using the GoodDollar Reserve.
         </Text>
       </YStack>
 
-      <SwapShell>
+      <SwapShell testID="GoodReserveWidget-shell">
         {/* Swap from */}
-        <AmountCard>
+        <AmountCard testID="GoodReserveWidget-amount-card-from">
           <XStack justifyContent="space-between" alignItems="center">
-            <Text fontSize={12} fontWeight="600" color="$reserveTextMuted">
+            <Text fontSize={12} fontWeight="600" color="$secondaryColor">
               Swap from
             </Text>
             <XStack gap="$2" alignItems="center">
-              <Text fontSize={12} fontWeight="600" color="$reserveTextMuted">
+              <Text fontSize={12} fontWeight="600" color="$secondaryColor">
                 Balance: {state.tokenInBalance}
               </Text>
               <Text
@@ -594,9 +602,6 @@ function MainSwapView({
           </XStack>
           <XStack justifyContent="space-between" alignItems="center" gap="$3">
             <XStack gap="$2" alignItems="center" flexShrink={0}>
-              <TokenBadge>
-                <Text fontSize={16} fontWeight="700" color="$textColor">$</Text>
-              </TokenBadge>
               <Text fontSize={21} fontWeight="700" color="$textColor">
                 {state.tokenInSymbol}
               </Text>
@@ -605,20 +610,24 @@ function MainSwapView({
               flex={1}
               borderWidth={0}
               backgroundColor="$backgroundTransparent"
-              fontSize={28}
               fontWeight="700"
               color="$textColor"
+              maxWidth={200}
               // Web: the @goodwidget/ui Input is a Tamagui `tag:'input'` Stack which
               // does not translate RN's onChangeText to the DOM, so wire the native
               // onChange and sanitize to a single decimal number at the boundary.
               // textAlign is applied via style (DOM-valid) rather than the RN prop,
               // which Tamagui would otherwise emit as an invalid `textalign` attr.
               inputMode="decimal"
-              style={{ textAlign: 'right' }}
+              style={{
+                textAlign: 'right',
+                lineHeight: `${AMOUNT_VALUE_LINE_HEIGHT}px`,
+                fontSize: `${AMOUNT_VALUE_FONT_SIZE}px`,
+              }}
               value={state.inputAmount}
               placeholder="0.00"
               onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                actions.setInputAmount(event.target.value)
+                actions.setInputAmount(sanitizeAmount(event.target.value))
               }
             />
           </XStack>
@@ -633,20 +642,17 @@ function MainSwapView({
         </SwapDirectionButton>
 
         {/* Swap to */}
-        <AmountCard>
+        <AmountCard testID="GoodReserveWidget-amount-card-to">
           <XStack justifyContent="space-between" alignItems="center">
-            <Text fontSize={12} fontWeight="600" color="$reserveTextMuted">
+            <Text fontSize={12} fontWeight="600" color="$secondaryColor">
               Swap to
             </Text>
-            <Text fontSize={12} fontWeight="600" color="$reserveTextMuted">
+            <Text fontSize={12} fontWeight="600" color="$secondaryColor">
               Balance: {state.tokenOutBalance}
             </Text>
           </XStack>
           <XStack justifyContent="space-between" alignItems="center" gap="$3">
             <XStack gap="$2" alignItems="center" flexShrink={0}>
-              <TokenBadge>
-                <Text fontSize={16} fontWeight="700" color="$textColor">$</Text>
-              </TokenBadge>
               <Text fontSize={21} fontWeight="700" color="$textColor">
                 {state.tokenOutSymbol}
               </Text>
@@ -656,9 +662,10 @@ function MainSwapView({
             ) : (
               <Text
                 flex={1}
-                fontSize={34}
+                fontSize={AMOUNT_VALUE_FONT_SIZE}
+                lineHeight={AMOUNT_VALUE_LINE_HEIGHT}
                 fontWeight="700"
-                color={state.quote ? '$textColor' : '$reserveTextMuted'}
+                color={state.quote ? '$textColor' : '$secondaryColor'}
                 textAlign="right"
                 numberOfLines={1}
                 ellipsizeMode="tail"
@@ -767,7 +774,7 @@ function MainSwapView({
         <CollapsibleSection title="FAQ">
           <YStack gap="$3">
             <YStack gap="$1">
-              <Text fontSize={14} fontWeight="500" color="$reserveTextMuted">
+              <Text fontSize={14} fontWeight="500" color="$secondaryColor">
                 What is {stableSymbol}?
               </Text>
               <Text fontSize={16} fontWeight="400" color="$textColor">
@@ -775,7 +782,7 @@ function MainSwapView({
               </Text>
             </YStack>
             <YStack gap="$1">
-              <Text fontSize={14} fontWeight="500" color="$reserveTextMuted">
+              <Text fontSize={14} fontWeight="500" color="$secondaryColor">
                 How does the reserve work?
               </Text>
               <Text fontSize={16} fontWeight="400" color="$textColor">

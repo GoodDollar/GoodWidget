@@ -21,10 +21,14 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 // Renders one deterministic reserve state per story for CI-safe widget coverage.
-const renderStory = (mockState: Story['args']['mockState'], dataTestId: string) => (
-  <div data-testid={dataTestId} style={{ width: 390 }}>
-    <GoodReserveWidget provider={provider} mockState={mockState} />
-  </div>
+const renderStory = (
+  mockState: Story['args']['mockState'],
+  dataTestId: string,
+  defaultTheme?: 'light' | 'dark',
+) => (
+  // <div data-testid={dataTestId} style={{ width: 390 }}>
+  <GoodReserveWidget provider={provider} mockState={mockState} defaultTheme={defaultTheme} />
+  // </div>
 )
 
 export const NoProvider: Story = {
@@ -46,15 +50,27 @@ export const IdleBuy: Story = {
 }
 
 export const AmountEditing: Story = {
-  render: () => renderStory(reserveWidgetMockStates.amountEditing, 'GoodReserveWidget-amount-editing'),
+  render: () =>
+    renderStory(reserveWidgetMockStates.amountEditing, 'GoodReserveWidget-amount-editing'),
 }
 
 export const QuoteLoading: Story = {
-  render: () => renderStory(reserveWidgetMockStates.quoteLoading, 'GoodReserveWidget-quote-loading'),
+  render: () =>
+    renderStory(reserveWidgetMockStates.quoteLoading, 'GoodReserveWidget-quote-loading'),
 }
 
 export const QuoteReadyBuy: Story = {
-  render: () => renderStory(reserveWidgetMockStates.quoteReady, 'GoodReserveWidget-quote-ready-buy'),
+  render: () =>
+    renderStory(reserveWidgetMockStates.quoteReady, 'GoodReserveWidget-quote-ready-buy'),
+}
+
+export const QuoteReadyBuyLightTheme: Story = {
+  render: () =>
+    renderStory(
+      reserveWidgetMockStates.quoteReady,
+      'GoodReserveWidget-quote-ready-buy-light',
+      'light',
+    ),
 }
 
 export const QuoteReadySell: Story = {
@@ -73,7 +89,10 @@ export const QuoteError: Story = {
 
 export const InsufficientBalance: Story = {
   render: () =>
-    renderStory(reserveWidgetMockStates.insufficientBalance, 'GoodReserveWidget-insufficient-balance'),
+    renderStory(
+      reserveWidgetMockStates.insufficientBalance,
+      'GoodReserveWidget-insufficient-balance',
+    ),
 }
 
 export const SlippageSelection: Story = {
@@ -82,7 +101,8 @@ export const SlippageSelection: Story = {
 }
 
 export const ConfirmDialog: Story = {
-  render: () => renderStory(reserveWidgetMockStates.confirmDialog, 'GoodReserveWidget-confirm-dialog'),
+  render: () =>
+    renderStory(reserveWidgetMockStates.confirmDialog, 'GoodReserveWidget-confirm-dialog'),
 }
 
 export const SwapPending: Story = {
@@ -147,8 +167,13 @@ export const LiveWallet: Story = {
       return (
         <div style={{ padding: '20px', maxWidth: '400px' }}>
           <h2>Wallet Required</h2>
-          <p>This story requires a browser wallet extension (MetaMask, etc.) to test the live SDK path.</p>
-          <p><strong>To test:</strong></p>
+          <p>
+            This story requires a browser wallet extension (MetaMask, etc.) to test the live SDK
+            path.
+          </p>
+          <p>
+            <strong>To test:</strong>
+          </p>
           <ol>
             <li>Install MetaMask or another EIP-1193 compatible wallet</li>
             <li>Connect to Celo mainnet or XDC network</li>
@@ -162,10 +187,29 @@ export const LiveWallet: Story = {
     const walletProvider = (window as any).ethereum
 
     return (
-      <div data-testid="GoodReserveWidget-live-wallet" style={{ width: 390, minHeight: 600, paddingBottom: 40 }}>
-        <div style={{ marginBottom: '10px', padding: '10px', backgroundColor: '#fff3cd', border: '1px solid #ffc107', borderRadius: '4px' }}>
-          <strong>Live Wallet Test</strong><br />
-          Using real wallet: {walletProvider.isMetaMask ? 'MetaMask' : 'Wallet Extension'}<br />
+      <div
+        data-testid="GoodReserveWidget-live-wallet"
+        style={{
+          marginLeft: 'auto',
+          marginRight: 'auto',
+          width: 420,
+          minHeight: 600,
+          paddingBottom: 40,
+        }}
+      >
+        <div
+          style={{
+            marginBottom: '10px',
+            padding: '10px',
+            backgroundColor: '#fff3cd',
+            border: '1px solid #ffc107',
+            borderRadius: '4px',
+          }}
+        >
+          <strong>Live Wallet Test</strong>
+          <br />
+          Using real wallet: {walletProvider.isMetaMask ? 'MetaMask' : 'Wallet Extension'}
+          <br />
           <small>Test the full swap flow: quote - confirm - execute - success</small>
         </div>
         <GoodReserveWidget provider={walletProvider} />

@@ -16,6 +16,13 @@ import { expect, test, type Page } from '@playwright/test'
 
 const SCREENSHOT_DIR = 'tests/widgets/goodreserve-widget/test-results'
 
+async function computedStyle(locator: ReturnType<Page['locator']>, property: string): Promise<string> {
+  return locator.evaluate(
+    (element, cssProperty) => window.getComputedStyle(element).getPropertyValue(cssProperty),
+    property,
+  )
+}
+
 // Navigate directly to the story iframe (bypasses the Storybook shell for speed
 // and avoids first-load flakiness from the manager UI). Retries the initial
 // navigation so a cold-starting Storybook dev server (vite compiling its first
@@ -81,6 +88,38 @@ test('quote-ready buy renders the quoted G$ output', async ({ page }) => {
   await expect(page.getByText('108.2500')).toBeVisible()
   await expect(page.getByText('Review Swap')).toBeVisible()
   await page.screenshot({ path: `${SCREENSHOT_DIR}/grw-04-quote-ready-buy.png` })
+})
+
+test('quote-ready light theme resolves a different semantic palette from dark', async ({ page }) => {
+  await gotoStory(page, 'widgets-goodreservewidget--quote-ready-buy')
+
+  const darkHeading = page.getByText('Swap on CELO').first()
+  const darkShell = page.getByTestId('GoodReserveWidget-shell').first()
+  const darkAmountCard = page.getByTestId('GoodReserveWidget-amount-card-from').first()
+
+  const darkHeadingColor = await computedStyle(darkHeading, 'color')
+  const darkShellBackground = await computedStyle(darkShell, 'background-color')
+  const darkAmountCardBackground = await computedStyle(darkAmountCard, 'background-color')
+
+  await page.screenshot({ path: `${SCREENSHOT_DIR}/grw-17-quote-ready-buy-dark-theme.png` })
+
+  await gotoStory(page, 'widgets-goodreservewidget--quote-ready-buy-light-theme')
+
+  const lightHeading = page.getByText('Swap on CELO').first()
+  const lightShell = page.getByTestId('GoodReserveWidget-shell').first()
+  const lightAmountCard = page.getByTestId('GoodReserveWidget-amount-card-from').first()
+
+  const lightHeadingColor = await computedStyle(lightHeading, 'color')
+  const lightShellBackground = await computedStyle(lightShell, 'background-color')
+  const lightAmountCardBackground = await computedStyle(lightAmountCard, 'background-color')
+
+  await expect(page.getByText('108.2500')).toBeVisible()
+  await expect(page.getByText('Review Swap')).toBeVisible()
+  await expect(lightHeadingColor).not.toBe(darkHeadingColor)
+  await expect(lightShellBackground).not.toBe(darkShellBackground)
+  await expect(lightAmountCardBackground).not.toBe(darkAmountCardBackground)
+
+  await page.screenshot({ path: `${SCREENSHOT_DIR}/grw-18-quote-ready-buy-light-theme.png` })
 })
 
 test('quote-ready sell maps G$ into the from slot', async ({ page }) => {
