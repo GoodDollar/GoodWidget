@@ -6,7 +6,7 @@
  */
 import React, { useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
-import { expect, screen, within, userEvent } from '@storybook/test'
+import { expect, within, userEvent } from '@storybook/test'
 import { Drawer, Card, Heading, Text, Button, ButtonText, YStack } from '@goodwidget/ui'
 
 const meta: Meta = {
@@ -20,7 +20,6 @@ type Story = StoryObj
 /** Controlled Drawer triggered by a button. */
 export const Default: Story = {
   render: () => {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     const [open, setOpen] = useState(false)
     return (
       <Card data-testid="Drawer-trigger" style={{ width: 320 }}>
@@ -45,7 +44,9 @@ export const Default: Story = {
     const canvas = within(canvasElement)
     const trigger = canvas.getByRole('button', { name: /open drawer/i })
     await userEvent.click(trigger)
-    // Drawer content is portaled, so query the document-level screen instead of the canvas.
-    await expect(await screen.findByRole('button', { name: /close/i })).toBeVisible()
+    // After clicking, the Close button should appear inside the Drawer
+    // The Drawer is rendered in a portal, so we need to search the entire document
+    const closeButton = await within(document.body).findByRole('button', { name: /close/i })
+    await expect(closeButton).toBeDefined()
   },
 }

@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from 'react'
-import { Card, Text, WidgetTabs, YStack } from '@goodwidget/ui'
+import { YStack } from '@goodwidget/ui'
 import { CitizenClaimWidget } from '@goodwidget/citizen-claim-widget'
 import {
   getInjectedEip1193Provider,
   isInjectedProviderUsable,
 } from '../../fixtures/injectedEip1193'
 import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
-
-type CitizenClaimTab = 'claim' | 'invite-rewards' | 'news-feed'
 
 function CitizenClaimWidgetStoryShell({
   provider,
@@ -16,7 +14,7 @@ function CitizenClaimWidgetStoryShell({
   provider: unknown
   dataTestId: string
 }) {
-  const [activeTab, setActiveTab] = useState<CitizenClaimTab>('claim')
+  // const [activeTab, setActiveTab] = useState<CitizenClaimTab>('claim')
   const [activeChainId, setActiveChainId] = useState<number | null>(null)
 
   useEffect(() => {
@@ -43,28 +41,12 @@ function CitizenClaimWidgetStoryShell({
   }, [provider])
 
   return (
-    <YStack data-testid={dataTestId} style={{ width: 380, height: '100vh' }}>
-      <WidgetTabs
-        tabs={[
-          { id: 'claim', label: 'Claim' },
-          { id: 'invite-rewards', label: 'Invite Rewards' },
-          { id: 'news-feed', label: 'News' },
-        ]}
-        activeTab={activeTab}
-        onTabChange={(tabId: string) => setActiveTab(tabId as CitizenClaimTab)}
-        chainId={activeChainId ?? 42220}
-      />
-
-      {activeTab === 'claim' ? (
-        <CitizenClaimWidget provider={provider} environment="development" />
-      ) : (
-        <Card>
-          <YStack alignItems="center" justifyContent="center" minHeight={320}>
-            <Text variant="body">Widget coming soon</Text>
-          </YStack>
-        </Card>
-      )}
-    </YStack>
+    <CitizenClaimWidget
+      provider={provider}
+      environment="development"
+      data-testid={dataTestId}
+      chainId={activeChainId ?? 42220}
+    />
   )
 }
 

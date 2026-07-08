@@ -10,6 +10,7 @@ A cross-platform mini app framework for building web3 widgets that run inside wa
 | `@goodwidget/ui`           | Tamagui-based themeable component library (React + React Native Web)         |
 | `@goodwidget/embed`        | Web Component wrapper for embedding mini apps in any HTML page               |
 | `@goodwidget/claim-widget` | Sample publishable widget — React component + Web Component                  |
+| `@goodwidget/goodreserve-widget` | Reserve swap widget package (buy/sell flow on Celo/XDC)               |
 
 ## Quick Start
 
@@ -175,6 +176,7 @@ GoodWidget/
     ui/             → @goodwidget/ui            (component library, theme system)
     embed/          → @goodwidget/embed         (Web Component wrapper)
     claim-widget/   → @goodwidget/claim-widget  (sample publishable widget)
+    goodreserve-widget/ → @goodwidget/goodreserve-widget (reserve swap widget)
   examples/
     react-web/      → React demo with style override showcase
     html/           → Plain HTML consuming a web component widget

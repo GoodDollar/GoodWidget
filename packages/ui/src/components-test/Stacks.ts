@@ -1,1 +1,1 @@
-export { XStack, YStack, ZStack } from 'tamagui'
+export { Stack, XStack, YStack, ZStack } from 'tamagui'

@@ -91,6 +91,7 @@ export type CitizenClaimWidgetClientFactory = (
 export interface CitizenClaimWidgetProps {
   provider?: unknown
   environment?: CitizenClaimWidgetEnvironment
+  chainId?: number
   clientFactory?: CitizenClaimWidgetClientFactory
   onClaimSuccess?: (detail: CitizenClaimWidgetSuccessDetail) => void
   onClaimError?: (detail: CitizenClaimWidgetErrorDetail) => void

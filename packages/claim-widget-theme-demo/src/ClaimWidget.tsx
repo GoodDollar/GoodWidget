@@ -1,12 +1,11 @@
 import React, { useState, useCallback } from 'react'
-import { useWallet, useHost } from '@goodwidget/core'
+import { useWallet } from '@goodwidget/core'
 import type { GoodWidgetThemeOverrides, GoodWidgetConfig } from '@goodwidget/core'
 import { GoodWidgetProvider } from '@goodwidget/core'
 import type { EIP1193Provider } from '@goodwidget/core'
 import {
   createComponent,
   Card,
-  Heading,
   Text,
   Button,
   ButtonFrame,
@@ -105,7 +104,6 @@ const ClaimActionInner = createComponent(YStack, {
 
 function ClaimInner() {
   const { address, connect } = useWallet()
-  const { host } = useHost()
   const [claiming, setClaiming] = useState(false)
   const [claimed, setClaimed] = useState(false)
   const [activeTab, setActiveTab] = useState<'claim' | 'invite-rewards' | 'news-feed'>('claim')

@@ -45,7 +45,7 @@ export const defaultTokenPreset = {
       background: '#13151C',
       backgroundDark: '#13151C',
       surface: '#1E1F26',
-      surfaceDark: '#1E1F26',
+      surfaceAlt: '#171C2B',
       text: '#FFFFFF',
       textDark: '#FFFFFF',
       textSecondary: '#808080',
@@ -55,8 +55,7 @@ export const defaultTokenPreset = {
       overlay: 'rgba(19, 21, 28, 0.8)',
       transparent: 'transparent',
 
-      backgroundRaised: '#1E1F26',
-      backgroundInput: '#333333',
+      backgroundInput: '#252730',
       backgroundOverlay: 'rgba(19, 21, 28, 0.8)',
       borderLight: '#666666',
       glowPrimary: 'rgba(26, 133, 255, 0.82)',
@@ -191,6 +190,10 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
       backgroundHover: color.governanceBackgroundHover,
       backgroundPress: color.governanceBackgroundPress,
       backgroundFocus: color.governanceBackgroundFocus,
+      backgroundInput: color.governanceSurfaceAlt,
+
+      backgroundSurface: color.governanceSurface,
+      backgroundRaised: color.governanceSurfaceAlt,
       // Legacy dark-suffixed lookups are intentionally mapped to light surfaces here.
       // TODO: Eventually this will have to be fixed on widget and component level so that they use semantically correct lookups instead of dark/light-suffixed ones, but for now this allows us to reuse the existing governance-themed components that still have dark-suffixed lookups for their surfaces.
       backgroundDark: color.governanceBackgroundDark,
@@ -237,11 +240,15 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
     // Legacy GoodWalletV2 dark-mode branch.
     dark: {
       background: color.backgroundDark,
-      backgroundHover: color.surfaceDark,
+      backgroundHover: color.surfaceAlt,
       backgroundPress: color.backgroundInput,
-      backgroundFocus: color.surfaceDark,
+      backgroundFocus: color.surfaceAlt,
+      backgroundInput: color.backgroundInput,
       backgroundTransparent: color.transparent,
       backgroundOverlay: color.backgroundOverlay,
+
+      backgroundSurface: color.surface,
+      backgroundSurfaceAlt: color.surfaceAlt,
 
       color: color.textDark,
       colorHover: color.textDark,
@@ -290,7 +297,7 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
       shadowColor: color.governanceShadowHover,
     },
     dark_Card: {
-      background: color.surfaceDark,
+      background: color.surface,
       color: color.textDark,
       borderColor: color.borderDark,
       shadowColor: 'rgba(3, 7, 18, 0.68)',
@@ -304,7 +311,7 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
       shadowColor: color.governanceGlowPrimary,
     },
     dark_GlowCard: {
-      background: color.surfaceDark,
+      background: color.surface,
       color: color.textDark,
       borderColor: color.primary,
       shadowColor: 'rgba(26, 133, 255, 0.9)',
@@ -365,7 +372,7 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
       shadowColor: color.governanceShadow,
     },
     dark_StreakCard: {
-      background: color.surfaceDark,
+      background: color.surface,
       borderColor: color.borderDark,
       shadowColor: 'rgba(3, 7, 18, 0.64)',
     },
@@ -381,7 +388,7 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
     },
     light_ClaimActionGlow: {
       backgroundColor: color.governanceGlowPrimary,
-      glowOpacity: '0.08',
+      opacity: '0.08',
       glowOffset: '-4px',
     },
     dark_ClaimActionGlow: {
@@ -436,7 +443,7 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
       shadowColor: color.governanceElevationShadow,
     },
     dark_Dialog: {
-      background: color.backgroundRaised,
+      background: color.surface,
       color: color.white,
       borderColor: color.border,
       shadowColor: 'rgba(3, 7, 18, 0.8)',

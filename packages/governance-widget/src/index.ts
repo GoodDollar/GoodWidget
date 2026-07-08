@@ -5,7 +5,7 @@ export { OptimisticVotingProposalCard } from './OptimisticVotingProposalCard'
 export { FundingDistributionChart } from './FundingDistributionChart'
 export { GovernanceWidgetProvider } from './GovernanceWidgetProvider'
 export { GovernanceOnboardingWidget } from './GovernanceOnboardingWidget'
-export type { GovernanceWidgetProviderProps } from './GovernanceWidgetProvider'
+export type { GovernanceWidgetProviderProps } from './types'
 export type {
   GovernanceAmount,
   ImpactCardMetric,

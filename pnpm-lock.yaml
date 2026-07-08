@@ -216,6 +216,9 @@ importers:
       '@goodwidget/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@goodwidget/goodreserve-widget':
+        specifier: workspace:*
+        version: link:../../packages/goodreserve-widget
       '@goodwidget/governance-widget':
         specifier: workspace:*
         version: link:../../packages/governance-widget
@@ -413,6 +416,43 @@ importers:
       '@r2wc/react-to-web-component':
         specifier: ^2.0.3
         version: 2.1.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+    devDependencies:
+      '@types/react':
+        specifier: ^18.3.0
+        version: 18.3.28
+      '@types/react-dom':
+        specifier: ^18.3.0
+        version: 18.3.7(@types/react@18.3.28)
+      react:
+        specifier: ^18.3.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.0
+        version: 18.3.1(react@18.3.1)
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(@swc/core@1.15.30)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.3)
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  packages/goodreserve-widget:
+    dependencies:
+      '@goodsdks/good-reserve':
+        specifier: ^0.1.0
+        version: 0.1.0(@swc/core@1.15.30)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(viem@2.48.4(typescript@5.9.3)(zod@4.1.11))(yaml@2.8.3)
+      '@goodwidget/core':
+        specifier: workspace:*
+        version: link:../core
+      '@goodwidget/embed':
+        specifier: workspace:*
+        version: link:../embed
+      '@goodwidget/ui':
+        specifier: workspace:*
+        version: link:../ui
+      viem:
+        specifier: ^2.0.0
+        version: 2.48.4(typescript@5.9.3)(zod@4.1.11)
     devDependencies:
       '@types/react':
         specifier: ^18.3.0
@@ -1995,6 +2035,11 @@ packages:
     peerDependencies:
       viem: '*'
       wagmi: '*'
+
+  '@goodsdks/good-reserve@0.1.0':
+    resolution: {integrity: sha512-hkrnCdlV8LAg5k7YigCp8yIyfZ36KwST69DtDJ21kYW0byrggllUI5qkkgsSitdq4VyrCaYFsW6IGxISJLdeVQ==}
+    peerDependencies:
+      viem: '*'
 
   '@goodsdks/streaming-sdk@1.0.0':
     resolution: {integrity: sha512-g9+PRkBhrXg/ZK2i+piYVBny7B13AW4RB5Vd5CRCxZQhAy/KH7i/En1CgnJQVzTuTWKH3+QU9l7jhzOvbaRb2A==}
@@ -10316,6 +10361,20 @@ snapshots:
       tsup: 8.5.1(@swc/core@1.15.30)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.3)
       viem: 2.48.4(typescript@5.9.3)(zod@4.1.11)
       wagmi: 3.6.8(@tanstack/query-core@5.100.6)(@tanstack/react-query@5.100.6(react@18.3.1))(@types/react@18.3.28)(react@18.3.1)(typescript@5.9.3)(viem@2.48.4(typescript@5.9.3)(zod@4.1.11))
+    transitivePeerDependencies:
+      - '@microsoft/api-extractor'
+      - '@swc/core'
+      - jiti
+      - postcss
+      - supports-color
+      - tsx
+      - typescript
+      - yaml
+
+  '@goodsdks/good-reserve@0.1.0(@swc/core@1.15.30)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(viem@2.48.4(typescript@5.9.3)(zod@4.1.11))(yaml@2.8.3)':
+    dependencies:
+      tsup: 8.5.1(@swc/core@1.15.30)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.3)
+      viem: 2.48.4(typescript@5.9.3)(zod@4.1.11)
     transitivePeerDependencies:
       - '@microsoft/api-extractor'
       - '@swc/core'

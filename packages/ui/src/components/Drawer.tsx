@@ -9,6 +9,7 @@ const DrawerOverlay = createComponent(Sheet.Overlay as any, {
   name: 'DrawerOverlay',
   backgroundColor: '$backgroundOverlay',
   zIndex: 0,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   animation: ['medium', { opacity: 'exit' }] as any,
   enterStyle: { opacity: 0 },
   exitStyle: { opacity: 0 },
@@ -68,7 +69,6 @@ export function Drawer({ open, onClose, children, height = 'half' }: DrawerProps
       open={open}
       defaultPosition={0}
       onOpenChange={(openLocal: boolean) => {
-        console.log('open', openLocal, open)
         if (!openLocal) {
           onClose()
         }

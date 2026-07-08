@@ -1,4 +1,6 @@
 import type { ButtonProps, StepperStepItem, IconName } from '@goodwidget/ui'
+import type { EIP1193Provider, GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/core'
+import type { ReactNode } from 'react'
 
 export type GovernanceHouse = 'citizenship' | 'alignment'
 
@@ -7,6 +9,14 @@ export type GovernanceOnboardingStepId = 'welcome' | 'house' | 'profile' | 'stak
 export interface GovernanceWizardData extends Record<string, unknown> {
   selectedHouse?: GovernanceHouse
   profileDraft: GovernanceProfileDraft
+}
+
+export interface GovernanceWidgetProviderProps {
+  provider?: EIP1193Provider
+  config?: GoodWidgetConfig
+  themeOverrides?: GoodWidgetThemeOverrides
+  defaultTheme?: 'light' | 'dark'
+  children: ReactNode
 }
 
 export type GovernanceIdentityStatus = 'verified' | 'unverified'

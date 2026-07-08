@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react'
 import { TamaguiProvider } from 'tamagui'
-import { createGoodWidgetConfig, mergeThemeOverrides } from '@goodwidget/ui'
+import { createGoodWidgetConfig, mergeThemeOverrides, YStack, Stack } from '@goodwidget/ui'
 import { detectHost } from './detect'
 import type { EIP1193Provider } from './eip1193'
 import type {
@@ -153,7 +153,26 @@ export function GoodWidgetProvider({
       <HostContext.Provider value={hostValue}>
         <WalletContext.Provider value={walletValue}>
           <TamaguiProvider config={mergedConfig} defaultTheme={defaultTheme}>
-            {children}
+            <YStack
+              backgroundColor="$background"
+              width="100%"
+              marginHorizontal="auto"
+              flex={1}
+              alignItems="center"
+              maxWidth={480} // todo: fix or at least review, should be handling responsive layouts better
+            >
+              <Stack
+                flex={1}
+                gap="$4"
+                width="100%"
+                style={{
+                  overflowX: 'hidden',
+                }}
+                alignItems="center"
+              >
+                {children}
+              </Stack>
+            </YStack>
           </TamaguiProvider>
         </WalletContext.Provider>
       </HostContext.Provider>

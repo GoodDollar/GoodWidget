@@ -1,11 +1,13 @@
 import type { ReactNode } from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
-import { Card, Text, YStack } from '@goodwidget/ui'
+import { Card, Text, YStack, StepperStepItem } from '@goodwidget/ui'
 import {
   GovernanceOnboardingWidget,
   governanceWidgetConfig,
   type GovernanceOnboardingWidgetProps,
+  GovernanceWidgetProvider,
   DEFAULT_TRANSACTION_STEPS,
+  GovernanceOnboardingStepId,
 } from '@goodwidget/governance-widget'
 import {
   getInjectedEip1193Provider,
@@ -18,7 +20,8 @@ const meta: Meta<typeof GovernanceOnboardingWidget> = {
   component: GovernanceOnboardingWidget,
   tags: ['autodocs'],
   parameters: {
-    layout: 'centered',
+    layout: 'padded',
+    width: '100%',
     goodWidgetProvider: { useShell: false, config: governanceWidgetConfig, defaultTheme: 'light' },
   },
 }
@@ -54,22 +57,22 @@ function GovernanceStoryFrame({
   walletLabel,
   children,
   dataTestId,
-  width = 440,
+  width = 480,
 }: {
   walletLabel: string
   children: ReactNode
   dataTestId: string
-  width?: number
+  width?: any
 }) {
   return (
-    <YStack width={width} maxWidth="100%" gap="$3" data-testid={dataTestId}>
+    <GovernanceWidgetProvider data-testId={dataTestId}>
       <Card outlined>
         <Text variant="caption" tone="secondary">
           {walletLabel}
         </Text>
       </Card>
       {children}
-    </YStack>
+    </GovernanceWidgetProvider>
   )
 }
 
@@ -126,11 +129,17 @@ function CustodialGovernanceStory({
     )
   } catch (error: unknown) {
     return (
-      <YStack width={width ?? 440} gap="$3" data-testid="GovernanceOnboardingWidget-custodial-config-error">
+      <YStack
+        width={width ?? 440}
+        gap="$3"
+        data-testid="GovernanceOnboardingWidget-custodial-config-error"
+      >
         <Card>
           <Text bold>Custodial fixture not configured</Text>
           <Text tone="secondary">
-            {error instanceof Error ? error.message : 'Set a local private key in custodialEip1193.ts'}
+            {error instanceof Error
+              ? error.message
+              : 'Set a local private key in custodialEip1193.ts'}
           </Text>
         </Card>
       </YStack>
@@ -156,7 +165,7 @@ import { useState, useEffect } from 'react'
 
 function CustodialInteractiveFlowStory() {
   const [stepsState, setStepsState] = useState<StepperStepItem[]>(() =>
-    DEFAULT_TRANSACTION_STEPS.map((s) => ({ ...s }))
+    DEFAULT_TRANSACTION_STEPS.map((s) => ({ ...s })),
   )
   const [currentStepId, setCurrentStepId] = useState<GovernanceOnboardingStepId>('welcome')
 

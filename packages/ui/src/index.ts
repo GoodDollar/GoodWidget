@@ -37,7 +37,7 @@ export type { ThemeManifest, ComponentManifestEntry } from './manifest'
 export { Container } from './components-test/Container'
 export { Card } from './components/Card'
 export { GlowCard } from './components/GlowCard'
-export { XStack, YStack, ZStack } from './components-test/Stacks'
+export { Stack, XStack, YStack, ZStack } from './components-test/Stacks'
 export { Separator } from './components/Separator'
 export { ScrollArea } from './components-test/ScrollArea'
 
@@ -70,11 +70,7 @@ export type { ToastStatus, ToastConfig, ToastItem } from './components/Toast'
 export { Alert } from './components-test/Alert'
 export { Badge, BadgeText } from './components-test/Badge'
 export { Drawer } from './components/Drawer'
-export {
-  PageWizardProvider,
-  PageWizardShell,
-  usePageWizard,
-} from './components/PageWizard'
+export { PageWizardProvider, PageWizardShell, usePageWizard } from './components/PageWizard'
 export type { PageWizardContextValue, PageWizardStep } from './components/PageWizard'
 export { Stepper } from './components/Stepper'
 export type { StepperProps, StepperStepItem, StepperStepStatus } from './components/Stepper'

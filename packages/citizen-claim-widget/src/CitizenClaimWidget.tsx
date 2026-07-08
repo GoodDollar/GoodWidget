@@ -18,6 +18,7 @@ import {
   updateToast,
   XStack,
   YStack,
+  WidgetTabs,
 } from '@goodwidget/ui'
 import { SupportedChains } from '@goodsdks/citizen-sdk'
 import { useCitizenClaimAdapter } from './adapter'
@@ -172,7 +173,7 @@ function Countdown({ nextClaim }: { nextClaim: Date }) {
   useEffect(() => {
     const id = setInterval(() => setTimeLeft(getTimeLeft()), 1000)
     return () => clearInterval(id)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // getTimeLeft reads `nextClaim` only; intentionally excluded from deps.
   }, [nextClaim])
 
   const h = Math.floor(timeLeft / 3600)
@@ -191,17 +192,12 @@ function Countdown({ nextClaim }: { nextClaim: Date }) {
 // ---------------------------------------------------------------------------
 interface CitizenClaimInnerProps {
   environment?: CitizenClaimWidgetEnvironment
-  walletMode: 'custodial' | 'injected'
+  // walletMode: 'custodial' | 'injected'
   onClaimSuccess?: (detail: CitizenClaimWidgetSuccessDetail) => void
   onClaimError?: (detail: CitizenClaimWidgetErrorDetail) => void
 }
 
-function CitizenClaimInner({
-  environment,
-  walletMode,
-  onClaimSuccess,
-  onClaimError,
-}: CitizenClaimInnerProps) {
+function CitizenClaimInner({ environment, onClaimSuccess, onClaimError }: CitizenClaimInnerProps) {
   const { state, actions } = useCitizenClaimAdapter({ environment })
   const {
     status,
@@ -510,7 +506,7 @@ function CitizenClaimInner({
 // ---------------------------------------------------------------------------
 // Public component
 // ---------------------------------------------------------------------------
-
+type CitizenClaimTab = 'claim' | 'invite-rewards' | 'news-feed'
 /**
  * CitizenClaimWidget — real SDK-backed GoodDollar UBI claim flow.
  *
@@ -527,18 +523,14 @@ function CitizenClaimInner({
 export function CitizenClaimWidget({
   provider,
   environment = 'production',
+  chainId,
   themeOverrides,
   config,
   defaultTheme = 'dark',
   onClaimSuccess,
   onClaimError,
 }: CitizenClaimWidgetProps) {
-  const walletMode =
-    provider &&
-    typeof provider === 'object' &&
-    (provider as { __gwWalletMode?: string }).__gwWalletMode === 'custodial'
-      ? 'custodial'
-      : 'injected'
+  const [activeTab, setActiveTab] = useState<CitizenClaimTab>('claim')
 
   return (
     <GoodWidgetProvider
@@ -547,13 +539,33 @@ export function CitizenClaimWidget({
       themeOverrides={themeOverrides}
       defaultTheme={defaultTheme}
     >
-      <CitizenClaimInner
-        environment={environment}
-        walletMode={walletMode}
-        onClaimSuccess={onClaimSuccess}
-        onClaimError={onClaimError}
+      <WidgetTabs
+        tabs={[
+          { id: 'claim', label: 'Claim' },
+          { id: 'invite-rewards', label: 'Invite Rewards' },
+          { id: 'news-feed', label: 'News' },
+        ]}
+        activeTab={activeTab}
+        onTabChange={(tabId: string) => setActiveTab(tabId as CitizenClaimTab)}
+        chainId={chainId ?? 42220}
       />
-      <ToastContainer />
+      {activeTab === 'claim' ? (
+        <>
+          <CitizenClaimInner
+            environment={environment}
+            // walletMode={walletMode}
+            onClaimSuccess={onClaimSuccess}
+            onClaimError={onClaimError}
+          />
+          <ToastContainer />
+        </>
+      ) : (
+        <Card width="100%">
+          <YStack alignItems="center" justifyContent="center" minHeight={320}>
+            <Text variant="body">Widget coming soon</Text>
+          </YStack>
+        </Card>
+      )}
     </GoodWidgetProvider>
   )
 }

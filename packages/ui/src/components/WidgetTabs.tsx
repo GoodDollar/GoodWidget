@@ -46,7 +46,7 @@ export function WidgetTabs({
   renderLabel,
 }: WidgetTabsProps) {
   return (
-    <YStack gap="$3">
+    <YStack padding="$4" gap="$3" width="100%">
       {withConnectionStatus && (
         <XStack justifyContent="space-between" alignItems="center" paddingHorizontal="$1">
           <Heading level={4}>GoodDollar</Heading>
