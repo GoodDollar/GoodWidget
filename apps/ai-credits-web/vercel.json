@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "devCommand": "pnpm dev",
+  "git": {
+    "deploymentEnabled": false
+  }
+}

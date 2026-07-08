@@ -2,7 +2,7 @@
 
 This document describes the GoodWidget demo and documentation environment — a
 Storybook-first setup in `examples/storybook/` that serves as the canonical review
-environment for GoodWidget UI primitives and widget flows.
+environment for GoodWidget UI primitives, widget flows, and integrator-facing live docs.
 
 For the reviewer workflow, fixture meanings, and a short reporting template, see
 [`docs/qa-guide.md`](qa-guide.md).
@@ -24,6 +24,35 @@ pnpm storybook
 
 Storybook starts at **http://localhost:6006**.
 
+## Deploying Storybook to Vercel
+
+The repository includes a root-level `vercel.json` and GitHub Actions workflow for
+deploying the Storybook app as a static Vercel site.
+
+Local CLI flow:
+
+```sh
+# Preview deployment
+pnpm vercel:deploy:preview
+
+# Production deployment
+pnpm vercel:deploy:production
+```
+
+Notes:
+
+- Vercel must be linked to the repository root so `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID`
+  resolve correctly.
+- The Vercel build runs `pnpm build && pnpm build-storybook` because the Storybook app
+  consumes built workspace packages.
+- Static output is published from `examples/storybook/storybook-static`.
+
+GitHub Actions workflow:
+
+- Pull requests from branches inside this repository create preview deployments.
+- Pushes to `main` or `master` create production deployments.
+- Required GitHub secrets: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`.
+
 ---
 
 ## Running in a Copilot cloud agent
@@ -42,25 +71,34 @@ pnpm test:storybook
 Or navigate directly with Playwright MCP:
 
 ```
-http://localhost:6006/?path=/story/primitives-card--default
-http://localhost:6006/?path=/story/widgets-claimwidget--default
-http://localhost:6006/?path=/story/theme-themeplayground--default-preset
+http://localhost:6006/?path=/story/design-system-primitives-card--default
+http://localhost:6006/?path=/story/widgets-claimwidget-theme-demo-showcase--default
+http://localhost:6006/?path=/story/design-system-theming-override-playground--default-preset
 ```
 
----
+## Storybook structure
 
-## Story map
+The sidebar is organized by audience and intent:
 
-| Story | What it shows |
-|-------|--------------|
-| `Primitives/Card` | Card primitive — Default, WithAction, InlineStyled |
-| `Primitives/GlowCard` | GlowCard with animated glow border |
-| `Primitives/Drawer` | Drawer with interaction test (play function) |
-| `Primitives/TokenAmount` | Token amount display with args/controls |
-| `Widgets/ClaimWidget` | ClaimWidget: Default, CobaltBrand, TealBrand |
-| `Theme/ThemePlayground` | Override layer exploration: DefaultPreset, TokenOverride, ComponentThemeOverride, HostOverrideCobalt, HostOverrideTeal |
+- `Start Here`: orientation and contribution rules.
+- `Integrators`: embedding and theming guides written in MDX.
+- `Design System`: primitives plus theming references.
+- `Widgets`: widget showcase stories and widget-specific guides.
+- `QA`: deterministic fixtures and automation-focused states.
 
-Story files live in `examples/storybook/src/stories/`.
+Story files and MDX docs live in `examples/storybook/src/stories/`.
+
+### MDX docs expectations
+
+MDX pages are the authored documentation layer. They should:
+
+- lead with a clear title, intent, and short explanation before showing stories
+- explain what the reader is looking at and why it matters
+- include copy-paste integration examples where useful
+- reuse CSF stories instead of recreating widget rendering logic in the page
+
+Storybook docs render embedded stories in isolated docs iframes so pages can show
+multiple themed widget examples without provider/theme collisions between canvases.
 
 ---
 
@@ -139,8 +177,8 @@ The mock is passed as the `provider` prop to `ClaimWidget`.
 
 1. Confirm the component lives in `packages/ui/src/components/`.
 2. Create `examples/storybook/src/stories/MyComponent.stories.tsx`.
-3. Set `title: 'Primitives/MyComponent'` in the meta.
-4. Add `tags: ['autodocs']` for automatic docs generation.
+3. Set `title: 'Design System/Primitives/MyComponent'` in the meta.
+4. Add `tags: ['autodocs', 'showcase']` for automatic docs generation and classification.
 5. Add a `data-testid="MyComponent-default"` to the primary rendered element.
 6. Add a smoke test case in `tests/design-system/smoke.spec.ts`.
 
@@ -152,9 +190,9 @@ import type { Meta, StoryObj } from '@storybook/react'
 import { MyComponent } from '@goodwidget/ui'
 
 const meta: Meta<typeof MyComponent> = {
-  title: 'Primitives/MyComponent',
+  title: 'Design System/Primitives/MyComponent',
   component: MyComponent,
-  tags: ['autodocs'],
+  tags: ['autodocs', 'showcase'],
   parameters: { layout: 'padded' },
 }
 export default meta
@@ -169,11 +207,22 @@ export const Default: Story = {
 
 ## Adding a new widget story
 
-1. Create `examples/storybook/src/stories/MyWidget.stories.tsx`.
-2. Set `title: 'Widgets/MyWidget'` in the meta.
+1. Create a reference story file under `examples/storybook/src/stories/<widget-name>/`.
+2. Set a showcase title such as `Widgets/MyWidget/Showcase` in the meta.
 3. Import `createMockEip1193Provider` from `../fixtures/mockEip1193` if wallet context is needed.
 4. Pass the mock provider to your widget.
-5. Add a widget test under `tests/widgets/<widget-name>/` (and update `tests/design-system/smoke.spec.ts` only if shared design-system coverage also changed).
+5. Create separate `QA/...` stories for fixture-heavy or automation-only states instead of mixing them into the widget showcase.
+6. Add a widget test under `tests/widgets/<widget-name>/` (and update `tests/design-system/smoke.spec.ts` only if shared design-system coverage also changed).
+
+## Writing MDX guides
+
+Use MDX pages for narrative docs that reuse existing stories:
+
+- `Start Here/...` for orientation pages
+- `Integrators/...` for host integration and theming guidance
+- widget-local `*.mdx` files for widget guides attached to showcase stories
+
+Prefer embedding CSF stories with Storybook Doc Blocks instead of recreating example renders inside the MDX page.
 
 ---
 

@@ -1,0 +1,60 @@
+import { Meta } from '@storybook/blocks';
+import { DocsCallout, DocsCard, DocsGrid, DocsList, DocsPage, DocsSection } from './DocsLayout';
+
+<Meta title="Start Here/Overview" />
+
+<DocsPage
+  eyebrow="GoodWidget Storybook"
+  title="A landing surface for builders, testers, and integrators"
+  lead="This Storybook is the main environment for understanding the widget system, verifying state coverage, and learning how to integrate GoodWidget into a host application."
+>
+  <DocsSection
+    title="How to navigate this demo showcase"
+    description="The sections are organized by intent so people do not have to infer which stories are documentation and which stories are automation fixtures."
+  >
+    <DocsGrid>
+      <DocsCard title="Start Here" href="?path=/docs/start-here-overview--docs">
+        Orientation pages like this one. Use these when you want the high-level map before diving
+        into a component or widget.
+      </DocsCard>
+      <DocsCard title="Integrators" href="?path=/docs/integrators-embedding-a-widget--docs">
+        Host-facing setup guidance: embedding, providers, theming, and override examples.
+      </DocsCard>
+      <DocsCard title="Design System" href="?path=/docs/design-system-theming-model--docs">
+        Primitive reference, token vs theme behavior, and component-level styling contracts.
+      </DocsCard>
+      <DocsCard title="Widgets" href="?path=/docs/widgets-claimwidget-theme-demo-showcase--docs">
+        Widget showcase stories and usage guides. This includes the ClaimWidget theme demo and the
+        runtime-connected CitizenClaimWidget flow.
+      </DocsCard>
+      <DocsCard
+        title="QA"
+        href="?path=/story/qa-citizenclaimwidget-runtime-fixtures--custodial-local-fixture"
+      >
+        Deterministic or runtime-heavy fixture states used for automation, debugging, and edge-case
+        verification.
+      </DocsCard>
+    </DocsGrid>
+  </DocsSection>
+
+  <DocsSection
+    title="Contribution rule"
+    description="Stories should stay reusable and documentation pages should explain them, not duplicate them."
+  >
+    <DocsCallout title="Single-source rule" tone="success">
+      Author the rendered state once in a CSF story. Reuse that story from docs pages for live
+      demos, screenshots, and explanations instead of recreating the widget render logic in MDX.
+    </DocsCallout>
+  </DocsSection>
+
+  <DocsSection
+    title="When to use QA"
+    description="QA is not the front door for understanding the product. It exists for reproducible verification."
+  >
+    <DocsList>
+      <li>Use `QA` when you need a fixed state for Playwright, screenshots, or edge-case debugging.</li>
+      <li>Use `Widgets` when you want to see the intended product-facing presentation.</li>
+      <li>Use `Integrators` when the question is how a host app should configure or embed a widget.</li>
+    </DocsList>
+  </DocsSection>
+</DocsPage>

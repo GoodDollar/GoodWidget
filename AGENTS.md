@@ -135,6 +135,7 @@ Use the right document for each type of task:
 | System overview, package responsibilities, data flow                                             | [`ARCHITECTURE.md`](ARCHITECTURE.md)                                             |
 | Storybook, Playwright, demo routes, stories, fixtures, test evidence, test folder conventions    | [`docs/demo-environment.md`](docs/demo-environment.md)                           |
 | Manual QA flow and reporting template                                                            | [`docs/qa-guide.md`](docs/qa-guide.md)                                           |
+| Creating new widgets and widget-local components                                                 | [`docs/widget-author-instructions.md`](docs/widget-author-instructions.md)       |
 | Tamagui config, tokens, themes, presets, UI primitives, component names, public override targets | [`docs/architecture/theming-contract.md`](docs/architecture/theming-contract.md) |
 | Packaging and distribution                                                                       | [`docs/PACKAGING.md`](docs/PACKAGING.md)                                         |
 | Bounty scope, acceptance criteria, verification commands                                         | GitHub issue body                                                                |

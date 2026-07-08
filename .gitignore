@@ -8,6 +8,7 @@ dist/
 coverage/
 .vite/
 .codex
+.vscode
 /test-results/
 # Per-widget tests/<widget>/test-results/ folders are tracked as UI evidence
 # baselines (mirrors citizen-claim-widget's pattern). The root /test-results/
@@ -18,3 +19,9 @@ playwright-report/
 **/yalc.lock
 .bounties/contributor-bounties
 local-reference-assets
+.vercel
+.env*
+
+
+.agents
+skills-lock.json

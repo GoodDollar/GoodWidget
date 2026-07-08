@@ -9,9 +9,9 @@ import type { Meta, StoryObj } from '@storybook/react'
 import { GlowCard, Heading, Text } from '@goodwidget/ui'
 
 const meta: Meta<typeof GlowCard> = {
-  title: 'Primitives/GlowCard',
+  title: 'Design System/Primitives/GlowCard',
   component: GlowCard,
-  tags: ['autodocs'],
+  tags: ['autodocs', 'showcase'],
   parameters: { layout: 'padded' },
 }
 export default meta

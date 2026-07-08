@@ -19,8 +19,8 @@ import { createMockEip1193Provider } from '../../fixtures/mockEip1193'
 const mockProvider = createMockEip1193Provider()
 
 const meta: Meta = {
-  title: 'Theme/ThemePlayground',
-  tags: ['autodocs'],
+  title: 'Design System/Theming/Override Playground',
+  tags: ['autodocs', 'integrator', 'showcase'],
   parameters: { layout: 'padded' },
 }
 export default meta

@@ -158,6 +158,11 @@ GoodWidget auto-detects and normalizes providers from:
 See **[docs/PACKAGING.md](docs/PACKAGING.md)** for the full guide on how to build, bundle,
 and publish your widget as an npm package that works in React, React Native, and plain HTML.
 
+## Writing New Widgets
+
+See **[docs/widget-author-instructions.md](docs/widget-author-instructions.md)** for the
+practical design-system workflow for new widgets and widget-local components.
+
 ## QA
 
 See **[docs/qa-guide.md](docs/qa-guide.md)**.

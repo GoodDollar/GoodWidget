@@ -57,7 +57,16 @@ const SVG_PATHS: Record<string, string | string[]> = {
   wallet: 'M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM16 14a1 1 0 110-2 1 1 0 010 2zM4 7V5a2 2 0 012-2h12a2 2 0 012 2v2',
   'external-link': 'M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3',
   search: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z',
+  refresh: ['M23 4v6h-6', 'M20.49 15a9 9 0 1 1-2.12-9.36L23 10'],
   settings: 'M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z',
+  globe: 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z',
+  'shield-check':
+    'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zM9 12l2 2 4-4',
+  'party-popper':
+    'M5.8 11.3L2 22l10.7-3.79M4 3h.01M22 8h.01M15 2h.01M22 20h.01M22 2l-7.61 19.29A2 2 0 0112.55 22H12a2 2 0 01-1.75-1.04L7.5 15.5l-5.46-2.75A2 2 0 011 10.93v-.57a2 2 0 011.29-1.86L22 2',
+  compass:
+    'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM16.24 7.76l-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z',
+  user: 'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z',
 }
 
 // ---------------------------------------------------------------------------
@@ -76,7 +85,7 @@ export type IconSize = '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl'
  * Semantic color roles for icons — resolved via the active theme.
  * 'inherit' falls back to CSS currentColor (inherits from parent element).
  */
-export type IconColor = 'primary' | 'text' | 'muted' | 'error' | 'success' | 'inherit'
+export type IconColor = 'primary' | 'text' | 'muted' | 'error' | 'success' | 'warning' | 'white' | 'inherit'
 
 /** Raw px values for each named size — mirrors the preset icon token scale. */
 const SIZE_PX: Record<IconSize, number> = {
@@ -100,6 +109,8 @@ const COLOR_THEME_KEY: Record<IconColor, string> = {
   muted: '$placeholderColor',
   error: '$error',
   success: '$success',
+  warning: '$warning',
+  white: '$white',
   inherit: 'currentColor',
 }
 

@@ -10,8 +10,8 @@ import { expect, within, userEvent } from '@storybook/test'
 import { Drawer, Card, Heading, Text, Button, ButtonText, YStack } from '@goodwidget/ui'
 
 const meta: Meta = {
-  title: 'Primitives/Drawer',
-  tags: ['autodocs'],
+  title: 'Design System/Primitives/Drawer',
+  tags: ['autodocs', 'showcase'],
   parameters: { layout: 'padded' },
 }
 export default meta
@@ -20,7 +20,6 @@ type Story = StoryObj
 /** Controlled Drawer triggered by a button. */
 export const Default: Story = {
   render: () => {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     const [open, setOpen] = useState(false)
     return (
       <Card data-testid="Drawer-trigger" style={{ width: 320 }}>

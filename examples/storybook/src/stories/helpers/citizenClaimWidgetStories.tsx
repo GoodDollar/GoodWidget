@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react'
-import type { Meta, StoryObj } from '@storybook/react'
 import { Card, Text, WidgetTabs, YStack } from '@goodwidget/ui'
 import { CitizenClaimWidget } from '@goodwidget/citizen-claim-widget'
 import {
@@ -45,9 +44,6 @@ function CitizenClaimWidgetStoryShell({
 
   return (
     <YStack data-testid={dataTestId} style={{ width: 380, height: '100vh' }}>
-      {/* ------------------------------------------------------------------ */}
-      {/* Header                                                               */}
-      {/* ------------------------------------------------------------------ */}
       <WidgetTabs
         tabs={[
           { id: 'claim', label: 'Claim' },
@@ -72,17 +68,7 @@ function CitizenClaimWidgetStoryShell({
   )
 }
 
-const meta: Meta<typeof CitizenClaimWidget> = {
-  title: 'Widgets/CitizenClaimWidget',
-  component: CitizenClaimWidget,
-  tags: ['autodocs'],
-  parameters: { layout: 'padded' },
-}
-
-export default meta
-type Story = StoryObj<typeof meta>
-
-function InjectedWalletStory() {
+export function InjectedWalletStory() {
   const injectedProvider = getInjectedEip1193Provider()
   const usableProvider = isInjectedProviderUsable(injectedProvider)
 
@@ -106,7 +92,7 @@ function InjectedWalletStory() {
   )
 }
 
-function CustodialLocalFixtureStory() {
+export function CustodialLocalFixtureStory() {
   try {
     const provider = createCustodialEip1193Provider()
     return (
@@ -127,12 +113,4 @@ function CustodialLocalFixtureStory() {
       </YStack>
     )
   }
-}
-
-export const InjectedWallet: Story = {
-  render: () => <InjectedWalletStory />,
-}
-
-export const CustodialLocalFixture: Story = {
-  render: () => <CustodialLocalFixtureStory />,
 }
