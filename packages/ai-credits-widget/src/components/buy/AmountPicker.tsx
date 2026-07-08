@@ -133,7 +133,7 @@ export function AmountPicker({
         <XStack justifyContent="space-between" alignItems="center" gap="$2">
           {depositG > 0 && depositEstUsd ? (
             <Text fontSize="$1" secondary>
-              ≈ ${depositEstUsd} USD
+              ≈ {depositEstUsd}
             </Text>
           ) : depositG > 0 && !quote ? (
             <Spinner size="sm" />
@@ -160,7 +160,7 @@ export function AmountPicker({
         <XStack justifyContent="space-between" alignItems="center" gap="$2">
           {streamG > 0 && streamEstUsd ? (
             <Text fontSize="$1" secondary>
-              ≈ ${streamEstUsd} USD/month
+              ≈ {streamEstUsd}/month
             </Text>
           ) : streamG > 0 && !quote ? (
             <Spinner size="sm" />
@@ -178,20 +178,20 @@ export function AmountPicker({
       {quote && (
         <>
           <XStack justifyContent="space-between" alignItems="center">
-            <Text variant="label" secondary>
+            <Text variant="label">
               Est. credits
             </Text>
             <Text fontSize="$2" color="$primary" fontWeight="700">
-              {formatMinUsdDisplay(quote.depositAmountG) + " G$ + " + formatMinUsdDisplay(quote.streamAmountG) + " G$/month"}
+              {formatMinUsdDisplay(quote.depositAmountUsd) + " + " + formatMinUsdDisplay(quote.streamAmountUsd) + "/month"}
             </Text>
           </XStack>
 
           <XStack justifyContent="space-between" alignItems="center">
-            <Text fontSize="$1" secondary>
+            <Text fontSize="$1">
               Bonuses
             </Text>
             <Text fontSize="$2" fontWeight="700" color="$primary">
-              {formatMinUsdDisplay(quote.depositBonusUsd) + " G$ + " + formatMinUsdDisplay(quote.streamBonusUsd) + " G$/month"}
+              {formatMinUsdDisplay(quote.depositBonusUsd) + " + " + formatMinUsdDisplay(quote.streamBonusUsd) + "/month"}
             </Text>
           </XStack>
         </>

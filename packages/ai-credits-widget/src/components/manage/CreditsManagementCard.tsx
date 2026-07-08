@@ -11,7 +11,7 @@ import {
   YStack,
 } from '@goodwidget/ui'
 import type { AiCreditsWidgetAdapterActions, AiCreditsWidgetAdapterState } from '../../widgetRuntimeContract'
-import { formatUsdMicro } from '../../quoteMath'
+import { formatUsdMicroDisplay } from '../../quoteMath'
 import {
   BUYER_KEY_REQUIRED_CLOSE_TOOLTIP,
   BUYER_KEY_REQUIRED_WITHDRAW_TOOLTIP,
@@ -89,7 +89,7 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
   } = state
 
   const withdrawableDisplay =
-    withdrawableUsd && BigInt(withdrawableUsd) > 0n ? formatUsdMicro(withdrawableUsd) : null
+    withdrawableUsd && BigInt(withdrawableUsd) > 0n ? formatUsdMicroDisplay(withdrawableUsd) : null
   const canClose = Boolean(buyerKeyPrivate) && Boolean(channelId.trim()) && !isClosing
   const canWithdraw =
     Boolean(buyerKeyPrivate) &&
@@ -117,7 +117,7 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
             <Text fontSize="$1" secondary>
               Withdrawable
             </Text>
-            <Heading level={5}>${withdrawableDisplay}</Heading>
+            <Heading level={5}>{withdrawableDisplay}</Heading>
           </YStack>
         )}
       </XStack>
@@ -193,7 +193,7 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
               value={withdrawAmount}
               onChangeText={actions.setWithdrawAmount}
               placeholder={
-                withdrawableDisplay ? `USD (max $${withdrawableDisplay})` : 'Amount in USD'
+                withdrawableDisplay ? `US$ (max ${withdrawableDisplay})` : 'Amount in US$'
               }
             />
           </YStack>

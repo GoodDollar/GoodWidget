@@ -1,4 +1,4 @@
-import { gToWei, parseGAmount } from './quoteMath'
+import { gToWei, parseGAmount, formatUsdDisplay } from './quoteMath'
 import { parseAbi, type Address, type PublicClient } from 'viem'
 
 const ONE_G_WEI = 10n ** 18n
@@ -31,9 +31,7 @@ export function formatMinGDisplayLocale(amountG: string): string {
 }
 
 export function formatMinUsdDisplay(usd: string): string {
-  const value = Number.parseFloat(usd)
-  if (!Number.isFinite(value) || value <= 0) return '$0.00'
-  return `$${value.toFixed(2)}`
+  return formatUsdDisplay(usd, 2)
 }
 
 function parseUsdThreshold(usd: string | null): number {
@@ -217,7 +215,7 @@ export async function validateVaultPaymentAmounts(params: {
         minMonthlyStreamUsd,
       )
       throw new Error(
-        `Monthly stream must be at least ${formatMinGDisplay(minWei)} G$ (about $${formatUsd18(minMonthlyStreamUsd)} USD at the current G$ price)`,
+        `Monthly stream must be at least ${formatMinGDisplay(minWei)} G$ (about ${formatMinUsdDisplay(formatUsd18(minMonthlyStreamUsd))} at the current G$ price)`,
       )
     }
   }
@@ -232,7 +230,7 @@ export async function validateVaultPaymentAmounts(params: {
         minFirstDepositUsd,
       )
       throw new Error(
-        `First deposit must be at least ${formatMinGDisplay(minWei)} G$ (about $${formatUsd18(minFirstDepositUsd)} USD at the current G$ price)`,
+        `First deposit must be at least ${formatMinGDisplay(minWei)} G$ (about ${formatMinUsdDisplay(formatUsd18(minFirstDepositUsd))} at the current G$ price)`,
       )
     }
   }
