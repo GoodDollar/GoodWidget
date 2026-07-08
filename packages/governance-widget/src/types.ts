@@ -58,6 +58,8 @@ export interface GovernanceOnboardingWidgetProps {
   transactionSteps?: StepperStepItem[]
   finalActions?: GovernanceOnboardingAction[]
   dataTestId?: string
+  onHouseChange?: (house: GovernanceHouse) => void
+  onProfileSubmit?: (profileDraft: GovernanceProfileDraft, house: GovernanceHouse) => void
   onStepChange?: (stepId: GovernanceOnboardingStepId) => void
   onFinalActionPress?: (actionId: string) => void
 }

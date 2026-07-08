@@ -28,6 +28,8 @@ interface GovernanceOnboardingFlowProps {
   stakeAmountLabel: string
   transactionSteps: StepperStepItem[]
   finalActions: GovernanceOnboardingAction[]
+  onHouseChange?: (house: GovernanceHouse) => void
+  onProfileSubmit?: (profileDraft: GovernanceWizardData['profileDraft'], house: GovernanceHouse) => void
   onFinalActionPress?: (actionId: string) => void
   dataTestId?: string
 }
@@ -40,6 +42,8 @@ export function GovernanceOnboardingFlow({
   stakeAmountLabel,
   transactionSteps = DEFAULT_TRANSACTION_STEPS,
   finalActions = DEFAULT_FINAL_ACTIONS,
+  onHouseChange,
+  onProfileSubmit,
   onFinalActionPress,
   dataTestId,
 }: GovernanceOnboardingFlowProps) {
@@ -95,12 +99,14 @@ export function GovernanceOnboardingFlow({
     setFieldErrors(nextFieldErrors)
 
     if (Object.keys(nextFieldErrors).length === 0) {
+      onProfileSubmit?.(profileDraft, resolvedHouse)
       next()
     }
   }
 
   const handleHouseSelect = (nextHouse: GovernanceHouse) => {
     setData({ selectedHouse: nextHouse })
+    onHouseChange?.(nextHouse)
   }
 
   let shellTitle = 'Governance onboarding'
