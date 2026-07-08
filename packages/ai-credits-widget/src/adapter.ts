@@ -49,7 +49,6 @@ import type {
 
 const CELO_CHAIN_ID = 42220
 const MIN_DEPOSIT_AMOUNT = '1'
-const MIN_STREAM_AMOUNT = '1'
 const CELO_GD_ANTSEED_VAULT_FALLBACK: Address = CELO_GD_ANTSEED_VAULT_ADDRESS
 
 const G_TOKEN_ABI = parseAbi([
@@ -82,8 +81,6 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   apiKey: null,
   depositAmount: MIN_DEPOSIT_AMOUNT,
   streamAmount: '0',
-  minDepositG: null,
-  minStreamG: null,
   minDepositUsd: null,
   minStreamUsd: null,
   bonusPercent: 0,
@@ -187,18 +184,13 @@ function deriveStatus(params: {
 
   const deposit = Number.parseFloat(depositAmount)
   const stream = Number.parseFloat(streamAmount)
-  const minDeposit = Number.parseFloat(MIN_DEPOSIT_AMOUNT)
-  const minStream = Number.parseFloat(MIN_STREAM_AMOUNT)
+  const minBalance = Number.parseFloat(MIN_DEPOSIT_AMOUNT)
 
-  if (balance < minDeposit) return 'insufficient_g_balance'
-
-  const hasValidDeposit = deposit >= minDeposit
-  const hasValidStream = stream === 0 || stream >= minStream
+  if (balance < minBalance) return 'insufficient_g_balance'
 
   if (!buyerKey || !buyerKeyConfirmed || !operatorConsentSigned) return 'purchase_setup'
 
-  const readyToPay = (hasValidDeposit || stream >= minStream) && hasValidStream
-  if (readyToPay) return 'quote_ready'
+  if (deposit > 0 || stream > 0) return 'quote_ready'
 
   return 'purchase_setup'
 }
@@ -445,8 +437,6 @@ export function useAiCreditsAdapter({
       const minimumsPromise =
         backendClient instanceof MockAiCreditsBackendClient
           ? Promise.resolve({
-              minDepositG: '1',
-              minStreamG: '1',
               minDepositUsd: '1.00',
               minStreamUsd: '1.00',
             })
@@ -464,8 +454,6 @@ export function useAiCreditsAdapter({
           address,
           chainId,
           gBalance: formatUnits(rawBalance as bigint, decimals as number),
-          minDepositG: minimums?.minDepositG ?? null,
-          minStreamG: minimums?.minStreamG ?? null,
           minDepositUsd: minimums?.minDepositUsd ?? null,
           minStreamUsd: minimums?.minStreamUsd ?? null,
         }

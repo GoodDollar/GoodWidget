@@ -2,7 +2,6 @@ import { Button, ButtonText, Card, Heading, Input, Separator, Spinner, Text, Tok
 import type { AiCreditsQuote } from '../../widgetRuntimeContract'
 import { formatUsdWithBonus, parseGAmount } from '../../quoteMath'
 import {
-  formatMinGDisplayLocale,
   formatMinUsdDisplay,
   getPaymentAmountValidation,
 } from '../../vaultMinimums'
@@ -14,8 +13,6 @@ interface AmountPickerProps {
   depositAmount: string
   streamAmount: string
   gBalance: string | null
-  minDepositG: string | null
-  minStreamG: string | null
   minDepositUsd: string | null
   minStreamUsd: string | null
   quote: AiCreditsQuote | null
@@ -51,8 +48,6 @@ export function AmountPicker({
   depositAmount,
   streamAmount,
   gBalance,
-  minDepositG,
-  minStreamG,
   minDepositUsd,
   minStreamUsd,
   quote,
@@ -67,41 +62,36 @@ export function AmountPicker({
 }: AmountPickerProps) {
   const depositG = parseGAmount(depositAmount)
   const streamG = parseGAmount(streamAmount)
-  const depositBonusLabel = isGoodIdVerified ? '+10% bonus' : '+10% with GoodID'
-  const streamBonusLabel = isGoodIdVerified ? '+20% bonus' : '+20% with GoodID'
+  const depositBonusLabel = isGoodIdVerified ? '+10% bonus' : 'goodid not verified'
+  const streamBonusLabel = isGoodIdVerified ? '+20% bonus' : 'goodid not verified'
   const { depositBelowMin, streamBelowMin, overBalance } = getPaymentAmountValidation({
     depositAmount,
     streamAmount,
-    minDepositG,
-    minStreamG,
+    minDepositUsd,
+    minStreamUsd,
+    quote,
     gBalance,
   })
-  const depositMinG = minDepositG !== null ? parseGAmount(minDepositG) : 0
-  const streamMinG = minStreamG !== null ? parseGAmount(minStreamG) : 0
   const depositMinUsdLabel =
-    minDepositUsd !== null
-      ? depositMinG > 0
+    minStreamUsd === null
+      ? 'Loading minimum…'
+      : minDepositUsd !== null
         ? `Minimum ${formatMinUsdDisplay(minDepositUsd)} first deposit`
-        : 'One-time deposit optional (no minimum after your first deposit)'
-      : 'Loading minimum…'
+        : 'One-time deposit (no minimum after your first deposit)'
   const streamMinUsdLabel =
     minStreamUsd !== null
-      ? streamMinG > 0
-        ? `Optional — minimum ${formatMinUsdDisplay(minStreamUsd)}/month if set`
-        : 'Monthly stream optional'
+      ? `Minimum ${formatMinUsdDisplay(minStreamUsd)}/month`
       : 'Loading minimum…'
   const depositPlaceholder =
-    minDepositG === null
+    minStreamUsd === null
       ? 'Loading minimum…'
-      : depositMinG > 0
-        ? `Min ${formatMinUsdDisplay(minDepositUsd ?? '1.00')}`
+      : minDepositUsd !== null
+        ? `Min ${formatMinUsdDisplay(minDepositUsd)}`
         : '0 G$ (optional)'
   const streamPlaceholder =
-    minStreamG === null
+    minStreamUsd === null
       ? 'Loading minimum…'
-      : streamMinG > 0
-        ? `Min ${formatMinUsdDisplay(minStreamUsd ?? '1.00')}/mo`
-        : '0 G$ (optional)'
+      : `Min ${formatMinUsdDisplay(minStreamUsd)}/mo`
 
   const depositBonusPercent = isGoodIdVerified ? 10 : 0
   const streamBonusPercent = isGoodIdVerified ? 20 : 0
@@ -185,23 +175,6 @@ export function AmountPicker({
 
       <Separator />
 
-      <XStack justifyContent="space-between" alignItems="center">
-        <Text variant="label">One-time total</Text>
-        <TokenAmount token="G$" amount={depositG.toFixed(2)} size="md" />
-      </XStack>
-
-      <XStack justifyContent="space-between" alignItems="center">
-        <Text variant="label">Monthly stream</Text>
-        <XStack alignItems="center" gap="$1">
-          <TokenAmount token="G$" amount={streamG.toFixed(2)} size="md" />
-          {streamG > 0 && (
-            <Text fontSize="$2" secondary>
-              /month
-            </Text>
-          )}
-        </XStack>
-      </XStack>
-
       {quote && (
         <>
           <XStack justifyContent="space-between" alignItems="center">
@@ -209,25 +182,16 @@ export function AmountPicker({
               Est. credits
             </Text>
             <Text fontSize="$2" color="$primary" fontWeight="700">
-              {formatMinUsdDisplay(quote.totalCreditsUsd)}
+              {formatMinUsdDisplay(quote.depositAmountG) + " G$ + " + formatMinUsdDisplay(quote.streamAmountG) + " G$/month"}
             </Text>
           </XStack>
 
           <XStack justifyContent="space-between" alignItems="center">
             <Text fontSize="$1" secondary>
-              Deposit bonus
+              Bonuses
             </Text>
             <Text fontSize="$2" fontWeight="700" color="$primary">
-              {formatMinUsdDisplay(quote.depositBonusUsd)}
-            </Text>
-          </XStack>
-
-          <XStack justifyContent="space-between" alignItems="center">
-            <Text fontSize="$1" secondary>
-              Stream bonus
-            </Text>
-            <Text fontSize="$2" fontWeight="700" color="$primary">
-              {formatMinUsdDisplay(quote.streamBonusUsd)}/month
+              {formatMinUsdDisplay(quote.depositBonusUsd) + " G$ + " + formatMinUsdDisplay(quote.streamBonusUsd) + " G$/month"}
             </Text>
           </XStack>
         </>
@@ -241,20 +205,18 @@ export function AmountPicker({
         </AiCreditsStatusNotice>
       )}
 
-      {depositBelowMin && minDepositG && minDepositUsd && (
+      {depositBelowMin && minDepositUsd && (
         <AiCreditsStatusNotice borderColor="$warning">
           <Text color="$warning" fontSize="$2">
-            First deposit must be at least {formatMinUsdDisplay(minDepositUsd)} (about{' '}
-            {formatMinGDisplayLocale(minDepositG)} G$).
+            First deposit must be at least {formatMinUsdDisplay(minDepositUsd)}.
           </Text>
         </AiCreditsStatusNotice>
       )}
 
-      {streamBelowMin && minStreamG && minStreamUsd && (
+      {streamBelowMin && minStreamUsd && (
         <AiCreditsStatusNotice borderColor="$warning">
           <Text color="$warning" fontSize="$2">
-            Monthly stream must be at least {formatMinUsdDisplay(minStreamUsd)} (about{' '}
-            {formatMinGDisplayLocale(minStreamG)} G$).
+            Monthly stream must be at least {formatMinUsdDisplay(minStreamUsd)}.
           </Text>
         </AiCreditsStatusNotice>
       )}

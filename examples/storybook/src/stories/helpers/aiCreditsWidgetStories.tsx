@@ -33,8 +33,6 @@ function createMockState(
     apiKey: null,
     depositAmount: '5',
     streamAmount: '0',
-    minDepositG: '1',
-    minStreamG: '1',
     minDepositUsd: '1.00',
     minStreamUsd: '1.00',
     bonusPercent: 0,

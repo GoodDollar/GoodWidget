@@ -11,9 +11,7 @@ const VAULT_MINIMUMS_ABI = parseAbi([
 ])
 
 export type VaultPaymentMinimums = {
-  minDepositG: string
-  minStreamG: string
-  minDepositUsd: string
+  minDepositUsd: string | null
   minStreamUsd: string
 }
 
@@ -38,11 +36,18 @@ export function formatMinUsdDisplay(usd: string): string {
   return `$${value.toFixed(2)}`
 }
 
+function parseUsdThreshold(usd: string | null): number {
+  if (usd === null) return 0
+  const value = Number.parseFloat(usd)
+  return Number.isFinite(value) && value > 0 ? value : 0
+}
+
 export function getPaymentAmountValidation(params: {
   depositAmount: string
   streamAmount: string
-  minDepositG: string | null
-  minStreamG: string | null
+  minDepositUsd: string | null
+  minStreamUsd: string | null
+  quote: { depositAmountUsd: string; streamAmountUsd: string } | null
   gBalance: string | null
 }): {
   depositBelowMin: boolean
@@ -53,12 +58,16 @@ export function getPaymentAmountValidation(params: {
   const depositG = parseGAmount(params.depositAmount)
   const streamG = parseGAmount(params.streamAmount)
   const balance = parseGAmount(params.gBalance ?? '0')
-  const minDeposit = params.minDepositG !== null ? parseGAmount(params.minDepositG) : 0
-  const minStream = params.minStreamG !== null ? parseGAmount(params.minStreamG) : 0
-  const depositBelowMin = depositG > 0 && minDeposit > 0 && depositG < minDeposit
-  const streamBelowMin = streamG > 0 && minStream > 0 && streamG < minStream
+  const minDepositUsd = parseUsdThreshold(params.minDepositUsd)
+  const minStreamUsd = parseUsdThreshold(params.minStreamUsd)
+  const depositUsd = params.quote ? Number.parseFloat(params.quote.depositAmountUsd) : 0
+  const streamUsd = params.quote ? Number.parseFloat(params.quote.streamAmountUsd) : 0
+  const depositBelowMin =
+    depositG > 0 && minDepositUsd > 0 && params.quote !== null && depositUsd < minDepositUsd
+  const streamBelowMin =
+    streamG > 0 && minStreamUsd > 0 && params.quote !== null && streamUsd < minStreamUsd
   const overBalance = depositG + streamG > balance
-  const minsLoaded = params.minDepositG !== null && params.minStreamG !== null
+  const minsLoaded = params.minStreamUsd !== null
   const vaultMinimumsMet = !minsLoaded || (!depositBelowMin && !streamBelowMin)
 
   return {
@@ -73,8 +82,6 @@ export function getPayDisabledMessage(params: {
   canPay: boolean
   minsLoaded: boolean
   status: string
-  minDepositG: string | null
-  minStreamG: string | null
   minDepositUsd: string | null
   minStreamUsd: string | null
   validation: {
@@ -88,11 +95,11 @@ export function getPayDisabledMessage(params: {
   if (params.validation.overBalance) {
     return 'Total exceeds your G$ balance. Reduce the amounts.'
   }
-  if (params.validation.depositBelowMin && params.minDepositG && params.minDepositUsd) {
-    return `First deposit must be at least ${formatMinUsdDisplay(params.minDepositUsd)} (about ${formatMinGDisplayLocale(params.minDepositG)} G$).`
+  if (params.validation.depositBelowMin && params.minDepositUsd) {
+    return `First deposit must be at least ${formatMinUsdDisplay(params.minDepositUsd)}.`
   }
-  if (params.validation.streamBelowMin && params.minStreamG && params.minStreamUsd) {
-    return `Monthly stream must be at least ${formatMinUsdDisplay(params.minStreamUsd)} (about ${formatMinGDisplayLocale(params.minStreamG)} G$).`
+  if (params.validation.streamBelowMin && params.minStreamUsd) {
+    return `Monthly stream must be at least ${formatMinUsdDisplay(params.minStreamUsd)}.`
   }
   if (params.status !== 'quote_ready') {
     return 'Enter a deposit or monthly stream amount to continue.'
@@ -146,12 +153,7 @@ export async function fetchVaultPaymentMinimums(
     }),
   ])
 
-  const [minDepositWei, minStreamWei] = await Promise.all([
-    minGdWeiForUsdThreshold(publicClient, vault, minFirstDepositUsd),
-    minGdWeiForUsdThreshold(publicClient, vault, minMonthlyStreamUsd),
-  ])
-
-  let minDepositG = formatMinGDisplay(minDepositWei)
+  let minDepositUsd: string | null = formatUsd18(minFirstDepositUsd)
   if (payer) {
     const totalDeposited = await publicClient.readContract({
       address: vault,
@@ -160,14 +162,12 @@ export async function fetchVaultPaymentMinimums(
       args: [payer],
     })
     if (totalDeposited > 0n) {
-      minDepositG = '0'
+      minDepositUsd = null
     }
   }
 
   return {
-    minDepositG,
-    minStreamG: formatMinGDisplay(minStreamWei),
-    minDepositUsd: formatUsd18(minFirstDepositUsd),
+    minDepositUsd,
     minStreamUsd: formatUsd18(minMonthlyStreamUsd),
   }
 }

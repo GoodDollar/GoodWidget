@@ -314,20 +314,22 @@ function AiCreditsInner({
       getPaymentAmountValidation({
         depositAmount: state.depositAmount,
         streamAmount: state.streamAmount,
-        minDepositG: state.minDepositG,
-        minStreamG: state.minStreamG,
+        minDepositUsd: state.minDepositUsd,
+        minStreamUsd: state.minStreamUsd,
+        quote: state.quote,
         gBalance: state.gBalance,
       }),
     [
       state.depositAmount,
       state.streamAmount,
-      state.minDepositG,
-      state.minStreamG,
+      state.minDepositUsd,
+      state.minStreamUsd,
+      state.quote,
       state.gBalance,
     ],
   )
 
-  const minsLoaded = state.minDepositG !== null && state.minStreamG !== null
+  const minsLoaded = state.minStreamUsd !== null
   const canPay =
     state.status === 'quote_ready' &&
     minsLoaded &&
@@ -338,8 +340,6 @@ function AiCreditsInner({
     canPay,
     minsLoaded,
     status: state.status,
-    minDepositG: state.minDepositG,
-    minStreamG: state.minStreamG,
     minDepositUsd: state.minDepositUsd,
     minStreamUsd: state.minStreamUsd,
     validation: paymentValidation,
