@@ -4,7 +4,9 @@ import type { AiCreditsFlowStep } from './types'
 export function mapStatusToActiveStep(
   state: AiCreditsWidgetAdapterState,
 ): AiCreditsFlowStep | null {
+  if (state.operatorConsentSigned) return 'pay'
   if (!state.buyerKey || !state.buyerKeyConfirmed) return 'buyer_key'
+  if (!state.buyerKeyPrivate) return 'buyer_key'
   if (!state.operatorConsentSigned) return 'consent'
   if (
     state.status === 'purchase_setup' ||

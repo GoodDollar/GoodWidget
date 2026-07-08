@@ -27,16 +27,17 @@ export function AiCreditsPurchaseFlow({
   onPay,
 }: AiCreditsPurchaseFlowProps) {
   const activeStep = getAiCreditsActiveFlowStep(state)
-  const [drawerOpen, setDrawerOpen] = useState(true)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const [drawerStep, setDrawerStep] = useState<AiCreditsFlowStep | null>(activeStep)
 
   useEffect(() => {
     if (!activeStep) {
       setDrawerOpen(false)
+      setDrawerStep(null)
       return
     }
     setDrawerStep(activeStep)
-    setDrawerOpen(true)
+    setDrawerOpen(false)
   }, [activeStep])
 
   const openDrawer = useCallback(
