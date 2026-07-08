@@ -50,6 +50,12 @@ const FAQ_ITEMS = [
     answer:
       'After your Celo payment confirms, credits are funded on Base. Funding usually completes within a short time; check the Manage tab for your updated balance.',
   },
+  {
+    id: 'api-setup',
+    question: 'What is API setup?',
+    answer:
+      'After you have credits, open Manage → API Setup and copy the commands into your terminal. ANTSEED_IDENTITY_HEX is your buyer private key. it links your purchases to the credit balance your AI tools should use.',
+  },
 ] as const
 
 function FaqItem({

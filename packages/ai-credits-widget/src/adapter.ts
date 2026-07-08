@@ -1071,10 +1071,6 @@ export function useAiCreditsAdapter({
 }
 
 function buildSetupSnippet(buyerAddress?: string | null): string {
-  const buyerLine = buyerAddress
-    ? `GOODDOLLAR_BUYER_ADDRESS=${buyerAddress}`
-    : 'GOODDOLLAR_BUYER_ADDRESS=<buyer-address>'
-
   return [
     'npm install -g @antseed/cli',
     '',
@@ -1087,7 +1083,6 @@ function buildSetupSnippet(buyerAddress?: string | null): string {
     'export ANTHROPIC_BASE_URL=http://localhost:8377',
     'export OPENAI_BASE_URL=http://localhost:8377',
     'export OPENAI_API_KEY=placeholder',
-    '',
-    buyerLine,
+    ''
   ].join('\n')
 }
