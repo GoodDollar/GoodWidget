@@ -340,6 +340,8 @@ function AiCreditsInner({
     status: state.status,
     minDepositG: state.minDepositG,
     minStreamG: state.minStreamG,
+    minDepositUsd: state.minDepositUsd,
+    minStreamUsd: state.minStreamUsd,
     validation: paymentValidation,
   })
 

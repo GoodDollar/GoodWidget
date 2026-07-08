@@ -84,6 +84,8 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   streamAmount: '0',
   minDepositG: null,
   minStreamG: null,
+  minDepositUsd: null,
+  minStreamUsd: null,
   bonusPercent: 0,
   quote: null,
   setupSnippet: buildSetupSnippet(),
@@ -464,6 +466,8 @@ export function useAiCreditsAdapter({
           gBalance: formatUnits(rawBalance as bigint, decimals as number),
           minDepositG: minimums?.minDepositG ?? null,
           minStreamG: minimums?.minStreamG ?? null,
+          minDepositUsd: minimums?.minDepositUsd ?? null,
+          minStreamUsd: minimums?.minStreamUsd ?? null,
         }
 
         setState((prev) => {

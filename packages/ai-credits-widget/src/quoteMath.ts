@@ -34,6 +34,12 @@ export function formatProfileUsd(usd: bigint): string {
   return (Number(usd) / 1_000_000).toFixed(4)
 }
 
+export function formatUsdWithBonus(principalUsd: string, bonusPercent: number): string {
+  const principal = Number.parseFloat(principalUsd)
+  if (!Number.isFinite(principal) || principal <= 0 || bonusPercent <= 0) return principalUsd
+  return (principal * (1 + bonusPercent / 100)).toFixed(4)
+}
+
 export function formatUsdMicro(usdMicro: string): string {
   return (Number(usdMicro || '0') / 1_000_000).toFixed(4)
 }

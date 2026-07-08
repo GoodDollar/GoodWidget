@@ -32,6 +32,12 @@ export function formatMinGDisplayLocale(amountG: string): string {
   return amountG
 }
 
+export function formatMinUsdDisplay(usd: string): string {
+  const value = Number.parseFloat(usd)
+  if (!Number.isFinite(value) || value <= 0) return '$0.00'
+  return `$${value.toFixed(2)}`
+}
+
 export function getPaymentAmountValidation(params: {
   depositAmount: string
   streamAmount: string
@@ -69,6 +75,8 @@ export function getPayDisabledMessage(params: {
   status: string
   minDepositG: string | null
   minStreamG: string | null
+  minDepositUsd: string | null
+  minStreamUsd: string | null
   validation: {
     depositBelowMin: boolean
     streamBelowMin: boolean
@@ -80,11 +88,11 @@ export function getPayDisabledMessage(params: {
   if (params.validation.overBalance) {
     return 'Total exceeds your G$ balance. Reduce the amounts.'
   }
-  if (params.validation.depositBelowMin && params.minDepositG) {
-    return `First deposit must be at least ${formatMinGDisplayLocale(params.minDepositG)} G$.`
+  if (params.validation.depositBelowMin && params.minDepositG && params.minDepositUsd) {
+    return `First deposit must be at least ${formatMinUsdDisplay(params.minDepositUsd)} (about ${formatMinGDisplayLocale(params.minDepositG)} G$).`
   }
-  if (params.validation.streamBelowMin && params.minStreamG) {
-    return `Monthly stream must be at least ${formatMinGDisplayLocale(params.minStreamG)} G$.`
+  if (params.validation.streamBelowMin && params.minStreamG && params.minStreamUsd) {
+    return `Monthly stream must be at least ${formatMinUsdDisplay(params.minStreamUsd)} (about ${formatMinGDisplayLocale(params.minStreamG)} G$).`
   }
   if (params.status !== 'quote_ready') {
     return 'Enter a deposit or monthly stream amount to continue.'

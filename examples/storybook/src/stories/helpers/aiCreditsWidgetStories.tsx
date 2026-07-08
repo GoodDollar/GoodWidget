@@ -35,6 +35,8 @@ function createMockState(
     streamAmount: '0',
     minDepositG: '1',
     minStreamG: '1',
+    minDepositUsd: '1.00',
+    minStreamUsd: '1.00',
     bonusPercent: 0,
     quote: null,
     setupSnippet: SETUP_SNIPPET,

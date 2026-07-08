@@ -1,7 +1,11 @@
 import { Button, ButtonText, Card, Heading, Input, Separator, Spinner, Text, TokenAmount, XStack, YStack } from '@goodwidget/ui'
 import type { AiCreditsQuote } from '../../widgetRuntimeContract'
-import { parseGAmount } from '../../quoteMath'
-import { formatMinGDisplayLocale, getPaymentAmountValidation } from '../../vaultMinimums'
+import { formatUsdWithBonus, parseGAmount } from '../../quoteMath'
+import {
+  formatMinGDisplayLocale,
+  formatMinUsdDisplay,
+  getPaymentAmountValidation,
+} from '../../vaultMinimums'
 import { AiCreditsStatusNotice, BonusBadgeFrame } from '../theme/cards'
 import { HoverTooltip } from '../shared/tooltips'
 import { compactButtonProps } from '../shared/styles'
@@ -12,6 +16,8 @@ interface AmountPickerProps {
   gBalance: string | null
   minDepositG: string | null
   minStreamG: string | null
+  minDepositUsd: string | null
+  minStreamUsd: string | null
   quote: AiCreditsQuote | null
   isGoodIdVerified: boolean
   bonusPercent: number
@@ -24,12 +30,32 @@ interface AmountPickerProps {
   embedded?: boolean
 }
 
+function BonusLabel({ label, active }: { label: string; active: boolean }) {
+  if (!active) {
+    return (
+      <Text fontSize="$1" secondary>
+        {label}
+      </Text>
+    )
+  }
+
+  return (
+    <BonusBadgeFrame backgroundColor="$backgroundPress">
+      <Text fontSize="$2" fontWeight="700" color="$primary">
+        {label}
+      </Text>
+    </BonusBadgeFrame>
+  )
+}
+
 export function AmountPicker({
   depositAmount,
   streamAmount,
   gBalance,
   minDepositG,
   minStreamG,
+  minDepositUsd,
+  minStreamUsd,
   quote,
   isGoodIdVerified,
   bonusPercent,
@@ -45,7 +71,7 @@ export function AmountPicker({
   const streamG = parseGAmount(streamAmount)
   const appliedBonusPercent = quote?.bonusPercent ?? bonusPercent
   const depositBonusLabel = isGoodIdVerified ? '+10% bonus' : '+10% with GoodID'
-  const streamBonusLabel = isGoodIdVerified ? '+20% bonus (GoodID)' : '+20% with GoodID'
+  const streamBonusLabel = isGoodIdVerified ? '+20% bonus' : '+20% with GoodID'
   const { depositBelowMin, streamBelowMin, overBalance } = getPaymentAmountValidation({
     depositAmount,
     streamAmount,
@@ -54,16 +80,41 @@ export function AmountPicker({
     gBalance,
   })
   const totalG = depositG + streamG
+  const depositMinG = minDepositG !== null ? parseGAmount(minDepositG) : 0
+  const streamMinG = minStreamG !== null ? parseGAmount(minStreamG) : 0
+  const depositMinUsdLabel =
+    minDepositUsd !== null
+      ? depositMinG > 0
+        ? `Minimum ${formatMinUsdDisplay(minDepositUsd)} first deposit`
+        : 'One-time deposit optional (no minimum after your first deposit)'
+      : 'Loading minimum…'
+  const streamMinUsdLabel =
+    minStreamUsd !== null
+      ? streamMinG > 0
+        ? `Optional — minimum ${formatMinUsdDisplay(minStreamUsd)}/month if set`
+        : 'Monthly stream optional'
+      : 'Loading minimum…'
   const depositPlaceholder =
     minDepositG === null
       ? 'Loading minimum…'
-      : parseGAmount(minDepositG) > 0
-        ? `Min ${formatMinGDisplayLocale(minDepositG)} G$`
+      : depositMinG > 0
+        ? `Min ${formatMinUsdDisplay(minDepositUsd ?? '1.00')}`
         : '0 G$ (optional)'
   const streamPlaceholder =
     minStreamG === null
       ? 'Loading minimum…'
-      : `Min ${formatMinGDisplayLocale(minStreamG)} G$ (optional)`
+      : streamMinG > 0
+        ? `Min ${formatMinUsdDisplay(minStreamUsd ?? '1.00')}/mo`
+        : '0 G$ (optional)'
+
+  const depositBonusPercent = isGoodIdVerified ? 10 : 0
+  const streamBonusPercent = isGoodIdVerified ? 20 : 0
+  const depositEstUsd =
+    quote && depositG > 0
+      ? formatUsdWithBonus(quote.depositAmountUsd, depositBonusPercent)
+      : null
+  const streamEstUsd =
+    quote && streamG > 0 ? formatUsdWithBonus(quote.streamAmountUsd, streamBonusPercent) : null
 
   const formatCredits = (value: string) => {
     const parsed = Number.parseFloat(value)
@@ -76,12 +127,21 @@ export function AmountPicker({
     <Shell gap="$3">
       <Heading level={5}>Buy Credits</Heading>
 
+      <XStack justifyContent="space-between" alignItems="center">
+        <Text variant="label" secondary>
+          Your G$ Balance
+        </Text>
+        {gBalance !== null ? (
+          <TokenAmount token="G$" amount={gBalance} size="sm" />
+        ) : (
+          <Spinner size="sm" />
+        )}
+      </XStack>
+
       <YStack gap="$1">
         <XStack justifyContent="space-between" alignItems="center">
           <Text variant="label">One-time Deposit (G$)</Text>
-          <Text fontSize="$1" secondary>
-            {depositBonusLabel}
-          </Text>
+          <BonusLabel label={depositBonusLabel} active={isGoodIdVerified} />
         </XStack>
         <Input
           value={depositAmount}
@@ -89,22 +149,26 @@ export function AmountPicker({
           placeholder={depositPlaceholder}
           error={depositBelowMin}
         />
-        {depositG > 0 && quote && (
-          <Text fontSize="$1" secondary>
-            ≈ ${quote.depositAmountUsd} USD
+        <XStack justifyContent="space-between" alignItems="center" gap="$2">
+          {depositG > 0 && depositEstUsd ? (
+            <Text fontSize="$1" secondary>
+              ≈ ${depositEstUsd} USD
+            </Text>
+          ) : depositG > 0 && !quote ? (
+            <Spinner size="sm" />
+          ) : (
+            <YStack />
+          )}
+          <Text fontSize="$1" secondary textAlign="right" flexShrink={0}>
+            {depositMinUsdLabel}
           </Text>
-        )}
-        {depositG > 0 && !quote && (
-          <Spinner size="sm" />
-        )}
+        </XStack>
       </YStack>
 
       <YStack gap="$1">
         <XStack justifyContent="space-between" alignItems="center">
           <Text variant="label">Monthly Stream (G$)</Text>
-          <Text fontSize="$1" secondary>
-            {streamBonusLabel}
-          </Text>
+          <BonusLabel label={streamBonusLabel} active={isGoodIdVerified} />
         </XStack>
         <Input
           value={streamAmount}
@@ -112,16 +176,20 @@ export function AmountPicker({
           placeholder={streamPlaceholder}
           error={streamBelowMin}
         />
-        {streamG > 0 && quote && (
-          <YStack gap="$0.5">
+        <XStack justifyContent="space-between" alignItems="center" gap="$2">
+          {streamG > 0 && streamEstUsd ? (
             <Text fontSize="$1" secondary>
-              ≈ ${quote.streamAmountUsd} USD/month
+              ≈ ${streamEstUsd} USD/month
             </Text>
-          </YStack>
-        )}
-        {streamG > 0 && !quote && (
-          <Spinner size="sm" />
-        )}
+          ) : streamG > 0 && !quote ? (
+            <Spinner size="sm" />
+          ) : (
+            <YStack />
+          )}
+          <Text fontSize="$1" secondary textAlign="right" flexShrink={0}>
+            {streamMinUsdLabel}
+          </Text>
+        </XStack>
       </YStack>
 
       <Separator />
@@ -167,18 +235,20 @@ export function AmountPicker({
         </AiCreditsStatusNotice>
       )}
 
-      {depositBelowMin && minDepositG && (
+      {depositBelowMin && minDepositG && minDepositUsd && (
         <AiCreditsStatusNotice borderColor="$warning">
           <Text color="$warning" fontSize="$2">
-            First deposit must be at least {formatMinGDisplayLocale(minDepositG)} G$.
+            First deposit must be at least {formatMinUsdDisplay(minDepositUsd)} (about{' '}
+            {formatMinGDisplayLocale(minDepositG)} G$).
           </Text>
         </AiCreditsStatusNotice>
       )}
 
-      {streamBelowMin && minStreamG && (
+      {streamBelowMin && minStreamG && minStreamUsd && (
         <AiCreditsStatusNotice borderColor="$warning">
           <Text color="$warning" fontSize="$2">
-            Monthly stream must be at least {formatMinGDisplayLocale(minStreamG)} G$.
+            Monthly stream must be at least {formatMinUsdDisplay(minStreamUsd)} (about{' '}
+            {formatMinGDisplayLocale(minStreamG)} G$).
           </Text>
         </AiCreditsStatusNotice>
       )}
@@ -206,4 +276,3 @@ export function AmountPicker({
     </Shell>
   )
 }
-
