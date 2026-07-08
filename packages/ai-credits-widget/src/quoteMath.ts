@@ -79,8 +79,11 @@ export function buildQuoteFromPrincipalUsd(
   streamAmountG: string
   depositAmountUsd: string
   streamAmountUsd: string
+  depositBonusUsd: string
+  streamBonusUsd: string
   bonusPercent: number
   totalCredits: string
+  totalCreditsUsd: string
 } {
   const streamWei = gToWei(streamG)
   const depositBonusUsd = isGoodIdVerified
@@ -99,8 +102,11 @@ export function buildQuoteFromPrincipalUsd(
     streamAmountG: streamG,
     depositAmountUsd: formatProfileUsd(depositPrincipalUsd),
     streamAmountUsd: formatProfileUsd(streamPrincipalUsd),
+    depositBonusUsd: formatProfileUsd(depositBonusUsd),
+    streamBonusUsd: formatProfileUsd(streamBonusUsd),
     bonusPercent,
     totalCredits: usdToCredits(totalUsd.toString()),
+    totalCreditsUsd: formatProfileUsd(totalUsd),
   }
 }
 
@@ -114,8 +120,11 @@ export function buildQuoteFromGdAmounts(
   streamAmountG: string
   depositAmountUsd: string
   streamAmountUsd: string
+  depositBonusUsd: string
+  streamBonusUsd: string
   bonusPercent: number
   totalCredits: string
+  totalCreditsUsd: string
 } {
   const depositWei = gToWei(depositG)
   const streamWei = gToWei(streamG)
@@ -137,7 +146,10 @@ export function buildQuoteFromGdAmounts(
     streamAmountG: streamG,
     depositAmountUsd: formatProfileUsd(depositPrincipalUsd),
     streamAmountUsd: formatProfileUsd(streamPrincipalUsd),
+    depositBonusUsd: formatProfileUsd(depositBonusUsd),
+    streamBonusUsd: formatProfileUsd(streamBonusUsd),
     bonusPercent,
     totalCredits: usdToCredits(totalUsd.toString()),
+    totalCreditsUsd: formatProfileUsd(totalUsd),
   }
 }

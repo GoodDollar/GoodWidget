@@ -32,8 +32,11 @@ export interface AiCreditsQuote {
   streamAmountG: string
   depositAmountUsd: string
   streamAmountUsd: string
+  depositBonusUsd: string
+  streamBonusUsd: string
   bonusPercent: number
   totalCredits: string
+  totalCreditsUsd: string
 }
 
 export interface AiCreditsUsageEntry {

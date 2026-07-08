@@ -20,7 +20,6 @@ interface AmountPickerProps {
   minStreamUsd: string | null
   quote: AiCreditsQuote | null
   isGoodIdVerified: boolean
-  bonusPercent: number
   canPay: boolean
   payDisabledMessage: string | null
   isPayPending: boolean
@@ -58,7 +57,6 @@ export function AmountPicker({
   minStreamUsd,
   quote,
   isGoodIdVerified,
-  bonusPercent,
   canPay,
   payDisabledMessage,
   isPayPending,
@@ -69,7 +67,6 @@ export function AmountPicker({
 }: AmountPickerProps) {
   const depositG = parseGAmount(depositAmount)
   const streamG = parseGAmount(streamAmount)
-  const appliedBonusPercent = quote?.bonusPercent ?? bonusPercent
   const depositBonusLabel = isGoodIdVerified ? '+10% bonus' : '+10% with GoodID'
   const streamBonusLabel = isGoodIdVerified ? '+20% bonus' : '+20% with GoodID'
   const { depositBelowMin, streamBelowMin, overBalance } = getPaymentAmountValidation({
@@ -79,7 +76,6 @@ export function AmountPicker({
     minStreamG,
     gBalance,
   })
-  const totalG = depositG + streamG
   const depositMinG = minDepositG !== null ? parseGAmount(minDepositG) : 0
   const streamMinG = minStreamG !== null ? parseGAmount(minStreamG) : 0
   const depositMinUsdLabel =
@@ -115,11 +111,6 @@ export function AmountPicker({
       : null
   const streamEstUsd =
     quote && streamG > 0 ? formatUsdWithBonus(quote.streamAmountUsd, streamBonusPercent) : null
-
-  const formatCredits = (value: string) => {
-    const parsed = Number.parseFloat(value)
-    return parsed < 10 ? parsed.toFixed(1) : parsed.toFixed(2)
-  }
 
   const Shell = embedded ? YStack : Card
 
@@ -195,37 +186,52 @@ export function AmountPicker({
       <Separator />
 
       <XStack justifyContent="space-between" alignItems="center">
-        <Text variant="label">Total</Text>
-        <TokenAmount token="G$" amount={totalG.toFixed(2)} size="md" />
+        <Text variant="label">One-time total</Text>
+        <TokenAmount token="G$" amount={depositG.toFixed(2)} size="md" />
+      </XStack>
+
+      <XStack justifyContent="space-between" alignItems="center">
+        <Text variant="label">Monthly stream</Text>
+        <XStack alignItems="center" gap="$1">
+          <TokenAmount token="G$" amount={streamG.toFixed(2)} size="md" />
+          {streamG > 0 && (
+            <Text fontSize="$2" secondary>
+              /month
+            </Text>
+          )}
+        </XStack>
       </XStack>
 
       {quote && (
-        <XStack justifyContent="space-between" alignItems="center">
-          <Text variant="label" secondary>
-            Est. credits
-          </Text>
-          <Text fontSize="$2" color="$primary" fontWeight="700">
-            {formatCredits(quote.totalCredits)}
-          </Text>
-        </XStack>
-      )}
+        <>
+          <XStack justifyContent="space-between" alignItems="center">
+            <Text variant="label" secondary>
+              Est. credits
+            </Text>
+            <Text fontSize="$2" color="$primary" fontWeight="700">
+              {formatMinUsdDisplay(quote.totalCreditsUsd)}
+            </Text>
+          </XStack>
 
-      <XStack justifyContent="space-between" alignItems="center">
-        <Text fontSize="$1" secondary>
-          Applied bonus
-        </Text>
-        <BonusBadgeFrame backgroundColor="$backgroundPress">
-          {appliedBonusPercent > 0 ? (
+          <XStack justifyContent="space-between" alignItems="center">
+            <Text fontSize="$1" secondary>
+              Deposit bonus
+            </Text>
             <Text fontSize="$2" fontWeight="700" color="$primary">
-              +{appliedBonusPercent}%
+              {formatMinUsdDisplay(quote.depositBonusUsd)}
             </Text>
-          ) : (
-            <Text fontSize="$2" fontWeight="700" secondary>
-              No bonus
+          </XStack>
+
+          <XStack justifyContent="space-between" alignItems="center">
+            <Text fontSize="$1" secondary>
+              Stream bonus
             </Text>
-          )}
-        </BonusBadgeFrame>
-      </XStack>
+            <Text fontSize="$2" fontWeight="700" color="$primary">
+              {formatMinUsdDisplay(quote.streamBonusUsd)}/month
+            </Text>
+          </XStack>
+        </>
+      )}
 
       {overBalance && (
         <AiCreditsStatusNotice borderColor="$warning">
