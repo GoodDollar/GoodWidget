@@ -23,6 +23,11 @@ import { compactButtonProps } from '../shared/styles'
 const DEFAULT_DEPOSIT_AMOUNT = '1'
 const DEFAULT_STREAM_AMOUNT = '0'
 
+function resolveInitialStreamAmount(monthlyStreamG: string | null | undefined): string {
+  if (!monthlyStreamG) return DEFAULT_STREAM_AMOUNT
+  return parseGAmount(monthlyStreamG) > 0 ? monthlyStreamG : DEFAULT_STREAM_AMOUNT
+}
+
 function BonusLabel({ label, active }: { label: string; active: boolean }) {
   return (
     <BonusBadgeFrame
@@ -86,6 +91,7 @@ interface AmountPickerProps {
   gBalance: string | null
   minDepositUsd: string | null
   minStreamUsd: string | null
+  monthlyStreamG: string | null
   gdUsdPerToken: number | null
   isGoodIdVerified: boolean
   isPayPending: boolean
@@ -100,6 +106,7 @@ export function AmountPicker({
   gBalance,
   minDepositUsd,
   minStreamUsd,
+  monthlyStreamG,
   gdUsdPerToken,
   isGoodIdVerified,
   isPayPending,
@@ -108,11 +115,17 @@ export function AmountPicker({
   onVerifyGoodId,
   embedded = false,
 }: AmountPickerProps) {
+  const streamSeed = useMemo(() => resolveInitialStreamAmount(monthlyStreamG), [monthlyStreamG])
   const [depositAmount, setDepositAmount] = useState(DEFAULT_DEPOSIT_AMOUNT)
-  const [streamAmount, setStreamAmount] = useState(DEFAULT_STREAM_AMOUNT)
+  const [streamAmount, setStreamAmount] = useState(streamSeed)
   const [quote, setQuote] = useState<AiCreditsQuote | null>(null)
   const [quotePending, setQuotePending] = useState(false)
   const [isVerifyingGoodId, setIsVerifyingGoodId] = useState(false)
+  const isStreamUpdateFlow = parseGAmount(streamSeed) > 0
+
+  useEffect(() => {
+    setStreamAmount(streamSeed)
+  }, [streamSeed])
 
   useEffect(() => {
     let cancelled = false
@@ -172,8 +185,9 @@ export function AmountPicker({
     minDepositUsd !== null
       ? `Minimum ${formatMinUsdDisplay(minDepositUsd)} for your first deposit`
       : 'One-time deposit (no minimum after first deposit)'
-  const streamMinUsdLabel =
-    minStreamUsd !== null
+  const streamMinUsdLabel = isStreamUpdateFlow
+    ? `Current stream · min ${minStreamUsd !== null ? formatMinUsdDisplay(minStreamUsd) : '…'}/month`
+    : minStreamUsd !== null
       ? `Minimum ${formatMinUsdDisplay(minStreamUsd)}/month`
       : 'Loading minimum…'
   const depositPlaceholder =

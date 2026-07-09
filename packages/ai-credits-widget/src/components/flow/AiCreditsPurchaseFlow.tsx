@@ -139,6 +139,7 @@ export function AiCreditsPurchaseFlow({
             gBalance={state.gBalance}
             minDepositUsd={state.minDepositUsd}
             minStreamUsd={state.minStreamUsd}
+            monthlyStreamG={state.monthlyStreamG}
             gdUsdPerToken={state.gdUsdPerToken}
             isGoodIdVerified={state.isGoodIdVerified}
             isPayPending={isPending}
