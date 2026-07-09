@@ -548,10 +548,11 @@ export async function buildAccountView(
     backend.getAccountCredit(payer),
     backend.getOutstanding(payer),
   ])
-  const buyer =
+  const sessionBuyer =
     options.buyerAddress && isAddress(options.buyerAddress)
       ? normalizeAddress(options.buyerAddress)
       : null
+  const buyer = sessionBuyer ?? resolveBuyerAddress(credit)
   const [operator, withdrawableUsd] = buyer
     ? await Promise.all([
         chain.getBuyerOperatorStatus({ payer: normalizedPayer, buyer }),
