@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useState } from 'react'
 import { Anchor, Button, Card, Icon, Text, XStack, YStack, copyTextToClipboard } from '@goodwidget/ui'
 
 const ANTSEED_API_DOCS_URL = 'https://antseed.com/docs/guides/using-the-api'
