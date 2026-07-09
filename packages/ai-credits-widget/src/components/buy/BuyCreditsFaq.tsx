@@ -66,7 +66,7 @@ const FAQ_ITEMS = [
     id: 'api-setup',
     question: 'What is API setup?',
     answer:
-      'After you have credits, open Manage → API Setup and copy the commands into your terminal. ANTSEED_IDENTITY_HEX is your buyer private key. GOODDOLLAR_BUYER_ADDRESS is your buyer address — it links your purchases to the credit balance your AI tools should use.',
+      'After you have credits, open Manage → API Setup and copy the commands into your terminal. ANTSEED_IDENTITY_HEX is your buyer private key. it links your purchases to the credit balance your AI tools should use.',
   },
 ] as const
 
