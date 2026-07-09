@@ -91,6 +91,19 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   activeTab: 'buy',
 }
 
+const WALLET_LOADING_STATE: Partial<AiCreditsWidgetAdapterState> = {
+  gBalance: null,
+  gdUsdPerToken: null,
+  totalCreditUsd: null,
+  isGoodIdVerified: false,
+  minDepositUsd: null,
+  minStreamUsd: null,
+  totalGdDepositedG: null,
+  monthlyStreamG: null,
+  withdrawableUsd: null,
+  operatorAddress: null,
+}
+
 function isInBuyFlowStatus(status: AiCreditsWidgetStatus): boolean {
   return (
     status === 'purchase_setup' ||
@@ -155,6 +168,10 @@ function deriveStatus(params: {
     currentStatus === 'backend_unavailable'
   ) {
     return currentStatus
+  }
+
+  if (currentStatus === 'connecting' && gBalance === null) {
+    return 'connecting'
   }
 
   if (!isConnected) {
@@ -238,7 +255,6 @@ function viewToStatePatch(
   },
 ): Partial<AiCreditsWidgetAdapterState> {
   const operatorAccepted = view.operator.operatorAccepted
-  const buyer = enriched.buyer
   const totalCreditUsd = enriched.totalCreditUsd
   const balanceMode = options?.balanceMode ?? 'if_positive'
 
@@ -248,7 +264,6 @@ function viewToStatePatch(
         ? totalCreditUsd
         : prev.totalCreditUsd,
     isGoodIdVerified: enriched.goodIdVerified,
-    ...(buyer ? { buyerPubKey: buyer } : {}),
     operatorConsented: operatorAccepted,
     operatorAddress: view.operator.operatorAddress ?? null,
     withdrawableUsd: view.withdrawableUsd,
@@ -269,9 +284,7 @@ function mergeSessionFields(
   >
 > {
   const buyerPubKey =
-    sessionPatch.buyerPubKey ??
-    accountPatch.buyerPubKey ??
-    (accountSwitched ? null : prev.buyerPubKey)
+    sessionPatch.buyerPubKey ?? (accountSwitched ? null : prev.buyerPubKey)
   const buyerPrvKey =
     sessionPatch.buyerPrvKey ?? (accountSwitched ? null : prev.buyerPrvKey)
   const operatorConsented = accountSwitched
@@ -351,21 +364,31 @@ export function useAiCreditsAdapter({
     }
 
     let cancelled = false
+    const sessionPatch = patchPayerSessionFields(address)
+
     setState((prev) => {
       if (
         prev.status === 'payment_pending' ||
         prev.status === 'payment_confirmed' ||
         prev.status === 'payment_failed' ||
-        prev.status === 'backend_unavailable' ||
-        prev.status === 'connecting'
+        prev.status === 'backend_unavailable'
       ) {
         return prev
       }
-      return {
-        ...prev,
-        status: 'connecting',
-        error: null,
-      }
+      const accountSwitched = !addressesMatch(prev.address, address)
+      const buyerFields = mergeSessionFields(prev, sessionPatch, {}, accountSwitched)
+      return withDerivedStatus(
+        prev,
+        {
+          address,
+          chainId,
+          ...buyerFields,
+          ...WALLET_LOADING_STATE,
+          error: null,
+          status: 'connecting',
+        },
+        true,
+      )
     })
 
     async function loadWalletData() {
@@ -384,7 +407,9 @@ export function useAiCreditsAdapter({
         }),
       ])
 
-      const accountPromise = buildAccountView(address!, backendClient, chainClient)
+      const accountPromise = buildAccountView(address!, backendClient, chainClient, {
+        buyerAddress: sessionPatch.buyerPubKey ?? null,
+      })
         .then(async (view) => ({
           view,
           enriched: await enrichAccountView(view, chainClient),
@@ -422,7 +447,6 @@ export function useAiCreditsAdapter({
 
         setState((prev) => {
           const accountSwitched = !addressesMatch(prev.address, address)
-          const sessionPatch = patchPayerSessionFields(address)
           const accountPatch = account
             ? viewToStatePatch(account.view, account.enriched, prev, {
                 balanceMode: 'if_positive',
@@ -449,21 +473,24 @@ export function useAiCreditsAdapter({
         })
       } catch {
         if (cancelled) return
-        setState((prev) =>
-          withDerivedStatus(
+        setState((prev) => {
+          const accountSwitched = !addressesMatch(prev.address, address)
+          const buyerFields = mergeSessionFields(prev, sessionPatch, {}, accountSwitched)
+          return withDerivedStatus(
             prev,
             {
               address,
               chainId,
               gBalance: '0',
+              ...buyerFields,
               status:
                 chainId !== null && chainId !== CELO_CHAIN_ID
                   ? 'unsupported_chain'
                   : 'purchase_setup',
             },
             true,
-          ),
-        )
+          )
+        })
       }
     }
 
@@ -801,8 +828,12 @@ export function useAiCreditsAdapter({
     if (!currentState.address) return
 
     try {
+      const sessionBuyer =
+        currentState.buyerPubKey ?? patchPayerSessionFields(currentState.address).buyerPubKey ?? null
       const [view] = await Promise.all([
-        buildAccountView(currentState.address, backendClient, chainClient),
+        buildAccountView(currentState.address, backendClient, chainClient, {
+          buyerAddress: sessionBuyer,
+        }),
       ])
       const enriched = await enrichAccountView(view, chainClient)
 

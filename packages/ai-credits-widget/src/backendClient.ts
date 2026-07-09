@@ -163,9 +163,12 @@ export function totalCreditUsdFromStatus(status: {
 export type AccountEnrichment = {
   totalCreditUsd: string
   goodIdVerified: boolean
-  buyer: string | null
   totalGdDepositedG: string
   monthlyStreamG: string
+}
+
+export type BuildAccountViewOptions = {
+  buyerAddress?: string | null
 }
 
 export async function enrichAccountView(
@@ -176,11 +179,9 @@ export async function enrichAccountView(
   const goodIdVerified = await chain.isGoodIdVerified(profile.account)
   const monthlyStreamG = flowRateWeiToMonthlyG(profile.streamFlowRateWeiPerSecond)
   const depositedWei = BigInt(profile.totalGdDepositedWei)
-  const buyer = view.buyer
   return {
     totalCreditUsd: totalCreditUsdFromProfile(profile),
     goodIdVerified,
-    buyer,
     totalGdDepositedG: depositedWei > 0n ? weiToG(depositedWei) : '0.00',
     monthlyStreamG,
   }
@@ -540,13 +541,17 @@ export async function buildAccountView(
   payer: string,
   backend: AiCreditsBackendClient,
   chain: AiCreditsChainClient,
+  options: BuildAccountViewOptions = {},
 ): Promise<AccountView> {
   const normalizedPayer = normalizeAddress(payer)
   const [credit, outstanding] = await Promise.all([
     backend.getAccountCredit(payer),
     backend.getOutstanding(payer),
   ])
-  const buyer = resolveBuyerAddress(credit)
+  const buyer =
+    options.buyerAddress && isAddress(options.buyerAddress)
+      ? normalizeAddress(options.buyerAddress)
+      : null
   const [operator, withdrawableUsd] = buyer
     ? await Promise.all([
         chain.getBuyerOperatorStatus({ payer: normalizedPayer, buyer }),
