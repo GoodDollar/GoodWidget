@@ -119,10 +119,8 @@ function filterGdCredits(
   if (options.status) {
     result = result.filter((entry) => entry.fundingStatus === options.status)
   }
-  const limit = options.limit
-  const sorted = result.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-  if (limit === undefined) return sorted
-  return sorted.slice(0, limit)
+  const limit = options.limit ?? 20
+  return result.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit)
 }
 
 export function resolveBuyerAddress(credit: AccountCreditResponse): string | null {
