@@ -57,7 +57,7 @@ function createAdapterFactory(
       }),
       pay: async () => {},
       refresh: async () => {},
-      verifyGoodId: async () => {},
+      verifyGoodId: async () => false,
       startPurchase: () => {},
       setActiveTab: () => {},
       closeChannel: async () => {},

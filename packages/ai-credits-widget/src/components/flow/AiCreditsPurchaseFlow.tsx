@@ -31,6 +31,7 @@ export function AiCreditsPurchaseFlow({
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [drawerStep, setDrawerStep] = useState<AiCreditsFlowStep | null>(activeStep)
   const prevActiveStepRef = useRef<AiCreditsFlowStep | null>(null)
+  const goodIdTabPendingRef = useRef(false)
 
   useEffect(() => {
     setBuyerPubKeySaved(false)
@@ -59,9 +60,26 @@ export function AiCreditsPurchaseFlow({
     }
   }, [activeStep])
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const onFocus = () => {
+      if (!goodIdTabPendingRef.current) return
+      goodIdTabPendingRef.current = false
+      if (activeStep === 'pay') {
+        setDrawerStep('pay')
+        setDrawerOpen(true)
+      }
+    }
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [activeStep])
+
   const handleVerifyGoodId = useCallback(async () => {
     try {
-      await actions.verifyGoodId()
+      const started = await actions.verifyGoodId()
+      if (started) {
+        goodIdTabPendingRef.current = true
+      }
     } finally {
       if (activeStep === 'pay') {
         setDrawerStep('pay')

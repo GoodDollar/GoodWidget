@@ -52,7 +52,7 @@ export interface AiCreditsWidgetAdapterActions {
   buildQuote: (depositG: string, streamG: string) => Promise<AiCreditsQuote>
   pay: (quote: AiCreditsQuote) => Promise<void>
   refresh: () => Promise<void>
-  verifyGoodId: () => Promise<void>
+  verifyGoodId: () => Promise<boolean>
   startPurchase: () => void
   setActiveTab: (tab: AiCreditsWidgetTab) => void
   closeChannel: (channelId: string) => Promise<void>

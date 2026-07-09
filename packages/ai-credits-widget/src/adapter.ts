@@ -828,7 +828,7 @@ export function useAiCreditsAdapter({
     }
   }, [state, backendClient, chainClient, celoVault, onPaySuccess, onPayError])
 
-  const handleRefresh = useCallback(async () => {
+  const handleRefresh = useCallback(async (options?: { afterGoodIdVerify?: boolean }) => {
     const currentState = state
     if (!currentState.address) return
 
@@ -855,8 +855,12 @@ export function useAiCreditsAdapter({
         if (accountPatch.operatorConsented !== undefined && currentState.address) {
           syncOperatorConsentSession(currentState.address, accountPatch.operatorConsented)
         }
+        const statusSeed =
+          options?.afterGoodIdVerify && prev.status === 'payment_failed'
+            ? 'quote_ready'
+            : prev.status
         return withDerivedStatus(
-          prev,
+          { ...prev, status: statusSeed },
           {
             ...accountPatch,
             ...sessionFields,
@@ -876,7 +880,7 @@ export function useAiCreditsAdapter({
     }
   }, [state, backendClient, chainClient])
 
-  const handleVerifyGoodId = useCallback(async () => {
+  const handleVerifyGoodId = useCallback(async (): Promise<boolean> => {
     const currentState = state
     if (!currentState.address || !providerRef.current) {
       setState((prev) =>
@@ -886,13 +890,13 @@ export function useAiCreditsAdapter({
           true,
         ),
       )
-      return
+      return false
     }
     if (currentState.chainId !== CELO_CHAIN_ID) {
       setState((prev) =>
         withDerivedStatus(prev, { error: 'Switch to Celo to verify with GoodID' }, true),
       )
-      return
+      return false
     }
 
     try {
@@ -905,9 +909,10 @@ export function useAiCreditsAdapter({
       })
       goodIdVerifyPendingRef.current = true
       setState((prev) => ({ ...prev, error: null }))
+      return true
     } catch (err) {
       if (isUserRejectedWalletRequest(err)) {
-        return
+        return false
       }
       setState((prev) =>
         withDerivedStatus(
@@ -919,6 +924,7 @@ export function useAiCreditsAdapter({
           true,
         ),
       )
+      return false
     }
   }, [state, environment, goodIdReturnUrl])
 
@@ -927,7 +933,7 @@ export function useAiCreditsAdapter({
     const onFocus = () => {
       if (!goodIdVerifyPendingRef.current) return
       goodIdVerifyPendingRef.current = false
-      void handleRefresh()
+      void handleRefresh({ afterGoodIdVerify: true })
     }
     window.addEventListener('focus', onFocus)
     return () => window.removeEventListener('focus', onFocus)
