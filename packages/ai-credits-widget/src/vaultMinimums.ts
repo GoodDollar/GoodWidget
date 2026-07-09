@@ -1,4 +1,5 @@
-import { gToWei, parseGAmount, formatUsdDisplay } from './quoteMath'
+import { gToWei, parseGAmount, formatUsdDisplay, quoteDepositPrincipalUsd, quoteStreamPrincipalUsd } from './quoteMath'
+import type { AiCreditsQuote } from './widgetRuntimeContract'
 import { parseAbi, type Address, type PublicClient } from 'viem'
 
 const ONE_G_WEI = 10n ** 18n
@@ -45,7 +46,8 @@ export function getPaymentAmountValidation(params: {
   streamAmount: string
   minDepositUsd: string | null
   minStreamUsd: string | null
-  quote: { depositAmountUsd: string; streamAmountUsd: string } | null
+  quote: AiCreditsQuote | null
+  gdUsdPerToken: number | null
   gBalance: string | null
 }): {
   depositBelowMin: boolean
@@ -58,8 +60,14 @@ export function getPaymentAmountValidation(params: {
   const balance = parseGAmount(params.gBalance ?? '0')
   const minDepositUsd = parseUsdThreshold(params.minDepositUsd)
   const minStreamUsd = parseUsdThreshold(params.minStreamUsd)
-  const depositUsd = params.quote ? Number.parseFloat(params.quote.depositAmountUsd) : 0
-  const streamUsd = params.quote ? Number.parseFloat(params.quote.streamAmountUsd) : 0
+  const depositUsd =
+    params.quote && params.gdUsdPerToken !== null
+      ? Number.parseFloat(quoteDepositPrincipalUsd(params.quote, params.gdUsdPerToken))
+      : 0
+  const streamUsd =
+    params.quote && params.gdUsdPerToken !== null
+      ? Number.parseFloat(quoteStreamPrincipalUsd(params.quote, params.gdUsdPerToken))
+      : 0
   const depositBelowMin =
     depositG > 0 && minDepositUsd > 0 && params.quote !== null && depositUsd < minDepositUsd
   const streamBelowMin =

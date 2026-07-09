@@ -1,5 +1,6 @@
 import type { Address } from 'viem'
 import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
+import type { GdCreditEntry } from './backendTypes'
 
 export type AiCreditsWidgetEnvironment = 'production' | 'staging' | 'development'
 
@@ -30,24 +31,6 @@ export type AiCreditsWidgetPrimaryAction =
 export interface AiCreditsQuote {
   depositAmountG: string
   streamAmountG: string
-  depositAmountUsd: string
-  streamAmountUsd: string
-  depositBonusUsd: string
-  streamBonusUsd: string
-  bonusPercent: number
-  totalCredits: string
-  totalCreditsUsd: string
-}
-
-export interface AiCreditsUsageEntry {
-  sessionId: string
-  timestamp: string
-  creditsUsed: number
-  model: string
-  kind?: 'funding' | 'usage'
-  fundingStatus?: 'pending' | 'funded' | 'failed'
-  gdAmountG?: string
-  totalCreditUsdMicro?: string
 }
 
 export interface AiCreditsWidgetAdapterState {
@@ -55,6 +38,7 @@ export interface AiCreditsWidgetAdapterState {
   address: string | null
   chainId: number | null
   gBalance: string | null
+  gdUsdPerToken: number | null
   aiCreditsBalance: string | null
   isGoodIdVerified: boolean
   buyerKey: string | null
@@ -67,10 +51,9 @@ export interface AiCreditsWidgetAdapterState {
   streamAmount: string
   minDepositUsd: string | null
   minStreamUsd: string | null
-  bonusPercent: number
   quote: AiCreditsQuote | null
   setupSnippet: string
-  usageLog: AiCreditsUsageEntry[]
+  usageLog: GdCreditEntry[]
   totalGdDepositedG: string | null
   monthlyStreamG: string | null
   monthlyStreamCredits: string | null

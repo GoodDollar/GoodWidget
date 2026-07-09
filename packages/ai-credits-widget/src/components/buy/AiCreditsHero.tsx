@@ -4,15 +4,11 @@ import { BonusBadgeFrame } from '../theme/cards'
 interface HeroCardProps {
   gBalance: string | null
   isGoodIdVerified: boolean
-  bonusPercent: number
 }
 
-export function AiCreditsHero({ gBalance, isGoodIdVerified, bonusPercent }: HeroCardProps) {
+export function AiCreditsHero({ gBalance, isGoodIdVerified }: HeroCardProps) {
   const showBonusBadge =
-    gBalance !== null &&
-    Number.parseFloat(gBalance) > 0 &&
-    isGoodIdVerified &&
-    bonusPercent > 0
+    gBalance !== null && Number.parseFloat(gBalance) > 0 && isGoodIdVerified
 
   return (
     <Card gap="$4" backgroundColor="$backgroundHover">
@@ -32,7 +28,7 @@ export function AiCreditsHero({ gBalance, isGoodIdVerified, bonusPercent }: Hero
           <BonusBadgeFrame backgroundColor="$backgroundPress">
             <Icon name="info" size="xs" color="primary" />
             <Text fontSize="$2" fontWeight="700" color="$primary">
-              +{bonusPercent}% Bonus
+              +10% / +20% Bonus
             </Text>
             <Text fontSize="$1" secondary>
               (GoodID)
@@ -43,4 +39,3 @@ export function AiCreditsHero({ gBalance, isGoodIdVerified, bonusPercent }: Hero
     </Card>
   )
 }
-

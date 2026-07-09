@@ -99,6 +99,7 @@ export function AiCreditsPurchaseFlow({
             minDepositUsd={state.minDepositUsd}
             minStreamUsd={state.minStreamUsd}
             quote={state.quote}
+            gdUsdPerToken={state.gdUsdPerToken}
             isGoodIdVerified={state.isGoodIdVerified}
             canPay={canPay}
             payDisabledMessage={payDisabledMessage}

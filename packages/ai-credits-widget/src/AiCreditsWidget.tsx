@@ -167,7 +167,6 @@ function BuyCreditsPanel({
         <AiCreditsHero
           gBalance={state.gBalance}
           isGoodIdVerified={state.isGoodIdVerified}
-          bonusPercent={state.bonusPercent}
         />
         <AiCreditsStatusNotice>
           <Text color="$warning" fontWeight="700">
@@ -205,7 +204,6 @@ function BuyCreditsPanel({
           <AiCreditsHero
             gBalance={state.gBalance}
             isGoodIdVerified={state.isGoodIdVerified}
-            bonusPercent={state.bonusPercent}
           />
         )}
 
@@ -342,6 +340,7 @@ function AiCreditsInner({
         minDepositUsd: state.minDepositUsd,
         minStreamUsd: state.minStreamUsd,
         quote: state.quote,
+        gdUsdPerToken: state.gdUsdPerToken,
         gBalance: state.gBalance,
       }),
     [
@@ -350,6 +349,7 @@ function AiCreditsInner({
       state.minDepositUsd,
       state.minStreamUsd,
       state.quote,
+      state.gdUsdPerToken,
       state.gBalance,
     ],
   )

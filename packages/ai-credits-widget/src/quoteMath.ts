@@ -1,9 +1,9 @@
 import { parseUnits } from 'viem'
+import type { AiCreditsQuote } from './widgetRuntimeContract'
 
 export const CREDITS_PER_USD = 10_000
-const REGULAR_BONUS_BPS = 1_000n
-const STREAMING_BONUS_BPS = 2_000n
-const BPS = 10_000n
+export const DEPOSIT_BONUS_PERCENT = 10
+export const STREAM_BONUS_PERCENT = 20
 const SECONDS_PER_MONTH = 30n * 24n * 60n * 60n
 const USD_18_TO_MICRO = 1_000_000_000_000n
 
@@ -28,6 +28,14 @@ export function weiToG(amountWei: bigint): string {
 export function gdWeiToUsd(gdAmountWei: bigint, gdUsdPerToken: number): bigint {
   const usdPerToken = BigInt(Math.round(gdUsdPerToken * 1e6))
   return (gdAmountWei * usdPerToken) / 1_000_000_000_000_000_000n
+}
+
+export function getDepositBonusPercent(isGoodIdVerified: boolean): number {
+  return isGoodIdVerified ? DEPOSIT_BONUS_PERCENT : 0
+}
+
+export function getStreamBonusPercent(isGoodIdVerified: boolean): number {
+  return isGoodIdVerified ? STREAM_BONUS_PERCENT : 0
 }
 
 export function formatProfileUsd(usd: bigint): string {
@@ -79,88 +87,72 @@ export function vaultUsd18ToMicro(usd18: bigint): bigint {
   return usd18 / USD_18_TO_MICRO
 }
 
-export function buildQuoteFromPrincipalUsd(
-  depositG: string,
-  streamG: string,
-  depositPrincipalUsd: bigint,
-  streamPrincipalUsd: bigint,
-  isGoodIdVerified: boolean,
-): {
-  depositAmountG: string
-  streamAmountG: string
-  depositAmountUsd: string
-  streamAmountUsd: string
-  depositBonusUsd: string
-  streamBonusUsd: string
-  bonusPercent: number
-  totalCredits: string
-  totalCreditsUsd: string
-} {
-  const streamWei = gToWei(streamG)
-  const depositBonusUsd = isGoodIdVerified
-    ? (depositPrincipalUsd * REGULAR_BONUS_BPS) / BPS
-    : 0n
-  const streamBonusUsd = isGoodIdVerified
-    ? (streamPrincipalUsd * STREAMING_BONUS_BPS) / BPS
-    : 0n
-  const totalUsd =
-    depositPrincipalUsd + depositBonusUsd + streamPrincipalUsd + streamBonusUsd
-  const hasStream = streamWei > 0n
-  const bonusPercent = !isGoodIdVerified ? 0 : hasStream ? 20 : 10
+function bonusUsdFromPrincipal(principalUsd: bigint, bonusPercent: number): bigint {
+  if (principalUsd <= 0n || bonusPercent <= 0) return 0n
+  return (principalUsd * BigInt(bonusPercent)) / 100n
+}
 
+export function buildQuoteAmounts(depositG: string, streamG: string): AiCreditsQuote {
   return {
     depositAmountG: depositG,
     streamAmountG: streamG,
-    depositAmountUsd: formatProfileUsd(depositPrincipalUsd),
-    streamAmountUsd: formatProfileUsd(streamPrincipalUsd),
-    depositBonusUsd: formatProfileUsd(depositBonusUsd),
-    streamBonusUsd: formatProfileUsd(streamBonusUsd),
-    bonusPercent,
-    totalCredits: usdToCredits(totalUsd.toString()),
-    totalCreditsUsd: formatProfileUsd(totalUsd),
   }
 }
 
-export function buildQuoteFromGdAmounts(
-  depositG: string,
-  streamG: string,
+export function quoteDepositPrincipalUsd(quote: AiCreditsQuote, gdUsdPerToken: number): string {
+  const principal = gdWeiToUsd(gToWei(quote.depositAmountG), gdUsdPerToken)
+  return formatProfileUsd(principal)
+}
+
+export function quoteStreamPrincipalUsd(quote: AiCreditsQuote, gdUsdPerToken: number): string {
+  const principal = gdWeiToUsd(gToWei(quote.streamAmountG), gdUsdPerToken)
+  return formatProfileUsd(principal)
+}
+
+export function quoteDepositBonusUsd(
+  quote: AiCreditsQuote,
   gdUsdPerToken: number,
   isGoodIdVerified: boolean,
-): {
-  depositAmountG: string
-  streamAmountG: string
-  depositAmountUsd: string
-  streamAmountUsd: string
-  depositBonusUsd: string
-  streamBonusUsd: string
-  bonusPercent: number
-  totalCredits: string
-  totalCreditsUsd: string
-} {
-  const depositWei = gToWei(depositG)
-  const streamWei = gToWei(streamG)
-  const depositPrincipalUsd = gdWeiToUsd(depositWei, gdUsdPerToken)
-  const streamPrincipalUsd = gdWeiToUsd(streamWei, gdUsdPerToken)
-  const depositBonusUsd = isGoodIdVerified
-    ? (depositPrincipalUsd * REGULAR_BONUS_BPS) / BPS
-    : 0n
-  const streamBonusUsd = isGoodIdVerified
-    ? (streamPrincipalUsd * STREAMING_BONUS_BPS) / BPS
-    : 0n
-  const totalUsd =
-    depositPrincipalUsd + depositBonusUsd + streamPrincipalUsd + streamBonusUsd
-  const hasStream = streamWei > 0n
-  const bonusPercent = !isGoodIdVerified ? 0 : hasStream ? 20 : 10
+): string {
+  const principal = gdWeiToUsd(gToWei(quote.depositAmountG), gdUsdPerToken)
+  return formatProfileUsd(
+    bonusUsdFromPrincipal(principal, getDepositBonusPercent(isGoodIdVerified)),
+  )
+}
 
-  return {
-    depositAmountG: depositG,
-    streamAmountG: streamG,
-    depositAmountUsd: formatProfileUsd(depositPrincipalUsd),
-    streamAmountUsd: formatProfileUsd(streamPrincipalUsd),
-    depositBonusUsd: formatProfileUsd(depositBonusUsd),
-    streamBonusUsd: formatProfileUsd(streamBonusUsd),
-    bonusPercent,
-    totalCredits: usdToCredits(totalUsd.toString()),
-    totalCreditsUsd: formatProfileUsd(totalUsd),
-  }
+export function quoteStreamBonusUsd(
+  quote: AiCreditsQuote,
+  gdUsdPerToken: number,
+  isGoodIdVerified: boolean,
+): string {
+  const principal = gdWeiToUsd(gToWei(quote.streamAmountG), gdUsdPerToken)
+  return formatProfileUsd(
+    bonusUsdFromPrincipal(principal, getStreamBonusPercent(isGoodIdVerified)),
+  )
+}
+
+export function quoteTotalUsdMicro(
+  quote: AiCreditsQuote,
+  gdUsdPerToken: number,
+  isGoodIdVerified: boolean,
+): bigint {
+  const depositPrincipal = gdWeiToUsd(gToWei(quote.depositAmountG), gdUsdPerToken)
+  const streamPrincipal = gdWeiToUsd(gToWei(quote.streamAmountG), gdUsdPerToken)
+  const depositBonus = bonusUsdFromPrincipal(
+    depositPrincipal,
+    getDepositBonusPercent(isGoodIdVerified),
+  )
+  const streamBonus = bonusUsdFromPrincipal(
+    streamPrincipal,
+    getStreamBonusPercent(isGoodIdVerified),
+  )
+  return depositPrincipal + depositBonus + streamPrincipal + streamBonus
+}
+
+export function quoteTotalCredits(
+  quote: AiCreditsQuote,
+  gdUsdPerToken: number,
+  isGoodIdVerified: boolean,
+): string {
+  return usdToCredits(quoteTotalUsdMicro(quote, gdUsdPerToken, isGoodIdVerified).toString())
 }

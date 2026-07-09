@@ -10,7 +10,7 @@ import type { AiCreditsQuote } from './widgetRuntimeContract'
 import type { BuyerOperatorStatus, OperatorConsentPayloadResponse } from './operatorConsent'
 import { ANTSEED_DEPOSITS_BASE_ADDRESS, buildSetOperatorPayload } from './operatorConsent'
 import type { AccountRef } from './backendTypes'
-import { buildQuoteFromGdAmounts, buildQuoteFromPrincipalUsd, gToWei, vaultUsd18ToMicro } from './quoteMath'
+import { buildQuoteAmounts } from './quoteMath'
 
 export const BASE_CHAIN_ID = 8453
 export const DEFAULT_BASE_RPC_URL = 'https://mainnet.base.org'
@@ -79,11 +79,7 @@ export type AiCreditsChainClientOptions = {
 export interface AiCreditsChainClient {
   fetchGdUsdPerToken(): Promise<number>
   isGoodIdVerified(account: string): Promise<boolean>
-  buildQuote(
-    depositG: string,
-    streamG: string,
-    isGoodIdVerified: boolean,
-  ): Promise<AiCreditsQuote>
+  buildQuote(depositG: string, streamG: string): Promise<AiCreditsQuote>
   getBuyerOperatorStatus(ref: AccountRef): Promise<BuyerOperatorStatus>
   buildOperatorConsentPayload(
     ref: AccountRef,
@@ -141,41 +137,8 @@ export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
     return Number(usd18) / 1e18
   }
 
-  async buildQuote(
-    depositG: string,
-    streamG: string,
-    isGoodIdVerified: boolean,
-  ): Promise<AiCreditsQuote> {
-    const depositWei = gToWei(depositG)
-    const streamWei = gToWei(streamG)
-
-    if (this.celoClient && this.celoVaultAddress) {
-      const [depositPrincipalUsd, streamPrincipalUsd] = await Promise.all([
-        this.readGdUsdMicro(depositWei),
-        this.readGdUsdMicro(streamWei),
-      ])
-      return buildQuoteFromPrincipalUsd(
-        depositG,
-        streamG,
-        depositPrincipalUsd,
-        streamPrincipalUsd,
-        isGoodIdVerified,
-      )
-    }
-
-    const gdUsdPerToken = await this.fetchGdUsdPerToken()
-    return buildQuoteFromGdAmounts(depositG, streamG, gdUsdPerToken, isGoodIdVerified)
-  }
-
-  private async readGdUsdMicro(gdAmountWei: bigint): Promise<bigint> {
-    if (gdAmountWei <= 0n) return 0n
-    const usd18 = await this.celoClient!.readContract({
-      address: this.celoVaultAddress!,
-      abi: CELO_VAULT_ABI,
-      functionName: 'gdUsdPerToken',
-      args: [gdAmountWei],
-    })
-    return vaultUsd18ToMicro(usd18)
+  async buildQuote(depositG: string, streamG: string): Promise<AiCreditsQuote> {
+    return buildQuoteAmounts(depositG, streamG)
   }
 
   async getBuyerOperatorStatus(ref: AccountRef): Promise<BuyerOperatorStatus> {
@@ -299,12 +262,8 @@ export class MockAiCreditsChainClient implements AiCreditsChainClient {
     return this.gdUsdPerToken
   }
 
-  async buildQuote(
-    depositG: string,
-    streamG: string,
-    isGoodIdVerified: boolean,
-  ): Promise<AiCreditsQuote> {
-    return buildQuoteFromGdAmounts(depositG, streamG, this.gdUsdPerToken, isGoodIdVerified)
+  async buildQuote(depositG: string, streamG: string): Promise<AiCreditsQuote> {
+    return buildQuoteAmounts(depositG, streamG)
   }
 
   async getBuyerOperatorStatus(ref: AccountRef): Promise<BuyerOperatorStatus> {

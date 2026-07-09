@@ -1,4 +1,3 @@
-import type { AiCreditsUsageEntry } from './widgetRuntimeContract'
 import type {
   AccountCreditResponse,
   AccountRef,
@@ -13,6 +12,7 @@ import type { BuyerOperatorStatus } from './operatorConsent'
 import { markMockOperatorConsent, type AiCreditsChainClient } from './chainClient'
 import {
   flowRateWeiToMonthlyG,
+  quoteTotalCredits,
   usdToCredits,
   weiToG,
 } from './quoteMath'
@@ -165,7 +165,6 @@ export function creditsBalanceFromStatus(status: {
 export type AccountEnrichment = {
   balance: string
   goodIdVerified: boolean
-  bonusPercent: number
   buyer: string | null
   totalGdDepositedG: string
   monthlyStreamG: string
@@ -181,46 +180,22 @@ export async function enrichAccountView(
   const monthlyStreamG = flowRateWeiToMonthlyG(profile.streamFlowRateWeiPerSecond)
   let monthlyStreamCredits: string | null = null
   if (Number.parseFloat(monthlyStreamG) > 0) {
-    monthlyStreamCredits = (await chain.buildQuote('0', monthlyStreamG, goodIdVerified)).totalCredits
+    const [streamQuote, gdUsdPerToken] = await Promise.all([
+      chain.buildQuote('0', monthlyStreamG),
+      chain.fetchGdUsdPerToken(),
+    ])
+    monthlyStreamCredits = quoteTotalCredits(streamQuote, gdUsdPerToken, goodIdVerified)
   }
   const depositedWei = BigInt(profile.totalGdDepositedWei)
   const buyer = view.buyer
   return {
     balance: balanceFromProfile(profile),
     goodIdVerified,
-    bonusPercent: goodIdVerified
-      ? Number.parseFloat(monthlyStreamG) > 0
-        ? 20
-        : 10
-      : 0,
     buyer,
     totalGdDepositedG: depositedWei > 0n ? weiToG(depositedWei) : '0.00',
     monthlyStreamG,
     monthlyStreamCredits,
   }
-}
-
-function sourceLabel(source: GdCreditEntry['source']): string {
-  if (source === 'deposit') return 'G$ deposit'
-  return 'G$ stream'
-}
-
-export function gdCreditsToUsageEntries(entries: GdCreditEntry[]): AiCreditsUsageEntry[] {
-  return [...entries]
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    .map((entry) => ({
-      sessionId: entry.id,
-      timestamp: entry.createdAt,
-      creditsUsed: Number.parseFloat(usdToCredits(entry.totalCreditUsd)),
-      model:
-        entry.fundingStatus === 'failed'
-          ? `${sourceLabel(entry.source)} (failed)`
-          : sourceLabel(entry.source),
-      kind: 'funding' as const,
-      fundingStatus: entry.fundingStatus,
-      gdAmountG: weiToG(BigInt(entry.gdAmountWei)),
-      totalCreditUsdMicro: entry.totalCreditUsd,
-    }))
 }
 
 export interface AiCreditsBackendClient {
@@ -230,7 +205,7 @@ export interface AiCreditsBackendClient {
     payer: string,
     options?: { status?: 'pending' | 'funded' | 'failed'; limit?: number; cursor?: string },
   ): Promise<TransactionsResponse>
-  getUsageLog(payer: string): Promise<AiCreditsUsageEntry[]>
+  getUsageLog(payer: string): Promise<GdCreditEntry[]>
   notifyPayment(txHash: string): Promise<CeloEventsRecordResponse>
   waitForSettlement(
     ref: AccountRef,
@@ -336,9 +311,9 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     return { account: normalizeAddress(payer), transactions: page }
   }
 
-  async getUsageLog(payer: string): Promise<AiCreditsUsageEntry[]> {
+  async getUsageLog(payer: string): Promise<GdCreditEntry[]> {
     const credit = await this.getAccountCredit(payer)
-    return gdCreditsToUsageEntries(filterGdCredits(credit.gdCredits))
+    return filterGdCredits(credit.gdCredits)
   }
 
   prepareSettlement(ref: AccountRef, creditUsd: bigint): void {
@@ -459,9 +434,9 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
     return { account: normalizeAddress(payer), transactions }
   }
 
-  async getUsageLog(payer: string): Promise<AiCreditsUsageEntry[]> {
+  async getUsageLog(payer: string): Promise<GdCreditEntry[]> {
     const credit = await this.getAccountCredit(payer)
-    return gdCreditsToUsageEntries(filterGdCredits(credit.gdCredits))
+    return filterGdCredits(credit.gdCredits)
   }
 
   async notifyPayment(txHash: string): Promise<CeloEventsRecordResponse> {

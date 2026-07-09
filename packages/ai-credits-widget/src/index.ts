@@ -15,7 +15,6 @@ export type {
   AiCreditsPaySuccessDetail,
   AiCreditsPayErrorDetail,
   AiCreditsQuote,
-  AiCreditsUsageEntry,
 } from './widgetRuntimeContract'
 
 export type {

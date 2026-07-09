@@ -38,7 +38,7 @@ import {
 } from './payerSession'
 import { executeCeloPayment, G_TOKEN_CELO_ADDRESS } from './celoPayment'
 import { fetchVaultPaymentMinimums, validateVaultPaymentAmounts } from './vaultMinimums'
-import { CREDITS_PER_USD, usdDisplayToMicro } from './quoteMath'
+import { CREDITS_PER_USD, quoteTotalUsdMicro, usdDisplayToMicro } from './quoteMath'
 import type {
   AiCreditsWidgetAdapterActions,
   AiCreditsWidgetAdapterResult,
@@ -76,6 +76,7 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   address: null,
   chainId: null,
   gBalance: null,
+  gdUsdPerToken: null,
   aiCreditsBalance: null,
   isGoodIdVerified: false,
   buyerKey: null,
@@ -88,7 +89,6 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   streamAmount: '0',
   minDepositUsd: null,
   minStreamUsd: null,
-  bonusPercent: 0,
   quote: null,
   setupSnippet: buildSetupSnippet(),
   usageLog: [],
@@ -340,7 +340,6 @@ function viewToStatePatch(
     operatorConsentSigned: operatorAccepted,
     operatorAddress: view.operator.operatorAddress ?? null,
     withdrawableUsd: view.withdrawableUsd,
-    bonusPercent: enriched.bonusPercent,
     totalGdDepositedG: enriched.totalGdDepositedG,
     monthlyStreamG: enriched.monthlyStreamG,
     monthlyStreamCredits: enriched.monthlyStreamCredits,
@@ -502,13 +501,16 @@ export function useAiCreditsAdapter({
           : fetchVaultPaymentMinimums(publicClient, celoVault, address as Address).catch(() => null)
 
       const usageLogPromise = backendClient.getUsageLog(address!).catch(() => [])
+      const gdUsdPerTokenPromise = chainClient.fetchGdUsdPerToken().catch(() => null)
 
       try {
-        const [[rawBalance, decimals], account, minimums, usageLog] = await Promise.all([
+        const [[rawBalance, decimals], account, minimums, usageLog, gdUsdPerToken] =
+          await Promise.all([
           balancePromise,
           accountPromise,
           minimumsPromise,
           usageLogPromise,
+          gdUsdPerTokenPromise,
         ])
         if (cancelled) return
 
@@ -516,6 +518,7 @@ export function useAiCreditsAdapter({
           address,
           chainId,
           gBalance: formatUnits(rawBalance as bigint, decimals as number),
+          gdUsdPerToken,
           minDepositUsd: minimums?.minDepositUsd ?? null,
           minStreamUsd: minimums?.minStreamUsd ?? null,
         }
@@ -592,14 +595,13 @@ export function useAiCreditsAdapter({
 
     async function refreshQuote() {
       try {
-        const quote = await chainClient.buildQuote(
-          state.depositAmount,
-          state.streamAmount,
-          state.isGoodIdVerified,
-        )
+        const [quote, gdUsdPerToken] = await Promise.all([
+          chainClient.buildQuote(state.depositAmount, state.streamAmount),
+          chainClient.fetchGdUsdPerToken(),
+        ])
         if (cancelled) return
         setState((prev) =>
-          withDerivedStatus(prev, { quote, bonusPercent: quote.bonusPercent }, true),
+          withDerivedStatus(prev, { quote, gdUsdPerToken }, true),
         )
       } catch {
         if (!cancelled) setState((prev) => ({ ...prev, quote: null }))
@@ -847,13 +849,19 @@ export function useAiCreditsAdapter({
     if (!hasDeposit && !hasStream) return
 
     let quote: AiCreditsQuote | null = currentState.quote
+    let gdUsdPerToken = currentState.gdUsdPerToken
     try {
-      if (!quote) {
-        quote = await chainClient.buildQuote(
-          currentState.depositAmount,
-          currentState.streamAmount,
-          currentState.isGoodIdVerified,
-        )
+      const needsQuote = !quote
+      const needsPrice = gdUsdPerToken === null
+      if (needsQuote || needsPrice) {
+        const [builtQuote, price] = await Promise.all([
+          needsQuote
+            ? chainClient.buildQuote(currentState.depositAmount, currentState.streamAmount)
+            : Promise.resolve(quote!),
+          needsPrice ? chainClient.fetchGdUsdPerToken() : Promise.resolve(gdUsdPerToken!),
+        ])
+        quote = builtQuote
+        gdUsdPerToken = price
       }
     } catch {
       setState((prev) => ({
@@ -866,7 +874,7 @@ export function useAiCreditsAdapter({
       return
     }
 
-    if (!quote) return
+    if (!quote || gdUsdPerToken === null) return
 
     if (!(backendClient instanceof MockAiCreditsBackendClient)) {
       try {
@@ -899,6 +907,7 @@ export function useAiCreditsAdapter({
     setState((prev) => ({
       ...prev,
       quote,
+      gdUsdPerToken,
       status: 'payment_pending',
       primaryAction: 'none',
       primaryLabel: 'Processing…',
@@ -923,8 +932,10 @@ export function useAiCreditsAdapter({
       }
 
       if (backendClient instanceof MockAiCreditsBackendClient) {
-        const creditUsdMicro = BigInt(
-          Math.round(Number.parseFloat(quote.totalCredits) * CREDITS_PER_USD),
+        const creditUsdMicro = quoteTotalUsdMicro(
+          quote,
+          gdUsdPerToken,
+          currentState.isGoodIdVerified,
         )
         backendClient.prepareSettlement(accountRef, creditUsdMicro)
       }

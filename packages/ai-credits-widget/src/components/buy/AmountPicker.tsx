@@ -1,6 +1,15 @@
 import { Button, ButtonText, Card, Heading, Input, Separator, Spinner, Text, TokenAmount, XStack, YStack } from '@goodwidget/ui'
 import type { AiCreditsQuote } from '../../widgetRuntimeContract'
-import { formatUsdWithBonus, parseGAmount } from '../../quoteMath'
+import {
+  formatUsdWithBonus,
+  getDepositBonusPercent,
+  getStreamBonusPercent,
+  parseGAmount,
+  quoteDepositBonusUsd,
+  quoteDepositPrincipalUsd,
+  quoteStreamBonusUsd,
+  quoteStreamPrincipalUsd,
+} from '../../quoteMath'
 import {
   formatMinUsdDisplay,
   getPaymentAmountValidation,
@@ -25,9 +34,11 @@ function BonusLabel({ label, active }: { label: string; active: boolean }) {
 
 function BonusSummaryValue({
   quote,
+  gdUsdPerToken,
   isGoodIdVerified,
 }: {
   quote: AiCreditsQuote
+  gdUsdPerToken: number
   isGoodIdVerified: boolean
 }) {
   if (!isGoodIdVerified) {
@@ -42,9 +53,9 @@ function BonusSummaryValue({
 
   return (
     <Text fontSize="$2" fontWeight="700" color="$success">
-      {formatMinUsdDisplay(quote.depositBonusUsd) +
+      {formatMinUsdDisplay(quoteDepositBonusUsd(quote, gdUsdPerToken, isGoodIdVerified)) +
         ' + ' +
-        formatMinUsdDisplay(quote.streamBonusUsd) +
+        formatMinUsdDisplay(quoteStreamBonusUsd(quote, gdUsdPerToken, isGoodIdVerified)) +
         '/month'}
     </Text>
   )
@@ -57,6 +68,7 @@ interface AmountPickerProps {
   minDepositUsd: string | null
   minStreamUsd: string | null
   quote: AiCreditsQuote | null
+  gdUsdPerToken: number | null
   isGoodIdVerified: boolean
   canPay: boolean
   payDisabledMessage: string | null
@@ -74,6 +86,7 @@ export function AmountPicker({
   minDepositUsd,
   minStreamUsd,
   quote,
+  gdUsdPerToken,
   isGoodIdVerified,
   canPay,
   payDisabledMessage,
@@ -93,6 +106,7 @@ export function AmountPicker({
     minDepositUsd,
     minStreamUsd,
     quote,
+    gdUsdPerToken,
     gBalance,
   })
   const depositMinUsdLabel =
@@ -116,14 +130,16 @@ export function AmountPicker({
       ? 'Loading minimum…'
       : `Min ${formatMinUsdDisplay(minStreamUsd)}/mo`
 
-  const depositBonusPercent = isGoodIdVerified ? 10 : 0
-  const streamBonusPercent = isGoodIdVerified ? 20 : 0
+  const depositBonusPercent = getDepositBonusPercent(isGoodIdVerified)
+  const streamBonusPercent = getStreamBonusPercent(isGoodIdVerified)
   const depositEstUsd =
-    quote && depositG > 0
-      ? formatUsdWithBonus(quote.depositAmountUsd, depositBonusPercent)
+    quote && gdUsdPerToken !== null && depositG > 0
+      ? formatUsdWithBonus(quoteDepositPrincipalUsd(quote, gdUsdPerToken), depositBonusPercent)
       : null
   const streamEstUsd =
-    quote && streamG > 0 ? formatUsdWithBonus(quote.streamAmountUsd, streamBonusPercent) : null
+    quote && gdUsdPerToken !== null && streamG > 0
+      ? formatUsdWithBonus(quoteStreamPrincipalUsd(quote, gdUsdPerToken), streamBonusPercent)
+      : null
 
   const Shell = embedded ? YStack : Card
 
@@ -198,14 +214,17 @@ export function AmountPicker({
 
       <Separator />
 
-      {quote && (
+      {quote && gdUsdPerToken !== null && (
         <>
           <XStack justifyContent="space-between" alignItems="center">
             <Text variant="label">
               Est. credits
             </Text>
             <Text fontSize="$2" color="$primary" fontWeight="700">
-              {formatMinUsdDisplay(quote.depositAmountUsd) + " + " + formatMinUsdDisplay(quote.streamAmountUsd) + "/month"}
+              {formatMinUsdDisplay(quoteDepositPrincipalUsd(quote, gdUsdPerToken)) +
+                ' + ' +
+                formatMinUsdDisplay(quoteStreamPrincipalUsd(quote, gdUsdPerToken)) +
+                '/month'}
             </Text>
           </XStack>
 
@@ -213,7 +232,11 @@ export function AmountPicker({
             <Text fontSize="$1">
               Bonuses
             </Text>
-            <BonusSummaryValue quote={quote} isGoodIdVerified={isGoodIdVerified} />
+            <BonusSummaryValue
+              quote={quote}
+              gdUsdPerToken={gdUsdPerToken}
+              isGoodIdVerified={isGoodIdVerified}
+            />
           </XStack>
         </>
       )}
