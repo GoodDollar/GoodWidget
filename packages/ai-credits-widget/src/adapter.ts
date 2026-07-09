@@ -37,7 +37,7 @@ import {
   patchPayerSession,
 } from './payerSession'
 import { executeCeloPayment, G_TOKEN_CELO_ADDRESS } from './celoPayment'
-import { startGoodIdVerification } from './goodIdVerification'
+import { startGoodIdVerification, isUserRejectedWalletRequest } from './goodIdVerification'
 import { fetchVaultPaymentMinimums, validateVaultPaymentAmounts } from './vaultMinimums'
 import { quoteTotalUsdMicro, usdDisplayToMicro } from './quoteMath'
 import type {
@@ -906,6 +906,9 @@ export function useAiCreditsAdapter({
       goodIdVerifyPendingRef.current = true
       setState((prev) => ({ ...prev, error: null }))
     } catch (err) {
+      if (isUserRejectedWalletRequest(err)) {
+        return
+      }
       setState((prev) =>
         withDerivedStatus(
           prev,

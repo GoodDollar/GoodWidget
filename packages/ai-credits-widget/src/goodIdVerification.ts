@@ -52,3 +52,13 @@ export async function startGoodIdVerification(params: {
 
   window.open(fvLink, '_blank', 'noopener,noreferrer')
 }
+
+export function isUserRejectedWalletRequest(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+  return (
+    message.includes('User rejected') ||
+    message.includes('user rejected') ||
+    message.includes('4001') ||
+    message.includes('ACTION_REJECTED')
+  )
+}

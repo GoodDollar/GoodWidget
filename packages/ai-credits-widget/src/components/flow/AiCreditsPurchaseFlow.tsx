@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Button, ButtonText, Drawer, ScrollArea, YStack } from '@goodwidget/ui'
 import type {
   AiCreditsQuote,
@@ -30,6 +30,7 @@ export function AiCreditsPurchaseFlow({
   const activeStep = getAiCreditsActiveFlowStep(state, buyerPubKeySaved)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [drawerStep, setDrawerStep] = useState<AiCreditsFlowStep | null>(activeStep)
+  const prevActiveStepRef = useRef<AiCreditsFlowStep | null>(null)
 
   useEffect(() => {
     setBuyerPubKeySaved(false)
@@ -45,11 +46,29 @@ export function AiCreditsPurchaseFlow({
     if (!activeStep) {
       setDrawerOpen(false)
       setDrawerStep(null)
+      prevActiveStepRef.current = null
       return
     }
+
+    const previousStep = prevActiveStepRef.current
+    prevActiveStepRef.current = activeStep
     setDrawerStep(activeStep)
-    setDrawerOpen(false)
+
+    if (previousStep !== null && previousStep !== activeStep) {
+      setDrawerOpen(false)
+    }
   }, [activeStep])
+
+  const handleVerifyGoodId = useCallback(async () => {
+    try {
+      await actions.verifyGoodId()
+    } finally {
+      if (activeStep === 'pay') {
+        setDrawerStep('pay')
+        setDrawerOpen(true)
+      }
+    }
+  }, [actions, activeStep])
 
   const openDrawer = useCallback(
     (step: AiCreditsFlowStep) => {
@@ -107,7 +126,7 @@ export function AiCreditsPurchaseFlow({
             isPayPending={isPending}
             buildQuote={actions.buildQuote}
             onPay={onPay}
-            onVerifyGoodId={actions.verifyGoodId}
+            onVerifyGoodId={handleVerifyGoodId}
           />
         )
       default:
