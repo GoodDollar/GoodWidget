@@ -35,12 +35,12 @@ interface SetupSnippetProps {
 export function SetupSnippet({ buyerPubKey }: SetupSnippetProps) {
   const [expanded, setExpanded] = useState(false)
   const [copied, setCopied] = useState(false)
-  const snippet = buildSetupSnippet()
-  const copyText = snippet.replace(/\n\n+/g, '\n').trim()
-  const lines = snippet.trim().split('\n')
 
   if (!buyerPubKey) return null
 
+  const snippet = buildSetupSnippet(buyerPubKey)
+  const copyText = snippet.replace(/\n\n+/g, '\n').trim()
+  const lines = snippet.trim().split('\n')
   async function handleCopy() {
     const copied = await copyTextToClipboard(copyText)
     if (!copied) return
