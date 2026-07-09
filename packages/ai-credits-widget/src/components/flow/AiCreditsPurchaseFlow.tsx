@@ -107,6 +107,7 @@ export function AiCreditsPurchaseFlow({
             isPayPending={isPending}
             buildQuote={actions.buildQuote}
             onPay={onPay}
+            onVerifyGoodId={actions.verifyGoodId}
           />
         )
       default:

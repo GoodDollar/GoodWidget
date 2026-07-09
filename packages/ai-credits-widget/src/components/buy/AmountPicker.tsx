@@ -41,18 +41,33 @@ function BonusSummaryValue({
   quote,
   gdUsdPerToken,
   isGoodIdVerified,
+  onVerifyGoodId,
+  isVerifyingGoodId,
 }: {
   quote: AiCreditsQuote
   gdUsdPerToken: number
   isGoodIdVerified: boolean
+  onVerifyGoodId: () => Promise<void>
+  isVerifyingGoodId: boolean
 }) {
   if (!isGoodIdVerified) {
     return (
-      <BonusBadgeFrame backgroundColor="$warningMuted" borderWidth={1} borderColor="$warning">
-        <Text fontSize="$1" fontWeight="700" lineHeight={16} color="$warning">
-          no bonus
-        </Text>
-      </BonusBadgeFrame>
+      <XStack gap="$1.5" alignItems="center" justifyContent="flex-end" flex={1} flexShrink={1} minWidth={0}>
+        <Button
+          variant="text"
+          size="sm"
+          disabled={isVerifyingGoodId}
+          onPress={() => {
+            void onVerifyGoodId()
+          }}
+        >
+          {isVerifyingGoodId ? (
+            <Spinner size="sm" />
+          ) : (
+            <ButtonText fontWeight="600">Verify to get Bonuses</ButtonText>
+          )}
+        </Button>
+      </XStack>
     )
   }
 
@@ -76,6 +91,7 @@ interface AmountPickerProps {
   isPayPending: boolean
   buildQuote: (depositG: string, streamG: string) => Promise<AiCreditsQuote>
   onPay: (quote: AiCreditsQuote) => void
+  onVerifyGoodId: () => Promise<void>
   embedded?: boolean
 }
 
@@ -89,12 +105,14 @@ export function AmountPicker({
   isPayPending,
   buildQuote,
   onPay,
+  onVerifyGoodId,
   embedded = false,
 }: AmountPickerProps) {
   const [depositAmount, setDepositAmount] = useState(DEFAULT_DEPOSIT_AMOUNT)
   const [streamAmount, setStreamAmount] = useState(DEFAULT_STREAM_AMOUNT)
   const [quote, setQuote] = useState<AiCreditsQuote | null>(null)
   const [quotePending, setQuotePending] = useState(false)
+  const [isVerifyingGoodId, setIsVerifyingGoodId] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -267,14 +285,23 @@ export function AmountPicker({
             </Text>
           </XStack>
 
-          <XStack justifyContent="space-between" alignItems="center">
-            <Text fontSize="$1">
+          <XStack justifyContent="space-between" alignItems="center" gap="$2">
+            <Text fontSize="$1" flexShrink={0}>
               Bonuses
             </Text>
             <BonusSummaryValue
               quote={quote}
               gdUsdPerToken={gdUsdPerToken}
               isGoodIdVerified={isGoodIdVerified}
+              isVerifyingGoodId={isVerifyingGoodId}
+              onVerifyGoodId={async () => {
+                setIsVerifyingGoodId(true)
+                try {
+                  await onVerifyGoodId()
+                } finally {
+                  setIsVerifyingGoodId(false)
+                }
+              }}
             />
           </XStack>
         </>

@@ -37,6 +37,7 @@ import {
   patchPayerSession,
 } from './payerSession'
 import { executeCeloPayment, G_TOKEN_CELO_ADDRESS } from './celoPayment'
+import { startGoodIdVerification } from './goodIdVerification'
 import { fetchVaultPaymentMinimums, validateVaultPaymentAmounts } from './vaultMinimums'
 import { quoteTotalUsdMicro, usdDisplayToMicro } from './quoteMath'
 import type {
@@ -318,17 +319,20 @@ export interface UseAiCreditsAdapterOptions {
   fundingVaultAddress?: Address
   vaultAddress?: Address
   goodIdAddress?: Address
+  goodIdReturnUrl?: string
   onPaySuccess?: (detail: AiCreditsPaySuccessDetail) => void
   onPayError?: (detail: AiCreditsPayErrorDetail) => void
 }
 
 export function useAiCreditsAdapter({
+  environment = 'production',
   backendUrl,
   baseRpcUrl,
   celoRpcUrl,
   fundingVaultAddress,
   vaultAddress,
   goodIdAddress,
+  goodIdReturnUrl,
   onPaySuccess,
   onPayError,
 }: UseAiCreditsAdapterOptions): AiCreditsWidgetAdapterResult {
@@ -337,6 +341,7 @@ export function useAiCreditsAdapter({
 
   const providerRef = useRef<EIP1193Provider | null>(null)
   providerRef.current = provider as EIP1193Provider | null
+  const goodIdVerifyPendingRef = useRef(false)
 
   const celoVault = vaultAddress ?? CELO_GD_ANTSEED_VAULT_FALLBACK
 
@@ -871,6 +876,60 @@ export function useAiCreditsAdapter({
     }
   }, [state, backendClient, chainClient])
 
+  const handleVerifyGoodId = useCallback(async () => {
+    const currentState = state
+    if (!currentState.address || !providerRef.current) {
+      setState((prev) =>
+        withDerivedStatus(
+          prev,
+          { error: 'Connect your wallet on Celo to verify with GoodID' },
+          true,
+        ),
+      )
+      return
+    }
+    if (currentState.chainId !== CELO_CHAIN_ID) {
+      setState((prev) =>
+        withDerivedStatus(prev, { error: 'Switch to Celo to verify with GoodID' }, true),
+      )
+      return
+    }
+
+    try {
+      await startGoodIdVerification({
+        provider: providerRef.current,
+        address: currentState.address,
+        chainId: CELO_CHAIN_ID,
+        environment,
+        returnUrl: goodIdReturnUrl,
+      })
+      goodIdVerifyPendingRef.current = true
+      setState((prev) => ({ ...prev, error: null }))
+    } catch (err) {
+      setState((prev) =>
+        withDerivedStatus(
+          prev,
+          {
+            error:
+              err instanceof Error ? err.message : 'Could not start GoodID verification',
+          },
+          true,
+        ),
+      )
+    }
+  }, [state, environment, goodIdReturnUrl])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const onFocus = () => {
+      if (!goodIdVerifyPendingRef.current) return
+      goodIdVerifyPendingRef.current = false
+      void handleRefresh()
+    }
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [handleRefresh])
+
   const handleCloseChannel = useCallback(
     async (channelIdInput: string) => {
       const currentState = state
@@ -1014,6 +1073,7 @@ export function useAiCreditsAdapter({
       buildQuote: handleBuildQuote,
       pay: handlePay,
       refresh: handleRefresh,
+      verifyGoodId: handleVerifyGoodId,
       startPurchase: handleStartPurchase,
       setActiveTab: handleSetActiveTab,
       closeChannel: handleCloseChannel,
@@ -1029,6 +1089,7 @@ export function useAiCreditsAdapter({
       handleBuildQuote,
       handlePay,
       handleRefresh,
+      handleVerifyGoodId,
       handleStartPurchase,
       handleSetActiveTab,
       handleCloseChannel,
