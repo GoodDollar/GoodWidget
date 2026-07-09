@@ -72,7 +72,7 @@ export function getPaymentAmountValidation(params: {
     depositG > 0 && minDepositUsd > 0 && params.quote !== null && depositUsd < minDepositUsd
   const streamBelowMin =
     streamG > 0 && minStreamUsd > 0 && params.quote !== null && streamUsd < minStreamUsd
-  const overBalance = depositG + streamG > balance
+  const overBalance = depositG > balance
   const minsLoaded = params.minStreamUsd !== null
   const vaultMinimumsMet = !minsLoaded || (!depositBelowMin && !streamBelowMin)
 
@@ -99,7 +99,7 @@ export function getPayDisabledMessage(params: {
   if (params.canPay) return null
   if (!params.minsLoaded) return 'Loading vault minimums…'
   if (params.validation.overBalance) {
-    return 'Total exceeds your G$ balance. Reduce the amounts.'
+    return 'One-time deposit exceeds your G$ balance. Reduce the deposit amount.'
   }
   if (params.validation.depositBelowMin && params.minDepositUsd) {
     return `First deposit must be at least ${formatMinUsdDisplay(params.minDepositUsd)}.`

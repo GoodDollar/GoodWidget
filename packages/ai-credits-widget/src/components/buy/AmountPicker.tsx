@@ -324,7 +324,7 @@ export function AmountPicker({
       {overBalance && (
         <AiCreditsStatusNotice borderColor="$warning">
           <Text color="$warning" fontSize="$2">
-            Total exceeds your G$ balance. Reduce the amounts.
+            Deposit amount exceeds your G$ balance. Reduce the deposit amount.
           </Text>
         </AiCreditsStatusNotice>
       )}
