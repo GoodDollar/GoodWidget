@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Button, ButtonText, Drawer, ScrollArea, YStack } from '@goodwidget/ui'
 import type { AiCreditsWidgetAdapterActions, AiCreditsWidgetAdapterState } from '../../widgetRuntimeContract'
 import { AmountPicker } from '../buy/AmountPicker'
@@ -26,15 +26,20 @@ export function AiCreditsPurchaseFlow({
   isPending,
   onPay,
 }: AiCreditsPurchaseFlowProps) {
-  const activeStep = getAiCreditsActiveFlowStep(state)
+  const [buyerPubKeySaved, setBuyerPubKeySaved] = useState(false)
+  const activeStep = getAiCreditsActiveFlowStep(state, buyerPubKeySaved)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [drawerStep, setDrawerStep] = useState<AiCreditsFlowStep | null>(activeStep)
 
   useEffect(() => {
+    setBuyerPubKeySaved(false)
+  }, [state.buyerPubKey])
+
+  useEffect(() => {
     if (activeStep !== 'consent' || state.operatorConsentSigned) return
-    if (!state.address || !state.buyerKey) return
+    if (!state.address || !state.buyerPubKey) return
     void actions.syncOperatorConsentFromChain()
-  }, [activeStep, state.operatorConsentSigned, state.address, state.buyerKey, actions])
+  }, [activeStep, state.operatorConsentSigned, state.address, state.buyerPubKey, actions])
 
   useEffect(() => {
     if (!activeStep) {
@@ -62,7 +67,12 @@ export function AiCreditsPurchaseFlow({
     [openDrawer],
   )
 
-  const actionLabel = getActiveFlowStepActionLabel(state, activeStep)
+  const actionLabel = getActiveFlowStepActionLabel(state, activeStep, buyerPubKeySaved)
+
+  const handleQuoteUpdate = useMemo(
+    () => (depositG: string, streamG: string) => actions.updateQuote(depositG, streamG),
+    [actions],
+  )
 
   function renderDrawerContent(step: AiCreditsFlowStep | null) {
     if (!step) return null
@@ -72,18 +82,18 @@ export function AiCreditsPurchaseFlow({
         return (
           <BuyerKeyPanel
             embedded
-            buyerKey={state.buyerKey}
+            buyerPubKey={state.buyerPubKey}
             buyerKeyPrivate={state.buyerKeyPrivate ?? null}
-            buyerKeyConfirmed={state.buyerKeyConfirmed}
+            buyerPubKeySaved={buyerPubKeySaved}
             onGenerate={actions.generateBuyerKey}
-            onConfirm={actions.confirmBuyerKey}
+            onConfirm={() => setBuyerPubKeySaved(true)}
           />
         )
       case 'consent':
         return (
           <OperatorConsentStep
             embedded
-            buyerKey={state.buyerKey}
+            buyerPubKey={state.buyerPubKey}
             buyerKeyPrivate={state.buyerKeyPrivate ?? null}
             operatorConsentSigned={state.operatorConsentSigned}
             onSign={actions.signOperatorConsent}
@@ -93,8 +103,6 @@ export function AiCreditsPurchaseFlow({
         return (
           <AmountPicker
             embedded
-            depositAmount={state.depositAmount}
-            streamAmount={state.streamAmount}
             gBalance={state.gBalance}
             minDepositUsd={state.minDepositUsd}
             minStreamUsd={state.minStreamUsd}
@@ -104,8 +112,7 @@ export function AiCreditsPurchaseFlow({
             canPay={canPay}
             payDisabledMessage={payDisabledMessage}
             isPayPending={isPending}
-            onDepositChange={actions.setDepositAmount}
-            onStreamChange={actions.setStreamAmount}
+            onQuoteUpdate={handleQuoteUpdate}
             onPay={onPay}
           />
         )
@@ -116,7 +123,11 @@ export function AiCreditsPurchaseFlow({
 
   return (
     <>
-      <AiCreditsFlowStepper state={state} onStepPress={handleStepPress} />
+      <AiCreditsFlowStepper
+        state={state}
+        buyerPubKeySaved={buyerPubKeySaved}
+        onStepPress={handleStepPress}
+      />
       {!drawerOpen && actionLabel && activeStep && (
         <Button
           fullWidth
@@ -145,4 +156,3 @@ export function AiCreditsPurchaseFlow({
     </>
   )
 }
-

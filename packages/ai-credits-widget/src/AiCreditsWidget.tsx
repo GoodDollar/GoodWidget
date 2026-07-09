@@ -194,7 +194,7 @@ function BuyCreditsPanel({
             </Text>
           </YStack>
         </Card>
-        <AiCreditsFlowStepper state={state} />
+        <AiCreditsFlowStepper state={state} buyerPubKeySaved />
       </>
     )
   } else {
@@ -265,7 +265,7 @@ function ManagePanel({
 
       <BuyerOperatorCard state={state} actions={actions} />
 
-      <SetupSnippet snippet={state.setupSnippet} />
+      <SetupSnippet buyerPubKey={state.buyerPubKey} />
 
       <UsageLog entries={state.usageLog} />
 
@@ -335,8 +335,8 @@ function AiCreditsInner({
   const paymentValidation = useMemo(
     () =>
       getPaymentAmountValidation({
-        depositAmount: state.depositAmount,
-        streamAmount: state.streamAmount,
+        depositAmount: state.quote?.depositAmountG ?? '0',
+        streamAmount: state.quote?.streamAmountG ?? '0',
         minDepositUsd: state.minDepositUsd,
         minStreamUsd: state.minStreamUsd,
         quote: state.quote,
@@ -344,11 +344,9 @@ function AiCreditsInner({
         gBalance: state.gBalance,
       }),
     [
-      state.depositAmount,
-      state.streamAmount,
+      state.quote,
       state.minDepositUsd,
       state.minStreamUsd,
-      state.quote,
       state.gdUsdPerToken,
       state.gBalance,
     ],

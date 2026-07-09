@@ -69,5 +69,5 @@ export type CeloEventsRecordResponse = {
 }
 
 export type SettlementResult = {
-  credits: string
+  totalCreditUsd: string
 }

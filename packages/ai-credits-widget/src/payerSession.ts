@@ -1,7 +1,6 @@
 export type PayerWalletSession = {
-  buyerKey?: string
+  buyerPubKey?: string
   buyerKeyPrivate?: string
-  buyerKeyConfirmed: boolean
   operatorConsentSigned: boolean
 }
 
@@ -19,7 +18,6 @@ export function readPayerSession(address: string | null): PayerWalletSession | n
 export function patchPayerSession(address: string, patch: Partial<PayerWalletSession>): void {
   const existing = readPayerSession(address)
   payerWalletSessions.set(payerSessionKey(address), {
-    buyerKeyConfirmed: false,
     operatorConsentSigned: false,
     ...existing,
     ...patch,
@@ -27,23 +25,20 @@ export function patchPayerSession(address: string, patch: Partial<PayerWalletSes
 }
 
 export function patchPayerSessionFields(address: string | null): {
-  buyerKey?: string | null
+  buyerPubKey?: string | null
   buyerKeyPrivate: string | null
-  buyerKeyConfirmed: boolean
   operatorConsentSigned: boolean
 } {
   const session = readPayerSession(address)
   if (!session) {
     return {
       buyerKeyPrivate: null,
-      buyerKeyConfirmed: false,
       operatorConsentSigned: false,
     }
   }
   return {
-    buyerKey: session.buyerKey,
+    buyerPubKey: session.buyerPubKey,
     buyerKeyPrivate: session.buyerKeyPrivate ?? null,
-    buyerKeyConfirmed: session.buyerKeyConfirmed,
     operatorConsentSigned: session.operatorConsentSigned,
   }
 }

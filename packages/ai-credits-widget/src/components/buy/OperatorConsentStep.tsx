@@ -3,7 +3,7 @@ import { Button, ButtonText, Card, Heading, Icon, Spinner, Text, XStack, YStack 
 import { truncateAddress, compactButtonProps } from '../shared/styles'
 
 interface OperatorConsentStepProps {
-  buyerKey: string | null
+  buyerPubKey: string | null
   buyerKeyPrivate: string | null
   operatorConsentSigned: boolean
   onSign: () => Promise<void>
@@ -11,14 +11,14 @@ interface OperatorConsentStepProps {
 }
 
 export function OperatorConsentStep({
-  buyerKey,
+  buyerPubKey,
   buyerKeyPrivate,
   operatorConsentSigned,
   onSign,
   embedded = false,
 }: OperatorConsentStepProps) {
   const [isSigning, setIsSigning] = useState(false)
-  const canSign = Boolean(buyerKey && buyerKeyPrivate)
+  const canSign = Boolean(buyerPubKey && buyerKeyPrivate)
 
   const Shell = embedded ? YStack : Card
 
@@ -31,11 +31,11 @@ export function OperatorConsentStep({
         you.
       </Text>
 
-      {buyerKey && (
+      {buyerPubKey && (
         <Text fontSize="$2" lineHeight="$2">
           Buyer address:{' '}
           <Text fontFamily="$mono" fontSize="$2">
-            {truncateAddress(buyerKey)}
+            {truncateAddress(buyerPubKey)}
           </Text>
         </Text>
       )}

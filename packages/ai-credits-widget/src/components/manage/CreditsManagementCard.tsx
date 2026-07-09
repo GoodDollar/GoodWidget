@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import {
   Button,
   ButtonText,
@@ -11,7 +11,7 @@ import {
   YStack,
 } from '@goodwidget/ui'
 import type { AiCreditsWidgetAdapterActions, AiCreditsWidgetAdapterState } from '../../widgetRuntimeContract'
-import { formatUsdMicroDisplay } from '../../quoteMath'
+import { formatUsdMicroDisplay, quoteTotalUsdMicro } from '../../quoteMath'
 import {
   BUYER_KEY_REQUIRED_CLOSE_TOOLTIP,
   BUYER_KEY_REQUIRED_WITHDRAW_TOOLTIP,
@@ -22,10 +22,7 @@ import { compactButtonProps } from '../shared/styles'
 
 interface CreditsManagementCardProps {
   state: AiCreditsWidgetAdapterState
-  actions: Pick<
-    AiCreditsWidgetAdapterActions,
-    'setChannelId' | 'setWithdrawAmount' | 'closeChannel' | 'withdrawCredits'
-  >
+  actions: Pick<AiCreditsWidgetAdapterActions, 'closeChannel' | 'withdrawCredits'>
 }
 
 function StatCell({ label, children }: { label: string; children: React.ReactNode }) {
@@ -76,17 +73,34 @@ function formatCompactG(amount: string): string {
 export function CreditsManagementCard({ state, actions }: CreditsManagementCardProps) {
   const [isClosing, setIsClosing] = useState(false)
   const [isWithdrawing, setIsWithdrawing] = useState(false)
+  const [channelId, setChannelId] = useState('')
+  const [withdrawAmount, setWithdrawAmount] = useState('')
   const {
-    aiCreditsBalance,
+    totalCreditUsd,
     gBalance,
     totalGdDepositedG,
     monthlyStreamG,
-    monthlyStreamCredits,
+    gdUsdPerToken,
+    isGoodIdVerified,
     withdrawableUsd,
     buyerKeyPrivate,
-    channelId,
-    withdrawAmount,
   } = state
+
+  const monthlyStreamUsdDisplay = useMemo(() => {
+    if (!monthlyStreamG || !gdUsdPerToken) return null
+    if (Number.parseFloat(monthlyStreamG) <= 0) return null
+    const quote = { depositAmountG: '0', streamAmountG: monthlyStreamG }
+    const usdMicro = quoteTotalUsdMicro(quote, gdUsdPerToken, isGoodIdVerified)
+    if (usdMicro <= 0n) return null
+    return formatUsdMicroDisplay(usdMicro.toString())
+  }, [monthlyStreamG, gdUsdPerToken, isGoodIdVerified])
+
+  const totalCreditDisplay =
+    totalCreditUsd && BigInt(totalCreditUsd) > 0n
+      ? formatUsdMicroDisplay(totalCreditUsd)
+      : totalCreditUsd !== null
+        ? formatUsdMicroDisplay('0')
+        : null
 
   const withdrawableDisplay =
     withdrawableUsd && BigInt(withdrawableUsd) > 0n ? formatUsdMicroDisplay(withdrawableUsd) : null
@@ -104,10 +118,10 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
       <XStack gap="$4" width="100%" alignItems="flex-start">
         <YStack gap="$2" flex={1} minWidth={0}>
           <Text fontSize="$1" secondary>
-            Total Credits
+            Total Credit
           </Text>
-          {aiCreditsBalance !== null ? (
-            <Heading level={5}>{Number.parseFloat(aiCreditsBalance).toFixed(2)}</Heading>
+          {totalCreditDisplay !== null ? (
+            <Heading level={5}>{totalCreditDisplay}</Heading>
           ) : (
             <Spinner size="sm" />
           )}
@@ -136,11 +150,9 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
           <StatCell label="Monthly Stream">
             <StatValueText>{formatCompactG(monthlyStreamG ?? '0.00')}</StatValueText>
           </StatCell>
-          <StatCell label="Est. Monthly Credits">
-            {monthlyStreamCredits && Number.parseFloat(monthlyStreamCredits) > 0 ? (
-              <StatValueText color="$primary">
-                ~{Number.parseFloat(monthlyStreamCredits).toFixed(2)}/mo
-              </StatValueText>
+          <StatCell label="Est. Monthly Credit">
+            {monthlyStreamUsdDisplay ? (
+              <StatValueText color="$primary">~{monthlyStreamUsdDisplay}/mo</StatValueText>
             ) : (
               <StatValueText>—</StatValueText>
             )}
@@ -156,7 +168,7 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
             <Input
               size="sm"
               value={channelId}
-              onChangeText={actions.setChannelId}
+              onChangeText={setChannelId}
               placeholder="0x… (64 hex chars)"
             />
           </YStack>
@@ -170,7 +182,10 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
               {...compactButtonProps}
               onPress={() => {
                 setIsClosing(true)
-                void Promise.resolve(actions.closeChannel()).finally(() => setIsClosing(false))
+                void Promise.resolve(actions.closeChannel(channelId)).finally(() => {
+                  setIsClosing(false)
+                  setChannelId('')
+                })
               }}
             >
               <ButtonText>{isClosing ? 'Closing…' : 'Close'}</ButtonText>
@@ -191,7 +206,7 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
             <Input
               size="sm"
               value={withdrawAmount}
-              onChangeText={actions.setWithdrawAmount}
+              onChangeText={setWithdrawAmount}
               placeholder={
                 withdrawableDisplay ? `US$ (max ${withdrawableDisplay})` : 'Amount in US$'
               }
@@ -207,7 +222,10 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
               {...compactButtonProps}
               onPress={() => {
                 setIsWithdrawing(true)
-                void Promise.resolve(actions.withdrawCredits()).finally(() => setIsWithdrawing(false))
+                void Promise.resolve(actions.withdrawCredits(withdrawAmount)).finally(() => {
+                  setIsWithdrawing(false)
+                  setWithdrawAmount('')
+                })
               }}
             >
               <ButtonText>{isWithdrawing ? 'Withdrawing…' : 'Withdraw'}</ButtonText>

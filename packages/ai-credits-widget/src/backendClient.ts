@@ -12,8 +12,6 @@ import type { BuyerOperatorStatus } from './operatorConsent'
 import { markMockOperatorConsent, type AiCreditsChainClient } from './chainClient'
 import {
   flowRateWeiToMonthlyG,
-  quoteTotalCredits,
-  usdToCredits,
   weiToG,
 } from './quoteMath'
 import { isAddress } from 'viem'
@@ -148,27 +146,26 @@ function defaultOperatorStatus(payer: string): BuyerOperatorStatus {
   }
 }
 
-export function balanceFromProfile(
+export function totalCreditUsdFromProfile(
   profile: Pick<UserCreditProfile, 'totalPrincipalUsd' | 'totalBonusUsd'>,
 ): string {
   const principal = BigInt(profile.totalPrincipalUsd || '0')
   const bonus = BigInt(profile.totalBonusUsd || '0')
-  return usdToCredits((principal + bonus).toString())
+  return (principal + bonus).toString()
 }
 
-export function creditsBalanceFromStatus(status: {
+export function totalCreditUsdFromStatus(status: {
   profile: Pick<UserCreditProfile, 'totalPrincipalUsd' | 'totalBonusUsd'>
 }): string {
-  return balanceFromProfile(status.profile)
+  return totalCreditUsdFromProfile(status.profile)
 }
 
 export type AccountEnrichment = {
-  balance: string
+  totalCreditUsd: string
   goodIdVerified: boolean
   buyer: string | null
   totalGdDepositedG: string
   monthlyStreamG: string
-  monthlyStreamCredits: string | null
 }
 
 export async function enrichAccountView(
@@ -178,23 +175,14 @@ export async function enrichAccountView(
   const { profile } = view
   const goodIdVerified = await chain.isGoodIdVerified(profile.account)
   const monthlyStreamG = flowRateWeiToMonthlyG(profile.streamFlowRateWeiPerSecond)
-  let monthlyStreamCredits: string | null = null
-  if (Number.parseFloat(monthlyStreamG) > 0) {
-    const [streamQuote, gdUsdPerToken] = await Promise.all([
-      chain.buildQuote('0', monthlyStreamG),
-      chain.fetchGdUsdPerToken(),
-    ])
-    monthlyStreamCredits = quoteTotalCredits(streamQuote, gdUsdPerToken, goodIdVerified)
-  }
   const depositedWei = BigInt(profile.totalGdDepositedWei)
   const buyer = view.buyer
   return {
-    balance: balanceFromProfile(profile),
+    totalCreditUsd: totalCreditUsdFromProfile(profile),
     goodIdVerified,
     buyer,
     totalGdDepositedG: depositedWei > 0n ? weiToG(depositedWei) : '0.00',
     monthlyStreamG,
-    monthlyStreamCredits,
   }
 }
 
@@ -364,7 +352,7 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
       state.principalUsd += BigInt(entry.principalUsd)
       state.bonusUsd += BigInt(entry.bonusUsd)
     }
-    return { credits: balanceFromProfile(this.buildProfile(ref.payer)) }
+    return { totalCreditUsd: totalCreditUsdFromProfile(this.buildProfile(ref.payer)) }
   }
 
   async closeChannel(
@@ -453,7 +441,6 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
     ref: AccountRef,
     options: { txHashes?: string[]; previousBalance?: string } = {},
   ): Promise<SettlementResult> {
-    const baseline = options.previousBalance ? Number.parseFloat(options.previousBalance) : 0
     const txHashes = new Set((options.txHashes ?? []).map((hash) => hash.toLowerCase()))
 
     for (let attempt = 0; attempt < BRIDGE_POLL_MAX_ATTEMPTS; attempt++) {
@@ -470,15 +457,16 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
         }
         if (matching.length > 0 && matching.every((entry) => entry.fundingStatus === 'funded')) {
           const credit = await this.getAccountCredit(ref.payer)
-          return { credits: balanceFromProfile(credit.profile) }
+          return { totalCreditUsd: totalCreditUsdFromProfile(credit.profile) }
         }
         if (matching.some((entry) => entry.fundingStatus === 'pending')) continue
       }
 
       const credit = await this.getAccountCredit(ref.payer)
-      const balance = Number.parseFloat(balanceFromProfile(credit.profile))
-      if (balance > baseline + 0.0001) {
-        return { credits: balanceFromProfile(credit.profile) }
+      const balanceMicro = BigInt(totalCreditUsdFromProfile(credit.profile))
+      const baselineMicro = BigInt(options.previousBalance || '0')
+      if (balanceMicro > baselineMicro) {
+        return { totalCreditUsd: balanceMicro.toString() }
       }
     }
 

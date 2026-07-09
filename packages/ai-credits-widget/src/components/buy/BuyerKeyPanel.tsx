@@ -5,18 +5,18 @@ import { monospaceSingleLineStyle, compactButtonProps } from '../shared/styles'
 import { useCopyFeedback } from '../shared/useCopyFeedback'
 
 interface BuyerKeyPanelProps {
-  buyerKey: string | null
+  buyerPubKey: string | null
   buyerKeyPrivate: string | null
-  buyerKeyConfirmed: boolean
+  buyerPubKeySaved: boolean
   onGenerate: () => void | Promise<void>
   onConfirm: () => void
   embedded?: boolean
 }
 
 export function BuyerKeyPanel({
-  buyerKey,
+  buyerPubKey,
   buyerKeyPrivate,
-  buyerKeyConfirmed,
+  buyerPubKeySaved,
   onGenerate,
   onConfirm,
   embedded = false,
@@ -50,7 +50,7 @@ export function BuyerKeyPanel({
           <ButtonText>{isGenerating ? 'Waiting for signature…' : 'Sign & Generate Key'}</ButtonText>
         </Button>
 
-        {buyerKey && (
+        {buyerPubKey && (
           <YStack gap="$2">
             <Text variant="label" secondary>
               Address (registered on-chain)
@@ -63,9 +63,9 @@ export function BuyerKeyPanel({
               alignItems="center"
             >
               <Text fontSize="$2" style={monospaceSingleLineStyle} flex={1} numberOfLines={1}>
-                {buyerKey}
+                {buyerPubKey}
               </Text>
-              <Button size="sm" variant="ghost" iconSize="sm" onPress={() => void copyAddress(buyerKey)}>
+              <Button size="sm" variant="ghost" iconSize="sm" onPress={() => void copyAddress(buyerPubKey)}>
                 <Icon
                   name={copiedAddress ? 'check' : 'copy'}
                   size="xs"
@@ -124,13 +124,13 @@ export function BuyerKeyPanel({
               </>
             )}
 
-            {!buyerKeyConfirmed && (
+            {!buyerPubKeySaved && (
               <Button size="sm" {...compactButtonProps} onPress={onConfirm}>
                 <ButtonText>I've Saved My Private Key</ButtonText>
               </Button>
             )}
 
-            {buyerKeyConfirmed && (
+            {buyerPubKeySaved && (
               <XStack gap="$2" alignItems="center">
                 <Icon name="check" size="sm" color="success" />
                 <Text color="$success" fontSize="$2">

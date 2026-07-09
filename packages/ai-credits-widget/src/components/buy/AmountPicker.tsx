@@ -1,4 +1,5 @@
-import { Button, ButtonText, Card, Heading, Input, Separator, Spinner, Text, TokenAmount, XStack, YStack } from '@goodwidget/ui'
+import React, { useEffect, useState } from 'react'
+import { Button, ButtonText, Card, Heading, Icon, Input, Separator, Spinner, Text, TokenAmount, XStack, YStack } from '@goodwidget/ui'
 import type { AiCreditsQuote } from '../../widgetRuntimeContract'
 import {
   formatUsdWithBonus,
@@ -17,6 +18,9 @@ import {
 import { AiCreditsStatusNotice, BonusBadgeFrame } from '../theme/cards'
 import { HoverTooltip } from '../shared/tooltips'
 import { compactButtonProps } from '../shared/styles'
+
+const DEFAULT_DEPOSIT_AMOUNT = '1'
+const DEFAULT_STREAM_AMOUNT = '0'
 
 function BonusLabel({ label, active }: { label: string; active: boolean }) {
   return (
@@ -62,8 +66,6 @@ function BonusSummaryValue({
 }
 
 interface AmountPickerProps {
-  depositAmount: string
-  streamAmount: string
   gBalance: string | null
   minDepositUsd: string | null
   minStreamUsd: string | null
@@ -73,15 +75,12 @@ interface AmountPickerProps {
   canPay: boolean
   payDisabledMessage: string | null
   isPayPending: boolean
-  onDepositChange: (v: string) => void
-  onStreamChange: (v: string) => void
+  onQuoteUpdate: (depositG: string, streamG: string) => Promise<void>
   onPay: () => void
   embedded?: boolean
 }
 
 export function AmountPicker({
-  depositAmount,
-  streamAmount,
   gBalance,
   minDepositUsd,
   minStreamUsd,
@@ -91,11 +90,25 @@ export function AmountPicker({
   canPay,
   payDisabledMessage,
   isPayPending,
-  onDepositChange,
-  onStreamChange,
+  onQuoteUpdate,
   onPay,
   embedded = false,
 }: AmountPickerProps) {
+  const [depositAmount, setDepositAmount] = useState(DEFAULT_DEPOSIT_AMOUNT)
+  const [streamAmount, setStreamAmount] = useState(DEFAULT_STREAM_AMOUNT)
+  const [quotePending, setQuotePending] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    setQuotePending(true)
+    void onQuoteUpdate(depositAmount, streamAmount).finally(() => {
+      if (!cancelled) setQuotePending(false)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [depositAmount, streamAmount, onQuoteUpdate])
+
   const depositG = parseGAmount(depositAmount)
   const streamG = parseGAmount(streamAmount)
   const depositBonusLabel = isGoodIdVerified ? '+10% bonus' : 'no bonus'
@@ -165,7 +178,7 @@ export function AmountPicker({
         </XStack>
         <Input
           value={depositAmount}
-          onChangeText={onDepositChange}
+          onChangeText={setDepositAmount}
           placeholder={depositPlaceholder}
           error={depositBelowMin}
         />
@@ -174,7 +187,7 @@ export function AmountPicker({
             <Text fontSize="$1" secondary>
               ≈ {depositEstUsd}
             </Text>
-          ) : depositG > 0 && !quote ? (
+          ) : depositG > 0 && quotePending ? (
             <Spinner size="sm" />
           ) : (
             <YStack />
@@ -192,7 +205,7 @@ export function AmountPicker({
         </XStack>
         <Input
           value={streamAmount}
-          onChangeText={onStreamChange}
+          onChangeText={setStreamAmount}
           placeholder={streamPlaceholder}
           error={streamBelowMin}
         />
@@ -201,7 +214,7 @@ export function AmountPicker({
             <Text fontSize="$1" secondary>
               ≈ {streamEstUsd}/month
             </Text>
-          ) : streamG > 0 && !quote ? (
+          ) : streamG > 0 && quotePending ? (
             <Spinner size="sm" />
           ) : (
             <YStack />
@@ -270,7 +283,7 @@ export function AmountPicker({
           fullWidth
           size="sm"
           {...compactButtonProps}
-          disabled={!canPay || isPayPending}
+          disabled={!canPay || isPayPending || quotePending}
           onPress={() => {
             onPay()
           }}

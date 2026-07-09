@@ -8,13 +8,13 @@ import { useCopyFeedback } from '../shared/useCopyFeedback'
 interface BuyerOperatorCardProps {
   state: Pick<
     AiCreditsWidgetAdapterState,
-    'address' | 'buyerKey' | 'buyerKeyPrivate' | 'operatorConsentSigned'
+    'address' | 'buyerPubKey' | 'buyerKeyPrivate' | 'operatorConsentSigned'
   >
   actions: Pick<AiCreditsWidgetAdapterActions, 'generateBuyerKey' | 'signOperatorConsent'>
 }
 
 export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
-  const { address, buyerKey, buyerKeyPrivate, operatorConsentSigned } = state
+  const { address, buyerPubKey, buyerKeyPrivate, operatorConsentSigned } = state
   const { copied: copiedPrivate, copy: copyPrivate } = useCopyFeedback()
   const [isPrivateKeyVisible, setIsPrivateKeyVisible] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -25,7 +25,7 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
       <Heading level={6}>Buyer &amp; Operator</Heading>
 
       {address && <AddressView label="Payer" address={address} />}
-      {buyerKey && <AddressView label="Buyer" address={buyerKey} />}
+      {buyerPubKey && <AddressView label="Buyer" address={buyerPubKey} />}
 
       <XStack gap="$2" alignItems="stretch" width="100%">
         <Button

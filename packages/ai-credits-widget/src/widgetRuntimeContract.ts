@@ -18,16 +18,6 @@ export type AiCreditsWidgetStatus =
 
 export type AiCreditsWidgetTab = 'buy' | 'manage'
 
-export type AiCreditsWidgetPrimaryAction =
-  | 'connect'
-  | 'switch_chain'
-  | 'generate_key'
-  | 'sign_consent'
-  | 'pay'
-  | 'retry'
-  | 'refresh'
-  | 'none'
-
 export interface AiCreditsQuote {
   depositAmountG: string
   streamAmountG: string
@@ -39,30 +29,20 @@ export interface AiCreditsWidgetAdapterState {
   chainId: number | null
   gBalance: string | null
   gdUsdPerToken: number | null
-  aiCreditsBalance: string | null
+  totalCreditUsd: string | null
   isGoodIdVerified: boolean
-  buyerKey: string | null
+  buyerPubKey: string | null
   buyerKeyPrivate: string | null
-  buyerKeyConfirmed: boolean
   operatorConsentSigned: boolean
   operatorAddress: string | null
-  apiKey: string | null
-  depositAmount: string
-  streamAmount: string
   minDepositUsd: string | null
   minStreamUsd: string | null
   quote: AiCreditsQuote | null
-  setupSnippet: string
   usageLog: GdCreditEntry[]
   totalGdDepositedG: string | null
   monthlyStreamG: string | null
-  monthlyStreamCredits: string | null
   withdrawableUsd: string | null
-  channelId: string
-  withdrawAmount: string
   error: string | null
-  primaryAction: AiCreditsWidgetPrimaryAction
-  primaryLabel: string
   activeTab: AiCreditsWidgetTab
 }
 
@@ -70,19 +50,15 @@ export interface AiCreditsWidgetAdapterActions {
   connect: () => Promise<void>
   switchChain: () => Promise<void>
   generateBuyerKey: () => Promise<void>
-  confirmBuyerKey: () => void
   signOperatorConsent: () => Promise<void>
   syncOperatorConsentFromChain: () => Promise<void>
-  setDepositAmount: (amount: string) => void
-  setStreamAmount: (amount: string) => void
-  setChannelId: (channelId: string) => void
-  setWithdrawAmount: (amount: string) => void
+  updateQuote: (depositG: string, streamG: string) => Promise<void>
   pay: () => Promise<void>
   refresh: () => Promise<void>
   startPurchase: () => void
   setActiveTab: (tab: AiCreditsWidgetTab) => void
-  closeChannel: () => Promise<void>
-  withdrawCredits: () => Promise<void>
+  closeChannel: (channelId: string) => Promise<void>
+  withdrawCredits: (amount: string) => Promise<void>
   retry: () => Promise<void>
 }
 
@@ -104,8 +80,8 @@ export interface AiCreditsPaySuccessDetail {
   address: string
   chainId: number
   transactionHash: string
-  buyerKey: string
-  creditsReceived: string
+  buyerPubKey: string
+  creditUsdMicro: string
 }
 
 export interface AiCreditsPayErrorDetail {

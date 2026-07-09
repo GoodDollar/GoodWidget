@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { Anchor, Button, Card, Icon, Text, XStack, YStack, copyTextToClipboard } from '@goodwidget/ui'
 
 const ANTSEED_API_DOCS_URL = 'https://antseed.com/docs/guides/using-the-api'
@@ -11,15 +11,35 @@ const setupSnippetLineStyle: React.CSSProperties = {
   overflowWrap: 'anywhere',
 }
 
-interface SetupSnippetProps {
-  snippet: string
+function buildSetupSnippet(): string {
+  return [
+    'npm install -g @antseed/cli',
+    '',
+    'export ANTSEED_IDENTITY_HEX=<buyer-private-key>',
+    '',
+    'antseed buyer start',
+    'antseed network browse',
+    'antseed buyer connection set --peer <peer-id>',
+    '',
+    'export ANTHROPIC_BASE_URL=http://localhost:8377',
+    'export OPENAI_BASE_URL=http://localhost:8377',
+    'export OPENAI_API_KEY=placeholder',
+    '',
+  ].join('\n')
 }
 
-export function SetupSnippet({ snippet }: SetupSnippetProps) {
+interface SetupSnippetProps {
+  buyerPubKey: string | null
+}
+
+export function SetupSnippet({ buyerPubKey }: SetupSnippetProps) {
   const [expanded, setExpanded] = useState(false)
   const [copied, setCopied] = useState(false)
+  const snippet = buildSetupSnippet()
   const copyText = snippet.replace(/\n\n+/g, '\n').trim()
   const lines = snippet.trim().split('\n')
+
+  if (!buyerPubKey) return null
 
   async function handleCopy() {
     const copied = await copyTextToClipboard(copyText)
@@ -68,4 +88,3 @@ export function SetupSnippet({ snippet }: SetupSnippetProps) {
     </Card>
   )
 }
-
