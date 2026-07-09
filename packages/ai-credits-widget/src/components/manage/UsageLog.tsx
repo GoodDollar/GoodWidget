@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Card, Icon, ScrollArea, Separator, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
 import type { GdCreditEntry } from '../../backendTypes'
 import { createBackendClient } from '../../backendClient'
-import { formatUsdMicroDisplay } from '../../quoteMath'
+import { formatUsdMicroDisplay, weiToG } from '../../quoteMath'
 
 interface UsageLogProps {
   address: string | null
@@ -22,16 +22,29 @@ function entryLabel(entry: GdCreditEntry): string {
   return sourceLabel(entry.source)
 }
 
+function formatGAmountWei(gdAmountWei: string): string | null {
+  const amountWei = BigInt(gdAmountWei || '0')
+  if (amountWei <= 0n) return null
+  return `${weiToG(amountWei)} G$`
+}
+
 function formatFundedSummary(entries: GdCreditEntry[]): string {
   let usdMicroTotal = 0n
+  let gdWeiTotal = 0n
 
   for (const entry of entries) {
     if (entry.fundingStatus !== 'funded') continue
-    usdMicroTotal += BigInt(entry.totalCreditUsd)
+    usdMicroTotal += BigInt(entry.totalCreditUsd || '0')
+    gdWeiTotal += BigInt(entry.gdAmountWei || '0')
   }
 
-  if (usdMicroTotal <= 0n) return 'US$ 0.00'
-  return formatUsdMicroDisplay(usdMicroTotal.toString())
+  const parts: string[] = []
+  const gTotal = formatGAmountWei(gdWeiTotal.toString())
+  if (gTotal) parts.push(gTotal)
+  parts.push(
+    usdMicroTotal > 0n ? formatUsdMicroDisplay(usdMicroTotal.toString()) : formatUsdMicroDisplay('0'),
+  )
+  return parts.join(' · ')
 }
 
 export function UsageLog({ address, backendUrl, refreshSignal = 0 }: UsageLogProps) {
@@ -105,6 +118,7 @@ export function UsageLog({ address, backendUrl, refreshSignal = 0 }: UsageLogPro
                 {entries.map((entry) => {
                   const failed = entry.fundingStatus === 'failed'
                   const amountColor = failed ? '$error' : '$color'
+                  const gAmountDisplay = formatGAmountWei(entry.gdAmountWei)
 
                   return (
                     <YStack key={entry.id} gap="$1">
@@ -118,9 +132,16 @@ export function UsageLog({ address, backendUrl, refreshSignal = 0 }: UsageLogPro
                             {new Date(entry.createdAt).toLocaleString()}
                           </Text>
                         </YStack>
-                        <Text fontSize="$2" color={amountColor} textAlign="right" flexShrink={0}>
-                          +{formatUsdMicroDisplay(entry.totalCreditUsd)}
-                        </Text>
+                        <YStack alignItems="flex-end" flexShrink={0} gap="$0.5">
+                          {gAmountDisplay && (
+                            <Text fontSize="$2" fontWeight="600" color={amountColor} textAlign="right">
+                              +{gAmountDisplay}
+                            </Text>
+                          )}
+                          <Text fontSize="$2" color={amountColor} textAlign="right">
+                            +{formatUsdMicroDisplay(entry.totalCreditUsd)}
+                          </Text>
+                        </YStack>
                       </XStack>
                     </YStack>
                   )

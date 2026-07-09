@@ -151,11 +151,9 @@ export function AmountPicker({
   })
   const { depositBelowMin, streamBelowMin, overBalance } = paymentValidation
   const depositMinUsdLabel =
-    minStreamUsd === null
-      ? 'Loading minimum…'
-      : minDepositUsd !== null
-        ? `Minimum ${formatMinUsdDisplay(minDepositUsd)} for your first deposit`
-        : 'One-time deposit (no minimum after first deposit)'
+    minDepositUsd !== null
+      ? `Minimum ${formatMinUsdDisplay(minDepositUsd)} for your first deposit`
+      : 'One-time deposit (no minimum after first deposit)'
   const streamMinUsdLabel =
     minStreamUsd !== null
       ? `Minimum ${formatMinUsdDisplay(minStreamUsd)}/month`
