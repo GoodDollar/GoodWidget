@@ -6,7 +6,7 @@ import { useCopyFeedback } from '../shared/useCopyFeedback'
 
 interface BuyerKeyPanelProps {
   buyerPubKey: string | null
-  buyerKeyPrivate: string | null
+  buyerPrvKey: string | null
   buyerPubKeySaved: boolean
   onGenerate: () => void | Promise<void>
   onConfirm: () => void
@@ -15,7 +15,7 @@ interface BuyerKeyPanelProps {
 
 export function BuyerKeyPanel({
   buyerPubKey,
-  buyerKeyPrivate,
+  buyerPrvKey,
   buyerPubKeySaved,
   onGenerate,
   onConfirm,
@@ -46,7 +46,12 @@ export function BuyerKeyPanel({
       </Text>
 
       <YStack gap="$3">
-        <Button size="sm" {...compactButtonProps} onPress={handleGenerate} disabled={isGenerating}>
+        <Button
+          size="sm"
+          {...compactButtonProps}
+          onPress={handleGenerate}
+          disabled={isGenerating || Boolean(buyerPrvKey)}
+        >
           <ButtonText>{isGenerating ? 'Waiting for signature…' : 'Sign & Generate Key'}</ButtonText>
         </Button>
 
@@ -74,7 +79,7 @@ export function BuyerKeyPanel({
               </Button>
             </XStack>
 
-            {buyerKeyPrivate && (
+            {buyerPrvKey && (
               <>
                 <XStack justifyContent="space-between" alignItems="center">
                   <Text variant="label" secondary>
@@ -105,14 +110,14 @@ export function BuyerKeyPanel({
                 >
                   <Text fontSize="$2" style={monospaceSingleLineStyle} flex={1} numberOfLines={1}>
                     {isPrivateKeyVisible
-                      ? buyerKeyPrivate
-                      : '•'.repeat(Math.min(48, buyerKeyPrivate.length))}
+                      ? buyerPrvKey
+                      : '•'.repeat(Math.min(48, buyerPrvKey.length))}
                   </Text>
                   <Button
                     size="sm"
                     variant="ghost"
                     iconSize="sm"
-                    onPress={() => void copyPrivate(buyerKeyPrivate)}
+                    onPress={() => void copyPrivate(buyerPrvKey)}
                   >
                     <Icon
                       name={copiedPrivate ? 'check' : 'copy'}
@@ -124,7 +129,7 @@ export function BuyerKeyPanel({
               </>
             )}
 
-            {!buyerPubKeySaved && (
+            {buyerPrvKey && !buyerPubKeySaved && (
               <Button size="sm" {...compactButtonProps} onPress={onConfirm}>
                 <ButtonText>I've Saved My Private Key</ButtonText>
               </Button>

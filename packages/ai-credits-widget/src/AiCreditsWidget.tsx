@@ -37,8 +37,8 @@ import type {
   AiCreditsWidgetAdapterActions,
   AiCreditsWidgetAdapterState,
   AiCreditsWidgetTab,
+  AiCreditsQuote,
 } from './widgetRuntimeContract'
-import { getPaymentAmountValidation, getPayDisabledMessage } from './vaultMinimums'
 import { compactButtonProps } from './components/shared/styles'
 
 const CELO_CHAIN_ID = 42220
@@ -83,17 +83,13 @@ function DisconnectedPanel({
 interface BuyPanelProps {
   state: AiCreditsWidgetAdapterState
   actions: AiCreditsWidgetAdapterActions
-  canPay: boolean
-  payDisabledMessage: string | null
   isPending: boolean
-  onPay: () => void
+  onPay: (quote: AiCreditsQuote) => void
 }
 
 function BuyCreditsPanel({
   state,
   actions,
-  canPay,
-  payDisabledMessage,
   isPending,
   onPay,
 }: BuyPanelProps) {
@@ -136,8 +132,6 @@ function BuyCreditsPanel({
         <AiCreditsPurchaseFlow
           state={state}
           actions={actions}
-          canPay={canPay}
-          payDisabledMessage={payDisabledMessage}
           isPending={isPending}
           onPay={onPay}
         />
@@ -216,8 +210,6 @@ function BuyCreditsPanel({
         <AiCreditsPurchaseFlow
           state={state}
           actions={actions}
-          canPay={canPay}
-          payDisabledMessage={payDisabledMessage}
           isPending={isPending}
           onPay={onPay}
         />
@@ -236,16 +228,20 @@ function BuyCreditsPanel({
 function ManagePanel({
   state,
   actions,
+  backendUrl,
 }: {
   state: AiCreditsWidgetAdapterState
   actions: AiCreditsWidgetAdapterActions
+  backendUrl?: string
 }) {
   const [refreshing, setRefreshing] = React.useState(false)
+  const [usageLogRefreshSignal, setUsageLogRefreshSignal] = React.useState(0)
 
   const handleRefresh = async () => {
     setRefreshing(true)
     try {
       await actions.refresh()
+      setUsageLogRefreshSignal((value) => value + 1)
     } finally {
       setRefreshing(false)
     }
@@ -267,7 +263,11 @@ function ManagePanel({
 
       <SetupSnippet buyerPubKey={state.buyerPubKey} />
 
-      <UsageLog entries={state.usageLog} />
+      <UsageLog
+        address={state.address}
+        backendUrl={backendUrl}
+        refreshSignal={usageLogRefreshSignal}
+      />
 
       <YStack gap="$2" width="100%" alignItems="center">
         {state.error && (
@@ -332,64 +332,31 @@ function AiCreditsInner({
 
   const { state, actions } = activeAdapter
 
-  const paymentValidation = useMemo(
-    () =>
-      getPaymentAmountValidation({
-        depositAmount: state.quote?.depositAmountG ?? '0',
-        streamAmount: state.quote?.streamAmountG ?? '0',
-        minDepositUsd: state.minDepositUsd,
-        minStreamUsd: state.minStreamUsd,
-        quote: state.quote,
-        gdUsdPerToken: state.gdUsdPerToken,
-        gBalance: state.gBalance,
-      }),
-    [
-      state.quote,
-      state.minDepositUsd,
-      state.minStreamUsd,
-      state.gdUsdPerToken,
-      state.gBalance,
-    ],
-  )
-
-  const minsLoaded = state.minStreamUsd !== null
-  const canPay =
-    state.status === 'quote_ready' &&
-    minsLoaded &&
-    paymentValidation.vaultMinimumsMet &&
-    !paymentValidation.overBalance
-
-  const payDisabledMessage = getPayDisabledMessage({
-    canPay,
-    minsLoaded,
-    status: state.status,
-    minDepositUsd: state.minDepositUsd,
-    minStreamUsd: state.minStreamUsd,
-    validation: paymentValidation,
-  })
-
-  const handlePay = useCallback(async () => {
-    const toastId = createToast({
-      message: 'Submitting Celo transaction…',
-      status: 'pending',
-      duration: 0,
-    })
-
-    try {
-      await actions.pay()
-      updateToast(toastId, {
-        message: 'Credits added successfully!',
-        status: 'success',
-        duration: 4000,
-      })
-    } catch (err) {
-      updateToast(toastId, {
-        message: err instanceof Error ? err.message : (state.error ?? 'Payment failed'),
-        status: 'error',
+  const handlePay = useCallback(
+    async (quote: AiCreditsQuote) => {
+      const toastId = createToast({
+        message: 'Submitting Celo transaction…',
+        status: 'pending',
         duration: 0,
       })
-    }
-  }, [actions, state.error])
+
+      try {
+        await actions.pay(quote)
+        updateToast(toastId, {
+          message: 'Credits added successfully!',
+          status: 'success',
+          duration: 4000,
+        })
+      } catch (err) {
+        updateToast(toastId, {
+          message: err instanceof Error ? err.message : (state.error ?? 'Payment failed'),
+          status: 'error',
+          duration: 0,
+        })
+      }
+    },
+    [actions, state.error],
+  )
 
   const isPending =
     state.status === 'payment_pending' || state.status === 'payment_confirmed'
@@ -405,11 +372,9 @@ function AiCreditsInner({
     <BuyCreditsPanel
       state={state}
       actions={actions}
-      canPay={canPay}
-      payDisabledMessage={payDisabledMessage}
       isPending={isPending}
-      onPay={() => {
-        void handlePay()
+      onPay={(quote) => {
+        void handlePay(quote)
       }}
     />
   )
@@ -437,7 +402,7 @@ function AiCreditsInner({
         chainId={state.chainId ?? CELO_CHAIN_ID}
       />
       {state.activeTab === 'manage' ? (
-        <ManagePanel state={state} actions={actions} />
+        <ManagePanel state={state} actions={actions} backendUrl={backendUrl} />
       ) : (
         buyPanel
       )}

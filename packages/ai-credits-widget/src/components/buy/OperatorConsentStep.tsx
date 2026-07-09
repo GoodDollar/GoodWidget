@@ -4,21 +4,21 @@ import { truncateAddress, compactButtonProps } from '../shared/styles'
 
 interface OperatorConsentStepProps {
   buyerPubKey: string | null
-  buyerKeyPrivate: string | null
-  operatorConsentSigned: boolean
+  buyerPrvKey: string | null
+  operatorConsented: boolean
   onSign: () => Promise<void>
   embedded?: boolean
 }
 
 export function OperatorConsentStep({
   buyerPubKey,
-  buyerKeyPrivate,
-  operatorConsentSigned,
+  buyerPrvKey,
+  operatorConsented,
   onSign,
   embedded = false,
 }: OperatorConsentStepProps) {
   const [isSigning, setIsSigning] = useState(false)
-  const canSign = Boolean(buyerPubKey && buyerKeyPrivate)
+  const canSign = Boolean(buyerPubKey && buyerPrvKey)
 
   const Shell = embedded ? YStack : Card
 
@@ -40,7 +40,7 @@ export function OperatorConsentStep({
         </Text>
       )}
 
-      {operatorConsentSigned ? (
+      {operatorConsented ? (
         <XStack gap="$2" alignItems="center">
           <Icon name="check" size="sm" color="success" />
           <Text color="$success">Operator consent accepted — ready to pay</Text>

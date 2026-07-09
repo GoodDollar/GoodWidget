@@ -25,13 +25,11 @@ function createMockState(
     totalCreditUsd: null,
     isGoodIdVerified: false,
     buyerPubKey: null,
-    buyerKeyPrivate: null,
-    operatorConsentSigned: false,
+    buyerPrvKey: null,
+    operatorConsented: false,
     operatorAddress: null,
     minDepositUsd: '1.00',
     minStreamUsd: '1.00',
-    quote: null,
-    usageLog: [],
     totalGdDepositedG: null,
     monthlyStreamG: null,
     withdrawableUsd: null,
@@ -53,7 +51,10 @@ function createAdapterFactory(
       generateBuyerKey: async () => {},
       signOperatorConsent: async () => {},
       syncOperatorConsentFromChain: async () => {},
-      updateQuote: async () => {},
+      buildQuote: async (depositG, streamG) => ({
+        depositAmountG: depositG,
+        streamAmountG: streamG,
+      }),
       pay: async () => {},
       refresh: async () => {},
       startPurchase: () => {},
@@ -134,11 +135,7 @@ export function QuoteReadyStory() {
       dataTestId="AiCreditsWidget-quote-ready"
       adapterFactory={createAdapterFactory('quote_ready', {
         buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
-        operatorConsentSigned: true,
-        quote: {
-          depositAmountG: '10.00',
-          streamAmountG: '5.00',
-        },
+        operatorConsented: true,
         gdUsdPerToken: 0.0015,
       })}
     />
@@ -152,11 +149,7 @@ export function QuoteReadyGoodIdStory() {
       adapterFactory={createAdapterFactory('quote_ready', {
         isGoodIdVerified: true,
         buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
-        operatorConsentSigned: true,
-        quote: {
-          depositAmountG: '10.00',
-          streamAmountG: '5.00',
-        },
+        operatorConsented: true,
         gdUsdPerToken: 0.0015,
       })}
     />
@@ -169,7 +162,7 @@ export function PaymentPendingStory() {
       dataTestId="AiCreditsWidget-payment-pending"
       adapterFactory={createAdapterFactory('payment_pending', {
         buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
-        operatorConsentSigned: true,
+        operatorConsented: true,
       })}
     />
   )
@@ -181,7 +174,7 @@ export function PaymentConfirmedStory() {
       dataTestId="AiCreditsWidget-payment-confirmed"
       adapterFactory={createAdapterFactory('payment_confirmed', {
         buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
-        operatorConsentSigned: true,
+        operatorConsented: true,
       })}
     />
   )
@@ -194,27 +187,11 @@ export function ManageTabStory() {
       adapterFactory={createAdapterFactory('quote_ready', {
         totalCreditUsd: '110000000',
         buyerPubKey: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a',
-        operatorConsentSigned: true,
+        operatorConsented: true,
         operatorAddress: '0x0000000000000000000000000000000000000004',
         totalGdDepositedG: '50.00',
         monthlyStreamG: '5.00',
         gBalance: '42.50',
-        usageLog: [
-          {
-            id: 'credit-001',
-            account: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a',
-            rootAccount: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a',
-            source: 'deposit',
-            gdAmountWei: '10000000000000000000',
-            principalUsd: '1000000',
-            bonusUsd: '250000',
-            totalCreditUsd: '1250000',
-            fundingStatus: 'funded',
-            createdAt: '2025-06-20T10:00:00Z',
-            streamUpdateMonth: '',
-            buyerAddress: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a',
-          },
-        ],
         activeTab: 'manage',
       })}
     />
@@ -242,7 +219,7 @@ export function PaymentFailedStory() {
       dataTestId="AiCreditsWidget-payment-failed"
       adapterFactory={createAdapterFactory('payment_failed', {
         buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
-        operatorConsentSigned: true,
+        operatorConsented: true,
         error: 'Transaction reverted: insufficient allowance',
       })}
     />

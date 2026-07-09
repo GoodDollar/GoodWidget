@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react'
-import { Button, ButtonText, Card, Heading, Icon, Input, Separator, Spinner, Text, TokenAmount, XStack, YStack } from '@goodwidget/ui'
-import type { AiCreditsQuote } from '../../widgetRuntimeContract'
+import React, { useEffect, useMemo, useState } from 'react'
+import { Button, ButtonText, Card, Heading, Input, Separator, Spinner, Text, TokenAmount, XStack, YStack } from '@goodwidget/ui'
+import type { AiCreditsQuote, AiCreditsWidgetStatus } from '../../widgetRuntimeContract'
 import {
   formatUsdWithBonus,
   getDepositBonusPercent,
@@ -13,6 +13,7 @@ import {
 } from '../../quoteMath'
 import {
   formatMinUsdDisplay,
+  getPayDisabledMessage,
   getPaymentAmountValidation,
 } from '../../vaultMinimums'
 import { AiCreditsStatusNotice, BonusBadgeFrame } from '../theme/cards'
@@ -66,62 +67,89 @@ function BonusSummaryValue({
 }
 
 interface AmountPickerProps {
+  status: AiCreditsWidgetStatus
   gBalance: string | null
   minDepositUsd: string | null
   minStreamUsd: string | null
-  quote: AiCreditsQuote | null
   gdUsdPerToken: number | null
   isGoodIdVerified: boolean
-  canPay: boolean
-  payDisabledMessage: string | null
   isPayPending: boolean
-  onQuoteUpdate: (depositG: string, streamG: string) => Promise<void>
-  onPay: () => void
+  buildQuote: (depositG: string, streamG: string) => Promise<AiCreditsQuote>
+  onPay: (quote: AiCreditsQuote) => void
   embedded?: boolean
 }
 
 export function AmountPicker({
+  status,
   gBalance,
   minDepositUsd,
   minStreamUsd,
-  quote,
   gdUsdPerToken,
   isGoodIdVerified,
-  canPay,
-  payDisabledMessage,
   isPayPending,
-  onQuoteUpdate,
+  buildQuote,
   onPay,
   embedded = false,
 }: AmountPickerProps) {
   const [depositAmount, setDepositAmount] = useState(DEFAULT_DEPOSIT_AMOUNT)
   const [streamAmount, setStreamAmount] = useState(DEFAULT_STREAM_AMOUNT)
+  const [quote, setQuote] = useState<AiCreditsQuote | null>(null)
   const [quotePending, setQuotePending] = useState(false)
 
   useEffect(() => {
     let cancelled = false
     setQuotePending(true)
-    void onQuoteUpdate(depositAmount, streamAmount).finally(() => {
-      if (!cancelled) setQuotePending(false)
-    })
+    void buildQuote(depositAmount, streamAmount)
+      .then((nextQuote) => {
+        if (!cancelled) setQuote(nextQuote)
+      })
+      .catch(() => {
+        if (!cancelled) setQuote(null)
+      })
+      .finally(() => {
+        if (!cancelled) setQuotePending(false)
+      })
     return () => {
       cancelled = true
     }
-  }, [depositAmount, streamAmount, onQuoteUpdate])
+  }, [depositAmount, streamAmount, buildQuote])
 
   const depositG = parseGAmount(depositAmount)
   const streamG = parseGAmount(streamAmount)
   const depositBonusLabel = isGoodIdVerified ? '+10% bonus' : 'no bonus'
   const streamBonusLabel = isGoodIdVerified ? '+20% bonus' : 'no bonus'
-  const { depositBelowMin, streamBelowMin, overBalance } = getPaymentAmountValidation({
-    depositAmount,
-    streamAmount,
+  const paymentValidation = useMemo(
+    () =>
+      getPaymentAmountValidation({
+        depositAmount,
+        streamAmount,
+        minDepositUsd,
+        minStreamUsd,
+        quote,
+        gdUsdPerToken,
+        gBalance,
+      }),
+    [depositAmount, streamAmount, minDepositUsd, minStreamUsd, quote, gdUsdPerToken, gBalance],
+  )
+  const minsLoaded = minStreamUsd !== null
+  const hasAmounts = depositG > 0 || streamG > 0
+  const canPay =
+    status === 'quote_ready' &&
+    minsLoaded &&
+    hasAmounts &&
+    paymentValidation.vaultMinimumsMet &&
+    !paymentValidation.overBalance &&
+    !quotePending &&
+    quote !== null
+  const payDisabledMessage = getPayDisabledMessage({
+    canPay,
+    minsLoaded,
+    status,
     minDepositUsd,
     minStreamUsd,
-    quote,
-    gdUsdPerToken,
-    gBalance,
+    validation: paymentValidation,
   })
+  const { depositBelowMin, streamBelowMin, overBalance } = paymentValidation
   const depositMinUsdLabel =
     minStreamUsd === null
       ? 'Loading minimum…'
@@ -283,9 +311,9 @@ export function AmountPicker({
           fullWidth
           size="sm"
           {...compactButtonProps}
-          disabled={!canPay || isPayPending || quotePending}
+          disabled={!canPay || isPayPending}
           onPress={() => {
-            onPay()
+            if (quote) onPay(quote)
           }}
         >
           {isPayPending ? (

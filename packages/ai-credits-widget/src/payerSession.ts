@@ -1,7 +1,7 @@
 export type PayerWalletSession = {
   buyerPubKey?: string
-  buyerKeyPrivate?: string
-  operatorConsentSigned: boolean
+  buyerPrvKey?: string
+  operatorConsented: boolean
 }
 
 const payerWalletSessions = new Map<string, PayerWalletSession>()
@@ -18,7 +18,7 @@ export function readPayerSession(address: string | null): PayerWalletSession | n
 export function patchPayerSession(address: string, patch: Partial<PayerWalletSession>): void {
   const existing = readPayerSession(address)
   payerWalletSessions.set(payerSessionKey(address), {
-    operatorConsentSigned: false,
+    operatorConsented: false,
     ...existing,
     ...patch,
   })
@@ -26,20 +26,20 @@ export function patchPayerSession(address: string, patch: Partial<PayerWalletSes
 
 export function patchPayerSessionFields(address: string | null): {
   buyerPubKey?: string | null
-  buyerKeyPrivate: string | null
-  operatorConsentSigned: boolean
+  buyerPrvKey: string | null
+  operatorConsented: boolean
 } {
   const session = readPayerSession(address)
   if (!session) {
     return {
-      buyerKeyPrivate: null,
-      operatorConsentSigned: false,
+      buyerPrvKey: null,
+      operatorConsented: false,
     }
   }
   return {
     buyerPubKey: session.buyerPubKey,
-    buyerKeyPrivate: session.buyerKeyPrivate ?? null,
-    operatorConsentSigned: session.operatorConsentSigned,
+    buyerPrvKey: session.buyerPrvKey ?? null,
+    operatorConsented: session.operatorConsented,
   }
 }
 

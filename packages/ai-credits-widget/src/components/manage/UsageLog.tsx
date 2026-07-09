@@ -1,10 +1,13 @@
-import React, { useMemo, useState } from 'react'
-import { Card, Icon, ScrollArea, Separator, Text, XStack, YStack } from '@goodwidget/ui'
+import React, { useEffect, useMemo, useState } from 'react'
+import { Card, Icon, ScrollArea, Separator, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
 import type { GdCreditEntry } from '../../backendTypes'
+import { createBackendClient } from '../../backendClient'
 import { formatUsdMicroDisplay } from '../../quoteMath'
 
 interface UsageLogProps {
-  entries: GdCreditEntry[]
+  address: string | null
+  backendUrl?: string
+  refreshSignal?: number
 }
 
 function sourceLabel(source: GdCreditEntry['source']): string {
@@ -31,13 +34,43 @@ function formatFundedSummary(entries: GdCreditEntry[]): string {
   return formatUsdMicroDisplay(usdMicroTotal.toString())
 }
 
-export function UsageLog({ entries }: UsageLogProps) {
+export function UsageLog({ address, backendUrl, refreshSignal = 0 }: UsageLogProps) {
   const [expanded, setExpanded] = useState(false)
+  const [entries, setEntries] = useState<GdCreditEntry[]>([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!address) {
+      setEntries([])
+      return
+    }
+
+    let cancelled = false
+    const client = createBackendClient(backendUrl)
+    setLoading(true)
+
+    void client
+      .getUsageLog(address)
+      .then((log) => {
+        if (!cancelled) setEntries(log)
+      })
+      .catch(() => {
+        if (!cancelled) setEntries([])
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [address, backendUrl, refreshSignal])
 
   const summary = useMemo(() => {
+    if (loading) return 'Loading…'
     if (entries.length === 0) return 'No entries yet'
     return formatFundedSummary(entries)
-  }, [entries])
+  }, [entries, loading])
 
   return (
     <Card gap="$2">
@@ -60,7 +93,9 @@ export function UsageLog({ entries }: UsageLogProps) {
 
       {expanded && (
         <YStack gap="$2">
-          {entries.length === 0 ? (
+          {loading ? (
+            <Spinner size="sm" />
+          ) : entries.length === 0 ? (
             <Text fontSize="$2" secondary>
               Purchases and funding activity will appear here.
             </Text>

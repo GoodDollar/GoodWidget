@@ -38,7 +38,7 @@ import {
 } from './payerSession'
 import { executeCeloPayment, G_TOKEN_CELO_ADDRESS } from './celoPayment'
 import { fetchVaultPaymentMinimums, validateVaultPaymentAmounts } from './vaultMinimums'
-import { parseGAmount, quoteTotalUsdMicro, usdDisplayToMicro } from './quoteMath'
+import { quoteTotalUsdMicro, usdDisplayToMicro } from './quoteMath'
 import type {
   AiCreditsWidgetAdapterActions,
   AiCreditsWidgetAdapterResult,
@@ -79,13 +79,11 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   totalCreditUsd: null,
   isGoodIdVerified: false,
   buyerPubKey: null,
-  buyerKeyPrivate: null,
-  operatorConsentSigned: false,
+  buyerPrvKey: null,
+  operatorConsented: false,
   operatorAddress: null,
   minDepositUsd: null,
   minStreamUsd: null,
-  quote: null,
-  usageLog: [],
   totalGdDepositedG: null,
   monthlyStreamG: null,
   withdrawableUsd: null,
@@ -127,19 +125,13 @@ function hasCreditBalance(totalCreditUsd: string | null): boolean {
   return totalCreditUsd !== null && BigInt(totalCreditUsd) > 0n
 }
 
-function quoteHasAmounts(quote: AiCreditsQuote | null): boolean {
-  if (!quote) return false
-  return parseGAmount(quote.depositAmountG) > 0 || parseGAmount(quote.streamAmountG) > 0
-}
-
 function deriveStatus(params: {
   isConnected: boolean
   chainId: number | null
   gBalance: string | null
   buyerPubKey: string | null
-  buyerKeyPrivate: string | null
-  operatorConsentSigned: boolean
-  quote: AiCreditsQuote | null
+  buyerPrvKey: string | null
+  operatorConsented: boolean
   error: string | null
   currentStatus: AiCreditsWidgetStatus
   activeTab: AiCreditsWidgetTab
@@ -149,9 +141,8 @@ function deriveStatus(params: {
     chainId,
     gBalance,
     buyerPubKey,
-    buyerKeyPrivate,
-    operatorConsentSigned,
-    quote,
+    buyerPrvKey,
+    operatorConsented,
     error,
     currentStatus,
     activeTab,
@@ -183,11 +174,9 @@ function deriveStatus(params: {
 
   if (balance < minBalance) return 'insufficient_g_balance'
 
-  if (!buyerPubKey || !buyerKeyPrivate || !operatorConsentSigned) return 'purchase_setup'
+  if (!buyerPubKey || !buyerPrvKey || !operatorConsented) return 'purchase_setup'
 
-  if (quoteHasAmounts(quote)) return 'quote_ready'
-
-  return 'purchase_setup'
+  return 'quote_ready'
 }
 
 function withDerivedStatus(
@@ -201,9 +190,8 @@ function withDerivedStatus(
     chainId: merged.chainId,
     gBalance: merged.gBalance,
     buyerPubKey: merged.buyerPubKey,
-    buyerKeyPrivate: merged.buyerKeyPrivate,
-    operatorConsentSigned: merged.operatorConsentSigned,
-    quote: merged.quote,
+    buyerPrvKey: merged.buyerPrvKey,
+    operatorConsented: merged.operatorConsented,
     error: merged.error,
     currentStatus: merged.status,
     activeTab: merged.activeTab,
@@ -227,9 +215,8 @@ function mergeStatePreservingManageTab(
     chainId: overrides.chainId ?? prev.chainId,
     gBalance: overrides.gBalance ?? prev.gBalance,
     buyerPubKey: overrides.buyerPubKey ?? prev.buyerPubKey,
-    buyerKeyPrivate: overrides.buyerKeyPrivate ?? prev.buyerKeyPrivate,
-    operatorConsentSigned: overrides.operatorConsentSigned ?? prev.operatorConsentSigned,
-    quote: overrides.quote ?? prev.quote,
+    buyerPrvKey: overrides.buyerPrvKey ?? prev.buyerPrvKey,
+    operatorConsented: overrides.operatorConsented ?? prev.operatorConsented,
     error: overrides.error ?? prev.error,
     currentStatus: overrides.status ?? prev.status,
     activeTab: 'manage',
@@ -247,7 +234,6 @@ function viewToStatePatch(
   enriched: AccountEnrichment,
   prev: AiCreditsWidgetAdapterState,
   options?: {
-    usageLog?: AiCreditsWidgetAdapterState['usageLog']
     balanceMode?: 'if_positive' | 'always'
   },
 ): Partial<AiCreditsWidgetAdapterState> {
@@ -263,12 +249,11 @@ function viewToStatePatch(
         : prev.totalCreditUsd,
     isGoodIdVerified: enriched.goodIdVerified,
     ...(buyer ? { buyerPubKey: buyer } : {}),
-    operatorConsentSigned: operatorAccepted,
+    operatorConsented: operatorAccepted,
     operatorAddress: view.operator.operatorAddress ?? null,
     withdrawableUsd: view.withdrawableUsd,
     totalGdDepositedG: enriched.totalGdDepositedG,
     monthlyStreamG: enriched.monthlyStreamG,
-    ...(options?.usageLog !== undefined ? { usageLog: options.usageLog } : {}),
   }
 }
 
@@ -280,36 +265,36 @@ function mergeSessionFields(
 ): Partial<
   Pick<
     AiCreditsWidgetAdapterState,
-    'buyerPubKey' | 'buyerKeyPrivate' | 'operatorConsentSigned'
+    'buyerPubKey' | 'buyerPrvKey' | 'operatorConsented'
   >
 > {
   const buyerPubKey =
     sessionPatch.buyerPubKey ??
     accountPatch.buyerPubKey ??
     (accountSwitched ? null : prev.buyerPubKey)
-  const buyerKeyPrivate =
-    sessionPatch.buyerKeyPrivate ?? (accountSwitched ? null : prev.buyerKeyPrivate)
-  const operatorConsentSigned = accountSwitched
-    ? (sessionPatch.operatorConsentSigned ??
-      accountPatch.operatorConsentSigned ??
+  const buyerPrvKey =
+    sessionPatch.buyerPrvKey ?? (accountSwitched ? null : prev.buyerPrvKey)
+  const operatorConsented = accountSwitched
+    ? (sessionPatch.operatorConsented ??
+      accountPatch.operatorConsented ??
       false)
-    : (accountPatch.operatorConsentSigned ??
-      sessionPatch.operatorConsentSigned ??
-      prev.operatorConsentSigned)
+    : (accountPatch.operatorConsented ??
+      sessionPatch.operatorConsented ??
+      prev.operatorConsented)
 
   return {
     buyerPubKey,
-    buyerKeyPrivate,
-    operatorConsentSigned,
+    buyerPrvKey,
+    operatorConsented,
   }
 }
 
 function syncOperatorConsentSession(
   address: string,
-  operatorConsentSigned: boolean | undefined,
+  operatorConsented: boolean | undefined,
 ): void {
-  if (operatorConsentSigned === undefined) return
-  patchPayerSession(address, { operatorConsentSigned })
+  if (operatorConsented === undefined) return
+  patchPayerSession(address, { operatorConsented })
 }
 
 export interface UseAiCreditsAdapterOptions {
@@ -414,16 +399,14 @@ export function useAiCreditsAdapter({
             })
           : fetchVaultPaymentMinimums(publicClient, celoVault, address as Address).catch(() => null)
 
-      const usageLogPromise = backendClient.getUsageLog(address!).catch(() => [])
       const gdUsdPerTokenPromise = chainClient.fetchGdUsdPerToken().catch(() => null)
 
       try {
-        const [[rawBalance, decimals], account, minimums, usageLog, gdUsdPerToken] =
+        const [[rawBalance, decimals], account, minimums, gdUsdPerToken] =
           await Promise.all([
           balancePromise,
           accountPromise,
           minimumsPromise,
-          usageLogPromise,
           gdUsdPerTokenPromise,
         ])
         if (cancelled) return
@@ -451,8 +434,8 @@ export function useAiCreditsAdapter({
             accountPatch,
             accountSwitched,
           )
-          if (address && accountPatch.operatorConsentSigned !== undefined) {
-            syncOperatorConsentSession(address, accountPatch.operatorConsentSigned)
+          if (address && accountPatch.operatorConsented !== undefined) {
+            syncOperatorConsentSession(address, accountPatch.operatorConsented)
           }
           return withDerivedStatus(
             prev,
@@ -460,7 +443,6 @@ export function useAiCreditsAdapter({
               ...patch,
               ...accountPatch,
               ...buyerFields,
-              usageLog,
             },
             true,
           )
@@ -536,13 +518,13 @@ export function useAiCreditsAdapter({
 
       patchPayerSession(payerAddress, {
         buyerPubKey: account.address,
-        buyerKeyPrivate: privateKey,
+        buyerPrvKey: privateKey,
       })
 
       setState((prev) =>
         mergeStatePreservingManageTab(prev, {
           buyerPubKey: account.address,
-          buyerKeyPrivate: privateKey,
+          buyerPrvKey: privateKey,
           error: null,
           ...(prev.activeTab !== 'manage' ? { status: 'purchase_setup' } : {}),
         }),
@@ -558,7 +540,7 @@ export function useAiCreditsAdapter({
 
   const handleSignOperatorConsent = useCallback(async () => {
     const currentState = state
-    if (!currentState.address || !currentState.buyerPubKey || !currentState.buyerKeyPrivate) {
+    if (!currentState.address || !currentState.buyerPubKey || !currentState.buyerPrvKey) {
       setState((prev) =>
         withDerivedStatus(prev, { error: 'Generate a buyer key before signing operator consent' }, true),
       )
@@ -576,10 +558,10 @@ export function useAiCreditsAdapter({
       }
 
       if (operatorStatus.operatorAccepted) {
-        patchPayerSession(currentState.address, { operatorConsentSigned: true })
+        patchPayerSession(currentState.address, { operatorConsented: true })
         setState((prev) =>
           mergeStatePreservingManageTab(prev, {
-            operatorConsentSigned: true,
+            operatorConsented: true,
             error: null,
             ...(!onManageTab ? { status: 'purchase_setup' } : {}),
           }),
@@ -594,7 +576,7 @@ export function useAiCreditsAdapter({
       }
 
       const buyerSig = await signOperatorConsentFromTypedData(
-        currentState.buyerKeyPrivate as `0x${string}`,
+        currentState.buyerPrvKey as `0x${string}`,
         payload.typedData,
       )
 
@@ -604,10 +586,10 @@ export function useAiCreditsAdapter({
       })
       await waitForOperatorConsent(chainClient, ref)
 
-      patchPayerSession(currentState.address, { operatorConsentSigned: true })
+      patchPayerSession(currentState.address, { operatorConsented: true })
       setState((prev) =>
         mergeStatePreservingManageTab(prev, {
-          operatorConsentSigned: true,
+          operatorConsented: true,
           error: null,
           ...(!onManageTab ? { status: 'purchase_setup' } : {}),
         }),
@@ -622,7 +604,7 @@ export function useAiCreditsAdapter({
 
   const handleSyncOperatorConsentFromChain = useCallback(async () => {
     const currentState = state
-    if (!currentState.address || !currentState.buyerPubKey || currentState.operatorConsentSigned) {
+    if (!currentState.address || !currentState.buyerPubKey || currentState.operatorConsented) {
       return
     }
 
@@ -631,11 +613,11 @@ export function useAiCreditsAdapter({
       const operatorStatus = await chainClient.getBuyerOperatorStatus(ref)
       if (!operatorStatus.operatorAccepted) return
 
-      patchPayerSession(currentState.address, { operatorConsentSigned: true })
+      patchPayerSession(currentState.address, { operatorConsented: true })
       const onManageTab = currentState.activeTab === 'manage'
       setState((prev) =>
         mergeStatePreservingManageTab(prev, {
-          operatorConsentSigned: true,
+          operatorConsented: true,
           error: null,
           ...(!onManageTab ? { status: 'purchase_setup' } : {}),
         }),
@@ -645,30 +627,26 @@ export function useAiCreditsAdapter({
     }
   }, [state, chainClient])
 
-  const handleUpdateQuote = useCallback(
-    async (depositG: string, streamG: string) => {
-      try {
-        const [quote, gdUsdPerToken] = await Promise.all([
-          chainClient.buildQuote(depositG, streamG),
-          state.gdUsdPerToken !== null
-            ? Promise.resolve(state.gdUsdPerToken)
-            : chainClient.fetchGdUsdPerToken(),
-        ])
-        setState((prev) => withDerivedStatus(prev, { quote, gdUsdPerToken }, true))
-      } catch {
-        setState((prev) => withDerivedStatus(prev, { quote: null }, true))
+  const handleBuildQuote = useCallback(
+    async (depositG: string, streamG: string): Promise<AiCreditsQuote> => {
+      const quote = await chainClient.buildQuote(depositG, streamG)
+      if (state.gdUsdPerToken === null) {
+        try {
+          const gdUsdPerToken = await chainClient.fetchGdUsdPerToken()
+          setState((prev) => ({ ...prev, gdUsdPerToken }))
+        } catch {
+          return quote
+        }
       }
+      return quote
     },
     [chainClient, state.gdUsdPerToken],
   )
 
-  const handlePay = useCallback(async () => {
+  const handlePay = useCallback(async (quote: AiCreditsQuote) => {
     const currentState = state
 
     if (!currentState.address || !currentState.buyerPubKey || !providerRef.current) return
-
-    const quote = currentState.quote
-    if (!quote || !quoteHasAmounts(quote)) return
 
     const depositAmountG = Number.parseFloat(quote.depositAmountG)
     const streamAmountG = Number.parseFloat(quote.streamAmountG)
@@ -823,15 +801,13 @@ export function useAiCreditsAdapter({
     if (!currentState.address) return
 
     try {
-      const [view, usageLog] = await Promise.all([
+      const [view] = await Promise.all([
         buildAccountView(currentState.address, backendClient, chainClient),
-        backendClient.getUsageLog(currentState.address),
       ])
       const enriched = await enrichAccountView(view, chainClient)
 
       setState((prev) => {
         const accountPatch = viewToStatePatch(view, enriched, prev, {
-          usageLog,
           balanceMode: 'always',
         })
         const sessionFields = mergeSessionFields(
@@ -840,8 +816,8 @@ export function useAiCreditsAdapter({
           accountPatch,
           false,
         )
-        if (accountPatch.operatorConsentSigned !== undefined && currentState.address) {
-          syncOperatorConsentSession(currentState.address, accountPatch.operatorConsentSigned)
+        if (accountPatch.operatorConsented !== undefined && currentState.address) {
+          syncOperatorConsentSession(currentState.address, accountPatch.operatorConsented)
         }
         return withDerivedStatus(
           prev,
@@ -875,7 +851,7 @@ export function useAiCreditsAdapter({
         }))
         return
       }
-      if (!currentState.buyerKeyPrivate) {
+      if (!currentState.buyerPrvKey) {
         setState((prev) => ({
           ...prev,
           error: 'Sign with your payer wallet in Buyer & Operator below to generate the buyer private key before closing a channel',
@@ -893,7 +869,7 @@ export function useAiCreditsAdapter({
       try {
         const timestamp = Math.floor(Date.now() / 1000)
         const signature = await signRequestClose({
-          buyerPrivateKey: currentState.buyerKeyPrivate as `0x${string}`,
+          buyerPrivateKey: currentState.buyerPrvKey as `0x${string}`,
           fundingVaultAddress,
           channelId,
           timestamp,
@@ -915,7 +891,7 @@ export function useAiCreditsAdapter({
     async (withdrawAmount: string) => {
       const currentState = state
       if (!currentState.address || !currentState.buyerPubKey) return
-      if (!currentState.buyerKeyPrivate) {
+      if (!currentState.buyerPrvKey) {
         setState((prev) => ({
           ...prev,
           error:
@@ -951,7 +927,7 @@ export function useAiCreditsAdapter({
         const payer = currentState.address as Address
         const timestamp = Math.floor(Date.now() / 1000)
         const signature = await signWithdrawPrincipal({
-          buyerPrivateKey: currentState.buyerKeyPrivate as `0x${string}`,
+          buyerPrivateKey: currentState.buyerPrvKey as `0x${string}`,
           fundingVaultAddress,
           buyer,
           amountMicro: BigInt(amount),
@@ -1004,7 +980,7 @@ export function useAiCreditsAdapter({
       generateBuyerKey: handleGenerateBuyerKey,
       signOperatorConsent: handleSignOperatorConsent,
       syncOperatorConsentFromChain: handleSyncOperatorConsentFromChain,
-      updateQuote: handleUpdateQuote,
+      buildQuote: handleBuildQuote,
       pay: handlePay,
       refresh: handleRefresh,
       startPurchase: handleStartPurchase,
@@ -1019,7 +995,7 @@ export function useAiCreditsAdapter({
       handleGenerateBuyerKey,
       handleSignOperatorConsent,
       handleSyncOperatorConsentFromChain,
-      handleUpdateQuote,
+      handleBuildQuote,
       handlePay,
       handleRefresh,
       handleStartPurchase,

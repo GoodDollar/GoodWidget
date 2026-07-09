@@ -1,6 +1,5 @@
 import type { Address } from 'viem'
 import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
-import type { GdCreditEntry } from './backendTypes'
 
 export type AiCreditsWidgetEnvironment = 'production' | 'staging' | 'development'
 
@@ -32,13 +31,11 @@ export interface AiCreditsWidgetAdapterState {
   totalCreditUsd: string | null
   isGoodIdVerified: boolean
   buyerPubKey: string | null
-  buyerKeyPrivate: string | null
-  operatorConsentSigned: boolean
+  buyerPrvKey: string | null
+  operatorConsented: boolean
   operatorAddress: string | null
   minDepositUsd: string | null
   minStreamUsd: string | null
-  quote: AiCreditsQuote | null
-  usageLog: GdCreditEntry[]
   totalGdDepositedG: string | null
   monthlyStreamG: string | null
   withdrawableUsd: string | null
@@ -52,8 +49,8 @@ export interface AiCreditsWidgetAdapterActions {
   generateBuyerKey: () => Promise<void>
   signOperatorConsent: () => Promise<void>
   syncOperatorConsentFromChain: () => Promise<void>
-  updateQuote: (depositG: string, streamG: string) => Promise<void>
-  pay: () => Promise<void>
+  buildQuote: (depositG: string, streamG: string) => Promise<AiCreditsQuote>
+  pay: (quote: AiCreditsQuote) => Promise<void>
   refresh: () => Promise<void>
   startPurchase: () => void
   setActiveTab: (tab: AiCreditsWidgetTab) => void

@@ -83,7 +83,7 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
     gdUsdPerToken,
     isGoodIdVerified,
     withdrawableUsd,
-    buyerKeyPrivate,
+    buyerPrvKey,
   } = state
 
   const monthlyStreamUsdDisplay = useMemo(() => {
@@ -104,9 +104,9 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
 
   const withdrawableDisplay =
     withdrawableUsd && BigInt(withdrawableUsd) > 0n ? formatUsdMicroDisplay(withdrawableUsd) : null
-  const canClose = Boolean(buyerKeyPrivate) && Boolean(channelId.trim()) && !isClosing
+  const canClose = Boolean(buyerPrvKey) && Boolean(channelId.trim()) && !isClosing
   const canWithdraw =
-    Boolean(buyerKeyPrivate) &&
+    Boolean(buyerPrvKey) &&
     Boolean(withdrawableDisplay) &&
     Boolean(withdrawAmount.trim()) &&
     !isWithdrawing
@@ -172,7 +172,7 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
               placeholder="0x… (64 hex chars)"
             />
           </YStack>
-          <HoverTooltip message={!buyerKeyPrivate ? BUYER_KEY_REQUIRED_CLOSE_TOOLTIP : null}>
+          <HoverTooltip message={!buyerPrvKey ? BUYER_KEY_REQUIRED_CLOSE_TOOLTIP : null}>
             <Button
               variant="outline"
               size="sm"
@@ -212,7 +212,7 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
               }
             />
           </YStack>
-          <HoverTooltip message={!buyerKeyPrivate ? BUYER_KEY_REQUIRED_WITHDRAW_TOOLTIP : null}>
+          <HoverTooltip message={!buyerPrvKey ? BUYER_KEY_REQUIRED_WITHDRAW_TOOLTIP : null}>
             <Button
               variant="outline"
               size="sm"
