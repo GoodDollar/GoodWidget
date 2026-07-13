@@ -192,6 +192,8 @@ function deriveStatus(params: {
 
   if (balance < minBalance) return 'insufficient_g_balance'
 
+  if (operatorConsented) return 'quote_ready'
+
   if (!buyerPubKey || !buyerPrvKey || !operatorConsented) return 'purchase_setup'
 
   return 'quote_ready'
