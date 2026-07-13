@@ -266,7 +266,7 @@ function ManagePanel({
 
       <BuyerOperatorCard state={state} actions={actions} />
 
-      <SetupSnippet buyerPubKey={state.buyerPubKey} />
+      <SetupSnippet />
 
       <UsageLog
         address={state.address}

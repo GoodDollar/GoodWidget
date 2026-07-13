@@ -23,15 +23,9 @@ function buildSetupSnippet(): string {
   ].join('\n')
 }
 
-interface SetupSnippetProps {
-  buyerPubKey: string | null
-}
-
-export function SetupSnippet({ buyerPubKey }: SetupSnippetProps) {
+export function SetupSnippet() {
   const [expanded, setExpanded] = useState(false)
   const [copied, setCopied] = useState(false)
-
-  if (!buyerPubKey) return null
 
   const snippet = buildSetupSnippet()
   const copyText = snippet.replace(/\n\n+/g, '\n').trim()
