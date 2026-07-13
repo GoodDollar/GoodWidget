@@ -31,11 +31,11 @@ function resolveInitialStreamAmount(monthlyStreamG: string | null | undefined): 
 function BonusLabel({ label, active }: { label: string; active: boolean }) {
   return (
     <BonusBadgeFrame
-      backgroundColor={active ? '$successMuted' : '$warningMuted'}
+      backgroundColor={active ? '$successMuted' : '$backgroundPress'}
       borderWidth={1}
-      borderColor={active ? '$success' : '$warning'}
+      borderColor={active ? '$success' : '$primary'}
     >
-      <Text fontSize="$1" fontWeight="700" lineHeight={16} color={active ? '$success' : '$warning'}>
+      <Text fontSize="$1" fontWeight="700" lineHeight={16} color={active ? '$success' : '$primary'}>
         {label}
       </Text>
     </BonusBadgeFrame>
@@ -147,8 +147,8 @@ export function AmountPicker({
 
   const depositG = parseGAmount(depositAmount)
   const streamG = parseGAmount(streamAmount)
-  const depositBonusLabel = isGoodIdVerified ? '+10% bonus' : 'no bonus'
-  const streamBonusLabel = isGoodIdVerified ? '+20% bonus' : 'no bonus'
+  const depositBonusLabel = isGoodIdVerified ? '+10% bonus' : 'Verify for +10%'
+  const streamBonusLabel = isGoodIdVerified ? '+20% bonus' : 'Verify for +20%'
   const paymentValidation = useMemo(
     () =>
       getPaymentAmountValidation({
