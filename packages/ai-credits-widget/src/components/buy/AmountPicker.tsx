@@ -31,11 +31,11 @@ function resolveInitialStreamAmount(monthlyStreamG: string | null | undefined): 
 function BonusLabel({ label, active }: { label: string; active: boolean }) {
   return (
     <BonusBadgeFrame
-      backgroundColor={active ? '$successMuted' : '$backgroundPress'}
+      backgroundColor={active ? '$successMuted' : '$warningMuted'}
       borderWidth={1}
-      borderColor={active ? '$success' : '$primary'}
+      borderColor={active ? '$success' : '$warning'}
     >
-      <Text fontSize="$1" fontWeight="700" lineHeight={16} color={active ? '$success' : '$primary'}>
+      <Text fontSize="$1" fontWeight="700" lineHeight={16} color={active ? '$success' : '$warning'}>
         {label}
       </Text>
     </BonusBadgeFrame>
