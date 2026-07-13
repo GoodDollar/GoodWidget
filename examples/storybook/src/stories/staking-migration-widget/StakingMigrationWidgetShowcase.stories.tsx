@@ -35,11 +35,6 @@ export default meta
 type Story = StoryObj<StakingMigrationWidgetStoryArgs>
 
 export const InjectedWallet: Story = {
-  parameters: {
-    goodWidgetProvider: {
-      useShell: false,
-    },
-  },
   render: ({ defaultTheme, brandPreset }) => (
     <InjectedWalletStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
   ),

@@ -20,10 +20,6 @@ const meta: Meta<ClaimWidgetStoryArgs> = {
   component: ClaimWidget,
   tags: ['integrator', 'showcase'],
   parameters: { layout: 'padded' },
-  goodWidgetProvider: {
-    disableProvider: true,
-    useShell: false,
-  },
   argTypes: {
     defaultTheme: {
       control: 'radio',

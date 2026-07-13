@@ -43,11 +43,6 @@ export default meta
 type Story = StoryObj<StreamingWidgetStoryArgs>
 
 export const InjectedWallet: Story = {
-  parameters: {
-    goodWidgetProvider: {
-      useShell: false,
-    },
-  },
   render: ({ apiKey, defaultTheme, brandPreset }) => (
     <InjectedWalletStory
       apiKey={apiKey}

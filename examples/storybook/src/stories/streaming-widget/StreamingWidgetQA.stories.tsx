@@ -35,12 +35,7 @@ const meta: Meta<StreamingWidgetQAArgs> = {
   title: 'QA/StreamingWidget/Runtime Fixtures',
   component: StreamingWidget,
   tags: ['autodocs', 'qa'],
-  parameters: {
-    layout: 'padded',
-    goodWidgetProvider: {
-      useShell: false,
-    },
-  },
+  parameters: { layout: 'padded' },
   argTypes: {
     apiKey: {
       control: 'text',

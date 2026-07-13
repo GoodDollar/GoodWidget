@@ -88,10 +88,5 @@ export const ErrorState: Story = {
 /** Always mounts with defaultTheme="light" regardless of the control, to demonstrate the
  * explicit light-theme branch; brandPreset still applies on top. */
 export const LightThemeReady: Story = {
-  parameters: {
-    goodWidgetProvider: {
-      useShell: false,
-    },
-  },
   render: ({ brandPreset }) => <LightThemeReadyStory themeOverrides={brandPresetOverrides(brandPreset)} />,
 }
