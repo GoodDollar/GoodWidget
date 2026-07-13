@@ -42,19 +42,13 @@ const FAQ_ITEMS = [
     id: 'operator-consent',
     question: 'Why do I authorize the AntSeed operator?',
     answer:
-      'Credits live on Base while you pay with G$ on Celo. Operator consent lets the AntSeed funding vault manage your buyer account on Base — mainly to fund credits after your Celo payment — without you paying Base gas for each step. It does not grant access to G$ on Celo or let anyone withdraw USD without your buyer key. See “What is Buyer & Operator?” for the full payer vs buyer vs operator breakdown.',
+      'Payer is the wallet that pays G$ on Celo. Buyer is a separate key derived from a payer signature; it owns your AI credit account on Base.\n\nOperator consent is a one-time sign-off so the AntSeed funding vault can act as your operator on Base. After you pay G$ on Celo, the operator can fund your credits and handle routine Base-side actions without you paying Base gas. It cannot access your payer wallet or withdraw USD — withdrawals require your buyer private key.',
   },
   {
     id: 'when-credits-arrive',
     question: 'When do credits arrive?',
     answer:
       'After your Celo payment confirms, credits are funded on Base. Funding usually completes within a short time; check the Manage tab for your updated balance.',
-  },
-  {
-    id: 'buyer-operator',
-    question: 'What is Buyer & Operator?',
-    answer:
-      'Payer is the wallet that pays G$ on Celo. Buyer is a separate key derived from a payer signature; it owns your AI credit account on Base. Sign & Generate creates the buyer key for the connected payer.\n\nOperator consent is a one-time sign-off so the AntSeed funding vault can act as your operator on Base. After you pay G$ on Celo, the operator can fund your credits and handle routine Base-side actions for you without you paying Base gas. It cannot access your payer wallet, move G$ on Celo, or withdraw USD — those require your buyer private key.',
   },
   {
     id: 'withdraw',
