@@ -71,6 +71,63 @@ function formatCompactAmount(amount: string): string {
   }).format(value)
 }
 
+function formatExactGAmount(amount: string): string {
+  const value = Number.parseFloat(amount)
+  if (!Number.isFinite(value) || value < 0) return '0 G$'
+  return `${new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value)} G$`
+}
+
+function CompactGStatValue({ amount }: { amount: string }) {
+  const [open, setOpen] = useState(false)
+  const value = Number.parseFloat(amount)
+  const compact = formatCompactAmount(amount)
+  const exact = formatExactGAmount(amount)
+  const needsExact = Number.isFinite(value) && value >= 1000
+
+  if (!needsExact) {
+    return <StatValueText>{compact}</StatValueText>
+  }
+
+  return (
+    <XStack
+      position="relative"
+      cursor="help"
+      alignItems="center"
+      tabIndex={0}
+      accessibilityLabel={exact}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onFocus={() => setOpen(true)}
+      onBlur={() => setOpen(false)}
+      onPress={() => setOpen((prev) => !prev)}
+    >
+      <StatValueText>{compact}</StatValueText>
+      {open && (
+        <YStack
+          position="absolute"
+          bottom="100%"
+          left={0}
+          marginBottom="$1"
+          backgroundColor="$background"
+          borderWidth={1}
+          borderColor="$borderColor"
+          borderRadius="$2"
+          padding="$2"
+          zIndex={100}
+          pointerEvents="none"
+        >
+          <Text fontSize="$1" lineHeight="$2" color="$color" whiteSpace="nowrap">
+            {exact}
+          </Text>
+        </YStack>
+      )}
+    </XStack>
+  )
+}
+
 function formatUsdAmount(usdMicro: string): string {
   const value = Number.parseFloat(formatUsdMicro(usdMicro))
   if (!Number.isFinite(value) || value < 0) return '0.0000'
@@ -153,10 +210,10 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
 
       <XStack gap="$2" width="100%" flexWrap="wrap" alignItems="stretch">
           <StatCell label="Total Deposited (G$)">
-            <StatValueText>{formatCompactAmount(totalGdDepositedG ?? '0.00')}</StatValueText>
+            <CompactGStatValue amount={totalGdDepositedG ?? '0.00'} />
           </StatCell>
           <StatCell label="Monthly Stream (G$)">
-            <StatValueText>{formatCompactAmount(monthlyStreamG ?? '0.00')}</StatValueText>
+            <CompactGStatValue amount={monthlyStreamG ?? '0.00'} />
           </StatCell>
           <StatCell label="Withdrawable (US$)">
             {withdrawableDisplay !== null ? (
