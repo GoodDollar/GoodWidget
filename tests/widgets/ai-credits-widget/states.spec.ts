@@ -123,7 +123,14 @@ test('AiCreditsWidget insufficient_g_balance', async ({ page }) => {
 
 test('AiCreditsWidget payment_failed', async ({ page }) => {
   await gotoStory(page, STORY_IDS.paymentFailed)
-  await expect(page.getByTestId('AiCreditsWidget-payment-failed')).toBeVisible()
+  const root = page.getByTestId('AiCreditsWidget-payment-failed')
+  await expect(root).toBeVisible()
+  await expect(root.getByText('Payment Failed')).toBeVisible()
+  await expect(root.getByText('Payment failed. Try again.')).toBeVisible()
+  await expect(root.getByText('Needs attention')).toBeVisible()
+  await expect(root.getByText('Set Amounts & Pay')).toBeVisible()
+  await expect(root.getByRole('button', { name: 'Try Again' })).toHaveCount(0)
+  await expect(root.getByText('insufficient allowance')).toHaveCount(0)
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-09-payment-failed.png',
     fullPage: true,

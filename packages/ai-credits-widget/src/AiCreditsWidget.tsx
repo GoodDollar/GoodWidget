@@ -121,13 +121,6 @@ function BuyCreditsPanel({
             Payment Failed
           </Text>
           {state.error && <Text secondary>{state.error}</Text>}
-          <Button
-            onPress={() => {
-              void actions.retry()
-            }}
-          >
-            <ButtonText>Try Again</ButtonText>
-          </Button>
         </AiCreditsStatusNotice>
         <AiCreditsPurchaseFlow
           state={state}
@@ -349,9 +342,9 @@ function AiCreditsInner({
         })
       } catch (err) {
         updateToast(toastId, {
-          message: err instanceof Error ? err.message : (state.error ?? 'Payment failed'),
+          message: err instanceof Error ? err.message : (state.error ?? 'Payment failed. Try again.'),
           status: 'error',
-          duration: 0,
+          duration: 4000,
         })
       }
     },
