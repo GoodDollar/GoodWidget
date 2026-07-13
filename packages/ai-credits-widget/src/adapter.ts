@@ -35,6 +35,7 @@ import {
   addressesMatch,
   patchPayerSessionFields,
   patchPayerSession,
+  readPayerSession,
 } from './payerSession'
 import { executeCeloPayment, G_TOKEN_CELO_ADDRESS } from './celoPayment'
 import { startGoodIdVerification, isUserRejectedWalletRequest } from './goodIdVerification'
@@ -192,7 +193,7 @@ function deriveStatus(params: {
 
   if (balance < minBalance) return 'insufficient_g_balance'
 
-  if (operatorConsented) return 'quote_ready'
+  if (operatorConsented && !!buyerPubKey) return 'quote_ready'
 
   if (!buyerPubKey || !buyerPrvKey || !operatorConsented) return 'purchase_setup'
 
@@ -272,6 +273,7 @@ function viewToStatePatch(
     withdrawableUsd: view.withdrawableUsd,
     totalGdDepositedG: enriched.totalGdDepositedG,
     monthlyStreamG: enriched.monthlyStreamG,
+    ...(view.buyer ? { buyerPubKey: view.buyer } : {}),
   }
 }
 
@@ -287,7 +289,9 @@ function mergeSessionFields(
   >
 > {
   const buyerPubKey =
-    sessionPatch.buyerPubKey ?? (accountSwitched ? null : prev.buyerPubKey)
+    sessionPatch.buyerPubKey ??
+    accountPatch.buyerPubKey ??
+    (accountSwitched ? null : prev.buyerPubKey)
   const buyerPrvKey =
     sessionPatch.buyerPrvKey ?? (accountSwitched ? null : prev.buyerPrvKey)
   const operatorConsented = accountSwitched
@@ -311,6 +315,13 @@ function syncOperatorConsentSession(
 ): void {
   if (operatorConsented === undefined) return
   patchPayerSession(address, { operatorConsented })
+}
+
+function syncBuyerPubKeySession(address: string, buyerPubKey: string | null | undefined): void {
+  if (!buyerPubKey) return
+  const existing = readPayerSession(address)
+  if (existing?.buyerPubKey) return
+  patchPayerSession(address, { buyerPubKey })
 }
 
 export interface UseAiCreditsAdapterOptions {
@@ -467,6 +478,9 @@ export function useAiCreditsAdapter({
           )
           if (address && accountPatch.operatorConsented !== undefined) {
             syncOperatorConsentSession(address, accountPatch.operatorConsented)
+          }
+          if (address && account?.view.buyer) {
+            syncBuyerPubKeySession(address, account.view.buyer)
           }
           return withDerivedStatus(
             prev,
@@ -680,13 +694,17 @@ export function useAiCreditsAdapter({
   const handlePay = useCallback(async (quote: AiCreditsQuote) => {
     const currentState = state
 
-    if (!currentState.address || !currentState.buyerPubKey || !providerRef.current) return
+    if (!currentState.address || !currentState.buyerPubKey || !providerRef.current) {
+      throw new Error('Connect your wallet and generate a buyer key before paying')
+    }
 
     const depositAmountG = Number.parseFloat(quote.depositAmountG)
     const streamAmountG = Number.parseFloat(quote.streamAmountG)
     const hasDeposit = depositAmountG > 0
     const hasStream = streamAmountG > 0
-    if (!hasDeposit && !hasStream) return
+    if (!hasDeposit && !hasStream) {
+      throw new Error('Enter a deposit or monthly stream amount')
+    }
 
     let gdUsdPerToken = currentState.gdUsdPerToken
     try {
@@ -699,10 +717,12 @@ export function useAiCreditsAdapter({
         status: 'backend_unavailable',
         error: 'Could not build quote — check chain connectivity',
       }))
-      return
+      throw new Error('Could not build quote — check chain connectivity')
     }
 
-    if (gdUsdPerToken === null) return
+    if (gdUsdPerToken === null) {
+      throw new Error('Could not build quote — check chain connectivity')
+    }
 
     if (!(backendClient instanceof MockAiCreditsBackendClient)) {
       try {
@@ -726,7 +746,7 @@ export function useAiCreditsAdapter({
           chainId: CELO_CHAIN_ID,
           message,
         })
-        return
+        throw error instanceof Error ? error : new Error(message)
       }
     }
 
@@ -827,6 +847,7 @@ export function useAiCreditsAdapter({
         chainId: CELO_CHAIN_ID,
         message,
       })
+      throw err instanceof Error ? err : new Error(message)
     }
   }, [state, backendClient, chainClient, celoVault, onPaySuccess, onPayError])
 
@@ -856,6 +877,9 @@ export function useAiCreditsAdapter({
         )
         if (accountPatch.operatorConsented !== undefined && currentState.address) {
           syncOperatorConsentSession(currentState.address, accountPatch.operatorConsented)
+        }
+        if (currentState.address && view.buyer) {
+          syncBuyerPubKeySession(currentState.address, view.buyer)
         }
         const statusSeed =
           options?.afterGoodIdVerify && prev.status === 'payment_failed'
