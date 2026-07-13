@@ -56,7 +56,7 @@ export function AiCreditsFlowStepper({
           : state.status === 'payment_confirmed'
             ? 'Settling on Base…'
             : state.status === 'payment_failed'
-              ? undefined
+              ? state.error ?? 'Payment failed'
               : 'Confirm the Celo transaction',
       status: getStepStatus('pay'),
     },
