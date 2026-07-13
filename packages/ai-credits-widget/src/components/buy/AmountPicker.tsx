@@ -258,7 +258,9 @@ export function AmountPicker({
 
       <YStack gap="$1">
         <XStack justifyContent="space-between" alignItems="center">
-          <Text variant="label">Monthly Stream (G$)</Text>
+          <Text variant="label">
+            {isStreamUpdateFlow ? 'Update Monthly Stream (G$)' : 'Monthly Stream (G$)'}
+          </Text>
           <BonusLabel label={streamBonusLabel} active={isGoodIdVerified} />
         </XStack>
         <Input
