@@ -20,11 +20,6 @@ function buildSetupSnippet(): string {
     'antseed buyer start',
     'antseed network browse',
     'antseed buyer connection set --peer <peer-id>',
-    '',
-    'export ANTHROPIC_BASE_URL=http://localhost:8377',
-    'export OPENAI_BASE_URL=http://localhost:8377',
-    'export OPENAI_API_KEY=placeholder',
-    '',
   ].join('\n')
 }
 
@@ -38,7 +33,7 @@ export function SetupSnippet({ buyerPubKey }: SetupSnippetProps) {
 
   if (!buyerPubKey) return null
 
-  const snippet = buildSetupSnippet(buyerPubKey)
+  const snippet = buildSetupSnippet()
   const copyText = snippet.replace(/\n\n+/g, '\n').trim()
   const lines = snippet.trim().split('\n')
   async function handleCopy() {
@@ -78,10 +73,11 @@ export function SetupSnippet({ buyerPubKey }: SetupSnippetProps) {
             ))}
           </YStack>
           <Text fontSize="$1" secondary>
-            Setup guide:{' '}
+            To connect AI tools to the AntSeed AI provider, see the{' '}
             <Anchor href={ANTSEED_API_DOCS_URL} target="_blank">
-              antseed.com/docs
+              AntSeed API guide
             </Anchor>
+            .
           </Text>
         </YStack>
       )}
