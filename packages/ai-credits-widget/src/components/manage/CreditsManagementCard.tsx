@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import {
   Button,
   ButtonText,
@@ -11,7 +11,7 @@ import {
   YStack,
 } from '@goodwidget/ui'
 import type { AiCreditsWidgetAdapterActions, AiCreditsWidgetAdapterState } from '../../widgetRuntimeContract'
-import { formatUsdMicro } from '../../quoteMath'
+import { formatUsdMicro, quoteTotalUsdMicro } from '../../quoteMath'
 import {
   BUYER_KEY_REQUIRED_CLOSE_TOOLTIP,
   BUYER_KEY_REQUIRED_WITHDRAW_TOOLTIP,
@@ -22,27 +22,26 @@ import { compactButtonProps } from '../shared/styles'
 
 interface CreditsManagementCardProps {
   state: AiCreditsWidgetAdapterState
-  actions: Pick<
-    AiCreditsWidgetAdapterActions,
-    'setChannelId' | 'setWithdrawAmount' | 'closeChannel' | 'withdrawCredits'
-  >
+  actions: Pick<AiCreditsWidgetAdapterActions, 'closeChannel' | 'withdrawCredits'>
 }
 
 function StatCell({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <YStack
       flex={1}
-      flexBasis={0}
+      minWidth="45%"
       gap="$1"
-      minWidth={0}
       backgroundColor="$backgroundHover"
       borderRadius="$2"
       padding="$2"
+      $gtSm={{
+        minWidth: '28%',
+      }}
     >
-      <Text fontSize="$1" secondary numberOfLines={2} minHeight={32}>
+      <Text fontSize="$1" secondary>
         {label}
       </Text>
-      <YStack minHeight={20} justifyContent="center">
+      <YStack justifyContent="center">
         {children}
       </YStack>
     </YStack>
@@ -57,43 +56,69 @@ function StatValueText({
   color?: string
 }) {
   return (
-    <Text fontSize="$2" fontWeight="700" numberOfLines={1} color={color}>
+    <Text fontSize="$2" fontWeight="700" color={color}>
       {children}
     </Text>
   )
 }
 
-function formatCompactG(amount: string): string {
+function formatCompactAmount(amount: string): string {
   const value = Number.parseFloat(amount)
-  if (!Number.isFinite(value)) return '0 G$'
-  const formatted = new Intl.NumberFormat('en-US', {
+  if (!Number.isFinite(value) || value < 0) return '0'
+  return new Intl.NumberFormat('en-US', {
     notation: 'compact',
     maximumFractionDigits: 2,
   }).format(value)
-  return `${formatted} G$`
+}
+
+function formatUsdAmount(usdMicro: string): string {
+  const value = Number.parseFloat(formatUsdMicro(usdMicro))
+  if (!Number.isFinite(value) || value < 0) return '0.0000'
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 4,
+    maximumFractionDigits: 4,
+  }).format(value)
 }
 
 export function CreditsManagementCard({ state, actions }: CreditsManagementCardProps) {
   const [isClosing, setIsClosing] = useState(false)
   const [isWithdrawing, setIsWithdrawing] = useState(false)
+  const [channelId, setChannelId] = useState('')
+  const [withdrawAmount, setWithdrawAmount] = useState('')
   const {
-    aiCreditsBalance,
-    gBalance,
+    totalCreditUsd,
     totalGdDepositedG,
     monthlyStreamG,
-    monthlyStreamCredits,
+    gdUsdPerToken,
+    isGoodIdVerified,
     withdrawableUsd,
-    buyerKeyPrivate,
-    channelId,
-    withdrawAmount,
+    buyerPrvKey,
   } = state
 
+  const monthlyStreamUsdDisplay = useMemo(() => {
+    if (!monthlyStreamG || !gdUsdPerToken) return null
+    if (Number.parseFloat(monthlyStreamG) <= 0) return null
+    const quote = { depositAmountG: '0', streamAmountG: monthlyStreamG }
+    const usdMicro = quoteTotalUsdMicro(quote, gdUsdPerToken, isGoodIdVerified)
+    if (usdMicro <= 0n) return null
+    return formatUsdAmount(usdMicro.toString())
+  }, [monthlyStreamG, gdUsdPerToken, isGoodIdVerified])
+
+  const totalCreditDisplay =
+    totalCreditUsd && BigInt(totalCreditUsd) > 0n
+      ? formatUsdAmount(totalCreditUsd)
+      : totalCreditUsd !== null
+        ? formatUsdAmount('0')
+        : null
+
   const withdrawableDisplay =
-    withdrawableUsd && BigInt(withdrawableUsd) > 0n ? formatUsdMicro(withdrawableUsd) : null
-  const canClose = Boolean(buyerKeyPrivate) && Boolean(channelId.trim()) && !isClosing
+    withdrawableUsd !== null ? formatUsdAmount(withdrawableUsd) : null
+  const hasWithdrawableBalance =
+    withdrawableUsd !== null && BigInt(withdrawableUsd) > 0n
+  const canClose = Boolean(buyerPrvKey) && Boolean(channelId.trim()) && !isClosing
   const canWithdraw =
-    Boolean(buyerKeyPrivate) &&
-    Boolean(withdrawableDisplay) &&
+    Boolean(buyerPrvKey) &&
+    hasWithdrawableBalance &&
     Boolean(withdrawAmount.trim()) &&
     !isWithdrawing
 
@@ -101,83 +126,46 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
     <Card gap="$3">
       <Heading level={6}>AI Credits</Heading>
 
-      <XStack gap="$4" width="100%" alignItems="flex-start">
+      <XStack gap="$4" width="100%" alignItems="flex-start" flexWrap="wrap">
         <YStack gap="$2" flex={1} minWidth={0}>
           <Text fontSize="$1" secondary>
-            Total Credits
+            Total Credit (US$)
           </Text>
-          {aiCreditsBalance !== null ? (
-            <Heading level={5}>{Number.parseFloat(aiCreditsBalance).toFixed(2)}</Heading>
+          {totalCreditDisplay !== null ? (
+            <Heading level={5}>{totalCreditDisplay}</Heading>
           ) : (
             <Spinner size="sm" />
           )}
         </YStack>
-        {withdrawableDisplay && (
-          <YStack gap="$2" flex={1} minWidth={0}>
-            <Text fontSize="$1" secondary>
-              Withdrawable
-            </Text>
-            <Heading level={5}>${withdrawableDisplay}</Heading>
-          </YStack>
-        )}
+        <YStack gap="$2" flex={1} minWidth={0}>
+          <Text fontSize="$1" secondary>
+            Est. Monthly Credit (US$)
+          </Text>
+          {monthlyStreamUsdDisplay ? (
+            <Heading level={5} color="$primary">
+              ~{monthlyStreamUsdDisplay}
+            </Heading>
+          ) : (
+            <Heading level={5}>—</Heading>
+          )}
+        </YStack>
       </XStack>
 
-      <XStack gap="$2" width="100%">
-          <StatCell label="Payer G$ Balance">
-            {gBalance !== null ? (
-              <StatValueText>{formatCompactG(gBalance)}</StatValueText>
+      <XStack gap="$2" width="100%" flexWrap="wrap" alignItems="stretch">
+          <StatCell label="Total Deposited (G$)">
+            <StatValueText>{formatCompactAmount(totalGdDepositedG ?? '0.00')}</StatValueText>
+          </StatCell>
+          <StatCell label="Monthly Stream (G$)">
+            <StatValueText>{formatCompactAmount(monthlyStreamG ?? '0.00')}</StatValueText>
+          </StatCell>
+          <StatCell label="Withdrawable (US$)">
+            {withdrawableDisplay !== null ? (
+              <StatValueText>{withdrawableDisplay}</StatValueText>
             ) : (
               <Spinner size="sm" />
             )}
           </StatCell>
-          <StatCell label="Total Deposited">
-            <StatValueText>{formatCompactG(totalGdDepositedG ?? '0.00')}</StatValueText>
-          </StatCell>
-          <StatCell label="Monthly Stream">
-            <StatValueText>{formatCompactG(monthlyStreamG ?? '0.00')}</StatValueText>
-          </StatCell>
-          <StatCell label="Est. Monthly Credits">
-            {monthlyStreamCredits && Number.parseFloat(monthlyStreamCredits) > 0 ? (
-              <StatValueText color="$primary">
-                ~{Number.parseFloat(monthlyStreamCredits).toFixed(2)}/mo
-              </StatValueText>
-            ) : (
-              <StatValueText>—</StatValueText>
-            )}
-          </StatCell>
       </XStack>
-
-      <YStack gap="$1">
-        <Text fontSize="$1" variant="label">
-          Close Channel
-        </Text>
-        <XStack gap="$2" alignItems="center">
-          <YStack flex={1}>
-            <Input
-              size="sm"
-              value={channelId}
-              onChangeText={actions.setChannelId}
-              placeholder="0x… (64 hex chars)"
-            />
-          </YStack>
-          <HoverTooltip message={!buyerKeyPrivate ? BUYER_KEY_REQUIRED_CLOSE_TOOLTIP : null}>
-            <Button
-              variant="outline"
-              size="sm"
-              minWidth="$14"
-              flexShrink={0}
-              disabled={!canClose}
-              {...compactButtonProps}
-              onPress={() => {
-                setIsClosing(true)
-                void Promise.resolve(actions.closeChannel()).finally(() => setIsClosing(false))
-              }}
-            >
-              <ButtonText>{isClosing ? 'Closing…' : 'Close'}</ButtonText>
-            </Button>
-          </HoverTooltip>
-        </XStack>
-      </YStack>
 
       <YStack gap="$1">
         <XStack gap="$1" alignItems="center">
@@ -191,13 +179,15 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
             <Input
               size="sm"
               value={withdrawAmount}
-              onChangeText={actions.setWithdrawAmount}
+              onChangeText={setWithdrawAmount}
               placeholder={
-                withdrawableDisplay ? `USD (max $${withdrawableDisplay})` : 'Amount in USD'
+                hasWithdrawableBalance && withdrawableDisplay
+                  ? `Max ${withdrawableDisplay} US$`
+                  : 'Amount in US$'
               }
             />
           </YStack>
-          <HoverTooltip message={!buyerKeyPrivate ? BUYER_KEY_REQUIRED_WITHDRAW_TOOLTIP : null}>
+          <HoverTooltip message={!buyerPrvKey ? BUYER_KEY_REQUIRED_WITHDRAW_TOOLTIP : null}>
             <Button
               variant="outline"
               size="sm"
@@ -207,10 +197,48 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
               {...compactButtonProps}
               onPress={() => {
                 setIsWithdrawing(true)
-                void Promise.resolve(actions.withdrawCredits()).finally(() => setIsWithdrawing(false))
+                void Promise.resolve(actions.withdrawCredits(withdrawAmount)).finally(() => {
+                  setIsWithdrawing(false)
+                  setWithdrawAmount('')
+                })
               }}
             >
               <ButtonText>{isWithdrawing ? 'Withdrawing…' : 'Withdraw'}</ButtonText>
+            </Button>
+          </HoverTooltip>
+        </XStack>
+      </YStack>
+
+      <YStack gap="$1">
+        <Text fontSize="$1" variant="label">
+          Close Channel
+        </Text>
+        <XStack gap="$2" alignItems="center">
+          <YStack flex={1}>
+            <Input
+              size="sm"
+              value={channelId}
+              onChangeText={setChannelId}
+              placeholder="0x… (64 hex chars)"
+            />
+          </YStack>
+          <HoverTooltip message={!buyerPrvKey ? BUYER_KEY_REQUIRED_CLOSE_TOOLTIP : null}>
+            <Button
+              variant="outline"
+              size="sm"
+              minWidth="$14"
+              flexShrink={0}
+              disabled={!canClose}
+              {...compactButtonProps}
+              onPress={() => {
+                setIsClosing(true)
+                void Promise.resolve(actions.closeChannel(channelId)).finally(() => {
+                  setIsClosing(false)
+                  setChannelId('')
+                })
+              }}
+            >
+              <ButtonText>{isClosing ? 'Closing…' : 'Close'}</ButtonText>
             </Button>
           </HoverTooltip>
         </XStack>

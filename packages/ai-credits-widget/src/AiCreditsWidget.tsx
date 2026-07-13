@@ -17,10 +17,12 @@ import {
   updateToast,
 } from '@goodwidget/ui'
 import { useAiCreditsAdapter } from './adapter'
+import { DEPOSIT_BONUS_PERCENT, STREAM_BONUS_PERCENT } from './quoteMath'
 import {
   AiCreditsHero,
   AiCreditsFlowStepper,
   AiCreditsPurchaseFlow,
+  BuyCreditsFaq,
   AiCreditsStatusNotice,
   CreditsManagementCard,
   BuyerOperatorCard,
@@ -36,8 +38,8 @@ import type {
   AiCreditsWidgetAdapterActions,
   AiCreditsWidgetAdapterState,
   AiCreditsWidgetTab,
+  AiCreditsQuote,
 } from './widgetRuntimeContract'
-import { getPaymentAmountValidation, getPayDisabledMessage } from './vaultMinimums'
 import { compactButtonProps } from './components/shared/styles'
 
 const CELO_CHAIN_ID = 42220
@@ -57,15 +59,19 @@ interface AiCreditsInnerProps {
 
 function DisconnectedPanel({
   onConnect,
+  connecting,
 }: {
   onConnect: () => Promise<void>
+  connecting: boolean
 }) {
   return (
     <Card>
       <YStack gap="$5" paddingVertical="$6" alignItems="center">
         <Text secondary>Connect your wallet to buy AI credits</Text>
         <CircularActionButton
-          label="Connect Wallet"
+          label={connecting ? 'Connecting...' : 'Connect Wallet'}
+          pending={connecting}
+          disabled={connecting}
           onPress={() => {
             void onConnect()
           }}
@@ -78,22 +84,20 @@ function DisconnectedPanel({
 interface BuyPanelProps {
   state: AiCreditsWidgetAdapterState
   actions: AiCreditsWidgetAdapterActions
-  canPay: boolean
-  payDisabledMessage: string | null
   isPending: boolean
-  onPay: () => void
+  onPay: (quote: AiCreditsQuote) => void
 }
 
 function BuyCreditsPanel({
   state,
   actions,
-  canPay,
-  payDisabledMessage,
   isPending,
   onPay,
 }: BuyPanelProps) {
+  let content: React.ReactNode
+
   if (state.status === 'unsupported_chain') {
-    return (
+    content = (
       <AiCreditsStatusNotice>
         <XStack gap="$2" alignItems="center">
           <Text color="$warning" fontWeight="700">
@@ -110,11 +114,9 @@ function BuyCreditsPanel({
         </Button>
       </AiCreditsStatusNotice>
     )
-  }
-
-  if (state.status === 'payment_failed') {
-    return (
-      <YStack gap="$4">
+  } else if (state.status === 'payment_failed') {
+    content = (
+      <>
         <AiCreditsStatusNotice>
           <Text color="$error" fontWeight="700">
             Payment Failed
@@ -131,17 +133,13 @@ function BuyCreditsPanel({
         <AiCreditsPurchaseFlow
           state={state}
           actions={actions}
-          canPay={canPay}
-          payDisabledMessage={payDisabledMessage}
           isPending={isPending}
           onPay={onPay}
         />
-      </YStack>
+      </>
     )
-  }
-
-  if (state.status === 'backend_unavailable') {
-    return (
+  } else if (state.status === 'backend_unavailable') {
+    content = (
       <AiCreditsStatusNotice>
         <Text color="$warning" fontWeight="700">
           Service Unavailable
@@ -158,15 +156,14 @@ function BuyCreditsPanel({
         </Button>
       </AiCreditsStatusNotice>
     )
-  }
-
-  if (state.status === 'insufficient_g_balance') {
-    return (
-      <YStack gap="$4">
+  } else if (state.status === 'insufficient_g_balance') {
+    content = (
+      <>
         <AiCreditsHero
           gBalance={state.gBalance}
           isGoodIdVerified={state.isGoodIdVerified}
-          bonusPercent={state.bonusPercent}
+          depositBonusPercent={DEPOSIT_BONUS_PERCENT}
+          streamBonusPercent={STREAM_BONUS_PERCENT}
         />
         <AiCreditsStatusNotice>
           <Text color="$warning" fontWeight="700">
@@ -176,18 +173,16 @@ function BuyCreditsPanel({
             You need at least 1 G$ to purchase AI credits. Top up your wallet and try again.
           </Text>
         </AiCreditsStatusNotice>
-      </YStack>
+      </>
     )
-  }
-
-  if (state.status === 'payment_pending' || state.status === 'payment_confirmed') {
+  } else if (state.status === 'payment_pending' || state.status === 'payment_confirmed') {
     const message =
       state.status === 'payment_pending'
         ? 'Transaction submitted — waiting for confirmation…'
         : 'Payment confirmed — settling credits on Base…'
 
-    return (
-      <YStack gap="$4">
+    content = (
+      <>
         <Card>
           <YStack gap="$4" alignItems="center" padding="$4">
             <Spinner size="lg" />
@@ -196,35 +191,41 @@ function BuyCreditsPanel({
             </Text>
           </YStack>
         </Card>
-        <AiCreditsFlowStepper state={state} />
-      </YStack>
+        <AiCreditsFlowStepper state={state} buyerPubKeySaved />
+      </>
+    )
+  } else {
+    content = (
+      <>
+        {state.address && (
+          <AiCreditsHero
+            gBalance={state.gBalance}
+            isGoodIdVerified={state.isGoodIdVerified}
+            depositBonusPercent={DEPOSIT_BONUS_PERCENT}
+            streamBonusPercent={STREAM_BONUS_PERCENT}
+          />
+        )}
+
+        {state.gBalance !== null && Number.parseFloat(state.gBalance) <= 0 && (
+          <AiCreditsStatusNotice>
+            <Text secondary>You need G$ before you can buy AI credits.</Text>
+          </AiCreditsStatusNotice>
+        )}
+
+        <AiCreditsPurchaseFlow
+          state={state}
+          actions={actions}
+          isPending={isPending}
+          onPay={onPay}
+        />
+      </>
     )
   }
 
   return (
     <YStack gap="$4">
-      {state.address && (
-        <AiCreditsHero
-          gBalance={state.gBalance}
-          isGoodIdVerified={state.isGoodIdVerified}
-          bonusPercent={state.bonusPercent}
-        />
-      )}
-
-      {state.gBalance !== null && Number.parseFloat(state.gBalance) <= 0 && (
-        <AiCreditsStatusNotice>
-          <Text secondary>You need G$ before you can buy AI credits.</Text>
-        </AiCreditsStatusNotice>
-      )}
-
-      <AiCreditsPurchaseFlow
-        state={state}
-        actions={actions}
-        canPay={canPay}
-        payDisabledMessage={payDisabledMessage}
-        isPending={isPending}
-        onPay={onPay}
-      />
+      {content}
+      <BuyCreditsFaq />
     </YStack>
   )
 }
@@ -232,10 +233,25 @@ function BuyCreditsPanel({
 function ManagePanel({
   state,
   actions,
+  backendUrl,
 }: {
   state: AiCreditsWidgetAdapterState
   actions: AiCreditsWidgetAdapterActions
+  backendUrl?: string
 }) {
+  const [refreshing, setRefreshing] = React.useState(false)
+  const [usageLogRefreshSignal, setUsageLogRefreshSignal] = React.useState(0)
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    try {
+      await actions.refresh()
+      setUsageLogRefreshSignal((value) => value + 1)
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
   return (
     <YStack gap="$3" width="100%">
       {state.error && (
@@ -250,23 +266,39 @@ function ManagePanel({
 
       <BuyerOperatorCard state={state} actions={actions} />
 
-      <SetupSnippet snippet={state.setupSnippet} />
+      <SetupSnippet />
 
-      <UsageLog entries={state.usageLog} />
+      <UsageLog
+        address={state.address}
+        backendUrl={backendUrl}
+        refreshSignal={usageLogRefreshSignal}
+      />
 
-      <Button
-        variant="ghost"
-        size="sm"
-        alignSelf="center"
-        gap="$2"
-        {...compactButtonProps}
-        onPress={() => {
-          void actions.refresh()
-        }}
-      >
-        <Icon name="refresh" size="sm" color="primary" />
-        <ButtonText>Refresh Balance</ButtonText>
-      </Button>
+      <YStack gap="$2" width="100%" alignItems="center">
+        {state.error && (
+          <Text color="$error" fontSize="$2" textAlign="center">
+            {state.error}
+          </Text>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          alignSelf="stretch"
+          gap="$2"
+          disabled={refreshing}
+          {...compactButtonProps}
+          onPress={() => {
+            void handleRefresh()
+          }}
+        >
+          {refreshing ? (
+            <Spinner size="sm" />
+          ) : (
+            <Icon name="refresh" size="sm" color="muted" />
+          )}
+          <ButtonText>{refreshing ? 'Refreshing…' : 'Refresh Balance'}</ButtonText>
+        </Button>
+      </YStack>
     </YStack>
   )
 }
@@ -305,62 +337,31 @@ function AiCreditsInner({
 
   const { state, actions } = activeAdapter
 
-  const paymentValidation = useMemo(
-    () =>
-      getPaymentAmountValidation({
-        depositAmount: state.depositAmount,
-        streamAmount: state.streamAmount,
-        minDepositG: state.minDepositG,
-        minStreamG: state.minStreamG,
-        gBalance: state.gBalance,
-      }),
-    [
-      state.depositAmount,
-      state.streamAmount,
-      state.minDepositG,
-      state.minStreamG,
-      state.gBalance,
-    ],
-  )
-
-  const minsLoaded = state.minDepositG !== null && state.minStreamG !== null
-  const canPay =
-    state.status === 'quote_ready' &&
-    minsLoaded &&
-    paymentValidation.vaultMinimumsMet &&
-    !paymentValidation.overBalance
-
-  const payDisabledMessage = getPayDisabledMessage({
-    canPay,
-    minsLoaded,
-    status: state.status,
-    minDepositG: state.minDepositG,
-    minStreamG: state.minStreamG,
-    validation: paymentValidation,
-  })
-
-  const handlePay = useCallback(async () => {
-    const toastId = createToast({
-      message: 'Submitting Celo transaction…',
-      status: 'pending',
-      duration: 0,
-    })
-
-    try {
-      await actions.pay()
-      updateToast(toastId, {
-        message: 'Credits added successfully!',
-        status: 'success',
-        duration: 4000,
-      })
-    } catch (err) {
-      updateToast(toastId, {
-        message: err instanceof Error ? err.message : (state.error ?? 'Payment failed'),
-        status: 'error',
+  const handlePay = useCallback(
+    async (quote: AiCreditsQuote) => {
+      const toastId = createToast({
+        message: 'Submitting Celo transaction…',
+        status: 'pending',
         duration: 0,
       })
-    }
-  }, [actions, state.error])
+
+      try {
+        await actions.pay(quote)
+        updateToast(toastId, {
+          message: 'Credits added successfully!',
+          status: 'success',
+          duration: 4000,
+        })
+      } catch (err) {
+        updateToast(toastId, {
+          message: err instanceof Error ? err.message : (state.error ?? 'Payment failed'),
+          status: 'error',
+          duration: 0,
+        })
+      }
+    },
+    [actions, state.error],
+  )
 
   const isPending =
     state.status === 'payment_pending' || state.status === 'payment_confirmed'
@@ -376,19 +377,20 @@ function AiCreditsInner({
     <BuyCreditsPanel
       state={state}
       actions={actions}
-      canPay={canPay}
-      payDisabledMessage={payDisabledMessage}
       isPending={isPending}
-      onPay={() => {
-        void handlePay()
+      onPay={(quote) => {
+        void handlePay(quote)
       }}
     />
   )
 
-  if (state.status === 'disconnected') {
+  if (state.status === 'disconnected' || state.status === 'connecting') {
     return (
       <YStack gap="$3" padding="$3" width="100%">
-        <DisconnectedPanel onConnect={actions.connect} />
+        <DisconnectedPanel
+          onConnect={actions.connect}
+          connecting={state.status === 'connecting'}
+        />
       </YStack>
     )
   }
@@ -405,7 +407,7 @@ function AiCreditsInner({
         chainId={state.chainId ?? CELO_CHAIN_ID}
       />
       {state.activeTab === 'manage' ? (
-        <ManagePanel state={state} actions={actions} />
+        <ManagePanel state={state} actions={actions} backendUrl={backendUrl} />
       ) : (
         buyPanel
       )}

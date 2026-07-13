@@ -1,74 +1,216 @@
+import React, { useEffect, useMemo, useState } from 'react'
 import { Button, ButtonText, Card, Heading, Input, Separator, Spinner, Text, TokenAmount, XStack, YStack } from '@goodwidget/ui'
-import type { AiCreditsQuote } from '../../widgetRuntimeContract'
-import { parseGAmount } from '../../quoteMath'
-import { formatMinGDisplayLocale, getPaymentAmountValidation } from '../../vaultMinimums'
+import type { AiCreditsQuote, AiCreditsWidgetStatus } from '../../widgetRuntimeContract'
+import {
+  formatUsdWithBonus,
+  getDepositBonusPercent,
+  getStreamBonusPercent,
+  parseGAmount,
+  quoteDepositBonusUsd,
+  quoteDepositPrincipalUsd,
+  quoteStreamBonusUsd,
+  quoteStreamPrincipalUsd,
+} from '../../quoteMath'
+import {
+  formatMinUsdDisplay,
+  getPayDisabledMessage,
+  getPaymentAmountValidation,
+} from '../../vaultMinimums'
 import { AiCreditsStatusNotice, BonusBadgeFrame } from '../theme/cards'
 import { HoverTooltip } from '../shared/tooltips'
 import { compactButtonProps } from '../shared/styles'
 
-interface AmountPickerProps {
-  depositAmount: string
-  streamAmount: string
-  gBalance: string | null
-  minDepositG: string | null
-  minStreamG: string | null
-  quote: AiCreditsQuote | null
+const DEFAULT_DEPOSIT_AMOUNT = '1'
+const DEFAULT_STREAM_AMOUNT = '0'
+
+function resolveInitialStreamAmount(monthlyStreamG: string | null | undefined): string {
+  if (!monthlyStreamG) return DEFAULT_STREAM_AMOUNT
+  return parseGAmount(monthlyStreamG) > 0 ? monthlyStreamG : DEFAULT_STREAM_AMOUNT
+}
+
+function BonusLabel({ label, active }: { label: string; active: boolean }) {
+  return (
+    <BonusBadgeFrame
+      backgroundColor={active ? '$successMuted' : '$warningMuted'}
+      borderWidth={1}
+      borderColor={active ? '$success' : '$warning'}
+    >
+      <Text fontSize="$1" fontWeight="700" lineHeight={16} color={active ? '$success' : '$warning'}>
+        {label}
+      </Text>
+    </BonusBadgeFrame>
+  )
+}
+
+function BonusSummaryValue({
+  quote,
+  gdUsdPerToken,
+  isGoodIdVerified,
+  onVerifyGoodId,
+  isVerifyingGoodId,
+}: {
+  quote: AiCreditsQuote
+  gdUsdPerToken: number
   isGoodIdVerified: boolean
-  bonusPercent: number
-  canPay: boolean
-  payDisabledMessage: string | null
+  onVerifyGoodId: () => Promise<void>
+  isVerifyingGoodId: boolean
+}) {
+  if (!isGoodIdVerified) {
+    return (
+      <XStack gap="$1.5" alignItems="center" justifyContent="flex-end" flex={1} flexShrink={1} minWidth={0}>
+        <Button
+          variant="text"
+          size="sm"
+          disabled={isVerifyingGoodId}
+          onPress={() => {
+            void onVerifyGoodId()
+          }}
+        >
+          {isVerifyingGoodId ? (
+            <Spinner size="sm" />
+          ) : (
+            <ButtonText fontWeight="600">Verify to get Bonuses</ButtonText>
+          )}
+        </Button>
+      </XStack>
+    )
+  }
+
+  return (
+    <Text fontSize="$2" fontWeight="700" color="$success">
+      {formatMinUsdDisplay(quoteDepositBonusUsd(quote, gdUsdPerToken, isGoodIdVerified)) +
+        ' + ' +
+        formatMinUsdDisplay(quoteStreamBonusUsd(quote, gdUsdPerToken, isGoodIdVerified)) +
+        '/month'}
+    </Text>
+  )
+}
+
+interface AmountPickerProps {
+  status: AiCreditsWidgetStatus
+  gBalance: string | null
+  minDepositUsd: string | null
+  minStreamUsd: string | null
+  monthlyStreamG: string | null
+  gdUsdPerToken: number | null
+  isGoodIdVerified: boolean
   isPayPending: boolean
-  onDepositChange: (v: string) => void
-  onStreamChange: (v: string) => void
-  onPay: () => void
+  buildQuote: (depositG: string, streamG: string) => Promise<AiCreditsQuote>
+  onPay: (quote: AiCreditsQuote) => void
+  onVerifyGoodId: () => Promise<void>
   embedded?: boolean
 }
 
 export function AmountPicker({
-  depositAmount,
-  streamAmount,
+  status,
   gBalance,
-  minDepositG,
-  minStreamG,
-  quote,
+  minDepositUsd,
+  minStreamUsd,
+  monthlyStreamG,
+  gdUsdPerToken,
   isGoodIdVerified,
-  bonusPercent,
-  canPay,
-  payDisabledMessage,
   isPayPending,
-  onDepositChange,
-  onStreamChange,
+  buildQuote,
   onPay,
+  onVerifyGoodId,
   embedded = false,
 }: AmountPickerProps) {
+  const streamSeed = useMemo(() => resolveInitialStreamAmount(monthlyStreamG), [monthlyStreamG])
+  const [depositAmount, setDepositAmount] = useState(DEFAULT_DEPOSIT_AMOUNT)
+  const [streamAmount, setStreamAmount] = useState(streamSeed)
+  const [quote, setQuote] = useState<AiCreditsQuote | null>(null)
+  const [quotePending, setQuotePending] = useState(false)
+  const [isVerifyingGoodId, setIsVerifyingGoodId] = useState(false)
+  const isStreamUpdateFlow = parseGAmount(streamSeed) > 0
+
+  useEffect(() => {
+    setStreamAmount(streamSeed)
+  }, [streamSeed])
+
+  useEffect(() => {
+    let cancelled = false
+    setQuotePending(true)
+    void buildQuote(depositAmount, streamAmount)
+      .then((nextQuote) => {
+        if (!cancelled) setQuote(nextQuote)
+      })
+      .catch(() => {
+        if (!cancelled) setQuote(null)
+      })
+      .finally(() => {
+        if (!cancelled) setQuotePending(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [depositAmount, streamAmount, buildQuote])
+
   const depositG = parseGAmount(depositAmount)
   const streamG = parseGAmount(streamAmount)
-  const appliedBonusPercent = quote?.bonusPercent ?? bonusPercent
-  const depositBonusLabel = isGoodIdVerified ? '+10% bonus' : '+10% with GoodID'
-  const streamBonusLabel = isGoodIdVerified ? '+20% bonus (GoodID)' : '+20% with GoodID'
-  const { depositBelowMin, streamBelowMin, overBalance } = getPaymentAmountValidation({
-    depositAmount,
-    streamAmount,
-    minDepositG,
-    minStreamG,
-    gBalance,
+  const depositBonusLabel = isGoodIdVerified ? '+10% bonus' : 'no bonus'
+  const streamBonusLabel = isGoodIdVerified ? '+20% bonus' : 'no bonus'
+  const paymentValidation = useMemo(
+    () =>
+      getPaymentAmountValidation({
+        depositAmount,
+        streamAmount,
+        minDepositUsd,
+        minStreamUsd,
+        quote,
+        gdUsdPerToken,
+        gBalance,
+      }),
+    [depositAmount, streamAmount, minDepositUsd, minStreamUsd, quote, gdUsdPerToken, gBalance],
+  )
+  const minsLoaded = minStreamUsd !== null
+  const hasAmounts = depositG > 0 || streamG > 0
+  const canPay =
+    status === 'quote_ready' &&
+    minsLoaded &&
+    hasAmounts &&
+    paymentValidation.vaultMinimumsMet &&
+    !paymentValidation.overBalance &&
+    !quotePending &&
+    quote !== null
+  const payDisabledMessage = getPayDisabledMessage({
+    canPay,
+    minsLoaded,
+    status,
+    minDepositUsd,
+    minStreamUsd,
+    validation: paymentValidation,
   })
-  const totalG = depositG + streamG
+  const { depositBelowMin, streamBelowMin, overBalance } = paymentValidation
+  const depositMinUsdLabel =
+    minDepositUsd !== null
+      ? `Minimum ${formatMinUsdDisplay(minDepositUsd)} for your first deposit`
+      : 'One-time deposit (no minimum after first deposit)'
+  const streamMinUsdLabel = isStreamUpdateFlow
+    ? `Current stream · min ${minStreamUsd !== null ? formatMinUsdDisplay(minStreamUsd) : '…'}/month`
+    : minStreamUsd !== null
+      ? `Minimum ${formatMinUsdDisplay(minStreamUsd)}/month`
+      : 'Loading minimum…'
   const depositPlaceholder =
-    minDepositG === null
+    minStreamUsd === null
       ? 'Loading minimum…'
-      : parseGAmount(minDepositG) > 0
-        ? `Min ${formatMinGDisplayLocale(minDepositG)} G$`
+      : minDepositUsd !== null
+        ? `Min ${formatMinUsdDisplay(minDepositUsd)}`
         : '0 G$ (optional)'
   const streamPlaceholder =
-    minStreamG === null
+    minStreamUsd === null
       ? 'Loading minimum…'
-      : `Min ${formatMinGDisplayLocale(minStreamG)} G$ (optional)`
+      : `Min ${formatMinUsdDisplay(minStreamUsd)}/mo`
 
-  const formatCredits = (value: string) => {
-    const parsed = Number.parseFloat(value)
-    return parsed < 10 ? parsed.toFixed(1) : parsed.toFixed(2)
-  }
+  const depositBonusPercent = getDepositBonusPercent(isGoodIdVerified)
+  const streamBonusPercent = getStreamBonusPercent(isGoodIdVerified)
+  const depositEstUsd =
+    quote && gdUsdPerToken !== null && depositG > 0
+      ? formatUsdWithBonus(quoteDepositPrincipalUsd(quote, gdUsdPerToken), depositBonusPercent)
+      : null
+  const streamEstUsd =
+    quote && gdUsdPerToken !== null && streamG > 0
+      ? formatUsdWithBonus(quoteStreamPrincipalUsd(quote, gdUsdPerToken), streamBonusPercent)
+      : null
 
   const Shell = embedded ? YStack : Card
 
@@ -76,109 +218,129 @@ export function AmountPicker({
     <Shell gap="$3">
       <Heading level={5}>Buy Credits</Heading>
 
+      <XStack justifyContent="space-between" alignItems="center">
+        <Text variant="label" secondary>
+          Your G$ Balance
+        </Text>
+        {gBalance !== null ? (
+          <TokenAmount token="G$" amount={gBalance} size="sm" />
+        ) : (
+          <Spinner size="sm" />
+        )}
+      </XStack>
+
       <YStack gap="$1">
         <XStack justifyContent="space-between" alignItems="center">
           <Text variant="label">One-time Deposit (G$)</Text>
-          <Text fontSize="$1" secondary>
-            {depositBonusLabel}
-          </Text>
+          <BonusLabel label={depositBonusLabel} active={isGoodIdVerified} />
         </XStack>
         <Input
           value={depositAmount}
-          onChangeText={onDepositChange}
+          onChangeText={setDepositAmount}
           placeholder={depositPlaceholder}
           error={depositBelowMin}
         />
-        {depositG > 0 && quote && (
-          <Text fontSize="$1" secondary>
-            ≈ ${quote.depositAmountUsd} USD
+        <XStack justifyContent="space-between" alignItems="center" gap="$2">
+          {depositG > 0 && depositEstUsd ? (
+            <Text fontSize="$1" secondary>
+              ≈ {depositEstUsd}
+            </Text>
+          ) : depositG > 0 && quotePending ? (
+            <Spinner size="sm" />
+          ) : (
+            <YStack />
+          )}
+          <Text fontSize="$1" secondary textAlign="right" flexShrink={0}>
+            {depositMinUsdLabel}
           </Text>
-        )}
-        {depositG > 0 && !quote && (
-          <Spinner size="sm" />
-        )}
+        </XStack>
       </YStack>
 
       <YStack gap="$1">
         <XStack justifyContent="space-between" alignItems="center">
           <Text variant="label">Monthly Stream (G$)</Text>
-          <Text fontSize="$1" secondary>
-            {streamBonusLabel}
-          </Text>
+          <BonusLabel label={streamBonusLabel} active={isGoodIdVerified} />
         </XStack>
         <Input
           value={streamAmount}
-          onChangeText={onStreamChange}
+          onChangeText={setStreamAmount}
           placeholder={streamPlaceholder}
           error={streamBelowMin}
         />
-        {streamG > 0 && quote && (
-          <YStack gap="$0.5">
+        <XStack justifyContent="space-between" alignItems="center" gap="$2">
+          {streamG > 0 && streamEstUsd ? (
             <Text fontSize="$1" secondary>
-              ≈ ${quote.streamAmountUsd} USD/month
+              ≈ {streamEstUsd}/month
             </Text>
-          </YStack>
-        )}
-        {streamG > 0 && !quote && (
-          <Spinner size="sm" />
-        )}
+          ) : streamG > 0 && quotePending ? (
+            <Spinner size="sm" />
+          ) : (
+            <YStack />
+          )}
+          <Text fontSize="$1" secondary textAlign="right" flexShrink={0}>
+            {streamMinUsdLabel}
+          </Text>
+        </XStack>
       </YStack>
 
       <Separator />
 
-      <XStack justifyContent="space-between" alignItems="center">
-        <Text variant="label">Total</Text>
-        <TokenAmount token="G$" amount={totalG.toFixed(2)} size="md" />
-      </XStack>
+      {quote && gdUsdPerToken !== null && (
+        <>
+          <XStack justifyContent="space-between" alignItems="center">
+            <Text variant="label">
+              Est. credits
+            </Text>
+            <Text fontSize="$2" color="$primary" fontWeight="700">
+              {formatMinUsdDisplay(quoteDepositPrincipalUsd(quote, gdUsdPerToken)) +
+                ' + ' +
+                formatMinUsdDisplay(quoteStreamPrincipalUsd(quote, gdUsdPerToken)) +
+                '/month'}
+            </Text>
+          </XStack>
 
-      {quote && (
-        <XStack justifyContent="space-between" alignItems="center">
-          <Text variant="label" secondary>
-            Est. credits
-          </Text>
-          <Text fontSize="$2" color="$primary" fontWeight="700">
-            {formatCredits(quote.totalCredits)}
-          </Text>
-        </XStack>
+          <XStack justifyContent="space-between" alignItems="center" gap="$2">
+            <Text fontSize="$1" flexShrink={0}>
+              Bonuses
+            </Text>
+            <BonusSummaryValue
+              quote={quote}
+              gdUsdPerToken={gdUsdPerToken}
+              isGoodIdVerified={isGoodIdVerified}
+              isVerifyingGoodId={isVerifyingGoodId}
+              onVerifyGoodId={async () => {
+                setIsVerifyingGoodId(true)
+                try {
+                  await onVerifyGoodId()
+                } finally {
+                  setIsVerifyingGoodId(false)
+                }
+              }}
+            />
+          </XStack>
+        </>
       )}
-
-      <XStack justifyContent="space-between" alignItems="center">
-        <Text fontSize="$1" secondary>
-          Applied bonus
-        </Text>
-        <BonusBadgeFrame backgroundColor="$backgroundPress">
-          {appliedBonusPercent > 0 ? (
-            <Text fontSize="$2" fontWeight="700" color="$primary">
-              +{appliedBonusPercent}%
-            </Text>
-          ) : (
-            <Text fontSize="$2" fontWeight="700" secondary>
-              No bonus
-            </Text>
-          )}
-        </BonusBadgeFrame>
-      </XStack>
 
       {overBalance && (
         <AiCreditsStatusNotice borderColor="$warning">
           <Text color="$warning" fontSize="$2">
-            Total exceeds your G$ balance. Reduce the amounts.
+            Deposit amount exceeds your G$ balance. Reduce the deposit amount.
           </Text>
         </AiCreditsStatusNotice>
       )}
 
-      {depositBelowMin && minDepositG && (
+      {depositBelowMin && minDepositUsd && (
         <AiCreditsStatusNotice borderColor="$warning">
           <Text color="$warning" fontSize="$2">
-            First deposit must be at least {formatMinGDisplayLocale(minDepositG)} G$.
+            First deposit must be at least {formatMinUsdDisplay(minDepositUsd)}.
           </Text>
         </AiCreditsStatusNotice>
       )}
 
-      {streamBelowMin && minStreamG && (
+      {streamBelowMin && minStreamUsd && (
         <AiCreditsStatusNotice borderColor="$warning">
           <Text color="$warning" fontSize="$2">
-            Monthly stream must be at least {formatMinGDisplayLocale(minStreamG)} G$.
+            Monthly stream must be at least {formatMinUsdDisplay(minStreamUsd)}.
           </Text>
         </AiCreditsStatusNotice>
       )}
@@ -190,7 +352,7 @@ export function AmountPicker({
           {...compactButtonProps}
           disabled={!canPay || isPayPending}
           onPress={() => {
-            onPay()
+            if (quote) onPay(quote)
           }}
         >
           {isPayPending ? (
@@ -206,4 +368,3 @@ export function AmountPicker({
     </Shell>
   )
 }
-

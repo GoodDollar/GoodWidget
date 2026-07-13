@@ -1,4 +1,5 @@
-import { gToWei, parseGAmount } from './quoteMath'
+import { gToWei, parseGAmount, formatUsdDisplay, quoteDepositPrincipalUsd, quoteStreamPrincipalUsd } from './quoteMath'
+import type { AiCreditsQuote } from './widgetRuntimeContract'
 import { parseAbi, type Address, type PublicClient } from 'viem'
 
 const ONE_G_WEI = 10n ** 18n
@@ -11,9 +12,7 @@ const VAULT_MINIMUMS_ABI = parseAbi([
 ])
 
 export type VaultPaymentMinimums = {
-  minDepositG: string
-  minStreamG: string
-  minDepositUsd: string
+  minDepositUsd: string | null
   minStreamUsd: string
 }
 
@@ -32,11 +31,23 @@ export function formatMinGDisplayLocale(amountG: string): string {
   return amountG
 }
 
+export function formatMinUsdDisplay(usd: string): string {
+  return formatUsdDisplay(usd, 2)
+}
+
+function parseUsdThreshold(usd: string | null): number {
+  if (usd === null) return 0
+  const value = Number.parseFloat(usd)
+  return Number.isFinite(value) && value > 0 ? value : 0
+}
+
 export function getPaymentAmountValidation(params: {
   depositAmount: string
   streamAmount: string
-  minDepositG: string | null
-  minStreamG: string | null
+  minDepositUsd: string | null
+  minStreamUsd: string | null
+  quote: AiCreditsQuote | null
+  gdUsdPerToken: number | null
   gBalance: string | null
 }): {
   depositBelowMin: boolean
@@ -47,12 +58,22 @@ export function getPaymentAmountValidation(params: {
   const depositG = parseGAmount(params.depositAmount)
   const streamG = parseGAmount(params.streamAmount)
   const balance = parseGAmount(params.gBalance ?? '0')
-  const minDeposit = params.minDepositG !== null ? parseGAmount(params.minDepositG) : 0
-  const minStream = params.minStreamG !== null ? parseGAmount(params.minStreamG) : 0
-  const depositBelowMin = depositG > 0 && minDeposit > 0 && depositG < minDeposit
-  const streamBelowMin = streamG > 0 && minStream > 0 && streamG < minStream
-  const overBalance = depositG + streamG > balance
-  const minsLoaded = params.minDepositG !== null && params.minStreamG !== null
+  const minDepositUsd = parseUsdThreshold(params.minDepositUsd)
+  const minStreamUsd = parseUsdThreshold(params.minStreamUsd)
+  const depositUsd =
+    params.quote && params.gdUsdPerToken !== null
+      ? Number.parseFloat(quoteDepositPrincipalUsd(params.quote, params.gdUsdPerToken))
+      : 0
+  const streamUsd =
+    params.quote && params.gdUsdPerToken !== null
+      ? Number.parseFloat(quoteStreamPrincipalUsd(params.quote, params.gdUsdPerToken))
+      : 0
+  const depositBelowMin =
+    depositG > 0 && minDepositUsd > 0 && params.quote !== null && depositUsd < minDepositUsd
+  const streamBelowMin =
+    streamG > 0 && minStreamUsd > 0 && params.quote !== null && streamUsd < minStreamUsd
+  const overBalance = depositG > balance
+  const minsLoaded = params.minStreamUsd !== null
   const vaultMinimumsMet = !minsLoaded || (!depositBelowMin && !streamBelowMin)
 
   return {
@@ -67,8 +88,8 @@ export function getPayDisabledMessage(params: {
   canPay: boolean
   minsLoaded: boolean
   status: string
-  minDepositG: string | null
-  minStreamG: string | null
+  minDepositUsd: string | null
+  minStreamUsd: string | null
   validation: {
     depositBelowMin: boolean
     streamBelowMin: boolean
@@ -78,13 +99,13 @@ export function getPayDisabledMessage(params: {
   if (params.canPay) return null
   if (!params.minsLoaded) return 'Loading vault minimums…'
   if (params.validation.overBalance) {
-    return 'Total exceeds your G$ balance. Reduce the amounts.'
+    return 'One-time deposit exceeds your G$ balance. Reduce the deposit amount.'
   }
-  if (params.validation.depositBelowMin && params.minDepositG) {
-    return `First deposit must be at least ${formatMinGDisplayLocale(params.minDepositG)} G$.`
+  if (params.validation.depositBelowMin && params.minDepositUsd) {
+    return `First deposit must be at least ${formatMinUsdDisplay(params.minDepositUsd)}.`
   }
-  if (params.validation.streamBelowMin && params.minStreamG) {
-    return `Monthly stream must be at least ${formatMinGDisplayLocale(params.minStreamG)} G$.`
+  if (params.validation.streamBelowMin && params.minStreamUsd) {
+    return `Monthly stream must be at least ${formatMinUsdDisplay(params.minStreamUsd)}.`
   }
   if (params.status !== 'quote_ready') {
     return 'Enter a deposit or monthly stream amount to continue.'
@@ -138,12 +159,7 @@ export async function fetchVaultPaymentMinimums(
     }),
   ])
 
-  const [minDepositWei, minStreamWei] = await Promise.all([
-    minGdWeiForUsdThreshold(publicClient, vault, minFirstDepositUsd),
-    minGdWeiForUsdThreshold(publicClient, vault, minMonthlyStreamUsd),
-  ])
-
-  let minDepositG = formatMinGDisplay(minDepositWei)
+  let minDepositUsd: string | null = formatUsd18(minFirstDepositUsd)
   if (payer) {
     const totalDeposited = await publicClient.readContract({
       address: vault,
@@ -152,14 +168,12 @@ export async function fetchVaultPaymentMinimums(
       args: [payer],
     })
     if (totalDeposited > 0n) {
-      minDepositG = '0'
+      minDepositUsd = null
     }
   }
 
   return {
-    minDepositG,
-    minStreamG: formatMinGDisplay(minStreamWei),
-    minDepositUsd: formatUsd18(minFirstDepositUsd),
+    minDepositUsd,
     minStreamUsd: formatUsd18(minMonthlyStreamUsd),
   }
 }
@@ -209,7 +223,7 @@ export async function validateVaultPaymentAmounts(params: {
         minMonthlyStreamUsd,
       )
       throw new Error(
-        `Monthly stream must be at least ${formatMinGDisplay(minWei)} G$ (about $${formatUsd18(minMonthlyStreamUsd)} USD at the current G$ price)`,
+        `Monthly stream must be at least ${formatMinGDisplay(minWei)} G$ (about ${formatMinUsdDisplay(formatUsd18(minMonthlyStreamUsd))} at the current G$ price)`,
       )
     }
   }
@@ -224,7 +238,7 @@ export async function validateVaultPaymentAmounts(params: {
         minFirstDepositUsd,
       )
       throw new Error(
-        `First deposit must be at least ${formatMinGDisplay(minWei)} G$ (about $${formatUsd18(minFirstDepositUsd)} USD at the current G$ price)`,
+        `First deposit must be at least ${formatMinGDisplay(minWei)} G$ (about ${formatMinUsdDisplay(formatUsd18(minFirstDepositUsd))} at the current G$ price)`,
       )
     }
   }

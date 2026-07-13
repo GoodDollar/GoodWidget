@@ -5,6 +5,7 @@ export type AiCreditsWidgetEnvironment = 'production' | 'staging' | 'development
 
 export type AiCreditsWidgetStatus =
   | 'disconnected'
+  | 'connecting'
   | 'purchase_setup'
   | 'quote_ready'
   | 'payment_pending'
@@ -16,32 +17,9 @@ export type AiCreditsWidgetStatus =
 
 export type AiCreditsWidgetTab = 'buy' | 'manage'
 
-export type AiCreditsWidgetPrimaryAction =
-  | 'connect'
-  | 'switch_chain'
-  | 'generate_key'
-  | 'sign_consent'
-  | 'pay'
-  | 'retry'
-  | 'refresh'
-  | 'none'
-
 export interface AiCreditsQuote {
   depositAmountG: string
   streamAmountG: string
-  depositAmountUsd: string
-  streamAmountUsd: string
-  bonusPercent: number
-  totalCredits: string
-}
-
-export interface AiCreditsUsageEntry {
-  sessionId: string
-  timestamp: string
-  creditsUsed: number
-  model: string
-  kind?: 'funding' | 'usage'
-  fundingStatus?: 'pending' | 'funded' | 'failed'
 }
 
 export interface AiCreditsWidgetAdapterState {
@@ -49,31 +27,19 @@ export interface AiCreditsWidgetAdapterState {
   address: string | null
   chainId: number | null
   gBalance: string | null
-  aiCreditsBalance: string | null
+  gdUsdPerToken: number | null
+  totalCreditUsd: string | null
   isGoodIdVerified: boolean
-  buyerKey: string | null
-  buyerKeyPrivate: string | null
-  buyerKeyConfirmed: boolean
-  operatorConsentSigned: boolean
+  buyerPubKey: string | null
+  buyerPrvKey: string | null
+  operatorConsented: boolean
   operatorAddress: string | null
-  apiKey: string | null
-  depositAmount: string
-  streamAmount: string
-  minDepositG: string | null
-  minStreamG: string | null
-  bonusPercent: number
-  quote: AiCreditsQuote | null
-  setupSnippet: string
-  usageLog: AiCreditsUsageEntry[]
+  minDepositUsd: string | null
+  minStreamUsd: string | null
   totalGdDepositedG: string | null
   monthlyStreamG: string | null
-  monthlyStreamCredits: string | null
   withdrawableUsd: string | null
-  channelId: string
-  withdrawAmount: string
   error: string | null
-  primaryAction: AiCreditsWidgetPrimaryAction
-  primaryLabel: string
   activeTab: AiCreditsWidgetTab
 }
 
@@ -81,18 +47,16 @@ export interface AiCreditsWidgetAdapterActions {
   connect: () => Promise<void>
   switchChain: () => Promise<void>
   generateBuyerKey: () => Promise<void>
-  confirmBuyerKey: () => void
   signOperatorConsent: () => Promise<void>
-  setDepositAmount: (amount: string) => void
-  setStreamAmount: (amount: string) => void
-  setChannelId: (channelId: string) => void
-  setWithdrawAmount: (amount: string) => void
-  pay: () => Promise<void>
+  syncOperatorConsentFromChain: () => Promise<void>
+  buildQuote: (depositG: string, streamG: string) => Promise<AiCreditsQuote>
+  pay: (quote: AiCreditsQuote) => Promise<void>
   refresh: () => Promise<void>
+  verifyGoodId: () => Promise<boolean>
   startPurchase: () => void
   setActiveTab: (tab: AiCreditsWidgetTab) => void
-  closeChannel: () => Promise<void>
-  withdrawCredits: () => Promise<void>
+  closeChannel: (channelId: string) => Promise<void>
+  withdrawCredits: (amount: string) => Promise<void>
   retry: () => Promise<void>
 }
 
@@ -114,8 +78,8 @@ export interface AiCreditsPaySuccessDetail {
   address: string
   chainId: number
   transactionHash: string
-  buyerKey: string
-  creditsReceived: string
+  buyerPubKey: string
+  creditUsdMicro: string
 }
 
 export interface AiCreditsPayErrorDetail {

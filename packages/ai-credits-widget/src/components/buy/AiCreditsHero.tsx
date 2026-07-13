@@ -4,15 +4,21 @@ import { BonusBadgeFrame } from '../theme/cards'
 interface HeroCardProps {
   gBalance: string | null
   isGoodIdVerified: boolean
-  bonusPercent: number
+  depositBonusPercent: number
+  streamBonusPercent: number
 }
 
-export function AiCreditsHero({ gBalance, isGoodIdVerified, bonusPercent }: HeroCardProps) {
+export function AiCreditsHero({
+  gBalance,
+  isGoodIdVerified,
+  depositBonusPercent,
+  streamBonusPercent,
+}: HeroCardProps) {
   const showBonusBadge =
     gBalance !== null &&
     Number.parseFloat(gBalance) > 0 &&
     isGoodIdVerified &&
-    bonusPercent > 0
+    (depositBonusPercent > 0 || streamBonusPercent > 0)
 
   return (
     <Card gap="$4" backgroundColor="$backgroundHover">
@@ -31,16 +37,24 @@ export function AiCreditsHero({ gBalance, isGoodIdVerified, bonusPercent }: Hero
         {showBonusBadge && (
           <BonusBadgeFrame backgroundColor="$backgroundPress">
             <Icon name="info" size="xs" color="primary" />
-            <Text fontSize="$2" fontWeight="700" color="$primary">
-              +{bonusPercent}% Bonus
-            </Text>
-            <Text fontSize="$1" secondary>
-              (GoodID)
-            </Text>
+            <YStack gap="$0.5" alignItems="flex-end">
+              {depositBonusPercent > 0 && (
+                <Text fontSize="$2" fontWeight="700" color="$primary">
+                  +{depositBonusPercent}% deposit
+                </Text>
+              )}
+              {streamBonusPercent > 0 && (
+                <Text fontSize="$2" fontWeight="700" color="$primary">
+                  +{streamBonusPercent}% stream
+                </Text>
+              )}
+              <Text fontSize="$1" secondary>
+                GoodID bonus
+              </Text>
+            </YStack>
           </BonusBadgeFrame>
         )}
       </XStack>
     </Card>
   )
 }
-

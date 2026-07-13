@@ -12,8 +12,6 @@ import {
   isInjectedProviderUsable,
 } from '../../fixtures/injectedEip1193'
 
-const SETUP_SNIPPET = `export ANTSEED_IDENTITY_HEX=<buyer-private-key>\nexport ANTHROPIC_BASE_URL=http://localhost:8377`
-
 function createMockState(
   status: AiCreditsWidgetStatus,
   overrides: Partial<AiCreditsWidgetAdapterState> = {},
@@ -23,31 +21,19 @@ function createMockState(
     address: '0x329377cbeeF39f01b0Ea04B80465c9eB47D3ED1',
     chainId: 42220,
     gBalance: '42.50',
-    aiCreditsBalance: null,
+    gdUsdPerToken: 0.0015,
+    totalCreditUsd: null,
     isGoodIdVerified: false,
-    buyerKey: null,
-    buyerKeyPrivate: null,
-    buyerKeyConfirmed: false,
-    operatorConsentSigned: false,
+    buyerPubKey: null,
+    buyerPrvKey: null,
+    operatorConsented: false,
     operatorAddress: null,
-    apiKey: null,
-    depositAmount: '5',
-    streamAmount: '0',
-    minDepositG: '1',
-    minStreamG: '1',
-    bonusPercent: 0,
-    quote: null,
-    setupSnippet: SETUP_SNIPPET,
-    usageLog: [],
+    minDepositUsd: '1.00',
+    minStreamUsd: '1.00',
     totalGdDepositedG: null,
     monthlyStreamG: null,
-    monthlyStreamCredits: null,
     withdrawableUsd: null,
-    channelId: '',
-    withdrawAmount: '',
     error: null,
-    primaryAction: 'generate_key',
-    primaryLabel: 'Set Up Buyer Key',
     activeTab: 'buy',
   }
   return { ...base, ...overrides }
@@ -63,14 +49,15 @@ function createAdapterFactory(
       connect: async () => {},
       switchChain: async () => {},
       generateBuyerKey: async () => {},
-      confirmBuyerKey: () => {},
       signOperatorConsent: async () => {},
-      setDepositAmount: () => {},
-      setStreamAmount: () => {},
-      setChannelId: () => {},
-      setWithdrawAmount: () => {},
+      syncOperatorConsentFromChain: async () => {},
+      buildQuote: async (depositG, streamG) => ({
+        depositAmountG: depositG,
+        streamAmountG: streamG,
+      }),
       pay: async () => {},
       refresh: async () => {},
+      verifyGoodId: async () => false,
       startPurchase: () => {},
       setActiveTab: () => {},
       closeChannel: async () => {},
@@ -114,8 +101,19 @@ export function DisconnectedStory() {
         address: null,
         chainId: null,
         gBalance: null,
-        primaryAction: 'connect',
-        primaryLabel: 'Connect Wallet',
+      })}
+    />
+  )
+}
+
+export function ConnectingStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-connecting"
+      adapterFactory={createAdapterFactory('connecting', {
+        address: '0x329377cbeeF39f01b0Ea04B80465c9eB47D3ED1',
+        chainId: 42220,
+        gBalance: null,
       })}
     />
   )
@@ -127,8 +125,6 @@ export function PurchaseSetupStory() {
       dataTestId="AiCreditsWidget-purchase-setup"
       adapterFactory={createAdapterFactory('purchase_setup', {
         gBalance: '0',
-        primaryAction: 'generate_key',
-        primaryLabel: 'Set Up Buyer Key',
       })}
     />
   )
@@ -139,22 +135,9 @@ export function QuoteReadyStory() {
     <MockStoryShell
       dataTestId="AiCreditsWidget-quote-ready"
       adapterFactory={createAdapterFactory('quote_ready', {
-        buyerKey: '0xabcdef1234567890abcdef1234567890abcdef12',
-        buyerKeyConfirmed: true,
-        operatorConsentSigned: true,
-        depositAmount: '10',
-        streamAmount: '5',
-        bonusPercent: 0,
-        quote: {
-          depositAmountG: '10.00',
-          streamAmountG: '5.00',
-          depositAmountUsd: '0.0150',
-          streamAmountUsd: '0.0075',
-          bonusPercent: 0,
-          totalCredits: '2.50',
-        },
-        primaryAction: 'pay',
-        primaryLabel: 'Buy AI Credits',
+        buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
+        operatorConsented: true,
+        gdUsdPerToken: 0.0015,
       })}
     />
   )
@@ -166,22 +149,9 @@ export function QuoteReadyGoodIdStory() {
       dataTestId="AiCreditsWidget-quote-ready-goodid"
       adapterFactory={createAdapterFactory('quote_ready', {
         isGoodIdVerified: true,
-        buyerKey: '0xabcdef1234567890abcdef1234567890abcdef12',
-        buyerKeyConfirmed: true,
-        operatorConsentSigned: true,
-        depositAmount: '10',
-        streamAmount: '5',
-        bonusPercent: 20,
-        quote: {
-          depositAmountG: '10.00',
-          streamAmountG: '5.00',
-          depositAmountUsd: '0.0150',
-          streamAmountUsd: '0.0075',
-          bonusPercent: 20,
-          totalCredits: '3.00',
-        },
-        primaryAction: 'pay',
-        primaryLabel: 'Buy AI Credits',
+        buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
+        operatorConsented: true,
+        gdUsdPerToken: 0.0015,
       })}
     />
   )
@@ -192,11 +162,8 @@ export function PaymentPendingStory() {
     <MockStoryShell
       dataTestId="AiCreditsWidget-payment-pending"
       adapterFactory={createAdapterFactory('payment_pending', {
-        buyerKey: '0xabcdef1234567890abcdef1234567890abcdef12',
-        buyerKeyConfirmed: true,
-        operatorConsentSigned: true,
-        primaryAction: 'none',
-        primaryLabel: 'Processing…',
+        buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
+        operatorConsented: true,
       })}
     />
   )
@@ -207,11 +174,8 @@ export function PaymentConfirmedStory() {
     <MockStoryShell
       dataTestId="AiCreditsWidget-payment-confirmed"
       adapterFactory={createAdapterFactory('payment_confirmed', {
-        buyerKey: '0xabcdef1234567890abcdef1234567890abcdef12',
-        buyerKeyConfirmed: true,
-        operatorConsentSigned: true,
-        primaryAction: 'none',
-        primaryLabel: 'Settling…',
+        buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
+        operatorConsented: true,
       })}
     />
   )
@@ -222,27 +186,13 @@ export function ManageTabStory() {
     <MockStoryShell
       dataTestId="AiCreditsWidget-manage-tab"
       adapterFactory={createAdapterFactory('quote_ready', {
-        aiCreditsBalance: '110.00',
-        buyerKey: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a',
-        buyerKeyConfirmed: true,
-        operatorConsentSigned: true,
+        totalCreditUsd: '110000000',
+        buyerPubKey: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a',
+        operatorConsented: true,
         operatorAddress: '0x0000000000000000000000000000000000000004',
         totalGdDepositedG: '50.00',
         monthlyStreamG: '5.00',
-        monthlyStreamCredits: '7.50',
         gBalance: '42.50',
-        setupSnippet: SETUP_SNIPPET,
-        usageLog: [
-          {
-            sessionId: 'sess-001',
-            timestamp: '2025-06-20T10:00:00Z',
-            creditsUsed: 12.5,
-            model: 'G$ deposit',
-            kind: 'funding',
-          },
-        ],
-        primaryAction: 'refresh',
-        primaryLabel: 'Refresh',
         activeTab: 'manage',
       })}
     />
@@ -259,8 +209,6 @@ export function InsufficientGBalanceStory() {
       dataTestId="AiCreditsWidget-insufficient-balance"
       adapterFactory={createAdapterFactory('insufficient_g_balance', {
         gBalance: '0.50',
-        primaryAction: 'refresh',
-        primaryLabel: 'Refresh',
       })}
     />
   )
@@ -271,12 +219,9 @@ export function PaymentFailedStory() {
     <MockStoryShell
       dataTestId="AiCreditsWidget-payment-failed"
       adapterFactory={createAdapterFactory('payment_failed', {
-        buyerKey: '0xabcdef1234567890abcdef1234567890abcdef12',
-        buyerKeyConfirmed: true,
-        operatorConsentSigned: true,
+        buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
+        operatorConsented: true,
         error: 'Transaction reverted: insufficient allowance',
-        primaryAction: 'retry',
-        primaryLabel: 'Retry',
       })}
     />
   )
@@ -288,8 +233,6 @@ export function BackendUnavailableStory() {
       dataTestId="AiCreditsWidget-backend-unavailable"
       adapterFactory={createAdapterFactory('backend_unavailable', {
         error: 'Could not reach backend — check your connection',
-        primaryAction: 'retry',
-        primaryLabel: 'Retry',
       })}
     />
   )
@@ -301,8 +244,6 @@ export function UnsupportedChainStory() {
       dataTestId="AiCreditsWidget-unsupported-chain"
       adapterFactory={createAdapterFactory('unsupported_chain', {
         chainId: 1,
-        primaryAction: 'switch_chain',
-        primaryLabel: 'Switch to Celo',
       })}
     />
   )

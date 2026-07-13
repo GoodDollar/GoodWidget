@@ -4,7 +4,6 @@ export type { AiCreditsIntegration } from './integration'
 export type {
   AiCreditsWidgetStatus,
   AiCreditsWidgetTab,
-  AiCreditsWidgetPrimaryAction,
   AiCreditsWidgetAdapterState,
   AiCreditsWidgetAdapterActions,
   AiCreditsWidgetAdapterResult,
@@ -15,7 +14,6 @@ export type {
   AiCreditsPaySuccessDetail,
   AiCreditsPayErrorDetail,
   AiCreditsQuote,
-  AiCreditsUsageEntry,
 } from './widgetRuntimeContract'
 
 export type {
@@ -32,8 +30,8 @@ export {
   createBackendClient,
   buildAccountView,
   enrichAccountView,
-  balanceFromProfile,
-  creditsBalanceFromStatus,
+  totalCreditUsdFromProfile,
+  totalCreditUsdFromStatus,
   usdToCredits,
 } from './backendClient'
 export type { BuyerOperatorStatus, Eip712SigningPayload } from './operatorConsent'

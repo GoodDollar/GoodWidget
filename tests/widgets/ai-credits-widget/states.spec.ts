@@ -3,6 +3,8 @@ import { expect, test, type Page } from '@playwright/test'
 const STORY_IDS = {
   disconnected:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--disconnected&viewMode=story',
+  connecting:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--connecting&viewMode=story',
   purchaseSetup:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--purchase-setup&viewMode=story',
   quoteReady:
@@ -30,6 +32,10 @@ async function gotoStory(page: Page, storyUrl: string): Promise<void> {
   await page.waitForLoadState('domcontentloaded')
 }
 
+function widget(page: Page, testId: string) {
+  return page.getByTestId(testId)
+}
+
 test('AiCreditsWidget disconnected', async ({ page }) => {
   await gotoStory(page, STORY_IDS.disconnected)
   await expect(page.getByTestId('AiCreditsWidget-disconnected')).toBeVisible()
@@ -44,10 +50,11 @@ test('AiCreditsWidget disconnected', async ({ page }) => {
 
 test('AiCreditsWidget purchase_setup', async ({ page }) => {
   await gotoStory(page, STORY_IDS.purchaseSetup)
-  await expect(page.getByTestId('AiCreditsWidget-purchase-setup')).toBeVisible()
-  await expect(page.getByText('You need G$ before you can buy AI credits.')).toBeVisible()
-  await expect(page.getByText('Purchase Flow')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Sign & Generate Key' })).toBeVisible()
+  const root = widget(page, 'AiCreditsWidget-purchase-setup')
+  await expect(root).toBeVisible()
+  await expect(root.getByText('You need G$ before you can buy AI credits.')).toBeVisible()
+  await expect(root.getByText('Purchase Flow')).toBeVisible()
+  await expect(root.getByRole('button', { name: 'Sign & Generate Key' }).first()).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-02-purchase-setup.png',
     fullPage: true,
@@ -66,8 +73,10 @@ test('AiCreditsWidget quote_ready', async ({ page }) => {
 
 test('AiCreditsWidget quote_ready GoodID', async ({ page }) => {
   await gotoStory(page, STORY_IDS.quoteReadyGoodId)
-  await expect(page.getByTestId('AiCreditsWidget-quote-ready-goodid')).toBeVisible()
-  await expect(page.getByText('+20% Bonus', { exact: true })).toBeVisible()
+  const root = widget(page, 'AiCreditsWidget-quote-ready-goodid')
+  await expect(root).toBeVisible()
+  await expect(root.getByText('+10% deposit')).toBeVisible()
+  await expect(root.getByText('+20% stream')).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-04-quote-ready-goodid.png',
     fullPage: true,
@@ -136,6 +145,16 @@ test('AiCreditsWidget unsupported_chain', async ({ page }) => {
   await expect(page.getByTestId('AiCreditsWidget-unsupported-chain')).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-11-unsupported-chain.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget connecting', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.connecting)
+  await expect(page.getByTestId('AiCreditsWidget-connecting')).toBeVisible()
+  await expect(page.getByText('Connecting...')).toBeVisible()
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-12-connecting.png',
     fullPage: true,
   })
 })

@@ -20,7 +20,7 @@ import {
 } from './buyerSignatures'
 import {
   MockAiCreditsBackendClient,
-  balanceFromProfile,
+  totalCreditUsdFromProfile,
   buildAccountView,
   createBackendClient,
   enrichAccountView,
@@ -31,15 +31,21 @@ import type { AccountRef, AccountView } from './backendTypes'
 import { createChainClient, CELO_GD_ANTSEED_VAULT_ADDRESS, CELO_GOODID_ADDRESS } from './chainClient'
 import type { AiCreditsChainClient } from './chainClient'
 import { signOperatorConsentFromTypedData } from './operatorConsent'
+import {
+  addressesMatch,
+  patchPayerSessionFields,
+  patchPayerSession,
+  readPayerSession,
+} from './payerSession'
 import { executeCeloPayment, G_TOKEN_CELO_ADDRESS } from './celoPayment'
+import { startGoodIdVerification, isUserRejectedWalletRequest } from './goodIdVerification'
 import { fetchVaultPaymentMinimums, validateVaultPaymentAmounts } from './vaultMinimums'
-import { CREDITS_PER_USD, usdDisplayToMicro } from './quoteMath'
+import { quoteTotalUsdMicro, usdDisplayToMicro } from './quoteMath'
 import type {
   AiCreditsWidgetAdapterActions,
   AiCreditsWidgetAdapterResult,
   AiCreditsWidgetAdapterState,
   AiCreditsWidgetEnvironment,
-  AiCreditsWidgetPrimaryAction,
   AiCreditsWidgetStatus,
   AiCreditsWidgetTab,
   AiCreditsPaySuccessDetail,
@@ -49,7 +55,6 @@ import type {
 
 const CELO_CHAIN_ID = 42220
 const MIN_DEPOSIT_AMOUNT = '1'
-const MIN_STREAM_AMOUNT = '1'
 const CELO_GD_ANTSEED_VAULT_FALLBACK: Address = CELO_GD_ANTSEED_VAULT_ADDRESS
 
 const G_TOKEN_ABI = parseAbi([
@@ -72,32 +77,33 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   address: null,
   chainId: null,
   gBalance: null,
-  aiCreditsBalance: null,
+  gdUsdPerToken: null,
+  totalCreditUsd: null,
   isGoodIdVerified: false,
-  buyerKey: null,
-  buyerKeyPrivate: null,
-  buyerKeyConfirmed: false,
-  operatorConsentSigned: false,
+  buyerPubKey: null,
+  buyerPrvKey: null,
+  operatorConsented: false,
   operatorAddress: null,
-  apiKey: null,
-  depositAmount: MIN_DEPOSIT_AMOUNT,
-  streamAmount: '0',
-  minDepositG: null,
-  minStreamG: null,
-  bonusPercent: 0,
-  quote: null,
-  setupSnippet: buildSetupSnippet(),
-  usageLog: [],
+  minDepositUsd: null,
+  minStreamUsd: null,
   totalGdDepositedG: null,
   monthlyStreamG: null,
-  monthlyStreamCredits: null,
   withdrawableUsd: null,
-  channelId: '',
-  withdrawAmount: '',
   error: null,
-  primaryAction: 'connect',
-  primaryLabel: 'Connect Wallet',
   activeTab: 'buy',
+}
+
+const WALLET_LOADING_STATE: Partial<AiCreditsWidgetAdapterState> = {
+  gBalance: null,
+  gdUsdPerToken: null,
+  totalCreditUsd: null,
+  isGoodIdVerified: false,
+  minDepositUsd: null,
+  minStreamUsd: null,
+  totalGdDepositedG: null,
+  monthlyStreamG: null,
+  withdrawableUsd: null,
+  operatorAddress: null,
 }
 
 function isInBuyFlowStatus(status: AiCreditsWidgetStatus): boolean {
@@ -117,32 +123,30 @@ function resolveActiveTab(
 ): AiCreditsWidgetTab {
   if (overrides.activeTab !== undefined) return overrides.activeTab
 
-  const balance = overrides.aiCreditsBalance ?? prev.aiCreditsBalance
+  const balance = overrides.totalCreditUsd ?? prev.totalCreditUsd
   const justConnected = !prev.address && Boolean(overrides.address)
   const creditsAdded =
-    overrides.aiCreditsBalance !== undefined &&
-    hasCredits(overrides.aiCreditsBalance) &&
-    !hasCredits(prev.aiCreditsBalance)
+    overrides.totalCreditUsd !== undefined &&
+    hasCreditBalance(overrides.totalCreditUsd) &&
+    !hasCreditBalance(prev.totalCreditUsd)
 
-  if (justConnected && hasCredits(balance)) return 'manage'
+  if (justConnected && hasCreditBalance(balance)) return 'manage'
   if (creditsAdded && !isInBuyFlowStatus(status)) return 'manage'
 
   return prev.activeTab ?? 'buy'
 }
 
-function hasCredits(balance: string | null): boolean {
-  return balance !== null && Number.parseFloat(balance) > 0
+function hasCreditBalance(totalCreditUsd: string | null): boolean {
+  return totalCreditUsd !== null && BigInt(totalCreditUsd) > 0n
 }
 
 function deriveStatus(params: {
   isConnected: boolean
   chainId: number | null
   gBalance: string | null
-  buyerKey: string | null
-  buyerKeyConfirmed: boolean
-  operatorConsentSigned: boolean
-  depositAmount: string
-  streamAmount: string
+  buyerPubKey: string | null
+  buyerPrvKey: string | null
+  operatorConsented: boolean
   error: string | null
   currentStatus: AiCreditsWidgetStatus
   activeTab: AiCreditsWidgetTab
@@ -151,11 +155,9 @@ function deriveStatus(params: {
     isConnected,
     chainId,
     gBalance,
-    buyerKey,
-    buyerKeyConfirmed,
-    operatorConsentSigned,
-    depositAmount,
-    streamAmount,
+    buyerPubKey,
+    buyerPrvKey,
+    operatorConsented,
     error,
     currentStatus,
     activeTab,
@@ -170,7 +172,13 @@ function deriveStatus(params: {
     return currentStatus
   }
 
-  if (!isConnected) return 'disconnected'
+  if (currentStatus === 'connecting' && gBalance === null) {
+    return 'connecting'
+  }
+
+  if (!isConnected) {
+    return currentStatus === 'connecting' ? 'connecting' : 'disconnected'
+  }
 
   if (chainId !== null && chainId !== CELO_CHAIN_ID) return 'unsupported_chain'
 
@@ -181,71 +189,15 @@ function deriveStatus(params: {
   const balance = Number.parseFloat(gBalance)
   if (balance <= 0) return 'purchase_setup'
 
-  const deposit = Number.parseFloat(depositAmount)
-  const stream = Number.parseFloat(streamAmount)
-  const minDeposit = Number.parseFloat(MIN_DEPOSIT_AMOUNT)
-  const minStream = Number.parseFloat(MIN_STREAM_AMOUNT)
+  const minBalance = Number.parseFloat(MIN_DEPOSIT_AMOUNT)
 
-  if (balance < minDeposit) return 'insufficient_g_balance'
+  if (balance < minBalance) return 'insufficient_g_balance'
 
-  const hasValidDeposit = deposit >= minDeposit
-  const hasValidStream = stream === 0 || stream >= minStream
+  if (operatorConsented && !!buyerPubKey) return 'quote_ready'
 
-  if (!buyerKey || !buyerKeyConfirmed || !operatorConsentSigned) return 'purchase_setup'
+  if (!buyerPubKey || !buyerPrvKey || !operatorConsented) return 'purchase_setup'
 
-  const readyToPay = (hasValidDeposit || stream >= minStream) && hasValidStream
-  if (readyToPay) return 'quote_ready'
-
-  return 'purchase_setup'
-}
-
-function derivePrimaryAction(
-  status: AiCreditsWidgetStatus,
-  activeTab: AiCreditsWidgetTab,
-): AiCreditsWidgetPrimaryAction {
-  if (activeTab === 'manage') return 'refresh'
-
-  switch (status) {
-    case 'disconnected':
-      return 'connect'
-    case 'unsupported_chain':
-      return 'switch_chain'
-    case 'purchase_setup':
-      return 'generate_key'
-    case 'quote_ready':
-      return 'pay'
-    case 'payment_pending':
-    case 'payment_confirmed':
-      return 'none'
-    case 'payment_failed':
-    case 'backend_unavailable':
-      return 'retry'
-    case 'insufficient_g_balance':
-      return 'refresh'
-    default:
-      return 'none'
-  }
-}
-
-function derivePrimaryLabel(action: AiCreditsWidgetPrimaryAction): string {
-  switch (action) {
-    case 'connect':
-      return 'Connect Wallet'
-    case 'switch_chain':
-      return 'Switch to Celo'
-    case 'generate_key':
-      return 'Set Up Buyer Key'
-    case 'sign_consent':
-      return 'Sign Consent'
-    case 'pay':
-      return 'Buy AI Credits'
-    case 'retry':
-      return 'Retry'
-    case 'refresh':
-      return 'Refresh'
-    default:
-      return ''
-  }
+  return 'quote_ready'
 }
 
 function withDerivedStatus(
@@ -258,23 +210,17 @@ function withDerivedStatus(
     isConnected,
     chainId: merged.chainId,
     gBalance: merged.gBalance,
-    buyerKey: merged.buyerKey,
-    buyerKeyConfirmed: merged.buyerKeyConfirmed,
-    operatorConsentSigned: merged.operatorConsentSigned,
-    depositAmount: merged.depositAmount,
-    streamAmount: merged.streamAmount,
+    buyerPubKey: merged.buyerPubKey,
+    buyerPrvKey: merged.buyerPrvKey,
+    operatorConsented: merged.operatorConsented,
     error: merged.error,
     currentStatus: merged.status,
     activeTab: merged.activeTab,
   })
-  const activeTab = resolveActiveTab(prev, overrides, status)
-  const primaryAction = derivePrimaryAction(status, activeTab)
   return {
     ...merged,
     status,
     activeTab: resolveActiveTab(prev, overrides, status),
-    primaryAction,
-    primaryLabel: derivePrimaryLabel(primaryAction),
   }
 }
 
@@ -289,11 +235,9 @@ function mergeStatePreservingManageTab(
     isConnected: true,
     chainId: overrides.chainId ?? prev.chainId,
     gBalance: overrides.gBalance ?? prev.gBalance,
-    buyerKey: overrides.buyerKey ?? prev.buyerKey,
-    buyerKeyConfirmed: overrides.buyerKeyConfirmed ?? prev.buyerKeyConfirmed,
-    operatorConsentSigned: overrides.operatorConsentSigned ?? prev.operatorConsentSigned,
-    depositAmount: overrides.depositAmount ?? prev.depositAmount,
-    streamAmount: overrides.streamAmount ?? prev.streamAmount,
+    buyerPubKey: overrides.buyerPubKey ?? prev.buyerPubKey,
+    buyerPrvKey: overrides.buyerPrvKey ?? prev.buyerPrvKey,
+    operatorConsented: overrides.operatorConsented ?? prev.operatorConsented,
     error: overrides.error ?? prev.error,
     currentStatus: overrides.status ?? prev.status,
     activeTab: 'manage',
@@ -303,8 +247,6 @@ function mergeStatePreservingManageTab(
     ...overrides,
     status,
     activeTab: 'manage',
-    primaryAction: 'refresh',
-    primaryLabel: 'Refresh',
   }
 }
 
@@ -312,30 +254,74 @@ function viewToStatePatch(
   view: AccountView,
   enriched: AccountEnrichment,
   prev: AiCreditsWidgetAdapterState,
-  options?: { usageLog?: AiCreditsWidgetAdapterState['usageLog']; balanceMode?: 'if_positive' | 'always' },
+  options?: {
+    balanceMode?: 'if_positive' | 'always'
+  },
 ): Partial<AiCreditsWidgetAdapterState> {
   const operatorAccepted = view.operator.operatorAccepted
-  const buyer = enriched.buyer
-  const balance = enriched.balance
+  const totalCreditUsd = enriched.totalCreditUsd
   const balanceMode = options?.balanceMode ?? 'if_positive'
-  const keyForSnippet = buyer ?? prev.buyerKey
 
   return {
-    aiCreditsBalance:
-      balanceMode === 'always' || hasCredits(balance) ? balance : prev.aiCreditsBalance,
+    totalCreditUsd:
+      balanceMode === 'always' || hasCreditBalance(totalCreditUsd)
+        ? totalCreditUsd
+        : prev.totalCreditUsd,
     isGoodIdVerified: enriched.goodIdVerified,
-    buyerKey: buyer ?? prev.buyerKey,
-    buyerKeyConfirmed: buyer && operatorAccepted ? true : prev.buyerKeyConfirmed,
-    operatorConsentSigned: operatorAccepted,
+    operatorConsented: operatorAccepted,
     operatorAddress: view.operator.operatorAddress ?? null,
     withdrawableUsd: view.withdrawableUsd,
-    setupSnippet: buildSetupSnippet(keyForSnippet),
-    bonusPercent: enriched.bonusPercent,
     totalGdDepositedG: enriched.totalGdDepositedG,
     monthlyStreamG: enriched.monthlyStreamG,
-    monthlyStreamCredits: enriched.monthlyStreamCredits,
-    ...(options?.usageLog !== undefined ? { usageLog: options.usageLog } : {}),
+    ...(view.buyer ? { buyerPubKey: view.buyer } : {}),
   }
+}
+
+function mergeSessionFields(
+  prev: AiCreditsWidgetAdapterState,
+  sessionPatch: ReturnType<typeof patchPayerSessionFields>,
+  accountPatch: Partial<AiCreditsWidgetAdapterState>,
+  accountSwitched: boolean,
+): Partial<
+  Pick<
+    AiCreditsWidgetAdapterState,
+    'buyerPubKey' | 'buyerPrvKey' | 'operatorConsented'
+  >
+> {
+  const buyerPubKey =
+    sessionPatch.buyerPubKey ??
+    accountPatch.buyerPubKey ??
+    (accountSwitched ? null : prev.buyerPubKey)
+  const buyerPrvKey =
+    sessionPatch.buyerPrvKey ?? (accountSwitched ? null : prev.buyerPrvKey)
+  const operatorConsented = accountSwitched
+    ? (sessionPatch.operatorConsented ??
+      accountPatch.operatorConsented ??
+      false)
+    : (accountPatch.operatorConsented ??
+      sessionPatch.operatorConsented ??
+      prev.operatorConsented)
+
+  return {
+    buyerPubKey,
+    buyerPrvKey,
+    operatorConsented,
+  }
+}
+
+function syncOperatorConsentSession(
+  address: string,
+  operatorConsented: boolean | undefined,
+): void {
+  if (operatorConsented === undefined) return
+  patchPayerSession(address, { operatorConsented })
+}
+
+function syncBuyerPubKeySession(address: string, buyerPubKey: string | null | undefined): void {
+  if (!buyerPubKey) return
+  const existing = readPayerSession(address)
+  if (existing?.buyerPubKey) return
+  patchPayerSession(address, { buyerPubKey })
 }
 
 export interface UseAiCreditsAdapterOptions {
@@ -346,17 +332,20 @@ export interface UseAiCreditsAdapterOptions {
   fundingVaultAddress?: Address
   vaultAddress?: Address
   goodIdAddress?: Address
+  goodIdReturnUrl?: string
   onPaySuccess?: (detail: AiCreditsPaySuccessDetail) => void
   onPayError?: (detail: AiCreditsPayErrorDetail) => void
 }
 
 export function useAiCreditsAdapter({
+  environment = 'production',
   backendUrl,
   baseRpcUrl,
   celoRpcUrl,
   fundingVaultAddress,
   vaultAddress,
   goodIdAddress,
+  goodIdReturnUrl,
   onPaySuccess,
   onPayError,
 }: UseAiCreditsAdapterOptions): AiCreditsWidgetAdapterResult {
@@ -365,6 +354,7 @@ export function useAiCreditsAdapter({
 
   const providerRef = useRef<EIP1193Provider | null>(null)
   providerRef.current = provider as EIP1193Provider | null
+  const goodIdVerifyPendingRef = useRef(false)
 
   const celoVault = vaultAddress ?? CELO_GD_ANTSEED_VAULT_FALLBACK
 
@@ -387,11 +377,37 @@ export function useAiCreditsAdapter({
 
   useEffect(() => {
     if (!isConnected || !address) {
-      setState({ ...INITIAL_STATE })
+      setState((prev) => (prev.status === 'connecting' ? prev : { ...INITIAL_STATE }))
       return
     }
 
     let cancelled = false
+    const sessionPatch = patchPayerSessionFields(address)
+
+    setState((prev) => {
+      if (
+        prev.status === 'payment_pending' ||
+        prev.status === 'payment_confirmed' ||
+        prev.status === 'payment_failed' ||
+        prev.status === 'backend_unavailable'
+      ) {
+        return prev
+      }
+      const accountSwitched = !addressesMatch(prev.address, address)
+      const buyerFields = mergeSessionFields(prev, sessionPatch, {}, accountSwitched)
+      return withDerivedStatus(
+        prev,
+        {
+          address,
+          chainId,
+          ...buyerFields,
+          ...WALLET_LOADING_STATE,
+          error: null,
+          status: 'connecting',
+        },
+        true,
+      )
+    })
 
     async function loadWalletData() {
       const publicClient = createPublicClient({ chain: CELO_CHAIN, transport: http() })
@@ -409,7 +425,9 @@ export function useAiCreditsAdapter({
         }),
       ])
 
-      const accountPromise = buildAccountView(address!, backendClient, chainClient)
+      const accountPromise = buildAccountView(address!, backendClient, chainClient, {
+        buyerAddress: sessionPatch.buyerPubKey ?? null,
+      })
         .then(async (view) => ({
           view,
           enriched: await enrichAccountView(view, chainClient),
@@ -419,18 +437,20 @@ export function useAiCreditsAdapter({
       const minimumsPromise =
         backendClient instanceof MockAiCreditsBackendClient
           ? Promise.resolve({
-              minDepositG: '1',
-              minStreamG: '1',
               minDepositUsd: '1.00',
               minStreamUsd: '1.00',
             })
           : fetchVaultPaymentMinimums(publicClient, celoVault, address as Address).catch(() => null)
 
+      const gdUsdPerTokenPromise = chainClient.fetchGdUsdPerToken().catch(() => null)
+
       try {
-        const [[rawBalance, decimals], account, minimums] = await Promise.all([
+        const [[rawBalance, decimals], account, minimums, gdUsdPerToken] =
+          await Promise.all([
           balancePromise,
           accountPromise,
           minimumsPromise,
+          gdUsdPerTokenPromise,
         ])
         if (cancelled) return
 
@@ -438,37 +458,60 @@ export function useAiCreditsAdapter({
           address,
           chainId,
           gBalance: formatUnits(rawBalance as bigint, decimals as number),
-          minDepositG: minimums?.minDepositG ?? null,
-          minStreamG: minimums?.minStreamG ?? null,
+          gdUsdPerToken,
+          minDepositUsd: minimums?.minDepositUsd ?? null,
+          minStreamUsd: minimums?.minStreamUsd ?? null,
         }
 
         setState((prev) => {
+          const accountSwitched = !addressesMatch(prev.address, address)
           const accountPatch = account
-            ? viewToStatePatch(account.view, account.enriched, prev, { balanceMode: 'if_positive' })
+            ? viewToStatePatch(account.view, account.enriched, prev, {
+                balanceMode: 'if_positive',
+              })
             : {}
-          return withDerivedStatus(prev, { ...patch, ...accountPatch }, true)
+          const buyerFields = mergeSessionFields(
+            prev,
+            sessionPatch,
+            accountPatch,
+            accountSwitched,
+          )
+          if (address && accountPatch.operatorConsented !== undefined) {
+            syncOperatorConsentSession(address, accountPatch.operatorConsented)
+          }
+          if (address && account?.view.buyer) {
+            syncBuyerPubKeySession(address, account.view.buyer)
+          }
+          return withDerivedStatus(
+            prev,
+            {
+              ...patch,
+              ...accountPatch,
+              ...buyerFields,
+            },
+            true,
+          )
         })
       } catch {
         if (cancelled) return
-        setState((prev) =>
-          withDerivedStatus(
+        setState((prev) => {
+          const accountSwitched = !addressesMatch(prev.address, address)
+          const buyerFields = mergeSessionFields(prev, sessionPatch, {}, accountSwitched)
+          return withDerivedStatus(
             prev,
             {
               address,
               chainId,
               gBalance: '0',
+              ...buyerFields,
               status:
                 chainId !== null && chainId !== CELO_CHAIN_ID
                   ? 'unsupported_chain'
                   : 'purchase_setup',
-              primaryAction:
-                chainId !== null && chainId !== CELO_CHAIN_ID ? 'switch_chain' : 'generate_key',
-              primaryLabel:
-                chainId !== null && chainId !== CELO_CHAIN_ID ? 'Switch to Celo' : 'Set Up Buyer Key',
             },
             true,
-          ),
-        )
+          )
+        })
       }
     }
 
@@ -478,46 +521,15 @@ export function useAiCreditsAdapter({
     }
   }, [isConnected, address, chainId, backendClient, chainClient, celoVault])
 
-  useEffect(() => {
-    if (!isConnected || !address) return
-    if (!state.operatorConsentSigned) return
-    if (state.status === 'payment_pending' || state.status === 'payment_confirmed') return
-
-    let cancelled = false
-
-    async function refreshQuote() {
-      try {
-        const quote = await chainClient.buildQuote(
-          state.depositAmount,
-          state.streamAmount,
-          state.isGoodIdVerified,
-        )
-        if (cancelled) return
-        setState((prev) =>
-          withDerivedStatus(prev, { quote, bonusPercent: quote.bonusPercent }, true),
-        )
-      } catch {
-        if (!cancelled) setState((prev) => ({ ...prev, quote: null }))
-      }
-    }
-
-    void refreshQuote()
-    return () => {
-      cancelled = true
-    }
-  }, [
-    isConnected,
-    address,
-    state.operatorConsentSigned,
-    state.depositAmount,
-    state.streamAmount,
-    state.isGoodIdVerified,
-    state.status,
-    chainClient,
-  ])
-
   const handleConnect = useCallback(async () => {
-    await connect()
+    setState((prev) => withDerivedStatus(prev, { status: 'connecting', error: null }, false))
+    try {
+      await connect()
+    } catch {
+      setState((prev) =>
+        withDerivedStatus(prev, { status: 'disconnected', error: null }, false),
+      )
+    }
   }, [connect])
 
   const handleSwitchChain = useCallback(async () => {
@@ -552,19 +564,19 @@ export function useAiCreditsAdapter({
       const privateKey = deriveBuyerPrivateKeyFromSignature(signature)
       const account = privateKeyToAccount(privateKey)
 
-      setState((prev) => {
-        const onManageTab = prev.activeTab === 'manage'
-        return mergeStatePreservingManageTab(prev, {
-          buyerKey: account.address,
-          buyerKeyPrivate: privateKey,
-          buyerKeyConfirmed: onManageTab,
-          operatorConsentSigned: false,
-          apiKey: null,
-          error: null,
-          setupSnippet: buildSetupSnippet(account.address),
-          ...(!onManageTab ? { status: 'purchase_setup' } : {}),
-        })
+      patchPayerSession(payerAddress, {
+        buyerPubKey: account.address,
+        buyerPrvKey: privateKey,
       })
+
+      setState((prev) =>
+        mergeStatePreservingManageTab(prev, {
+          buyerPubKey: account.address,
+          buyerPrvKey: privateKey,
+          error: null,
+          ...(prev.activeTab !== 'manage' ? { status: 'purchase_setup' } : {}),
+        }),
+      )
     } catch (err: unknown) {
       setState((prev) =>
         withDerivedStatus(prev, {
@@ -574,20 +586,16 @@ export function useAiCreditsAdapter({
     }
   }, [address])
 
-  const handleConfirmBuyerKey = useCallback(() => {
-    setState((prev) => withDerivedStatus(prev, { buyerKeyConfirmed: true, status: 'purchase_setup' }, true))
-  }, [])
-
   const handleSignOperatorConsent = useCallback(async () => {
     const currentState = state
-    if (!currentState.address || !currentState.buyerKey || !currentState.buyerKeyPrivate) {
+    if (!currentState.address || !currentState.buyerPubKey || !currentState.buyerPrvKey) {
       setState((prev) =>
         withDerivedStatus(prev, { error: 'Generate a buyer key before signing operator consent' }, true),
       )
       return
     }
 
-    const ref: AccountRef = { payer: currentState.address, buyer: currentState.buyerKey }
+    const ref: AccountRef = { payer: currentState.address, buyer: currentState.buyerPubKey }
     const onManageTab = currentState.activeTab === 'manage'
 
     try {
@@ -598,9 +606,10 @@ export function useAiCreditsAdapter({
       }
 
       if (operatorStatus.operatorAccepted) {
+        patchPayerSession(currentState.address, { operatorConsented: true })
         setState((prev) =>
           mergeStatePreservingManageTab(prev, {
-            operatorConsentSigned: true,
+            operatorConsented: true,
             error: null,
             ...(!onManageTab ? { status: 'purchase_setup' } : {}),
           }),
@@ -615,7 +624,7 @@ export function useAiCreditsAdapter({
       }
 
       const buyerSig = await signOperatorConsentFromTypedData(
-        currentState.buyerKeyPrivate as `0x${string}`,
+        currentState.buyerPrvKey as `0x${string}`,
         payload.typedData,
       )
 
@@ -625,9 +634,10 @@ export function useAiCreditsAdapter({
       })
       await waitForOperatorConsent(chainClient, ref)
 
+      patchPayerSession(currentState.address, { operatorConsented: true })
       setState((prev) =>
         mergeStatePreservingManageTab(prev, {
-          operatorConsentSigned: true,
+          operatorConsented: true,
           error: null,
           ...(!onManageTab ? { status: 'purchase_setup' } : {}),
         }),
@@ -640,72 +650,79 @@ export function useAiCreditsAdapter({
     }
   }, [state, backendClient, chainClient])
 
-  const handleSetDepositAmount = useCallback((amount: string) => {
-    setState((prev) =>
-      withDerivedStatus(
-        prev,
-        {
-          depositAmount: amount,
-          status: prev.status === 'payment_pending' ? 'payment_pending' : 'purchase_setup',
-        },
-        true,
-      ),
-    )
-  }, [])
+  const handleSyncOperatorConsentFromChain = useCallback(async () => {
+    const currentState = state
+    if (!currentState.address || !currentState.buyerPubKey || currentState.operatorConsented) {
+      return
+    }
 
-  const handleSetStreamAmount = useCallback((amount: string) => {
-    setState((prev) =>
-      withDerivedStatus(
-        prev,
-        {
-          streamAmount: amount,
-          status: prev.status === 'payment_pending' ? 'payment_pending' : 'purchase_setup',
-        },
-        true,
-      ),
-    )
-  }, [])
+    try {
+      const ref: AccountRef = { payer: currentState.address, buyer: currentState.buyerPubKey }
+      const operatorStatus = await chainClient.getBuyerOperatorStatus(ref)
+      if (!operatorStatus.operatorAccepted) return
 
-  const handleSetChannelId = useCallback((channelId: string) => {
-    setState((prev) => ({ ...prev, channelId }))
-  }, [])
+      patchPayerSession(currentState.address, { operatorConsented: true })
+      const onManageTab = currentState.activeTab === 'manage'
+      setState((prev) =>
+        mergeStatePreservingManageTab(prev, {
+          operatorConsented: true,
+          error: null,
+          ...(!onManageTab ? { status: 'purchase_setup' } : {}),
+        }),
+      )
+    } catch {
+      return
+    }
+  }, [state, chainClient])
 
-  const handleSetWithdrawAmount = useCallback((amount: string) => {
-    setState((prev) => ({ ...prev, withdrawAmount: amount }))
-  }, [])
+  const handleBuildQuote = useCallback(
+    async (depositG: string, streamG: string): Promise<AiCreditsQuote> => {
+      const quote = await chainClient.buildQuote(depositG, streamG)
+      if (state.gdUsdPerToken === null) {
+        try {
+          const gdUsdPerToken = await chainClient.fetchGdUsdPerToken()
+          setState((prev) => ({ ...prev, gdUsdPerToken }))
+        } catch {
+          return quote
+        }
+      }
+      return quote
+    },
+    [chainClient, state.gdUsdPerToken],
+  )
 
-  const handlePay = useCallback(async () => {
+  const handlePay = useCallback(async (quote: AiCreditsQuote) => {
     const currentState = state
 
-    if (!currentState.address || !currentState.buyerKey || !providerRef.current) return
+    if (!currentState.address || !currentState.buyerPubKey || !providerRef.current) {
+      throw new Error('Connect your wallet and generate a buyer key before paying')
+    }
 
-    const depositAmountG = Number.parseFloat(currentState.depositAmount)
-    const streamAmountG = Number.parseFloat(currentState.streamAmount)
+    const depositAmountG = Number.parseFloat(quote.depositAmountG)
+    const streamAmountG = Number.parseFloat(quote.streamAmountG)
     const hasDeposit = depositAmountG > 0
     const hasStream = streamAmountG > 0
-    if (!hasDeposit && !hasStream) return
+    if (!hasDeposit && !hasStream) {
+      throw new Error('Enter a deposit or monthly stream amount')
+    }
 
-    let quote: AiCreditsQuote | null = currentState.quote
+    let gdUsdPerToken = currentState.gdUsdPerToken
     try {
-      if (!quote) {
-        quote = await chainClient.buildQuote(
-          currentState.depositAmount,
-          currentState.streamAmount,
-          currentState.isGoodIdVerified,
-        )
+      if (gdUsdPerToken === null) {
+        gdUsdPerToken = await chainClient.fetchGdUsdPerToken()
       }
     } catch {
       setState((prev) => ({
         ...prev,
         status: 'backend_unavailable',
-        primaryAction: 'retry',
-        primaryLabel: 'Retry',
         error: 'Could not build quote — check chain connectivity',
       }))
-      return
+      throw new Error('Could not build quote — check chain connectivity')
     }
 
-    if (!quote) return
+    if (gdUsdPerToken === null) {
+      throw new Error('Could not build quote — check chain connectivity')
+    }
 
     if (!(backendClient instanceof MockAiCreditsBackendClient)) {
       try {
@@ -714,16 +731,14 @@ export function useAiCreditsAdapter({
           publicClient,
           vault: celoVault,
           payer: currentState.address as Address,
-          depositAmount: currentState.depositAmount,
-          streamAmount: currentState.streamAmount,
+          depositAmount: quote.depositAmountG,
+          streamAmount: quote.streamAmountG,
         })
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Payment amount below vault minimum'
         setState((prev) => ({
           ...prev,
           status: 'payment_failed',
-          primaryAction: 'retry',
-          primaryLabel: 'Retry',
           error: message,
         }))
         onPayError?.({
@@ -731,23 +746,21 @@ export function useAiCreditsAdapter({
           chainId: CELO_CHAIN_ID,
           message,
         })
-        return
+        throw error instanceof Error ? error : new Error(message)
       }
     }
 
     setState((prev) => ({
       ...prev,
-      quote,
+      gdUsdPerToken,
       status: 'payment_pending',
-      primaryAction: 'none',
-      primaryLabel: 'Processing…',
       error: null,
     }))
 
     try {
       const vault = celoVault
       const payerAddress = currentState.address as Address
-      const buyerAddress = currentState.buyerKey as Address
+      const buyerAddress = currentState.buyerPubKey as Address
 
       const publicClient = createPublicClient({ chain: CELO_CHAIN, transport: http() })
       const walletClient = createWalletClient({
@@ -758,12 +771,14 @@ export function useAiCreditsAdapter({
 
       const accountRef: AccountRef = {
         payer: currentState.address,
-        buyer: currentState.buyerKey,
+        buyer: currentState.buyerPubKey,
       }
 
       if (backendClient instanceof MockAiCreditsBackendClient) {
-        const creditUsdMicro = BigInt(
-          Math.round(Number.parseFloat(quote.totalCredits) * CREDITS_PER_USD),
+        const creditUsdMicro = quoteTotalUsdMicro(
+          quote,
+          gdUsdPerToken,
+          currentState.isGoodIdVerified,
         )
         backendClient.prepareSettlement(accountRef, creditUsdMicro)
       }
@@ -783,14 +798,12 @@ export function useAiCreditsAdapter({
       setState((prev) => ({
         ...prev,
         status: 'payment_confirmed',
-        primaryAction: 'none',
-        primaryLabel: 'Settling…',
       }))
 
       let balanceBefore = '0'
       try {
         const credit = await backendClient.getAccountCredit(currentState.address)
-        balanceBefore = balanceFromProfile(credit.profile)
+        balanceBefore = totalCreditUsdFromProfile(credit.profile)
       } catch {
         balanceBefore = '0'
       }
@@ -798,17 +811,18 @@ export function useAiCreditsAdapter({
       for (const hash of txHashes) {
         await backendClient.notifyPayment(hash)
       }
-      const { credits } = await backendClient.waitForSettlement(accountRef, {
+      const { totalCreditUsd } = await backendClient.waitForSettlement(accountRef, {
         txHashes,
         previousBalance: balanceBefore,
       })
 
-      const setupSnippet = buildSetupSnippet(currentState.buyerKey)
+      const creditUsdMicro = (
+        BigInt(totalCreditUsd) - BigInt(balanceBefore || '0')
+      ).toString()
 
       setState((prev) =>
         withDerivedStatus(prev, {
-          aiCreditsBalance: credits,
-          setupSnippet,
+          totalCreditUsd,
           error: null,
           activeTab: 'manage',
         }),
@@ -818,16 +832,14 @@ export function useAiCreditsAdapter({
         address: currentState.address!,
         chainId: CELO_CHAIN_ID,
         transactionHash: txHash,
-        buyerKey: currentState.buyerKey,
-        creditsReceived: credits,
+        buyerPubKey: currentState.buyerPubKey!,
+        creditUsdMicro,
       })
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Payment failed'
       setState((prev) => ({
         ...prev,
         status: 'payment_failed',
-        primaryAction: 'retry',
-        primaryLabel: 'Retry',
         error: message,
       }))
       onPayError?.({
@@ -835,150 +847,236 @@ export function useAiCreditsAdapter({
         chainId: CELO_CHAIN_ID,
         message,
       })
+      throw err instanceof Error ? err : new Error(message)
     }
   }, [state, backendClient, chainClient, celoVault, onPaySuccess, onPayError])
 
-  const handleRefresh = useCallback(async () => {
+  const handleRefresh = useCallback(async (options?: { afterGoodIdVerify?: boolean }) => {
     const currentState = state
     if (!currentState.address) return
 
     try {
-      const [view, usageLog] = await Promise.all([
-        buildAccountView(currentState.address, backendClient, chainClient),
-        backendClient.getUsageLog(currentState.address),
+      const sessionBuyer =
+        currentState.buyerPubKey ?? patchPayerSessionFields(currentState.address).buyerPubKey ?? null
+      const [view] = await Promise.all([
+        buildAccountView(currentState.address, backendClient, chainClient, {
+          buyerAddress: sessionBuyer,
+        }),
       ])
       const enriched = await enrichAccountView(view, chainClient)
 
+      setState((prev) => {
+        const accountPatch = viewToStatePatch(view, enriched, prev, {
+          balanceMode: 'always',
+        })
+        const sessionFields = mergeSessionFields(
+          prev,
+          patchPayerSessionFields(currentState.address),
+          accountPatch,
+          false,
+        )
+        if (accountPatch.operatorConsented !== undefined && currentState.address) {
+          syncOperatorConsentSession(currentState.address, accountPatch.operatorConsented)
+        }
+        if (currentState.address && view.buyer) {
+          syncBuyerPubKeySession(currentState.address, view.buyer)
+        }
+        const statusSeed =
+          options?.afterGoodIdVerify && prev.status === 'payment_failed'
+            ? 'quote_ready'
+            : prev.status
+        return withDerivedStatus(
+          { ...prev, status: statusSeed },
+          {
+            ...accountPatch,
+            ...sessionFields,
+            activeTab: prev.activeTab,
+            error: null,
+          },
+          true,
+        )
+      })
+    } catch {
+      setState((prev) =>
+        mergeStatePreservingManageTab(prev, {
+          status: 'backend_unavailable',
+          error: 'Could not reach backend — check your connection',
+        }),
+      )
+    }
+  }, [state, backendClient, chainClient])
+
+  const handleVerifyGoodId = useCallback(async (): Promise<boolean> => {
+    const currentState = state
+    if (!currentState.address || !providerRef.current) {
+      setState((prev) =>
+        withDerivedStatus(
+          prev,
+          { error: 'Connect your wallet on Celo to verify with GoodID' },
+          true,
+        ),
+      )
+      return false
+    }
+    if (currentState.chainId !== CELO_CHAIN_ID) {
+      setState((prev) =>
+        withDerivedStatus(prev, { error: 'Switch to Celo to verify with GoodID' }, true),
+      )
+      return false
+    }
+
+    try {
+      await startGoodIdVerification({
+        provider: providerRef.current,
+        address: currentState.address,
+        chainId: CELO_CHAIN_ID,
+        environment,
+        returnUrl: goodIdReturnUrl,
+      })
+      goodIdVerifyPendingRef.current = true
+      setState((prev) => ({ ...prev, error: null }))
+      return true
+    } catch (err) {
+      if (isUserRejectedWalletRequest(err)) {
+        return false
+      }
       setState((prev) =>
         withDerivedStatus(
           prev,
           {
-            ...viewToStatePatch(view, enriched, prev, {
-              usageLog,
-              balanceMode: 'always',
-            }),
-            activeTab: prev.activeTab,
+            error:
+              err instanceof Error ? err.message : 'Could not start GoodID verification',
           },
           true,
         ),
       )
-    } catch {
-      setState((prev) => ({
-        ...prev,
-        status: 'backend_unavailable',
-        primaryAction: 'retry',
-        primaryLabel: 'Retry',
-        error: 'Could not reach backend — check your connection',
-      }))
+      return false
     }
-  }, [state, backendClient, chainClient])
+  }, [state, environment, goodIdReturnUrl])
 
-  const handleCloseChannel = useCallback(async () => {
-    const currentState = state
-    const channelId = normalizeChannelId(currentState.channelId)
-    if (!channelId) {
-      setState((prev) => ({
-        ...prev,
-        error: 'Enter a valid channel ID (0x followed by 64 hex characters)',
-      }))
-      return
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const onFocus = () => {
+      if (!goodIdVerifyPendingRef.current) return
+      goodIdVerifyPendingRef.current = false
+      void handleRefresh({ afterGoodIdVerify: true })
     }
-    if (!currentState.buyerKeyPrivate) {
-      setState((prev) => ({
-        ...prev,
-        error: 'Sign with your payer wallet in Buyer & Operator below to generate the buyer private key before closing a channel',
-      }))
-      return
-    }
-    if (!fundingVaultAddress) {
-      setState((prev) => ({
-        ...prev,
-        error: 'Funding vault address is not configured',
-      }))
-      return
-    }
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [handleRefresh])
 
-    try {
-      const timestamp = Math.floor(Date.now() / 1000)
-      const signature = await signRequestClose({
-        buyerPrivateKey: currentState.buyerKeyPrivate as `0x${string}`,
-        fundingVaultAddress,
-        channelId,
-        timestamp,
-      })
-
-      await backendClient.closeChannel(channelId, { timestamp, signature })
-      setState((prev) => ({ ...prev, error: null, channelId: '' }))
-    } catch (err: unknown) {
-      setState((prev) => ({
-        ...prev,
-        error: err instanceof Error ? err.message : 'Close channel failed',
-      }))
-    }
-  }, [state, backendClient, fundingVaultAddress])
-
-  const handleWithdrawCredits = useCallback(async () => {
-    const currentState = state
-    if (!currentState.address || !currentState.buyerKey) return
-    if (!currentState.buyerKeyPrivate) {
-      setState((prev) => ({
-        ...prev,
-        error:
-          'Sign with your payer wallet in Buyer & Operator below to generate the buyer private key before withdrawing funds',
-      }))
-      return
-    }
-    if (!fundingVaultAddress) {
-      setState((prev) => ({
-        ...prev,
-        error: 'Funding vault address is not configured',
-      }))
-      return
-    }
-    if (!currentState.withdrawAmount.trim()) {
-      setState((prev) => ({ ...prev, error: 'Enter an amount to withdraw' }))
-      return
-    }
-
-    try {
-      const amount = usdDisplayToMicro(currentState.withdrawAmount.trim())
-      const withdrawable = BigInt(currentState.withdrawableUsd ?? '0')
-      if (BigInt(amount) <= 0n) {
-        setState((prev) => ({ ...prev, error: 'Enter a valid USD amount' }))
+  const handleCloseChannel = useCallback(
+    async (channelIdInput: string) => {
+      const currentState = state
+      const channelId = normalizeChannelId(channelIdInput)
+      if (!channelId) {
+        setState((prev) => ({
+          ...prev,
+          error: 'Enter a valid channel ID (0x followed by 64 hex characters)',
+        }))
         return
       }
-      if (BigInt(amount) > withdrawable) {
-        setState((prev) => ({ ...prev, error: 'Amount exceeds withdrawable principal' }))
+      if (!currentState.buyerPrvKey) {
+        setState((prev) => ({
+          ...prev,
+          error: 'Sign with your payer wallet in Buyer & Operator below to generate the buyer private key before closing a channel',
+        }))
+        return
+      }
+      if (!fundingVaultAddress) {
+        setState((prev) => ({
+          ...prev,
+          error: 'Funding vault address is not configured',
+        }))
         return
       }
 
-      const buyer = currentState.buyerKey as Address
-      const payer = currentState.address as Address
-      const timestamp = Math.floor(Date.now() / 1000)
-      const signature = await signWithdrawPrincipal({
-        buyerPrivateKey: currentState.buyerKeyPrivate as `0x${string}`,
-        fundingVaultAddress,
-        buyer,
-        amountMicro: BigInt(amount),
-        recipient: payer,
-        timestamp,
-      })
+      try {
+        const timestamp = Math.floor(Date.now() / 1000)
+        const signature = await signRequestClose({
+          buyerPrivateKey: currentState.buyerPrvKey as `0x${string}`,
+          fundingVaultAddress,
+          channelId,
+          timestamp,
+        })
 
-      await backendClient.withdrawCredits(buyer, {
-        amount,
-        recipient: payer,
-        timestamp,
-        signature,
-      })
-      setState((prev) => ({ ...prev, error: null, withdrawAmount: '' }))
-      await handleRefresh()
-    } catch (err: unknown) {
-      setState((prev) => ({
-        ...prev,
-        error: err instanceof Error ? err.message : 'Withdraw failed',
-      }))
-    }
-  }, [state, backendClient, fundingVaultAddress, handleRefresh])
+        await backendClient.closeChannel(channelId, { timestamp, signature })
+        setState((prev) => ({ ...prev, error: null }))
+      } catch (err: unknown) {
+        setState((prev) => ({
+          ...prev,
+          error: err instanceof Error ? err.message : 'Close channel failed',
+        }))
+      }
+    },
+    [state, backendClient, fundingVaultAddress],
+  )
+
+  const handleWithdrawCredits = useCallback(
+    async (withdrawAmount: string) => {
+      const currentState = state
+      if (!currentState.address || !currentState.buyerPubKey) return
+      if (!currentState.buyerPrvKey) {
+        setState((prev) => ({
+          ...prev,
+          error:
+            'Sign with your payer wallet in Buyer & Operator below to generate the buyer private key before withdrawing funds',
+        }))
+        return
+      }
+      if (!fundingVaultAddress) {
+        setState((prev) => ({
+          ...prev,
+          error: 'Funding vault address is not configured',
+        }))
+        return
+      }
+      if (!withdrawAmount.trim()) {
+        setState((prev) => ({ ...prev, error: 'Enter an amount to withdraw' }))
+        return
+      }
+
+      try {
+        const amount = usdDisplayToMicro(withdrawAmount.trim())
+        const withdrawable = BigInt(currentState.withdrawableUsd ?? '0')
+        if (BigInt(amount) <= 0n) {
+          setState((prev) => ({ ...prev, error: 'Enter a valid USD amount' }))
+          return
+        }
+        if (BigInt(amount) > withdrawable) {
+          setState((prev) => ({ ...prev, error: 'Amount exceeds withdrawable principal' }))
+          return
+        }
+
+        const buyer = currentState.buyerPubKey as Address
+        const payer = currentState.address as Address
+        const timestamp = Math.floor(Date.now() / 1000)
+        const signature = await signWithdrawPrincipal({
+          buyerPrivateKey: currentState.buyerPrvKey as `0x${string}`,
+          fundingVaultAddress,
+          buyer,
+          amountMicro: BigInt(amount),
+          recipient: payer,
+          timestamp,
+        })
+
+        await backendClient.withdrawCredits(buyer, {
+          amount,
+          recipient: payer,
+          timestamp,
+          signature,
+        })
+        setState((prev) => ({ ...prev, error: null }))
+        await handleRefresh()
+      } catch (err: unknown) {
+        setState((prev) => ({
+          ...prev,
+          error: err instanceof Error ? err.message : 'Withdraw failed',
+        }))
+      }
+    },
+    [state, backendClient, fundingVaultAddress, handleRefresh],
+  )
 
   const handleRetry = useCallback(async () => {
     setState((prev) =>
@@ -1005,14 +1103,12 @@ export function useAiCreditsAdapter({
       connect: handleConnect,
       switchChain: handleSwitchChain,
       generateBuyerKey: handleGenerateBuyerKey,
-      confirmBuyerKey: handleConfirmBuyerKey,
       signOperatorConsent: handleSignOperatorConsent,
-      setDepositAmount: handleSetDepositAmount,
-      setStreamAmount: handleSetStreamAmount,
-      setChannelId: handleSetChannelId,
-      setWithdrawAmount: handleSetWithdrawAmount,
+      syncOperatorConsentFromChain: handleSyncOperatorConsentFromChain,
+      buildQuote: handleBuildQuote,
       pay: handlePay,
       refresh: handleRefresh,
+      verifyGoodId: handleVerifyGoodId,
       startPurchase: handleStartPurchase,
       setActiveTab: handleSetActiveTab,
       closeChannel: handleCloseChannel,
@@ -1023,14 +1119,12 @@ export function useAiCreditsAdapter({
       handleConnect,
       handleSwitchChain,
       handleGenerateBuyerKey,
-      handleConfirmBuyerKey,
       handleSignOperatorConsent,
-      handleSetDepositAmount,
-      handleSetStreamAmount,
-      handleSetChannelId,
-      handleSetWithdrawAmount,
+      handleSyncOperatorConsentFromChain,
+      handleBuildQuote,
       handlePay,
       handleRefresh,
+      handleVerifyGoodId,
       handleStartPurchase,
       handleSetActiveTab,
       handleCloseChannel,
@@ -1040,26 +1134,4 @@ export function useAiCreditsAdapter({
   )
 
   return { state, actions }
-}
-
-function buildSetupSnippet(buyerAddress?: string | null): string {
-  const buyerLine = buyerAddress
-    ? `GOODDOLLAR_BUYER_ADDRESS=${buyerAddress}`
-    : 'GOODDOLLAR_BUYER_ADDRESS=<buyer-address>'
-
-  return [
-    'npm install -g @antseed/cli',
-    '',
-    'export ANTSEED_IDENTITY_HEX=<buyer-private-key>',
-    '',
-    'antseed buyer start',
-    'antseed network browse',
-    'antseed buyer connection set --peer <peer-id>',
-    '',
-    'export ANTHROPIC_BASE_URL=http://localhost:8377',
-    'export OPENAI_BASE_URL=http://localhost:8377',
-    'export OPENAI_API_KEY=placeholder',
-    '',
-    buyerLine,
-  ].join('\n')
 }
