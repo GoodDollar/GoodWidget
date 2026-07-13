@@ -75,8 +75,7 @@ test('AiCreditsWidget quote_ready GoodID', async ({ page }) => {
   await gotoStory(page, STORY_IDS.quoteReadyGoodId)
   const root = widget(page, 'AiCreditsWidget-quote-ready-goodid')
   await expect(root).toBeVisible()
-  await expect(root.getByText('+10% deposit')).toBeVisible()
-  await expect(root.getByText('+20% stream')).toBeVisible()
+  await expect(root.getByText('GoodID verified')).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-04-quote-ready-goodid.png',
     fullPage: true,

@@ -17,7 +17,6 @@ import {
   updateToast,
 } from '@goodwidget/ui'
 import { useAiCreditsAdapter } from './adapter'
-import { DEPOSIT_BONUS_PERCENT, STREAM_BONUS_PERCENT } from './quoteMath'
 import {
   AiCreditsHero,
   AiCreditsFlowStepper,
@@ -162,8 +161,6 @@ function BuyCreditsPanel({
         <AiCreditsHero
           gBalance={state.gBalance}
           isGoodIdVerified={state.isGoodIdVerified}
-          depositBonusPercent={DEPOSIT_BONUS_PERCENT}
-          streamBonusPercent={STREAM_BONUS_PERCENT}
         />
         <AiCreditsStatusNotice>
           <Text color="$warning" fontWeight="700">
@@ -201,8 +198,6 @@ function BuyCreditsPanel({
           <AiCreditsHero
             gBalance={state.gBalance}
             isGoodIdVerified={state.isGoodIdVerified}
-            depositBonusPercent={DEPOSIT_BONUS_PERCENT}
-            streamBonusPercent={STREAM_BONUS_PERCENT}
           />
         )}
 
