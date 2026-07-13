@@ -67,7 +67,7 @@ const RUNTIME_STORIES: RuntimeStoryCase[] = [
   {
     id: 'qa-governancewidget-runtime-fixtures--empty-recipients',
     testId: 'GovernanceWidget-active-governance',
-    expectedText: 'No active Alignment recipients are available',
+    expectedText: 'No House of Alignment members have been assigned yet',
     screenshot: 'tests/widgets/governance-widget/test-results/gwr-10-empty-recipients.png',
   },
   {

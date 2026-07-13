@@ -66,6 +66,7 @@ function createDashboard(overrides: Partial<GovernanceWidgetAdapterState['dashbo
       hasVoted: false,
       isVotingOpen: true,
       executed: false,
+      finalizedUnits: {},
       disabledReason: 'Only active House of Alignment members can vote.',
     },
     fundingDistribution: {
@@ -99,6 +100,7 @@ function createState(
           joinedAt: Date.UTC(2026, 0, 10),
           updatedAt: Date.UTC(2026, 2, 1),
           unstakedAt: status === 'restake_required' ? Date.UTC(2026, 5, 1) : null,
+          memberIndex: 0n,
           name: status === 'active_alignment' ? 'Solar Commons' : 'Maya Citizen',
           socialLinks: 'https://twitter.com/gooddollar',
           projectWebpage: 'https://solar.example',
@@ -120,6 +122,7 @@ function createState(
     onboardingStepId: undefined,
     profileDraft: {},
     stakeAmountLabel: '250 G$',
+    minimumStakeAmounts: { citizenship: 250000000000000000000n, alignment: 500000000000000000000n },
     transactionSteps: [
       { id: 'prepare', title: 'Prepare wallet balance', status: 'completed' },
       { id: 'approve', title: 'Approve governance stake', status: 'active' },
@@ -277,6 +280,11 @@ export const VoteClosedExecuted: Story = {
             executed: true,
             canVote: false,
             summaryLabel: 'Final units executed',
+            finalizedUnits: {
+              'food-chain': '420000',
+              'web3-literacy': '310000',
+              'civic-onboarding': '270000',
+            },
             disabledReason: 'Voting has closed and final FlowSplitter units are read-only.',
           },
         }),
@@ -295,7 +303,7 @@ export const EmptyRecipients: Story = {
             options: [],
             recipients: [],
             canVote: false,
-            disabledReason: 'No active Alignment recipients are available for this vote.',
+            disabledReason: 'No House of Alignment members have been assigned yet. Voting will open shortly.',
           },
         }),
       })}
@@ -310,8 +318,8 @@ export const PoolUnavailableMocked: Story = {
         dashboard: createDashboard({
           fundingDistribution: {
             ...createDashboard().fundingDistribution,
-            centerLabel: 'Mock pool unavailable',
-            totalAmount: { value: 0, token: 'G$', streamLabel: 'Using mocked pool address' },
+            centerLabel: 'Funding unavailable',
+            totalAmount: { value: 0, token: 'G$', streamLabel: 'Superfluid fixture unavailable' },
             projects: [],
           },
         }),

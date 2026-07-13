@@ -53,7 +53,11 @@ export {
   CELO_GOODID_ADDRESS,
   DEFAULT_CELO_RPC_URL,
   G_TOKEN_CELO_ADDRESS,
-  MOCK_FLOW_SPLITTER_POOL_ADDRESS,
   encodeGovernanceRegistrationData,
+  mapFlowSplitterConfig,
+  mapHoaEligibilityRecord,
+  mapMemberRecord,
+  mapVoteConfig,
   resolveGovernanceAddresses,
 } from './sdks/contracts'
+export { calculateStreamAmountWei, fetchFundingReceivedSoFar } from './sdks/funding'

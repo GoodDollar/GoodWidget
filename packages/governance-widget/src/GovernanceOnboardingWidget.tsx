@@ -27,6 +27,7 @@ export function GovernanceOnboardingWidget({
   finalActions = DEFAULT_FINAL_ACTIONS,
   dataTestId,
   onHouseChange,
+  onIdentityVerificationPress,
   onProfileSubmit,
   onStepChange,
   onFinalActionPress,
@@ -56,6 +57,7 @@ export function GovernanceOnboardingWidget({
         transactionSteps={transactionSteps}
         finalActions={finalActions}
         onHouseChange={onHouseChange}
+        onIdentityVerificationPress={onIdentityVerificationPress}
         onProfileSubmit={onProfileSubmit}
         onFinalActionPress={onFinalActionPress}
         dataTestId={dataTestId}

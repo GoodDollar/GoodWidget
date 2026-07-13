@@ -59,6 +59,7 @@ export interface GovernanceOnboardingWidgetProps {
   finalActions?: GovernanceOnboardingAction[]
   dataTestId?: string
   onHouseChange?: (house: GovernanceHouse) => void
+  onIdentityVerificationPress?: () => void
   onProfileSubmit?: (profileDraft: GovernanceProfileDraft, house: GovernanceHouse) => void
   onStepChange?: (stepId: GovernanceOnboardingStepId) => void
   onFinalActionPress?: (actionId: string) => void
@@ -162,6 +163,7 @@ export interface FundingDistributionChartProps {
   totalAmount: GovernanceAmount
   projects: FundingProjectAllocation[]
   isStreaming?: boolean
+  stateLabel?: string
   onProjectPress?: (id: string) => void
   testID?: string
 }

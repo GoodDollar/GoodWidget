@@ -38,6 +38,7 @@ export interface GovernanceVotingState {
   hasVoted: boolean
   isVotingOpen: boolean
   executed: boolean
+  finalizedUnits: Record<string, string>
   disabledReason?: string
 }
 
@@ -61,6 +62,7 @@ export interface GovernanceWidgetAdapterState {
   onboardingStepId?: GovernanceOnboardingStepId
   profileDraft: GovernanceProfileDraft
   stakeAmountLabel: string
+  minimumStakeAmounts: Record<GovernanceHouse, bigint>
   transactionSteps: StepperStepItem[]
   registrationHash: Hex | null
   error: string | null

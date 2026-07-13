@@ -149,7 +149,7 @@ function GovernanceDashboard({
         <Card data-testid="GovernanceWidget-empty-recipients">
           <Text tone="secondary">
             {state.dashboard.alignmentVoting.disabledReason ??
-              'No active Alignment recipients are available for this vote.'}
+              'No House of Alignment members have been assigned yet. Voting will open shortly.'}
           </Text>
         </Card>
       ) : null}
@@ -239,6 +239,7 @@ function GovernanceVoteDetail({
 }) {
   const vote = state.dashboard.alignmentVoting
   const canSubmit = vote.canVote && vote.allocationTotalBps === 10000 && !vote.hasVoted && vote.isVotingOpen
+  const isReadOnly = vote.hasVoted || vote.executed
 
   return (
     <Card data-testid="GovernanceWidget-vote-detail">
@@ -253,15 +254,21 @@ function GovernanceVoteDetail({
           Placeholder voting detail. Enter allocation basis points; totals must equal 10,000 before voting.
         </Text>
         <YStack gap="$3">
-          {vote.options.map((option) => (
-            <Input
-              key={option.id}
-              label={option.label}
-              value={String(vote.allocationsBps[option.id] ?? 0)}
-              inputMode="numeric"
-              onChangeText={(value) => actions.setVoteAllocation(option.id, Number.parseInt(value || '0', 10))}
-            />
-          ))}
+          {vote.options.map((option) =>
+            isReadOnly ? (
+              <Text key={option.id} tone="secondary">
+                {option.label}: {vote.executed ? `${vote.finalizedUnits[option.id] ?? '0'} finalized units` : `${vote.allocationsBps[option.id] ?? 0} bps`}
+              </Text>
+            ) : (
+              <Input
+                key={option.id}
+                label={option.label}
+                value={String(vote.allocationsBps[option.id] ?? 0)}
+                inputMode="numeric"
+                onChangeText={(value) => actions.setVoteAllocation(option.id, Number.parseInt(value || '0', 10))}
+              />
+            ),
+          )}
         </YStack>
         <Text tone={vote.allocationTotalBps === 10000 ? 'default' : 'secondary'}>
           Allocation total: {vote.allocationTotalBps} / 10,000 bps
@@ -321,6 +328,9 @@ function GovernanceWidgetContent({
           transactionSteps={state.transactionSteps}
           dataTestId="GovernanceWidget-onboarding"
           onHouseChange={actions.selectHouse}
+          onIdentityVerificationPress={() => {
+            void actions.startIdentityVerification()
+          }}
           onProfileSubmit={(profileDraft) => {
             void actions.register(profileDraft)
           }}

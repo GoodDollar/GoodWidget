@@ -6,6 +6,7 @@ interface OnboardingIdentityCardProps {
   identityStatus: GovernanceIdentityStatus
   walletAddress?: string
   onProceedPress?: () => void
+  onVerifyPress?: () => void
 }
 
 /** Left-border accent row used for the Identity Status field when verified. */
@@ -41,6 +42,7 @@ export function OnboardingIdentityCard({
   identityStatus,
   walletAddress,
   onProceedPress,
+  onVerifyPress,
 }: OnboardingIdentityCardProps) {
   const isVerified = identityStatus === 'verified'
 
@@ -123,18 +125,27 @@ export function OnboardingIdentityCard({
         </YStack>
 
         {/* ── CTA button ─────────────────────────────────────────── */}
-        {/* Figma: single "Proceed to Membership" button, blue when verified,
-            disabled (grey outline) when unverified. No separate "Verify" button. */}
-        <Button
-          fullWidth
-          disabled={!isVerified}
-          onPress={isVerified ? onProceedPress : undefined}
-          variant="primary"
-          aria-label="Proceed to Membership"
-          data-testid="GovernanceOnboardingWidget-proceed-btn"
-        >
-          <ButtonText>Proceed to Membership</ButtonText>
-        </Button>
+        {isVerified ? (
+          <Button
+            fullWidth
+            onPress={onProceedPress}
+            variant="primary"
+            aria-label="Proceed to Membership"
+            data-testid="GovernanceOnboardingWidget-proceed-btn"
+          >
+            <ButtonText>Proceed to Membership</ButtonText>
+          </Button>
+        ) : (
+          <Button
+            fullWidth
+            onPress={onVerifyPress}
+            variant="primary"
+            aria-label="Verify with GoodID"
+            data-testid="GovernanceOnboardingWidget-verify-identity-btn"
+          >
+            <ButtonText>Verify with GoodID</ButtonText>
+          </Button>
+        )}
       </YStack>
     </Card>
   )
