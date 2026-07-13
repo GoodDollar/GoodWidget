@@ -40,7 +40,7 @@ const FAQ_ITEMS = [
   },
   {
     id: 'operator-consent',
-    question: 'Why do I authorize the AntSeed operator?',
+    question: 'Why do I authorize the Gooddollar operator?',
     answer:
       'Payer is the wallet that pays G$ on Celo. Buyer is a separate key derived from a payer signature; it owns your AI credit account on Base.\n\nOperator consent is a one-time sign-off so the GoodDollar operator can act as your operator on Base. After you pay G$ on Celo, the operator can fund your credits and handle Base-side actions — including moving credit funds — without you paying Base gas. It cannot access your payer wallet or G$ on Celo. Because the operator can act on your Base credit account, you are trusting GoodDollar with that role. You can also withdraw unused principal yourself with your buyer private key.',
   },
