@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Button, ButtonText, Card, Heading, Input, Separator, Spinner, Text, TokenAmount, XStack, YStack } from '@goodwidget/ui'
 import type { AiCreditsQuote, AiCreditsWidgetStatus } from '../../widgetRuntimeContract'
 import {
+  formatUsd1ToG,
   formatUsdWithBonus,
   getDepositBonusPercent,
   getStreamBonusPercent,
@@ -211,12 +212,21 @@ export function AmountPicker({
     quote && gdUsdPerToken !== null && streamG > 0
       ? formatUsdWithBonus(quoteStreamPrincipalUsd(quote, gdUsdPerToken), streamBonusPercent)
       : null
+  const usd1ToGLabel =
+    gdUsdPerToken !== null ? formatUsd1ToG(gdUsdPerToken) : null
 
   const Shell = embedded ? YStack : Card
 
   return (
     <Shell gap="$3">
-      <Heading level={5}>Buy Credits</Heading>
+      <XStack justifyContent="space-between" alignItems="center" gap="$2">
+        <Heading level={5}>Buy Credits</Heading>
+        {usd1ToGLabel && (
+          <Text fontSize="$2" secondary flexShrink={1} textAlign="right">
+            US$1 ≈ {usd1ToGLabel} G$
+          </Text>
+        )}
+      </XStack>
 
       <XStack justifyContent="space-between" alignItems="center">
         <Text variant="label" secondary>
