@@ -34,7 +34,7 @@
     "react-dom": ">=18.0.0"
   },
   "dependencies": {
-    "@goodsdks/citizen-sdk": "1.2.5",
+    "@goodsdks/citizen-sdk": "1.2.7",
     "@goodwidget/core": "workspace:*",
     "@goodwidget/embed": "workspace:*",
     "@goodwidget/ui": "workspace:*",

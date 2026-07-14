@@ -281,8 +281,8 @@ importers:
   packages/ai-credits-widget:
     dependencies:
       '@goodsdks/citizen-sdk':
-        specifier: 1.2.5
-        version: 1.2.5(@swc/core@1.15.30)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(viem@2.48.4(typescript@5.9.3)(zod@4.1.11))(wagmi@3.6.8(@tanstack/query-core@5.100.6)(@tanstack/react-query@5.100.6(react@18.3.1))(@types/react@18.3.28)(react@18.3.1)(typescript@5.9.3)(viem@2.48.4(typescript@5.9.3)(zod@4.1.11)))(yaml@2.8.3)
+        specifier: 1.2.7
+        version: 1.2.7(@swc/core@1.15.30)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(viem@2.48.4(typescript@5.9.3)(zod@4.1.11))(wagmi@3.6.8(@tanstack/query-core@5.100.6)(@tanstack/react-query@5.100.6(react@18.3.1))(@types/react@18.3.28)(react@18.3.1)(typescript@5.9.3)(viem@2.48.4(typescript@5.9.3)(zod@4.1.11)))(yaml@2.8.3)
       '@goodwidget/core':
         specifier: workspace:*
         version: link:../core
@@ -318,8 +318,8 @@ importers:
   packages/citizen-claim-widget:
     dependencies:
       '@goodsdks/citizen-sdk':
-        specifier: 1.2.5
-        version: 1.2.5(@swc/core@1.15.30)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(viem@2.48.4(typescript@5.9.3)(zod@4.1.11))(wagmi@3.6.8(@tanstack/query-core@5.100.6)(@tanstack/react-query@5.100.6(react@18.3.1))(@types/react@18.3.28)(react@18.3.1)(typescript@5.9.3)(viem@2.48.4(typescript@5.9.3)(zod@4.1.11)))(yaml@2.8.3)
+        specifier: 1.2.7
+        version: 1.2.7(@swc/core@1.15.30)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(viem@2.48.4(typescript@5.9.3)(zod@4.1.11))(wagmi@3.6.8(@tanstack/query-core@5.100.6)(@tanstack/react-query@5.100.6(react@18.3.1))(@types/react@18.3.28)(react@18.3.1)(typescript@5.9.3)(viem@2.48.4(typescript@5.9.3)(zod@4.1.11)))(yaml@2.8.3)
       '@goodwidget/core':
         specifier: workspace:*
         version: link:../core
@@ -2033,8 +2033,8 @@ packages:
   '@floating-ui/utils@0.2.11':
     resolution: {integrity: sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==}
 
-  '@goodsdks/citizen-sdk@1.2.5':
-    resolution: {integrity: sha512-jIXr3KoiWJO+CXJ830nqCyowg4Ys3q7CTp6NdaF25CYvNnNpk6eTpyKZOyNG6iSTAbuoYQm/PyatAm4loF0LdA==}
+  '@goodsdks/citizen-sdk@1.2.7':
+    resolution: {integrity: sha512-buSPt4LNx6LzQ75uBS5AgnWKhC0okkcR32UWntTNaGD6yTH7absuGqXZE9J5edC0N98MTsLYNVd2kgJ8UAAZUA==}
     peerDependencies:
       viem: '*'
       wagmi: '*'
@@ -10358,7 +10358,7 @@ snapshots:
 
   '@floating-ui/utils@0.2.11': {}
 
-  '@goodsdks/citizen-sdk@1.2.5(@swc/core@1.15.30)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(viem@2.48.4(typescript@5.9.3)(zod@4.1.11))(wagmi@3.6.8(@tanstack/query-core@5.100.6)(@tanstack/react-query@5.100.6(react@18.3.1))(@types/react@18.3.28)(react@18.3.1)(typescript@5.9.3)(viem@2.48.4(typescript@5.9.3)(zod@4.1.11)))(yaml@2.8.3)':
+  '@goodsdks/citizen-sdk@1.2.7(@swc/core@1.15.30)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(viem@2.48.4(typescript@5.9.3)(zod@4.1.11))(wagmi@3.6.8(@tanstack/query-core@5.100.6)(@tanstack/react-query@5.100.6(react@18.3.1))(@types/react@18.3.28)(react@18.3.1)(typescript@5.9.3)(viem@2.48.4(typescript@5.9.3)(zod@4.1.11)))(yaml@2.8.3)':
     dependencies:
       lz-string: 1.5.0
       tsup: 8.5.1(@swc/core@1.15.30)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.3)
