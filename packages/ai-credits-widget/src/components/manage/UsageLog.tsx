@@ -172,11 +172,18 @@ export function UsageLog({ address, backendUrl, refreshSignal = 0 }: UsageLogPro
                   cursor="pointer"
                   alignSelf="center"
                   paddingVertical="$1"
+                  tabIndex={0}
+                  role="button"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      setShowAll((value) => !value)
+                    }
+                  }}
                   onPress={() => setShowAll((value) => !value)}
                 >
                   {showAll ? 'Show less' : `Show ${hiddenCount} more`}
                 </Text>
-              )}
             </YStack>
           )}
         </YStack>
