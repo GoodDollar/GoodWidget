@@ -37,6 +37,7 @@ export interface GoodWidgetState extends WalletState {
 
 export interface GoodWidgetProviderProps {
   provider?: EIP1193Provider
+  connectOverride?: () => Promise<void>
   config?: GoodWidgetConfig
   themeOverrides?: GoodWidgetThemeOverrides
   defaultTheme?: 'light' | 'dark'

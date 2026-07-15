@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react'
+import { expect, userEvent, waitFor, within } from '@storybook/test'
 import { AiCreditsWidget } from '@goodwidget/ai-credits-widget'
-import { DefaultAppKitProvider } from '@goodwidget/embed/appkit-provider'
 import {
   DisconnectedStory,
   ConnectingStory,
@@ -14,6 +14,7 @@ import {
   PaymentFailedStory,
   BackendUnavailableStory,
   UnsupportedChainStory,
+  AppKitConnectWalletStory,
 } from '../helpers/aiCreditsWidgetStories'
 
 const meta: Meta<typeof AiCreditsWidget> = {
@@ -80,10 +81,23 @@ export const UnsupportedChain: Story = {
   render: () => <UnsupportedChainStory />,
 }
 
-export const AppKitProviderDefault: Story = {
-  render: () => (
-    <DefaultAppKitProvider>
-      <div data-testid="AiCreditsWidget-appkit-provider-default">AppKit provider initialized</div>
-    </DefaultAppKitProvider>
-  ),
+export const AppKitConnectWallet: Story = {
+  render: () => <AppKitConnectWalletStory />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    const noConfigFallback = canvas.queryByTestId('AiCreditsWidget-appkit-no-config')
+    if (noConfigFallback) {
+      await expect(noConfigFallback).toBeVisible()
+      return
+    }
+
+    const connectRoot = await canvas.findByTestId('AiCreditsWidget-appkit-connect')
+    const connectButton = within(connectRoot).getByRole('button', { name: /connect wallet/i })
+    await userEvent.click(connectButton)
+
+    await waitFor(() => {
+      expect(document.body.querySelector('w3m-modal')).toBeTruthy()
+    })
+  },
 }

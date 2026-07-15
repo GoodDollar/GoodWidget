@@ -2,21 +2,33 @@ import React from 'react'
 import { AppKitProvider } from '@reown/appkit/react'
 import { base, celo, fuse, mainnet, xdc, type AppKitNetwork } from '@reown/appkit/networks'
 
-const DEFAULT_APPKIT_NETWORKS = [mainnet, base, xdc, fuse, celo] as [AppKitNetwork, ...AppKitNetwork[]]
+const DEFAULT_APPKIT_NETWORKS = [mainnet, base, xdc, fuse, celo] as [
+  AppKitNetwork,
+  ...AppKitNetwork[],
+]
 
-export function DefaultAppKitProvider({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  const projectId = import.meta.env['VITE_REOWN_PROJECT_ID'] as string | undefined
+type DefaultAppKitProviderProps = Omit<
+  React.ComponentProps<typeof AppKitProvider>,
+  'projectId' | 'networks'
+> & {
+  projectId?: string
+  networks?: [AppKitNetwork, ...AppKitNetwork[]]
+}
+export function DefaultAppKitProvider({ children, ...appKitProps }: DefaultAppKitProviderProps) {
+  const { networks: propNetworks, projectId: propProjectId, ...rest } = appKitProps
+  const finalProjectId = (import.meta.env['VITE_REOWN_PROJECT_ID'] as string) ?? propProjectId
 
-  if (!projectId) {
+  if (!finalProjectId) {
     return <>{children}</>
   }
 
   return (
-    <AppKitProvider projectId={projectId} networks={DEFAULT_APPKIT_NETWORKS}>
+    <AppKitProvider
+      projectId={finalProjectId}
+      networks={propNetworks || DEFAULT_APPKIT_NETWORKS}
+      showWallets={true}
+      {...rest}
+    >
       {children}
     </AppKitProvider>
   )
