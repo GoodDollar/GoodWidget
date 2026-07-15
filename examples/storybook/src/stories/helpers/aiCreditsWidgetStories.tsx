@@ -1,4 +1,5 @@
-import React from 'react'
+import React, { useRef } from 'react'
+import type { EIP1193Provider } from '@goodwidget/core'
 import { YStack } from '@goodwidget/ui'
 import {
   AiCreditsWidget,
@@ -6,7 +7,12 @@ import {
   type AiCreditsWidgetAdapterState,
   type AiCreditsWidgetStatus,
 } from '@goodwidget/ai-credits-widget'
-import { DefaultAppKitProvider, useAppKit } from '@goodwidget/embed/appkit-provider'
+import {
+  DefaultAppKitProvider,
+  useAppKit,
+  useAppKitAccount,
+  useAppKitProvider,
+} from '@goodwidget/embed/appkit-provider'
 import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
 import {
   getInjectedEip1193Provider,
@@ -280,11 +286,21 @@ export function MockBackendStory() {
  */
 function AppKitConnectShell() {
   const { open } = useAppKit()
+  const { address: appKitAddress } = useAppKitAccount()
+  const { walletProvider } = useAppKitProvider<EIP1193Provider | undefined>('eip155')
+  const appKitAddressRef = useRef(appKitAddress)
+  appKitAddressRef.current = appKitAddress
+
   return (
     <YStack data-testid="AiCreditsWidget-appkit-connect" style={{ width: 380 }}>
       <AiCreditsWidget
+        provider={walletProvider}
         connectOverride={async () => {
-          await open()
+          await open({ view: 'Connect' })
+
+          if (!appKitAddressRef.current) {
+            throw new Error('wallet_connect_cancelled')
+          }
         }}
       />
     </YStack>
@@ -297,22 +313,21 @@ function AppKitConnectShell() {
  * Requires VITE_REOWN_PROJECT_ID to be set in examples/storybook/.env.local.
  */
 export function AppKitConnectWalletStory() {
-  // const projectId = import.meta.env.VITE_REOWN_PROJECT_ID ?? ''
+  const projectId = import.meta.env.VITE_REOWN_PROJECT_ID ?? 'f21d11c79300d20c1e27975b31eb1643'
 
-  // if (!projectId) {
-  //   return (
-  //     <YStack data-testid="AiCreditsWidget-appkit-no-config" style={{ width: 380 }} gap="$3">
-  //       <strong>AppKit not configured</strong>
-  //       <span>
-  //         Set <code>VITE_REOWN_PROJECT_ID</code> in <code>examples/storybook/.env.local</code> to
-  //         enable AppKit wallet connect.
-  //       </span>
-  //     </YStack>
-  //   )
-  // }
-
+  if (!projectId) {
+    return (
+      <YStack data-testid="AiCreditsWidget-appkit-no-config" style={{ width: 380 }} gap="$3">
+        <strong>AppKit not configured</strong>
+        <span>
+          Set <code>VITE_REOWN_PROJECT_ID</code> in <code>examples/storybook/.env.local</code> to
+          enable AppKit wallet connect.
+        </span>
+      </YStack>
+    )
+  }
   return (
-    <DefaultAppKitProvider projectId={'f21d11c79300d20c1e27975b31eb1643'}>
+    <DefaultAppKitProvider projectId={projectId}>
       <AppKitConnectShell />
     </DefaultAppKitProvider>
   )

@@ -1,11 +1,15 @@
 import React from 'react'
-import { AppKitProvider } from '@reown/appkit/react'
+import { AppKitProvider, createAppKit } from '@reown/appkit/react'
 import { base, celo, fuse, mainnet, xdc, type AppKitNetwork } from '@reown/appkit/networks'
+import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 
+// 1. Configure the setup
+const projectId = 'YOUR_PROJECT_ID'
 const DEFAULT_APPKIT_NETWORKS = [mainnet, base, xdc, fuse, celo] as [
   AppKitNetwork,
   ...AppKitNetwork[],
 ]
+const wagmiAdapter = new WagmiAdapter({ projectId, networks: DEFAULT_APPKIT_NETWORKS })
 
 type DefaultAppKitProviderProps = Omit<
   React.ComponentProps<typeof AppKitProvider>,
@@ -24,9 +28,9 @@ export function DefaultAppKitProvider({ children, ...appKitProps }: DefaultAppKi
 
   return (
     <AppKitProvider
+      adapters={[wagmiAdapter]}
       projectId={finalProjectId}
       networks={propNetworks || DEFAULT_APPKIT_NETWORKS}
-      showWallets={true}
       {...rest}
     >
       {children}
