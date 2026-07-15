@@ -14,6 +14,7 @@
     "@goodwidget/ai-credits-widget": "workspace:*",
     "@goodwidget/core": "workspace:*",
     "@goodwidget/ui": "workspace:*",
+    "@reown/appkit": "^1.8.22",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "react-native-web": "^0.19.13"

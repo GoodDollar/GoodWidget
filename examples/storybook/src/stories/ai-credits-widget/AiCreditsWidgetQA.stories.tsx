@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { AiCreditsWidget } from '@goodwidget/ai-credits-widget'
+import { DefaultAppKitProvider } from '../../../../../apps/ai-credits-web/src/DefaultAppKitProvider'
 import {
   DisconnectedStory,
   ConnectingStory,
@@ -77,4 +78,12 @@ export const BackendUnavailable: Story = {
 
 export const UnsupportedChain: Story = {
   render: () => <UnsupportedChainStory />,
+}
+
+export const AppKitProviderDefault: Story = {
+  render: () => (
+    <DefaultAppKitProvider>
+      <div data-testid="AiCreditsWidget-appkit-provider-default">AppKit provider initialized</div>
+    </DefaultAppKitProvider>
+  ),
 }

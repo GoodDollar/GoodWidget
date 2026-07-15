@@ -25,6 +25,8 @@ const STORY_IDS = {
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--backend-unavailable&viewMode=story',
   unsupportedChain:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--unsupported-chain&viewMode=story',
+  appKitProviderDefault:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--app-kit-provider-default&viewMode=story',
 } as const
 
 async function gotoStory(page: Page, storyUrl: string): Promise<void> {
@@ -155,6 +157,15 @@ test('AiCreditsWidget connecting', async ({ page }) => {
   await expect(page.getByText('Connecting...')).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-12-connecting.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget appkit provider default', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.appKitProviderDefault)
+  await expect(page.getByTestId('AiCreditsWidget-appkit-provider-default')).toBeVisible()
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-13-appkit-provider-default.png',
     fullPage: true,
   })
 })

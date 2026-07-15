@@ -1,36 +1,21 @@
 import React from 'react'
+import { useAppKitProvider } from '@reown/appkit/react'
 import { AiCreditsWidget } from '@goodwidget/ai-credits-widget'
-import { Container, Text, YStack } from '@goodwidget/ui'
-
-function getInjectedProvider(): unknown | null {
-  if (typeof window === 'undefined') return null
-  return window.ethereum ?? null
-}
+import type { EIP1193Provider } from '@goodwidget/core'
+import { Container } from '@goodwidget/ui'
+import { DefaultAppKitProvider } from './DefaultAppKitProvider'
 
 function envAddress(value: string | undefined): `0x${string}` | undefined {
   return value ? (value as `0x${string}`) : undefined
 }
 
-export function App() {
-  const provider = getInjectedProvider()
-
-  if (!provider) {
-    return (
-      <Container>
-        <YStack gap="$3" paddingVertical="$6">
-          <Text fontWeight="700">No wallet found</Text>
-          <Text secondary>
-            Install or enable a browser wallet (e.g. Rabby, MetaMask), then refresh this page.
-          </Text>
-        </YStack>
-      </Container>
-    )
-  }
+function AiCreditsWidgetApp() {
+  const { walletProvider } = useAppKitProvider<EIP1193Provider | undefined>('eip155')
 
   return (
     <Container>
       <AiCreditsWidget
-        provider={provider}
+        provider={walletProvider}
         backendUrl={import.meta.env.VITE_AI_CREDITS_BACKEND_URL}
         baseRpcUrl={import.meta.env.VITE_AI_CREDITS_BASE_RPC_URL}
         celoRpcUrl={import.meta.env.VITE_AI_CREDITS_CELO_RPC_URL}
@@ -40,5 +25,13 @@ export function App() {
         testId="AiCreditsWidget-web"
       />
     </Container>
+  )
+}
+
+export function App() {
+  return (
+    <DefaultAppKitProvider>
+      <AiCreditsWidgetApp />
+    </DefaultAppKitProvider>
   )
 }
