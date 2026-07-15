@@ -629,6 +629,7 @@ export function useAiCreditsAdapter({
       )
 
       await backendClient.submitOperatorConsent(ref.buyer, {
+        payer: currentState.address,
         nonce: operatorStatus.consentNonce,
         signature: buyerSig,
       })
