@@ -8,11 +8,13 @@ import React, { useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { expect, within, userEvent } from '@storybook/test'
 import { Drawer, Card, Heading, Text, Button, ButtonText, YStack } from '@goodwidget/ui'
+import { withDefaultPreset } from '../helpers/withDefaultPreset'
 
 const meta: Meta = {
   title: 'Design System/Primitives/Drawer',
   tags: ['autodocs', 'showcase'],
   parameters: { layout: 'padded' },
+  decorators: [withDefaultPreset],
 }
 export default meta
 type Story = StoryObj

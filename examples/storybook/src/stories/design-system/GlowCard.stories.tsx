@@ -7,12 +7,14 @@
 import React from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { GlowCard, Heading, Text } from '@goodwidget/ui'
+import { withDefaultPreset } from '../helpers/withDefaultPreset'
 
 const meta: Meta<typeof GlowCard> = {
   title: 'Design System/Primitives/GlowCard',
   component: GlowCard,
   tags: ['autodocs', 'showcase'],
   parameters: { layout: 'padded' },
+  decorators: [withDefaultPreset],
 }
 export default meta
 type Story = StoryObj<typeof GlowCard>
