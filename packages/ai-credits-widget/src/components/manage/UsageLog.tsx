@@ -135,10 +135,8 @@ export function UsageLog({ address, backendUrl, refreshSignal = 0 }: UsageLogPro
         justifyContent="space-between"
         alignItems="center"
         onPress={() => {
-          setExpanded((value) => {
-            if (value) setShowAll(false)
-            return !value
-          })
+          if (expanded) setShowAll(false)
+          setExpanded((value) => !value)
         }}
         cursor="pointer"
       >
