@@ -1,15 +1,12 @@
-import React from 'react'
-import { AppKitProvider, createAppKit } from '@reown/appkit/react'
+import React, { useMemo } from 'react'
+import { AppKitProvider } from '@reown/appkit/react'
 import { base, celo, fuse, mainnet, xdc, type AppKitNetwork } from '@reown/appkit/networks'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 
-// 1. Configure the setup
-const projectId = 'YOUR_PROJECT_ID'
 const DEFAULT_APPKIT_NETWORKS = [mainnet, base, xdc, fuse, celo] as [
   AppKitNetwork,
   ...AppKitNetwork[],
 ]
-const wagmiAdapter = new WagmiAdapter({ projectId, networks: DEFAULT_APPKIT_NETWORKS })
 
 type DefaultAppKitProviderProps = Omit<
   React.ComponentProps<typeof AppKitProvider>,
@@ -20,9 +17,16 @@ type DefaultAppKitProviderProps = Omit<
 }
 export function DefaultAppKitProvider({ children, ...appKitProps }: DefaultAppKitProviderProps) {
   const { networks: propNetworks, projectId: propProjectId, ...rest } = appKitProps
-  const finalProjectId = (import.meta.env['VITE_REOWN_PROJECT_ID'] as string) ?? propProjectId
+  const finalProjectId =
+    (import.meta.env['VITE_REOWN_PROJECT_ID'] as string | undefined) ?? propProjectId
+  const finalNetworks = propNetworks ?? DEFAULT_APPKIT_NETWORKS
 
-  if (!finalProjectId) {
+  const wagmiAdapter = useMemo(
+    () => (finalProjectId ? new WagmiAdapter({ projectId: finalProjectId, networks: finalNetworks }) : null),
+    [finalProjectId],
+  )
+
+  if (!finalProjectId || !wagmiAdapter) {
     return <>{children}</>
   }
 
@@ -30,7 +34,7 @@ export function DefaultAppKitProvider({ children, ...appKitProps }: DefaultAppKi
     <AppKitProvider
       adapters={[wagmiAdapter]}
       projectId={finalProjectId}
-      networks={propNetworks || DEFAULT_APPKIT_NETWORKS}
+      networks={finalNetworks}
       {...rest}
     >
       {children}

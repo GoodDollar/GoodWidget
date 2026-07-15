@@ -292,7 +292,7 @@ function AppKitConnectShell() {
   appKitAddressRef.current = appKitAddress
 
   return (
-    <YStack data-testid="AiCreditsWidget-appkit-connect" style={{ width: 380 }}>
+    <div data-testid="AiCreditsWidget-appkit-connect" style={{ width: 380 }}>
       <AiCreditsWidget
         provider={walletProvider}
         connectOverride={async () => {
@@ -303,7 +303,7 @@ function AppKitConnectShell() {
           }
         }}
       />
-    </YStack>
+    </div>
   )
 }
 
@@ -313,7 +313,7 @@ function AppKitConnectShell() {
  * Requires VITE_REOWN_PROJECT_ID to be set in examples/storybook/.env.local.
  */
 export function AppKitConnectWalletStory() {
-  const projectId = import.meta.env.VITE_REOWN_PROJECT_ID ?? 'f21d11c79300d20c1e27975b31eb1643'
+  const projectId = import.meta.env.VITE_REOWN_PROJECT_ID as string | undefined
 
   if (!projectId) {
     return (

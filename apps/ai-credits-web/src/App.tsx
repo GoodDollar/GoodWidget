@@ -44,6 +44,19 @@ function AiCreditsWidgetApp() {
 }
 
 export function App() {
+  const projectId = import.meta.env.VITE_REOWN_PROJECT_ID as string | undefined
+
+  if (!projectId) {
+    return (
+      <Container>
+        <div>
+          AppKit not configured. Set <code>VITE_REOWN_PROJECT_ID</code> in your{' '}
+          <code>.env.local</code> to enable wallet connect.
+        </div>
+      </Container>
+    )
+  }
+
   return (
     <DefaultAppKitProvider enableWallets={true} enableInjected={true}>
       <AiCreditsWidgetApp />

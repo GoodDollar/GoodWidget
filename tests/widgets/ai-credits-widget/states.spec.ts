@@ -199,7 +199,7 @@ test('AiCreditsWidget appkit connect wallet opens modal', async ({ page }) => {
   // Click Connect Wallet — the connectOverride calls AppKit modal.open().
   await connectBtn.click()
 
-  // AppKit renders its modal as an <appkit-modal> custom element in the document body.
+  // AppKit renders its modal as a <w3m-modal> custom element in the document body.
   // Wait for it to become visible (the modal opens asynchronously).
   await expect(page.locator('w3m-modal')).toBeVisible({ timeout: 10_000 })
 
