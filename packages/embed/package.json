@@ -10,6 +10,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./appkit-provider": {
+      "types": "./dist/appkitProvider.d.ts",
+      "import": "./dist/appkitProvider.js",
+      "require": "./dist/appkitProvider.cjs"
     }
   },
   "scripts": {
@@ -25,6 +30,7 @@
   "dependencies": {
     "@goodwidget/core": "workspace:*",
     "@goodwidget/ui": "workspace:*",
+    "@reown/appkit": "^1.8.22",
     "@r2wc/react-to-web-component": "^2.0.3"
   },
   "devDependencies": {

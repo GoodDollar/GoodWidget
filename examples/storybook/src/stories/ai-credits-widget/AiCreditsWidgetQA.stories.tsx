@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { AiCreditsWidget } from '@goodwidget/ai-credits-widget'
-import { DefaultAppKitProvider } from '../../../../../apps/ai-credits-web/src/DefaultAppKitProvider'
+import { DefaultAppKitProvider } from '@goodwidget/embed/appkit-provider'
 import {
   DisconnectedStory,
   ConnectingStory,

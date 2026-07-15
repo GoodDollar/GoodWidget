@@ -2,8 +2,8 @@ import React from 'react'
 import { useAppKitProvider } from '@reown/appkit/react'
 import { AiCreditsWidget } from '@goodwidget/ai-credits-widget'
 import type { EIP1193Provider } from '@goodwidget/core'
+import { DefaultAppKitProvider } from '@goodwidget/embed/appkit-provider'
 import { Container } from '@goodwidget/ui'
-import { DefaultAppKitProvider } from './DefaultAppKitProvider'
 
 function envAddress(value: string | undefined): `0x${string}` | undefined {
   return value ? (value as `0x${string}`) : undefined
