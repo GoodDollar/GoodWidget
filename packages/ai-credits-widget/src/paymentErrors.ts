@@ -21,13 +21,23 @@ function looksLikeRawChainError(message: string): boolean {
   )
 }
 
-function isInsufficientGBalance(message: string): boolean {
+function isInsufficientGas(message: string): boolean {
   const lower = message.toLowerCase()
   return (
     lower.includes('insufficient funds') ||
-    lower.includes('insufficient balance') ||
+    lower.includes('insufficient funds for gas') ||
+    lower.includes('insufficient funds for intrinsic transaction cost') ||
+    lower.includes('gas required exceeds allowance') ||
+    lower.includes('max fee per gas less than block base fee')
+  )
+}
+
+function isInsufficientGBalance(message: string): boolean {
+  const lower = message.toLowerCase()
+  return (
     lower.includes('transfer amount exceeds balance') ||
     lower.includes('exceeds balance') ||
+    lower.includes('erc20: transfer amount exceeds balance') ||
     lower.includes('not enough g$')
   )
 }
@@ -40,6 +50,9 @@ export function mapPaymentError(error: unknown): string {
   }
 
   const message = errorMessage(error).trim()
+  if (isInsufficientGas(message)) {
+    return 'Not enough CELO for gas'
+  }
   if (isInsufficientGBalance(message)) {
     return 'Not enough G$ for this payment'
   }
