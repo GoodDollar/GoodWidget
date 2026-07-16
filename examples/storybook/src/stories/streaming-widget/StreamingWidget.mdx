@@ -1,5 +1,6 @@
 import { Canvas, Meta } from '@storybook/blocks';
 import * as ShowcaseStories from './StreamingWidget.stories';
+import * as ThemeOverridesStories from './StreamingWidgetThemeOverrides.stories';
 import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/DocsLayout';
 
 <Meta of={ShowcaseStories} />
@@ -14,6 +15,13 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
     description="Use this story when validating the SDK-backed streaming flow in a browser with a real EIP-1193 wallet extension. Use the Controls panel below the canvas to preview `defaultTheme` and a sample `themeOverrides` brand preset, or set a TheGraph `apiKey`."
   >
     <Canvas of={ShowcaseStories.InjectedWallet} />
+  </DocsSection>
+
+  <DocsSection
+    title="Theme overrides"
+    description="Play around with some of the theme overrides using the controls below (you may have to activate Controls in the addons panel, top-right). The code here can be copied and used directly in your own dapp — it always matches what's rendered. See the callout below the code for additional overridable styles not wired to a control."
+  >
+    <Canvas of={ThemeOverridesStories.Playground} />
   </DocsSection>
 
   <DocsSection

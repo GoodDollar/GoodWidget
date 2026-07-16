@@ -1,5 +1,6 @@
 import { Canvas, Meta, Source } from '@storybook/blocks';
 import * as ClaimWidgetStories from './ClaimWidget.stories';
+import * as ThemeOverridesStories from './ClaimWidgetThemeOverrides.stories';
 import { DocsCallout, DocsCard, DocsGrid, DocsList, DocsPage, DocsSection } from '../docs/DocsLayout';
 
 <Meta of={ClaimWidgetStories} />
@@ -34,6 +35,13 @@ import { DocsCallout, DocsCard, DocsGrid, DocsList, DocsPage, DocsSection } from
       exists to document the preset branch, not to duplicate every branded showcase in a second
       theme family.
     </DocsCallout>
+  </DocsSection>
+
+  <DocsSection
+    title="Theme overrides"
+    description="Play around with some of the theme overrides using the controls below (you may have to activate Controls in the addons panel, top-right). The code here can be copied and used directly in your own dapp — it always matches what's rendered. See the callout below the code for additional overridable styles not wired to a control."
+  >
+    <Canvas of={ThemeOverridesStories.Playground} />
   </DocsSection>
 
   <DocsSection
