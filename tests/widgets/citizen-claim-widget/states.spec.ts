@@ -164,3 +164,19 @@ test('CitizenClaimWidget Retry button re-triggers the adapter', async ({ page })
   // — both are valid depending on timing
   expect(afterClickText).toBeTruthy()
 })
+
+// ─── Invite Rewards tab ──────────────────────────────────────────────────────
+test('CitizenClaimWidget opens the Invite Rewards entry point', async ({ page }) => {
+  await gotoStory(page)
+
+  const inviteTab = page.getByText('Invite Rewards', { exact: true })
+  await expect(inviteTab).toBeVisible()
+  await inviteTab.click()
+
+  await expect(page.getByText('How it works', { exact: true })).toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/citizen-claim-widget/test-results/ccw-05-invite-rewards.png',
+    fullPage: true,
+  })
+})

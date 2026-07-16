@@ -22,5 +22,20 @@ export type {
 export { useCitizenClaimAdapter } from './adapter'
 export type { UseCitizenClaimAdapterOptions } from './adapter'
 
+// Shared InviteSDK adapter contract and deterministic code helpers.
+export {
+  decodeInviteCode,
+  encodeInviteCode,
+  formatInviteBounty,
+  generateInviteCode,
+  useInviteAdapter,
+} from './inviteAdapter'
+export type {
+  InviteActions,
+  InviteAdapterResult,
+  InviteState,
+  InviteStatus,
+} from './inviteAdapter'
+
 // Widget component
 export { CitizenClaimWidget } from './CitizenClaimWidget'
