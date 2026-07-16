@@ -76,14 +76,12 @@ export type WithdrawPrincipalResponse = {
 }
 
 export type OperatorConsentRequest = {
-  payer: string
   nonce: string
   signature: string
 }
 
 export type OperatorConsentResponse = {
   buyer: string
-  payer?: string
   bridge: BridgeResponse
 }
 
@@ -425,15 +423,13 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
 
   async submitOperatorConsent(
     buyer: string,
-    body: OperatorConsentRequest,
+    _body: OperatorConsentRequest,
   ): Promise<OperatorConsentResponse> {
     await sleep(MOCK_DELAY_MS)
     const normalizedBuyer = normalizeAddress(buyer)
-    const normalizedPayer = normalizeAddress(body.payer)
     markMockOperatorConsent(normalizedBuyer)
     return {
       buyer: normalizedBuyer,
-      payer: normalizedPayer,
       bridge: { enabled: true, txHash: '0xmock' },
     }
   }
@@ -591,7 +587,6 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        payer: normalizeAddress(body.payer),
         nonce: body.nonce,
         signature: body.signature,
       }),
@@ -599,7 +594,6 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
     const payload = await readBridgeResponseBody<OperatorConsentResponse>(response, 'Operator consent')
     return {
       buyer: normalizeAddress(payload.buyer ?? buyer),
-      payer: normalizeAddress(payload.payer ?? body.payer),
       bridge: payload.bridge,
     }
   }
