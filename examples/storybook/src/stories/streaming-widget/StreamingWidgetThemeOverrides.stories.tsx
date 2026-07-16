@@ -1,5 +1,5 @@
 /**
- * StreamingWidget Advanced Overrides — demonstrates the widget's full public
+ * StreamingWidget Theme Overrides — demonstrates the widget's full public
  * theming surface (the named component sub-themes it renders through), live.
  *
  * Unlike the Showcase story's fixed brand-preset picker, this exposes real
@@ -8,26 +8,40 @@
  * collapsed tree. The code snippet is generated from the live arg values
  * rather than hardcoded, so it can never drift from what's actually rendered.
  *
+ * Guiding text reuses the same DocsLayout building blocks as the docs pages
+ * (Integrators/Theming And Overrides, etc.) so this reads as a continuation
+ * of that guide rather than a separate visual language.
+ *
  * StreamingWidget uses `Button` directly for its primary actions (no
  * StreamingWidget-specific sub-theme), plus six Card-derived named
  * components that fall back to Card's field set since they don't have their
  * own preset entries. See packages/streaming-widget/src/components/shared.tsx.
  *
  * Controls are wired for `dark_Button` and the two targets rendered in the
- * PopulatedStateStory fixture (`dark_StreamRow`, `dark_BalanceCard`); the
- * remaining Card-derived targets follow the same field shape and are listed
- * for reference below rather than each getting their own control row.
+ * PopulatedStateStory fixture (`dark_StreamRow`, `dark_BalanceCard`) — a
+ * couple of high-impact targets that visibly shift the default brand, not
+ * exhaustive coverage of every value. The remaining Card-derived targets
+ * follow the same field shape and are documented below for reference.
  */
 import React from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import type { StreamingWidgetProps } from '@goodwidget/streaming-widget'
-import { Card, Heading, Text, YStack } from '@goodwidget/ui'
 import { PopulatedStateStory } from '../helpers/streamingWidgetStories'
 import { withDefaultPreset } from '../helpers/withDefaultPreset'
+import { DocsCallout, DocsList } from '../docs/DocsLayout'
 
 type ThemeOverrides = NonNullable<StreamingWidgetProps['themeOverrides']>
 
 const CARD_FIELDS = ['background', 'borderColor', 'shadowColor']
+
+const CONTROLLED_TARGETS: Array<{ name: string; fields: string[] }> = [
+  {
+    name: 'Button',
+    fields: ['background', 'backgroundHover', 'backgroundPress', 'backgroundFocus', 'color'],
+  },
+  { name: 'StreamRow', fields: ['borderColor'] },
+  { name: 'BalanceCard', fields: ['borderColor', 'shadowColor'] },
+]
 
 const REFERENCE_ONLY_TARGETS: Array<{ name: string; fields: string[] }> = [
   { name: 'PoolRow', fields: CARD_FIELDS },
@@ -35,6 +49,29 @@ const REFERENCE_ONLY_TARGETS: Array<{ name: string; fields: string[] }> = [
   { name: 'ErrorStateCard', fields: CARD_FIELDS },
   { name: 'SetStreamFormCard', fields: CARD_FIELDS },
 ]
+
+function CodeBlock({ children }: { children: string }) {
+  return (
+    <pre
+      style={{
+        background: '#0f172a',
+        border: '1px solid rgba(59,130,246,0.28)',
+        borderRadius: 12,
+        color: '#e2e8f0',
+        fontFamily:
+          'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+        fontSize: 13,
+        lineHeight: 1.6,
+        margin: 0,
+        overflowX: 'auto',
+        padding: 18,
+        whiteSpace: 'pre',
+      }}
+    >
+      {children}
+    </pre>
+  )
+}
 
 interface OverridesArgs {
   buttonBackground: string
@@ -69,7 +106,7 @@ function buildThemeOverrides(args: OverridesArgs): ThemeOverrides {
 }
 
 const meta: Meta<OverridesArgs> = {
-  title: 'Widgets/StreamingWidget/Advanced Overrides',
+  title: 'Widgets/StreamingWidget/Theme overrides',
   tags: ['integrator', 'showcase'],
   parameters: { layout: 'padded' },
   decorators: [withDefaultPreset],
@@ -101,29 +138,34 @@ export const Playground: Story = {
   render: (args) => {
     const themeOverrides = buildThemeOverrides(args)
     return (
-      <YStack gap="$4" style={{ width: 480 }}>
-        <Card>
-          <Heading level={5}>Other Card-derived targets (same field shape)</Heading>
-          <YStack gap="$2">
-            {REFERENCE_ONLY_TARGETS.map((target) => (
-              <Text key={target.name} variant="caption">
-                <Text bold>
+      <div style={{ display: 'grid', gap: 24, maxWidth: 560, margin: '0 auto' }}>
+        <CodeBlock>
+          {`<StreamingWidget\n  themeOverrides={${JSON.stringify(themeOverrides, null, 2)}}\n/>`}
+        </CodeBlock>
+
+        <DocsCallout title="All overridable paths on StreamingWidget" tone="info">
+          <DocsList>
+            {CONTROLLED_TARGETS.map((target) => (
+              <li key={target.name}>
+                <strong>
                   dark_{target.name} / light_{target.name}
-                </Text>
-                {': '}
-                {target.fields.join(', ')}
-              </Text>
+                </strong>
+                : {target.fields.join(', ')} — wired to the controls above
+              </li>
             ))}
-          </YStack>
-        </Card>
-        <Card>
-          <Heading level={5}>How it works</Heading>
-          <Text variant="caption">
-            {`<StreamingWidget\n  themeOverrides={${JSON.stringify(themeOverrides, null, 2)}}\n/>`}
-          </Text>
-        </Card>
+            {REFERENCE_ONLY_TARGETS.map((target) => (
+              <li key={target.name}>
+                <strong>
+                  dark_{target.name} / light_{target.name}
+                </strong>
+                : {target.fields.join(', ')}
+              </li>
+            ))}
+          </DocsList>
+        </DocsCallout>
+
         <PopulatedStateStory defaultTheme="dark" themeOverrides={themeOverrides} />
-      </YStack>
+      </div>
     )
   },
 }
