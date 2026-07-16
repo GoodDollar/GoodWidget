@@ -35,9 +35,11 @@
   },
   "dependencies": {
     "@goodsdks/citizen-sdk": "1.2.7",
+    "@goodsdks/invite-sdk": "1.0.1",
     "@goodwidget/core": "workspace:*",
     "@goodwidget/embed": "workspace:*",
     "@goodwidget/ui": "workspace:*",
+    "bs58": "6.0.0",
     "viem": "^2.0.0"
   },
   "devDependencies": {

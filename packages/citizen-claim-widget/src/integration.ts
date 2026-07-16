@@ -1,6 +1,7 @@
 export const citizenClaimIntegration = {
   id: 'citizen-claim',
   sdk: '@goodsdks/citizen-sdk',
+  inviteSdk: '@goodsdks/invite-sdk@1.0.1',
   capabilitySource: 'citizenSdkCapabilities',
   uses: [
     'whitelistStatus',
@@ -10,6 +11,10 @@ export const citizenClaimIntegration = {
     'dailyStats',
     'startVerification',
     'claim',
+    'invite.resolveCode',
+    'invite.join',
+    'invite.checkEligibilityDetails',
+    'invite.collectAllBounties',
   ],
   chains: [122, 42220, 50],
   states: [
@@ -22,6 +27,13 @@ export const citizenClaimIntegration = {
     'claiming',
     'success',
     'error',
+    'invite_disconnected',
+    'invite_unsupported',
+    'invite_loading',
+    'invite_ready',
+    'invite_joining',
+    'invite_collecting',
+    'invite_error',
   ],
   events: ['claim-success', 'claim-error'],
 } as const

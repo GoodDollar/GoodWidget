@@ -22,6 +22,8 @@ import {
 } from '@goodwidget/ui'
 import { SupportedChains } from '@goodsdks/citizen-sdk'
 import { useCitizenClaimAdapter } from './adapter'
+import { ClaimInviteJoinCard, InviteRewards } from './InviteRewards'
+import { InviteRuntimeProvider } from './inviteAdapter'
 import type {
   CitizenClaimWidgetProps,
   CitizenClaimWidgetSuccessDetail,
@@ -499,6 +501,7 @@ function CitizenClaimInner({ environment, onClaimSuccess, onClaimError }: Citize
           />
         </ClaimDailyStatsRow>
       </ClaimDailyStats>
+      <ClaimInviteJoinCard />
     </YStack>
   )
 }
@@ -539,33 +542,37 @@ export function CitizenClaimWidget({
       themeOverrides={themeOverrides}
       defaultTheme={defaultTheme}
     >
-      <WidgetTabs
-        tabs={[
-          { id: 'claim', label: 'Claim' },
-          { id: 'invite-rewards', label: 'Invite Rewards' },
-          { id: 'news-feed', label: 'News' },
-        ]}
-        activeTab={activeTab}
-        onTabChange={(tabId: string) => setActiveTab(tabId as CitizenClaimTab)}
-        chainId={chainId ?? 42220}
-      />
-      {activeTab === 'claim' ? (
-        <>
-          <CitizenClaimInner
-            environment={environment}
-            // walletMode={walletMode}
-            onClaimSuccess={onClaimSuccess}
-            onClaimError={onClaimError}
-          />
-          <ToastContainer />
-        </>
-      ) : (
-        <Card width="100%">
-          <YStack alignItems="center" justifyContent="center" minHeight={320}>
-            <Text variant="body">Widget coming soon</Text>
-          </YStack>
-        </Card>
-      )}
+      <InviteRuntimeProvider environment={environment}>
+        <WidgetTabs
+          tabs={[
+            { id: 'claim', label: 'Claim' },
+            { id: 'invite-rewards', label: 'Invite Rewards' },
+            { id: 'news-feed', label: 'News' },
+          ]}
+          activeTab={activeTab}
+          onTabChange={(tabId: string) => setActiveTab(tabId as CitizenClaimTab)}
+          chainId={chainId ?? 42220}
+        />
+        {activeTab === 'claim' ? (
+          <>
+            <CitizenClaimInner
+              environment={environment}
+              // walletMode={walletMode}
+              onClaimSuccess={onClaimSuccess}
+              onClaimError={onClaimError}
+            />
+            <ToastContainer />
+          </>
+        ) : activeTab === 'invite-rewards' ? (
+          <InviteRewards />
+        ) : (
+          <Card width="100%">
+            <YStack alignItems="center" justifyContent="center" minHeight={320}>
+              <Text variant="body">Widget coming soon</Text>
+            </YStack>
+          </Card>
+        )}
+      </InviteRuntimeProvider>
     </GoodWidgetProvider>
   )
 }

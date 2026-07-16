@@ -47,6 +47,30 @@ const CHAIN_CONFIGS: Record<number, Chain> = {
 const SUPPORTED_CHAINS = citizenSdkCapabilities.chains
 const AVAILABLE_ENVIRONMENTS = citizenSdkCapabilities.environments
 
+/**
+ * Creates provider-first viem clients for a supported widget chain.
+ * Invite and claim SDK adapters share this factory so they always sign through
+ * the host's EIP-1193 provider.
+ */
+export function createCitizenWidgetClients(
+  provider: unknown,
+  address: string,
+  targetChainId: number,
+) {
+  const chain = CHAIN_CONFIGS[targetChainId]
+  if (!chain) return null
+
+  const transport = custom(provider as Parameters<typeof custom>[0])
+  const publicClient = createPublicClient({ chain, transport })
+  const walletClient = createWalletClient({
+    account: address as `0x${string}`,
+    chain,
+    transport,
+  })
+
+  return { publicClient, walletClient }
+}
+
 // ---------------------------------------------------------------------------
 // humanReadableError — converts a raw SDK/viem error into a short, user-friendly
 // string. The full technical error is always logged to the console for debugging.
@@ -203,16 +227,7 @@ export function useCitizenClaimAdapter(
   const createClientsForChain = useCallback(
     (targetChainId: number) => {
       if (!provider || !address) return null
-      const chain = CHAIN_CONFIGS[targetChainId]
-      if (!chain) return null
-      const transport = custom(provider as Parameters<typeof custom>[0])
-      const publicClient = createPublicClient({ chain, transport })
-      const walletClient = createWalletClient({
-        account: address as `0x${string}`,
-        chain,
-        transport,
-      })
-      return { publicClient, walletClient }
+      return createCitizenWidgetClients(provider, address, targetChainId)
     },
     [provider, address],
   )
@@ -220,17 +235,7 @@ export function useCitizenClaimAdapter(
   const createClients = useCallback(() => {
     if (!chainId) return null
     if (!provider || !address) return null
-    const chain = CHAIN_CONFIGS[chainId]
-    if (!chain) return null
-    // chain may be undefined for unsupported networks; the SDK will throw clearly.
-    const transport = custom(provider as Parameters<typeof custom>[0])
-    const publicClient = createPublicClient({ chain, transport })
-    const walletClient = createWalletClient({
-      account: address as `0x${string}`,
-      chain,
-      transport,
-    })
-    return { publicClient, walletClient }
+    return createCitizenWidgetClients(provider, address, chainId)
   }, [provider, address, chainId])
 
   // ---------------------------------------------------------------------------
