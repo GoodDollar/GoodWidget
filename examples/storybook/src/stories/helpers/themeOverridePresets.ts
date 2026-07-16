@@ -33,6 +33,29 @@ export const cobaltOverrides: GoodWidgetThemeOverrides = {
     dark_ClaimActionInner: { backgroundDark: '#0E1A3A', backgroundDarkHover: '#172B60' },
     dark_TokenAmountText: { color: '#BBD0FF', secondaryColor: '#7FA2FF' },
     light_TokenAmountText: { color: '#1D3EB2', secondaryColor: '#3C5FC7' },
+    // Button — the most visible themed surface across every widget (e.g. StreamingWidget's
+    // "Connect Wallet" action). Without this, only card borders/shadows would shift and the
+    // preset would look like a no-op on any wallet-gated fallback screen.
+    dark_Button: {
+      background: '#2E5DE8',
+      backgroundHover: '#1D3EB2',
+      backgroundPress: '#1D3EB2',
+      backgroundFocus: '#1D3EB2',
+      color: '#FFFFFF',
+      borderColor: '#2E5DE8',
+      borderColorFocus: '#6E8DFF',
+      shadowColor: 'rgba(46,93,232,0.8)',
+    },
+    light_Button: {
+      background: '#2E5DE8',
+      backgroundHover: '#1D3EB2',
+      backgroundPress: '#1D3EB2',
+      backgroundFocus: '#1D3EB2',
+      color: '#FFFFFF',
+      borderColor: '#2E5DE8',
+      borderColorFocus: '#6E8DFF',
+      shadowColor: 'rgba(46,93,232,0.3)',
+    },
     // StreamingWidget card surfaces — not part of the Claim component family, so they
     // need their own entries for the brand preset to visibly affect that widget too.
     dark_StreamRow: { borderColor: '#2E5DE8', shadowColor: 'rgba(46,93,232,0.7)' },
@@ -68,6 +91,27 @@ export const tealOverrides: GoodWidgetThemeOverrides = {
     dark_ClaimActionInner: { backgroundDark: '#062A23', backgroundDarkHover: '#0B3B31' },
     dark_TokenAmountText: { color: '#BFF5E7', secondaryColor: '#66D5BB' },
     light_TokenAmountText: { color: '#007A61', secondaryColor: '#1F9C82' },
+    // Button — see cobaltOverrides comment above.
+    dark_Button: {
+      background: '#00A884',
+      backgroundHover: '#007A61',
+      backgroundPress: '#007A61',
+      backgroundFocus: '#007A61',
+      color: '#FFFFFF',
+      borderColor: '#00A884',
+      borderColorFocus: '#33C9AA',
+      shadowColor: 'rgba(0,168,132,0.8)',
+    },
+    light_Button: {
+      background: '#00A884',
+      backgroundHover: '#007A61',
+      backgroundPress: '#007A61',
+      backgroundFocus: '#007A61',
+      color: '#FFFFFF',
+      borderColor: '#00A884',
+      borderColorFocus: '#33C9AA',
+      shadowColor: 'rgba(0,168,132,0.3)',
+    },
     // StreamingWidget card surfaces — see cobaltOverrides comment above.
     dark_StreamRow: { borderColor: '#00A884', shadowColor: 'rgba(0,168,132,0.65)' },
     light_StreamRow: { borderColor: '#00A884', shadowColor: 'rgba(0,168,132,0.12)' },
