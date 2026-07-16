@@ -162,10 +162,11 @@ function paginateGdCredits(
   }
 }
 
-export function resolveBuyerAddress(credit: AccountCreditResponse): string | null {
-  const buyer = credit.profile.buyerAddress
-  if (buyer && isAddress(buyer)) {
-    return normalizeAddress(buyer)
+export function resolveBuyerAddress(entries: GdCreditEntry[]): string | null {
+  for (const entry of entries) {
+    if (entry.buyerAddress && isAddress(entry.buyerAddress)) {
+      return normalizeAddress(entry.buyerAddress)
+    }
   }
   return null
 }
@@ -264,7 +265,6 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
       bonusUsd: bigint
       transactions: GdCreditEntry[]
       rootAccount: string
-      buyerAddress?: string
     }
   >()
 
@@ -298,7 +298,6 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
       totalGDStreamedWei: '0',
       totalOutstandingFundingUsd: outstanding.toString(),
       streamFlowRateWeiPerSecond: '0',
-      ...(state.buyerAddress ? { buyerAddress: state.buyerAddress } : {}),
     }
   }
 
@@ -431,10 +430,6 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     await sleep(MOCK_DELAY_MS)
     const normalizedBuyer = normalizeAddress(buyer)
     const normalizedPayer = normalizeAddress(body.payer)
-    const state = this.getState(normalizedPayer)
-    if (!state.buyerAddress) {
-      state.buyerAddress = normalizedBuyer
-    }
     markMockOperatorConsent(normalizedBuyer)
     return {
       buyer: normalizedBuyer,
@@ -637,15 +632,16 @@ export async function buildAccountView(
   options: BuildAccountViewOptions = {},
 ): Promise<AccountView> {
   const normalizedPayer = normalizeAddress(payer)
-  const [credit, outstanding] = await Promise.all([
+  const [credit, outstanding, history] = await Promise.all([
     backend.getAccountCredit(payer),
     backend.getOutstanding(payer),
+    backend.getCreditHistory(payer, { limit: MAX_HISTORY_LIMIT, offset: 0 }),
   ])
   const sessionBuyer =
     options.buyerAddress && isAddress(options.buyerAddress)
       ? normalizeAddress(options.buyerAddress)
       : null
-  const buyer = sessionBuyer ?? resolveBuyerAddress(credit)
+  const buyer = sessionBuyer ?? resolveBuyerAddress(history.items)
   const [operator, withdrawableUsd] = buyer
     ? await Promise.all([
         chain.getBuyerOperatorStatus({ payer: normalizedPayer, buyer }),

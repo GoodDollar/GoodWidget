@@ -69,6 +69,9 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
   >
     <DocsGrid>
       <DocsCard title="GET …/profile">Credits profile for the payer wallet.</DocsCard>
+      <DocsCard title="GET …/credit-history">
+        Newest-first funding history (`items[].buyerAddress` is used to recover the buyer).
+      </DocsCard>
       <DocsCard title="GET …/outstanding">Pending or failed Base funding entries.</DocsCard>
       <DocsCard title="POST …/celo/events/record">Notify `{ txHash }` after a successful Celo payment.</DocsCard>
       <DocsCard title="POST …/accounts/:buyer/operator-consent">
