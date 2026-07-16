@@ -456,8 +456,8 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
   }
 
   async getAccountCredit(payer: string): Promise<AccountCreditResponse> {
-    const response = await fetch(`${this.accountBase(payer)}/credit`)
-    if (!response.ok) throw new Error(`Account credit request failed: ${response.status}`)
+    const response = await fetch(`${this.accountBase(payer)}/profile`)
+    if (!response.ok) throw new Error(`Account profile request failed: ${response.status}`)
     return response.json() as Promise<AccountCreditResponse>
   }
 
