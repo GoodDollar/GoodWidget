@@ -92,7 +92,7 @@ test('Governance onboarding interactive flow persists selected house into profil
 test('Governance onboarding shows the unverified welcome state', async ({ page }) => {
   await gotoStory(page, STORY_IDS.custodialWelcomeUnverified)
   await expect(page.getByText('Verification required')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Proceed to Membership' })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Verify with GoodID' })).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/governance-widget/test-results/gwo-06-welcome-unverified.png',
     fullPage: true,

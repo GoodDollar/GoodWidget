@@ -28,6 +28,9 @@ interface GovernanceOnboardingFlowProps {
   stakeAmountLabel: string
   transactionSteps: StepperStepItem[]
   finalActions: GovernanceOnboardingAction[]
+  onHouseChange?: (house: GovernanceHouse) => void
+  onIdentityVerificationPress?: () => void
+  onProfileSubmit?: (profileDraft: GovernanceWizardData['profileDraft'], house: GovernanceHouse) => void
   onFinalActionPress?: (actionId: string) => void
   dataTestId?: string
 }
@@ -40,6 +43,9 @@ export function GovernanceOnboardingFlow({
   stakeAmountLabel,
   transactionSteps = DEFAULT_TRANSACTION_STEPS,
   finalActions = DEFAULT_FINAL_ACTIONS,
+  onHouseChange,
+  onIdentityVerificationPress,
+  onProfileSubmit,
   onFinalActionPress,
   dataTestId,
 }: GovernanceOnboardingFlowProps) {
@@ -95,12 +101,14 @@ export function GovernanceOnboardingFlow({
     setFieldErrors(nextFieldErrors)
 
     if (Object.keys(nextFieldErrors).length === 0) {
+      onProfileSubmit?.(profileDraft, resolvedHouse)
       next()
     }
   }
 
   const handleHouseSelect = (nextHouse: GovernanceHouse) => {
     setData({ selectedHouse: nextHouse })
+    onHouseChange?.(nextHouse)
   }
 
   let shellTitle = 'Governance onboarding'
@@ -121,6 +129,7 @@ export function GovernanceOnboardingFlow({
           walletAddress={walletAddress}
           isIdentityVerified={isIdentityVerified}
           onProceedPress={next}
+          onVerifyPress={onIdentityVerificationPress}
         />
       )
       // Footer is null — "Proceed to Membership" is inside OnboardingIdentityCard
