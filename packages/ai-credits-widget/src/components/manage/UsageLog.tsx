@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Card, Icon, ScrollArea, Separator, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
+import { Card, Icon, Separator, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
 import type { GdCreditEntry } from '../../backendTypes'
 import { createBackendClient } from '../../backendClient'
 import { formatUsdMicroDisplay, weiToG } from '../../quoteMath'
+
+const INITIAL_VISIBLE_ENTRIES = 4
 
 interface UsageLogProps {
   address: string | null
@@ -47,8 +49,41 @@ function formatFundedSummary(entries: GdCreditEntry[]): string {
   return parts.join(' · ')
 }
 
+function CreditHistoryEntry({ entry }: { entry: GdCreditEntry }) {
+  const failed = entry.fundingStatus === 'failed'
+  const amountColor = failed ? '$error' : '$color'
+  const gAmountDisplay = formatGAmountWei(entry.gdAmountWei)
+
+  return (
+    <YStack gap="$1">
+      <Separator />
+      <XStack justifyContent="space-between" alignItems="flex-start" gap="$3">
+        <YStack flex={1}>
+          <Text fontSize="$2" fontWeight="600" color={amountColor}>
+            {entryLabel(entry)}
+          </Text>
+          <Text fontSize="$1" secondary>
+            {new Date(entry.createdAt).toLocaleString()}
+          </Text>
+        </YStack>
+        <YStack alignItems="flex-end" flexShrink={0} gap="$0.5">
+          {gAmountDisplay && (
+            <Text fontSize="$2" fontWeight="600" color={amountColor} textAlign="right">
+              +{gAmountDisplay}
+            </Text>
+          )}
+          <Text fontSize="$2" color={amountColor} textAlign="right">
+            +{formatUsdMicroDisplay(entry.totalCreditUsd)}
+          </Text>
+        </YStack>
+      </XStack>
+    </YStack>
+  )
+}
+
 export function UsageLog({ address, backendUrl, refreshSignal = 0 }: UsageLogProps) {
   const [expanded, setExpanded] = useState(false)
+  const [showAll, setShowAll] = useState(false)
   const [entries, setEntries] = useState<GdCreditEntry[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -65,10 +100,16 @@ export function UsageLog({ address, backendUrl, refreshSignal = 0 }: UsageLogPro
     void client
       .getUsageLog(address)
       .then((log) => {
-        if (!cancelled) setEntries(log)
+        if (!cancelled) {
+          setEntries(log)
+          setShowAll(false)
+        }
       })
       .catch(() => {
-        if (!cancelled) setEntries([])
+        if (!cancelled) {
+          setEntries([])
+          setShowAll(false)
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -85,12 +126,18 @@ export function UsageLog({ address, backendUrl, refreshSignal = 0 }: UsageLogPro
     return formatFundedSummary(entries)
   }, [entries, loading])
 
+  const hiddenCount = Math.max(0, entries.length - INITIAL_VISIBLE_ENTRIES)
+  const visibleEntries = showAll ? entries : entries.slice(0, INITIAL_VISIBLE_ENTRIES)
+
   return (
     <Card gap="$2">
       <XStack
         justifyContent="space-between"
         alignItems="center"
-        onPress={() => setExpanded((value) => !value)}
+        onPress={() => {
+          if (expanded) setShowAll(false)
+          setExpanded((value) => !value)
+        }}
         cursor="pointer"
       >
         <Text fontSize="$3" fontWeight="600">
@@ -113,41 +160,31 @@ export function UsageLog({ address, backendUrl, refreshSignal = 0 }: UsageLogPro
               Purchases and funding activity will appear here.
             </Text>
           ) : (
-            <ScrollArea maxHeight={240} width="100%">
-              <YStack gap="$2" paddingRight="$1">
-                {entries.map((entry) => {
-                  const failed = entry.fundingStatus === 'failed'
-                  const amountColor = failed ? '$error' : '$color'
-                  const gAmountDisplay = formatGAmountWei(entry.gdAmountWei)
-
-                  return (
-                    <YStack key={entry.id} gap="$1">
-                      <Separator />
-                      <XStack justifyContent="space-between" alignItems="flex-start" gap="$3">
-                        <YStack flex={1}>
-                          <Text fontSize="$2" fontWeight="600" color={amountColor}>
-                            {entryLabel(entry)}
-                          </Text>
-                          <Text fontSize="$1" secondary>
-                            {new Date(entry.createdAt).toLocaleString()}
-                          </Text>
-                        </YStack>
-                        <YStack alignItems="flex-end" flexShrink={0} gap="$0.5">
-                          {gAmountDisplay && (
-                            <Text fontSize="$2" fontWeight="600" color={amountColor} textAlign="right">
-                              +{gAmountDisplay}
-                            </Text>
-                          )}
-                          <Text fontSize="$2" color={amountColor} textAlign="right">
-                            +{formatUsdMicroDisplay(entry.totalCreditUsd)}
-                          </Text>
-                        </YStack>
-                      </XStack>
-                    </YStack>
-                  )
-                })}
-              </YStack>
-            </ScrollArea>
+            <YStack gap="$2" width="100%">
+              {visibleEntries.map((entry) => (
+                <CreditHistoryEntry key={entry.id} entry={entry} />
+              ))}
+              {hiddenCount > 0 && (
+                <Text
+                  fontSize="$2"
+                  fontWeight="600"
+                  color="$primary"
+                  cursor="pointer"
+                  alignSelf="center"
+                  paddingVertical="$1"
+                  tabIndex={0}
+                  role="button"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      setShowAll((value) => !value)
+                    }
+                  }}
+                  onPress={() => setShowAll((value) => !value)}
+                >
+                  {showAll ? 'Show less' : `Show ${hiddenCount} more`}
+                </Text>
+            </YStack>
           )}
         </YStack>
       )}

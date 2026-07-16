@@ -55,8 +55,10 @@ export function AiCreditsPurchaseFlow({
     prevActiveStepRef.current = activeStep
     setDrawerStep(activeStep)
 
-    if (previousStep !== null && previousStep !== activeStep) {
+    if (previousStep == null) {
       setDrawerOpen(false)
+    } else if (previousStep !== activeStep) {
+      setDrawerOpen(true)
     }
   }, [activeStep])
 

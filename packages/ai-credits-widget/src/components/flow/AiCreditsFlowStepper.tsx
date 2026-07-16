@@ -30,8 +30,13 @@ export function AiCreditsFlowStepper({
     if (stepIndex < activeIndex) return 'completed'
 
     if (step === 'pay' && state.status === 'payment_failed') return 'failed'
-    if (step === 'pay' && state.status === 'payment_confirmed') return 'completed'
-    return 'active'
+    if (
+      step === 'pay' &&
+      (state.status === 'payment_pending' || state.status === 'payment_confirmed')
+    ) {
+      return 'active'
+    }
+    return 'ready'
   }
 
   const steps: StepperStepItem[] = [

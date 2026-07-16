@@ -221,7 +221,7 @@ export function PaymentFailedStory() {
       adapterFactory={createAdapterFactory('payment_failed', {
         buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
         operatorConsented: true,
-        error: 'Transaction reverted: insufficient allowance',
+        error: 'Payment failed. Try again.',
       })}
     />
   )

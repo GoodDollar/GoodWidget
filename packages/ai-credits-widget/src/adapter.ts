@@ -39,6 +39,7 @@ import {
 } from './payerSession'
 import { executeCeloPayment, G_TOKEN_CELO_ADDRESS } from './celoPayment'
 import { startGoodIdVerification, isUserRejectedWalletRequest } from './goodIdVerification'
+import { mapPaymentError } from './paymentErrors'
 import { fetchVaultPaymentMinimums, validateVaultPaymentAmounts } from './vaultMinimums'
 import { quoteTotalUsdMicro, usdDisplayToMicro } from './quoteMath'
 import type {
@@ -735,7 +736,7 @@ export function useAiCreditsAdapter({
           streamAmount: quote.streamAmountG,
         })
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Payment amount below vault minimum'
+        const message = mapPaymentError(error)
         setState((prev) => ({
           ...prev,
           status: 'payment_failed',
@@ -746,7 +747,7 @@ export function useAiCreditsAdapter({
           chainId: CELO_CHAIN_ID,
           message,
         })
-        throw error instanceof Error ? error : new Error(message)
+        throw new Error(message)
       }
     }
 
@@ -836,7 +837,7 @@ export function useAiCreditsAdapter({
         creditUsdMicro,
       })
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Payment failed'
+      const message = mapPaymentError(err)
       setState((prev) => ({
         ...prev,
         status: 'payment_failed',
@@ -847,7 +848,7 @@ export function useAiCreditsAdapter({
         chainId: CELO_CHAIN_ID,
         message,
       })
-      throw err instanceof Error ? err : new Error(message)
+      throw new Error(message)
     }
   }, [state, backendClient, chainClient, celoVault, onPaySuccess, onPayError])
 

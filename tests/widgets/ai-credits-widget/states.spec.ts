@@ -75,8 +75,7 @@ test('AiCreditsWidget quote_ready GoodID', async ({ page }) => {
   await gotoStory(page, STORY_IDS.quoteReadyGoodId)
   const root = widget(page, 'AiCreditsWidget-quote-ready-goodid')
   await expect(root).toBeVisible()
-  await expect(root.getByText('+10% deposit')).toBeVisible()
-  await expect(root.getByText('+20% stream')).toBeVisible()
+  await expect(root.getByText('GoodID verified')).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-04-quote-ready-goodid.png',
     fullPage: true,
@@ -124,7 +123,14 @@ test('AiCreditsWidget insufficient_g_balance', async ({ page }) => {
 
 test('AiCreditsWidget payment_failed', async ({ page }) => {
   await gotoStory(page, STORY_IDS.paymentFailed)
-  await expect(page.getByTestId('AiCreditsWidget-payment-failed')).toBeVisible()
+  const root = page.getByTestId('AiCreditsWidget-payment-failed')
+  await expect(root).toBeVisible()
+  await expect(root.getByText('Payment Failed', { exact: true })).toBeVisible()
+  await expect(root.getByText('Payment failed. Try again.', { exact: true }).first()).toBeVisible()
+  await expect(root.getByText('Needs attention', { exact: true })).toBeVisible()
+  await expect(root.getByText('Set Amounts & Pay', { exact: true })).toBeVisible()
+  await expect(root.getByRole('button', { name: 'Try Again' })).toHaveCount(0)
+  await expect(root.getByText('insufficient allowance')).toHaveCount(0)
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-09-payment-failed.png',
     fullPage: true,

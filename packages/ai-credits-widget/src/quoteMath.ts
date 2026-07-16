@@ -48,6 +48,15 @@ export function formatUsdDisplay(usd: string, decimals = 2): string {
   return `US$ ${value.toFixed(decimals)}`
 }
 
+export function formatUsd1ToG(gdUsdPerToken: number): string | null {
+  if (!Number.isFinite(gdUsdPerToken) || gdUsdPerToken <= 0) return null
+  const gPerUsd = 1 / gdUsdPerToken
+  if (!Number.isFinite(gPerUsd) || gPerUsd <= 0) return null
+  if (gPerUsd >= 100) return Math.round(gPerUsd).toLocaleString('en-US')
+  if (gPerUsd >= 10) return gPerUsd.toFixed(1)
+  return gPerUsd.toFixed(2)
+}
+
 export function formatUsdWithBonus(principalUsd: string, bonusPercent: number): string {
   const principal = Number.parseFloat(principalUsd)
   if (!Number.isFinite(principal) || principal <= 0) return formatUsdDisplay('0', 4)
