@@ -184,6 +184,7 @@ export function UsageLog({ address, backendUrl, refreshSignal = 0 }: UsageLogPro
                 >
                   {showAll ? 'Show less' : `Show ${hiddenCount} more`}
                 </Text>
+              )}
             </YStack>
           )}
         </YStack>
