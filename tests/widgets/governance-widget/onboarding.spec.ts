@@ -46,8 +46,8 @@ test('Governance onboarding interactive flow persists selected house into profil
   })
 
   await page.getByTestId('GovernanceOnboardingWidget-house-alignment').click()
-  await page.getByRole('button', { name: 'Continue to profile' }).scrollIntoViewIfNeeded()
-  await page.getByRole('button', { name: 'Continue to profile' }).click({ force: true })
+  await page.getByRole('button', { name: 'Continue', exact: true }).scrollIntoViewIfNeeded()
+  await page.getByRole('button', { name: 'Continue', exact: true }).click({ force: true })
   await expect(page.getByText('Apply for House of Alignment', { exact: true })).toBeVisible()
   await expect(page.getByText('Mission statement')).toBeVisible()
   await page.screenshot({
@@ -70,16 +70,16 @@ test('Governance onboarding interactive flow persists selected house into profil
     .scrollIntoViewIfNeeded()
   await page.getByRole('button', { name: 'Create Profile and Stake' }).click({ force: true })
 
-  await expect(page.getByText('Creating profile & staking', { exact: true }).first()).toBeVisible()
+  await expect(page.getByText('Securing your membership', { exact: true }).first()).toBeVisible()
   await expect(page.getByText('Approve governance stake')).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/governance-widget/test-results/gwo-04-stake-progress-active.png',
     fullPage: true,
   })
 
-  await page.getByRole('button', { name: 'Continue to success' }).scrollIntoViewIfNeeded()
   // Wait for all transaction steps to complete (indicated by the progress text reaching 4/4)
   await expect(page.getByText('4/4')).toBeVisible({ timeout: 10000 })
+  await page.getByRole('button', { name: 'Continue to success' }).scrollIntoViewIfNeeded()
   await expect(page.getByRole('button', { name: 'Continue to success' })).toBeEnabled()
   await page.getByRole('button', { name: 'Continue to success' }).click({ force: true })
   await expect(page.getByText('Welcome to Governance', { exact: true })).toBeVisible()
@@ -160,8 +160,8 @@ test('Profile field handles rapid typing without losing characters (stale-closur
   await page.getByRole('button', { name: 'Proceed to Membership' }).scrollIntoViewIfNeeded()
   await page.getByRole('button', { name: 'Proceed to Membership' }).click()
   await page.getByTestId('GovernanceOnboardingWidget-house-alignment').click()
-  await page.getByRole('button', { name: 'Continue to profile' }).scrollIntoViewIfNeeded()
-  await page.getByRole('button', { name: 'Continue to profile' }).click({ force: true })
+  await page.getByRole('button', { name: 'Continue', exact: true }).scrollIntoViewIfNeeded()
+  await page.getByRole('button', { name: 'Continue', exact: true }).click({ force: true })
   await expect(page.getByText('Apply for House of Alignment', { exact: true })).toBeVisible()
 
   const nameInput = page.getByPlaceholder('John Doe or Organization')

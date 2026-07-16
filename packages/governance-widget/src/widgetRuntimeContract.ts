@@ -22,9 +22,33 @@ export type GovernanceWidgetStatus =
   | 'pending_alignment'
   | 'active_citizenship'
   | 'active_alignment'
-  | 'restake_required'
+  | 'revoked'
   | 'vote_detail'
   | 'friendly_error'
+
+export type GovernanceTransactionKind = 'registration' | 'unstake' | 'vote'
+
+export type GovernanceTransactionStatus =
+  | 'idle'
+  | 'wallet_confirmation'
+  | 'submitted'
+  | 'confirmed'
+  | 'rejected'
+  | 'reverted'
+  | 'failed'
+
+export interface GovernanceTransactionState {
+  kind: GovernanceTransactionKind | null
+  status: GovernanceTransactionStatus
+  hash: Hex | null
+  error: string | null
+}
+
+export interface GovernanceUnstakeAvailability {
+  canUnstake: boolean
+  unlockAt: number | null
+  disabledReason?: string
+}
 
 export interface GovernanceVotingState {
   voteId: string
@@ -65,6 +89,9 @@ export interface GovernanceWidgetAdapterState {
   minimumStakeAmounts: Record<GovernanceHouse, bigint>
   transactionSteps: StepperStepItem[]
   registrationHash: Hex | null
+  transaction: GovernanceTransactionState
+  unstakeAvailability: GovernanceUnstakeAvailability
+  lifecycleNotice: string | null
   error: string | null
 }
 
@@ -75,7 +102,7 @@ export interface GovernanceWidgetAdapterActions {
   retry: () => Promise<void>
   selectHouse: (house: GovernanceHouse) => void
   register: (profileDraft: GovernanceProfileDraft) => Promise<void>
-  restake: () => Promise<void>
+  unstake: () => Promise<void>
   openVote: () => void
   closeVote: () => void
   setVoteAllocation: (recipientId: string, basisPoints: number) => void

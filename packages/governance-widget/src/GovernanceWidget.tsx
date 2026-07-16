@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Button, ButtonText, Card, Heading, Input, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
+import { Button, ButtonText, Card, Heading, Icon, Input, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
 import { AlignmentVotingProposalCard } from './AlignmentVotingProposalCard'
 import { BalanceCard } from './BalanceCard'
 import { FundingDistributionChart } from './FundingDistributionChart'
@@ -10,16 +10,29 @@ import { useGovernanceAdapter } from './adapter'
 import type {
   GovernanceWidgetAdapterActions,
   GovernanceWidgetAdapterFactoryInput,
+  GovernanceWidgetAdapterResult,
   GovernanceWidgetAdapterState,
   GovernanceWidgetProps,
 } from './widgetRuntimeContract'
 import { isActiveStatus } from './adapter'
+import { formatStakeAmount } from './sdks/contracts'
 
 function formatMemberDate(timestamp: number | null): string {
   if (!timestamp) return 'Not available'
   return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(
     new Date(timestamp),
   )
+}
+
+function formatMemberDateTime(timestamp: number | null): string {
+  if (!timestamp) return 'Not available'
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(timestamp))
 }
 
 function GovernanceHeader({
@@ -32,14 +45,27 @@ function GovernanceHeader({
   const addressLabel = state.address ? `${state.address.slice(0, 6)}…${state.address.slice(-4)}` : null
 
   return (
-    <Card outlined data-testid="GovernanceWidget-header">
+    <YStack
+      backgroundColor="$background"
+      borderBottomWidth={1}
+      borderColor="$borderColor"
+      padding="$4"
+      data-testid="GovernanceWidget-header"
+    >
       <XStack alignItems="center" justifyContent="space-between" gap="$3" flexWrap="wrap">
-        <YStack gap="$1" flex={1} minWidth={220}>
-          <Heading level={3}>GoodDAO Governance</Heading>
-          <Text tone="secondary">
-            Browse governance impact, funding distribution, and active Alignment voting.
-          </Text>
-        </YStack>
+        <XStack alignItems="center" gap="$3" flex={1} minWidth={180}>
+          <YStack
+            width={40}
+            height={40}
+            borderRadius="$full"
+            backgroundColor="$primary"
+            alignItems="center"
+            justifyContent="center"
+          >
+            <Icon name="shield-check" size="sm" color="white" />
+          </YStack>
+          <Heading level={5} color="$primary">GoodDAO</Heading>
+        </XStack>
         {state.address ? (
           <YStack alignItems="flex-end" gap="$1">
             <Text variant="caption" tone="secondary">
@@ -57,7 +83,7 @@ function GovernanceHeader({
           </Button>
         )}
       </XStack>
-    </Card>
+    </YStack>
   )
 }
 
@@ -174,7 +200,8 @@ function PendingAlignmentState({ state }: { state: GovernanceWidgetAdapterState 
       <YStack gap="$3">
         <Heading level={4}>Alignment membership pending</Heading>
         <Text tone="secondary">
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Your House of Alignment application is waiting for committee approval.
+          Your House of Alignment application is recorded on-chain and is waiting for
+          committee approval. No further transaction is required while it is pending.
         </Text>
         <Text variant="caption" tone="secondary">
           Wallet: {state.address ?? 'Not connected'}
@@ -184,27 +211,76 @@ function PendingAlignmentState({ state }: { state: GovernanceWidgetAdapterState 
   )
 }
 
-function RestakeState({
+function MembershipExitState({
   state,
   actions,
 }: {
   state: GovernanceWidgetAdapterState
   actions: GovernanceWidgetAdapterActions
 }) {
+  const transaction = state.transaction.kind === 'unstake' ? state.transaction : null
+  const isPending = transaction?.status === 'wallet_confirmation' || transaction?.status === 'submitted'
+  const canSubmit = state.unstakeAvailability.canUnstake && !isPending
+
   return (
-    <Card data-testid="GovernanceWidget-restake">
+    <Card outlined data-testid="GovernanceWidget-unstake">
       <YStack gap="$3">
-        <Heading level={4}>Restore governance membership</Heading>
+        <Heading level={4}>Membership stake</Heading>
         <Text tone="secondary">
-          This member is currently {state.member?.status ?? 'inactive'}. You can restake to rejoin the selected house.
+          Active governance stakes remain locked for one full term. Once the lock expires,
+          unstaking returns your G$ and removes your active membership.
         </Text>
+        <XStack gap="$2" justifyContent="space-between" flexWrap="wrap">
+          <Text variant="caption" tone="secondary">Available from</Text>
+          <Text variant="caption" fontWeight="700">
+            {formatMemberDateTime(state.unstakeAvailability.unlockAt)}
+          </Text>
+        </XStack>
+        {!state.unstakeAvailability.canUnstake ? (
+          <Text variant="caption" tone="secondary" data-testid="GovernanceWidget-unstake-locked">
+            {state.unstakeAvailability.disabledReason}
+          </Text>
+        ) : null}
+        {transaction?.status === 'wallet_confirmation' ? (
+          <Text color="$warning" fontWeight="700">Confirm the unstake transaction in your wallet.</Text>
+        ) : null}
+        {transaction?.status === 'submitted' ? (
+          <Text color="$warning" fontWeight="700">
+            Transaction submitted. Waiting for a successful Celo receipt…
+          </Text>
+        ) : null}
+        {transaction?.status === 'rejected' ||
+        transaction?.status === 'reverted' ||
+        transaction?.status === 'failed' ? (
+          <Text color="$error" fontWeight="700">
+            {transaction.error ?? 'The unstake transaction did not complete.'}
+          </Text>
+        ) : null}
         <Button
+          disabled={!canSubmit}
           onPress={() => {
-            void actions.restake()
+            void actions.unstake()
           }}
         >
-          <ButtonText>Restake {state.stakeAmountLabel}</ButtonText>
+          <ButtonText>{isPending ? 'Unstaking…' : 'Unstake membership'}</ButtonText>
         </Button>
+      </YStack>
+    </Card>
+  )
+}
+
+function RevokedState({ state }: { state: GovernanceWidgetAdapterState }) {
+  return (
+    <Card data-testid="GovernanceWidget-revoked">
+      <YStack gap="$3">
+        <Heading level={4}>Membership revoked</Heading>
+        <Text tone="secondary">
+          This governance membership was revoked and cannot be reactivated from the widget.
+          Contact the GoodDAO governance team if you believe this status is incorrect.
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Wallet: {state.address ?? 'Not connected'}
+        </Text>
       </YStack>
     </Card>
   )
@@ -251,7 +327,8 @@ function GovernanceVoteDetail({
           </Button>
         </XStack>
         <Text tone="secondary">
-          Placeholder voting detail. Enter allocation basis points; totals must equal 10,000 before voting.
+          Allocate basis points across the recipients captured when this vote opened.
+          Your allocation must total exactly 10,000 basis points.
         </Text>
         <YStack gap="$3">
           {vote.options.map((option) =>
@@ -279,6 +356,18 @@ function GovernanceVoteDetail({
           </Text>
         ) : null}
         {!canSubmit ? <Text tone="secondary">{vote.disabledReason ?? 'Voting is unavailable.'}</Text> : null}
+        {state.transaction.kind === 'vote' && state.transaction.status === 'wallet_confirmation' ? (
+          <Text color="$warning" fontWeight="700">Confirm the vote in your wallet.</Text>
+        ) : null}
+        {state.transaction.kind === 'vote' && state.transaction.status === 'submitted' ? (
+          <Text color="$warning" fontWeight="700">Vote submitted. Waiting for confirmation…</Text>
+        ) : null}
+        {state.transaction.kind === 'vote' && state.transaction.status === 'confirmed' ? (
+          <Text color="$success" fontWeight="700">Vote confirmed on Celo.</Text>
+        ) : null}
+        {state.transaction.kind === 'vote' && state.transaction.error ? (
+          <Text color="$error" fontWeight="700">{state.transaction.error}</Text>
+        ) : null}
         <Button
           disabled={!canSubmit}
           onPress={() => {
@@ -292,17 +381,13 @@ function GovernanceVoteDetail({
   )
 }
 
-function GovernanceWidgetContent({
-  adapterFactory,
-  adapterInput,
+function GovernanceWidgetView({
+  adapter,
   testId,
 }: {
-  adapterFactory?: GovernanceWidgetProps['adapterFactory']
-  adapterInput: GovernanceWidgetAdapterFactoryInput
+  adapter: GovernanceWidgetAdapterResult
   testId?: string
 }) {
-  const defaultAdapter = useGovernanceAdapter(adapterInput)
-  const adapter = adapterFactory ? adapterFactory(adapterInput) : defaultAdapter
   const { state, actions } = adapter
   const shouldShowDashboard =
     state.status === 'disconnected' ||
@@ -315,33 +400,77 @@ function GovernanceWidgetContent({
     <YStack gap="$4" width="100%" data-testid={testId ?? 'GovernanceWidget'}>
       <GovernanceHeader state={state} actions={actions} />
       <RuntimeNotice state={state} actions={actions} />
+      {state.error && state.status !== 'friendly_error' && state.transaction.status === 'idle' ? (
+        <Card data-testid="GovernanceWidget-action-error">
+          <YStack gap="$2">
+            <Text color="$error" fontWeight="700">Governance action unavailable</Text>
+            <Text tone="secondary">{state.error}</Text>
+          </YStack>
+        </Card>
+      ) : null}
       {state.status === 'vote_detail' ? <GovernanceVoteDetail state={state} actions={actions} /> : null}
       {state.status === 'onboarding_required' ? (
-        <GovernanceOnboardingWidget
-          currentStepId={state.onboardingStepId}
-          identityStatus={state.identityStatus}
-          walletAddress={state.address ?? undefined}
-          initialHouse={state.selectedHouse}
-          disabledHouseOptions={state.disabledHouseOptions}
-          initialProfileDraft={state.profileDraft}
-          stakeAmountLabel={state.stakeAmountLabel}
-          transactionSteps={state.transactionSteps}
-          dataTestId="GovernanceWidget-onboarding"
-          onHouseChange={actions.selectHouse}
-          onIdentityVerificationPress={() => {
-            void actions.startIdentityVerification()
-          }}
-          onProfileSubmit={(profileDraft) => {
-            void actions.register(profileDraft)
-          }}
-        />
+        <YStack gap="$4">
+          {state.lifecycleNotice ? (
+            <Card data-testid="GovernanceWidget-lifecycle-notice">
+              <Text color="$success" fontWeight="700">{state.lifecycleNotice}</Text>
+            </Card>
+          ) : null}
+          <GovernanceOnboardingWidget
+            currentStepId={state.onboardingStepId}
+            identityStatus={state.identityStatus}
+            walletAddress={state.address ?? undefined}
+            initialHouse={state.selectedHouse}
+            disabledHouseOptions={state.disabledHouseOptions}
+            initialProfileDraft={state.profileDraft}
+            stakeAmountLabel={state.stakeAmountLabel}
+            stakeAmountLabels={{
+              citizenship: formatStakeAmount(state.minimumStakeAmounts.citizenship),
+              alignment: formatStakeAmount(state.minimumStakeAmounts.alignment),
+            }}
+            transactionSteps={state.transactionSteps}
+            dataTestId="GovernanceWidget-onboarding"
+            onHouseChange={actions.selectHouse}
+            onIdentityVerificationPress={() => {
+              void actions.startIdentityVerification()
+            }}
+            onProfileSubmit={(profileDraft) => {
+              void actions.register(profileDraft)
+            }}
+          />
+        </YStack>
       ) : null}
       {state.status === 'pending_alignment' ? <PendingAlignmentState state={state} /> : null}
-      {state.status === 'restake_required' ? <RestakeState state={state} actions={actions} /> : null}
+      {state.status === 'revoked' ? <RevokedState state={state} /> : null}
       {shouldShowDashboard ? <GovernanceDashboard state={state} actions={actions} /> : null}
       <MemberFooter state={state} />
+      {isActiveStatus(state.status) ? <MembershipExitState state={state} actions={actions} /> : null}
     </YStack>
   )
+}
+
+function DefaultGovernanceWidgetContent({
+  adapterInput,
+  testId,
+}: {
+  adapterInput: GovernanceWidgetAdapterFactoryInput
+  testId?: string
+}) {
+  const adapter = useGovernanceAdapter(adapterInput)
+  return <GovernanceWidgetView adapter={adapter} testId={testId} />
+}
+
+function InjectedGovernanceWidgetContent({
+  adapterFactory,
+  adapterInput,
+  testId,
+}: {
+  adapterFactory: NonNullable<GovernanceWidgetProps['adapterFactory']>
+  adapterInput: GovernanceWidgetAdapterFactoryInput
+  testId?: string
+}) {
+  const adapter = adapterFactory(adapterInput)
+  return <GovernanceWidgetView adapter={adapter} testId={testId} />
 }
 
 export function GovernanceWidget({
@@ -367,11 +496,15 @@ export function GovernanceWidget({
       config={config}
       defaultTheme={defaultTheme}
     >
-      <GovernanceWidgetContent
-        adapterFactory={adapterFactory}
-        adapterInput={adapterInput}
-        testId={testId}
-      />
+      {adapterFactory ? (
+        <InjectedGovernanceWidgetContent
+          adapterFactory={adapterFactory}
+          adapterInput={adapterInput}
+          testId={testId}
+        />
+      ) : (
+        <DefaultGovernanceWidgetContent adapterInput={adapterInput} testId={testId} />
+      )}
     </GovernanceWidgetProvider>
   )
 }

@@ -25,6 +25,7 @@ export interface FundingTotalResult {
   amountWei: bigint
   formattedAmount: string
   streamCount: number
+  activeStreamCount: number
 }
 
 interface FundingStreamsResponse {
@@ -55,6 +56,7 @@ export async function fetchFundingReceivedSoFar(params: {
   const first = 1000
   let skip = 0
   let total = 0n
+  let activeStreamCount = 0
   for (;;) {
     const response = await fetcher(endpoint, {
       method: 'POST',
@@ -77,6 +79,9 @@ export async function fetchFundingReceivedSoFar(params: {
     const streams = json.data?.streams ?? []
     for (const stream of streams) {
       total += calculateStreamAmountWei(stream, nowSeconds)
+      if (BigInt(stream.currentFlowRate) !== 0n) {
+        activeStreamCount += 1
+      }
     }
 
     if (streams.length < first) {
@@ -84,6 +89,7 @@ export async function fetchFundingReceivedSoFar(params: {
         amountWei: total,
         formattedAmount: formatUnits(total, 18),
         streamCount: skip + streams.length,
+        activeStreamCount,
       }
     }
 

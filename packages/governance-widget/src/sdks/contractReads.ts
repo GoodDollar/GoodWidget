@@ -9,6 +9,7 @@ import {
   mapMemberRecord,
   mapVoteConfig,
   readGoodIdRoot,
+  safeMillisecondsFromSeconds,
   type GovernanceFlowSplitterConfig,
   type GovernanceHoaEligibilityRecord,
   type GovernanceMemberRecord,
@@ -24,6 +25,17 @@ export interface GovernanceSchedule {
   cycleStartTime: number | null
   termDurationSeconds: bigint
   votingTermLengthSeconds: bigint
+}
+
+export function voteStartTimeFromSchedule(
+  schedule: GovernanceSchedule,
+  voteId: bigint,
+): number | null {
+  if (!schedule.cycleStartTime || schedule.termDurationSeconds <= 0n) return null
+  const voteOffsetMs = safeMillisecondsFromSeconds(voteId * schedule.termDurationSeconds)
+  if (voteOffsetMs === null) return null
+  const voteStartTime = schedule.cycleStartTime + voteOffsetMs
+  return Number.isSafeInteger(voteStartTime) ? voteStartTime : null
 }
 
 export interface GovernanceMembershipReads {
@@ -91,8 +103,8 @@ export async function readGovernanceMembership(params: {
     },
     hoaEligibility: mapHoaEligibilityRecord(hoaEligibility),
     identityRoot,
-    activeCitizens,
-    activeAlignment,
+    activeCitizens: [...activeCitizens],
+    activeAlignment: [...activeAlignment],
   }
 }
 
@@ -120,7 +132,7 @@ export async function readGovernanceSchedule(params: {
   ])
 
   return {
-    cycleStartTime: cycleStartTime > 0n ? Number(cycleStartTime) * 1000 : null,
+    cycleStartTime: safeMillisecondsFromSeconds(cycleStartTime),
     termDurationSeconds: termDuration,
     votingTermLengthSeconds: votingTermLength,
   }
@@ -131,6 +143,7 @@ export async function readGovernanceVote(params: {
   housesAddress: Address
   voterKey: Address
   activeAlignment: Address[]
+  schedule: GovernanceSchedule
 }): Promise<{
   isVotingPeriod: boolean
   voteId: bigint
@@ -138,8 +151,9 @@ export async function readGovernanceVote(params: {
   recipients: Address[]
   hasVoted: boolean
   finalizedUnits: Record<Address, bigint>
+  voteStartTime: number | null
 }> {
-  const { publicClient, housesAddress, voterKey, activeAlignment } = params
+  const { publicClient, housesAddress, voterKey, activeAlignment, schedule } = params
   const [isVotingPeriod, voteId] = await Promise.all([
     publicClient.readContract({ address: housesAddress, abi: GOODDAO_HOUSES_ABI, functionName: 'isVotingPeriod' }),
     publicClient.readContract({ address: housesAddress, abi: GOODDAO_HOUSES_ABI, functionName: 'getCurrentVoteId' }),
@@ -167,7 +181,34 @@ export async function readGovernanceVote(params: {
   ])
 
   const voteConfig = mapVoteConfig(rawVoteConfig)
-  const recipients = rawRecipients.length > 0 ? rawRecipients : isVotingPeriod ? activeAlignment : rawRecipients
+  const voteStartTime = voteConfig.startTime ?? voteStartTimeFromSchedule(schedule, voteId)
+  let recipients: Address[] = [...rawRecipients]
+
+  if (rawRecipients.length === 0 && isVotingPeriod && voteStartTime) {
+    // Before the first ballot creates the on-chain snapshot, mirror the
+    // contract rule so late-joining HoA members are never submitted.
+    const provisionalRecords = await Promise.all(
+      activeAlignment.map(async (recipient) => ({
+        recipient,
+        member: mapMemberRecord(
+          await publicClient.readContract({
+            address: housesAddress,
+            abi: GOODDAO_HOUSES_ABI,
+            functionName: 'getMember',
+            args: [recipient],
+          }),
+        ),
+      })),
+    )
+    recipients = provisionalRecords
+      .filter(({ member }) =>
+        member.status === 'active' &&
+        member.house === 'alignment' &&
+        member.joinedAt !== null &&
+        member.joinedAt <= voteStartTime,
+      )
+      .map(({ recipient }) => recipient)
+  }
   const finalizedEntries = await Promise.all(
     recipients.map(async (recipient) => {
       const units = await publicClient.readContract({
@@ -187,6 +228,7 @@ export async function readGovernanceVote(params: {
     recipients,
     hasVoted,
     finalizedUnits: Object.fromEntries(finalizedEntries) as Record<Address, bigint>,
+    voteStartTime,
   }
 }
 

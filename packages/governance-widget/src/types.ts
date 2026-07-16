@@ -55,6 +55,7 @@ export interface GovernanceOnboardingWidgetProps {
   initialProfileDraft?: GovernanceProfileDraft
   initialFieldErrors?: GovernanceProfileFieldErrors
   stakeAmountLabel?: string
+  stakeAmountLabels?: Record<GovernanceHouse, string>
   transactionSteps?: StepperStepItem[]
   finalActions?: GovernanceOnboardingAction[]
   dataTestId?: string

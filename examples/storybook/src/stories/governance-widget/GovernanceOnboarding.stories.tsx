@@ -197,6 +197,7 @@ function CustodialInteractiveFlowStory() {
       storyProps={{
         identityStatus: 'verified',
         initialStepId: 'welcome',
+        initialHouse: 'citizenship',
         walletAddress: '0x4E5B2D7a45C2e31a8F0d09b4bE1fA11aD3aC9F08',
         dataTestId: 'GovernanceOnboardingWidget-interactive-flow',
         transactionSteps: stepsState,
