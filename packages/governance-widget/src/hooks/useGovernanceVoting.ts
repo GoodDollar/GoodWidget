@@ -13,9 +13,11 @@ import {
 import {
   readGovernanceVote,
   type GovernanceSchedule,
+  type GovernanceStakeRequirements,
 } from '../sdks/contractReads'
 import { castGovernanceVote } from '../sdks/transactions'
 import { friendlyGovernanceError, transactionStatusFromError } from './useGovernanceMembership'
+import { useGovernanceTransactionGuard } from './useGovernanceTransactionGuard'
 
 const IDLE_VOTE_TRANSACTION: GovernanceTransactionState = {
   kind: null,
@@ -28,12 +30,13 @@ function shortAddress(address: Address): string {
   return `${address.slice(0, 6)}…${address.slice(-4)}`
 }
 
-function nextVotingWindowLabel(schedule: GovernanceSchedule, nowMs = Date.now()): string {
-  if (!schedule.cycleStartTime || schedule.termDurationSeconds === 0n) {
+function nextVotingWindowLabel(schedule: GovernanceSchedule): string {
+  if (!schedule.cycleStartTime || schedule.termDurationSeconds === 0n || schedule.currentBlockTime === null) {
     return 'Contract schedule unavailable'
   }
   const termMs = safeMillisecondsFromSeconds(schedule.termDurationSeconds)
   if (termMs === null) return 'Contract schedule unavailable'
+  const nowMs = schedule.currentBlockTime
   const nextStart = nowMs < schedule.cycleStartTime
     ? schedule.cycleStartTime
     : schedule.cycleStartTime + (Math.floor((nowMs - schedule.cycleStartTime) / termMs) + 1) * termMs
@@ -66,6 +69,7 @@ export function createVotingState(params: {
   hasVoted: boolean
   finalizedUnits: Record<string, bigint>
   schedule: GovernanceSchedule
+  minimumStake: bigint
 }): GovernanceVotingState {
   const recipients = params.recipients.map((recipient) => getAddress(recipient))
   const totalUnits = Object.values(params.finalizedUnits).reduce((total, amount) => total + amount, 0n)
@@ -79,6 +83,9 @@ export function createVotingState(params: {
   })
   const allocationsBps = Object.fromEntries(options.map((option) => [option.id, 0]))
   const isActiveMember = params.member?.status === 'active'
+  const hasRequiredStake = Boolean(
+    params.member && params.member.stakedAmount >= params.minimumStake,
+  )
   const hasCitizenIdentity = params.member?.house !== 'citizenship' || Boolean(
     params.identityRoot && params.identityRoot.toLowerCase() !== ZERO_ADDRESS,
   )
@@ -89,6 +96,7 @@ export function createVotingState(params: {
   )
   const canVote = Boolean(
     isActiveMember &&
+    hasRequiredStake &&
     hasCitizenIdentity &&
     joinedBeforeVote &&
     params.isVotingOpen &&
@@ -110,6 +118,8 @@ export function createVotingState(params: {
     disabledReason = 'You already voted in this allocation cycle.'
   } else if (!isActiveMember) {
     disabledReason = 'Only active members can vote.'
+  } else if (!hasRequiredStake) {
+    disabledReason = 'Your membership stake is below the current minimum required for this house.'
   } else if (!joinedBeforeVote) {
     disabledReason = 'Members who joined after this vote opened cannot participate in this cycle.'
   } else if (!hasCitizenIdentity) {
@@ -197,6 +207,7 @@ export function useGovernanceVoting(params: {
   identityRoot: Address | null
   activeAlignment: Address[]
   schedule: GovernanceSchedule | null
+  minimumStakes: GovernanceStakeRequirements
 }) {
   const {
     enabled,
@@ -208,12 +219,18 @@ export function useGovernanceVoting(params: {
     identityRoot,
     activeAlignment,
     schedule,
+    minimumStakes,
   } = params
   const [voting, setVoting] = useState<GovernanceVotingState>(() => createEmptyVotingState())
   const [transaction, setTransaction] = useState<GovernanceTransactionState>(IDLE_VOTE_TRANSACTION)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const refreshRequestId = useRef(0)
+  const transactionGuard = useGovernanceTransactionGuard([
+    account?.toLowerCase() ?? 'no-account',
+    addresses.houses?.toLowerCase() ?? 'no-contract',
+    enabled ? 'enabled' : 'disabled',
+  ].join(':'))
 
   const refresh = useCallback(async () => {
     if (!enabled || !account || !addresses.houses || !schedule) return
@@ -239,13 +256,24 @@ export function useGovernanceVoting(params: {
           hasVoted: vote.hasVoted,
           finalizedUnits: vote.finalizedUnits,
           schedule,
+          minimumStake: member ? minimumStakes[member.house] : 0n,
         }))
         setError(null)
       }
     } catch (err: unknown) {
       if (requestId === refreshRequestId.current) setError(friendlyGovernanceError(err))
     }
-  }, [account, activeAlignment, addresses.houses, enabled, identityRoot, member, publicClient, schedule])
+  }, [
+    account,
+    activeAlignment,
+    addresses.houses,
+    enabled,
+    identityRoot,
+    member,
+    minimumStakes,
+    publicClient,
+    schedule,
+  ])
 
   useEffect(() => {
     refreshRequestId.current += 1
@@ -290,11 +318,17 @@ export function useGovernanceVoting(params: {
       setError(unavailableError)
       return
     }
+    const transactionToken = transactionGuard.begin()
+    if (!transactionToken) return
+
     const walletClient = createGovernanceWalletClient({ provider, account })
     if (!walletClient) {
       const providerError = 'The connected wallet provider is unavailable.'
-      setTransaction({ kind: 'vote', status: 'failed', hash: null, error: providerError })
-      setError(providerError)
+      if (transactionGuard.isCurrent(transactionToken)) {
+        setTransaction({ kind: 'vote', status: 'failed', hash: null, error: providerError })
+        setError(providerError)
+      }
+      transactionGuard.finish(transactionToken)
       return
     }
 
@@ -308,22 +342,29 @@ export function useGovernanceVoting(params: {
         housesAddress: addresses.houses,
         recipients: ballot.recipients,
         allocationsBps: ballot.allocations,
-        onStage: (stage, stageHash) => setTransaction({
-          kind: 'vote',
-          status: stage,
-          hash: stageHash ?? null,
-          error: null,
-        }),
+        onStage: (stage, stageHash) => {
+          if (!transactionGuard.isCurrent(transactionToken)) return
+          setTransaction({
+            kind: 'vote',
+            status: stage,
+            hash: stageHash ?? null,
+            error: null,
+          })
+        },
       })
+      if (!transactionGuard.isCurrent(transactionToken)) return
       setTransaction({ kind: 'vote', status: 'confirmed', hash, error: null })
       await refresh()
     } catch (err: unknown) {
+      if (!transactionGuard.isCurrent(transactionToken)) return
       const status = transactionStatusFromError(err)
       const friendlyError = friendlyGovernanceError(err)
       setTransaction((previous) => ({ ...previous, kind: 'vote', status, error: friendlyError }))
       setError(friendlyError)
+    } finally {
+      transactionGuard.finish(transactionToken)
     }
-  }, [account, addresses.houses, provider, publicClient, refresh, voting])
+  }, [account, addresses.houses, provider, publicClient, refresh, transactionGuard, voting])
 
   return useMemo(() => ({
     voting,

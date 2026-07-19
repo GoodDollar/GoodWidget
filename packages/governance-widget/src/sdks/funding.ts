@@ -1,4 +1,4 @@
-import { formatUnits, getAddress, type Address } from 'viem'
+import { getAddress, type Address } from 'viem'
 
 export const SUPERFLUID_CELO_SUBGRAPH_URL = 'https://subgraph-endpoints.superfluid.dev/celo-mainnet/protocol-v1'
 export const FUNDING_STREAMS_QUERY = `query FundingStreams($receiver: String!, $token: String!, $first: Int!, $skip: Int!) {
@@ -31,6 +31,23 @@ export interface FundingTotalResult {
 interface FundingStreamsResponse {
   data?: { streams?: FundingStreamRecord[] }
   errors?: Array<{ message?: string }>
+}
+
+export function formatFundingAmountWei(amountWei: bigint, maximumFractionDigits = 3): string {
+  const decimals = 18
+  const requestedPrecision = Number.isFinite(maximumFractionDigits)
+    ? Math.trunc(maximumFractionDigits)
+    : 3
+  const precision = Math.max(0, Math.min(decimals, requestedPrecision))
+  const fractionalScale = 10n ** BigInt(precision)
+  const roundingDivisor = 10n ** BigInt(decimals - precision)
+  const rounded = (amountWei + roundingDivisor / 2n) / roundingDivisor
+  const whole = rounded / fractionalScale
+  const fraction = (rounded % fractionalScale)
+    .toString()
+    .padStart(precision, '0')
+    .replace(/0+$/, '')
+  return fraction ? `${whole}.${fraction}` : whole.toString()
 }
 
 export function calculateStreamAmountWei(stream: FundingStreamRecord, nowSeconds: bigint): bigint {
@@ -87,7 +104,7 @@ export async function fetchFundingReceivedSoFar(params: {
     if (streams.length < first) {
       return {
         amountWei: total,
-        formattedAmount: formatUnits(total, 18),
+        formattedAmount: formatFundingAmountWei(total),
         streamCount: skip + streams.length,
         activeStreamCount,
       }

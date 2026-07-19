@@ -62,16 +62,18 @@ function GovernanceStoryFrame({
   walletLabel: string
   children: ReactNode
   dataTestId: string
-  width?: any
+  width?: number
 }) {
   return (
     <GovernanceWidgetProvider data-testId={dataTestId}>
-      <Card outlined>
-        <Text variant="caption" tone="secondary">
-          {walletLabel}
-        </Text>
-      </Card>
-      {children}
+      <YStack width={width} maxWidth="100%" gap="$3">
+        <Card outlined>
+          <Text variant="caption" tone="secondary">
+            {walletLabel}
+          </Text>
+        </Card>
+        {children}
+      </YStack>
     </GovernanceWidgetProvider>
   )
 }

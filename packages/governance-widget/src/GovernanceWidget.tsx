@@ -219,7 +219,10 @@ function MembershipExitState({
   actions: GovernanceWidgetAdapterActions
 }) {
   const transaction = state.transaction.kind === 'unstake' ? state.transaction : null
-  const isPending = transaction?.status === 'wallet_confirmation' || transaction?.status === 'submitted'
+  const isPending =
+    transaction?.status === 'wallet_confirmation' ||
+    transaction?.status === 'submitted' ||
+    transaction?.status === 'confirmed'
   const canSubmit = state.unstakeAvailability.canUnstake && !isPending
 
   return (
@@ -314,8 +317,20 @@ function GovernanceVoteDetail({
   actions: GovernanceWidgetAdapterActions
 }) {
   const vote = state.dashboard.alignmentVoting
-  const canSubmit = vote.canVote && vote.allocationTotalBps === 10000 && !vote.hasVoted && vote.isVotingOpen
-  const isReadOnly = vote.hasVoted || vote.executed
+  const voteTransactionPending =
+    state.transaction.kind === 'vote' &&
+    (
+      state.transaction.status === 'wallet_confirmation' ||
+      state.transaction.status === 'submitted' ||
+      state.transaction.status === 'confirmed'
+    )
+  const canSubmit =
+    vote.canVote &&
+    vote.allocationTotalBps === 10000 &&
+    !vote.hasVoted &&
+    vote.isVotingOpen &&
+    !voteTransactionPending
+  const isReadOnly = vote.hasVoted || vote.executed || voteTransactionPending
 
   return (
     <Card data-testid="GovernanceWidget-vote-detail">
@@ -355,7 +370,9 @@ function GovernanceVoteDetail({
             Already voted — this contract does not support ballot replacement.
           </Text>
         ) : null}
-        {!canSubmit ? <Text tone="secondary">{vote.disabledReason ?? 'Voting is unavailable.'}</Text> : null}
+        {!canSubmit && !voteTransactionPending ? (
+          <Text tone="secondary">{vote.disabledReason ?? 'Voting is unavailable.'}</Text>
+        ) : null}
         {state.transaction.kind === 'vote' && state.transaction.status === 'wallet_confirmation' ? (
           <Text color="$warning" fontWeight="700">Confirm the vote in your wallet.</Text>
         ) : null}

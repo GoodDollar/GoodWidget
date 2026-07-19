@@ -139,6 +139,7 @@ export function useGovernanceAdapter({
     identityRoot: membership.identityRoot,
     activeAlignment: membership.activeAlignment,
     schedule: membership.schedule,
+    minimumStakes: membership.minimumStakes,
   })
   const funding = useGovernanceFunding({
     enabled: runtimeEnabled,

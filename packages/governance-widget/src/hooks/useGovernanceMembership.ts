@@ -35,6 +35,7 @@ import {
   createGovernanceIdentityVerificationLink,
   type GovernanceIdentityEnvironment,
 } from '../sdks/identity'
+import { useGovernanceTransactionGuard } from './useGovernanceTransactionGuard'
 
 const EMPTY_STAKES: GovernanceStakeRequirements = {
   citizenship: 0n,
@@ -137,7 +138,7 @@ export function isActiveStatus(status: GovernanceWidgetStatus): boolean {
 export function getUnstakeAvailability(
   member: GovernanceMemberRecord | null,
   termDurationSeconds: bigint,
-  nowMs = Date.now(),
+  currentBlockTime: number | null,
 ): GovernanceUnstakeAvailability {
   if (!member || member.status !== 'active') {
     return { canUnstake: false, unlockAt: null, disabledReason: 'Only active members can unstake.' }
@@ -147,6 +148,13 @@ export function getUnstakeAvailability(
       canUnstake: false,
       unlockAt: null,
       disabledReason: 'The membership lock period is unavailable. Refresh before trying again.',
+    }
+  }
+  if (currentBlockTime === null) {
+    return {
+      canUnstake: false,
+      unlockAt: null,
+      disabledReason: 'The current Celo block time is unavailable. Refresh before trying again.',
     }
   }
 
@@ -167,7 +175,7 @@ export function getUnstakeAvailability(
       disabledReason: 'The membership lock period is unavailable. Refresh before trying again.',
     }
   }
-  return nowMs >= unlockAt
+  return currentBlockTime >= unlockAt
     ? { canUnstake: true, unlockAt }
     : {
         canUnstake: false,
@@ -229,6 +237,11 @@ export function useGovernanceMembership(params: {
   const { account, chainId, provider, publicClient, addresses, environment } = params
   const [state, setState] = useState<MembershipHookState>(() => createInitialMembershipState())
   const refreshRequestId = useRef(0)
+  const transactionGuard = useGovernanceTransactionGuard([
+    account?.toLowerCase() ?? 'no-account',
+    chainId ?? 'no-chain',
+    addresses.houses?.toLowerCase() ?? 'no-contract',
+  ].join(':'))
   const enabled = Boolean(account && chainId === CELO_CHAIN_ID && addresses.houses)
   const hasCurrentAccountState = Boolean(
     account && state.loadedAccount?.toLowerCase() === account.toLowerCase(),
@@ -301,20 +314,6 @@ export function useGovernanceMembership(params: {
 
   const register = useCallback(async (profileDraft: GovernanceProfileDraft) => {
     if (!account || !addresses.houses) return
-    const walletClient = createGovernanceWalletClient({ provider, account })
-    if (!walletClient) {
-      const error = 'The connected wallet provider is unavailable.'
-      setState((previous) => ({
-        ...previous,
-        onboardingStepId: 'stake',
-        profileDraft,
-        transactionSteps: createTransactionSteps('failed', error),
-        transaction: { kind: 'registration', status: 'failed', hash: null, error },
-        error,
-      }))
-      return
-    }
-
     const selectedHouse = state.selectedHouse
     if (selectedHouse === 'alignment' && !membership?.hoaEligibility.isEligible) {
       setState((previous) => ({
@@ -323,6 +322,26 @@ export function useGovernanceMembership(params: {
       }))
       return
     }
+    const transactionToken = transactionGuard.begin()
+    if (!transactionToken) return
+
+    const walletClient = createGovernanceWalletClient({ provider, account })
+    if (!walletClient) {
+      const error = 'The connected wallet provider is unavailable.'
+      if (transactionGuard.isCurrent(transactionToken)) {
+        setState((previous) => ({
+          ...previous,
+          onboardingStepId: 'stake',
+          profileDraft,
+          transactionSteps: createTransactionSteps('failed', error),
+          transaction: { kind: 'registration', status: 'failed', hash: null, error },
+          error,
+        }))
+      }
+      transactionGuard.finish(transactionToken)
+      return
+    }
+
     const stakeAmountWei = membership?.minimumStakes[selectedHouse] ?? 0n
     setState((previous) => ({
       ...previous,
@@ -343,12 +362,16 @@ export function useGovernanceMembership(params: {
         selectedHouse,
         profileDraft,
         stakeAmountWei,
-        onStage: (stage, stageHash) => setState((previous) => ({
-          ...previous,
-          transaction: transactionFromStage('registration', stage, stageHash),
-          transactionSteps: createTransactionSteps(stage),
-        })),
+        onStage: (stage, stageHash) => {
+          if (!transactionGuard.isCurrent(transactionToken)) return
+          setState((previous) => ({
+            ...previous,
+            transaction: transactionFromStage('registration', stage, stageHash),
+            transactionSteps: createTransactionSteps(stage),
+          }))
+        },
       })
+      if (!transactionGuard.isCurrent(transactionToken)) return
       setState((previous) => ({
         ...previous,
         transaction: { kind: 'registration', status: 'confirmed', hash, error: null },
@@ -357,6 +380,7 @@ export function useGovernanceMembership(params: {
       }))
       await refresh()
     } catch (err: unknown) {
+      if (!transactionGuard.isCurrent(transactionToken)) return
       const status = transactionStatusFromError(err)
       const error = friendlyGovernanceError(err)
       setState((previous) => ({
@@ -365,27 +389,35 @@ export function useGovernanceMembership(params: {
         transactionSteps: createTransactionSteps(status, error),
         error,
       }))
+    } finally {
+      transactionGuard.finish(transactionToken)
     }
-  }, [account, addresses, membership, provider, publicClient, refresh, state.selectedHouse])
+  }, [account, addresses, membership, provider, publicClient, refresh, state.selectedHouse, transactionGuard])
 
   const unstake = useCallback(async () => {
     if (!account || !addresses.houses) return
-    const walletClient = createGovernanceWalletClient({ provider, account })
-    if (!walletClient) {
-      const error = 'The connected wallet provider is unavailable.'
-      setState((previous) => ({
-        ...previous,
-        transaction: { kind: 'unstake', status: 'failed', hash: null, error },
-        error,
-      }))
-      return
-    }
-
     const availability = getUnstakeAvailability(
       membership?.member ?? null,
       schedule?.termDurationSeconds ?? 0n,
+      schedule?.currentBlockTime ?? null,
     )
     if (!availability.canUnstake) return
+    const transactionToken = transactionGuard.begin()
+    if (!transactionToken) return
+
+    const walletClient = createGovernanceWalletClient({ provider, account })
+    if (!walletClient) {
+      const error = 'The connected wallet provider is unavailable.'
+      if (transactionGuard.isCurrent(transactionToken)) {
+        setState((previous) => ({
+          ...previous,
+          transaction: { kind: 'unstake', status: 'failed', hash: null, error },
+          error,
+        }))
+      }
+      transactionGuard.finish(transactionToken)
+      return
+    }
 
     setState((previous) => ({
       ...previous,
@@ -400,11 +432,15 @@ export function useGovernanceMembership(params: {
         walletClient,
         account,
         housesAddress: addresses.houses,
-        onStage: (stage, stageHash) => setState((previous) => ({
-          ...previous,
-          transaction: transactionFromStage('unstake', stage, stageHash),
-        })),
+        onStage: (stage, stageHash) => {
+          if (!transactionGuard.isCurrent(transactionToken)) return
+          setState((previous) => ({
+            ...previous,
+            transaction: transactionFromStage('unstake', stage, stageHash),
+          }))
+        },
       })
+      if (!transactionGuard.isCurrent(transactionToken)) return
       setState((previous) => ({
         ...previous,
         transaction: { kind: 'unstake', status: 'confirmed', hash, error: null },
@@ -412,6 +448,7 @@ export function useGovernanceMembership(params: {
       }))
       await refresh()
     } catch (err: unknown) {
+      if (!transactionGuard.isCurrent(transactionToken)) return
       const status = transactionStatusFromError(err)
       const error = friendlyGovernanceError(err)
       setState((previous) => ({
@@ -419,8 +456,20 @@ export function useGovernanceMembership(params: {
         transaction: { kind: 'unstake', status, hash: previous.transaction.hash, error },
         error,
       }))
+    } finally {
+      transactionGuard.finish(transactionToken)
     }
-  }, [account, addresses.houses, membership?.member, provider, publicClient, refresh, schedule?.termDurationSeconds])
+  }, [
+    account,
+    addresses.houses,
+    membership?.member,
+    provider,
+    publicClient,
+    refresh,
+    schedule?.currentBlockTime,
+    schedule?.termDurationSeconds,
+    transactionGuard,
+  ])
 
   const startIdentityVerification = useCallback(async () => {
     if (!account) return
@@ -450,8 +499,12 @@ export function useGovernanceMembership(params: {
   const member = membership?.member ?? null
   const status = statusFromMember(member)
   const unstakeAvailability = useMemo(
-    () => getUnstakeAvailability(member, schedule?.termDurationSeconds ?? 0n),
-    [member, schedule?.termDurationSeconds],
+    () => getUnstakeAvailability(
+      member,
+      schedule?.termDurationSeconds ?? 0n,
+      schedule?.currentBlockTime ?? null,
+    ),
+    [member, schedule?.currentBlockTime, schedule?.termDurationSeconds],
   )
 
   return {

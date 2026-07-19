@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import {
   calculateStreamAmountWei,
   fetchFundingReceivedSoFar,
+  formatFundingAmountWei,
 } from '../../../packages/governance-widget/src/sdks/funding'
 import {
   encodeGovernanceRegistrationData,
@@ -239,6 +240,14 @@ test('aggregates active stopped multiple and paginated Superfluid streams', asyn
   expect(result.amountWei).toBe(15025n)
 })
 
+test('formats exact funding totals without leaking unbounded token decimals into the UI', () => {
+  const token = 10n ** 18n
+
+  expect(formatFundingAmountWei(450n * token + 1n)).toBe('450')
+  expect(formatFundingAmountWei(450n * token + token / 2n)).toBe('450.5')
+  expect(formatFundingAmountWei(450n * token + 123_600_000_000_000_000n)).toBe('450.124')
+})
+
 test('distinguishes stopped historical streams from an empty funding history', async () => {
   const stopped = await fetchFundingReceivedSoFar({
     receiver: houses,
@@ -334,7 +343,7 @@ test('rejects governance timestamps that cannot be represented safely', async ()
     endTime: null,
     executedAt: null,
   })
-  expect(getUnstakeAvailability(member, unsafeSeconds)).toMatchObject({
+  expect(getUnstakeAvailability(member, unsafeSeconds, Date.UTC(2026, 6, 19))).toMatchObject({
     canUnstake: false,
     unlockAt: null,
   })
@@ -343,6 +352,7 @@ test('rejects governance timestamps that cannot be represented safely', async ()
     cycleStartTime: 100_000,
     termDurationSeconds: unsafeSeconds,
     votingTermLengthSeconds: 50n,
+    currentBlockTime: null,
   }
   expect(voteStartTimeFromSchedule(unsafeSchedule, 2n)).toBeNull()
   expect(createVotingState({
@@ -356,6 +366,7 @@ test('rejects governance timestamps that cannot be represented safely', async ()
     hasVoted: false,
     finalizedUnits: {},
     schedule: unsafeSchedule,
+    minimumStake: 1000n,
   }).summaryLabel).toBe('Contract schedule unavailable')
 
   const publicClient = {
@@ -365,11 +376,13 @@ test('rejects governance timestamps that cannot be represented safely', async ()
       if (functionName === 'votingTermLength') return 50n
       throw new Error(`Unexpected contract read: ${functionName}`)
     },
+    getBlock: async () => ({ timestamp: 1_000n }),
   } as unknown as PublicClient
   await expect(readGovernanceSchedule({ publicClient, housesAddress: houses })).resolves.toEqual({
     cycleStartTime: null,
     termDurationSeconds: 100n,
     votingTermLengthSeconds: 50n,
+    currentBlockTime: 1_000_000,
   })
 })
 
@@ -380,6 +393,7 @@ test('derives vote start and excludes late provisional Alignment recipients', as
     cycleStartTime: 1_000_000,
     termDurationSeconds: 100n,
     votingTermLengthSeconds: 50n,
+    currentBlockTime: 1_200_000,
   }
   expect(voteStartTimeFromSchedule(schedule, 2n)).toBe(1_200_000)
 
@@ -430,6 +444,7 @@ test('requires voters to have joined before vote start and validates exact ballo
     cycleStartTime: 100000,
     termDurationSeconds: 100n,
     votingTermLengthSeconds: 50n,
+    currentBlockTime: 150000,
   }
   const voting = createVotingState({
     member,
@@ -442,6 +457,7 @@ test('requires voters to have joined before vote start and validates exact ballo
     hasVoted: false,
     finalizedUnits: { [recipient]: 0n },
     schedule,
+    minimumStake: 1000n,
   })
   expect(voting.canVote).toBe(true)
 
@@ -457,6 +473,7 @@ test('requires voters to have joined before vote start and validates exact ballo
       hasVoted: false,
       finalizedUnits: { [recipient]: 0n },
       schedule,
+      minimumStake: 1000n,
     },
   })
   expect(lateVoting.canVote).toBe(false)
@@ -476,6 +493,7 @@ test('requires voters to have joined before vote start and validates exact ballo
     hasVoted: false,
     finalizedUnits: { [recipient]: 0n },
     schedule,
+    minimumStake: 1000n,
   })
   expect(unverifiedCitizenVoting.canVote).toBe(false)
   expect(unverifiedCitizenVoting.disabledReason).toContain('GoodID')
@@ -491,6 +509,7 @@ test('requires voters to have joined before vote start and validates exact ballo
     hasVoted: false,
     finalizedUnits: { [recipient]: 0n },
     schedule,
+    minimumStake: 1000n,
   })
   expect(alignmentVoting.canVote).toBe(true)
 
@@ -507,6 +526,55 @@ test('requires voters to have joined before vote start and validates exact ballo
   expect(() => validateGovernanceBallot([recipient], { [recipient]: 10_000.5 })).toThrow(
     'Invalid allocation',
   )
+})
+
+test('requires the current minimum stake for voters from either house', () => {
+  const recipient = '0x1111111111111111111111111111111111111111' as Address
+  const schedule = {
+    cycleStartTime: 100000,
+    termDurationSeconds: 100n,
+    votingTermLengthSeconds: 50n,
+    currentBlockTime: 150000,
+  }
+  const baseMember = mapMemberRecord([
+    0,
+    2,
+    1000n,
+    100n,
+    100n,
+    0n,
+    0n,
+    'Member',
+    '',
+    '',
+    '',
+    '',
+  ])
+
+  for (const house of ['citizenship', 'alignment'] as const) {
+    for (const [stakedAmount, expected] of [
+      [999n, false],
+      [1000n, true],
+      [1001n, true],
+    ] as const) {
+      const voting = createVotingState({
+        member: { ...baseMember, house, stakedAmount },
+        identityRoot: house === 'citizenship' ? account : null,
+        voteId: 0n,
+        isVotingOpen: true,
+        voteStartTime: 150000,
+        voteConfig: { startTime: 150000, endTime: 200000, executedAt: null, executed: false },
+        recipients: [recipient],
+        hasVoted: false,
+        finalizedUnits: { [recipient]: 0n },
+        schedule,
+        minimumStake: 1000n,
+      })
+
+      expect(voting.canVote).toBe(expected)
+      if (!expected) expect(voting.disabledReason).toContain('below the current minimum')
+    }
+  }
 })
 
 test('surfaces failed Superfluid stream queries', async () => {

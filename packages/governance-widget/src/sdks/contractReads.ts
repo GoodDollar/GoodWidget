@@ -25,6 +25,7 @@ export interface GovernanceSchedule {
   cycleStartTime: number | null
   termDurationSeconds: bigint
   votingTermLengthSeconds: bigint
+  currentBlockTime: number | null
 }
 
 export function voteStartTimeFromSchedule(
@@ -113,7 +114,7 @@ export async function readGovernanceSchedule(params: {
   housesAddress: Address
 }): Promise<GovernanceSchedule> {
   const { publicClient, housesAddress } = params
-  const [cycleStartTime, termDuration, votingTermLength] = await Promise.all([
+  const [cycleStartTime, termDuration, votingTermLength, currentBlockTime] = await Promise.all([
     publicClient.readContract({
       address: housesAddress,
       abi: GOODDAO_HOUSES_ABI,
@@ -129,12 +130,16 @@ export async function readGovernanceSchedule(params: {
       abi: GOODDAO_HOUSES_ABI,
       functionName: 'votingTermLength',
     }),
+    publicClient.getBlock({ blockTag: 'latest' })
+      .then((block) => safeMillisecondsFromSeconds(block.timestamp))
+      .catch(() => null),
   ])
 
   return {
     cycleStartTime: safeMillisecondsFromSeconds(cycleStartTime),
     termDurationSeconds: termDuration,
     votingTermLengthSeconds: votingTermLength,
+    currentBlockTime,
   }
 }
 

@@ -35,6 +35,7 @@ export const MOCK_POOL = '0x8888888888888888888888888888888888888888' as Address
 
 export interface MockGovernanceReadOptions {
   memberStatus?: 0 | 1 | 2 | 3 | 4
+  memberStatusByAccount?: Record<string, 0 | 1 | 2 | 3 | 4>
 }
 
 export function encodeMockGovernanceRead(
@@ -60,8 +61,12 @@ export function encodeMockGovernanceRead(
 
   const decoded = decodeFunctionData({ abi: HOUSES_READ_ABI, data })
   switch (decoded.functionName) {
-    case 'getMember':
-      const memberStatus = options.memberStatus ?? 2
+    case 'getMember': {
+      const memberAccount = String(decoded.args[0]).toLowerCase()
+      const memberStatus =
+        options.memberStatusByAccount?.[memberAccount] ??
+        options.memberStatus ??
+        2
       const hasMembership = memberStatus !== 0 && memberStatus !== 4
       return encodeFunctionResult({
         abi: HOUSES_READ_ABI,
@@ -81,6 +86,7 @@ export function encodeMockGovernanceRead(
           distributionStrategy: '',
         },
       })
+    }
     case 'minimumStake':
       return encodeFunctionResult({
         abi: HOUSES_READ_ABI,
