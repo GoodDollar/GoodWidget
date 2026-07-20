@@ -17,7 +17,6 @@ import {
   updateToast,
 } from '@goodwidget/ui'
 import { useAiCreditsAdapter } from './adapter'
-import { DEPOSIT_BONUS_PERCENT, STREAM_BONUS_PERCENT } from './quoteMath'
 import {
   AiCreditsHero,
   AiCreditsFlowStepper,
@@ -117,13 +116,6 @@ function BuyCreditsPanel({ state, actions, isPending, onPay }: BuyPanelProps) {
             Payment Failed
           </Text>
           {state.error && <Text secondary>{state.error}</Text>}
-          <Button
-            onPress={() => {
-              void actions.retry()
-            }}
-          >
-            <ButtonText>Try Again</ButtonText>
-          </Button>
         </AiCreditsStatusNotice>
         <AiCreditsPurchaseFlow
           state={state}
@@ -157,8 +149,6 @@ function BuyCreditsPanel({ state, actions, isPending, onPay }: BuyPanelProps) {
         <AiCreditsHero
           gBalance={state.gBalance}
           isGoodIdVerified={state.isGoodIdVerified}
-          depositBonusPercent={DEPOSIT_BONUS_PERCENT}
-          streamBonusPercent={STREAM_BONUS_PERCENT}
         />
         <AiCreditsStatusNotice>
           <Text color="$warning" fontWeight="700">
@@ -196,8 +186,6 @@ function BuyCreditsPanel({ state, actions, isPending, onPay }: BuyPanelProps) {
           <AiCreditsHero
             gBalance={state.gBalance}
             isGoodIdVerified={state.isGoodIdVerified}
-            depositBonusPercent={DEPOSIT_BONUS_PERCENT}
-            streamBonusPercent={STREAM_BONUS_PERCENT}
           />
         )}
 
@@ -342,9 +330,9 @@ function AiCreditsInner({
         })
       } catch (err) {
         updateToast(toastId, {
-          message: err instanceof Error ? err.message : (state.error ?? 'Payment failed'),
+          message: err instanceof Error ? err.message : (state.error ?? 'Payment failed. Try again.'),
           status: 'error',
-          duration: 0,
+          duration: 4000,
         })
       }
     },

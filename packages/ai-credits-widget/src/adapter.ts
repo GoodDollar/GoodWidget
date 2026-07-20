@@ -39,6 +39,7 @@ import {
 } from './payerSession'
 import { executeCeloPayment, G_TOKEN_CELO_ADDRESS } from './celoPayment'
 import { startGoodIdVerification, isUserRejectedWalletRequest } from './goodIdVerification'
+import { mapPaymentError } from './paymentErrors'
 import { fetchVaultPaymentMinimums, validateVaultPaymentAmounts } from './vaultMinimums'
 import { quoteTotalUsdMicro, usdDisplayToMicro } from './quoteMath'
 import type {
@@ -836,8 +837,8 @@ export function useAiCreditsAdapter({
           buyerPubKey: currentState.buyerPubKey!,
           creditUsdMicro,
         })
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Payment failed'
+      } catch (error) {
+        const message = mapPaymentError(error)
         setState((prev) => ({
           ...prev,
           status: 'payment_failed',
@@ -848,7 +849,7 @@ export function useAiCreditsAdapter({
           chainId: CELO_CHAIN_ID,
           message,
         })
-        throw err instanceof Error ? err : new Error(message)
+        throw new Error(message)
       }
     },
     [state, backendClient, chainClient, celoVault, onPaySuccess, onPayError],

@@ -86,6 +86,7 @@ async function submitStreamSetup(
     functionName: flowFunction,
     args: [G_TOKEN_CELO_ADDRESS, payer, vault, flowRatePerSecond, userData],
   })
+  await waitForMinedTransaction(publicClient, flowTx)
   txHashes.push(flowTx)
 
   return txHashes
@@ -93,6 +94,7 @@ async function submitStreamSetup(
 
 async function submitOneTimeDeposit(
   walletClient: WalletClient,
+  publicClient: PublicClient,
   payer: Address,
   vault: Address,
   buyer: Address,
@@ -101,7 +103,7 @@ async function submitOneTimeDeposit(
   const depositWei = parseUnits(depositAmountG.toString(), 18)
   const userData = encodeBuyerUserData(buyer)
 
-  return walletClient.writeContract({
+  const txHash = await walletClient.writeContract({
     account: payer,
     chain: CELO_CHAIN,
     address: G_TOKEN_CELO_ADDRESS,
@@ -109,6 +111,18 @@ async function submitOneTimeDeposit(
     functionName: 'transferAndCall',
     args: [vault, depositWei, userData],
   })
+  await waitForMinedTransaction(publicClient, txHash)
+  return txHash
+}
+
+async function waitForMinedTransaction(
+  publicClient: PublicClient,
+  hash: `0x${string}`,
+): Promise<void> {
+  const receipt = await publicClient.waitForTransactionReceipt({ hash })
+  if (receipt.status === 'reverted') {
+    throw new Error(`Celo transaction reverted: ${hash}`)
+  }
 }
 
 export async function executeCeloPayment(params: CeloPaymentParams): Promise<CeloPaymentResult> {
@@ -136,7 +150,7 @@ export async function executeCeloPayment(params: CeloPaymentParams): Promise<Cel
 
   if (hasDeposit) {
     txHashes.push(
-      await submitOneTimeDeposit(walletClient, payer, vault, buyer, depositAmountG),
+      await submitOneTimeDeposit(walletClient, publicClient, payer, vault, buyer, depositAmountG),
     )
   }
 
