@@ -11,6 +11,7 @@ export default defineConfig({
   resolve: {
     alias: {
       'react-native': 'react-native-web',
+      'react-native-svg': new URL('./src/reactNativeSvgWeb.tsx', import.meta.url).pathname,
     },
   },
   optimizeDeps: {
