@@ -17,6 +17,8 @@ const STORY_IDS = {
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--payment-confirmed&viewMode=story',
   creditsManagement:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--credits-management&viewMode=story',
+  historyTab:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--history-tab&viewMode=story',
   insufficientBalance:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--insufficient-g-balance&viewMode=story',
   paymentFailed:
@@ -106,9 +108,25 @@ test('AiCreditsWidget manage tab', async ({ page }) => {
   await expect(page.getByTestId('AiCreditsWidget-manage-tab')).toBeVisible()
   await expect(page.getByText('Buy Credits')).toBeVisible()
   await expect(page.getByText('Manage')).toBeVisible()
+  await expect(page.getByText('History')).toBeVisible()
   await expect(page.getByText('110.00')).toBeVisible()
+  await expect(page.getByText('Credit History')).not.toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-07-credits-management.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget history tab', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.historyTab)
+  const root = widget(page, 'AiCreditsWidget-history-tab')
+  await expect(root).toBeVisible()
+  await expect(root.getByText('AI credit history')).toBeVisible()
+  await expect(root.getByText('Deposit')).toBeVisible()
+  await expect(root.getByText('Stream update')).toBeVisible()
+  await expect(root.getByText('G$ deposit')).toBeVisible({ timeout: 10_000 })
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-13-history-tab.png',
     fullPage: true,
   })
 })

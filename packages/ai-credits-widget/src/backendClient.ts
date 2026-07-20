@@ -160,6 +160,74 @@ function paginateGdCredits(
   }
 }
 
+function createDemoHistory(account: string): GdCreditEntry[] {
+  const normalized = normalizeAddress(account)
+  return [
+    {
+      id: 'demo-deposit-1',
+      account: normalized,
+      rootAccount: normalized,
+      source: 'deposit',
+      gdAmountWei: '440000000000000000000',
+      totalCreditUsd: '6600',
+      principalUsd: '6000',
+      bonusUsd: '600',
+      fundingStatus: 'funded',
+      txHash: '0xdemo01',
+      logIndex: 0,
+      createdAt: '2026-06-25T14:30:00.000Z',
+      streamUpdateMonth: '2026-06',
+      buyerAddress: normalized,
+    },
+    {
+      id: 'demo-stream-update-1',
+      account: normalized,
+      rootAccount: normalized,
+      source: 'streamUpdate',
+      gdAmountWei: '10000000000000000000',
+      totalCreditUsd: '0',
+      principalUsd: '0',
+      bonusUsd: '0',
+      fundingStatus: 'funded',
+      txHash: '0xdemo02',
+      logIndex: 0,
+      createdAt: '2026-06-24T12:00:00.000Z',
+      streamUpdateMonth: '2026-06',
+      buyerAddress: normalized,
+    },
+    {
+      id: 'demo-stream-request-1',
+      account: normalized,
+      rootAccount: normalized,
+      source: 'streamRequest',
+      gdAmountWei: '8000000000000000000',
+      totalCreditUsd: '1200',
+      principalUsd: '1000',
+      bonusUsd: '200',
+      fundingStatus: 'pending',
+      txHash: '0xdemo03',
+      logIndex: 0,
+      createdAt: '2026-06-23T09:15:00.000Z',
+      streamUpdateMonth: '2026-06',
+      buyerAddress: normalized,
+    },
+    {
+      id: 'demo-stream-cron-1',
+      account: normalized,
+      rootAccount: normalized,
+      source: 'streamCron',
+      gdAmountWei: '5000000000000000000',
+      totalCreditUsd: '900',
+      principalUsd: '750',
+      bonusUsd: '150',
+      fundingStatus: 'funded',
+      createdAt: '2026-06-22T08:00:00.000Z',
+      streamUpdateMonth: '2026-06',
+      buyerAddress: normalized,
+    },
+  ]
+}
+
 export function resolveBuyerAddress(entries: GdCreditEntry[]): string | null {
   for (const entry of entries) {
     if (entry.buyerAddress && isAddress(entry.buyerAddress)) {
@@ -230,7 +298,6 @@ export interface AiCreditsBackendClient {
     payer: string,
     options?: { status?: 'pending' | 'funded' | 'failed'; limit?: number; cursor?: string },
   ): Promise<TransactionsResponse>
-  getUsageLog(payer: string): Promise<GdCreditEntry[]>
   notifyPayment(txHash: string): Promise<CeloEventsRecordResponse>
   waitForSettlement(
     ref: AccountRef,
@@ -272,7 +339,7 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
       this.accountStates.set(key, {
         principalUsd: 0n,
         bonusUsd: 0n,
-        transactions: [],
+        transactions: createDemoHistory(key),
         rootAccount: key,
       })
     }
@@ -343,11 +410,6 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
       offset: options.cursor ? Number(options.cursor) || 0 : 0,
     })
     return { account: history.account, transactions: history.items }
-  }
-
-  async getUsageLog(payer: string): Promise<GdCreditEntry[]> {
-    const history = await this.getCreditHistory(payer, { limit: DEFAULT_HISTORY_LIMIT, offset: 0 })
-    return history.items
   }
 
   prepareSettlement(ref: AccountRef, creditUsd: bigint): void {
@@ -494,11 +556,6 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
       offset: options.cursor ? Number(options.cursor) || 0 : 0,
     })
     return { account: history.account, transactions: history.items }
-  }
-
-  async getUsageLog(payer: string): Promise<GdCreditEntry[]> {
-    const history = await this.getCreditHistory(payer, { limit: DEFAULT_HISTORY_LIMIT, offset: 0 })
-    return history.items
   }
 
   async notifyPayment(txHash: string): Promise<CeloEventsRecordResponse> {

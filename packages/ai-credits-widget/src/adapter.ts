@@ -116,6 +116,10 @@ function isInBuyFlowStatus(status: AiCreditsWidgetStatus): boolean {
   )
 }
 
+function isNonBuyTab(tab: AiCreditsWidgetTab): boolean {
+  return tab === 'manage' || tab === 'history'
+}
+
 function resolveActiveTab(
   prev: AiCreditsWidgetAdapterState,
   overrides: Partial<AiCreditsWidgetAdapterState>,
@@ -182,7 +186,7 @@ function deriveStatus(params: {
 
   if (chainId !== null && chainId !== CELO_CHAIN_ID) return 'unsupported_chain'
 
-  if (error && activeTab !== 'manage') return 'payment_failed'
+  if (error && !isNonBuyTab(activeTab)) return 'payment_failed'
 
   if (gBalance === null) return 'purchase_setup'
 
@@ -224,13 +228,15 @@ function withDerivedStatus(
   }
 }
 
-function mergeStatePreservingManageTab(
+function mergeStatePreservingNonBuyTab(
   prev: AiCreditsWidgetAdapterState,
   overrides: Partial<AiCreditsWidgetAdapterState>,
 ): AiCreditsWidgetAdapterState {
-  if (prev.activeTab !== 'manage') {
+  const nextTab = overrides.activeTab ?? prev.activeTab
+  if (!isNonBuyTab(prev.activeTab) && !isNonBuyTab(nextTab)) {
     return withDerivedStatus(prev, overrides, true)
   }
+  const activeTab = isNonBuyTab(nextTab) ? nextTab : prev.activeTab
   const status = deriveStatus({
     isConnected: true,
     chainId: overrides.chainId ?? prev.chainId,
@@ -240,13 +246,13 @@ function mergeStatePreservingManageTab(
     operatorConsented: overrides.operatorConsented ?? prev.operatorConsented,
     error: overrides.error ?? prev.error,
     currentStatus: overrides.status ?? prev.status,
-    activeTab: 'manage',
+    activeTab,
   })
   return {
     ...prev,
     ...overrides,
     status,
-    activeTab: 'manage',
+    activeTab,
   }
 }
 
@@ -570,11 +576,11 @@ export function useAiCreditsAdapter({
       })
 
       setState((prev) =>
-        mergeStatePreservingManageTab(prev, {
+        mergeStatePreservingNonBuyTab(prev, {
           buyerPubKey: account.address,
           buyerPrvKey: privateKey,
           error: null,
-          ...(prev.activeTab !== 'manage' ? { status: 'purchase_setup' } : {}),
+          ...(!isNonBuyTab(prev.activeTab) ? { status: 'purchase_setup' } : {}),
         }),
       )
     } catch (err: unknown) {
@@ -596,7 +602,7 @@ export function useAiCreditsAdapter({
     }
 
     const ref: AccountRef = { payer: currentState.address, buyer: currentState.buyerPubKey }
-    const onManageTab = currentState.activeTab === 'manage'
+    const onNonBuyTab = isNonBuyTab(currentState.activeTab)
 
     try {
       const operatorStatus = await chainClient.getBuyerOperatorStatus(ref)
@@ -608,10 +614,10 @@ export function useAiCreditsAdapter({
       if (operatorStatus.operatorAccepted) {
         patchPayerSession(currentState.address, { operatorConsented: true })
         setState((prev) =>
-          mergeStatePreservingManageTab(prev, {
+          mergeStatePreservingNonBuyTab(prev, {
             operatorConsented: true,
             error: null,
-            ...(!onManageTab ? { status: 'purchase_setup' } : {}),
+            ...(!onNonBuyTab ? { status: 'purchase_setup' } : {}),
           }),
         )
         return
@@ -636,10 +642,10 @@ export function useAiCreditsAdapter({
 
       patchPayerSession(currentState.address, { operatorConsented: true })
       setState((prev) =>
-        mergeStatePreservingManageTab(prev, {
+        mergeStatePreservingNonBuyTab(prev, {
           operatorConsented: true,
           error: null,
-          ...(!onManageTab ? { status: 'purchase_setup' } : {}),
+          ...(!onNonBuyTab ? { status: 'purchase_setup' } : {}),
         }),
       )
     } catch (err: unknown) {
@@ -662,12 +668,12 @@ export function useAiCreditsAdapter({
       if (!operatorStatus.operatorAccepted) return
 
       patchPayerSession(currentState.address, { operatorConsented: true })
-      const onManageTab = currentState.activeTab === 'manage'
+      const onNonBuyTab = isNonBuyTab(currentState.activeTab)
       setState((prev) =>
-        mergeStatePreservingManageTab(prev, {
+        mergeStatePreservingNonBuyTab(prev, {
           operatorConsented: true,
           error: null,
-          ...(!onManageTab ? { status: 'purchase_setup' } : {}),
+          ...(!onNonBuyTab ? { status: 'purchase_setup' } : {}),
         }),
       )
     } catch {
@@ -898,7 +904,7 @@ export function useAiCreditsAdapter({
       })
     } catch {
       setState((prev) =>
-        mergeStatePreservingManageTab(prev, {
+        mergeStatePreservingNonBuyTab(prev, {
           status: 'backend_unavailable',
           error: 'Could not reach backend — check your connection',
         }),
@@ -1091,7 +1097,7 @@ export function useAiCreditsAdapter({
       )
       return
     }
-    setState((prev) => mergeStatePreservingManageTab(prev, { activeTab: 'manage', error: null }))
+    setState((prev) => mergeStatePreservingNonBuyTab(prev, { activeTab: tab, error: null }))
   }, [])
 
   const handleStartPurchase = useCallback(() => {

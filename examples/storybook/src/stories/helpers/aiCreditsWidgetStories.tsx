@@ -199,6 +199,24 @@ export function ManageTabStory() {
   )
 }
 
+export function HistoryTabStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-history-tab"
+      adapterFactory={createAdapterFactory('quote_ready', {
+        totalCreditUsd: '110000000',
+        buyerPubKey: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a',
+        operatorConsented: true,
+        operatorAddress: '0x0000000000000000000000000000000000000004',
+        totalGdDepositedG: '50.00',
+        monthlyStreamG: '5.00',
+        gBalance: '42.50',
+        activeTab: 'history',
+      })}
+    />
+  )
+}
+
 export function CreditsManagementStory() {
   return <ManageTabStory />
 }
