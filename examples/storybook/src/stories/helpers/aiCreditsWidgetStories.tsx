@@ -84,20 +84,20 @@ function MockStoryShell({
   try {
     const provider = createCustodialEip1193Provider()
     return (
-      <YStack data-testid={dataTestId} style={{ width: 380 }}>
+      <div data-testid={dataTestId} style={{ width: 380 }}>
         <AiCreditsWidget provider={provider} adapterFactory={adapterFactory} />
-      </YStack>
+      </div>
     )
   } catch (error: unknown) {
     return (
-      <YStack data-testid="AiCreditsWidget-custodial-config-error" style={{ width: 380 }} gap="$3">
+      <div data-testid="AiCreditsWidget-custodial-config-error" style={{ width: 380 }}>
         <strong>Custodial fixture not configured</strong>
         <span>
           {error instanceof Error
             ? error.message
             : 'Set a local private key in custodialEip1193.ts'}
         </span>
-      </YStack>
+      </div>
     )
   }
 }
@@ -317,13 +317,13 @@ export function AppKitConnectWalletStory() {
 
   if (!projectId) {
     return (
-      <YStack data-testid="AiCreditsWidget-appkit-no-config" style={{ width: 380 }} gap="$3">
+      <div data-testid="AiCreditsWidget-appkit-no-config" style={{ width: 380 }}>
         <strong>AppKit not configured</strong>
         <span>
           Set <code>VITE_REOWN_PROJECT_ID</code> in <code>examples/storybook/.env.local</code> to
           enable AppKit wallet connect.
         </span>
-      </YStack>
+      </div>
     )
   }
   return (

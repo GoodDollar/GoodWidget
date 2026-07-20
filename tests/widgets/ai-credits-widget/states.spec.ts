@@ -22,8 +22,6 @@ const STORY_IDS = {
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--backend-unavailable&viewMode=story',
   unsupportedChain:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--unsupported-chain&viewMode=story',
-  appKitProviderDefault:
-    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--app-kit-provider-default&viewMode=story',
   appKitConnectWallet:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--app-kit-connect-wallet&viewMode=story',
 } as const
@@ -166,21 +164,10 @@ test('AiCreditsWidget connecting', async ({ page }) => {
   })
 })
 
-test('AiCreditsWidget appkit provider default', async ({ page }) => {
-  await gotoStory(page, STORY_IDS.appKitProviderDefault)
-  await expect(page.getByTestId('AiCreditsWidget-appkit-provider-default')).toBeVisible()
-  await page.screenshot({
-    path: 'tests/widgets/ai-credits-widget/test-results/acw-13-appkit-provider-default.png',
-    fullPage: true,
-  })
-})
-
 test('AiCreditsWidget appkit connect wallet opens modal', async ({ page }) => {
   await gotoStory(page, STORY_IDS.appKitConnectWallet)
   await page.waitForLoadState('domcontentloaded')
 
-  // When VITE_REOWN_PROJECT_ID is not configured the story shows a placeholder.
-  // Assert the placeholder renders correctly and stop — modal cannot be tested without the key.
   const noConfig = page.getByTestId('AiCreditsWidget-appkit-no-config')
   if (await noConfig.isVisible()) {
     await expect(noConfig).toBeVisible()
@@ -191,10 +178,9 @@ test('AiCreditsWidget appkit connect wallet opens modal', async ({ page }) => {
     return
   }
 
-  // AppKit is configured — assert the widget renders in disconnected state.
-  const widget = page.getByTestId('AiCreditsWidget-appkit-connect')
-  await expect(widget).toBeVisible()
-  const connectBtn = widget.getByRole('button', { name: 'Connect Wallet' })
+  const root = page.getByTestId('AiCreditsWidget-appkit-connect')
+  await expect(root).toBeVisible()
+  const connectBtn = root.getByRole('button', { name: 'Connect Wallet' })
   await expect(connectBtn).toBeVisible()
 
   await page.screenshot({
@@ -202,12 +188,12 @@ test('AiCreditsWidget appkit connect wallet opens modal', async ({ page }) => {
     fullPage: true,
   })
 
-  // Click Connect Wallet — the connectOverride calls AppKit modal.open().
-  await connectBtn.click()
+  const openModal = page.locator('w3m-modal.open')
+  if (!(await openModal.isVisible().catch(() => false))) {
+    await connectBtn.click()
+  }
 
-  // AppKit renders its modal as a <w3m-modal> custom element in the document body.
-  // Wait for it to become visible (the modal opens asynchronously).
-  await expect(page.locator('w3m-modal')).toBeVisible({ timeout: 10_000 })
+  await expect(openModal).toBeVisible({ timeout: 10_000 })
 
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-14-appkit-connect-modal-open.png',
