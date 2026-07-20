@@ -1,4 +1,5 @@
-import React from 'react'
+import React, { useRef } from 'react'
+import type { EIP1193Provider } from '@goodwidget/core'
 import { YStack } from '@goodwidget/ui'
 import {
   AiCreditsWidget,
@@ -6,6 +7,12 @@ import {
   type AiCreditsWidgetAdapterState,
   type AiCreditsWidgetStatus,
 } from '@goodwidget/ai-credits-widget'
+import {
+  DefaultAppKitProvider,
+  useAppKit,
+  useAppKitAccount,
+  useAppKitProvider,
+} from '@goodwidget/embed/appkit-provider'
 import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
 import {
   getInjectedEip1193Provider,
@@ -86,7 +93,9 @@ function MockStoryShell({
       <YStack data-testid="AiCreditsWidget-custodial-config-error" style={{ width: 380 }} gap="$3">
         <strong>Custodial fixture not configured</strong>
         <span>
-          {error instanceof Error ? error.message : 'Set a local private key in custodialEip1193.ts'}
+          {error instanceof Error
+            ? error.message
+            : 'Set a local private key in custodialEip1193.ts'}
         </span>
       </YStack>
     )
@@ -271,14 +280,69 @@ export function MockBackendStory() {
   )
 }
 
+/**
+ * Inner component that calls useAppKit() – must be rendered inside DefaultAppKitProvider.
+ * Passes the AppKit open() as connectOverride so Connect Wallet triggers the real modal.
+ */
+function AppKitConnectShell() {
+  const { open } = useAppKit()
+  const { address: appKitAddress } = useAppKitAccount()
+  const { walletProvider } = useAppKitProvider<EIP1193Provider | undefined>('eip155')
+  const appKitAddressRef = useRef(appKitAddress)
+  appKitAddressRef.current = appKitAddress
+
+  return (
+    <div data-testid="AiCreditsWidget-appkit-connect" style={{ width: 380 }}>
+      <AiCreditsWidget
+        provider={walletProvider}
+        connectOverride={async () => {
+          await open({ view: 'Connect' })
+
+          if (!appKitAddressRef.current) {
+            throw new Error('wallet_connect_cancelled')
+          }
+        }}
+      />
+    </div>
+  )
+}
+
+/**
+ * Story that mounts AiCreditsWidget with DefaultAppKitProvider as the wallet provider.
+ * Pressing Connect Wallet triggers the real AppKit modal via the provider-level connect override.
+ * Requires VITE_REOWN_PROJECT_ID to be set in examples/storybook/.env.local.
+ */
+export function AppKitConnectWalletStory() {
+  const projectId = import.meta.env.VITE_REOWN_PROJECT_ID as string | undefined
+
+  if (!projectId) {
+    return (
+      <YStack data-testid="AiCreditsWidget-appkit-no-config" style={{ width: 380 }} gap="$3">
+        <strong>AppKit not configured</strong>
+        <span>
+          Set <code>VITE_REOWN_PROJECT_ID</code> in <code>examples/storybook/.env.local</code> to
+          enable AppKit wallet connect.
+        </span>
+      </YStack>
+    )
+  }
+  return (
+    <DefaultAppKitProvider projectId={projectId}>
+      <AppKitConnectShell />
+    </DefaultAppKitProvider>
+  )
+}
+
 export function InjectedWalletStory() {
   const injectedProvider = getInjectedEip1193Provider()
   const backendUrl = import.meta.env.VITE_AI_CREDITS_BACKEND_URL
   const baseRpcUrl = import.meta.env.VITE_AI_CREDITS_BASE_RPC_URL
   const celoRpcUrl = import.meta.env.VITE_AI_CREDITS_CELO_RPC_URL
-  const fundingVaultAddress = import.meta.env.VITE_AI_CREDITS_FUNDING_VAULT_ADDRESS
-  const vaultAddress = import.meta.env.VITE_AI_CREDITS_VAULT_ADDRESS
-  const goodIdAddress = import.meta.env.VITE_AI_CREDITS_GOODID_ADDRESS
+  const fundingVaultAddress = import.meta.env.VITE_AI_CREDITS_FUNDING_VAULT_ADDRESS as
+    | `0x${string}`
+    | undefined
+  const vaultAddress = import.meta.env.VITE_AI_CREDITS_VAULT_ADDRESS as `0x${string}` | undefined
+  const goodIdAddress = import.meta.env.VITE_AI_CREDITS_GOODID_ADDRESS as `0x${string}` | undefined
 
   if (!isInjectedProviderUsable(injectedProvider)) {
     return (
@@ -306,8 +370,8 @@ export function InjectedWalletStory() {
       {!backendUrl && (
         <YStack marginTop="$3">
           <span>
-            Set `VITE_AI_CREDITS_BACKEND_URL` in `examples/storybook/.env.local` to enable the
-            AI credits backend.
+            Set `VITE_AI_CREDITS_BACKEND_URL` in `examples/storybook/.env.local` to enable the AI
+            credits backend.
           </span>
         </YStack>
       )}

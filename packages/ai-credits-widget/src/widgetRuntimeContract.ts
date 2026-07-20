@@ -90,6 +90,7 @@ export interface AiCreditsPayErrorDetail {
 
 export interface AiCreditsWidgetProps {
   provider?: unknown
+  connectOverride?: () => Promise<void>
   environment?: AiCreditsWidgetEnvironment
   backendUrl?: string
   baseRpcUrl?: string

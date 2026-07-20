@@ -1,36 +1,36 @@
-import React from 'react'
+import React, { useRef } from 'react'
 import { AiCreditsWidget } from '@goodwidget/ai-credits-widget'
-import { Container, Text, YStack } from '@goodwidget/ui'
-
-function getInjectedProvider(): unknown | null {
-  if (typeof window === 'undefined') return null
-  return window.ethereum ?? null
-}
+import type { EIP1193Provider } from '@goodwidget/core'
+import {
+  DefaultAppKitProvider,
+  useAppKit,
+  useAppKitAccount,
+  useAppKitProvider,
+} from '@goodwidget/embed/appkit-provider'
+import { Container } from '@goodwidget/ui'
 
 function envAddress(value: string | undefined): `0x${string}` | undefined {
   return value ? (value as `0x${string}`) : undefined
 }
 
-export function App() {
-  const provider = getInjectedProvider()
-
-  if (!provider) {
-    return (
-      <Container>
-        <YStack gap="$3" paddingVertical="$6">
-          <Text fontWeight="700">No wallet found</Text>
-          <Text secondary>
-            Install or enable a browser wallet (e.g. Rabby, MetaMask), then refresh this page.
-          </Text>
-        </YStack>
-      </Container>
-    )
-  }
+function AiCreditsWidgetApp() {
+  const { open } = useAppKit()
+  const { address: appKitAddress } = useAppKitAccount()
+  const { walletProvider } = useAppKitProvider<EIP1193Provider | undefined>('eip155')
+  const appKitAddressRef = useRef(appKitAddress)
+  appKitAddressRef.current = appKitAddress
 
   return (
     <Container>
       <AiCreditsWidget
-        provider={provider}
+        provider={walletProvider}
+        connectOverride={async () => {
+          await open({ view: 'Connect' })
+
+          if (!appKitAddressRef.current) {
+            throw new Error('wallet_connect_cancelled')
+          }
+        }}
         backendUrl={import.meta.env.VITE_AI_CREDITS_BACKEND_URL}
         baseRpcUrl={import.meta.env.VITE_AI_CREDITS_BASE_RPC_URL}
         celoRpcUrl={import.meta.env.VITE_AI_CREDITS_CELO_RPC_URL}
@@ -40,5 +40,26 @@ export function App() {
         testId="AiCreditsWidget-web"
       />
     </Container>
+  )
+}
+
+export function App() {
+  const projectId = import.meta.env.VITE_REOWN_PROJECT_ID as string | undefined
+
+  if (!projectId) {
+    return (
+      <Container>
+        <div>
+          AppKit not configured. Set <code>VITE_REOWN_PROJECT_ID</code> in your{' '}
+          <code>.env.local</code> to enable wallet connect.
+        </div>
+      </Container>
+    )
+  }
+
+  return (
+    <DefaultAppKitProvider enableWallets={true} enableInjected={true}>
+      <AiCreditsWidgetApp />
+    </DefaultAppKitProvider>
   )
 }
