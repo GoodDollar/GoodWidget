@@ -4,14 +4,15 @@ import {
   ButtonText,
   Card,
   Heading,
+  Icon,
   Input,
   Select,
-  Separator,
   Spinner,
   Text,
   XStack,
   YStack,
 } from '@goodwidget/ui'
+import type { IconName } from '@goodwidget/ui'
 import type { GdCreditEntry } from '../../backendTypes'
 import { usdToCredits, weiToG } from '../../quoteMath'
 import { InfoTooltip } from '../shared/tooltips'
@@ -71,7 +72,12 @@ function amountSummary(entry: GdCreditEntry): string | null {
     const gAmount = formatGAmount(entry.gdAmountWei)
     return gAmount ? `${gAmount}/mo` : null
   }
-  return formatCredits(entry.totalCreditUsd) ?? formatGAmount(entry.gdAmountWei)
+  const credits = formatCredits(entry.totalCreditUsd)
+  if (credits) return credits
+  if (entry.fundingStatus === 'failed') {
+    return `${usdToCredits(entry.totalCreditUsd || '0')} cr`
+  }
+  return formatGAmount(entry.gdAmountWei)
 }
 
 function entryTooltip(entry: GdCreditEntry): string {
@@ -88,26 +94,102 @@ function entryTooltip(entry: GdCreditEntry): string {
   return lines.join('\n')
 }
 
+function entryAccent(entry: GdCreditEntry): string {
+  if (entry.fundingStatus === 'failed') return '$error'
+  if (entry.source === 'streamUpdate') return '$color'
+  if (entry.fundingStatus === 'pending') return '$warning'
+  return '$primary'
+}
+
+function entryIconName(entry: GdCreditEntry): IconName {
+  if (entry.fundingStatus === 'failed') return 'alert-circle'
+  if (entry.source === 'deposit') return 'plus'
+  if (entry.source === 'streamUpdate') return 'arrows-left-right'
+  return 'more-horizontal'
+}
+
+function entryIconBackground(entry: GdCreditEntry): string {
+  if (entry.fundingStatus === 'failed') return '$errorMuted'
+  if (entry.source === 'streamUpdate') return '$backgroundPress'
+  if (entry.fundingStatus === 'pending') return '$warningMuted'
+  return '$infoMuted'
+}
+
+function shouldShowStatus(entry: GdCreditEntry): boolean {
+  return entry.source !== 'streamUpdate'
+}
+
+function statusLabel(status: GdCreditEntry['fundingStatus']): string {
+  return status.toUpperCase()
+}
+
 function CreditHistoryEntryRow({ entry }: { entry: GdCreditEntry }) {
-  const failed = entry.fundingStatus === 'failed'
-  const color = failed ? '$error' : '$color'
+  const accent = entryAccent(entry)
   const amount = amountSummary(entry)
-  const parts = [sourceLabel(entry.source), formatEntryDate(entry.createdAt)]
-  if (amount) parts.push(amount)
-  if (entry.source !== 'streamUpdate' || BigInt(entry.totalCreditUsd || '0') > 0n) {
-    parts.push(entry.fundingStatus)
-  }
+  const showStatus = shouldShowStatus(entry)
+  const titleColor = entry.fundingStatus === 'failed' ? '$error' : '$color'
 
   return (
-    <YStack gap="$1">
-      <Separator />
-      <XStack justifyContent="space-between" alignItems="flex-start" gap="$2">
-        <Text fontSize="$2" fontWeight="600" color={color} flex={1} flexWrap="wrap">
-          {parts.join(' · ')}
-        </Text>
-        <InfoTooltip message={entryTooltip(entry)} />
+    <Card gap="$2">
+      <XStack alignItems="center" gap="$3" width="100%">
+        <YStack
+          width={40}
+          height={40}
+          borderRadius="$full"
+          alignItems="center"
+          justifyContent="center"
+          backgroundColor={entryIconBackground(entry)}
+          flexShrink={0}
+        >
+          <Icon
+            name={entryIconName(entry)}
+            size="sm"
+            color={
+              entry.fundingStatus === 'failed'
+                ? 'error'
+                : entry.source === 'streamUpdate'
+                  ? 'muted'
+                  : entry.fundingStatus === 'pending'
+                    ? 'warning'
+                    : 'primary'
+            }
+          />
+        </YStack>
+
+        <YStack flex={1} gap="$0.5" minWidth={0}>
+          <Text fontSize="$3" fontWeight="700" color={titleColor}>
+            {sourceLabel(entry.source)}
+          </Text>
+          <Text fontSize="$1" secondary>
+            {formatEntryDate(entry.createdAt)}
+          </Text>
+        </YStack>
+
+        <YStack alignItems="flex-end" gap="$0.5" flexShrink={0}>
+          <XStack alignItems="center" gap="$1.5">
+            {amount && (
+              <Text fontSize="$3" fontWeight="700" color={accent}>
+                {amount}
+              </Text>
+            )}
+            <InfoTooltip message={entryTooltip(entry)} />
+          </XStack>
+          {showStatus && (
+            <XStack alignItems="center" gap="$1">
+              <YStack
+                width={6}
+                height={6}
+                borderRadius="$full"
+                backgroundColor={accent}
+              />
+              <Text fontSize="$1" fontWeight="600" color={accent} letterSpacing={0.4}>
+                {statusLabel(entry.fundingStatus)}
+              </Text>
+            </XStack>
+          )}
+        </YStack>
       </XStack>
-    </YStack>
+    </Card>
   )
 }
 
@@ -232,15 +314,17 @@ export function HistoryTab({ state, actions }: HistoryTabProps) {
         </YStack>
       </Card>
 
-      <Card gap="$2">
-        {loading ? (
+      {loading ? (
+        <Card gap="$2">
           <YStack alignItems="center" paddingVertical="$4" gap="$2">
             <Spinner size="sm" />
             <Text fontSize="$2" secondary>
               Loading credit history…
             </Text>
           </YStack>
-        ) : error ? (
+        </Card>
+      ) : error ? (
+        <Card gap="$2">
           <YStack gap="$2" paddingVertical="$2">
             <Text color="$error" fontSize="$2">
               {error}
@@ -257,22 +341,26 @@ export function HistoryTab({ state, actions }: HistoryTabProps) {
               <ButtonText>Retry</ButtonText>
             </Button>
           </YStack>
-        ) : activeSources.length === 0 ? (
+        </Card>
+      ) : activeSources.length === 0 ? (
+        <Card>
           <Text fontSize="$2" secondary>
             Select at least one source to view history.
           </Text>
-        ) : entries.length === 0 ? (
+        </Card>
+      ) : entries.length === 0 ? (
+        <Card>
           <Text fontSize="$2" secondary>
             No credit history matches these filters.
           </Text>
-        ) : (
-          <YStack gap="$2" width="100%">
-            {entries.map((entry) => (
-              <CreditHistoryEntryRow key={entry.id} entry={entry} />
-            ))}
-          </YStack>
-        )}
-      </Card>
+        </Card>
+      ) : (
+        <YStack gap="$2" width="100%">
+          {entries.map((entry) => (
+            <CreditHistoryEntryRow key={entry.id} entry={entry} />
+          ))}
+        </YStack>
+      )}
 
       {!loading && !error && hasMore && (
         <Button
