@@ -144,6 +144,8 @@ export function AiCreditsPurchaseFlow({
             monthlyStreamG={state.monthlyStreamG}
             gdUsdPerToken={state.gdUsdPerToken}
             isGoodIdVerified={state.isGoodIdVerified}
+            depositBonusPercent={state.depositBonusPercent}
+            streamBonusPercent={state.streamBonusPercent}
             isPayPending={isPending}
             buildQuote={actions.buildQuote}
             onPay={onPay}

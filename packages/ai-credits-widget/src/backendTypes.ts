@@ -71,3 +71,8 @@ export type CeloEventsRecordResponse = {
 export type SettlementResult = {
   totalCreditUsd: string
 }
+
+export type DiscountConfig = {
+  depositBonusPercent: number
+  streamBonusPercent: number
+}

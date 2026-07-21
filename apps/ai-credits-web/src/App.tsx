@@ -1,4 +1,4 @@
-import React, { useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { AiCreditsWidget } from '@goodwidget/ai-credits-widget'
 import type { EIP1193Provider } from '@goodwidget/core'
 import {
@@ -56,6 +56,55 @@ function envAddress(value: string | undefined): `0x${string}` | undefined {
 function scrollToPurchase() {
   document.getElementById('purchase')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
+
+const DEFAULT_DEPOSIT_BONUS_PERCENT = 10
+const DEFAULT_STREAM_BONUS_PERCENT = 20
+
+interface DiscountConfig {
+  depositBonusPercent: number
+  streamBonusPercent: number
+}
+
+function useDiscountConfig(backendUrl: string | undefined): DiscountConfig {
+  const [config, setConfig] = useState<DiscountConfig>({
+    depositBonusPercent: DEFAULT_DEPOSIT_BONUS_PERCENT,
+    streamBonusPercent: DEFAULT_STREAM_BONUS_PERCENT,
+  })
+
+  useEffect(() => {
+    if (!backendUrl) return
+
+    const url = backendUrl.replace(/\/$/, '')
+    let cancelled = false
+
+    fetch(`${url}/v1/discounts`)
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Discount config request failed: ${response.status}`)
+        const data = (await response.json()) as Partial<DiscountConfig>
+        if (cancelled) return
+        setConfig({
+          depositBonusPercent:
+            typeof data.depositBonusPercent === 'number'
+              ? data.depositBonusPercent
+              : DEFAULT_DEPOSIT_BONUS_PERCENT,
+          streamBonusPercent:
+            typeof data.streamBonusPercent === 'number'
+              ? data.streamBonusPercent
+              : DEFAULT_STREAM_BONUS_PERCENT,
+        })
+      })
+      .catch(() => {
+        // Keep defaults on failure.
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [backendUrl])
+
+  return config
+}
+
 function ReownAiCreditsWidget() {
   const { open } = useAppKit()
   const { address: appKitAddress } = useAppKitAccount()
@@ -272,6 +321,11 @@ function PurchaseFrame() {
 }
 
 function LandingPage() {
+  const { depositBonusPercent, streamBonusPercent } = useDiscountConfig(
+    import.meta.env.VITE_AI_CREDITS_BACKEND_URL,
+  )
+  const maxBonusPercent = Math.max(depositBonusPercent, streamBonusPercent)
+
   return (
     <YStack
       tag="main"
@@ -338,7 +392,7 @@ function LandingPage() {
               $md={{ fontSize: '$10', lineHeight: '$10', letterSpacing: -1.5 }}
               $sm={{ fontSize: '$8', lineHeight: '$8', letterSpacing: -1 }}
             >
-              Get up to 20% more AI credits with GoodID
+              Get up to {maxBonusPercent}% more AI credits with GoodID
             </Heading>
             <Text
               variant="large"
@@ -349,7 +403,7 @@ function LandingPage() {
               lineHeight="$6"
               $sm={{ fontSize: '$3', lineHeight: '$4' }}
             >
-              Pay with G$ and receive up to 20% more AI credits: 10% more on deposits and 20% more
+              Pay with G$ and receive up to {maxBonusPercent}% more AI credits: {depositBonusPercent}% more on deposits and {streamBonusPercent}% more
               on streams. Use them in Claude Code, Codex, or compatible agent workflows.
             </Text>
           </YStack>
@@ -390,16 +444,16 @@ function LandingPage() {
             <YStack flex={1} minWidth={0} gap="$1">
               <XStack gap="$2" alignItems="center">
                 <Gift size={18} color="$primary" />
-                <Text bold>10% extra on deposits</Text>
+                <Text bold>{depositBonusPercent}% extra on deposits</Text>
               </XStack>
-              <Text tone="soft">Receive 10% more credits with every eligible G$ deposit.</Text>
+              <Text tone="soft">Receive {depositBonusPercent}% more credits with every eligible G$ deposit.</Text>
             </YStack>
             <YStack flex={1} minWidth={0} gap="$1">
               <XStack gap="$2" alignItems="center">
                 <TrendingUp size={18} color="$primary" />
-                <Text bold>20% extra on streams</Text>
+                <Text bold>{streamBonusPercent}% extra on streams</Text>
               </XStack>
-              <Text tone="soft">Receive 20% more credits when you stream G$.</Text>
+              <Text tone="soft">Receive {streamBonusPercent}% more credits when you stream G$.</Text>
             </YStack>
           </XStack>
 

@@ -3,6 +3,7 @@ import type {
   AccountRef,
   AccountView,
   CeloEventsRecordResponse,
+  DiscountConfig,
   GdCreditEntry,
   SettlementResult,
   TransactionsResponse,
@@ -20,6 +21,7 @@ export type {
   AccountRef,
   AccountCreditResponse,
   AccountView,
+  DiscountConfig,
   GdCreditEntry,
   TransactionsResponse,
   CeloEventsRecordResponse,
@@ -186,6 +188,7 @@ export async function enrichAccountView(
 }
 
 export interface AiCreditsBackendClient {
+  getDiscountConfig(): Promise<DiscountConfig>
   getAccountCredit(payer: string): Promise<AccountCreditResponse>
   getOutstanding(payer: string): Promise<{ outstandingFundingUsd: string; count: number }>
   getTransactions(
@@ -214,9 +217,22 @@ export interface AiCreditsBackendClient {
 
 const MOCK_DELAY_MS = 600
 
+const DEFAULT_DISCOUNT_CONFIG: DiscountConfig = {
+  depositBonusPercent: 10,
+  streamBonusPercent: 20,
+}
+
 export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
   private activeRef: AccountRef | null = null
   private lastCreditUsd = 0n
+  private readonly discountConfig: DiscountConfig
+
+  constructor(discountConfig: Partial<DiscountConfig> = {}) {
+    this.discountConfig = {
+      depositBonusPercent: discountConfig.depositBonusPercent ?? DEFAULT_DISCOUNT_CONFIG.depositBonusPercent,
+      streamBonusPercent: discountConfig.streamBonusPercent ?? DEFAULT_DISCOUNT_CONFIG.streamBonusPercent,
+    }
+  }
 
   private readonly accountStates = new Map<
     string,
@@ -239,6 +255,11 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
       })
     }
     return this.accountStates.get(key)!
+  }
+
+  async getDiscountConfig(): Promise<DiscountConfig> {
+    await sleep(MOCK_DELAY_MS)
+    return { ...this.discountConfig }
   }
 
   private buildProfile(payer: string): UserCreditProfile {
@@ -387,6 +408,12 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
 
   constructor(backendUrl: string) {
     this.backendUrl = backendUrl.replace(/\/$/, '')
+  }
+
+  async getDiscountConfig(): Promise<DiscountConfig> {
+    const response = await fetch(`${this.backendUrl}/v1/discounts`)
+    if (!response.ok) throw new Error(`Discount config request failed: ${response.status}`)
+    return response.json() as Promise<DiscountConfig>
   }
 
   private accountBase(payer: string): string {
