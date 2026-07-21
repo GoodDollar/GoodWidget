@@ -8,6 +8,7 @@ import type {
   GovernanceWidgetAdapterResult,
   GovernanceWidgetAdapterState,
   GovernanceWidgetStatus,
+  GovernanceTransactionState,
   GovernanceVotingState,
 } from './widgetRuntimeContract'
 import {
@@ -98,6 +99,21 @@ function createInitialState(
   }
 }
 
+function isPendingTransaction(transaction: GovernanceTransactionState): boolean {
+  return transaction.status === 'wallet_confirmation' || transaction.status === 'submitted'
+}
+
+export function selectGovernanceTransaction(
+  membershipTransaction: GovernanceTransactionState,
+  votingTransaction: GovernanceTransactionState,
+  isVoteDetailOpen = false,
+): GovernanceTransactionState {
+  if (isPendingTransaction(votingTransaction)) return votingTransaction
+  if (isPendingTransaction(membershipTransaction)) return membershipTransaction
+  if (isVoteDetailOpen && votingTransaction.status !== 'idle') return votingTransaction
+  return membershipTransaction.status !== 'idle' ? membershipTransaction : votingTransaction
+}
+
 export function useGovernanceAdapter({
   environment = 'production',
   celoRpcUrl,
@@ -180,11 +196,11 @@ export function useGovernanceAdapter({
       : membership.status
   }
 
-  const transaction = membership.transaction.kind === 'unstake'
-    ? membership.transaction
-    : voting.transaction.status !== 'idle'
-      ? voting.transaction
-      : membership.transaction
+  const transaction = selectGovernanceTransaction(
+    membership.transaction,
+    voting.transaction,
+    voting.isDetailOpen,
+  )
 
   const state = useMemo<GovernanceWidgetAdapterState>(() => ({
     status,

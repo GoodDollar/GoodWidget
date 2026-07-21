@@ -7,12 +7,13 @@ import { GovernanceOnboardingWidget } from './GovernanceOnboardingWidget'
 import { GovernanceWidgetProvider } from './GovernanceWidgetProvider'
 import { ImpactCard } from './ImpactCard'
 import { useGovernanceAdapter } from './adapter'
-import type {
-  GovernanceWidgetAdapterActions,
-  GovernanceWidgetAdapterFactoryInput,
-  GovernanceWidgetAdapterResult,
-  GovernanceWidgetAdapterState,
-  GovernanceWidgetProps,
+import {
+  getGovernanceVotingDisabledReason,
+  type GovernanceWidgetAdapterActions,
+  type GovernanceWidgetAdapterFactoryInput,
+  type GovernanceWidgetAdapterResult,
+  type GovernanceWidgetAdapterState,
+  type GovernanceWidgetProps,
 } from './widgetRuntimeContract'
 import { isActiveStatus } from './adapter'
 import { formatStakeAmount } from './sdks/contracts'
@@ -317,6 +318,7 @@ function GovernanceVoteDetail({
   actions: GovernanceWidgetAdapterActions
 }) {
   const vote = state.dashboard.alignmentVoting
+  const disabledReason = getGovernanceVotingDisabledReason(vote)
   const voteTransactionPending =
     state.transaction.kind === 'vote' &&
     (
@@ -371,7 +373,7 @@ function GovernanceVoteDetail({
           </Text>
         ) : null}
         {!canSubmit && !voteTransactionPending ? (
-          <Text tone="secondary">{vote.disabledReason ?? 'Voting is unavailable.'}</Text>
+          <Text tone="secondary">{disabledReason ?? 'Voting is unavailable.'}</Text>
         ) : null}
         {state.transaction.kind === 'vote' && state.transaction.status === 'wallet_confirmation' ? (
           <Text color="$warning" fontWeight="700">Confirm the vote in your wallet.</Text>

@@ -22,6 +22,7 @@ import {
 } from '../../../packages/governance-widget/src/sdks/contractReads'
 import {
   getUnstakeAvailability,
+  resolveRegistrationStake,
   statusFromMember,
 } from '../../../packages/governance-widget/src/hooks/useGovernanceMembership'
 import {
@@ -29,6 +30,8 @@ import {
   resolveGovernanceVoterKey,
   validateGovernanceBallot,
 } from '../../../packages/governance-widget/src/hooks/useGovernanceVoting'
+import { selectGovernanceTransaction } from '../../../packages/governance-widget/src/adapter'
+import { getGovernanceVotingDisabledReason } from '../../../packages/governance-widget/src/widgetRuntimeContract'
 
 type Address = `0x${string}`
 type Hex = `0x${string}`
@@ -292,6 +295,38 @@ test('maps unstaked members to onboarding and keeps revoked members non-actionab
 
   expect(statusFromMember({ ...baseMember, status: 'unstaked' })).toBe('onboarding_required')
   expect(statusFromMember({ ...baseMember, status: 'revoked' })).toBe('revoked')
+  expect(statusFromMember({ ...baseMember, status: 'pending' })).toBe('onboarding_required')
+})
+
+test('requires current membership reads before resolving a registration stake', () => {
+  const membership = {
+    member: mapMemberRecord([0, 0, 0n, 0n, 0n, 0n, 0n, '', '', '', '', '']),
+    minimumStakes: { citizenship: 1_000n, alignment: 2_000n },
+    hoaEligibility: mapHoaEligibilityRecord([false, 0n, 0n, 0n]),
+    identityRoot: account,
+    activeCitizens: [],
+    activeAlignment: [],
+  }
+
+  expect(resolveRegistrationStake(null, 'citizenship')).toEqual({
+    stakeAmountWei: null,
+    error: 'Membership data is still loading. Please try again in a moment.',
+  })
+  expect(resolveRegistrationStake(membership, 'citizenship')).toEqual({
+    stakeAmountWei: 1_000n,
+    error: null,
+  })
+  expect(resolveRegistrationStake(membership, 'alignment')).toEqual({
+    stakeAmountWei: null,
+    error: 'This wallet is not currently eligible for House of Alignment registration.',
+  })
+})
+
+test('prefers a pending vote over a stale terminal unstake transaction', () => {
+  const staleUnstake = { kind: 'unstake', status: 'confirmed', hash, error: null } as const
+  const pendingVote = { kind: 'vote', status: 'wallet_confirmation', hash: null, error: null } as const
+
+  expect(selectGovernanceTransaction(staleUnstake, pendingVote)).toBe(pendingVote)
 })
 
 test('enforces the exact updatedAt plus termDuration unstake boundary', () => {
@@ -395,6 +430,8 @@ test('derives vote start and excludes late provisional Alignment recipients', as
     votingTermLengthSeconds: 50n,
     currentBlockTime: 1_200_000,
   }
+  expect(voteStartTimeFromSchedule(schedule, 0n)).toBe(1_000_000)
+  expect(voteStartTimeFromSchedule(schedule, 1n)).toBe(1_100_000)
   expect(voteStartTimeFromSchedule(schedule, 2n)).toBe(1_200_000)
 
   const publicClient = {
@@ -497,6 +534,10 @@ test('requires voters to have joined before vote start and validates exact ballo
   })
   expect(unverifiedCitizenVoting.canVote).toBe(false)
   expect(unverifiedCitizenVoting.disabledReason).toContain('GoodID')
+  expect(getGovernanceVotingDisabledReason({
+    ...unverifiedCitizenVoting,
+    allocationTotalBps: 9_999,
+  })).toContain('GoodID')
 
   const alignmentVoting = createVotingState({
     member: { ...member, house: 'alignment' },
@@ -512,6 +553,11 @@ test('requires voters to have joined before vote start and validates exact ballo
     minimumStake: 1000n,
   })
   expect(alignmentVoting.canVote).toBe(true)
+  expect(getGovernanceVotingDisabledReason(alignmentVoting)).toContain('10,000 basis points')
+  expect(getGovernanceVotingDisabledReason({
+    ...alignmentVoting,
+    allocationTotalBps: 10_000,
+  })).toBeUndefined()
 
   expect(validateGovernanceBallot([recipient], { [recipient]: 10_000 })).toEqual({
     recipients: [recipient],

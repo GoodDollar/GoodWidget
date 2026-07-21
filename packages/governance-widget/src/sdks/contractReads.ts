@@ -33,7 +33,13 @@ export function voteStartTimeFromSchedule(
   voteId: bigint,
 ): number | null {
   if (!schedule.cycleStartTime || schedule.termDurationSeconds <= 0n) return null
-  const voteOffsetMs = safeMillisecondsFromSeconds(voteId * schedule.termDurationSeconds)
+  // GoodDaoHouses._getCurrentVoteWindow derives voteId as elapsed / termDuration,
+  // so vote 0 starts exactly at cycleStartTime.
+  if (voteId < 0n) return null
+  const voteOffsetSeconds = voteId * schedule.termDurationSeconds
+  const voteOffsetMs = voteOffsetSeconds === 0n
+    ? 0
+    : safeMillisecondsFromSeconds(voteOffsetSeconds)
   if (voteOffsetMs === null) return null
   const voteStartTime = schedule.cycleStartTime + voteOffsetMs
   return Number.isSafeInteger(voteStartTime) ? voteStartTime : null

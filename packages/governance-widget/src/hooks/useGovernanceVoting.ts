@@ -2,7 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { EIP1193Provider } from '@goodwidget/core'
 import { getAddress, isAddress, type Address, type PublicClient } from 'viem'
 import type { RankedVotingOption } from '../types'
-import type { GovernanceTransactionState, GovernanceVotingState } from '../widgetRuntimeContract'
+import {
+  getGovernanceVotingDisabledReason,
+  type GovernanceTransactionState,
+  type GovernanceVotingState,
+} from '../widgetRuntimeContract'
 import {
   ZERO_ADDRESS,
   createGovernanceWalletClient,
@@ -284,6 +288,8 @@ export function useGovernanceVoting(params: {
   }, [account, addresses.houses, enabled])
 
   useEffect(() => {
+    // Membership's 30-second refresh updates these dependencies,
+    // keeping voting on the same cadence.
     if (enabled) void refresh()
   }, [enabled, refresh])
 
@@ -302,19 +308,15 @@ export function useGovernanceVoting(params: {
         ...previous,
         allocationsBps,
         allocationTotalBps,
-        disabledReason: allocationTotalBps === 10_000 && previous.canVote
-          ? undefined
-          : allocationTotalBps === 10_000
-            ? previous.disabledReason
-            : 'Allocation totals must equal exactly 10,000 basis points.',
       }
     })
   }, [])
 
   const submitVote = useCallback(async () => {
     if (!account || !addresses.houses) return
-    if (!voting.canVote) {
-      const unavailableError = voting.disabledReason ?? 'Voting is currently unavailable.'
+    const disabledReason = getGovernanceVotingDisabledReason(voting)
+    if (disabledReason || !voting.canVote) {
+      const unavailableError = disabledReason ?? 'Voting is currently unavailable.'
       setError(unavailableError)
       return
     }

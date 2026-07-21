@@ -66,6 +66,18 @@ export interface GovernanceVotingState {
   disabledReason?: string
 }
 
+export const GOVERNANCE_ALLOCATION_TOTAL_ERROR =
+  'Allocation totals must equal exactly 10,000 basis points.'
+
+export function getGovernanceVotingDisabledReason(
+  voting: GovernanceVotingState,
+): string | undefined {
+  if (voting.disabledReason) return voting.disabledReason
+  return voting.canVote && voting.allocationTotalBps !== 10_000
+    ? GOVERNANCE_ALLOCATION_TOTAL_ERROR
+    : undefined
+}
+
 export interface GovernanceDashboardState {
   impact: ImpactCardProps
   activeMembers: BalanceCardProps

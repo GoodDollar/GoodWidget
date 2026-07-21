@@ -124,6 +124,7 @@ export function transactionStatusFromError(err: unknown): Extract<GovernanceTran
 
 export function statusFromMember(member: GovernanceMemberRecord | null): GovernanceWidgetStatus {
   if (!member || member.status === 'none' || member.status === 'unstaked') return 'onboarding_required'
+  // GoodDaoHouses activates Citizen registrations immediately; Pending is Alignment-only.
   if (member.status === 'pending' && member.house === 'alignment') return 'pending_alignment'
   if (member.status === 'active' && member.house === 'alignment') return 'active_alignment'
   if (member.status === 'active') return 'active_citizenship'
@@ -198,6 +199,25 @@ interface MembershipHookState {
   isLoading: boolean
   loadError: string | null
   error: string | null
+}
+
+export function resolveRegistrationStake(
+  membership: GovernanceMembershipReads | null,
+  selectedHouse: GovernanceHouse,
+): { stakeAmountWei: bigint; error: null } | { stakeAmountWei: null; error: string } {
+  if (!membership) {
+    return {
+      stakeAmountWei: null,
+      error: 'Membership data is still loading. Please try again in a moment.',
+    }
+  }
+  if (selectedHouse === 'alignment' && !membership.hoaEligibility.isEligible) {
+    return {
+      stakeAmountWei: null,
+      error: 'This wallet is not currently eligible for House of Alignment registration.',
+    }
+  }
+  return { stakeAmountWei: membership.minimumStakes[selectedHouse], error: null }
 }
 
 function createInitialMembershipState(): MembershipHookState {
@@ -315,10 +335,11 @@ export function useGovernanceMembership(params: {
   const register = useCallback(async (profileDraft: GovernanceProfileDraft) => {
     if (!account || !addresses.houses) return
     const selectedHouse = state.selectedHouse
-    if (selectedHouse === 'alignment' && !membership?.hoaEligibility.isEligible) {
+    const registrationStake = resolveRegistrationStake(membership, selectedHouse)
+    if (registrationStake.stakeAmountWei === null) {
       setState((previous) => ({
         ...previous,
-        error: 'This wallet is not currently eligible for House of Alignment registration.',
+        error: registrationStake.error,
       }))
       return
     }
@@ -342,7 +363,7 @@ export function useGovernanceMembership(params: {
       return
     }
 
-    const stakeAmountWei = membership?.minimumStakes[selectedHouse] ?? 0n
+    const stakeAmountWei = registrationStake.stakeAmountWei
     setState((previous) => ({
       ...previous,
       onboardingStepId: 'stake',
