@@ -321,8 +321,8 @@ importers:
         specifier: 1.2.7
         version: 1.2.7(@swc/core@1.15.30)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(viem@2.48.4(typescript@5.9.3)(zod@4.1.11))(wagmi@3.6.8(@tanstack/query-core@5.100.6)(@tanstack/react-query@5.100.6(react@18.3.1))(@types/react@18.3.28)(react@18.3.1)(typescript@5.9.3)(viem@2.48.4(typescript@5.9.3)(zod@4.1.11)))(yaml@2.8.3)
       '@goodsdks/invite-sdk':
-        specifier: 1.0.1
-        version: 1.0.1(viem@2.48.4(typescript@5.9.3)(zod@4.1.11))
+        specifier: 1.0.3
+        version: 1.0.3(viem@2.48.4(typescript@5.9.3)(zod@4.1.11))
       '@goodwidget/core':
         specifier: workspace:*
         version: link:../core
@@ -2050,8 +2050,8 @@ packages:
     peerDependencies:
       viem: '*'
 
-  '@goodsdks/invite-sdk@1.0.1':
-    resolution: {integrity: sha512-rE587W4JQ3Y9l0zt0AzLIKWls/qlSed2re9Qn139QoIRvWBlCuHUdBtNVBxtJp+bzFIFwfEsan5GXJlE2/+SPg==}
+  '@goodsdks/invite-sdk@1.0.3':
+    resolution: {integrity: sha512-tE3i9UTy0qQSlSSxgacWFYpJTBUDIsAyFWTtYTJEr9NioCBMf/ZvNxyucTmU7ITcjrsFTY6md+0hrXJUMhhCpg==}
     peerDependencies:
       viem: '*'
 
@@ -10405,7 +10405,7 @@ snapshots:
       - typescript
       - yaml
 
-  '@goodsdks/invite-sdk@1.0.1(viem@2.48.4(typescript@5.9.3)(zod@4.1.11))':
+  '@goodsdks/invite-sdk@1.0.3(viem@2.48.4(typescript@5.9.3)(zod@4.1.11))':
     dependencies:
       viem: 2.48.4(typescript@5.9.3)(zod@4.1.11)
 

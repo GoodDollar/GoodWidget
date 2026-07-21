@@ -21,6 +21,7 @@ import {
 import { hexToBytes, hexToString, stringToHex, zeroAddress, zeroHash, type Address } from 'viem'
 import { useWallet } from '@goodwidget/core'
 import { createCitizenWidgetClients } from './adapter'
+import { getMyInviteCode } from './inviteRules'
 import type { CitizenClaimWidgetEnvironment } from './widgetRuntimeContract'
 
 export type InviteStatus =
@@ -40,6 +41,7 @@ export interface InviteState {
   level: InviteLevel | null
   invitees: Address[]
   pendingInvitees: Address[]
+  collectableInvitees: Address[]
   eligibility: Record<string, BountyEligibilityDetails>
   selfEligibility: BountyEligibilityDetails | null
   error: string | null
@@ -68,6 +70,7 @@ const initialInviteState: InviteState = {
   level: null,
   invitees: [],
   pendingInvitees: [],
+  collectableInvitees: [],
   eligibility: {},
   selfEligibility: null,
   error: null,
@@ -123,7 +126,10 @@ function inviteErrorMessage(error: unknown): string {
       case 'SELF_INVITE':
         return 'You cannot use your own invite code.'
       case 'USER_ALREADY_JOINED':
+      case 'INVITER_ALREADY_ATTACHED':
         return 'You have already joined an inviter.'
+      case 'BOUNTY_ALREADY_PAID':
+        return 'Your invite bounty has already been paid.'
       case 'NOT_ELIGIBLE_BOUNTY':
         return 'This reward is not ready to collect yet.'
       default:
@@ -175,10 +181,11 @@ export function useInviteAdapter(
       const sdk = await getSdk()
       if (!sdk) throw new Error('Unable to initialize invite rewards.')
       const user = await sdk.getUser(address as Address)
-      const [level, invitees, pendingInvitees, selfEligibility] = await Promise.all([
+      const [level, invitees, pendingInvitees, collectableInvitees, selfEligibility] = await Promise.all([
         sdk.getLevel(Number(user.level)),
         sdk.getInvitees(address as Address),
         sdk.getPendingInvitees(address as Address),
+        sdk.getCollectableInvitees(address as Address),
         sdk.checkEligibilityDetails(address as Address),
       ])
       const eligibilityEntries = await Promise.all(
@@ -196,6 +203,7 @@ export function useInviteAdapter(
         level,
         invitees,
         pendingInvitees,
+        collectableInvitees,
         eligibility: Object.fromEntries(eligibilityEntries),
         selfEligibility: selfEligibility.details,
         error: null,
@@ -221,10 +229,6 @@ export function useInviteAdapter(
     async (code: string): Promise<string> => {
       const sdk = await getSdk()
       if (!sdk || !address || !state.user) throw new Error('Connect on Celo or XDC to use invite rewards.')
-      if (state.user.joinedAt > 0n || state.user.bountyPaid) {
-        throw new Error('You are no longer eligible to join an inviter.')
-      }
-
       const normalizedCode = code.trim()
       const owner = await sdk.resolveCode(encodeInviteCode(normalizedCode))
       if (owner === zeroAddress) throw new Error('This invite code was not found.')
@@ -247,13 +251,19 @@ export function useInviteAdapter(
       setState((current) => ({ ...current, status: 'joining', error: null, success: null }))
       try {
         const validatedInviterCode = inviterCode ? await validateCode(inviterCode) : undefined
-        const ownCode = await generateInviteCode(address as Address, sdk.resolveCode.bind(sdk))
+        const ownCode = await getMyInviteCode(
+          state.user,
+          async () => encodeInviteCode(await generateInviteCode(address as Address, sdk.resolveCode.bind(sdk))),
+        )
         await sdk.join(
-          encodeInviteCode(ownCode),
+          ownCode,
           validatedInviterCode ? encodeInviteCode(validatedInviterCode) : zeroHash,
         )
         await refresh()
-        setState((current) => ({ ...current, success: 'Invite code created successfully.' }))
+        setState((current) => ({
+          ...current,
+          success: validatedInviterCode ? 'Joined inviter successfully.' : 'Invite code created successfully.',
+        }))
       } catch (error: unknown) {
         setState((current) => ({
           ...current,

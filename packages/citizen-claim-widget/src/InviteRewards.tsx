@@ -12,13 +12,14 @@ import {
 } from '@goodwidget/ui'
 import { zeroHash } from 'viem'
 import { decodeInviteCode, formatInviteBounty, useInviteRuntime } from './inviteAdapter'
+import { canAttachInviter, hasCollectableInvitees } from './inviteRules'
 
 function InviteJoinCard({ compact = false }: { compact?: boolean }) {
   const { state, actions } = useInviteRuntime()
   const [code, setCode] = useState('')
   const [validationError, setValidationError] = useState<string | null>(null)
 
-  const canJoin = state.user?.joinedAt === 0n && !state.user?.bountyPaid
+  const canJoin = canAttachInviter(state.user)
   const isPending = state.status === 'joining'
 
   const joinWithCode = useCallback(async () => {
@@ -107,7 +108,7 @@ function InviteShareCard() {
 
 function InviteeStatus() {
   const { state, actions } = useInviteRuntime()
-  const collectable = state.pendingInvitees.some((invitee) => state.eligibility[invitee]?.isActive)
+  const collectable = hasCollectableInvitees(state.collectableInvitees)
   const isCollecting = state.status === 'collecting'
 
   return (
