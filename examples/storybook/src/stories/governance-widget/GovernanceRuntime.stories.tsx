@@ -26,8 +26,15 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 const connectedAddress = '0x4E5B2D7a45C2e31a8F0d09b4bE1fA11aD3aC9F08' as const
+const alignmentRecipients = [
+  '0x1111111111111111111111111111111111111111',
+  '0x2222222222222222222222222222222222222222',
+  '0x3333333333333333333333333333333333333333',
+] as const
 
-function createDashboard(overrides: Partial<GovernanceWidgetAdapterState['dashboard']> = {}) {
+function createDashboard(
+  overrides: Partial<GovernanceWidgetAdapterState['dashboard']> = {},
+): GovernanceWidgetAdapterState['dashboard'] {
   return {
     impact: {
       title: 'Distributed',
@@ -55,12 +62,16 @@ function createDashboard(overrides: Partial<GovernanceWidgetAdapterState['dashbo
       title: 'Q3 House Of Alignment Funding Allocation',
       summaryLabel: 'Current top 3 voted',
       options: [
-        { id: 'food-chain', label: 'Local Food Chain', percentage: 42 },
-        { id: 'web3-literacy', label: 'Web3 Literacy', percentage: 31 },
-        { id: 'civic-onboarding', label: 'Civic Onboarding', percentage: 27 },
+        { id: alignmentRecipients[0], label: 'Local Food Chain', percentage: 42 },
+        { id: alignmentRecipients[1], label: 'Web3 Literacy', percentage: 31 },
+        { id: alignmentRecipients[2], label: 'Civic Onboarding', percentage: 27 },
       ],
-      recipients: [],
-      allocationsBps: { 'food-chain': 4200, 'web3-literacy': 3100, 'civic-onboarding': 2700 },
+      recipients: [...alignmentRecipients],
+      allocationsBps: {
+        [alignmentRecipients[0]]: 4200,
+        [alignmentRecipients[1]]: 3100,
+        [alignmentRecipients[2]]: 2700,
+      },
       allocationTotalBps: 10000,
       canVote: false,
       hasVoted: false,
@@ -91,15 +102,15 @@ function createState(
   overrides: Partial<GovernanceWidgetAdapterState> = {},
 ): GovernanceWidgetAdapterState {
   const isConnected = status !== 'disconnected'
-  const member =
-    status === 'active_citizenship' || status === 'active_alignment' || status === 'restake_required'
+  const member: GovernanceWidgetAdapterState['member'] =
+    status === 'active_citizenship' || status === 'active_alignment' || status === 'revoked'
       ? {
           house: status === 'active_alignment' ? 'alignment' : 'citizenship',
-          status: status === 'restake_required' ? 'unstaked' : 'active',
+          status: status === 'revoked' ? 'revoked' : 'active',
           stakedAmount: 250000000000000000000n,
           joinedAt: Date.UTC(2026, 0, 10),
           updatedAt: Date.UTC(2026, 2, 1),
-          unstakedAt: status === 'restake_required' ? Date.UTC(2026, 5, 1) : null,
+          unstakedAt: null,
           memberIndex: 0n,
           name: status === 'active_alignment' ? 'Solar Commons' : 'Maya Citizen',
           socialLinks: 'https://twitter.com/gooddollar',
@@ -130,6 +141,13 @@ function createState(
       { id: 'finalize', title: 'Finalize governance access', status: 'pending' },
     ],
     registrationHash: null,
+    transaction: { kind: null, status: 'idle', hash: null, error: null },
+    unstakeAvailability: {
+      canUnstake: false,
+      unlockAt: Date.UTC(2026, 8, 1, 12),
+      disabledReason: 'Membership remains locked until the current governance term has passed.',
+    },
+    lifecycleNotice: null,
     error: null,
     ...overrides,
   }
@@ -145,7 +163,7 @@ function createAdapterFactory(state: GovernanceWidgetAdapterState): GovernanceWi
       retry: async () => {},
       selectHouse: () => {},
       register: async () => {},
-      restake: async () => {},
+      unstake: async () => {},
       openVote: () => {},
       closeVote: () => {},
       setVoteAllocation: () => {},
@@ -217,6 +235,25 @@ export const ActiveCitizenship: Story = {
   render: () => <RuntimeStory state={createState('active_citizenship')} />,
 }
 
+export const UpcomingVote: Story = {
+  render: () => (
+    <RuntimeStory
+      state={createState('active_citizenship', {
+        dashboard: createDashboard({
+          alignmentVoting: {
+            ...createDashboard().alignmentVoting,
+            title: 'Upcoming Alignment vote',
+            summaryLabel: 'Next window starts Aug 1, 2026',
+            isVotingOpen: false,
+            canVote: false,
+            disabledReason: 'Voting is currently closed.',
+          },
+        }),
+      })}
+    />
+  ),
+}
+
 export const ActiveAlignmentInjected: Story = {
   render: () => (
     <RuntimeStory
@@ -281,9 +318,9 @@ export const VoteClosedExecuted: Story = {
             canVote: false,
             summaryLabel: 'Final units executed',
             finalizedUnits: {
-              'food-chain': '420000',
-              'web3-literacy': '310000',
-              'civic-onboarding': '270000',
+              [alignmentRecipients[0]]: '420000',
+              [alignmentRecipients[1]]: '310000',
+              [alignmentRecipients[2]]: '270000',
             },
             disabledReason: 'Voting has closed and final FlowSplitter units are read-only.',
           },
@@ -332,8 +369,96 @@ export const UnsupportedChain: Story = {
   render: () => <RuntimeStory state={createState('unsupported_chain')} />,
 }
 
-export const RestakeRequired: Story = {
-  render: () => <RuntimeStory state={createState('restake_required')} />,
+export const ActiveMembershipUnstakeReady: Story = {
+  render: () => (
+    <RuntimeStory
+      state={createState('active_citizenship', {
+        unstakeAvailability: {
+          canUnstake: true,
+          unlockAt: Date.UTC(2026, 3, 1, 12),
+        },
+      })}
+    />
+  ),
+}
+
+export const UnstakeWalletConfirmation: Story = {
+  render: () => (
+    <RuntimeStory
+      state={createState('active_alignment', {
+        transaction: {
+          kind: 'unstake',
+          status: 'wallet_confirmation',
+          hash: null,
+          error: null,
+        },
+        unstakeAvailability: { canUnstake: true, unlockAt: Date.UTC(2026, 3, 1, 12) },
+      })}
+    />
+  ),
+}
+
+export const UnstakeSubmitted: Story = {
+  render: () => (
+    <RuntimeStory
+      state={createState('active_alignment', {
+        transaction: {
+          kind: 'unstake',
+          status: 'submitted',
+          hash: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          error: null,
+        },
+        unstakeAvailability: { canUnstake: true, unlockAt: Date.UTC(2026, 3, 1, 12) },
+      })}
+    />
+  ),
+}
+
+export const UnstakeRejected: Story = {
+  render: () => (
+    <RuntimeStory
+      state={createState('active_citizenship', {
+        transaction: {
+          kind: 'unstake',
+          status: 'rejected',
+          hash: null,
+          error: 'Transaction rejected in the wallet.',
+        },
+        unstakeAvailability: { canUnstake: true, unlockAt: Date.UTC(2026, 3, 1, 12) },
+      })}
+    />
+  ),
+}
+
+export const UnstakeReverted: Story = {
+  render: () => (
+    <RuntimeStory
+      state={createState('active_citizenship', {
+        transaction: {
+          kind: 'unstake',
+          status: 'reverted',
+          hash: '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+          error: 'The governance contract rejected this action. Review your details and try again.',
+        },
+        unstakeAvailability: { canUnstake: true, unlockAt: Date.UTC(2026, 3, 1, 12) },
+      })}
+    />
+  ),
+}
+
+export const UnstakedReturnsToOnboarding: Story = {
+  render: () => (
+    <RuntimeStory
+      state={createState('onboarding_required', {
+        identityStatus: 'verified',
+        lifecycleNotice: 'Membership unstaked successfully. You can now join a governance house again.',
+      })}
+    />
+  ),
+}
+
+export const RevokedMembership: Story = {
+  render: () => <RuntimeStory state={createState('revoked')} />,
 }
 
 export const FriendlyContractError: Story = {
@@ -344,4 +469,25 @@ export const FriendlyContractError: Story = {
       })}
     />
   ),
+}
+
+export const RealAdapterMockedRuntime: Story = {
+  render: () => {
+    const injectedProvider = getInjectedEip1193Provider()
+    const provider = isInjectedProviderUsable(injectedProvider)
+      ? injectedProvider
+      : createCustodialEip1193Provider()
+
+    return (
+      <GovernanceWidget
+        provider={provider}
+        celoRpcUrl="/mock-governance-rpc"
+        addresses={{
+          housesAddress: '0x4444444444444444444444444444444444444444',
+          goodIdAddress: '0x5555555555555555555555555555555555555555',
+        }}
+        testId="GovernanceWidget-real-adapter"
+      />
+    )
+  },
 }

@@ -39,6 +39,10 @@ export { DEFAULT_TRANSACTION_STEPS } from './onboarding/constants'
 export { useGovernanceAdapter } from './adapter'
 export type {
   GovernanceDashboardState,
+  GovernanceTransactionKind,
+  GovernanceTransactionState,
+  GovernanceTransactionStatus,
+  GovernanceUnstakeAvailability,
   GovernanceVotingState,
   GovernanceWidgetAdapterActions,
   GovernanceWidgetAdapterFactory,
