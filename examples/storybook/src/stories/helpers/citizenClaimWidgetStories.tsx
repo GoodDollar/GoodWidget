@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { YStack } from '@goodwidget/ui'
-import { CitizenClaimWidget } from '@goodwidget/citizen-claim-widget'
+import { CitizenClaimWidget, type CitizenClaimWidgetProps } from '@goodwidget/citizen-claim-widget'
 import {
   getInjectedEip1193Provider,
   isInjectedProviderUsable,
@@ -10,11 +10,14 @@ import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
 function CitizenClaimWidgetStoryShell({
   provider,
   dataTestId,
+  defaultTheme,
+  themeOverrides,
 }: {
   provider: unknown
   dataTestId: string
+  defaultTheme?: 'light' | 'dark'
+  themeOverrides?: CitizenClaimWidgetProps['themeOverrides']
 }) {
-  // const [activeTab, setActiveTab] = useState<CitizenClaimTab>('claim')
   const [activeChainId, setActiveChainId] = useState<number | null>(null)
 
   useEffect(() => {
@@ -46,11 +49,19 @@ function CitizenClaimWidgetStoryShell({
       environment="development"
       data-testid={dataTestId}
       chainId={activeChainId ?? 42220}
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }
 
-export function InjectedWalletStory() {
+export function InjectedWalletStory({
+  defaultTheme,
+  themeOverrides,
+}: {
+  defaultTheme?: 'light' | 'dark'
+  themeOverrides?: CitizenClaimWidgetProps['themeOverrides']
+} = {}) {
   const injectedProvider = getInjectedEip1193Provider()
   const usableProvider = isInjectedProviderUsable(injectedProvider)
 
@@ -70,17 +81,27 @@ export function InjectedWalletStory() {
     <CitizenClaimWidgetStoryShell
       provider={injectedProvider}
       dataTestId="CitizenClaimWidget-injected-wallet"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }
 
-export function CustodialLocalFixtureStory() {
+export function CustodialLocalFixtureStory({
+  defaultTheme,
+  themeOverrides,
+}: {
+  defaultTheme?: 'light' | 'dark'
+  themeOverrides?: CitizenClaimWidgetProps['themeOverrides']
+} = {}) {
   try {
     const provider = createCustodialEip1193Provider()
     return (
       <CitizenClaimWidgetStoryShell
         provider={provider}
         dataTestId="CitizenClaimWidget-custodial-wallet"
+        defaultTheme={defaultTheme}
+        themeOverrides={themeOverrides}
       />
     )
   } catch (error: unknown) {

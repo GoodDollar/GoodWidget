@@ -7,6 +7,7 @@ import {
   derivePrimaryLabel,
   type MigrationStep,
   type StakingMigrationWidgetAdapterFactory,
+  type StakingMigrationWidgetProps,
   type StakingMigrationWidgetState,
   type StakingMigrationWidgetStatus,
 } from '@goodwidget/staking-migration-widget'
@@ -73,18 +74,30 @@ function createAdapterFactory(
   })
 }
 
+type ThemeArgs = {
+  defaultTheme?: 'light' | 'dark'
+  themeOverrides?: StakingMigrationWidgetProps['themeOverrides']
+}
+
 function MockStoryShell({
   adapterFactory,
   dataTestId,
+  defaultTheme,
+  themeOverrides,
 }: {
   adapterFactory: StakingMigrationWidgetAdapterFactory
   dataTestId: string
-}) {
+} & ThemeArgs) {
   try {
     const provider = createCustodialEip1193Provider()
     return (
       <YStack data-testid={dataTestId} style={{ width: 420 }}>
-        <StakingMigrationWidget provider={provider} adapterFactory={adapterFactory} />
+        <StakingMigrationWidget
+          provider={provider}
+          adapterFactory={adapterFactory}
+          defaultTheme={defaultTheme}
+          themeOverrides={themeOverrides}
+        />
       </YStack>
     )
   } catch (error: unknown) {
@@ -99,7 +112,13 @@ function MockStoryShell({
   }
 }
 
-export function InjectedWalletStory() {
+export function InjectedWalletStory({
+  defaultTheme,
+  themeOverrides,
+}: {
+  defaultTheme?: 'light' | 'dark'
+  themeOverrides?: StakingMigrationWidgetProps['themeOverrides']
+} = {}) {
   const injectedProvider = getInjectedEip1193Provider()
   const migrationApiBaseUrl = import.meta.env.VITE_MIGRATION_API_BASE_URL
 
@@ -120,6 +139,8 @@ export function InjectedWalletStory() {
       <StakingMigrationWidget
         provider={injectedProvider}
         migrationApiBaseUrl={migrationApiBaseUrl}
+        defaultTheme={defaultTheme}
+        themeOverrides={themeOverrides}
       />
       {!migrationApiBaseUrl && (
         <YStack marginTop="$3">
@@ -133,7 +154,7 @@ export function InjectedWalletStory() {
   )
 }
 
-export function EmptyBalanceStory() {
+export function EmptyBalanceStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   return (
     <MockStoryShell
       dataTestId="StakingMigrationWidget-empty-balance"
@@ -141,40 +162,48 @@ export function EmptyBalanceStory() {
         stakedAmount: '0',
         stakedAmountRaw: 0n,
       })}
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }
 
-export function ReadyStory() {
+export function ReadyStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   return (
     <MockStoryShell
       dataTestId="StakingMigrationWidget-ready"
       adapterFactory={createAdapterFactory('summary')}
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }
 
-export function WrongNetworkStory() {
+export function WrongNetworkStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   return (
     <MockStoryShell
       dataTestId="StakingMigrationWidget-wrong-network"
       adapterFactory={createAdapterFactory('wrong-network', {
         isWrongNetwork: true,
       })}
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }
 
-export function ApprovalPendingStory() {
+export function ApprovalPendingStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   return (
     <MockStoryShell
       dataTestId="StakingMigrationWidget-approval-pending"
       adapterFactory={createAdapterFactory('approval-pending')}
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }
 
-export function MigratingStory() {
+export function MigratingStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   return (
     <MockStoryShell
       dataTestId="StakingMigrationWidget-migrating"
@@ -182,22 +211,26 @@ export function MigratingStory() {
         completedSteps: ['unstake', 'bridge sent'],
         activeStep: 'bridge received',
       })}
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }
 
-export function SuccessStory() {
+export function SuccessStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   return (
     <MockStoryShell
       dataTestId="StakingMigrationWidget-success"
       adapterFactory={createAdapterFactory('success', {
         completedSteps: ['unstake', 'bridge sent', 'bridge received', 'stake'],
       })}
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }
 
-export function ErrorStateStory() {
+export function ErrorStateStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   return (
     <MockStoryShell
       dataTestId="StakingMigrationWidget-error-state"
@@ -207,11 +240,13 @@ export function ErrorStateStory() {
         failedStep: 'bridge received',
         error: 'Bridge finalization timeout',
       })}
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }
 
-export function LightThemeReadyStory() {
+export function LightThemeReadyStory({ themeOverrides }: Pick<ThemeArgs, 'themeOverrides'> = {}) {
   return (
     <GoodWidgetProvider defaultTheme="light">
       <MiniAppShell title="StakingMigrationWidget">
@@ -219,6 +254,7 @@ export function LightThemeReadyStory() {
           <StakingMigrationWidget
             adapterFactory={createAdapterFactory('summary')}
             defaultTheme="light"
+            themeOverrides={themeOverrides}
           />
         </YStack>
       </MiniAppShell>
