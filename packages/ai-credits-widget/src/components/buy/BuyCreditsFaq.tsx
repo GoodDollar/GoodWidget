@@ -6,67 +6,95 @@ const FAQ_ITEMS = [
     id: 'what-are-credits',
     question: 'What are AI credits?',
     answer:
-      'AI credits pay for AntSeed-compatible coding tools. GoodDollar only supports purchasing AntSeed AI credits. You buy them with G$ on Celo; AI credits (USD) settle on Base and appear in your Manage tab balance.',
+      'AI credits pay for AntSeed-compatible coding tools. ' +
+      'GoodDollar only supports purchasing AntSeed AI credits. ' +
+      'You buy them with G$ on Celo; AI credits (USD) settle on Base and appear in your Manage tab balance.',
   },
   {
     id: 'how-to-buy',
     question: 'How do I buy credits?',
     answer:
-      'Complete the Buy Credits steps: generate a buyer key, sign operator consent, then enter a one-time G$ deposit and/or a monthly G$ stream and confirm the Celo transaction.',
+      'Complete the Buy Credits steps: generate a buyer key, sign operator consent, ' +
+      'then enter a one-time G$ deposit and/or a monthly G$ stream and confirm the Celo transaction.',
   },
   {
     id: 'deposit-vs-stream',
     question: 'What is a one-time deposit vs a monthly stream?',
     answer:
-      'A one-time deposit converts G$ into credits right away. A monthly stream sets a G$/month flow rate on Celo; credits are added in real time as G$ streams in, not as a single monthly lump.',
+      'A one-time deposit converts G$ into credits right away. ' +
+      'A monthly stream sets a G$/month flow rate on Celo; ' +
+      'credits are added in real time as G$ streams in, not as a single monthly lump.',
   },
   {
     id: 'minimums',
     question: 'What are the minimum amounts?',
     answer:
-      'Your first one-time deposit must be at least US$1.00. If you set a monthly stream, it must be at least US$1.00/month. After your first deposit, there is no minimum for additional one-time deposits.\n\nTo open a new channel to a new provider, you need more than 1 USDC in available credits.',
+      'Your first one-time deposit must be at least US$1.00. ' +
+      'If you set a monthly stream, it must be at least US$1.00/month. ' +
+      'After your first deposit, there is no minimum for additional one-time deposits.\n\n' +
+      'To open a new channel to a new provider, you need more than 1 USDC in available credits.',
   },
   {
     id: 'goodid-bonus',
     question: 'How do GoodID bonuses work?',
     answer:
-      'With a verified GoodID you receive bonus credits on one-time deposits and monthly streams. The current bonus rates are shown in the Buy Credits form. Without GoodID verification, bonuses do not apply.',
+      'With a verified GoodID you receive bonus credits on one-time deposits and monthly streams. ' +
+      'The current bonus rates are shown in the Buy Credits form. ' +
+      'Without GoodID verification, bonuses do not apply.',
   },
   {
     id: 'buyer-key',
     question: 'What is the buyer key?',
     answer:
-      'Your payer wallet pays G$ on Celo. The buyer key is a separate key derived from a payer signature; it manages your AI credits on Base. Save the buyer private key from this session for AI API setup and Manage actions like withdraw.',
+      'Your payer wallet pays G$ on Celo. ' +
+      'The buyer key is a separate key derived from a payer signature; it manages your AI credits on Base. ' +
+      'Save the buyer private key from this session for AI API setup and Manage actions like withdraw.',
   },
   {
     id: 'operator-consent',
     question: 'Why do I authorize the Gooddollar operator?',
     answer:
-      'Payer is the wallet that pays G$ on Celo. Buyer is a separate key derived from a payer signature; it owns your AI credit account on Base.\n\nOperator consent is a one-time sign-off so the GoodDollar operator can act as your operator on Base. After you pay G$ on Celo, the operator can fund your credits and handle Base-side actions — including moving credit funds — without you paying Base gas. It cannot access your payer wallet or G$ on Celo. Because the operator can act on your Base credit account, you are trusting GoodDollar with that role. You can also withdraw unused principal yourself with your buyer private key.',
+      'Payer is the wallet that pays G$ on Celo. ' +
+      'Buyer is a separate key derived from a payer signature; it owns your AI credit account on Base.\n\n' +
+      'Operator consent is a one-time sign-off so the GoodDollar operator can act as your operator on Base. ' +
+      'After you pay G$ on Celo, the operator can fund your credits and handle Base-side actions — ' +
+      'including moving credit funds — without you paying Base gas. ' +
+      'It cannot access your payer wallet or G$ on Celo. ' +
+      'Because the operator can act on your Base credit account, you are trusting GoodDollar with that role. ' +
+      'You can also withdraw unused principal yourself with your buyer private key.',
   },
   {
     id: 'when-credits-arrive',
     question: 'When do credits arrive?',
     answer:
-      'After your Celo payment confirms, credits are funded on Base. Funding usually completes within a short time; check the Manage tab for your updated balance.',
+      'After your Celo payment confirms, credits are funded on Base. ' +
+      'Funding usually completes within a short time; check the Manage tab for your updated balance.',
   },
   {
     id: 'withdraw',
     question: 'What funds can I withdraw?',
     answer:
-      'You can withdraw unused principal up to the Withdrawable amount shown in Manage. Bonus credits from GoodID are not withdrawable and stay for AI usage only.\n\nWithdrawals are signed with your buyer private key and settled on Base as USD to your payer wallet address — the same wallet that pays G$ on Celo. Your total credit balance will be higher than the withdrawable amount when bonuses are included.',
+      'You can withdraw unused principal up to the Withdrawable amount shown in Manage. ' +
+      'Bonus credits from GoodID are not withdrawable and stay for AI usage only.\n\n' +
+      'Withdrawals are signed with your buyer private key and settled on Base as USD ' +
+      'to your payer wallet address — the same wallet that pays G$ on Celo. ' +
+      'Your total credit balance will be higher than the withdrawable amount when bonuses are included.',
   },
   {
     id: 'api-setup',
     question: 'What is API setup?',
     answer:
-      'After you have credits, open Manage → API Setup and copy the commands into your terminal. ANTSEED_IDENTITY_HEX is your buyer private key. it links your purchases to the credit balance your AI tools should use.',
+      'After you have credits, open Manage → API Setup and copy the commands into your terminal. ' +
+      'ANTSEED_IDENTITY_HEX is your buyer private key. ' +
+      'it links your purchases to the credit balance your AI tools should use.',
   },
   {
     id: 'support',
     question: 'Who do I contact for support?',
     answer:
-      'GoodDollar only supports purchasing AntSeed AI credits through this widget. For post-purchase issues — including credit usage, channels, providers, or AntSeed tooling — contact the AntSeed support team on Telegram: https://t.me/antseed',
+      'GoodDollar only supports purchasing AntSeed AI credits through this widget. ' +
+      'For post-purchase issues — including credit usage, channels, providers, or AntSeed tooling — ' +
+      'contact the AntSeed support team on Telegram: https://t.me/antseed',
   },
 ] as const
 
