@@ -1,4 +1,5 @@
 import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
+import type { InviteAdapterFactory } from './inviteAdapter'
 
 export type CitizenClaimWidgetEnvironment = 'production' | 'staging' | 'development'
 
@@ -95,6 +96,8 @@ export interface CitizenClaimWidgetProps {
   clientFactory?: CitizenClaimWidgetClientFactory
   onClaimSuccess?: (detail: CitizenClaimWidgetSuccessDetail) => void
   onClaimError?: (detail: CitizenClaimWidgetErrorDetail) => void
+  /** Deterministic Invite Rewards adapter for stories and host-side testing. */
+  inviteAdapterFactory?: InviteAdapterFactory
   // ---- Theming (optional, passed through to GoodWidgetProvider) ----
   /** Token and theme overrides applied at the widget boundary. */
   themeOverrides?: GoodWidgetThemeOverrides

@@ -44,7 +44,7 @@ function InviteJoinCard({ compact = false }: { compact?: boolean }) {
         placeholder="Invite code"
         autoCapitalize="none"
       />
-      {(validationError || state.error) && <Text color="$error">{validationError ?? state.error}</Text>}
+      {validationError && <Text color="$error">{validationError}</Text>}
       <Button fullWidth disabled={!code.trim() || isPending} onPress={joinWithCode}>
         <ButtonText>{isPending ? 'Joining…' : 'Join with code'}</ButtonText>
       </Button>
@@ -86,7 +86,11 @@ function InviteShareCard() {
             ? 'Create a code to invite friends to claim G$.'
             : 'Verify your identity before creating an invite code.'}
         </Text>
-        <Button fullWidth disabled={!isVerified || state.status === 'joining'} onPress={() => actions.join()}>
+        <Button
+          fullWidth
+          disabled={!isVerified || state.status === 'joining'}
+          onPress={() => actions.join()}
+        >
           <ButtonText>{state.status === 'joining' ? 'Creating…' : 'Create invite code'}</ButtonText>
         </Button>
       </Card>
@@ -101,7 +105,11 @@ function InviteShareCard() {
       <Button fullWidth onPress={share}>
         <ButtonText>Share or copy invite</ButtonText>
       </Button>
-      {shareFeedback && <Text color={shareFeedback.startsWith('Could') ? '$error' : '$success'}>{shareFeedback}</Text>}
+      {shareFeedback && (
+        <Text color={shareFeedback.startsWith('Could') ? '$error' : '$success'}>
+          {shareFeedback}
+        </Text>
+      )}
     </Card>
   )
 }
@@ -110,12 +118,27 @@ function InviteeStatus() {
   const { state, actions } = useInviteRuntime()
   const collectable = hasCollectableInvitees(state.collectableInvitees)
   const isCollecting = state.status === 'collecting'
+  const approvedInvites = state.user?.totalApprovedInvites ?? 0n
+  const collectableAddresses = new Set(
+    state.collectableInvitees.map((invitee) => invitee.toLowerCase()),
+  )
 
   return (
     <Card padding="$4" gap="$3">
       <Heading level={3}>Your invite rewards</Heading>
-      <Text secondary>{state.invitees.length} approved invitee{state.invitees.length === 1 ? '' : 's'}</Text>
-      <Text secondary>{state.pendingInvitees.length} pending reward{state.pendingInvitees.length === 1 ? '' : 's'}</Text>
+      <Text secondary>
+        {approvedInvites.toString()} approved invite{approvedInvites === 1n ? '' : 's'}
+      </Text>
+      <Text secondary>
+        {state.pendingInvitees.length} pending reward
+        {state.pendingInvitees.length === 1 ? '' : 's'}
+      </Text>
+      <Text secondary>{state.collectableInvitees.length} ready to collect</Text>
+      {state.user && (
+        <Text fontWeight="700">
+          Total earned: {formatInviteBounty(state.user.totalEarned, state.chainId)} G$
+        </Text>
+      )}
       {state.level && (
         <Text secondary>
           Earn {formatInviteBounty(state.level.bounty, state.chainId)} G$ per eligible invitee.
@@ -123,11 +146,24 @@ function InviteeStatus() {
       )}
       {state.pendingInvitees.map((invitee) => {
         const details = state.eligibility[invitee]
-        const status = details?.inviteeWhitelisted
-          ? `Waiting for ${details.minimumDays} days and ${details.minimumClaims} claims.`
-          : 'Waiting for identity verification.'
-        return <Text key={invitee} variant="caption" secondary>{`${invitee.slice(0, 6)}…${invitee.slice(-4)} — ${status}`}</Text>
+        const status = collectableAddresses.has(invitee.toLowerCase())
+          ? 'Ready to collect.'
+          : details?.inviteeWhitelisted
+            ? `Waiting for ${details.minimumDays} days and ${details.minimumClaims} claims.`
+            : 'Waiting for identity verification.'
+        return (
+          <Text
+            key={invitee}
+            variant="caption"
+            secondary
+          >{`${invitee.slice(0, 6)}…${invitee.slice(-4)} — ${status}`}</Text>
+        )
       })}
+      {state.pendingInvitees.length === 0 && (
+        <Text variant="caption" secondary>
+          No pending invite rewards.
+        </Text>
+      )}
       <Button fullWidth disabled={!collectable || isCollecting} onPress={actions.collectAll}>
         <ButtonText>{isCollecting ? 'Collecting…' : 'Collect eligible rewards'}</ButtonText>
       </Button>
@@ -161,7 +197,9 @@ export function InviteRewards() {
   if (state.status === 'unsupported') {
     return (
       <Card padding="$4">
-        <Text secondary>Invite rewards are available on Celo and XDC. Switch networks to continue.</Text>
+        <Text secondary>
+          Invite rewards are available on Celo and XDC. Switch networks to continue.
+        </Text>
       </Card>
     )
   }
@@ -170,7 +208,9 @@ export function InviteRewards() {
     return (
       <Card padding="$4" gap="$3">
         <Text color="$error">{state.error}</Text>
-        <Button onPress={actions.refresh}><ButtonText>Retry</ButtonText></Button>
+        <Button onPress={actions.refresh}>
+          <ButtonText>Retry</ButtonText>
+        </Button>
       </Card>
     )
   }
@@ -182,9 +222,16 @@ export function InviteRewards() {
         <Text secondary>Invite friends to claim GoodDollar and earn G$ rewards together.</Text>
         <Separator />
         <Heading level={4}>How it works</Heading>
-        <Text secondary>1. Share your code. 2. Your friend joins and claims. 3. After identity, claim-day, and minimum-claim requirements are met, collect your reward.</Text>
+        <Text secondary>
+          1. Share your code. 2. Your friend joins and claims. 3. After identity, claim-day, and
+          minimum-claim requirements are met, collect your reward.
+        </Text>
       </Card>
-      {state.success && <Text color="$success">{state.success}</Text>}
+      {(state.success || state.error) && (
+        <Card padding="$3">
+          <Text color={state.error ? '$error' : '$success'}>{state.error ?? state.success}</Text>
+        </Card>
+      )}
       <InviteShareCard />
       <InviteJoinCard />
       <InviteeStatus />

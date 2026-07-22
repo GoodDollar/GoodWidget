@@ -32,6 +32,7 @@ export {
 } from './inviteAdapter'
 export type {
   InviteActions,
+  InviteAdapterFactory,
   InviteAdapterResult,
   InviteState,
   InviteStatus,

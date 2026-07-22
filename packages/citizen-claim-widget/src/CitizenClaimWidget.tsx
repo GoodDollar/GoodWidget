@@ -532,6 +532,7 @@ export function CitizenClaimWidget({
   defaultTheme = 'dark',
   onClaimSuccess,
   onClaimError,
+  inviteAdapterFactory,
 }: CitizenClaimWidgetProps) {
   const [activeTab, setActiveTab] = useState<CitizenClaimTab>('claim')
 
@@ -542,7 +543,7 @@ export function CitizenClaimWidget({
       themeOverrides={themeOverrides}
       defaultTheme={defaultTheme}
     >
-      <InviteRuntimeProvider environment={environment}>
+      <InviteRuntimeProvider environment={environment} adapterFactory={inviteAdapterFactory}>
         <WidgetTabs
           tabs={[
             { id: 'claim', label: 'Claim' },

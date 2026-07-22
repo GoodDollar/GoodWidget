@@ -14,7 +14,7 @@ not be changed for this migration.
 
 ## Invite Rewards
 
-The widget directly uses `@goodsdks/invite-sdk@1.0.1` with the provider-first
+The widget directly uses `@goodsdks/invite-sdk@1.0.3` with the provider-first
 viem clients already used by the claim flow. Invite writes are available only on
 Celo (42220) and XDC (50); the SDK maps `staging` to its development InvitesV2
 deployment.
@@ -32,6 +32,9 @@ Claim GoodDollar with me. Open this page and use my invite code: <code>
 
 Invite creation uses the GoodWallet Base58 shortest-unused-prefix algorithm.
 The InviteSDK remains responsible for InvitesV2 addresses, preconditions,
-simulation, error mapping, joins, and single/batch bounty collection. Pending
-invitees show their whitelist and minimum-days/minimum-claims diagnostics before
-the collection control is enabled.
+simulation, error mapping, joins, and single/batch bounty collection. The reward
+summary uses the protocol-provided approved and total-earned values. Pending
+invitee addresses remain visible with a waiting or collectable status, and the
+collection control is enabled only when `getCollectableInvitees()` reports at
+least one eligible pending invitee. Join and collection results remain visible
+after the shared runtime refreshes.

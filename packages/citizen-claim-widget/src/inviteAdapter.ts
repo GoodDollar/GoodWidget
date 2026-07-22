@@ -14,6 +14,7 @@ import {
   InviteSDK,
   InviteSDKError,
   isSupportedChain,
+  type BountyResult,
   type BountyEligibilityDetails,
   type InviteLevel,
   type InviteUser,
@@ -21,7 +22,7 @@ import {
 import { hexToBytes, hexToString, stringToHex, zeroAddress, zeroHash, type Address } from 'viem'
 import { useWallet } from '@goodwidget/core'
 import { createCitizenWidgetClients } from './adapter'
-import { getMyInviteCode } from './inviteRules'
+import { getMyInviteCode, hasCollectableInvitees } from './inviteRules'
 import type { CitizenClaimWidgetEnvironment } from './widgetRuntimeContract'
 
 export type InviteStatus =
@@ -58,6 +59,18 @@ export interface InviteActions {
 export interface InviteAdapterResult {
   state: InviteState
   actions: InviteActions
+}
+
+/** Deterministic adapter seam used by Storybook and component tests. */
+export type InviteAdapterFactory = () => InviteAdapterResult
+
+interface InviteJoinSdk {
+  resolveCode: (code: `0x${string}`) => Promise<Address>
+  join: (myCode: `0x${string}`, inviterCode: `0x${string}`) => Promise<`0x${string}`>
+}
+
+interface InviteCollectionSdk {
+  collectAllBounties: () => Promise<BountyResult[]>
 }
 
 const InviteRuntimeContext = createContext<InviteAdapterResult | null>(null)
@@ -116,6 +129,51 @@ export async function generateInviteCode(
   throw new Error('We could not generate an invite code. Please retry.')
 }
 
+export async function validateInviteCode(
+  sdk: Pick<InviteJoinSdk, 'resolveCode'>,
+  address: Address,
+  code: string,
+): Promise<string> {
+  const normalizedCode = code.trim()
+  const owner = await sdk.resolveCode(encodeInviteCode(normalizedCode))
+  if (owner === zeroAddress) throw new Error('This invite code was not found.')
+  if (owner.toLowerCase() === address.toLowerCase()) {
+    throw new Error('You cannot use your own invite code.')
+  }
+  return normalizedCode
+}
+
+/** Shared write path used by the live adapter and deterministic adapter tests. */
+export async function submitInviteJoin({
+  sdk,
+  address,
+  user,
+  inviterCode,
+}: {
+  sdk: InviteJoinSdk
+  address: Address
+  user: InviteUser | null
+  inviterCode?: string
+}): Promise<boolean> {
+  const validatedInviterCode = inviterCode
+    ? await validateInviteCode(sdk, address, inviterCode)
+    : undefined
+  const ownCode = await getMyInviteCode(user, async () =>
+    encodeInviteCode(await generateInviteCode(address, sdk.resolveCode.bind(sdk))),
+  )
+  await sdk.join(ownCode, validatedInviterCode ? encodeInviteCode(validatedInviterCode) : zeroHash)
+  return Boolean(validatedInviterCode)
+}
+
+/** Prevents batch collection unless InviteSDK reported an eligible pending invitee. */
+export async function collectEligibleInviteRewards(
+  sdk: InviteCollectionSdk,
+  collectableInvitees: Address[],
+): Promise<BountyResult[]> {
+  if (!hasCollectableInvitees(collectableInvitees)) return []
+  return sdk.collectAllBounties()
+}
+
 function inviteErrorMessage(error: unknown): string {
   if (error instanceof InviteSDKError) {
     switch (error.errorCode) {
@@ -145,9 +203,7 @@ function inviteErrorMessage(error: unknown): string {
  * Manages shared InviteSDK reads and writes for both citizen-claim entry points.
  * All contract preconditions, simulation, and writes remain in InviteSDK.
  */
-export function useInviteAdapter(
-  environment: CitizenClaimWidgetEnvironment,
-): InviteAdapterResult {
+export function useInviteAdapter(environment: CitizenClaimWidgetEnvironment): InviteAdapterResult {
   const { address, chainId, isConnected, provider } = useWallet()
   const [state, setState] = useState<InviteState>(initialInviteState)
 
@@ -164,7 +220,12 @@ export function useInviteAdapter(
       return
     }
     if (!chainId || !isSupportedChain(chainId)) {
-      setState({ ...initialInviteState, status: 'unsupported', address: address as Address, chainId })
+      setState({
+        ...initialInviteState,
+        status: 'unsupported',
+        address: address as Address,
+        chainId,
+      })
       return
     }
 
@@ -181,13 +242,14 @@ export function useInviteAdapter(
       const sdk = await getSdk()
       if (!sdk) throw new Error('Unable to initialize invite rewards.')
       const user = await sdk.getUser(address as Address)
-      const [level, invitees, pendingInvitees, collectableInvitees, selfEligibility] = await Promise.all([
-        sdk.getLevel(Number(user.level)),
-        sdk.getInvitees(address as Address),
-        sdk.getPendingInvitees(address as Address),
-        sdk.getCollectableInvitees(address as Address),
-        sdk.checkEligibilityDetails(address as Address),
-      ])
+      const [level, invitees, pendingInvitees, collectableInvitees, selfEligibility] =
+        await Promise.all([
+          sdk.getLevel(Number(user.level)),
+          sdk.getInvitees(address as Address),
+          sdk.getPendingInvitees(address as Address),
+          sdk.getCollectableInvitees(address as Address),
+          sdk.checkEligibilityDetails(address as Address),
+        ])
       const eligibilityEntries = await Promise.all(
         pendingInvitees.map(async (invitee) => {
           const { details } = await sdk.checkEligibilityDetails(invitee)
@@ -228,14 +290,9 @@ export function useInviteAdapter(
   const validateCode = useCallback(
     async (code: string): Promise<string> => {
       const sdk = await getSdk()
-      if (!sdk || !address || !state.user) throw new Error('Connect on Celo or XDC to use invite rewards.')
-      const normalizedCode = code.trim()
-      const owner = await sdk.resolveCode(encodeInviteCode(normalizedCode))
-      if (owner === zeroAddress) throw new Error('This invite code was not found.')
-      if (owner.toLowerCase() === address.toLowerCase()) {
-        throw new Error('You cannot use your own invite code.')
-      }
-      return normalizedCode
+      if (!sdk || !address || !state.user)
+        throw new Error('Connect on Celo or XDC to use invite rewards.')
+      return validateInviteCode(sdk, address as Address, code)
     },
     [address, getSdk, state.user],
   )
@@ -244,25 +301,28 @@ export function useInviteAdapter(
     async (inviterCode?: string) => {
       const sdk = await getSdk()
       if (!sdk || !address) {
-        setState((current) => ({ ...current, error: 'Connect on Celo or XDC to join.', success: null }))
+        setState((current) => ({
+          ...current,
+          error: 'Connect on Celo or XDC to join.',
+          success: null,
+        }))
         return
       }
 
       setState((current) => ({ ...current, status: 'joining', error: null, success: null }))
       try {
-        const validatedInviterCode = inviterCode ? await validateCode(inviterCode) : undefined
-        const ownCode = await getMyInviteCode(
-          state.user,
-          async () => encodeInviteCode(await generateInviteCode(address as Address, sdk.resolveCode.bind(sdk))),
-        )
-        await sdk.join(
-          ownCode,
-          validatedInviterCode ? encodeInviteCode(validatedInviterCode) : zeroHash,
-        )
+        const attachedInviter = await submitInviteJoin({
+          sdk,
+          address: address as Address,
+          user: state.user,
+          inviterCode,
+        })
         await refresh()
         setState((current) => ({
           ...current,
-          success: validatedInviterCode ? 'Joined inviter successfully.' : 'Invite code created successfully.',
+          success: attachedInviter
+            ? 'Joined inviter successfully.'
+            : 'Invite code created successfully.',
         }))
       } catch (error: unknown) {
         setState((current) => ({
@@ -273,20 +333,22 @@ export function useInviteAdapter(
         }))
       }
     },
-    [address, getSdk, refresh, validateCode],
+    [address, getSdk, refresh, state.user],
   )
 
   const collectAll = useCallback(async () => {
     const sdk = await getSdk()
-    if (!sdk) return
+    if (!sdk || !hasCollectableInvitees(state.collectableInvitees)) return
 
     setState((current) => ({ ...current, status: 'collecting', error: null, success: null }))
     try {
-      const results = await sdk.collectAllBounties()
+      const results = await collectEligibleInviteRewards(sdk, state.collectableInvitees)
       await refresh()
       setState((current) => ({
         ...current,
-        success: results.length ? 'Invite rewards collected successfully.' : 'No rewards were collected.',
+        success: results.length
+          ? 'Invite rewards collected successfully.'
+          : 'No rewards were collected.',
       }))
     } catch (error: unknown) {
       setState((current) => ({
@@ -296,7 +358,7 @@ export function useInviteAdapter(
         success: null,
       }))
     }
-  }, [getSdk, refresh])
+  }, [getSdk, refresh, state.collectableInvitees])
 
   return useMemo(
     () => ({ state, actions: { refresh, join, collectAll, validateCode } }),
@@ -306,6 +368,22 @@ export function useInviteAdapter(
 
 /** Shares one invite state machine between the Claim and Invite Rewards tabs. */
 export function InviteRuntimeProvider({
+  children,
+  environment,
+  adapterFactory,
+}: {
+  children: ReactNode
+  environment: CitizenClaimWidgetEnvironment
+  adapterFactory?: InviteAdapterFactory
+}) {
+  if (adapterFactory) {
+    return createElement(InviteRuntimeContext.Provider, { value: adapterFactory() }, children)
+  }
+
+  return createElement(LiveInviteRuntimeProvider, { environment, children })
+}
+
+function LiveInviteRuntimeProvider({
   children,
   environment,
 }: {
