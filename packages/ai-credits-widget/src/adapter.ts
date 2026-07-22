@@ -466,7 +466,7 @@ export function useAiCreditsAdapter({
             ? viewToStatePatch(account.view, account.enriched, prev, {
                 balanceMode: 'if_positive',
               })
-            : { isGoodIdVerified: false }
+            : {}
           const buyerFields = mergeSessionFields(prev, sessionPatch, accountPatch, accountSwitched)
           if (address && accountPatch.operatorConsented !== undefined) {
             syncOperatorConsentSession(address, accountPatch.operatorConsented)
@@ -495,7 +495,6 @@ export function useAiCreditsAdapter({
               address,
               chainId,
               gBalance: '0',
-              isGoodIdVerified: false,
               ...buyerFields,
               status:
                 chainId !== null && chainId !== CELO_CHAIN_ID

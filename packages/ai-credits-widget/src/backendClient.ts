@@ -214,7 +214,7 @@ export async function enrichAccountView(
   chain: AiCreditsChainClient,
 ): Promise<AccountEnrichment> {
   const { profile } = view
-  const goodIdVerified = await chain.isGoodIdVerified(profile.account)
+  const goodIdVerified = await chain.isGoodIdVerified(view.account)
   const monthlyStreamG = flowRateWeiToMonthlyG(profile.streamFlowRateWeiPerSecond)
   const depositedWei = BigInt(profile.totalGdDepositedWei)
   return {
