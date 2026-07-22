@@ -13,22 +13,23 @@ import {
 } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { buildBuyerKeyMessage, deriveBuyerPrivateKeyFromSignature } from './buyerKeyDerivation'
-import {
-  normalizeChannelId,
-  signRequestClose,
-  signWithdrawPrincipal,
-} from './buyerSignatures'
+import { normalizeChannelId, signRequestClose, signWithdrawPrincipal } from './buyerSignatures'
 import {
   MockAiCreditsBackendClient,
   totalCreditUsdFromProfile,
   buildAccountView,
   createBackendClient,
+  DEFAULT_DISCOUNT_CONFIG,
   enrichAccountView,
   waitForOperatorConsent,
 } from './backendClient'
 import type { AccountEnrichment, AiCreditsBackendClient } from './backendClient'
 import type { AccountRef, AccountView } from './backendTypes'
-import { createChainClient, CELO_GD_ANTSEED_VAULT_ADDRESS, CELO_GOODID_ADDRESS } from './chainClient'
+import {
+  createChainClient,
+  CELO_GD_ANTSEED_VAULT_ADDRESS,
+  CELO_GOODID_ADDRESS,
+} from './chainClient'
 import type { AiCreditsChainClient } from './chainClient'
 import { signOperatorConsentFromTypedData } from './operatorConsent'
 import {
@@ -39,6 +40,7 @@ import {
 } from './payerSession'
 import { executeCeloPayment, G_TOKEN_CELO_ADDRESS } from './celoPayment'
 import { startGoodIdVerification, isUserRejectedWalletRequest } from './goodIdVerification'
+import { mapPaymentError } from './paymentErrors'
 import { fetchVaultPaymentMinimums, validateVaultPaymentAmounts } from './vaultMinimums'
 import { quoteTotalUsdMicro, usdDisplayToMicro } from './quoteMath'
 import type {
@@ -89,6 +91,8 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   totalGdDepositedG: null,
   monthlyStreamG: null,
   withdrawableUsd: null,
+  depositBonusPercent: DEFAULT_DISCOUNT_CONFIG.depositBonusPercent,
+  streamBonusPercent: DEFAULT_DISCOUNT_CONFIG.streamBonusPercent,
   error: null,
   activeTab: 'buy',
 }
@@ -282,25 +286,15 @@ function mergeSessionFields(
   sessionPatch: ReturnType<typeof patchPayerSessionFields>,
   accountPatch: Partial<AiCreditsWidgetAdapterState>,
   accountSwitched: boolean,
-): Partial<
-  Pick<
-    AiCreditsWidgetAdapterState,
-    'buyerPubKey' | 'buyerPrvKey' | 'operatorConsented'
-  >
-> {
+): Partial<Pick<AiCreditsWidgetAdapterState, 'buyerPubKey' | 'buyerPrvKey' | 'operatorConsented'>> {
   const buyerPubKey =
     sessionPatch.buyerPubKey ??
     accountPatch.buyerPubKey ??
     (accountSwitched ? null : prev.buyerPubKey)
-  const buyerPrvKey =
-    sessionPatch.buyerPrvKey ?? (accountSwitched ? null : prev.buyerPrvKey)
+  const buyerPrvKey = sessionPatch.buyerPrvKey ?? (accountSwitched ? null : prev.buyerPrvKey)
   const operatorConsented = accountSwitched
-    ? (sessionPatch.operatorConsented ??
-      accountPatch.operatorConsented ??
-      false)
-    : (accountPatch.operatorConsented ??
-      sessionPatch.operatorConsented ??
-      prev.operatorConsented)
+    ? (sessionPatch.operatorConsented ?? accountPatch.operatorConsented ?? false)
+    : (accountPatch.operatorConsented ?? sessionPatch.operatorConsented ?? prev.operatorConsented)
 
   return {
     buyerPubKey,
@@ -309,10 +303,7 @@ function mergeSessionFields(
   }
 }
 
-function syncOperatorConsentSession(
-  address: string,
-  operatorConsented: boolean | undefined,
-): void {
+function syncOperatorConsentSession(address: string, operatorConsented: boolean | undefined): void {
   if (operatorConsented === undefined) return
   patchPayerSession(address, { operatorConsented })
 }
@@ -443,15 +434,17 @@ export function useAiCreditsAdapter({
           : fetchVaultPaymentMinimums(publicClient, celoVault, address as Address).catch(() => null)
 
       const gdUsdPerTokenPromise = chainClient.fetchGdUsdPerToken().catch(() => null)
+      const discountConfigPromise = backendClient.getDiscountConfig().catch(() => null)
 
       try {
-        const [[rawBalance, decimals], account, minimums, gdUsdPerToken] =
+        const [[rawBalance, decimals], account, minimums, gdUsdPerToken, discountConfig] =
           await Promise.all([
-          balancePromise,
-          accountPromise,
-          minimumsPromise,
-          gdUsdPerTokenPromise,
-        ])
+            balancePromise,
+            accountPromise,
+            minimumsPromise,
+            gdUsdPerTokenPromise,
+            discountConfigPromise,
+          ])
         if (cancelled) return
 
         const patch: Partial<AiCreditsWidgetAdapterState> = {
@@ -461,6 +454,10 @@ export function useAiCreditsAdapter({
           gdUsdPerToken,
           minDepositUsd: minimums?.minDepositUsd ?? null,
           minStreamUsd: minimums?.minStreamUsd ?? null,
+          depositBonusPercent:
+            discountConfig?.depositBonusPercent ?? DEFAULT_DISCOUNT_CONFIG.depositBonusPercent,
+          streamBonusPercent:
+            discountConfig?.streamBonusPercent ?? DEFAULT_DISCOUNT_CONFIG.streamBonusPercent,
         }
 
         setState((prev) => {
@@ -470,12 +467,7 @@ export function useAiCreditsAdapter({
                 balanceMode: 'if_positive',
               })
             : {}
-          const buyerFields = mergeSessionFields(
-            prev,
-            sessionPatch,
-            accountPatch,
-            accountSwitched,
-          )
+          const buyerFields = mergeSessionFields(prev, sessionPatch, accountPatch, accountSwitched)
           if (address && accountPatch.operatorConsented !== undefined) {
             syncOperatorConsentSession(address, accountPatch.operatorConsented)
           }
@@ -526,16 +518,24 @@ export function useAiCreditsAdapter({
     try {
       await connect()
     } catch {
-      setState((prev) =>
-        withDerivedStatus(prev, { status: 'disconnected', error: null }, false),
-      )
+      setState((prev) => withDerivedStatus(prev, { status: 'disconnected', error: null }, false))
+      return
     }
+
+    // Some wallet flows resolve without throwing when the modal is dismissed.
+    // If no provider/account event updated the state, restore the idle disconnected state.
+    setState((prev) => {
+      if (prev.status !== 'connecting') return prev
+      return withDerivedStatus(prev, { status: 'disconnected', error: null }, false)
+    })
   }, [connect])
 
   const handleSwitchChain = useCallback(async () => {
     const prov = providerRef.current
     if (!prov) return
-    await (prov as { request: (args: { method: string; params: unknown[] }) => Promise<unknown> }).request({
+    await (
+      prov as { request: (args: { method: string; params: unknown[] }) => Promise<unknown> }
+    ).request({
       method: 'wallet_switchEthereumChain',
       params: [{ chainId: `0x${CELO_CHAIN_ID.toString(16)}` }],
     })
@@ -544,7 +544,11 @@ export function useAiCreditsAdapter({
   const handleGenerateBuyerKey = useCallback(async () => {
     if (!address || !providerRef.current) {
       setState((prev) =>
-        withDerivedStatus(prev, { error: 'Connect your wallet before generating a buyer key' }, true),
+        withDerivedStatus(
+          prev,
+          { error: 'Connect your wallet before generating a buyer key' },
+          true,
+        ),
       )
       return
     }
@@ -579,9 +583,13 @@ export function useAiCreditsAdapter({
       )
     } catch (err: unknown) {
       setState((prev) =>
-        withDerivedStatus(prev, {
-          error: err instanceof Error ? err.message : 'Buyer key generation was rejected',
-        }, true),
+        withDerivedStatus(
+          prev,
+          {
+            error: err instanceof Error ? err.message : 'Buyer key generation was rejected',
+          },
+          true,
+        ),
       )
     }
   }, [address])
@@ -590,7 +598,11 @@ export function useAiCreditsAdapter({
     const currentState = state
     if (!currentState.address || !currentState.buyerPubKey || !currentState.buyerPrvKey) {
       setState((prev) =>
-        withDerivedStatus(prev, { error: 'Generate a buyer key before signing operator consent' }, true),
+        withDerivedStatus(
+          prev,
+          { error: 'Generate a buyer key before signing operator consent' },
+          true,
+        ),
       )
       return
     }
@@ -691,51 +703,151 @@ export function useAiCreditsAdapter({
     [chainClient, state.gdUsdPerToken],
   )
 
-  const handlePay = useCallback(async (quote: AiCreditsQuote) => {
-    const currentState = state
+  const handlePay = useCallback(
+    async (quote: AiCreditsQuote) => {
+      const currentState = state
 
-    if (!currentState.address || !currentState.buyerPubKey || !providerRef.current) {
-      throw new Error('Connect your wallet and generate a buyer key before paying')
-    }
-
-    const depositAmountG = Number.parseFloat(quote.depositAmountG)
-    const streamAmountG = Number.parseFloat(quote.streamAmountG)
-    const hasDeposit = depositAmountG > 0
-    const hasStream = streamAmountG > 0
-    if (!hasDeposit && !hasStream) {
-      throw new Error('Enter a deposit or monthly stream amount')
-    }
-
-    let gdUsdPerToken = currentState.gdUsdPerToken
-    try {
-      if (gdUsdPerToken === null) {
-        gdUsdPerToken = await chainClient.fetchGdUsdPerToken()
+      if (!currentState.address || !currentState.buyerPubKey || !providerRef.current) {
+        throw new Error('Connect your wallet and generate a buyer key before paying')
       }
-    } catch {
+
+      const depositAmountG = Number.parseFloat(quote.depositAmountG)
+      const streamAmountG = Number.parseFloat(quote.streamAmountG)
+      const hasDeposit = depositAmountG > 0
+      const hasStream = streamAmountG > 0
+      if (!hasDeposit && !hasStream) {
+        throw new Error('Enter a deposit or monthly stream amount')
+      }
+
+      let gdUsdPerToken = currentState.gdUsdPerToken
+      try {
+        if (gdUsdPerToken === null) {
+          gdUsdPerToken = await chainClient.fetchGdUsdPerToken()
+        }
+      } catch {
+        setState((prev) => ({
+          ...prev,
+          status: 'backend_unavailable',
+          error: 'Could not build quote — check chain connectivity',
+        }))
+        throw new Error('Could not build quote — check chain connectivity')
+      }
+
+      if (gdUsdPerToken === null) {
+        throw new Error('Could not build quote — check chain connectivity')
+      }
+
+      if (!(backendClient instanceof MockAiCreditsBackendClient)) {
+        try {
+          const publicClient = createPublicClient({ chain: CELO_CHAIN, transport: http() })
+          await validateVaultPaymentAmounts({
+            publicClient,
+            vault: celoVault,
+            payer: currentState.address as Address,
+            depositAmount: quote.depositAmountG,
+            streamAmount: quote.streamAmountG,
+          })
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : 'Payment amount below vault minimum'
+          setState((prev) => ({
+            ...prev,
+            status: 'payment_failed',
+            error: message,
+          }))
+          onPayError?.({
+            address: currentState.address,
+            chainId: CELO_CHAIN_ID,
+            message,
+          })
+          throw error instanceof Error ? error : new Error(message)
+        }
+      }
+
       setState((prev) => ({
         ...prev,
-        status: 'backend_unavailable',
-        error: 'Could not build quote — check chain connectivity',
+        gdUsdPerToken,
+        status: 'payment_pending',
+        error: null,
       }))
-      throw new Error('Could not build quote — check chain connectivity')
-    }
 
-    if (gdUsdPerToken === null) {
-      throw new Error('Could not build quote — check chain connectivity')
-    }
-
-    if (!(backendClient instanceof MockAiCreditsBackendClient)) {
       try {
+        const vault = celoVault
+        const payerAddress = currentState.address as Address
+        const buyerAddress = currentState.buyerPubKey as Address
+
         const publicClient = createPublicClient({ chain: CELO_CHAIN, transport: http() })
-        await validateVaultPaymentAmounts({
+        const walletClient = createWalletClient({
+          account: payerAddress,
+          chain: CELO_CHAIN,
+          transport: custom(providerRef.current),
+        })
+
+        const accountRef: AccountRef = {
+          payer: currentState.address,
+          buyer: currentState.buyerPubKey,
+        }
+
+        if (backendClient instanceof MockAiCreditsBackendClient) {
+          const creditUsdMicro = quoteTotalUsdMicro(quote, gdUsdPerToken, currentState.isGoodIdVerified, {
+            depositBonusPercent: currentState.depositBonusPercent,
+            streamBonusPercent: currentState.streamBonusPercent,
+          })
+          backendClient.prepareSettlement(accountRef, creditUsdMicro)
+        }
+
+        const { txHashes } = await executeCeloPayment({
+          walletClient,
           publicClient,
-          vault: celoVault,
-          payer: currentState.address as Address,
-          depositAmount: quote.depositAmountG,
-          streamAmount: quote.streamAmountG,
+          payer: payerAddress,
+          buyer: buyerAddress,
+          vault,
+          depositAmountG,
+          streamAmountG,
+        })
+
+        const txHash = txHashes[txHashes.length - 1]!
+
+        setState((prev) => ({
+          ...prev,
+          status: 'payment_confirmed',
+        }))
+
+        let balanceBefore = '0'
+        try {
+          const credit = await backendClient.getAccountCredit(currentState.address)
+          balanceBefore = totalCreditUsdFromProfile(credit.profile)
+        } catch {
+          balanceBefore = '0'
+        }
+
+        for (const hash of txHashes) {
+          await backendClient.notifyPayment(hash)
+        }
+        const { totalCreditUsd } = await backendClient.waitForSettlement(accountRef, {
+          txHashes,
+          previousBalance: balanceBefore,
+        })
+
+        const creditUsdMicro = (BigInt(totalCreditUsd) - BigInt(balanceBefore || '0')).toString()
+
+        setState((prev) =>
+          withDerivedStatus(prev, {
+            totalCreditUsd,
+            error: null,
+            activeTab: 'manage',
+          }),
+        )
+
+        onPaySuccess?.({
+          address: currentState.address!,
+          chainId: CELO_CHAIN_ID,
+          transactionHash: txHash,
+          buyerPubKey: currentState.buyerPubKey!,
+          creditUsdMicro,
         })
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Payment amount below vault minimum'
+        const message = mapPaymentError(error)
         setState((prev) => ({
           ...prev,
           status: 'payment_failed',
@@ -746,165 +858,75 @@ export function useAiCreditsAdapter({
           chainId: CELO_CHAIN_ID,
           message,
         })
-        throw error instanceof Error ? error : new Error(message)
+        throw new Error(message)
       }
-    }
+    },
+    [state, backendClient, chainClient, celoVault, onPaySuccess, onPayError],
+  )
 
-    setState((prev) => ({
-      ...prev,
-      gdUsdPerToken,
-      status: 'payment_pending',
-      error: null,
-    }))
+  const handleRefresh = useCallback(
+    async (options?: { afterGoodIdVerify?: boolean }) => {
+      const currentState = state
+      if (!currentState.address) return
 
-    try {
-      const vault = celoVault
-      const payerAddress = currentState.address as Address
-      const buyerAddress = currentState.buyerPubKey as Address
-
-      const publicClient = createPublicClient({ chain: CELO_CHAIN, transport: http() })
-      const walletClient = createWalletClient({
-        account: payerAddress,
-        chain: CELO_CHAIN,
-        transport: custom(providerRef.current),
-      })
-
-      const accountRef: AccountRef = {
-        payer: currentState.address,
-        buyer: currentState.buyerPubKey,
-      }
-
-      if (backendClient instanceof MockAiCreditsBackendClient) {
-        const creditUsdMicro = quoteTotalUsdMicro(
-          quote,
-          gdUsdPerToken,
-          currentState.isGoodIdVerified,
-        )
-        backendClient.prepareSettlement(accountRef, creditUsdMicro)
-      }
-
-      const { txHashes } = await executeCeloPayment({
-        walletClient,
-        publicClient,
-        payer: payerAddress,
-        buyer: buyerAddress,
-        vault,
-        depositAmountG,
-        streamAmountG,
-      })
-
-      const txHash = txHashes[txHashes.length - 1]!
-
-      setState((prev) => ({
-        ...prev,
-        status: 'payment_confirmed',
-      }))
-
-      let balanceBefore = '0'
       try {
-        const credit = await backendClient.getAccountCredit(currentState.address)
-        balanceBefore = totalCreditUsdFromProfile(credit.profile)
-      } catch {
-        balanceBefore = '0'
-      }
+        const sessionBuyer =
+          currentState.buyerPubKey ??
+          patchPayerSessionFields(currentState.address).buyerPubKey ??
+          null
+        const [view, discountConfig] = await Promise.all([
+          buildAccountView(currentState.address, backendClient, chainClient, {
+            buyerAddress: sessionBuyer,
+          }),
+          backendClient.getDiscountConfig().catch(() => null),
+        ])
+        const enriched = await enrichAccountView(view, chainClient)
 
-      for (const hash of txHashes) {
-        await backendClient.notifyPayment(hash)
-      }
-      const { totalCreditUsd } = await backendClient.waitForSettlement(accountRef, {
-        txHashes,
-        previousBalance: balanceBefore,
-      })
-
-      const creditUsdMicro = (
-        BigInt(totalCreditUsd) - BigInt(balanceBefore || '0')
-      ).toString()
-
-      setState((prev) =>
-        withDerivedStatus(prev, {
-          totalCreditUsd,
-          error: null,
-          activeTab: 'manage',
-        }),
-      )
-
-      onPaySuccess?.({
-        address: currentState.address!,
-        chainId: CELO_CHAIN_ID,
-        transactionHash: txHash,
-        buyerPubKey: currentState.buyerPubKey!,
-        creditUsdMicro,
-      })
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Payment failed'
-      setState((prev) => ({
-        ...prev,
-        status: 'payment_failed',
-        error: message,
-      }))
-      onPayError?.({
-        address: currentState.address,
-        chainId: CELO_CHAIN_ID,
-        message,
-      })
-      throw err instanceof Error ? err : new Error(message)
-    }
-  }, [state, backendClient, chainClient, celoVault, onPaySuccess, onPayError])
-
-  const handleRefresh = useCallback(async (options?: { afterGoodIdVerify?: boolean }) => {
-    const currentState = state
-    if (!currentState.address) return
-
-    try {
-      const sessionBuyer =
-        currentState.buyerPubKey ?? patchPayerSessionFields(currentState.address).buyerPubKey ?? null
-      const [view] = await Promise.all([
-        buildAccountView(currentState.address, backendClient, chainClient, {
-          buyerAddress: sessionBuyer,
-        }),
-      ])
-      const enriched = await enrichAccountView(view, chainClient)
-
-      setState((prev) => {
-        const accountPatch = viewToStatePatch(view, enriched, prev, {
-          balanceMode: 'always',
+        setState((prev) => {
+          const accountPatch = viewToStatePatch(view, enriched, prev, {
+            balanceMode: 'always',
+          })
+          const sessionFields = mergeSessionFields(
+            prev,
+            patchPayerSessionFields(currentState.address),
+            accountPatch,
+            false,
+          )
+          if (accountPatch.operatorConsented !== undefined && currentState.address) {
+            syncOperatorConsentSession(currentState.address, accountPatch.operatorConsented)
+          }
+          if (currentState.address && view.buyer) {
+            syncBuyerPubKeySession(currentState.address, view.buyer)
+          }
+          const statusSeed =
+            options?.afterGoodIdVerify && prev.status === 'payment_failed'
+              ? 'quote_ready'
+              : prev.status
+          return withDerivedStatus(
+            { ...prev, status: statusSeed },
+            {
+              ...accountPatch,
+              ...sessionFields,
+              activeTab: prev.activeTab,
+              error: null,
+              depositBonusPercent:
+                discountConfig?.depositBonusPercent ?? prev.depositBonusPercent,
+              streamBonusPercent: discountConfig?.streamBonusPercent ?? prev.streamBonusPercent,
+            },
+            true,
+          )
         })
-        const sessionFields = mergeSessionFields(
-          prev,
-          patchPayerSessionFields(currentState.address),
-          accountPatch,
-          false,
+      } catch {
+        setState((prev) =>
+          mergeStatePreservingManageTab(prev, {
+            status: 'backend_unavailable',
+            error: 'Could not reach backend — check your connection',
+          }),
         )
-        if (accountPatch.operatorConsented !== undefined && currentState.address) {
-          syncOperatorConsentSession(currentState.address, accountPatch.operatorConsented)
-        }
-        if (currentState.address && view.buyer) {
-          syncBuyerPubKeySession(currentState.address, view.buyer)
-        }
-        const statusSeed =
-          options?.afterGoodIdVerify && prev.status === 'payment_failed'
-            ? 'quote_ready'
-            : prev.status
-        return withDerivedStatus(
-          { ...prev, status: statusSeed },
-          {
-            ...accountPatch,
-            ...sessionFields,
-            activeTab: prev.activeTab,
-            error: null,
-          },
-          true,
-        )
-      })
-    } catch {
-      setState((prev) =>
-        mergeStatePreservingManageTab(prev, {
-          status: 'backend_unavailable',
-          error: 'Could not reach backend — check your connection',
-        }),
-      )
-    }
-  }, [state, backendClient, chainClient])
+      }
+    },
+    [state, backendClient, chainClient],
+  )
 
   const handleVerifyGoodId = useCallback(async (): Promise<boolean> => {
     const currentState = state
@@ -944,8 +966,7 @@ export function useAiCreditsAdapter({
         withDerivedStatus(
           prev,
           {
-            error:
-              err instanceof Error ? err.message : 'Could not start GoodID verification',
+            error: err instanceof Error ? err.message : 'Could not start GoodID verification',
           },
           true,
         ),
@@ -979,7 +1000,8 @@ export function useAiCreditsAdapter({
       if (!currentState.buyerPrvKey) {
         setState((prev) => ({
           ...prev,
-          error: 'Sign with your payer wallet in Buyer & Operator below to generate the buyer private key before closing a channel',
+          error:
+            'Sign with your payer wallet in Buyer & Operator below to generate the buyer private key before closing a channel',
         }))
         return
       }

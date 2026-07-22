@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Button, ButtonText, Card, Heading, Input, Separator, Spinner, Text, TokenAmount, XStack, YStack } from '@goodwidget/ui'
 import type { AiCreditsQuote, AiCreditsWidgetStatus } from '../../widgetRuntimeContract'
 import {
+  formatUsd1ToG,
   formatUsdWithBonus,
   getDepositBonusPercent,
   getStreamBonusPercent,
@@ -46,12 +47,16 @@ function BonusSummaryValue({
   quote,
   gdUsdPerToken,
   isGoodIdVerified,
+  depositBonusPercent,
+  streamBonusPercent,
   onVerifyGoodId,
   isVerifyingGoodId,
 }: {
   quote: AiCreditsQuote
   gdUsdPerToken: number
   isGoodIdVerified: boolean
+  depositBonusPercent: number
+  streamBonusPercent: number
   onVerifyGoodId: () => Promise<void>
   isVerifyingGoodId: boolean
 }) {
@@ -78,9 +83,13 @@ function BonusSummaryValue({
 
   return (
     <Text fontSize="$2" fontWeight="700" color="$success">
-      {formatMinUsdDisplay(quoteDepositBonusUsd(quote, gdUsdPerToken, isGoodIdVerified)) +
+      {formatMinUsdDisplay(
+        quoteDepositBonusUsd(quote, gdUsdPerToken, isGoodIdVerified, depositBonusPercent),
+      ) +
         ' + ' +
-        formatMinUsdDisplay(quoteStreamBonusUsd(quote, gdUsdPerToken, isGoodIdVerified)) +
+        formatMinUsdDisplay(
+          quoteStreamBonusUsd(quote, gdUsdPerToken, isGoodIdVerified, streamBonusPercent),
+        ) +
         '/month'}
     </Text>
   )
@@ -94,6 +103,8 @@ interface AmountPickerProps {
   monthlyStreamG: string | null
   gdUsdPerToken: number | null
   isGoodIdVerified: boolean
+  depositBonusPercent: number
+  streamBonusPercent: number
   isPayPending: boolean
   buildQuote: (depositG: string, streamG: string) => Promise<AiCreditsQuote>
   onPay: (quote: AiCreditsQuote) => void
@@ -109,6 +120,8 @@ export function AmountPicker({
   monthlyStreamG,
   gdUsdPerToken,
   isGoodIdVerified,
+  depositBonusPercent,
+  streamBonusPercent,
   isPayPending,
   buildQuote,
   onPay,
@@ -147,8 +160,12 @@ export function AmountPicker({
 
   const depositG = parseGAmount(depositAmount)
   const streamG = parseGAmount(streamAmount)
-  const depositBonusLabel = isGoodIdVerified ? '+10% bonus' : 'no bonus'
-  const streamBonusLabel = isGoodIdVerified ? '+20% bonus' : 'no bonus'
+  const depositBonusLabel = isGoodIdVerified
+    ? `+${depositBonusPercent}% bonus`
+    : `Verify for +${depositBonusPercent}%`
+  const streamBonusLabel = isGoodIdVerified
+    ? `+${streamBonusPercent}% bonus`
+    : `Verify for +${streamBonusPercent}%`
   const paymentValidation = useMemo(
     () =>
       getPaymentAmountValidation({
@@ -201,22 +218,37 @@ export function AmountPicker({
       ? 'Loading minimum…'
       : `Min ${formatMinUsdDisplay(minStreamUsd)}/mo`
 
-  const depositBonusPercent = getDepositBonusPercent(isGoodIdVerified)
-  const streamBonusPercent = getStreamBonusPercent(isGoodIdVerified)
+  const effectiveDepositBonusPercent = getDepositBonusPercent(isGoodIdVerified, depositBonusPercent)
+  const effectiveStreamBonusPercent = getStreamBonusPercent(isGoodIdVerified, streamBonusPercent)
   const depositEstUsd =
     quote && gdUsdPerToken !== null && depositG > 0
-      ? formatUsdWithBonus(quoteDepositPrincipalUsd(quote, gdUsdPerToken), depositBonusPercent)
+      ? formatUsdWithBonus(
+          quoteDepositPrincipalUsd(quote, gdUsdPerToken),
+          effectiveDepositBonusPercent,
+        )
       : null
   const streamEstUsd =
     quote && gdUsdPerToken !== null && streamG > 0
-      ? formatUsdWithBonus(quoteStreamPrincipalUsd(quote, gdUsdPerToken), streamBonusPercent)
+      ? formatUsdWithBonus(
+          quoteStreamPrincipalUsd(quote, gdUsdPerToken),
+          effectiveStreamBonusPercent,
+        )
       : null
+  const usd1ToGLabel =
+    gdUsdPerToken !== null ? formatUsd1ToG(gdUsdPerToken) : null
 
   const Shell = embedded ? YStack : Card
 
   return (
     <Shell gap="$3">
-      <Heading level={5}>Buy Credits</Heading>
+      <XStack justifyContent="space-between" alignItems="center" gap="$2">
+        <Heading level={5}>Buy Credits</Heading>
+        {usd1ToGLabel && (
+          <Text fontSize="$2" secondary flexShrink={1} textAlign="right">
+            US$1 ≈ {usd1ToGLabel} G$
+          </Text>
+        )}
+      </XStack>
 
       <XStack justifyContent="space-between" alignItems="center">
         <Text variant="label" secondary>
@@ -258,7 +290,9 @@ export function AmountPicker({
 
       <YStack gap="$1">
         <XStack justifyContent="space-between" alignItems="center">
-          <Text variant="label">Monthly Stream (G$)</Text>
+          <Text variant="label">
+            {isStreamUpdateFlow ? 'Update Monthly Stream (G$)' : 'Monthly Stream (G$)'}
+          </Text>
           <BonusLabel label={streamBonusLabel} active={isGoodIdVerified} />
         </XStack>
         <Input
@@ -307,6 +341,8 @@ export function AmountPicker({
               quote={quote}
               gdUsdPerToken={gdUsdPerToken}
               isGoodIdVerified={isGoodIdVerified}
+              depositBonusPercent={depositBonusPercent}
+              streamBonusPercent={streamBonusPercent}
               isVerifyingGoodId={isVerifyingGoodId}
               onVerifyGoodId={async () => {
                 setIsVerifyingGoodId(true)

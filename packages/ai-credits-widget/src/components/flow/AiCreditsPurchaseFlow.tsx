@@ -55,8 +55,10 @@ export function AiCreditsPurchaseFlow({
     prevActiveStepRef.current = activeStep
     setDrawerStep(activeStep)
 
-    if (previousStep !== null && previousStep !== activeStep) {
+    if (previousStep == null) {
       setDrawerOpen(false)
+    } else if (previousStep !== activeStep) {
+      setDrawerOpen(true)
     }
   }, [activeStep])
 
@@ -142,6 +144,8 @@ export function AiCreditsPurchaseFlow({
             monthlyStreamG={state.monthlyStreamG}
             gdUsdPerToken={state.gdUsdPerToken}
             isGoodIdVerified={state.isGoodIdVerified}
+            depositBonusPercent={state.depositBonusPercent}
+            streamBonusPercent={state.streamBonusPercent}
             isPayPending={isPending}
             buildQuote={actions.buildQuote}
             onPay={onPay}

@@ -13,6 +13,7 @@ interface ImportMetaEnv {
   readonly VITE_AI_CREDITS_FUNDING_VAULT_ADDRESS?: string
   readonly VITE_AI_CREDITS_VAULT_ADDRESS?: string
   readonly VITE_AI_CREDITS_GOODID_ADDRESS?: string
+  readonly VITE_REOWN_PROJECT_ID?: string
 }
 
 interface ImportMeta {

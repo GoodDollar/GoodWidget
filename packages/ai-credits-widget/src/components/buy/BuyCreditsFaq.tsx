@@ -30,7 +30,7 @@ const FAQ_ITEMS = [
     id: 'goodid-bonus',
     question: 'How do GoodID bonuses work?',
     answer:
-      'With a verified GoodID you receive +10% bonus credits on one-time deposits and +20% on streams. Without GoodID verification, bonuses do not apply.',
+      'With a verified GoodID you receive bonus credits on one-time deposits and monthly streams. The current bonus rates are shown in the Buy Credits form. Without GoodID verification, bonuses do not apply.',
   },
   {
     id: 'buyer-key',

@@ -15,7 +15,8 @@
     "vercel:deploy:preview": "pnpm vercel:build:preview && vercel deploy --prebuilt",
     "vercel:deploy:production": "pnpm vercel:build:production && vercel deploy --prebuilt --prod",
     "test:storybook": "pnpm --filter @goodwidget/storybook test:storybook",
-    "test:demo": "playwright test"
+    "test:demo": "playwright test",
+    "test:ai-credits-web": "playwright test --config apps/ai-credits-web/playwright.config.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.44.0",

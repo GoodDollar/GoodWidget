@@ -39,6 +39,8 @@ export interface AiCreditsWidgetAdapterState {
   totalGdDepositedG: string | null
   monthlyStreamG: string | null
   withdrawableUsd: string | null
+  depositBonusPercent: number
+  streamBonusPercent: number
   error: string | null
   activeTab: AiCreditsWidgetTab
 }
@@ -90,6 +92,7 @@ export interface AiCreditsPayErrorDetail {
 
 export interface AiCreditsWidgetProps {
   provider?: unknown
+  connectOverride?: () => Promise<void>
   environment?: AiCreditsWidgetEnvironment
   backendUrl?: string
   baseRpcUrl?: string

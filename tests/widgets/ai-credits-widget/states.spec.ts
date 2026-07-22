@@ -1,14 +1,11 @@
 import { expect, test, type Page } from '@playwright/test'
 
 const STORY_IDS = {
-  disconnected:
-    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--disconnected&viewMode=story',
-  connecting:
-    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--connecting&viewMode=story',
+  disconnected: '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--disconnected&viewMode=story',
+  connecting: '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--connecting&viewMode=story',
   purchaseSetup:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--purchase-setup&viewMode=story',
-  quoteReady:
-    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--quote-ready&viewMode=story',
+  quoteReady: '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--quote-ready&viewMode=story',
   quoteReadyGoodId:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--quote-ready-good-id&viewMode=story',
   paymentPending:
@@ -25,6 +22,8 @@ const STORY_IDS = {
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--backend-unavailable&viewMode=story',
   unsupportedChain:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--unsupported-chain&viewMode=story',
+  appKitConnectWallet:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--app-kit-connect-wallet&viewMode=story',
 } as const
 
 async function gotoStory(page: Page, storyUrl: string): Promise<void> {
@@ -75,8 +74,7 @@ test('AiCreditsWidget quote_ready GoodID', async ({ page }) => {
   await gotoStory(page, STORY_IDS.quoteReadyGoodId)
   const root = widget(page, 'AiCreditsWidget-quote-ready-goodid')
   await expect(root).toBeVisible()
-  await expect(root.getByText('+10% deposit')).toBeVisible()
-  await expect(root.getByText('+20% stream')).toBeVisible()
+  await expect(root.getByText('GoodID verified')).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-04-quote-ready-goodid.png',
     fullPage: true,
@@ -124,7 +122,14 @@ test('AiCreditsWidget insufficient_g_balance', async ({ page }) => {
 
 test('AiCreditsWidget payment_failed', async ({ page }) => {
   await gotoStory(page, STORY_IDS.paymentFailed)
-  await expect(page.getByTestId('AiCreditsWidget-payment-failed')).toBeVisible()
+  const root = page.getByTestId('AiCreditsWidget-payment-failed')
+  await expect(root).toBeVisible()
+  await expect(root.getByText('Payment Failed', { exact: true })).toBeVisible()
+  await expect(root.getByText('Payment failed. Try again.', { exact: true }).first()).toBeVisible()
+  await expect(root.getByText('Needs attention', { exact: true })).toBeVisible()
+  await expect(root.getByText('Set Amounts & Pay', { exact: true })).toBeVisible()
+  await expect(root.getByRole('button', { name: 'Try Again' })).toHaveCount(0)
+  await expect(root.getByText('insufficient allowance')).toHaveCount(0)
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-09-payment-failed.png',
     fullPage: true,
@@ -155,6 +160,43 @@ test('AiCreditsWidget connecting', async ({ page }) => {
   await expect(page.getByText('Connecting...')).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-12-connecting.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget appkit connect wallet opens modal', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.appKitConnectWallet)
+  await page.waitForLoadState('domcontentloaded')
+
+  const noConfig = page.getByTestId('AiCreditsWidget-appkit-no-config')
+  if (await noConfig.isVisible()) {
+    await expect(noConfig).toBeVisible()
+    await page.screenshot({
+      path: 'tests/widgets/ai-credits-widget/test-results/acw-14-appkit-connect-no-config.png',
+      fullPage: true,
+    })
+    return
+  }
+
+  const root = page.getByTestId('AiCreditsWidget-appkit-connect')
+  await expect(root).toBeVisible()
+  const connectBtn = root.getByRole('button', { name: 'Connect Wallet' })
+  await expect(connectBtn).toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-14-appkit-connect-before.png',
+    fullPage: true,
+  })
+
+  const openModal = page.locator('w3m-modal.open')
+  if (!(await openModal.isVisible().catch(() => false))) {
+    await connectBtn.click()
+  }
+
+  await expect(openModal).toBeVisible({ timeout: 10_000 })
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-14-appkit-connect-modal-open.png',
     fullPage: true,
   })
 })

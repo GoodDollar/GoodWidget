@@ -1,4 +1,5 @@
-import React from 'react'
+import React, { useRef } from 'react'
+import type { EIP1193Provider } from '@goodwidget/core'
 import { YStack } from '@goodwidget/ui'
 import {
   AiCreditsWidget,
@@ -6,6 +7,12 @@ import {
   type AiCreditsWidgetAdapterState,
   type AiCreditsWidgetStatus,
 } from '@goodwidget/ai-credits-widget'
+import {
+  DefaultAppKitProvider,
+  useAppKit,
+  useAppKitAccount,
+  useAppKitProvider,
+} from '@goodwidget/embed/appkit-provider'
 import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
 import {
   getInjectedEip1193Provider,
@@ -33,6 +40,8 @@ function createMockState(
     totalGdDepositedG: null,
     monthlyStreamG: null,
     withdrawableUsd: null,
+    depositBonusPercent: 10,
+    streamBonusPercent: 20,
     error: null,
     activeTab: 'buy',
   }
@@ -77,18 +86,20 @@ function MockStoryShell({
   try {
     const provider = createCustodialEip1193Provider()
     return (
-      <YStack data-testid={dataTestId} style={{ width: 380 }}>
+      <div data-testid={dataTestId} style={{ width: 380 }}>
         <AiCreditsWidget provider={provider} adapterFactory={adapterFactory} />
-      </YStack>
+      </div>
     )
   } catch (error: unknown) {
     return (
-      <YStack data-testid="AiCreditsWidget-custodial-config-error" style={{ width: 380 }} gap="$3">
+      <div data-testid="AiCreditsWidget-custodial-config-error" style={{ width: 380 }}>
         <strong>Custodial fixture not configured</strong>
         <span>
-          {error instanceof Error ? error.message : 'Set a local private key in custodialEip1193.ts'}
+          {error instanceof Error
+            ? error.message
+            : 'Set a local private key in custodialEip1193.ts'}
         </span>
-      </YStack>
+      </div>
     )
   }
 }
@@ -221,7 +232,7 @@ export function PaymentFailedStory() {
       adapterFactory={createAdapterFactory('payment_failed', {
         buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
         operatorConsented: true,
-        error: 'Transaction reverted: insufficient allowance',
+        error: 'Payment failed. Try again.',
       })}
     />
   )
@@ -271,14 +282,69 @@ export function MockBackendStory() {
   )
 }
 
+/**
+ * Inner component that calls useAppKit() – must be rendered inside DefaultAppKitProvider.
+ * Passes the AppKit open() as connectOverride so Connect Wallet triggers the real modal.
+ */
+function AppKitConnectShell() {
+  const { open } = useAppKit()
+  const { address: appKitAddress } = useAppKitAccount()
+  const { walletProvider } = useAppKitProvider<EIP1193Provider | undefined>('eip155')
+  const appKitAddressRef = useRef(appKitAddress)
+  appKitAddressRef.current = appKitAddress
+
+  return (
+    <div data-testid="AiCreditsWidget-appkit-connect" style={{ width: 380 }}>
+      <AiCreditsWidget
+        provider={walletProvider}
+        connectOverride={async () => {
+          await open({ view: 'Connect' })
+
+          if (!appKitAddressRef.current) {
+            throw new Error('wallet_connect_cancelled')
+          }
+        }}
+      />
+    </div>
+  )
+}
+
+/**
+ * Story that mounts AiCreditsWidget with DefaultAppKitProvider as the wallet provider.
+ * Pressing Connect Wallet triggers the real AppKit modal via the provider-level connect override.
+ * Requires VITE_REOWN_PROJECT_ID to be set in examples/storybook/.env.local.
+ */
+export function AppKitConnectWalletStory() {
+  const projectId = import.meta.env.VITE_REOWN_PROJECT_ID as string | undefined
+
+  if (!projectId) {
+    return (
+      <div data-testid="AiCreditsWidget-appkit-no-config" style={{ width: 380 }}>
+        <strong>AppKit not configured</strong>
+        <span>
+          Set <code>VITE_REOWN_PROJECT_ID</code> in <code>examples/storybook/.env.local</code> to
+          enable AppKit wallet connect.
+        </span>
+      </div>
+    )
+  }
+  return (
+    <DefaultAppKitProvider projectId={projectId}>
+      <AppKitConnectShell />
+    </DefaultAppKitProvider>
+  )
+}
+
 export function InjectedWalletStory() {
   const injectedProvider = getInjectedEip1193Provider()
   const backendUrl = import.meta.env.VITE_AI_CREDITS_BACKEND_URL
   const baseRpcUrl = import.meta.env.VITE_AI_CREDITS_BASE_RPC_URL
   const celoRpcUrl = import.meta.env.VITE_AI_CREDITS_CELO_RPC_URL
-  const fundingVaultAddress = import.meta.env.VITE_AI_CREDITS_FUNDING_VAULT_ADDRESS
-  const vaultAddress = import.meta.env.VITE_AI_CREDITS_VAULT_ADDRESS
-  const goodIdAddress = import.meta.env.VITE_AI_CREDITS_GOODID_ADDRESS
+  const fundingVaultAddress = import.meta.env.VITE_AI_CREDITS_FUNDING_VAULT_ADDRESS as
+    | `0x${string}`
+    | undefined
+  const vaultAddress = import.meta.env.VITE_AI_CREDITS_VAULT_ADDRESS as `0x${string}` | undefined
+  const goodIdAddress = import.meta.env.VITE_AI_CREDITS_GOODID_ADDRESS as `0x${string}` | undefined
 
   if (!isInjectedProviderUsable(injectedProvider)) {
     return (
@@ -306,8 +372,8 @@ export function InjectedWalletStory() {
       {!backendUrl && (
         <YStack marginTop="$3">
           <span>
-            Set `VITE_AI_CREDITS_BACKEND_URL` in `examples/storybook/.env.local` to enable the
-            AI credits backend.
+            Set `VITE_AI_CREDITS_BACKEND_URL` in `examples/storybook/.env.local` to enable the AI
+            credits backend.
           </span>
         </YStack>
       )}
