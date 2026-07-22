@@ -47,12 +47,16 @@ function BonusSummaryValue({
   quote,
   gdUsdPerToken,
   isGoodIdVerified,
+  depositBonusPercent,
+  streamBonusPercent,
   onVerifyGoodId,
   isVerifyingGoodId,
 }: {
   quote: AiCreditsQuote
   gdUsdPerToken: number
   isGoodIdVerified: boolean
+  depositBonusPercent: number
+  streamBonusPercent: number
   onVerifyGoodId: () => Promise<void>
   isVerifyingGoodId: boolean
 }) {
@@ -79,9 +83,13 @@ function BonusSummaryValue({
 
   return (
     <Text fontSize="$2" fontWeight="700" color="$success">
-      {formatMinUsdDisplay(quoteDepositBonusUsd(quote, gdUsdPerToken, isGoodIdVerified)) +
+      {formatMinUsdDisplay(
+        quoteDepositBonusUsd(quote, gdUsdPerToken, isGoodIdVerified, depositBonusPercent),
+      ) +
         ' + ' +
-        formatMinUsdDisplay(quoteStreamBonusUsd(quote, gdUsdPerToken, isGoodIdVerified)) +
+        formatMinUsdDisplay(
+          quoteStreamBonusUsd(quote, gdUsdPerToken, isGoodIdVerified, streamBonusPercent),
+        ) +
         '/month'}
     </Text>
   )
@@ -95,6 +103,8 @@ interface AmountPickerProps {
   monthlyStreamG: string | null
   gdUsdPerToken: number | null
   isGoodIdVerified: boolean
+  depositBonusPercent: number
+  streamBonusPercent: number
   isPayPending: boolean
   buildQuote: (depositG: string, streamG: string) => Promise<AiCreditsQuote>
   onPay: (quote: AiCreditsQuote) => void
@@ -110,6 +120,8 @@ export function AmountPicker({
   monthlyStreamG,
   gdUsdPerToken,
   isGoodIdVerified,
+  depositBonusPercent,
+  streamBonusPercent,
   isPayPending,
   buildQuote,
   onPay,
@@ -148,8 +160,12 @@ export function AmountPicker({
 
   const depositG = parseGAmount(depositAmount)
   const streamG = parseGAmount(streamAmount)
-  const depositBonusLabel = isGoodIdVerified ? '+10% bonus' : 'Verify for +10%'
-  const streamBonusLabel = isGoodIdVerified ? '+20% bonus' : 'Verify for +20%'
+  const depositBonusLabel = isGoodIdVerified
+    ? `+${depositBonusPercent}% bonus`
+    : `Verify for +${depositBonusPercent}%`
+  const streamBonusLabel = isGoodIdVerified
+    ? `+${streamBonusPercent}% bonus`
+    : `Verify for +${streamBonusPercent}%`
   const paymentValidation = useMemo(
     () =>
       getPaymentAmountValidation({
@@ -202,15 +218,21 @@ export function AmountPicker({
       ? 'Loading minimum…'
       : `Min ${formatMinUsdDisplay(minStreamUsd)}/mo`
 
-  const depositBonusPercent = getDepositBonusPercent(isGoodIdVerified)
-  const streamBonusPercent = getStreamBonusPercent(isGoodIdVerified)
+  const effectiveDepositBonusPercent = getDepositBonusPercent(isGoodIdVerified, depositBonusPercent)
+  const effectiveStreamBonusPercent = getStreamBonusPercent(isGoodIdVerified, streamBonusPercent)
   const depositEstUsd =
     quote && gdUsdPerToken !== null && depositG > 0
-      ? formatUsdWithBonus(quoteDepositPrincipalUsd(quote, gdUsdPerToken), depositBonusPercent)
+      ? formatUsdWithBonus(
+          quoteDepositPrincipalUsd(quote, gdUsdPerToken),
+          effectiveDepositBonusPercent,
+        )
       : null
   const streamEstUsd =
     quote && gdUsdPerToken !== null && streamG > 0
-      ? formatUsdWithBonus(quoteStreamPrincipalUsd(quote, gdUsdPerToken), streamBonusPercent)
+      ? formatUsdWithBonus(
+          quoteStreamPrincipalUsd(quote, gdUsdPerToken),
+          effectiveStreamBonusPercent,
+        )
       : null
   const usd1ToGLabel =
     gdUsdPerToken !== null ? formatUsd1ToG(gdUsdPerToken) : null
@@ -319,6 +341,8 @@ export function AmountPicker({
               quote={quote}
               gdUsdPerToken={gdUsdPerToken}
               isGoodIdVerified={isGoodIdVerified}
+              depositBonusPercent={depositBonusPercent}
+              streamBonusPercent={streamBonusPercent}
               isVerifyingGoodId={isVerifyingGoodId}
               onVerifyGoodId={async () => {
                 setIsVerifyingGoodId(true)

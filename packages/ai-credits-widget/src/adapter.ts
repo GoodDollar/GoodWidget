@@ -19,6 +19,7 @@ import {
   totalCreditUsdFromProfile,
   buildAccountView,
   createBackendClient,
+  DEFAULT_DISCOUNT_CONFIG,
   enrichAccountView,
   waitForOperatorConsent,
 } from './backendClient'
@@ -90,6 +91,8 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   totalGdDepositedG: null,
   monthlyStreamG: null,
   withdrawableUsd: null,
+  depositBonusPercent: DEFAULT_DISCOUNT_CONFIG.depositBonusPercent,
+  streamBonusPercent: DEFAULT_DISCOUNT_CONFIG.streamBonusPercent,
   error: null,
   activeTab: 'buy',
 }
@@ -431,14 +434,17 @@ export function useAiCreditsAdapter({
           : fetchVaultPaymentMinimums(publicClient, celoVault, address as Address).catch(() => null)
 
       const gdUsdPerTokenPromise = chainClient.fetchGdUsdPerToken().catch(() => null)
+      const discountConfigPromise = backendClient.getDiscountConfig().catch(() => null)
 
       try {
-        const [[rawBalance, decimals], account, minimums, gdUsdPerToken] = await Promise.all([
-          balancePromise,
-          accountPromise,
-          minimumsPromise,
-          gdUsdPerTokenPromise,
-        ])
+        const [[rawBalance, decimals], account, minimums, gdUsdPerToken, discountConfig] =
+          await Promise.all([
+            balancePromise,
+            accountPromise,
+            minimumsPromise,
+            gdUsdPerTokenPromise,
+            discountConfigPromise,
+          ])
         if (cancelled) return
 
         const patch: Partial<AiCreditsWidgetAdapterState> = {
@@ -448,6 +454,10 @@ export function useAiCreditsAdapter({
           gdUsdPerToken,
           minDepositUsd: minimums?.minDepositUsd ?? null,
           minStreamUsd: minimums?.minStreamUsd ?? null,
+          depositBonusPercent:
+            discountConfig?.depositBonusPercent ?? DEFAULT_DISCOUNT_CONFIG.depositBonusPercent,
+          streamBonusPercent:
+            discountConfig?.streamBonusPercent ?? DEFAULT_DISCOUNT_CONFIG.streamBonusPercent,
         }
 
         setState((prev) => {
@@ -780,11 +790,10 @@ export function useAiCreditsAdapter({
         }
 
         if (backendClient instanceof MockAiCreditsBackendClient) {
-          const creditUsdMicro = quoteTotalUsdMicro(
-            quote,
-            gdUsdPerToken,
-            currentState.isGoodIdVerified,
-          )
+          const creditUsdMicro = quoteTotalUsdMicro(quote, gdUsdPerToken, currentState.isGoodIdVerified, {
+            depositBonusPercent: currentState.depositBonusPercent,
+            streamBonusPercent: currentState.streamBonusPercent,
+          })
           backendClient.prepareSettlement(accountRef, creditUsdMicro)
         }
 
@@ -866,10 +875,11 @@ export function useAiCreditsAdapter({
           currentState.buyerPubKey ??
           patchPayerSessionFields(currentState.address).buyerPubKey ??
           null
-        const [view] = await Promise.all([
+        const [view, discountConfig] = await Promise.all([
           buildAccountView(currentState.address, backendClient, chainClient, {
             buyerAddress: sessionBuyer,
           }),
+          backendClient.getDiscountConfig().catch(() => null),
         ])
         const enriched = await enrichAccountView(view, chainClient)
 
@@ -900,6 +910,9 @@ export function useAiCreditsAdapter({
               ...sessionFields,
               activeTab: prev.activeTab,
               error: null,
+              depositBonusPercent:
+                discountConfig?.depositBonusPercent ?? prev.depositBonusPercent,
+              streamBonusPercent: discountConfig?.streamBonusPercent ?? prev.streamBonusPercent,
             },
             true,
           )

@@ -40,6 +40,8 @@ function createMockState(
     totalGdDepositedG: null,
     monthlyStreamG: null,
     withdrawableUsd: null,
+    depositBonusPercent: 10,
+    streamBonusPercent: 20,
     error: null,
     activeTab: 'buy',
   }

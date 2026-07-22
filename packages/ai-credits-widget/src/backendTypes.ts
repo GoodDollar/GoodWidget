@@ -41,7 +41,24 @@ export type GdCreditEntry = {
 export type AccountCreditResponse = {
   account: string
   profile: UserCreditProfile
-  gdCredits: GdCreditEntry[]
+}
+
+export type CreditHistoryResponse = {
+  account: string
+  items: GdCreditEntry[]
+  total: number
+  limit: number
+  offset: number
+  hasMore: boolean
+}
+
+export type CreditHistoryQuery = {
+  limit?: number
+  offset?: number
+  source?: GdCreditEntry['source']
+  fundingStatus?: GdCreditEntry['fundingStatus']
+  from?: string
+  to?: string
 }
 
 export type AccountView = {
@@ -70,4 +87,17 @@ export type CeloEventsRecordResponse = {
 
 export type SettlementResult = {
   totalCreditUsd: string
+}
+
+export type DiscountConfig = {
+  depositBonusPercent: number
+  streamBonusPercent: number
+}
+
+export type BackendConfigValuesResponse = {
+  ok?: boolean
+  config?: {
+    REGULAR_BONUS_BPS?: string | number
+    STREAMING_BONUS_BPS?: string | number
+  }
 }

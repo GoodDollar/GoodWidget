@@ -156,10 +156,13 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
     if (!monthlyStreamG || !gdUsdPerToken) return null
     if (Number.parseFloat(monthlyStreamG) <= 0) return null
     const quote = { depositAmountG: '0', streamAmountG: monthlyStreamG }
-    const usdMicro = quoteTotalUsdMicro(quote, gdUsdPerToken, isGoodIdVerified)
+    const usdMicro = quoteTotalUsdMicro(quote, gdUsdPerToken, isGoodIdVerified, {
+      depositBonusPercent: state.depositBonusPercent,
+      streamBonusPercent: state.streamBonusPercent,
+    })
     if (usdMicro <= 0n) return null
     return formatUsdAmount(usdMicro.toString())
-  }, [monthlyStreamG, gdUsdPerToken, isGoodIdVerified])
+  }, [monthlyStreamG, gdUsdPerToken, isGoodIdVerified, state.depositBonusPercent, state.streamBonusPercent])
 
   const totalCreditDisplay =
     totalCreditUsd && BigInt(totalCreditUsd) > 0n
