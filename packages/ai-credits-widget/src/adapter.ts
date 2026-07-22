@@ -19,7 +19,9 @@ import {
   totalCreditUsdFromProfile,
   buildAccountView,
   createBackendClient,
+  DEFAULT_DISCOUNT_CONFIG,
   enrichAccountView,
+  normalizeDiscountConfig,
   waitForOperatorConsent,
 } from './backendClient'
 import type { AccountEnrichment, AiCreditsBackendClient } from './backendClient'
@@ -73,9 +75,6 @@ const CELO_CHAIN: Chain = {
   },
 }
 
-const DEFAULT_DEPOSIT_BONUS_PERCENT = 10
-const DEFAULT_STREAM_BONUS_PERCENT = 20
-
 const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   status: 'disconnected',
   address: null,
@@ -93,8 +92,8 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   totalGdDepositedG: null,
   monthlyStreamG: null,
   withdrawableUsd: null,
-  depositBonusPercent: DEFAULT_DEPOSIT_BONUS_PERCENT,
-  streamBonusPercent: DEFAULT_STREAM_BONUS_PERCENT,
+  depositBonusPercent: DEFAULT_DISCOUNT_CONFIG.depositBonusPercent,
+  streamBonusPercent: DEFAULT_DISCOUNT_CONFIG.streamBonusPercent,
   error: null,
   activeTab: 'buy',
 }
@@ -110,8 +109,8 @@ const WALLET_LOADING_STATE: Partial<AiCreditsWidgetAdapterState> = {
   monthlyStreamG: null,
   withdrawableUsd: null,
   operatorAddress: null,
-  depositBonusPercent: DEFAULT_DEPOSIT_BONUS_PERCENT,
-  streamBonusPercent: DEFAULT_STREAM_BONUS_PERCENT,
+  depositBonusPercent: DEFAULT_DISCOUNT_CONFIG.depositBonusPercent,
+  streamBonusPercent: DEFAULT_DISCOUNT_CONFIG.streamBonusPercent,
 }
 
 function isInBuyFlowStatus(status: AiCreditsWidgetStatus): boolean {
@@ -451,6 +450,9 @@ export function useAiCreditsAdapter({
           ])
         if (cancelled) return
 
+        const resolvedDiscount = normalizeDiscountConfig(
+          discountConfig ?? DEFAULT_DISCOUNT_CONFIG,
+        )
         const patch: Partial<AiCreditsWidgetAdapterState> = {
           address,
           chainId,
@@ -458,9 +460,8 @@ export function useAiCreditsAdapter({
           gdUsdPerToken,
           minDepositUsd: minimums?.minDepositUsd ?? null,
           minStreamUsd: minimums?.minStreamUsd ?? null,
-          depositBonusPercent:
-            discountConfig?.depositBonusPercent ?? DEFAULT_DEPOSIT_BONUS_PERCENT,
-          streamBonusPercent: discountConfig?.streamBonusPercent ?? DEFAULT_STREAM_BONUS_PERCENT,
+          depositBonusPercent: resolvedDiscount.depositBonusPercent,
+          streamBonusPercent: resolvedDiscount.streamBonusPercent,
         }
 
         setState((prev) => {
@@ -905,6 +906,12 @@ export function useAiCreditsAdapter({
             options?.afterGoodIdVerify && prev.status === 'payment_failed'
               ? 'quote_ready'
               : prev.status
+          const resolvedDiscount = discountConfig
+            ? normalizeDiscountConfig(discountConfig)
+            : {
+                depositBonusPercent: prev.depositBonusPercent,
+                streamBonusPercent: prev.streamBonusPercent,
+              }
           return withDerivedStatus(
             { ...prev, status: statusSeed },
             {
@@ -912,9 +919,8 @@ export function useAiCreditsAdapter({
               ...sessionFields,
               activeTab: prev.activeTab,
               error: null,
-              depositBonusPercent:
-                discountConfig?.depositBonusPercent ?? prev.depositBonusPercent,
-              streamBonusPercent: discountConfig?.streamBonusPercent ?? prev.streamBonusPercent,
+              depositBonusPercent: resolvedDiscount.depositBonusPercent,
+              streamBonusPercent: resolvedDiscount.streamBonusPercent,
             },
             true,
           )

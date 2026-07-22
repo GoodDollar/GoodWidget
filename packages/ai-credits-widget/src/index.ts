@@ -16,14 +16,6 @@ export type {
   AiCreditsQuote,
 } from './widgetRuntimeContract'
 
-export type {
-  AiCreditsBackendClient,
-  AccountRef,
-  AccountStatusResponse,
-  AccountView,
-  AccountEnrichment,
-  GdCreditEntry,
-} from './backendClient'
 export {
   MockAiCreditsBackendClient,
   ProductionAiCreditsBackendClient,
@@ -33,6 +25,18 @@ export {
   totalCreditUsdFromProfile,
   totalCreditUsdFromStatus,
   usdToCredits,
+  DEFAULT_DISCOUNT_CONFIG,
+  discountConfigFromConfigValues,
+  normalizeDiscountConfig,
+} from './backendClient'
+export type {
+  AiCreditsBackendClient,
+  AccountRef,
+  AccountStatusResponse,
+  AccountView,
+  AccountEnrichment,
+  DiscountConfig,
+  GdCreditEntry,
 } from './backendClient'
 export type { BuyerOperatorStatus, Eip712SigningPayload } from './operatorConsent'
 export type { AiCreditsChainClient } from './chainClient'

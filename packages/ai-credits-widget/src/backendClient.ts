@@ -2,6 +2,7 @@ import type {
   AccountCreditResponse,
   AccountRef,
   AccountView,
+  BackendConfigValuesResponse,
   CeloEventsRecordResponse,
   DiscountConfig,
   GdCreditEntry,
@@ -21,6 +22,8 @@ export type {
   AccountRef,
   AccountCreditResponse,
   AccountView,
+  BackendConfigValues,
+  BackendConfigValuesResponse,
   DiscountConfig,
   GdCreditEntry,
   TransactionsResponse,
@@ -216,10 +219,54 @@ export interface AiCreditsBackendClient {
 }
 
 const MOCK_DELAY_MS = 600
+const BPS_PER_PERCENT = 100
 
-const DEFAULT_DISCOUNT_CONFIG: DiscountConfig = {
+export const DEFAULT_DISCOUNT_CONFIG: DiscountConfig = {
   depositBonusPercent: 10,
   streamBonusPercent: 20,
+}
+
+function normalizeBonusPercent(value: unknown, fallback: number): number {
+  const raw = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN
+  if (!Number.isFinite(raw) || raw < 0) return fallback
+  return Math.trunc(raw)
+}
+
+function bpsToPercent(bps: unknown, fallbackPercent: number): number {
+  const raw = typeof bps === 'number' ? bps : typeof bps === 'string' ? Number(bps) : NaN
+  if (!Number.isFinite(raw) || raw < 0) return fallbackPercent
+  return Math.trunc(raw / BPS_PER_PERCENT)
+}
+
+export function discountConfigFromConfigValues(
+  response: BackendConfigValuesResponse | null | undefined,
+): DiscountConfig {
+  const config = response?.config
+  return {
+    depositBonusPercent: bpsToPercent(
+      config?.REGULAR_BONUS_BPS,
+      DEFAULT_DISCOUNT_CONFIG.depositBonusPercent,
+    ),
+    streamBonusPercent: bpsToPercent(
+      config?.STREAMING_BONUS_BPS,
+      DEFAULT_DISCOUNT_CONFIG.streamBonusPercent,
+    ),
+  }
+}
+
+export function normalizeDiscountConfig(
+  config: Partial<DiscountConfig> | null | undefined,
+): DiscountConfig {
+  return {
+    depositBonusPercent: normalizeBonusPercent(
+      config?.depositBonusPercent,
+      DEFAULT_DISCOUNT_CONFIG.depositBonusPercent,
+    ),
+    streamBonusPercent: normalizeBonusPercent(
+      config?.streamBonusPercent,
+      DEFAULT_DISCOUNT_CONFIG.streamBonusPercent,
+    ),
+  }
 }
 
 export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
@@ -228,10 +275,12 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
   private readonly discountConfig: DiscountConfig
 
   constructor(discountConfig: Partial<DiscountConfig> = {}) {
-    this.discountConfig = {
-      depositBonusPercent: discountConfig.depositBonusPercent ?? DEFAULT_DISCOUNT_CONFIG.depositBonusPercent,
-      streamBonusPercent: discountConfig.streamBonusPercent ?? DEFAULT_DISCOUNT_CONFIG.streamBonusPercent,
-    }
+    this.discountConfig = normalizeDiscountConfig({
+      depositBonusPercent:
+        discountConfig.depositBonusPercent ?? DEFAULT_DISCOUNT_CONFIG.depositBonusPercent,
+      streamBonusPercent:
+        discountConfig.streamBonusPercent ?? DEFAULT_DISCOUNT_CONFIG.streamBonusPercent,
+    })
   }
 
   private readonly accountStates = new Map<
@@ -411,9 +460,10 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
   }
 
   async getDiscountConfig(): Promise<DiscountConfig> {
-    const response = await fetch(`${this.backendUrl}/v1/discounts`)
-    if (!response.ok) throw new Error(`Discount config request failed: ${response.status}`)
-    return response.json() as Promise<DiscountConfig>
+    const response = await fetch(`${this.backendUrl}/config/values`)
+    if (!response.ok) throw new Error(`Config values request failed: ${response.status}`)
+    const payload = (await response.json()) as BackendConfigValuesResponse
+    return discountConfigFromConfigValues(payload)
   }
 
   private accountBase(payer: string): string {

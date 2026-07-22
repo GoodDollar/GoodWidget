@@ -1,5 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { AiCreditsWidget } from '@goodwidget/ai-credits-widget'
+import {
+  AiCreditsWidget,
+  createBackendClient,
+  DEFAULT_DISCOUNT_CONFIG,
+  type DiscountConfig,
+} from '@goodwidget/ai-credits-widget'
 import type { EIP1193Provider } from '@goodwidget/core'
 import {
   DefaultAppKitProvider,
@@ -57,45 +62,18 @@ function scrollToPurchase() {
   document.getElementById('purchase')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
-const DEFAULT_DEPOSIT_BONUS_PERCENT = 10
-const DEFAULT_STREAM_BONUS_PERCENT = 20
-
-interface DiscountConfig {
-  depositBonusPercent: number
-  streamBonusPercent: number
-}
-
 function useDiscountConfig(backendUrl: string | undefined): DiscountConfig {
-  const [config, setConfig] = useState<DiscountConfig>({
-    depositBonusPercent: DEFAULT_DEPOSIT_BONUS_PERCENT,
-    streamBonusPercent: DEFAULT_STREAM_BONUS_PERCENT,
-  })
+  const [config, setConfig] = useState<DiscountConfig>(DEFAULT_DISCOUNT_CONFIG)
 
   useEffect(() => {
-    if (!backendUrl) return
-
-    const url = backendUrl.replace(/\/$/, '')
     let cancelled = false
 
-    fetch(`${url}/v1/discounts`)
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`Discount config request failed: ${response.status}`)
-        const data = (await response.json()) as Partial<DiscountConfig>
-        if (cancelled) return
-        setConfig({
-          depositBonusPercent:
-            typeof data.depositBonusPercent === 'number'
-              ? data.depositBonusPercent
-              : DEFAULT_DEPOSIT_BONUS_PERCENT,
-          streamBonusPercent:
-            typeof data.streamBonusPercent === 'number'
-              ? data.streamBonusPercent
-              : DEFAULT_STREAM_BONUS_PERCENT,
-        })
+    createBackendClient(backendUrl)
+      .getDiscountConfig()
+      .then((next) => {
+        if (!cancelled) setConfig(next)
       })
-      .catch(() => {
-        // Keep defaults on failure.
-      })
+      .catch(() => {})
 
     return () => {
       cancelled = true

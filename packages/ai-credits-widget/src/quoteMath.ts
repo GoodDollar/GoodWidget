@@ -36,14 +36,20 @@ export function getDepositBonusPercent(
   isGoodIdVerified: boolean,
   depositBonusPercent = DEPOSIT_BONUS_PERCENT,
 ): number {
-  return isGoodIdVerified ? depositBonusPercent : 0
+  if (!isGoodIdVerified) return 0
+  const raw = Number(depositBonusPercent)
+  if (!Number.isFinite(raw) || raw < 0) return DEPOSIT_BONUS_PERCENT
+  return Math.trunc(raw)
 }
 
 export function getStreamBonusPercent(
   isGoodIdVerified: boolean,
   streamBonusPercent = STREAM_BONUS_PERCENT,
 ): number {
-  return isGoodIdVerified ? streamBonusPercent : 0
+  if (!isGoodIdVerified) return 0
+  const raw = Number(streamBonusPercent)
+  if (!Number.isFinite(raw) || raw < 0) return STREAM_BONUS_PERCENT
+  return Math.trunc(raw)
 }
 
 export function formatProfileUsd(usd: bigint): string {
