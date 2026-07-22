@@ -262,12 +262,6 @@ export const DEFAULT_DISCOUNT_CONFIG: DiscountConfig = {
   streamBonusPercent: 20,
 }
 
-function normalizeBonusPercent(value: unknown, fallback: number): number {
-  const raw = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN
-  if (!Number.isFinite(raw) || raw < 0) return fallback
-  return Math.trunc(raw)
-}
-
 function bpsToPercent(bps: unknown, fallbackPercent: number): number {
   const raw = typeof bps === 'number' ? bps : typeof bps === 'string' ? Number(bps) : NaN
   if (!Number.isFinite(raw) || raw < 0) return fallbackPercent
@@ -290,29 +284,9 @@ function discountConfigFromConfigValues(
   }
 }
 
-export function normalizeDiscountConfig(
-  config: Partial<DiscountConfig> | null | undefined,
-): DiscountConfig {
-  return {
-    depositBonusPercent: normalizeBonusPercent(
-      config?.depositBonusPercent,
-      DEFAULT_DISCOUNT_CONFIG.depositBonusPercent,
-    ),
-    streamBonusPercent: normalizeBonusPercent(
-      config?.streamBonusPercent,
-      DEFAULT_DISCOUNT_CONFIG.streamBonusPercent,
-    ),
-  }
-}
-
 export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
   private activeRef: AccountRef | null = null
   private lastCreditUsd = 0n
-  private readonly discountConfig: DiscountConfig
-
-  constructor(discountConfig: Partial<DiscountConfig> = {}) {
-    this.discountConfig = normalizeDiscountConfig(discountConfig)
-  }
 
   private readonly accountStates = new Map<
     string,
@@ -339,7 +313,7 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
 
   async getDiscountConfig(): Promise<DiscountConfig> {
     await sleep(MOCK_DELAY_MS)
-    return { ...this.discountConfig }
+    return { ...DEFAULT_DISCOUNT_CONFIG }
   }
 
   private buildProfile(payer: string): UserCreditProfile {

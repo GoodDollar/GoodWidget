@@ -66,6 +66,8 @@ function useDiscountConfig(backendUrl: string | undefined): DiscountConfig {
   const [config, setConfig] = useState<DiscountConfig>(DEFAULT_DISCOUNT_CONFIG)
 
   useEffect(() => {
+    if (!backendUrl) return
+
     let cancelled = false
 
     createBackendClient(backendUrl)

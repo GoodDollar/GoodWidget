@@ -94,12 +94,10 @@ export type DiscountConfig = {
   streamBonusPercent: number
 }
 
-export type BackendConfigValues = {
-  REGULAR_BONUS_BPS?: string | number
-  STREAMING_BONUS_BPS?: string | number
-}
-
 export type BackendConfigValuesResponse = {
   ok?: boolean
-  config?: BackendConfigValues
+  config?: {
+    REGULAR_BONUS_BPS?: string | number
+    STREAMING_BONUS_BPS?: string | number
+  }
 }
