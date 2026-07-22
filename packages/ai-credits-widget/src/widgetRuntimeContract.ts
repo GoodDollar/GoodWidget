@@ -39,6 +39,8 @@ export interface AiCreditsWidgetAdapterState {
   totalGdDepositedG: string | null
   monthlyStreamG: string | null
   withdrawableUsd: string | null
+  depositBonusPercent: number
+  streamBonusPercent: number
   error: string | null
   activeTab: AiCreditsWidgetTab
 }
