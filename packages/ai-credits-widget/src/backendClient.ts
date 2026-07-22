@@ -24,8 +24,6 @@ export type {
   AccountRef,
   AccountCreditResponse,
   AccountView,
-  BackendConfigValues,
-  BackendConfigValuesResponse,
   DiscountConfig,
   CreditHistoryQuery,
   CreditHistoryResponse,
@@ -276,7 +274,7 @@ function bpsToPercent(bps: unknown, fallbackPercent: number): number {
   return Math.trunc(raw / BPS_PER_PERCENT)
 }
 
-export function discountConfigFromConfigValues(
+function discountConfigFromConfigValues(
   response: BackendConfigValuesResponse | null | undefined,
 ): DiscountConfig {
   const config = response?.config
@@ -313,12 +311,7 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
   private readonly discountConfig: DiscountConfig
 
   constructor(discountConfig: Partial<DiscountConfig> = {}) {
-    this.discountConfig = normalizeDiscountConfig({
-      depositBonusPercent:
-        discountConfig.depositBonusPercent ?? DEFAULT_DISCOUNT_CONFIG.depositBonusPercent,
-      streamBonusPercent:
-        discountConfig.streamBonusPercent ?? DEFAULT_DISCOUNT_CONFIG.streamBonusPercent,
-    })
+    this.discountConfig = normalizeDiscountConfig(discountConfig)
   }
 
   private readonly accountStates = new Map<

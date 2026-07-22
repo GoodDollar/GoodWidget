@@ -2,9 +2,7 @@ import { parseUnits } from 'viem'
 import type { AiCreditsQuote } from './widgetRuntimeContract'
 
 export const CREDITS_PER_USD = 10_000
-/** @deprecated Use the dynamic depositBonusPercent from adapter state instead. */
 export const DEPOSIT_BONUS_PERCENT = 10
-/** @deprecated Use the dynamic streamBonusPercent from adapter state instead. */
 export const STREAM_BONUS_PERCENT = 20
 const SECONDS_PER_MONTH = 30n * 24n * 60n * 60n
 const USD_18_TO_MICRO = 1_000_000_000_000n
@@ -36,20 +34,14 @@ export function getDepositBonusPercent(
   isGoodIdVerified: boolean,
   depositBonusPercent = DEPOSIT_BONUS_PERCENT,
 ): number {
-  if (!isGoodIdVerified) return 0
-  const raw = Number(depositBonusPercent)
-  if (!Number.isFinite(raw) || raw < 0) return DEPOSIT_BONUS_PERCENT
-  return Math.trunc(raw)
+  return isGoodIdVerified ? depositBonusPercent : 0
 }
 
 export function getStreamBonusPercent(
   isGoodIdVerified: boolean,
   streamBonusPercent = STREAM_BONUS_PERCENT,
 ): number {
-  if (!isGoodIdVerified) return 0
-  const raw = Number(streamBonusPercent)
-  if (!Number.isFinite(raw) || raw < 0) return STREAM_BONUS_PERCENT
-  return Math.trunc(raw)
+  return isGoodIdVerified ? streamBonusPercent : 0
 }
 
 export function formatProfileUsd(usd: bigint): string {

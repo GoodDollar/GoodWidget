@@ -93,11 +93,14 @@ export const AppKitConnectWallet: Story = {
     }
 
     const connectRoot = await canvas.findByTestId('AiCreditsWidget-appkit-connect')
-    const connectButton = within(connectRoot).getByRole('button', { name: /connect wallet/i })
-    await userEvent.click(connectButton)
+    const openModal = document.body.querySelector('w3m-modal.open')
+    if (!openModal) {
+      const connectButton = within(connectRoot).getByRole('button', { name: /connect wallet/i })
+      await userEvent.click(connectButton)
+    }
 
     await waitFor(() => {
-      expect(document.body.querySelector('w3m-modal')).toBeTruthy()
+      expect(document.body.querySelector('w3m-modal.open')).toBeTruthy()
     })
   },
 }
