@@ -5,6 +5,8 @@ import type {
   BackendConfigValuesResponse,
   CeloEventsRecordResponse,
   DiscountConfig,
+  CreditHistoryQuery,
+  CreditHistoryResponse,
   GdCreditEntry,
   SettlementResult,
   TransactionsResponse,
@@ -25,6 +27,8 @@ export type {
   BackendConfigValues,
   BackendConfigValuesResponse,
   DiscountConfig,
+  CreditHistoryQuery,
+  CreditHistoryResponse,
   GdCreditEntry,
   TransactionsResponse,
   CeloEventsRecordResponse,
@@ -116,20 +120,53 @@ async function parseBridgeResponse(
   return body.bridge
 }
 
-function filterGdCredits(
-  entries: GdCreditEntry[],
-  options: { status?: 'pending' | 'funded' | 'failed'; limit?: number } = {},
-): GdCreditEntry[] {
-  let result = [...entries]
-  if (options.status) {
-    result = result.filter((entry) => entry.fundingStatus === options.status)
-  }
-  const limit = options.limit ?? 20
-  return result.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit)
+const DEFAULT_HISTORY_LIMIT = 20
+const MAX_HISTORY_LIMIT = 100
+
+function clampHistoryLimit(limit: number | undefined): number {
+  if (limit === undefined) return DEFAULT_HISTORY_LIMIT
+  return Math.min(Math.max(1, Math.floor(limit)), MAX_HISTORY_LIMIT)
 }
 
-export function resolveBuyerAddress(credit: AccountCreditResponse): string | null {
-  for (const entry of credit.gdCredits) {
+function paginateGdCredits(
+  entries: GdCreditEntry[],
+  options: CreditHistoryQuery = {},
+): CreditHistoryResponse {
+  let result = [...entries].sort((a, b) => {
+    const byCreated = b.createdAt.localeCompare(a.createdAt)
+    if (byCreated !== 0) return byCreated
+    return b.id.localeCompare(a.id)
+  })
+  if (options.source) {
+    result = result.filter((entry) => entry.source === options.source)
+  }
+  if (options.fundingStatus) {
+    result = result.filter((entry) => entry.fundingStatus === options.fundingStatus)
+  }
+  if (options.from) {
+    const fromMs = Date.parse(options.from)
+    result = result.filter((entry) => Date.parse(entry.createdAt) >= fromMs)
+  }
+  if (options.to) {
+    const toMs = Date.parse(options.to)
+    result = result.filter((entry) => Date.parse(entry.createdAt) <= toMs)
+  }
+  const limit = clampHistoryLimit(options.limit)
+  const offset = Math.max(0, Math.floor(options.offset ?? 0))
+  const total = result.length
+  const items = result.slice(offset, offset + limit)
+  return {
+    account: '',
+    items,
+    total,
+    limit,
+    offset,
+    hasMore: offset + limit < total,
+  }
+}
+
+export function resolveBuyerAddress(entries: GdCreditEntry[]): string | null {
+  for (const entry of entries) {
     if (entry.buyerAddress && isAddress(entry.buyerAddress)) {
       return normalizeAddress(entry.buyerAddress)
     }
@@ -193,6 +230,7 @@ export async function enrichAccountView(
 export interface AiCreditsBackendClient {
   getDiscountConfig(): Promise<DiscountConfig>
   getAccountCredit(payer: string): Promise<AccountCreditResponse>
+  getCreditHistory(payer: string, options?: CreditHistoryQuery): Promise<CreditHistoryResponse>
   getOutstanding(payer: string): Promise<{ outstandingFundingUsd: string; count: number }>
   getTransactions(
     payer: string,
@@ -337,7 +375,18 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     return {
       account: profile.account,
       profile,
-      gdCredits: this.getState(payer).transactions,
+    }
+  }
+
+  async getCreditHistory(
+    payer: string,
+    options: CreditHistoryQuery = {},
+  ): Promise<CreditHistoryResponse> {
+    await sleep(MOCK_DELAY_MS)
+    const history = paginateGdCredits(this.getState(payer).transactions, options)
+    return {
+      ...history,
+      account: normalizeAddress(payer),
     }
   }
 
@@ -358,19 +407,17 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     payer: string,
     options: { status?: 'pending' | 'funded' | 'failed'; limit?: number; cursor?: string } = {},
   ): Promise<TransactionsResponse> {
-    await sleep(MOCK_DELAY_MS)
-    let transactions = [...this.getState(payer).transactions]
-    if (options.status) {
-      transactions = transactions.filter((entry) => entry.fundingStatus === options.status)
-    }
-    const limit = options.limit ?? 20
-    const page = transactions.slice(0, limit)
-    return { account: normalizeAddress(payer), transactions: page }
+    const history = await this.getCreditHistory(payer, {
+      fundingStatus: options.status,
+      limit: options.limit,
+      offset: options.cursor ? Number(options.cursor) || 0 : 0,
+    })
+    return { account: history.account, transactions: history.items }
   }
 
   async getUsageLog(payer: string): Promise<GdCreditEntry[]> {
-    const credit = await this.getAccountCredit(payer)
-    return filterGdCredits(credit.gdCredits)
+    const history = await this.getCreditHistory(payer, { limit: DEFAULT_HISTORY_LIMIT, offset: 0 })
+    return history.items
   }
 
   prepareSettlement(ref: AccountRef, creditUsd: bigint): void {
@@ -444,11 +491,17 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     }
   }
 
-  async submitOperatorConsent(buyer: string, _body: OperatorConsentRequest): Promise<OperatorConsentResponse> {
+  async submitOperatorConsent(
+    buyer: string,
+    _body: OperatorConsentRequest,
+  ): Promise<OperatorConsentResponse> {
     await sleep(MOCK_DELAY_MS)
     const normalizedBuyer = normalizeAddress(buyer)
     markMockOperatorConsent(normalizedBuyer)
-    return { buyer: normalizedBuyer, bridge: { enabled: true, txHash: '0xmock' } }
+    return {
+      buyer: normalizedBuyer,
+      bridge: { enabled: true, txHash: '0xmock' },
+    }
   }
 }
 
@@ -471,9 +524,28 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
   }
 
   async getAccountCredit(payer: string): Promise<AccountCreditResponse> {
-    const response = await fetch(`${this.accountBase(payer)}/credit`)
-    if (!response.ok) throw new Error(`Account credit request failed: ${response.status}`)
+    const response = await fetch(`${this.accountBase(payer)}/profile`)
+    if (!response.ok) throw new Error(`Account profile request failed: ${response.status}`)
     return response.json() as Promise<AccountCreditResponse>
+  }
+
+  async getCreditHistory(
+    payer: string,
+    options: CreditHistoryQuery = {},
+  ): Promise<CreditHistoryResponse> {
+    const params = new URLSearchParams()
+    const limit = clampHistoryLimit(options.limit)
+    const offset = Math.max(0, Math.floor(options.offset ?? 0))
+    params.set('limit', String(limit))
+    params.set('offset', String(offset))
+    if (options.source) params.set('source', options.source)
+    if (options.fundingStatus) params.set('fundingStatus', options.fundingStatus)
+    if (options.from) params.set('from', options.from)
+    if (options.to) params.set('to', options.to)
+
+    const response = await fetch(`${this.accountBase(payer)}/credit-history?${params.toString()}`)
+    if (!response.ok) throw new Error(`Credit history request failed: ${response.status}`)
+    return response.json() as Promise<CreditHistoryResponse>
   }
 
   async getOutstanding(payer: string): Promise<{ outstandingFundingUsd: string; count: number }> {
@@ -493,14 +565,17 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
     payer: string,
     options: { status?: 'pending' | 'funded' | 'failed'; limit?: number; cursor?: string } = {},
   ): Promise<TransactionsResponse> {
-    const credit = await this.getAccountCredit(payer)
-    const transactions = filterGdCredits(credit.gdCredits, options)
-    return { account: normalizeAddress(payer), transactions }
+    const history = await this.getCreditHistory(payer, {
+      fundingStatus: options.status,
+      limit: options.limit,
+      offset: options.cursor ? Number(options.cursor) || 0 : 0,
+    })
+    return { account: history.account, transactions: history.items }
   }
 
   async getUsageLog(payer: string): Promise<GdCreditEntry[]> {
-    const credit = await this.getAccountCredit(payer)
-    return filterGdCredits(credit.gdCredits)
+    const history = await this.getCreditHistory(payer, { limit: DEFAULT_HISTORY_LIMIT, offset: 0 })
+    return history.items
   }
 
   async notifyPayment(txHash: string): Promise<CeloEventsRecordResponse> {
@@ -523,8 +598,11 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
       if (attempt > 0) await sleep(BRIDGE_POLL_INTERVAL_MS)
 
       if (txHashes.size > 0) {
-        const credit = await this.getAccountCredit(ref.payer)
-        const matching = credit.gdCredits.filter(
+        const history = await this.getCreditHistory(ref.payer, {
+          limit: MAX_HISTORY_LIMIT,
+          offset: 0,
+        })
+        const matching = history.items.filter(
           (entry) => entry.txHash && txHashes.has(entry.txHash.toLowerCase()),
         )
         const failed = matching.find((entry) => entry.fundingStatus === 'failed')
@@ -585,10 +663,16 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
     const response = await fetch(`${this.accountBase(buyer)}/operator-consent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        nonce: body.nonce,
+        signature: body.signature,
+      }),
     })
     const payload = await readBridgeResponseBody<OperatorConsentResponse>(response, 'Operator consent')
-    return { buyer: normalizeAddress(payload.buyer ?? buyer), bridge: payload.bridge }
+    return {
+      buyer: normalizeAddress(payload.buyer ?? buyer),
+      bridge: payload.bridge,
+    }
   }
 }
 
@@ -619,15 +703,16 @@ export async function buildAccountView(
   options: BuildAccountViewOptions = {},
 ): Promise<AccountView> {
   const normalizedPayer = normalizeAddress(payer)
-  const [credit, outstanding] = await Promise.all([
+  const [credit, outstanding, history] = await Promise.all([
     backend.getAccountCredit(payer),
     backend.getOutstanding(payer),
+    backend.getCreditHistory(payer, { limit: MAX_HISTORY_LIMIT, offset: 0 }),
   ])
   const sessionBuyer =
     options.buyerAddress && isAddress(options.buyerAddress)
       ? normalizeAddress(options.buyerAddress)
       : null
-  const buyer = sessionBuyer ?? resolveBuyerAddress(credit)
+  const buyer = sessionBuyer ?? resolveBuyerAddress(history.items)
   const [operator, withdrawableUsd] = buyer
     ? await Promise.all([
         chain.getBuyerOperatorStatus({ payer: normalizedPayer, buyer }),

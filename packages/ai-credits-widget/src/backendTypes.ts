@@ -41,7 +41,24 @@ export type GdCreditEntry = {
 export type AccountCreditResponse = {
   account: string
   profile: UserCreditProfile
-  gdCredits: GdCreditEntry[]
+}
+
+export type CreditHistoryResponse = {
+  account: string
+  items: GdCreditEntry[]
+  total: number
+  limit: number
+  offset: number
+  hasMore: boolean
+}
+
+export type CreditHistoryQuery = {
+  limit?: number
+  offset?: number
+  source?: GdCreditEntry['source']
+  fundingStatus?: GdCreditEntry['fundingStatus']
+  from?: string
+  to?: string
 }
 
 export type AccountView = {
