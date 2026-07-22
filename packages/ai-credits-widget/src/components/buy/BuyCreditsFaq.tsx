@@ -6,7 +6,7 @@ const FAQ_ITEMS = [
     id: 'what-are-credits',
     question: 'What are AI credits?',
     answer:
-      'AI credits pay for AntSeed-compatible coding tools. You buy them with G$ on Celo; they settle on Base and appear in your Manage tab balance.',
+      'AI credits pay for AntSeed-compatible coding tools. GoodDollar only supports purchasing AntSeed AI credits. You buy them with G$ on Celo; AI credits (USD) settle on Base and appear in your Manage tab balance.',
   },
   {
     id: 'how-to-buy',
@@ -24,7 +24,7 @@ const FAQ_ITEMS = [
     id: 'minimums',
     question: 'What are the minimum amounts?',
     answer:
-      'Your first one-time deposit must be at least US$1.00. If you set a monthly stream, it must be at least US$1.00/month. After your first deposit, there is no minimum for additional one-time deposits.',
+      'Your first one-time deposit must be at least US$1.00. If you set a monthly stream, it must be at least US$1.00/month. After your first deposit, there is no minimum for additional one-time deposits.\n\nTo open a new channel to a new provider, you need more than 1 USDC in available credits.',
   },
   {
     id: 'goodid-bonus',
@@ -61,6 +61,12 @@ const FAQ_ITEMS = [
     question: 'What is API setup?',
     answer:
       'After you have credits, open Manage → API Setup and copy the commands into your terminal. ANTSEED_IDENTITY_HEX is your buyer private key. it links your purchases to the credit balance your AI tools should use.',
+  },
+  {
+    id: 'support',
+    question: 'Who do I contact for support?',
+    answer:
+      'GoodDollar only supports purchasing AntSeed AI credits through this widget. For post-purchase issues — including credit usage, channels, providers, or AntSeed tooling — contact the AntSeed support team on Telegram: https://t.me/antseed',
   },
 ] as const
 
