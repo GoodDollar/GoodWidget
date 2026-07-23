@@ -1,11 +1,11 @@
 import {
   encodeAbiParameters,
   parseAbi,
-  parseUnits,
   type Address,
   type PublicClient,
   type WalletClient,
 } from 'viem'
+import { gToWei } from './quoteMath'
 
 export const G_TOKEN_CELO_ADDRESS: Address = '0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A'
 
@@ -20,6 +20,7 @@ const G_TOKEN_ABI = parseAbi([
 const CFA_FORWARDER_ABI = parseAbi([
   'function createFlow(address token, address sender, address receiver, int96 flowrate, bytes userData) returns (bool)',
   'function updateFlow(address token, address sender, address receiver, int96 flowrate, bytes userData) returns (bool)',
+  'function deleteFlow(address token, address sender, address receiver, bytes userData) returns (bool)',
   'function getFlowInfo(address token, address sender, address receiver) view returns (uint256 lastUpdated, int96 flowrate, uint256 deposit, uint256 owedDeposit)',
 ])
 
@@ -36,16 +37,25 @@ export interface CeloPaymentParams {
   payer: Address
   buyer: Address
   vault: Address
-  depositAmountG: number
-  streamAmountG: number
+  depositAmountG: string
+  streamAmountG: string
+  currentStreamAmountG: string | null
 }
 
 export interface CeloPaymentResult {
   txHashes: `0x${string}`[]
 }
 
-function monthlyToFlowRate(monthlyAmountG: number): bigint {
-  const monthlyWei = parseUnits(monthlyAmountG.toString(), 18)
+export function isStreamAmountChanged(
+  streamAmountG: string,
+  currentStreamAmountG: string | null | undefined,
+): boolean {
+  return gToWei(streamAmountG) !== gToWei(currentStreamAmountG ?? '0')
+}
+
+function monthlyToFlowRate(monthlyAmountG: string): bigint {
+  const monthlyWei = gToWei(monthlyAmountG)
+  if (monthlyWei <= 0n) return 0n
   return monthlyWei / SECONDS_PER_MONTH
 }
 
@@ -59,13 +69,9 @@ async function submitStreamSetup(
   payer: Address,
   buyer: Address,
   vault: Address,
-  streamAmountG: number,
+  streamAmountG: string,
 ): Promise<`0x${string}`[]> {
   const flowRatePerSecond = monthlyToFlowRate(streamAmountG)
-  if (flowRatePerSecond <= 0n) {
-    throw new Error('Stream amount must be greater than zero')
-  }
-
   const userData = encodeBuyerUserData(buyer)
   const txHashes: `0x${string}`[] = []
 
@@ -76,16 +82,32 @@ async function submitStreamSetup(
     args: [G_TOKEN_CELO_ADDRESS, payer, vault],
   })) as readonly [bigint, bigint, bigint, bigint]
   const existingFlowRate = flowInfo[1]
-  const flowFunction = existingFlowRate > 0n ? 'updateFlow' : 'createFlow'
 
-  const flowTx = await walletClient.writeContract({
-    account: payer,
-    chain: CELO_CHAIN,
-    address: CFA_V1_FORWARDER_ADDRESS,
-    abi: CFA_FORWARDER_ABI,
-    functionName: flowFunction,
-    args: [G_TOKEN_CELO_ADDRESS, payer, vault, flowRatePerSecond, userData],
-  })
+  let flowTx: `0x${string}`
+  if (flowRatePerSecond <= 0n) {
+    if (existingFlowRate <= 0n) {
+      throw new Error('No existing stream to cancel')
+    }
+    flowTx = await walletClient.writeContract({
+      account: payer,
+      chain: CELO_CHAIN,
+      address: CFA_V1_FORWARDER_ADDRESS,
+      abi: CFA_FORWARDER_ABI,
+      functionName: 'deleteFlow',
+      args: [G_TOKEN_CELO_ADDRESS, payer, vault, userData],
+    })
+  } else {
+    const flowFunction = existingFlowRate > 0n ? 'updateFlow' : 'createFlow'
+    flowTx = await walletClient.writeContract({
+      account: payer,
+      chain: CELO_CHAIN,
+      address: CFA_V1_FORWARDER_ADDRESS,
+      abi: CFA_FORWARDER_ABI,
+      functionName: flowFunction,
+      args: [G_TOKEN_CELO_ADDRESS, payer, vault, flowRatePerSecond, userData],
+    })
+  }
+
   await waitForMinedTransaction(publicClient, flowTx)
   txHashes.push(flowTx)
 
@@ -98,9 +120,12 @@ async function submitOneTimeDeposit(
   payer: Address,
   vault: Address,
   buyer: Address,
-  depositAmountG: number,
+  depositAmountG: string,
 ): Promise<`0x${string}`> {
-  const depositWei = parseUnits(depositAmountG.toString(), 18)
+  const depositWei = gToWei(depositAmountG)
+  if (depositWei <= 0n) {
+    throw new Error('Deposit amount must be greater than zero')
+  }
   const userData = encodeBuyerUserData(buyer)
 
   const txHash = await walletClient.writeContract({
@@ -126,17 +151,26 @@ async function waitForMinedTransaction(
 }
 
 export async function executeCeloPayment(params: CeloPaymentParams): Promise<CeloPaymentResult> {
-  const { walletClient, publicClient, payer, buyer, vault, depositAmountG, streamAmountG } = params
-  const hasDeposit = depositAmountG > 0
-  const hasStream = streamAmountG > 0
+  const {
+    walletClient,
+    publicClient,
+    payer,
+    buyer,
+    vault,
+    depositAmountG,
+    streamAmountG,
+    currentStreamAmountG,
+  } = params
+  const hasDeposit = gToWei(depositAmountG) > 0n
+  const streamChanged = isStreamAmountChanged(streamAmountG, currentStreamAmountG)
 
-  if (!hasDeposit && !hasStream) {
-    throw new Error('At least one of deposit or stream amount must be greater than zero')
+  if (!hasDeposit && !streamChanged) {
+    throw new Error('Enter a deposit or change the monthly stream amount')
   }
 
   const txHashes: `0x${string}`[] = []
 
-  if (hasStream) {
+  if (streamChanged) {
     const streamTxHashes = await submitStreamSetup(
       walletClient,
       publicClient,

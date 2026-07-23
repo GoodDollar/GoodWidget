@@ -171,20 +171,20 @@ export function AmountPicker({
       getPaymentAmountValidation({
         depositAmount,
         streamAmount,
+        currentStreamAmount: monthlyStreamG,
         minDepositUsd,
         minStreamUsd,
         quote,
         gdUsdPerToken,
         gBalance,
       }),
-    [depositAmount, streamAmount, minDepositUsd, minStreamUsd, quote, gdUsdPerToken, gBalance],
+    [depositAmount, streamAmount, monthlyStreamG, minDepositUsd, minStreamUsd, quote, gdUsdPerToken, gBalance],
   )
   const minsLoaded = minStreamUsd !== null
-  const hasAmounts = depositG > 0 || streamG > 0
   const canPay =
     status === 'quote_ready' &&
     minsLoaded &&
-    hasAmounts &&
+    paymentValidation.hasPaymentAction &&
     paymentValidation.vaultMinimumsMet &&
     !paymentValidation.overBalance &&
     !quotePending &&
