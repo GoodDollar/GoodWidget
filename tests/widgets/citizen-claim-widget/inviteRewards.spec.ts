@@ -66,7 +66,8 @@ test('Invite Rewards empty state offers code creation with no invitees yet', asy
   await expect(page.getByText('Create your invite code')).toBeVisible()
   await expect(page.getByText('0 invitees joined')).toBeVisible()
   await expect(page.getByText('0 approved')).toBeVisible()
-  await expect(page.getByText('Total earned: 0.00 G$')).toBeVisible()
+  await expect(page.getByText('Total rewards')).toBeVisible()
+  await expect(page.getByText('0.00 G$', { exact: true })).toBeVisible()
 })
 
 test('Invite Rewards labels approved/pending/collectable using protocol values, not raw invitee count', async ({
@@ -79,7 +80,8 @@ test('Invite Rewards labels approved/pending/collectable using protocol values, 
   await expect(page.getByText('3 invitees joined')).toBeVisible()
   await expect(page.getByText('1 approved')).toBeVisible()
   await expect(page.getByText(/2 pending \(1 collectable now\)/)).toBeVisible()
-  await expect(page.getByText('Total earned: 50.00 G$')).toBeVisible()
+  await expect(page.getByText('Total rewards')).toBeVisible()
+  await expect(page.getByText('50.00 G$', { exact: true })).toBeVisible()
 
   await page.screenshot({
     path: 'tests/widgets/citizen-claim-widget/test-results/ccw-08-invite-collectable.png',
@@ -168,6 +170,30 @@ test('Collection-ready flow: collect only removes the eligible invitee', async (
     path: 'tests/widgets/citizen-claim-widget/test-results/ccw-13-invite-collection-ready-flow.png',
     fullPage: true,
   })
+})
+
+// ─── How it works drawer ─────────────────────────────────────────────────────
+
+test('How it works opens in a Drawer, mirroring GoodWallet, rather than showing inline', async ({
+  page,
+}) => {
+  await gotoStory(page, 'collectable')
+
+  // Not shown inline until the drawer is opened.
+  await expect(page.getByText('Share your code.')).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'How it works' }).click()
+  await expect(page.getByText('1. Share your code.')).toBeVisible()
+  await expect(page.getByText(/2\. Your friend joins and claims\./)).toBeVisible()
+  const closeButton = page.getByRole('button', { name: 'Close' })
+  await expect(closeButton).toBeVisible()
+  await page.waitForTimeout(400) // let the sheet's slide-up animation settle
+  await page.screenshot({
+    path: 'tests/widgets/citizen-claim-widget/test-results/ccw-15-invite-how-it-works-drawer.png',
+    fullPage: true,
+  })
+
+  await closeButton.click()
 })
 
 // ─── Mobile layout ───────────────────────────────────────────────────────────

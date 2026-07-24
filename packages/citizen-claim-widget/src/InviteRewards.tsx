@@ -6,9 +6,9 @@ import {
   Button,
   ButtonText,
   Card,
+  Drawer,
   Heading,
   Input,
-  Separator,
   Spinner,
   Text,
   YStack,
@@ -16,6 +16,36 @@ import {
 import { zeroHash } from 'viem'
 import { decodeInviteCode, formatInviteBounty, useInviteRuntime } from './inviteAdapter'
 import { canAttachInviter, hasCollectableInvitees, isInviteeCollectable } from './inviteRules'
+
+/**
+ * "How it works" — mirrors GoodWallet's InviteView, which opens the explainer
+ * in a Drawer from a ghost button rather than showing it inline.
+ */
+function HowItWorksDrawer() {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <>
+      <Button variant="ghost" onPress={() => setOpen(true)}>
+        <ButtonText>How it works</ButtonText>
+      </Button>
+      <Drawer open={open} onClose={() => setOpen(false)}>
+        <YStack gap="$4">
+          <Heading level={3}>How it works</Heading>
+          <Text secondary>1. Share your code.</Text>
+          <Text secondary>2. Your friend joins and claims.</Text>
+          <Text secondary>
+            3. After identity, claim-day, and minimum-claim requirements are met, collect your
+            reward.
+          </Text>
+          <Button fullWidth onPress={() => setOpen(false)}>
+            <ButtonText>Close</ButtonText>
+          </Button>
+        </YStack>
+      </Drawer>
+    </>
+  )
+}
 
 function InviteJoinCard({ compact = false }: { compact?: boolean }) {
   const { state, actions } = useInviteRuntime()
@@ -131,6 +161,19 @@ function InviteeRow({ invitee, isCollectable, details }: {
   )
 }
 
+/** Mirrors GoodWallet's TotalEarnedBox: its own card, separate from the invitee list. */
+function TotalEarnedCard() {
+  const { state } = useInviteRuntime()
+  const totalEarned = formatInviteBounty(state.user?.totalEarned ?? 0n, state.chainId)
+
+  return (
+    <Card padding="$4" gap="$1">
+      <Text secondary>Total rewards</Text>
+      <Heading level={2}>{totalEarned} G$</Heading>
+    </Card>
+  )
+}
+
 function InviteeStatus() {
   const { state, actions } = useInviteRuntime()
   const collectable = hasCollectableInvitees(state.collectableInvitees)
@@ -138,7 +181,6 @@ function InviteeStatus() {
 
   // Protocol-provided counters — do not conflate "registered invitees" with "approved" ones.
   const approvedCount = Number(state.user?.totalApprovedInvites ?? 0n)
-  const totalEarned = formatInviteBounty(state.user?.totalEarned ?? 0n, state.chainId)
 
   return (
     <Card padding="$4" gap="$3">
@@ -158,15 +200,7 @@ function InviteeStatus() {
               : ''}
           </BadgeText>
         </Badge>
-        <Text secondary fontWeight="700">
-          Total earned: {totalEarned} G$
-        </Text>
       </YStack>
-      {state.level && (
-        <Text secondary>
-          Earn {formatInviteBounty(state.level.bounty, state.chainId)} G$ per eligible invitee.
-        </Text>
-      )}
       {state.pendingInvitees.length > 0 && (
         <YStack gap="$2">
           {state.pendingInvitees.map((invitee) => (
@@ -228,12 +262,17 @@ export function InviteRewards() {
 
   return (
     <YStack gap="$4" padding="$4">
-      <Card padding="$4" gap="$2">
+      <Card padding="$4" gap="$2" alignItems="center">
         <Heading level={2}>Invite Rewards</Heading>
-        <Text secondary>Invite friends to claim GoodDollar and earn G$ rewards together.</Text>
-        <Separator />
-        <Heading level={4}>How it works</Heading>
-        <Text secondary>1. Share your code. 2. Your friend joins and claims. 3. After identity, claim-day, and minimum-claim requirements are met, collect your reward.</Text>
+        <Text secondary center>
+          Invite friends to claim GoodDollar and earn G$ rewards together.
+        </Text>
+        {state.level && (
+          <Text fontWeight="700" center>
+            Earn {formatInviteBounty(state.level.bounty, state.chainId)} G$ per eligible invitee.
+          </Text>
+        )}
+        <HowItWorksDrawer />
       </Card>
       {/* Persistent action feedback — stays visible after a refresh or once the join
           card disappears (e.g. an inviter is now attached), per acceptance criteria. */}
@@ -241,6 +280,7 @@ export function InviteRewards() {
       {state.error && <Alert type="error" message={state.error} />}
       <InviteShareCard />
       <InviteJoinCard />
+      <TotalEarnedCard />
       <InviteeStatus />
     </YStack>
   )
