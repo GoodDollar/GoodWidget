@@ -1,7 +1,7 @@
 export const citizenClaimIntegration = {
   id: 'citizen-claim',
   sdk: '@goodsdks/citizen-sdk',
-  inviteSdk: '@goodsdks/invite-sdk@1.0.1',
+  inviteSdk: '@goodsdks/invite-sdk@1.0.3',
   capabilitySource: 'citizenSdkCapabilities',
   uses: [
     'whitelistStatus',

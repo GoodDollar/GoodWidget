@@ -60,7 +60,13 @@ export interface InviteAdapterResult {
   actions: InviteActions
 }
 
-const InviteRuntimeContext = createContext<InviteAdapterResult | null>(null)
+/**
+ * Test-support surface: lets Storybook fixtures and adapter/component tests supply a
+ * deterministic `InviteAdapterResult` (e.g. a hook-backed fake) via
+ * `<InviteRuntimeContext.Provider>` without touching InviteSDK, a wallet, or live RPC.
+ * Production code should use `InviteRuntimeProvider`, which always wraps the real adapter.
+ */
+export const InviteRuntimeContext = createContext<InviteAdapterResult | null>(null)
 
 const initialInviteState: InviteState = {
   status: 'disconnected',
@@ -114,6 +120,122 @@ export async function generateInviteCode(
   }
 
   throw new Error('We could not generate an invite code. Please retry.')
+}
+
+/** Subset of InviteSDK read methods used to build an invite state snapshot. Lets adapter tests inject a fake SDK. */
+export interface InviteSnapshotSdk {
+  getUser: InviteSDK['getUser']
+  getLevel: InviteSDK['getLevel']
+  getInvitees: InviteSDK['getInvitees']
+  getPendingInvitees: InviteSDK['getPendingInvitees']
+  getCollectableInvitees: InviteSDK['getCollectableInvitees']
+  checkEligibilityDetails: InviteSDK['checkEligibilityDetails']
+}
+
+export interface InviteSnapshot {
+  user: InviteUser
+  level: InviteLevel
+  invitees: Address[]
+  pendingInvitees: Address[]
+  collectableInvitees: Address[]
+  eligibility: Record<string, BountyEligibilityDetails>
+  selfEligibility: BountyEligibilityDetails | null
+}
+
+/**
+ * Loads one consistent snapshot of an inviter's protocol-derived invite data.
+ * Extracted so both the refresh action and post-mutation reloads share one
+ * read path, and so adapter tests can exercise it against a fake SDK.
+ */
+export async function loadInviteSnapshot(
+  sdk: InviteSnapshotSdk,
+  address: Address,
+): Promise<InviteSnapshot> {
+  const user = await sdk.getUser(address)
+  const [level, invitees, pendingInvitees, collectableInvitees, selfEligibility] = await Promise.all([
+    sdk.getLevel(Number(user.level)),
+    sdk.getInvitees(address),
+    sdk.getPendingInvitees(address),
+    sdk.getCollectableInvitees(address),
+    sdk.checkEligibilityDetails(address),
+  ])
+  const eligibilityEntries = await Promise.all(
+    pendingInvitees.map(async (invitee) => {
+      const { details } = await sdk.checkEligibilityDetails(invitee)
+      return [invitee, details] as const
+    }),
+  )
+
+  return {
+    user,
+    level,
+    invitees,
+    pendingInvitees,
+    collectableInvitees,
+    eligibility: Object.fromEntries(eligibilityEntries),
+    selfEligibility: selfEligibility.details,
+  }
+}
+
+/** Subset of InviteSDK write methods used by join/collect actions, plus the snapshot reads. */
+export interface InviteWriteSdk extends InviteSnapshotSdk {
+  resolveCode: InviteSDK['resolveCode']
+  join: InviteSDK['join']
+  collectAllBounties: InviteSDK['collectAllBounties']
+}
+
+export interface InviteActionOutcome {
+  successMessage: string
+  /** Null when the write succeeded but the follow-up snapshot reload failed. */
+  snapshot: InviteSnapshot | null
+}
+
+/**
+ * Runs the deferred-inviter join write and reloads the invite snapshot.
+ * Reuses the caller's already-registered invite code (via `getMyInviteCode`)
+ * instead of generating a new one — the same original code used to attach an
+ * inviter later is the one the caller already shares.
+ */
+export async function performJoin(
+  sdk: InviteWriteSdk,
+  address: Address,
+  user: InviteUser | null,
+  inviterCode: `0x${string}` | undefined,
+): Promise<InviteActionOutcome> {
+  const ownCode = await getMyInviteCode(user, async () =>
+    encodeInviteCode(await generateInviteCode(address, sdk.resolveCode.bind(sdk))),
+  )
+  await sdk.join(ownCode, inviterCode ?? zeroHash)
+  const successMessage = inviterCode ? 'Joined inviter successfully.' : 'Invite code created successfully.'
+
+  try {
+    const snapshot = await loadInviteSnapshot(sdk, address)
+    return { successMessage, snapshot }
+  } catch {
+    return { successMessage, snapshot: null }
+  }
+}
+
+/**
+ * Runs the batch bounty collection write and reloads the invite snapshot.
+ * Collection eligibility itself is entirely delegated to InviteSDK/InvitesV2 —
+ * this only orchestrates the write followed by a state reload.
+ */
+export async function performCollectAll(
+  sdk: InviteWriteSdk,
+  address: Address,
+): Promise<InviteActionOutcome> {
+  const results = await sdk.collectAllBounties()
+  const successMessage = results.length
+    ? 'Invite rewards collected successfully.'
+    : 'No rewards were collected.'
+
+  try {
+    const snapshot = await loadInviteSnapshot(sdk, address)
+    return { successMessage, snapshot }
+  } catch {
+    return { successMessage, snapshot: null }
+  }
 }
 
 function inviteErrorMessage(error: unknown): string {
@@ -180,32 +302,13 @@ export function useInviteAdapter(
     try {
       const sdk = await getSdk()
       if (!sdk) throw new Error('Unable to initialize invite rewards.')
-      const user = await sdk.getUser(address as Address)
-      const [level, invitees, pendingInvitees, collectableInvitees, selfEligibility] = await Promise.all([
-        sdk.getLevel(Number(user.level)),
-        sdk.getInvitees(address as Address),
-        sdk.getPendingInvitees(address as Address),
-        sdk.getCollectableInvitees(address as Address),
-        sdk.checkEligibilityDetails(address as Address),
-      ])
-      const eligibilityEntries = await Promise.all(
-        pendingInvitees.map(async (invitee) => {
-          const { details } = await sdk.checkEligibilityDetails(invitee)
-          return [invitee, details] as const
-        }),
-      )
+      const snapshot = await loadInviteSnapshot(sdk, address as Address)
 
       setState({
         status: 'ready',
         address: address as Address,
         chainId,
-        user,
-        level,
-        invitees,
-        pendingInvitees,
-        collectableInvitees,
-        eligibility: Object.fromEntries(eligibilityEntries),
-        selfEligibility: selfEligibility.details,
+        ...snapshot,
         error: null,
         success: null,
       })
@@ -251,18 +354,21 @@ export function useInviteAdapter(
       setState((current) => ({ ...current, status: 'joining', error: null, success: null }))
       try {
         const validatedInviterCode = inviterCode ? await validateCode(inviterCode) : undefined
-        const ownCode = await getMyInviteCode(
+        const outcome = await performJoin(
+          sdk,
+          address as Address,
           state.user,
-          async () => encodeInviteCode(await generateInviteCode(address as Address, sdk.resolveCode.bind(sdk))),
+          validatedInviterCode ? encodeInviteCode(validatedInviterCode) : undefined,
         )
-        await sdk.join(
-          ownCode,
-          validatedInviterCode ? encodeInviteCode(validatedInviterCode) : zeroHash,
-        )
-        await refresh()
+        // The join transaction already succeeded at this point. A failure reloading
+        // the snapshot (outcome.snapshot === null) must not hide that outcome behind
+        // a hard error screen — keep the prior data and still surface the success message.
         setState((current) => ({
           ...current,
-          success: validatedInviterCode ? 'Joined inviter successfully.' : 'Invite code created successfully.',
+          status: 'ready',
+          ...(outcome.snapshot ?? {}),
+          error: null,
+          success: outcome.successMessage,
         }))
       } catch (error: unknown) {
         setState((current) => ({
@@ -273,20 +379,24 @@ export function useInviteAdapter(
         }))
       }
     },
-    [address, getSdk, refresh, validateCode],
+    [address, getSdk, state.user, validateCode],
   )
 
   const collectAll = useCallback(async () => {
     const sdk = await getSdk()
-    if (!sdk) return
+    if (!sdk || !address) return
 
     setState((current) => ({ ...current, status: 'collecting', error: null, success: null }))
     try {
-      const results = await sdk.collectAllBounties()
-      await refresh()
+      const outcome = await performCollectAll(sdk, address as Address)
+      // Same reasoning as join(): the collection tx already succeeded, so a
+      // follow-up read failure (outcome.snapshot === null) should not hide that outcome.
       setState((current) => ({
         ...current,
-        success: results.length ? 'Invite rewards collected successfully.' : 'No rewards were collected.',
+        status: 'ready',
+        ...(outcome.snapshot ?? {}),
+        error: null,
+        success: outcome.successMessage,
       }))
     } catch (error: unknown) {
       setState((current) => ({
@@ -296,7 +406,7 @@ export function useInviteAdapter(
         success: null,
       }))
     }
-  }, [getSdk, refresh])
+  }, [address, getSdk])
 
   return useMemo(
     () => ({ state, actions: { refresh, join, collectAll, validateCode } }),

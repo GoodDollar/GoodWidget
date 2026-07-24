@@ -173,7 +173,10 @@ test('CitizenClaimWidget opens the Invite Rewards entry point', async ({ page })
   await expect(inviteTab).toBeVisible()
   await inviteTab.click()
 
-  await expect(page.getByText('How it works', { exact: true })).toBeVisible()
+  // "How it works" now opens in a Drawer (see InviteRewardsQA.stories.tsx), so its
+  // trigger button is the reliable, unambiguous target rather than the text itself,
+  // which also appears as the (closed, off-screen) Drawer's own heading.
+  await expect(page.getByRole('button', { name: 'How it works' })).toBeVisible()
 
   await page.screenshot({
     path: 'tests/widgets/citizen-claim-widget/test-results/ccw-05-invite-rewards.png',
