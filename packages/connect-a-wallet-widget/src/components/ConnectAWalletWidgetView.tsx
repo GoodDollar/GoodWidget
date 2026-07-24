@@ -1,10 +1,10 @@
 import React from 'react'
-import { Alert, Badge, BadgeText, ButtonText, Heading, Spinner, XStack } from '@goodwidget/ui'
+import { Alert, ButtonText, Heading, Spinner, WidgetTabs } from '@goodwidget/ui'
 import type { ConnectAWalletWidgetAdapterResult } from '../widgetRuntimeContract'
 import { AddressLinkForm } from './AddressLinkForm'
 import { ChainLinkRow } from './ChainLinkRow'
 import { PrimaryIdentityCard } from './PrimaryIdentityCard'
-import { ActionButton, EmptyStateCard, WidgetContent } from './shared'
+import { ActionButton, EmptyStateCard, MultiWalletNotice, SupportedNetworksFooter, WidgetContent } from './shared'
 import { WalletGate } from './WalletGate'
 
 interface ConnectAWalletWidgetViewProps {
@@ -18,18 +18,17 @@ export function ConnectAWalletWidgetView({
 }: ConnectAWalletWidgetViewProps) {
   const { state, actions } = adapter
 
-  // Every widget in this repo renders its own "GoodDollar" + active-chain
-  // header rather than relying on the host shell for it (see
-  // StreamingWidgetView) — matches the #113 design reference's top bar.
+  // Reuse the shared WidgetTabs component (already used by every other
+  // sibling widget) instead of hand-rolling the header — this also resolves
+  // the active chain to its friendly display name for free, matching the
+  // #113 design reference's "Connect identity" tab header.
   const header = (
-    <XStack justifyContent="space-between" alignItems="center" paddingHorizontal="$1">
-      <Heading level={4}>GoodDollar</Heading>
-      {state.activeChainId && (
-        <Badge type={state.isActiveChainSupported ? 'info' : 'warning'}>
-          <BadgeText>Chain {state.activeChainId}</BadgeText>
-        </Badge>
-      )}
-    </XStack>
+    <WidgetTabs
+      tabs={[{ id: 'connect-identity', label: 'Connect identity' }]}
+      activeTab="connect-identity"
+      onTabChange={() => {}}
+      chainId={state.activeChainId ?? undefined}
+    />
   )
 
   if (!state.isWalletConnected) {
@@ -50,6 +49,8 @@ export function ConnectAWalletWidgetView({
       {header}
 
       <PrimaryIdentityCard walletAddress={state.walletAddress} />
+
+      <MultiWalletNotice />
 
       {!state.isActiveChainSupported && (
         <Alert
@@ -99,6 +100,8 @@ export function ConnectAWalletWidgetView({
           ))}
         </>
       )}
+
+      <SupportedNetworksFooter />
     </WidgetContent>
   )
 }

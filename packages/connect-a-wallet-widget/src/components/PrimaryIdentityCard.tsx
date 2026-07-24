@@ -41,7 +41,13 @@ export function PrimaryIdentityCard({ walletAddress }: PrimaryIdentityCardProps)
         <Icon name="shield-check" size="sm" color="primary" />
       </IdentityIconBadge>
       <YStack flex={1} gap="$0.5">
-        <Text variant="label" tone="secondary" fontWeight="700">
+        <Text
+          variant="label"
+          color="$primary"
+          fontWeight="700"
+          textTransform="uppercase"
+          letterSpacing={0.5}
+        >
           Primary verified identity
         </Text>
         <AddressDisplay address={walletAddress} size="sm" />
