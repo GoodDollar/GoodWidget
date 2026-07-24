@@ -8,9 +8,11 @@ import {
   Card,
   Drawer,
   Heading,
+  Icon,
   Input,
   Spinner,
   Text,
+  XStack,
   YStack,
 } from '@goodwidget/ui'
 import { zeroHash } from 'viem'
@@ -19,15 +21,18 @@ import { canAttachInviter, hasCollectableInvitees, isInviteeCollectable } from '
 
 /**
  * "How it works" — mirrors GoodWallet's InviteView, which opens the explainer
- * in a Drawer from a ghost button rather than showing it inline.
+ * in a Drawer from an inline info-icon link rather than showing it inline.
  */
 function HowItWorksDrawer() {
   const [open, setOpen] = useState(false)
 
   return (
     <>
-      <Button variant="ghost" onPress={() => setOpen(true)}>
-        <ButtonText>How it works</ButtonText>
+      <Button variant="text" onPress={() => setOpen(true)}>
+        <XStack gap="$2" alignItems="center">
+          <Icon name="info" size="sm" color="primary" />
+          <ButtonText color="$primary">How it works</ButtonText>
+        </XStack>
       </Button>
       <Drawer open={open} onClose={() => setOpen(false)}>
         <YStack gap="$4">
@@ -168,7 +173,7 @@ function TotalEarnedCard() {
 
   return (
     <Card padding="$4" gap="$1">
-      <Text secondary>Total rewards</Text>
+      <Text secondary>Total rewards earned</Text>
       <Heading level={2}>{totalEarned} G$</Heading>
     </Card>
   )
@@ -264,13 +269,17 @@ export function InviteRewards() {
     <YStack gap="$4" padding="$4">
       <Card padding="$4" gap="$2" alignItems="center">
         <Heading level={2}>Invite Rewards</Heading>
-        <Text secondary center>
-          Invite friends to claim GoodDollar and earn G$ rewards together.
-        </Text>
         {state.level && (
-          <Text fontWeight="700" center>
-            Earn {formatInviteBounty(state.level.bounty, state.chainId)} G$ per eligible invitee.
-          </Text>
+          <>
+            <Text fontWeight="700" center>
+              Get {formatInviteBounty(state.level.bounty, state.chainId)} G$ every time a friend
+              joins!
+            </Text>
+            <Text secondary center>
+              (Your invitee will also receive{' '}
+              {formatInviteBounty(state.level.bounty / 2n, state.chainId)} G$)
+            </Text>
+          </>
         )}
         <HowItWorksDrawer />
       </Card>
