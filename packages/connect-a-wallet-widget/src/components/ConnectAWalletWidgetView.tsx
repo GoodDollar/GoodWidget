@@ -1,8 +1,9 @@
 import React from 'react'
-import { Alert, ButtonText, Heading, Spinner } from '@goodwidget/ui'
+import { Alert, Badge, BadgeText, ButtonText, Heading, Spinner, XStack } from '@goodwidget/ui'
 import type { ConnectAWalletWidgetAdapterResult } from '../widgetRuntimeContract'
 import { AddressLinkForm } from './AddressLinkForm'
 import { ChainLinkRow } from './ChainLinkRow'
+import { PrimaryIdentityCard } from './PrimaryIdentityCard'
 import { ActionButton, EmptyStateCard, WidgetContent } from './shared'
 import { WalletGate } from './WalletGate'
 
@@ -17,9 +18,24 @@ export function ConnectAWalletWidgetView({
 }: ConnectAWalletWidgetViewProps) {
   const { state, actions } = adapter
 
+  // Every widget in this repo renders its own "GoodDollar" + active-chain
+  // header rather than relying on the host shell for it (see
+  // StreamingWidgetView) — matches the #113 design reference's top bar.
+  const header = (
+    <XStack justifyContent="space-between" alignItems="center" paddingHorizontal="$1">
+      <Heading level={4}>GoodDollar</Heading>
+      {state.activeChainId && (
+        <Badge type={state.isActiveChainSupported ? 'info' : 'warning'}>
+          <BadgeText>Chain {state.activeChainId}</BadgeText>
+        </Badge>
+      )}
+    </XStack>
+  )
+
   if (!state.isWalletConnected) {
     return (
       <WidgetContent data-testid={dataTestId}>
+        {header}
         <WalletGate
           isWalletConnected={state.isWalletConnected}
           isConnecting={state.status === 'connecting'}
@@ -31,6 +47,10 @@ export function ConnectAWalletWidgetView({
 
   return (
     <WidgetContent data-testid={dataTestId}>
+      {header}
+
+      <PrimaryIdentityCard walletAddress={state.walletAddress} />
+
       {!state.isActiveChainSupported && (
         <Alert
           type="warning"
