@@ -21,3 +21,8 @@ export async function getMyInviteCode(
 export function hasCollectableInvitees(collectableInvitees: Address[]): boolean {
   return collectableInvitees.length > 0
 }
+
+/** True when `invitee` is currently reported as collectable by the SDK. */
+export function isInviteeCollectable(invitee: Address, collectableInvitees: Address[]): boolean {
+  return collectableInvitees.some((collectable) => isAddressEqual(collectable, invitee))
+}

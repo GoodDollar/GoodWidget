@@ -1,5 +1,8 @@
 import React, { useCallback, useState } from 'react'
 import {
+  Alert,
+  Badge,
+  BadgeText,
   Button,
   ButtonText,
   Card,
@@ -12,7 +15,7 @@ import {
 } from '@goodwidget/ui'
 import { zeroHash } from 'viem'
 import { decodeInviteCode, formatInviteBounty, useInviteRuntime } from './inviteAdapter'
-import { canAttachInviter, hasCollectableInvitees } from './inviteRules'
+import { canAttachInviter, hasCollectableInvitees, isInviteeCollectable } from './inviteRules'
 
 function InviteJoinCard({ compact = false }: { compact?: boolean }) {
   const { state, actions } = useInviteRuntime()
@@ -44,7 +47,7 @@ function InviteJoinCard({ compact = false }: { compact?: boolean }) {
         placeholder="Invite code"
         autoCapitalize="none"
       />
-      {(validationError || state.error) && <Text color="$error">{validationError ?? state.error}</Text>}
+      {validationError && <Alert type="error" message={validationError} />}
       <Button fullWidth disabled={!code.trim() || isPending} onPress={joinWithCode}>
         <ButtonText>{isPending ? 'Joining…' : 'Join with code'}</ButtonText>
       </Button>
@@ -54,7 +57,7 @@ function InviteJoinCard({ compact = false }: { compact?: boolean }) {
 
 function InviteShareCard() {
   const { state, actions } = useInviteRuntime()
-  const [shareFeedback, setShareFeedback] = useState<string | null>(null)
+  const [shareFeedback, setShareFeedback] = useState<{ message: string; ok: boolean } | null>(null)
   const hasCode = state.user?.inviteCode !== zeroHash
 
   const share = useCallback(async () => {
@@ -68,9 +71,9 @@ function InviteShareCard() {
       } else {
         await navigator.clipboard.writeText(message)
       }
-      setShareFeedback('Invite message ready to send.')
+      setShareFeedback({ message: 'Invite message ready to send.', ok: true })
     } catch {
-      setShareFeedback('Could not copy the invite message. Please retry.')
+      setShareFeedback({ message: 'Could not copy the invite message. Please retry.', ok: false })
     }
   }, [hasCode, state.user])
 
@@ -101,8 +104,30 @@ function InviteShareCard() {
       <Button fullWidth onPress={share}>
         <ButtonText>Share or copy invite</ButtonText>
       </Button>
-      {shareFeedback && <Text color={shareFeedback.startsWith('Could') ? '$error' : '$success'}>{shareFeedback}</Text>}
+      {shareFeedback && (
+        <Alert type={shareFeedback.ok ? 'success' : 'error'} message={shareFeedback.message} />
+      )}
     </Card>
+  )
+}
+
+function InviteeRow({ invitee, isCollectable, details }: {
+  invitee: string
+  isCollectable: boolean
+  details?: { inviteeWhitelisted: boolean; minimumDays: number; minimumClaims: number }
+}) {
+  const shortAddress = `${invitee.slice(0, 6)}…${invitee.slice(-4)}`
+  const waitingReason = details?.inviteeWhitelisted
+    ? `Waiting for ${details.minimumDays} days and ${details.minimumClaims} claims.`
+    : 'Waiting for identity verification.'
+
+  return (
+    <YStack gap="$1">
+      <Text variant="caption" secondary>{shortAddress}</Text>
+      <Badge type={isCollectable ? 'success' : 'warning'} alignSelf="flex-start">
+        <BadgeText>{isCollectable ? 'Ready to collect' : waitingReason}</BadgeText>
+      </Badge>
+    </YStack>
   )
 }
 
@@ -111,23 +136,49 @@ function InviteeStatus() {
   const collectable = hasCollectableInvitees(state.collectableInvitees)
   const isCollecting = state.status === 'collecting'
 
+  // Protocol-provided counters — do not conflate "registered invitees" with "approved" ones.
+  const approvedCount = Number(state.user?.totalApprovedInvites ?? 0n)
+  const totalEarned = formatInviteBounty(state.user?.totalEarned ?? 0n, state.chainId)
+
   return (
     <Card padding="$4" gap="$3">
       <Heading level={3}>Your invite rewards</Heading>
-      <Text secondary>{state.invitees.length} approved invitee{state.invitees.length === 1 ? '' : 's'}</Text>
-      <Text secondary>{state.pendingInvitees.length} pending reward{state.pendingInvitees.length === 1 ? '' : 's'}</Text>
+      <YStack gap="$2">
+        <Text secondary>
+          {state.invitees.length} invitee{state.invitees.length === 1 ? '' : 's'} joined
+        </Text>
+        <Badge type="success" alignSelf="flex-start">
+          <BadgeText>{approvedCount} approved</BadgeText>
+        </Badge>
+        <Badge type="info" alignSelf="flex-start">
+          <BadgeText>
+            {state.pendingInvitees.length} pending
+            {state.collectableInvitees.length > 0
+              ? ` (${state.collectableInvitees.length} collectable now)`
+              : ''}
+          </BadgeText>
+        </Badge>
+        <Text secondary fontWeight="700">
+          Total earned: {totalEarned} G$
+        </Text>
+      </YStack>
       {state.level && (
         <Text secondary>
           Earn {formatInviteBounty(state.level.bounty, state.chainId)} G$ per eligible invitee.
         </Text>
       )}
-      {state.pendingInvitees.map((invitee) => {
-        const details = state.eligibility[invitee]
-        const status = details?.inviteeWhitelisted
-          ? `Waiting for ${details.minimumDays} days and ${details.minimumClaims} claims.`
-          : 'Waiting for identity verification.'
-        return <Text key={invitee} variant="caption" secondary>{`${invitee.slice(0, 6)}…${invitee.slice(-4)} — ${status}`}</Text>
-      })}
+      {state.pendingInvitees.length > 0 && (
+        <YStack gap="$2">
+          {state.pendingInvitees.map((invitee) => (
+            <InviteeRow
+              key={invitee}
+              invitee={invitee}
+              isCollectable={isInviteeCollectable(invitee, state.collectableInvitees)}
+              details={state.eligibility[invitee]}
+            />
+          ))}
+        </YStack>
+      )}
       <Button fullWidth disabled={!collectable || isCollecting} onPress={actions.collectAll}>
         <ButtonText>{isCollecting ? 'Collecting…' : 'Collect eligible rewards'}</ButtonText>
       </Button>
@@ -166,10 +217,10 @@ export function InviteRewards() {
     )
   }
 
-  if (state.status === 'error') {
+  if (state.status === 'error' && !state.user) {
     return (
       <Card padding="$4" gap="$3">
-        <Text color="$error">{state.error}</Text>
+        <Alert type="error" message={state.error ?? 'Something went wrong. Please try again.'} />
         <Button onPress={actions.refresh}><ButtonText>Retry</ButtonText></Button>
       </Card>
     )
@@ -184,7 +235,10 @@ export function InviteRewards() {
         <Heading level={4}>How it works</Heading>
         <Text secondary>1. Share your code. 2. Your friend joins and claims. 3. After identity, claim-day, and minimum-claim requirements are met, collect your reward.</Text>
       </Card>
-      {state.success && <Text color="$success">{state.success}</Text>}
+      {/* Persistent action feedback — stays visible after a refresh or once the join
+          card disappears (e.g. an inviter is now attached), per acceptance criteria. */}
+      {state.success && <Alert type="success" message={state.success} />}
+      {state.error && <Alert type="error" message={state.error} />}
       <InviteShareCard />
       <InviteJoinCard />
       <InviteeStatus />
