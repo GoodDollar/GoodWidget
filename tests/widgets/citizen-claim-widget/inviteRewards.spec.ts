@@ -65,7 +65,7 @@ test('Invite Rewards empty state offers code creation and hides the invitee list
   page,
 }) => {
   await gotoStory(page, 'empty')
-  await expect(page.getByText('Create your invite code')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Create invite code' })).toBeVisible()
   await expect(page.getByText('Total rewards earned')).toBeVisible()
   await expect(page.getByText('0.00 G$', { exact: true })).toBeVisible()
   // With zero invitees, GoodWallet omits the invitee-list section entirely
@@ -73,6 +73,22 @@ test('Invite Rewards empty state offers code creation and hides the invitee list
   await expect(page.getByText('Your invite rewards')).toHaveCount(0)
   await page.screenshot({
     path: 'tests/widgets/citizen-claim-widget/test-results/ccw-16-invite-empty-state.png',
+    fullPage: true,
+  })
+})
+
+test('Invite Rewards offers deferred join before whitelisting or having a personal code, matching goodwallet.xyz', async ({
+  page,
+}) => {
+  await gotoStory(page, 'not-whitelisted')
+  // Matches the live goodwallet.xyz flow: the share card shows a whitelist
+  // notice (no button), but the join-with-code card is still offered — the
+  // caller doesn't need their own code yet to attach a deferred inviter.
+  await expect(page.getByText('You need to be whitelisted and claim to get an invite link.')).toBeVisible()
+  await expect(page.getByText('Use invite code')).toBeVisible()
+  await expect(page.getByPlaceholder('Place your invite code here')).toBeVisible()
+  await page.screenshot({
+    path: 'tests/widgets/citizen-claim-widget/test-results/ccw-17-invite-not-whitelisted.png',
     fullPage: true,
   })
 })
@@ -114,7 +130,7 @@ test('Invite Rewards keeps the join success banner visible after the join card d
 }) => {
   await gotoStory(page, 'join-success-after-card-hidden')
   await expect(page.getByText('Joined inviter successfully.')).toBeVisible()
-  await expect(page.getByText('Have an invite code?')).toHaveCount(0)
+  await expect(page.getByText('Use invite code')).toHaveCount(0)
   await page.screenshot({
     path: 'tests/widgets/citizen-claim-widget/test-results/ccw-10-invite-join-success.png',
     fullPage: true,
@@ -147,13 +163,13 @@ test('Invite Rewards surfaces a collection error inline in the ready view', asyn
 // would race two independent action executions against one mock runtime instance.
 test('Deferred-inviter join flow: enter a code, join, and see persistent success', async ({ page }) => {
   await gotoStory(page, 'collectable')
-  await expect(page.getByText('Have an invite code?')).toBeVisible()
+  await expect(page.getByText('Use invite code')).toBeVisible()
 
-  await page.getByPlaceholder('Invite code').fill('friendcode123')
+  await page.getByPlaceholder('Place your invite code here').fill('friendcode123')
   await page.getByRole('button', { name: /join with code/i }).click()
 
   await expect(page.getByText('Joined inviter successfully.')).toBeVisible()
-  await expect(page.getByText('Have an invite code?')).toHaveCount(0)
+  await expect(page.getByText('Use invite code')).toHaveCount(0)
   await page.screenshot({
     path: 'tests/widgets/citizen-claim-widget/test-results/ccw-12-invite-deferred-join-flow.png',
     fullPage: true,

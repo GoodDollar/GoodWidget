@@ -94,6 +94,17 @@ export const inviteRewardsFixtures = {
       eligibility: {},
       selfEligibility: { ...waitingDetails, inviteeWhitelisted: true, inviterWhitelisted: null },
     }),
+  // A connected wallet that hasn't verified identity yet and has no personal
+  // code — matches the state reported from a live manual test of goodwallet.xyz.
+  notWhitelisted: (): InviteState =>
+    baseState({
+      user: baseUser({ inviteCode: zeroHash, totalApprovedInvites: 0n, totalEarned: 0n }),
+      invitees: [],
+      pendingInvitees: [],
+      collectableInvitees: [],
+      eligibility: {},
+      selfEligibility: { ...waitingDetails, inviteeWhitelisted: false, inviterWhitelisted: null },
+    }),
   pendingOnly: (): InviteState =>
     baseState({
       invitees: [APPROVED_INVITEE, WAITING_INVITEE],

@@ -34,6 +34,12 @@ export const Empty: Story = {
   render: () => <InviteRewardsFixtureStory fixture="empty" dataTestId="InviteRewards-empty" />,
 }
 
+export const NotWhitelisted: Story = {
+  render: () => (
+    <InviteRewardsFixtureStory fixture="notWhitelisted" dataTestId="InviteRewards-not-whitelisted" />
+  ),
+}
+
 export const PendingOnly: Story = {
   render: () => <InviteRewardsFixtureStory fixture="pendingOnly" dataTestId="InviteRewards-pending" />,
 }
@@ -65,9 +71,9 @@ export const DeferredInviterJoinFlow: Story = {
     const canvas = within(canvasElement)
 
     // The join card is offered because invitedBy is empty and the bounty is unpaid.
-    await expect(canvas.getByText('Have an invite code?')).toBeVisible()
+    await expect(canvas.getByText('Use invite code')).toBeVisible()
 
-    const input = canvas.getByPlaceholderText('Invite code')
+    const input = canvas.getByPlaceholderText('Place your invite code here')
     await userEvent.type(input, 'friendcode123')
     await userEvent.click(canvas.getByRole('button', { name: /join with code/i }))
 
@@ -76,7 +82,7 @@ export const DeferredInviterJoinFlow: Story = {
     // The mock action resolves asynchronously, so use findByText (auto-retrying)
     // rather than getByText (synchronous) to avoid a race with the state update.
     await expect(await canvas.findByText('Joined inviter successfully.')).toBeVisible()
-    await expect(canvas.queryByText('Have an invite code?')).not.toBeInTheDocument()
+    await expect(canvas.queryByText('Use invite code')).not.toBeInTheDocument()
   },
 }
 

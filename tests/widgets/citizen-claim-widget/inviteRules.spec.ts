@@ -37,7 +37,13 @@ test('code-only registered users attach an inviter with their original code', as
 test('paid or already-attached users cannot attach an inviter', () => {
   expect(canAttachInviter(createUser({ bountyPaid: true }))).toBe(false)
   expect(canAttachInviter(createUser({ invitedBy: address }))).toBe(false)
-  expect(canAttachInviter(createUser({ inviteCode: zeroHash, joinedAt: 0n }))).toBe(false)
+})
+
+test('users without a personal code yet can still attach a deferred inviter', () => {
+  // Matches GoodWallet's InvCodeBox and the InvitesV2 join() contract call, which
+  // creates the caller's own code and attaches the inviter in one transaction —
+  // having a code first is not a precondition of the deferred-inviter rule.
+  expect(canAttachInviter(createUser({ inviteCode: zeroHash, joinedAt: 0n }))).toBe(true)
 })
 
 test('rewards are collectable only when the SDK reports collectable invitees', () => {

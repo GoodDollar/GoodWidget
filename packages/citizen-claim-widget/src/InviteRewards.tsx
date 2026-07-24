@@ -74,12 +74,12 @@ function InviteJoinCard({ compact = false }: { compact?: boolean }) {
 
   return (
     <Card padding="$4" gap="$3">
-      <Heading level={compact ? 4 : 3}>Have an invite code?</Heading>
+      <Heading level={compact ? 4 : 3}>Use invite code</Heading>
       <Text secondary>Enter your inviter&apos;s code to join their invite rewards.</Text>
       <Input
         value={code}
         onChange={(event: React.ChangeEvent<HTMLInputElement>) => setCode(event.target.value)}
-        placeholder="Invite code"
+        placeholder="Place your invite code here"
         autoCapitalize="none"
       />
       {validationError && <Alert type="error" message={validationError} />}
@@ -118,15 +118,17 @@ function InviteShareCard() {
     const isVerified = state.selfEligibility?.inviteeWhitelisted
     return (
       <Card padding="$4" gap="$3">
-        <Heading level={3}>Create your invite code</Heading>
-        <Text secondary>
-          {isVerified
-            ? 'Create a code to invite friends to claim G$.'
-            : 'Verify your identity before creating an invite code.'}
-        </Text>
-        <Button fullWidth disabled={!isVerified || state.status === 'joining'} onPress={() => actions.join()}>
-          <ButtonText>{state.status === 'joining' ? 'Creating…' : 'Create invite code'}</ButtonText>
-        </Button>
+        <Heading level={3}>Share your invite</Heading>
+        {isVerified ? (
+          <>
+            <Text secondary>Create a code to invite friends to claim G$.</Text>
+            <Button fullWidth disabled={state.status === 'joining'} onPress={() => actions.join()}>
+              <ButtonText>{state.status === 'joining' ? 'Creating…' : 'Create invite code'}</ButtonText>
+            </Button>
+          </>
+        ) : (
+          <Text color="$error">You need to be whitelisted and claim to get an invite link.</Text>
+        )}
       </Card>
     )
   }
