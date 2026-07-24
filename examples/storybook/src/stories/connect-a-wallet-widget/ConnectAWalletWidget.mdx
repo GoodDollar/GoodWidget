@@ -1,0 +1,78 @@
+import { Canvas, Meta } from '@storybook/blocks';
+import * as ShowcaseStories from './ConnectAWalletWidgetShowcase.stories';
+import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/DocsLayout';
+
+<Meta of={ShowcaseStories} />
+
+<DocsPage
+  eyebrow="Widget Guide"
+  title="ConnectAWalletWidget"
+  lead="Links a secondary wallet address to the connected host wallet's GoodID across Fuse, Celo, and XDC, using @goodsdks/citizen-sdk's IdentitySDK wallet-link contract."
+>
+  <DocsSection
+    title="What this widget does"
+    description="The host wallet (the one connected via GoodWidgetProvider) authorizes link/unlink transactions for a secondary address the user types in. Each of the 3 supported chains is checked and controlled independently."
+  >
+    <DocsGrid>
+      <DocsCard title="Connect the host wallet">
+        Gates on `GoodWidgetProvider`'s wallet connection before anything else is shown.
+      </DocsCard>
+      <DocsCard title="Enter a secondary address">
+        Validates the typed address, then loads its wallet-link status on Fuse, Celo, and XDC via
+        `IdentitySDK.checkConnectedStatus`.
+      </DocsCard>
+      <DocsCard title="Link or unlink per chain">
+        Each chain row always shows either Connect or Disconnect — never hidden — with a loading
+        indicator while the transaction is in flight. `IdentitySDK.connectAccount` /
+        `disconnectAccount` drive the on-chain call, switching the host wallet to that chain first.
+      </DocsCard>
+    </DocsGrid>
+  </DocsSection>
+
+  <DocsSection
+    title="Manual wallet showcase"
+    description="Use this story when validating the SDK-backed link/unlink flow in a browser with a real EIP-1193 wallet extension."
+  >
+    <Canvas of={ShowcaseStories.InjectedWallet} />
+  </DocsSection>
+
+  <DocsSection
+    title="QA coverage"
+    description="Deterministic adapter fixtures live in a dedicated QA story file so visual regression, fixture review, and debugging stay reproducible without a live wallet or network."
+  >
+    <DocsCard
+      title="Open the QA fixture demo"
+      href="?path=/story/qa-connectawalletwidget-runtime-fixtures--not-connected"
+    >
+      Wallet gate, connecting, no-input, address-checking, mixed per-chain row statuses,
+      unsupported-network warning, and top-level error/retry states live in
+      `QA / ConnectAWalletWidget / Runtime Fixtures`.
+    </DocsCard>
+  </DocsSection>
+
+  <DocsSection
+    title="Why this widget is split"
+    description="The runtime-connected wallet path is useful for manual validation, while adapter-backed fixtures are better suited to automation and repeatable review."
+  >
+    <DocsGrid>
+      <DocsCard title="Showcase stories">
+        Manual review in a browser with an injected wallet, exercising the real
+        `useConnectAWalletAdapter` hook end to end.
+      </DocsCard>
+      <DocsCard title="QA stories">
+        Controlled adapter states for screenshots, automation, and debugging without live runtime
+        dependencies.
+      </DocsCard>
+    </DocsGrid>
+  </DocsSection>
+
+  <DocsSection
+    title="Workflow guidance"
+    description="Choose the story type based on whether you are reviewing integration behavior or validating deterministic widget states."
+  >
+    <DocsCallout title="Rule of use" tone="info">
+      Use the showcase story for product-facing wallet-link checks. Use the QA fixtures when you
+      need repeatable screenshots, per-chain row-status coverage, or debugging.
+    </DocsCallout>
+  </DocsSection>
+</DocsPage>
