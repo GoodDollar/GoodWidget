@@ -61,13 +61,20 @@ test('Invite Rewards shows a hard error with retry when the initial load fails',
 
 // ─── Counts, labels, and empty state ────────────────────────────────────────
 
-test('Invite Rewards empty state offers code creation with no invitees yet', async ({ page }) => {
+test('Invite Rewards empty state offers code creation and hides the invitee list, mirroring GoodWallet', async ({
+  page,
+}) => {
   await gotoStory(page, 'empty')
   await expect(page.getByText('Create your invite code')).toBeVisible()
-  await expect(page.getByText('0 invitees joined')).toBeVisible()
-  await expect(page.getByText('0 approved')).toBeVisible()
-  await expect(page.getByText('Total rewards')).toBeVisible()
+  await expect(page.getByText('Total rewards earned')).toBeVisible()
   await expect(page.getByText('0.00 G$', { exact: true })).toBeVisible()
+  // With zero invitees, GoodWallet omits the invitee-list section entirely
+  // rather than showing an empty "0 approved / 0 pending" breakdown.
+  await expect(page.getByText('Your invite rewards')).toHaveCount(0)
+  await page.screenshot({
+    path: 'tests/widgets/citizen-claim-widget/test-results/ccw-16-invite-empty-state.png',
+    fullPage: true,
+  })
 })
 
 test('Invite Rewards labels approved/pending/collectable using protocol values, not raw invitee count', async ({

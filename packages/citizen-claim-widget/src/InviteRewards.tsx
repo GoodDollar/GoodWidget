@@ -290,7 +290,9 @@ export function InviteRewards() {
       <InviteShareCard />
       <InviteJoinCard />
       <TotalEarnedCard />
-      <InviteeStatus />
+      {/* Mirrors GoodWallet's InviteesListBox, which is also omitted entirely
+          until there is at least one invitee to report on. */}
+      {state.invitees.length > 0 && <InviteeStatus />}
     </YStack>
   )
 }
