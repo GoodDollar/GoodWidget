@@ -89,12 +89,7 @@ interface BuyPanelProps {
   onPay: (quote: AiCreditsQuote) => void
 }
 
-function BuyCreditsPanel({
-  state,
-  actions,
-  isPending,
-  onPay,
-}: BuyPanelProps) {
+function BuyCreditsPanel({ state, actions, isPending, onPay }: BuyPanelProps) {
   let content: React.ReactNode
 
   if (state.status === 'unsupported_chain') {
@@ -123,13 +118,6 @@ function BuyCreditsPanel({
             Payment Failed
           </Text>
           {state.error && <Text secondary>{state.error}</Text>}
-          <Button
-            onPress={() => {
-              void actions.retry()
-            }}
-          >
-            <ButtonText>Try Again</ButtonText>
-          </Button>
         </AiCreditsStatusNotice>
         <AiCreditsPurchaseFlow
           state={state}
@@ -163,8 +151,6 @@ function BuyCreditsPanel({
         <AiCreditsHero
           gBalance={state.gBalance}
           isGoodIdVerified={state.isGoodIdVerified}
-          depositBonusPercent={DEPOSIT_BONUS_PERCENT}
-          streamBonusPercent={STREAM_BONUS_PERCENT}
         />
         <AiCreditsStatusNotice>
           <Text color="$warning" fontWeight="700">
@@ -202,8 +188,6 @@ function BuyCreditsPanel({
           <AiCreditsHero
             gBalance={state.gBalance}
             isGoodIdVerified={state.isGoodIdVerified}
-            depositBonusPercent={DEPOSIT_BONUS_PERCENT}
-            streamBonusPercent={STREAM_BONUS_PERCENT}
           />
         )}
 
@@ -282,11 +266,7 @@ function ManagePanel({
             void handleRefresh()
           }}
         >
-          {refreshing ? (
-            <Spinner size="sm" />
-          ) : (
-            <Icon name="refresh" size="sm" color="muted" />
-          )}
+          {refreshing ? <Spinner size="sm" /> : <Icon name="refresh" size="sm" color="muted" />}
           <ButtonText>{refreshing ? 'Refreshing…' : 'Refresh Balance'}</ButtonText>
         </Button>
       </YStack>
@@ -319,10 +299,7 @@ function AiCreditsInner({
   })
 
   const activeAdapter = useMemo(
-    () =>
-      adapterFactory
-        ? adapterFactory({ environment, backendUrl })
-        : defaultAdapter,
+    () => (adapterFactory ? adapterFactory({ environment, backendUrl }) : defaultAdapter),
     [adapterFactory, environment, backendUrl, defaultAdapter],
   )
 
@@ -350,17 +327,16 @@ function AiCreditsInner({
         })
       } catch (err) {
         updateToast(toastId, {
-          message: err instanceof Error ? err.message : (state.error ?? 'Payment failed'),
+          message: err instanceof Error ? err.message : (state.error ?? 'Payment failed. Try again.'),
           status: 'error',
-          duration: 0,
+          duration: 4000,
         })
       }
     },
     [actions, state.error],
   )
 
-  const isPending =
-    state.status === 'payment_pending' || state.status === 'payment_confirmed'
+  const isPending = state.status === 'payment_pending' || state.status === 'payment_confirmed'
 
   const handleTabChange = useCallback(
     (tabId: string) => {
@@ -383,10 +359,7 @@ function AiCreditsInner({
   if (state.status === 'disconnected' || state.status === 'connecting') {
     return (
       <YStack gap="$3" padding="$3" width="100%">
-        <DisconnectedPanel
-          onConnect={actions.connect}
-          connecting={state.status === 'connecting'}
-        />
+        <DisconnectedPanel onConnect={actions.connect} connecting={state.status === 'connecting'} />
       </YStack>
     )
   }
@@ -416,6 +389,7 @@ function AiCreditsInner({
 
 export function AiCreditsWidget({
   provider,
+  connectOverride,
   environment = 'production',
   backendUrl,
   baseRpcUrl,
@@ -434,6 +408,7 @@ export function AiCreditsWidget({
   return (
     <GoodWidgetProvider
       provider={provider as EIP1193Provider | undefined}
+      connectOverride={connectOverride}
       config={config}
       themeOverrides={themeOverrides}
       defaultTheme={defaultTheme}

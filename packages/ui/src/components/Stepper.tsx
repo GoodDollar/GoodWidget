@@ -129,7 +129,10 @@ function StepperStepRow({
   const emphasized = style.active || style.failed
   const pressable =
     Boolean(onStepPress) &&
-    (step.status === 'active' || step.status === 'failed' || step.status === 'completed')
+    (step.status === 'ready' ||
+      step.status === 'active' ||
+      step.status === 'failed' ||
+      step.status === 'completed')
 
   return (
     <YStack ref={stepRef} width="100%">

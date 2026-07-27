@@ -7,12 +7,14 @@
 import React from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { Card, Heading, Text, Button, ButtonText, YStack } from '@goodwidget/ui'
+import { withDefaultPreset } from '../helpers/withDefaultPreset'
 
 const meta: Meta<typeof Card> = {
   title: 'Design System/Primitives/Card',
   component: Card,
   tags: ['autodocs', 'showcase'],
   parameters: { layout: 'padded' },
+  decorators: [withDefaultPreset],
 }
 export default meta
 type Story = StoryObj<typeof Card>

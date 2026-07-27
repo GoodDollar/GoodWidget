@@ -2,7 +2,9 @@ import type {
   AccountCreditResponse,
   AccountRef,
   AccountView,
+  BackendConfigValuesResponse,
   CeloEventsRecordResponse,
+  DiscountConfig,
   CreditHistoryQuery,
   CreditHistoryResponse,
   GdCreditEntry,
@@ -22,6 +24,7 @@ export type {
   AccountRef,
   AccountCreditResponse,
   AccountView,
+  DiscountConfig,
   CreditHistoryQuery,
   CreditHistoryResponse,
   GdCreditEntry,
@@ -279,7 +282,7 @@ export async function enrichAccountView(
   chain: AiCreditsChainClient,
 ): Promise<AccountEnrichment> {
   const { profile } = view
-  const goodIdVerified = await chain.isGoodIdVerified(profile.account)
+  const goodIdVerified = await chain.isGoodIdVerified(view.account)
   const monthlyStreamG = flowRateWeiToMonthlyG(profile.streamFlowRateWeiPerSecond)
   const depositedWei = BigInt(profile.totalGdDepositedWei)
   return {
@@ -291,6 +294,7 @@ export async function enrichAccountView(
 }
 
 export interface AiCreditsBackendClient {
+  getDiscountConfig(): Promise<DiscountConfig>
   getAccountCredit(payer: string): Promise<AccountCreditResponse>
   getCreditHistory(payer: string, options?: CreditHistoryQuery): Promise<CreditHistoryResponse>
   getOutstanding(payer: string): Promise<{ outstandingFundingUsd: string; count: number }>
@@ -318,6 +322,34 @@ export interface AiCreditsBackendClient {
 }
 
 const MOCK_DELAY_MS = 600
+const BPS_PER_PERCENT = 100
+
+export const DEFAULT_DISCOUNT_CONFIG: DiscountConfig = {
+  depositBonusPercent: 10,
+  streamBonusPercent: 20,
+}
+
+function bpsToPercent(bps: unknown, fallbackPercent: number): number {
+  const raw = typeof bps === 'number' ? bps : typeof bps === 'string' ? Number(bps) : NaN
+  if (!Number.isFinite(raw) || raw < 0) return fallbackPercent
+  return Math.trunc(raw / BPS_PER_PERCENT)
+}
+
+function discountConfigFromConfigValues(
+  response: BackendConfigValuesResponse | null | undefined,
+): DiscountConfig {
+  const config = response?.config
+  return {
+    depositBonusPercent: bpsToPercent(
+      config?.REGULAR_BONUS_BPS,
+      DEFAULT_DISCOUNT_CONFIG.depositBonusPercent,
+    ),
+    streamBonusPercent: bpsToPercent(
+      config?.STREAMING_BONUS_BPS,
+      DEFAULT_DISCOUNT_CONFIG.streamBonusPercent,
+    ),
+  }
+}
 
 export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
   private activeRef: AccountRef | null = null
@@ -344,6 +376,11 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
       })
     }
     return this.accountStates.get(key)!
+  }
+
+  async getDiscountConfig(): Promise<DiscountConfig> {
+    await sleep(MOCK_DELAY_MS)
+    return { ...DEFAULT_DISCOUNT_CONFIG }
   }
 
   private buildProfile(payer: string): UserCreditProfile {
@@ -410,6 +447,11 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
       offset: options.cursor ? Number(options.cursor) || 0 : 0,
     })
     return { account: history.account, transactions: history.items }
+  }
+
+  async getUsageLog(payer: string): Promise<GdCreditEntry[]> {
+    const history = await this.getCreditHistory(payer, { limit: DEFAULT_HISTORY_LIMIT, offset: 0 })
+    return history.items
   }
 
   prepareSettlement(ref: AccountRef, creditUsd: bigint): void {
@@ -504,6 +546,13 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
     this.backendUrl = backendUrl.replace(/\/$/, '')
   }
 
+  async getDiscountConfig(): Promise<DiscountConfig> {
+    const response = await fetch(`${this.backendUrl}/config/values`)
+    if (!response.ok) throw new Error(`Config values request failed: ${response.status}`)
+    const payload = (await response.json()) as BackendConfigValuesResponse
+    return discountConfigFromConfigValues(payload)
+  }
+
   private accountBase(payer: string): string {
     return `${this.backendUrl}/v1/accounts/${encodeURIComponent(normalizeAddress(payer))}`
   }
@@ -556,6 +605,11 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
       offset: options.cursor ? Number(options.cursor) || 0 : 0,
     })
     return { account: history.account, transactions: history.items }
+  }
+
+  async getUsageLog(payer: string): Promise<GdCreditEntry[]> {
+    const history = await this.getCreditHistory(payer, { limit: DEFAULT_HISTORY_LIMIT, offset: 0 })
+    return history.items
   }
 
   async notifyPayment(txHash: string): Promise<CeloEventsRecordResponse> {

@@ -15,6 +15,7 @@ import type { Meta, StoryObj } from '@storybook/react'
 import { ClaimWidget } from '@goodwidget/claim-widget-theme-demo'
 import { Card, Heading, Text, Alert, YStack } from '@goodwidget/ui'
 import { createMockEip1193Provider } from '../../fixtures/mockEip1193'
+import { withDefaultPreset } from '../helpers/withDefaultPreset'
 
 const mockProvider = createMockEip1193Provider()
 
@@ -22,6 +23,7 @@ const meta: Meta = {
   title: 'Design System/Theming/Override Playground',
   tags: ['autodocs', 'integrator', 'showcase'],
   parameters: { layout: 'padded' },
+  decorators: [withDefaultPreset],
 }
 export default meta
 type Story = StoryObj
@@ -60,8 +62,8 @@ export const TokenOverride: Story = {
       />
       <Card>
         <Heading level={5}>How it works</Heading>
-      <Text variant="caption">
-        {`<ClaimWidget
+        <Text variant="caption">
+          {`<ClaimWidget
   config={{
     tokens: {
       color: { primary: '#4F7DFF', primaryDark: '#2E5DE8', primaryLight: '#7FA4FF' }
@@ -106,8 +108,8 @@ export const ComponentThemeOverride: Story = {
       />
       <Card>
         <Heading level={5}>How it works</Heading>
-      <Text variant="caption">
-        {`<ClaimWidget
+        <Text variant="caption">
+          {`<ClaimWidget
   config={{
     themes: {
       dark_ClaimActionGlow: { primary: '#12cb31', primaryLight: '#9A4DFF' },
@@ -151,8 +153,8 @@ export const HostOverrideCobalt: Story = {
       />
       <Card>
         <Heading level={5}>How it works</Heading>
-      <Text variant="caption">
-        {`<ClaimWidget
+        <Text variant="caption">
+          {`<ClaimWidget
   themeOverrides={{
     tokens: { color: { primary: '#2E5DE8', ... } },
     themes: {

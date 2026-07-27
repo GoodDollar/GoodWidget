@@ -10,6 +10,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./appkit-provider": {
+      "types": "./dist/appkitProvider.d.ts",
+      "import": "./dist/appkitProvider.js",
+      "require": "./dist/appkitProvider.cjs"
     }
   },
   "scripts": {
@@ -25,13 +30,18 @@
   "dependencies": {
     "@goodwidget/core": "workspace:*",
     "@goodwidget/ui": "workspace:*",
-    "@r2wc/react-to-web-component": "^2.0.3"
+    "@r2wc/react-to-web-component": "^2.0.3",
+    "@reown/appkit": "^1.8.22",
+    "@reown/appkit-adapter-wagmi": "^1.8.22",
+    "@tanstack/react-query": "^5.101.2",
+    "viem": "^2.0.0",
+    "wagmi": "^3.7.1"
   },
   "devDependencies": {
-    "react": "^18.3.0",
-    "react-dom": "^18.3.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
     "tsup": "^8.4.0",
     "typescript": "^5.7.0"
   }

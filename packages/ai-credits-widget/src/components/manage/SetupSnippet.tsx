@@ -1,5 +1,14 @@
 import React, { useState } from 'react'
-import { Anchor, Button, Card, Icon, Text, XStack, YStack, copyTextToClipboard } from '@goodwidget/ui'
+import {
+  Anchor,
+  Button,
+  Card,
+  Icon,
+  Text,
+  XStack,
+  YStack,
+  copyTextToClipboard,
+} from '@goodwidget/ui'
 
 const ANTSEED_API_DOCS_URL = 'https://antseed.com/docs/guides/using-the-api'
 
@@ -15,7 +24,7 @@ function buildSetupSnippet(): string {
   return [
     'npm install -g @antseed/cli',
     '',
-    'export ANTSEED_IDENTITY_HEX=<buyer-private-key>',
+    'export ANTSEED_IDENTITY_HEX=<buyer-private-key-hex>',
     '',
     'antseed buyer start',
     'antseed network browse',
@@ -59,7 +68,13 @@ export function SetupSnippet() {
 
       {expanded && (
         <YStack gap="$2">
-          <YStack backgroundColor="$backgroundMuted" borderRadius="$2" padding="$3" width="100%" gap="$1">
+          <YStack
+            backgroundColor="$backgroundMuted"
+            borderRadius="$2"
+            padding="$3"
+            width="100%"
+            gap="$1"
+          >
             {lines.map((line, index) => (
               <Text key={index} color="$text" style={setupSnippetLineStyle}>
                 {line.length > 0 ? line : ' '}

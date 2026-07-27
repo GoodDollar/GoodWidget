@@ -55,6 +55,7 @@ export const GoodWidgetContext = React.createContext<GoodWidgetContextValue>({
 
 export function GoodWidgetProvider({
   provider: explicitProvider,
+  connectOverride,
   config: authorConfig,
   themeOverrides,
   defaultTheme = 'dark',
@@ -114,12 +115,17 @@ export function GoodWidgetProvider({
   }, [resolvedProvider])
 
   const connect = useCallback(async () => {
+    if (connectOverride) {
+      await connectOverride()
+      return
+    }
+
     if (!resolvedProvider) return
     const accounts = (await resolvedProvider.request({
       method: 'eth_requestAccounts',
     })) as string[]
     if (accounts.length > 0) setAddress(accounts[0])
-  }, [resolvedProvider])
+  }, [connectOverride, resolvedProvider])
 
   const mergedConfig = useMemo(() => {
     const finalConfig = mergeThemeOverrides(authorConfig, themeOverrides)

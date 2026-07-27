@@ -3,6 +3,7 @@ import { createComponent, Card, XStack } from '@goodwidget/ui'
 export const AiCreditsStatusNotice = createComponent(Card, {
   name: 'AiCreditsStatusNotice',
   extends: 'Card',
+  backgroundColor: '$backgroundHover',
   borderWidth: 1,
   padding: '$3',
 })

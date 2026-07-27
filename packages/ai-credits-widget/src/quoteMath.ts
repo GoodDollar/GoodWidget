@@ -30,12 +30,18 @@ export function gdWeiToUsd(gdAmountWei: bigint, gdUsdPerToken: number): bigint {
   return (gdAmountWei * usdPerToken) / 1_000_000_000_000_000_000n
 }
 
-export function getDepositBonusPercent(isGoodIdVerified: boolean): number {
-  return isGoodIdVerified ? DEPOSIT_BONUS_PERCENT : 0
+export function getDepositBonusPercent(
+  isGoodIdVerified: boolean,
+  depositBonusPercent = DEPOSIT_BONUS_PERCENT,
+): number {
+  return isGoodIdVerified ? depositBonusPercent : 0
 }
 
-export function getStreamBonusPercent(isGoodIdVerified: boolean): number {
-  return isGoodIdVerified ? STREAM_BONUS_PERCENT : 0
+export function getStreamBonusPercent(
+  isGoodIdVerified: boolean,
+  streamBonusPercent = STREAM_BONUS_PERCENT,
+): number {
+  return isGoodIdVerified ? streamBonusPercent : 0
 }
 
 export function formatProfileUsd(usd: bigint): string {
@@ -46,6 +52,15 @@ export function formatUsdDisplay(usd: string, decimals = 2): string {
   const value = Number.parseFloat(usd)
   if (!Number.isFinite(value) || value <= 0) return `US$ ${(0).toFixed(decimals)}`
   return `US$ ${value.toFixed(decimals)}`
+}
+
+export function formatUsd1ToG(gdUsdPerToken: number): string | null {
+  if (!Number.isFinite(gdUsdPerToken) || gdUsdPerToken <= 0) return null
+  const gPerUsd = 1 / gdUsdPerToken
+  if (!Number.isFinite(gPerUsd) || gPerUsd <= 0) return null
+  if (gPerUsd >= 100) return Math.round(gPerUsd).toLocaleString('en-US')
+  if (gPerUsd >= 10) return gPerUsd.toFixed(1)
+  return gPerUsd.toFixed(2)
 }
 
 export function formatUsdWithBonus(principalUsd: string, bonusPercent: number): string {
@@ -113,10 +128,14 @@ export function quoteDepositBonusUsd(
   quote: AiCreditsQuote,
   gdUsdPerToken: number,
   isGoodIdVerified: boolean,
+  depositBonusPercent = DEPOSIT_BONUS_PERCENT,
 ): string {
   const principal = gdWeiToUsd(gToWei(quote.depositAmountG), gdUsdPerToken)
   return formatProfileUsd(
-    bonusUsdFromPrincipal(principal, getDepositBonusPercent(isGoodIdVerified)),
+    bonusUsdFromPrincipal(
+      principal,
+      getDepositBonusPercent(isGoodIdVerified, depositBonusPercent),
+    ),
   )
 }
 
@@ -124,10 +143,14 @@ export function quoteStreamBonusUsd(
   quote: AiCreditsQuote,
   gdUsdPerToken: number,
   isGoodIdVerified: boolean,
+  streamBonusPercent = STREAM_BONUS_PERCENT,
 ): string {
   const principal = gdWeiToUsd(gToWei(quote.streamAmountG), gdUsdPerToken)
   return formatProfileUsd(
-    bonusUsdFromPrincipal(principal, getStreamBonusPercent(isGoodIdVerified)),
+    bonusUsdFromPrincipal(
+      principal,
+      getStreamBonusPercent(isGoodIdVerified, streamBonusPercent),
+    ),
   )
 }
 
@@ -135,16 +158,23 @@ export function quoteTotalUsdMicro(
   quote: AiCreditsQuote,
   gdUsdPerToken: number,
   isGoodIdVerified: boolean,
+  bonusPercents?: { depositBonusPercent?: number; streamBonusPercent?: number },
 ): bigint {
   const depositPrincipal = gdWeiToUsd(gToWei(quote.depositAmountG), gdUsdPerToken)
   const streamPrincipal = gdWeiToUsd(gToWei(quote.streamAmountG), gdUsdPerToken)
   const depositBonus = bonusUsdFromPrincipal(
     depositPrincipal,
-    getDepositBonusPercent(isGoodIdVerified),
+    getDepositBonusPercent(
+      isGoodIdVerified,
+      bonusPercents?.depositBonusPercent ?? DEPOSIT_BONUS_PERCENT,
+    ),
   )
   const streamBonus = bonusUsdFromPrincipal(
     streamPrincipal,
-    getStreamBonusPercent(isGoodIdVerified),
+    getStreamBonusPercent(
+      isGoodIdVerified,
+      bonusPercents?.streamBonusPercent ?? STREAM_BONUS_PERCENT,
+    ),
   )
   return depositPrincipal + depositBonus + streamPrincipal + streamBonus
 }
@@ -153,6 +183,9 @@ export function quoteTotalCredits(
   quote: AiCreditsQuote,
   gdUsdPerToken: number,
   isGoodIdVerified: boolean,
+  bonusPercents?: { depositBonusPercent?: number; streamBonusPercent?: number },
 ): string {
-  return usdToCredits(quoteTotalUsdMicro(quote, gdUsdPerToken, isGoodIdVerified).toString())
+  return usdToCredits(
+    quoteTotalUsdMicro(quote, gdUsdPerToken, isGoodIdVerified, bonusPercents).toString(),
+  )
 }

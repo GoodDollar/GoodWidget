@@ -4,12 +4,14 @@
 import React from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { TokenAmount, Card, Heading, YStack } from '@goodwidget/ui'
+import { withDefaultPreset } from '../helpers/withDefaultPreset'
 
 const meta: Meta<typeof TokenAmount> = {
   title: 'Design System/Primitives/TokenAmount',
   component: TokenAmount,
   tags: ['autodocs', 'showcase'],
   parameters: { layout: 'padded' },
+  decorators: [withDefaultPreset],
   argTypes: {
     amount: { control: 'text', description: 'Token amount to display' },
     token: { control: 'text', description: 'Token ticker symbol' },

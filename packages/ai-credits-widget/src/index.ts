@@ -22,6 +22,7 @@ export type {
   AccountStatusResponse,
   AccountView,
   AccountEnrichment,
+  DiscountConfig,
   GdCreditEntry,
 } from './backendClient'
 export {
@@ -33,6 +34,7 @@ export {
   totalCreditUsdFromProfile,
   totalCreditUsdFromStatus,
   usdToCredits,
+  DEFAULT_DISCOUNT_CONFIG,
 } from './backendClient'
 export type { BuyerOperatorStatus, Eip712SigningPayload } from './operatorConsent'
 export type { AiCreditsChainClient } from './chainClient'
