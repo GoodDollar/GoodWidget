@@ -129,7 +129,6 @@ function createState(
     member,
     dashboard: createDashboard(),
     selectedHouse: 'citizenship',
-    disabledHouseOptions: status === 'onboarding_required' ? ['alignment'] : [],
     onboardingStepId: undefined,
     profileDraft: {},
     stakeAmountLabel: '250 G$',
@@ -215,12 +214,11 @@ export const LoadingConnected: Story = {
   render: () => <RuntimeStory state={createState('loading')} />,
 }
 
-export const OnboardingRequiredHoaUnavailable: Story = {
+export const OnboardingHouseSelection: Story = {
   render: () => (
     <RuntimeStory
       state={createState('onboarding_required', {
         onboardingStepId: 'house',
-        disabledHouseOptions: ['alignment'],
         identityStatus: 'verified',
       })}
     />

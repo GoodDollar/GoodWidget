@@ -23,7 +23,6 @@ import type { StepperStepItem } from '@goodwidget/ui'
 interface GovernanceOnboardingFlowProps {
   identityStatus: GovernanceIdentityStatus
   walletAddress?: string
-  disabledHouseOptions: GovernanceHouse[]
   initialFieldErrors: GovernanceProfileFieldErrors
   stakeAmountLabels: Record<GovernanceHouse, string>
   transactionSteps: StepperStepItem[]
@@ -42,7 +41,6 @@ function areTransactionStepsComplete(steps: StepperStepItem[]): boolean {
 export function GovernanceOnboardingFlow({
   identityStatus,
   walletAddress,
-  disabledHouseOptions,
   initialFieldErrors,
   stakeAmountLabels,
   transactionSteps = DEFAULT_TRANSACTION_STEPS,
@@ -142,7 +140,6 @@ export function GovernanceOnboardingFlow({
       shellContent = (
         <HouseStepContent
           selectedHouse={selectedHouse}
-          disabledHouseOptions={disabledHouseOptions}
           stakeAmountLabels={stakeAmountLabels}
           onHouseSelect={handleHouseSelect}
         />

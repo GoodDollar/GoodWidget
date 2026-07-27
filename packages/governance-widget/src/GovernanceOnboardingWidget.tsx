@@ -15,7 +15,6 @@ export function GovernanceOnboardingWidget({
   identityStatus = 'verified',
   walletAddress,
   initialHouse,
-  disabledHouseOptions = [],
   initialProfileDraft,
   initialFieldErrors = {},
   stakeAmountLabel,
@@ -54,7 +53,6 @@ export function GovernanceOnboardingWidget({
       <GovernanceOnboardingFlow
         identityStatus={identityStatus}
         walletAddress={walletAddress}
-        disabledHouseOptions={disabledHouseOptions}
         initialFieldErrors={initialFieldErrors}
         stakeAmountLabels={resolvedStakeAmountLabels}
         transactionSteps={transactionSteps}

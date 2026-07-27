@@ -7,7 +7,6 @@ import {
 import {
   encodeGovernanceRegistrationData,
   mapFlowSplitterConfig,
-  mapHoaEligibilityRecord,
   mapMemberRecord,
   mapVoteConfig,
 } from '../../../packages/governance-widget/src/sdks/contracts'
@@ -79,12 +78,6 @@ test('maps final GoodDaoHouses ABI tuples', () => {
     splitter: '0x2222222222222222222222222222222222222222',
     poolId: 9n,
     poolAddress: houses,
-  })
-  expect(mapHoaEligibilityRecord([true, 10n, 20n, 0n])).toMatchObject({
-    isEligible: true,
-    listedAt: 10000,
-    updatedAt: 20000,
-    delistedAt: null,
   })
 })
 
@@ -302,7 +295,6 @@ test('requires current membership reads before resolving a registration stake', 
   const membership = {
     member: mapMemberRecord([0, 0, 0n, 0n, 0n, 0n, 0n, '', '', '', '', '']),
     minimumStakes: { citizenship: 1_000n, alignment: 2_000n },
-    hoaEligibility: mapHoaEligibilityRecord([false, 0n, 0n, 0n]),
     identityRoot: account,
     activeCitizens: [],
     activeAlignment: [],
@@ -317,8 +309,8 @@ test('requires current membership reads before resolving a registration stake', 
     error: null,
   })
   expect(resolveRegistrationStake(membership, 'alignment')).toEqual({
-    stakeAmountWei: null,
-    error: 'This wallet is not currently eligible for House of Alignment registration.',
+    stakeAmountWei: 2_000n,
+    error: null,
   })
 })
 

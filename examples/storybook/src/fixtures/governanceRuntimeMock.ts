@@ -9,7 +9,6 @@ import {
 const HOUSES_READ_ABI = parseAbi([
   'function minimumStake(uint8 house) view returns (uint256)',
   'function getMember(address account) view returns ((uint8 house, uint8 status, uint256 stakedAmount, uint64 joinedAt, uint64 updatedAt, uint64 unstakedAt, uint256 memberIndex, string name, string socialLinks, string projectWebpage, string missionStatement, string distributionStrategy))',
-  'function getHoaEligibility(address account) view returns ((bool isEligible, uint64 listedAt, uint64 updatedAt, uint64 delistedAt))',
   'function getActiveMembers(uint8 house) view returns (address[])',
   'function cycleStartTime() view returns (uint64)',
   'function termDuration() view returns (uint64)',
@@ -36,6 +35,7 @@ export const MOCK_POOL = '0x8888888888888888888888888888888888888888' as Address
 export interface MockGovernanceReadOptions {
   memberStatus?: 0 | 1 | 2 | 3 | 4
   memberStatusByAccount?: Record<string, 0 | 1 | 2 | 3 | 4>
+  memberHouseByAccount?: Record<string, 0 | 1>
 }
 
 export function encodeMockGovernanceRead(
@@ -72,7 +72,7 @@ export function encodeMockGovernanceRead(
         abi: HOUSES_READ_ABI,
         functionName: 'getMember',
         result: {
-          house: 0,
+          house: options.memberHouseByAccount?.[memberAccount] ?? 0,
           status: memberStatus,
           stakedAmount: hasMembership ? 1_000n * 10n ** 18n : 0n,
           joinedAt: hasMembership ? 1_761_955_200n : 0n,
@@ -92,17 +92,6 @@ export function encodeMockGovernanceRead(
         abi: HOUSES_READ_ABI,
         functionName: 'minimumStake',
         result: 1_000n * 10n ** 18n,
-      })
-    case 'getHoaEligibility':
-      return encodeFunctionResult({
-        abi: HOUSES_READ_ABI,
-        functionName: 'getHoaEligibility',
-        result: {
-          isEligible: true,
-          listedAt: 1_761_955_200n,
-          updatedAt: 1_761_955_200n,
-          delistedAt: 0n,
-        },
       })
     case 'getActiveMembers': {
       const house = Number(decoded.args[0])

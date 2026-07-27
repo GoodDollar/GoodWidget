@@ -440,7 +440,6 @@ function GovernanceWidgetView({
             identityStatus={state.identityStatus}
             walletAddress={state.address ?? undefined}
             initialHouse={state.selectedHouse}
-            disabledHouseOptions={state.disabledHouseOptions}
             initialProfileDraft={state.profileDraft}
             stakeAmountLabel={state.stakeAmountLabel}
             stakeAmountLabels={{

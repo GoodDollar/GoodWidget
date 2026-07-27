@@ -94,7 +94,6 @@ export interface GovernanceWidgetAdapterState {
   member: GovernanceMemberRecord | null
   dashboard: GovernanceDashboardState
   selectedHouse: GovernanceHouse
-  disabledHouseOptions: GovernanceHouse[]
   onboardingStepId?: GovernanceOnboardingStepId
   profileDraft: GovernanceProfileDraft
   stakeAmountLabel: string

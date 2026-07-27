@@ -5,7 +5,11 @@ import {
   MOCK_HOUSES,
   encodeMockGovernanceRead,
 } from '../../../examples/storybook/src/fixtures/governanceRuntimeMock'
-import { G_TOKEN_CELO_ADDRESS } from '../../../packages/governance-widget/src/sdks/contracts'
+import {
+  G_TOKEN_ABI,
+  G_TOKEN_CELO_ADDRESS,
+} from '../../../packages/governance-widget/src/sdks/contracts'
+import { decodeAbiParameters, decodeFunctionData } from 'viem'
 
 type Address = `0x${string}`
 type Hex = `0x${string}`
@@ -33,10 +37,10 @@ const RUNTIME_STORIES: RuntimeStoryCase[] = [
     screenshot: 'tests/widgets/governance-widget/test-results/gwr-02-loading-connected.png',
   },
   {
-    id: 'qa-governancewidget-runtime-fixtures--onboarding-required-hoa-unavailable',
+    id: 'qa-governancewidget-runtime-fixtures--onboarding-house-selection',
     testId: 'GovernanceWidget-onboarding',
     expectedText: 'House of Alignment',
-    screenshot: 'tests/widgets/governance-widget/test-results/gwr-03-onboarding-hoa-unavailable.png',
+    screenshot: 'tests/widgets/governance-widget/test-results/gwr-03-onboarding-house-selection.png',
   },
   {
     id: 'qa-governancewidget-runtime-fixtures--pending-alignment',
@@ -211,8 +215,9 @@ async function installGovernanceRuntimeMocks(
   options: {
     receiptStatus?: 'success' | 'reverted'
     clearMemberAfterReceipt?: boolean
-    initialMemberStatus?: 0 | 2
-    memberStatusAfterReceipt?: 0 | 2
+    initialMemberStatus?: 0 | 1 | 2
+    memberStatusAfterReceipt?: 0 | 1 | 2
+    memberHouse?: 0 | 1
   } = {},
 ): Promise<{
   pauseReads: () => void
@@ -221,9 +226,13 @@ async function installGovernanceRuntimeMocks(
   resumeReceipts: () => void
   receiptRequestCount: () => number
 }> {
-  const memberStatusByAccount: Record<string, 0 | 2> = {
+  const memberStatusByAccount: Record<string, 0 | 1 | 2> = {
     [MOCK_ACCOUNT.toLowerCase()]: options.initialMemberStatus ?? 2,
     [MOCK_SWITCHED_ACCOUNT.toLowerCase()]: 2,
+  }
+  const memberHouseByAccount: Record<string, 0 | 1> = {
+    [MOCK_ACCOUNT.toLowerCase()]: options.memberHouse ?? 0,
+    [MOCK_SWITCHED_ACCOUNT.toLowerCase()]: 0,
   }
   let readsPaused = false
   let resumePendingReads: (() => void) | null = null
@@ -355,7 +364,10 @@ async function installGovernanceRuntimeMocks(
     if (!call?.to || !call.data) throw new Error('Mock eth_call is missing to/data')
     let result: Hex
     try {
-      result = encodeMockGovernanceRead(call.to, call.data, { memberStatusByAccount })
+      result = encodeMockGovernanceRead(call.to, call.data, {
+        memberStatusByAccount,
+        memberHouseByAccount,
+      })
     } catch (error) {
       console.error(`Governance RPC mock failed for ${call.to} ${call.data}: ${String(error)}`)
       throw error
@@ -434,6 +446,22 @@ async function submitCitizenshipRegistration(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Create Profile and Stake' }).click()
 }
 
+async function submitAlignmentRegistration(page: Page): Promise<void> {
+  await expect(page.getByTestId('GovernanceWidget-onboarding')).toBeVisible()
+  await page.getByRole('button', { name: 'Proceed to Membership' }).click()
+  await page.getByTestId('GovernanceOnboardingWidget-house-alignment').click()
+  await page.getByRole('button', { name: 'Continue', exact: true }).click()
+  await page.getByPlaceholder('John Doe or Organization').fill('Mocked Alignment')
+  await page.getByPlaceholder('https://example.com').fill('https://alignment.example')
+  await page.getByPlaceholder('What is the primary goal of your alignment?').fill(
+    'Fund public goods through transparent community governance.',
+  )
+  await page.getByPlaceholder('How do you plan to allocate resources?').fill(
+    'Allocate resources through quarterly community-approved votes.',
+  )
+  await page.getByRole('button', { name: 'Create Profile and Stake' }).click()
+}
+
 for (const storyCase of RUNTIME_STORIES) {
   test(`${storyCase.id} renders runtime state`, async ({ page }) => {
     await page.setViewportSize({ width: 430, height: 900 })
@@ -458,15 +486,22 @@ for (const storyCase of RUNTIME_STORIES) {
   })
 }
 
-test('onboarding runtime fixture greys out House of Alignment for non-whitelisted wallets', async ({
+test('onboarding allows either house and keeps the contract-derived stake for the selection', async ({
   page,
 }) => {
-  await gotoStory(page, 'qa-governancewidget-runtime-fixtures--onboarding-required-hoa-unavailable')
+  await gotoStory(page, 'qa-governancewidget-runtime-fixtures--onboarding-house-selection')
 
   const alignmentCard = page.getByTestId('GovernanceOnboardingWidget-house-alignment')
+  const citizenshipCard = page.getByTestId('GovernanceOnboardingWidget-house-citizenship')
   await expect(alignmentCard).toBeVisible()
-  await expect(alignmentCard).toHaveCSS('pointer-events', 'none')
-  await captureEvidence(page, 'tests/widgets/governance-widget/test-results/gwr-15-hoa-greyed-out.png')
+  await expect(citizenshipCard).toBeVisible()
+  await expect(alignmentCard).toHaveCSS('pointer-events', 'auto')
+  await expect(citizenshipCard).toHaveCSS('pointer-events', 'auto')
+
+  await alignmentCard.click()
+  await expect(alignmentCard).toHaveAttribute('aria-checked', 'true')
+  await expect(alignmentCard).toContainText('500 G$ stake')
+  await captureEvidence(page, 'tests/widgets/governance-widget/test-results/gwr-15-both-houses-available.png')
 })
 
 test('active membership keeps unstake disabled until the contract unlock boundary', async ({
@@ -503,6 +538,48 @@ test('real adapter registers a no-member after a successful receipt', async ({ p
   ).__governanceSentTransactions ?? [])
   expect(sentTransactions).toHaveLength(1)
   expect(sentTransactions[0]?.to?.toLowerCase()).toBe(G_TOKEN_CELO_ADDRESS.toLowerCase())
+})
+
+test('real adapter lets any wallet register for Alignment at the contract minimum stake', async ({
+  page,
+}) => {
+  logRuntimeDiagnostics(page)
+  await page.clock.install({ time: MOCK_NOW_SECONDS * 1000 })
+  await installInjectedProvider(page)
+  await installGovernanceRuntimeMocks(page, {
+    initialMemberStatus: 0,
+    memberStatusAfterReceipt: 1,
+    memberHouse: 1,
+  })
+  await gotoStory(page, 'qa-governancewidget-runtime-fixtures--real-adapter-mocked-runtime')
+
+  await submitAlignmentRegistration(page)
+
+  await expect(page.getByTestId('GovernanceWidget-pending-alignment')).toBeVisible()
+  const sentTransactions = await page.evaluate(() => (
+    window as typeof window & { __governanceSentTransactions?: Array<{ data?: Hex; to?: string }> }
+  ).__governanceSentTransactions ?? [])
+  expect(sentTransactions).toHaveLength(1)
+  expect(sentTransactions[0]?.to?.toLowerCase()).toBe(G_TOKEN_CELO_ADDRESS.toLowerCase())
+
+  const transactionData = sentTransactions[0]?.data
+  expect(transactionData).toBeTruthy()
+  const transfer = decodeFunctionData({ abi: G_TOKEN_ABI, data: transactionData as Hex })
+  expect(transfer.functionName).toBe('transferAndCall')
+  expect(transfer.args[0].toLowerCase()).toBe(MOCK_HOUSES.toLowerCase())
+  expect(transfer.args[1]).toBe(1_000n * 10n ** 18n)
+  const [house] = decodeAbiParameters(
+    [
+      { type: 'uint8' },
+      { type: 'string' },
+      { type: 'string' },
+      { type: 'string' },
+      { type: 'string' },
+      { type: 'string' },
+    ],
+    transfer.args[2],
+  )
+  expect(house).toBe(1)
 })
 
 test('real adapter keeps registration in onboarding after a reverted receipt', async ({ page }) => {

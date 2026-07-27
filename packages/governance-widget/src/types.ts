@@ -51,7 +51,6 @@ export interface GovernanceOnboardingWidgetProps {
    */
   walletAddress?: string
   initialHouse?: GovernanceHouse
-  disabledHouseOptions?: GovernanceHouse[]
   initialProfileDraft?: GovernanceProfileDraft
   initialFieldErrors?: GovernanceProfileFieldErrors
   stakeAmountLabel?: string

@@ -59,7 +59,6 @@ export {
   G_TOKEN_CELO_ADDRESS,
   encodeGovernanceRegistrationData,
   mapFlowSplitterConfig,
-  mapHoaEligibilityRecord,
   mapMemberRecord,
   mapVoteConfig,
   resolveGovernanceAddresses,

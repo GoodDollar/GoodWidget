@@ -35,13 +35,6 @@ const HouseOptionButton = createComponent(Stack, {
         backgroundColor: '$backgroundHover',
       },
     },
-    disabled: {
-      true: {
-        opacity: 0.5,
-        cursor: 'not-allowed',
-        pointerEvents: 'none',
-      },
-    },
   } as const,
 })
 
@@ -94,7 +87,6 @@ const HousePill = createComponent(Stack, {
 interface HouseSelectionCardProps {
   house: GovernanceHouse
   isSelected: boolean
-  isDisabled: boolean
   stakeAmountLabel: string
   onPress: () => void
 }
@@ -102,7 +94,6 @@ interface HouseSelectionCardProps {
 export function HouseSelectionCard({
   house,
   isSelected,
-  isDisabled,
   stakeAmountLabel,
   onPress,
 }: HouseSelectionCardProps) {
@@ -111,7 +102,6 @@ export function HouseSelectionCard({
   return (
     <HouseOptionButton
       selected={isSelected}
-      disabled={isDisabled}
       role="radio"
       aria-checked={isSelected}
       onPress={onPress}

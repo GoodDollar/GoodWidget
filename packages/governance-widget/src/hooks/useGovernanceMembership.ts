@@ -97,9 +97,6 @@ export function friendlyGovernanceError(err: unknown): string {
   if (message.includes('insufficient funds')) {
     return 'Your wallet does not have enough funds for this governance action.'
   }
-  if (message.includes('Not HoA eligible')) {
-    return 'This wallet is not currently eligible for House of Alignment registration.'
-  }
   if (message.includes('Term not passed')) {
     return 'Your membership is still locked for the current governance term.'
   }
@@ -211,12 +208,6 @@ export function resolveRegistrationStake(
       error: 'Membership data is still loading. Please try again in a moment.',
     }
   }
-  if (selectedHouse === 'alignment' && !membership.hoaEligibility.isEligible) {
-    return {
-      stakeAmountWei: null,
-      error: 'This wallet is not currently eligible for House of Alignment registration.',
-    }
-  }
   return { stakeAmountWei: membership.minimumStakes[selectedHouse], error: null }
 }
 
@@ -292,9 +283,7 @@ export function useGovernanceMembership(params: {
             schedule,
             selectedHouse:
               membership.member.status === 'none' || membership.member.status === 'unstaked'
-                ? previous.selectedHouse === 'alignment' && !membership.hoaEligibility.isEligible
-                  ? 'citizenship'
-                  : previous.selectedHouse
+                ? previous.selectedHouse
                 : membership.member.house,
             isLoading: false,
             loadError: null,
@@ -541,7 +530,6 @@ export function useGovernanceMembership(params: {
     identityStatus: membership?.identityRoot && membership.identityRoot !== '0x0000000000000000000000000000000000000000'
       ? 'verified' as const
       : 'unverified' as const,
-    hoaEligibility: membership?.hoaEligibility ?? null,
     activeCitizens: membership?.activeCitizens ?? EMPTY_ADDRESSES,
     activeAlignment: membership?.activeAlignment ?? EMPTY_ADDRESSES,
     unstakeAvailability,

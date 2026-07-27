@@ -5,13 +5,11 @@ import {
   formatStakeAmount,
   houseToContractValue,
   mapFlowSplitterConfig,
-  mapHoaEligibilityRecord,
   mapMemberRecord,
   mapVoteConfig,
   readGoodIdRoot,
   safeMillisecondsFromSeconds,
   type GovernanceFlowSplitterConfig,
-  type GovernanceHoaEligibilityRecord,
   type GovernanceMemberRecord,
   type GovernanceVoteConfig,
 } from './contracts'
@@ -48,7 +46,6 @@ export function voteStartTimeFromSchedule(
 export interface GovernanceMembershipReads {
   member: GovernanceMemberRecord
   minimumStakes: GovernanceStakeRequirements
-  hoaEligibility: GovernanceHoaEligibilityRecord
   identityRoot: Address
   activeCitizens: Address[]
   activeAlignment: Address[]
@@ -61,7 +58,7 @@ export async function readGovernanceMembership(params: {
   account: Address
 }): Promise<GovernanceMembershipReads> {
   const { publicClient, housesAddress, goodIdAddress, account } = params
-  const [member, citizenshipStake, alignmentStake, hoaEligibility, identityRoot, activeCitizens, activeAlignment] =
+  const [member, citizenshipStake, alignmentStake, identityRoot, activeCitizens, activeAlignment] =
     await Promise.all([
       publicClient.readContract({
         address: housesAddress,
@@ -80,12 +77,6 @@ export async function readGovernanceMembership(params: {
         abi: GOODDAO_HOUSES_ABI,
         functionName: 'minimumStake',
         args: [houseToContractValue('alignment')],
-      }),
-      publicClient.readContract({
-        address: housesAddress,
-        abi: GOODDAO_HOUSES_ABI,
-        functionName: 'getHoaEligibility',
-        args: [account],
       }),
       readGoodIdRoot(publicClient, goodIdAddress, account),
       publicClient.readContract({
@@ -108,7 +99,6 @@ export async function readGovernanceMembership(params: {
       citizenship: citizenshipStake,
       alignment: alignmentStake,
     },
-    hoaEligibility: mapHoaEligibilityRecord(hoaEligibility),
     identityRoot,
     activeCitizens: [...activeCitizens],
     activeAlignment: [...activeAlignment],

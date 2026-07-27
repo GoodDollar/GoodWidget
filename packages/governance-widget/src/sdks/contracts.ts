@@ -37,7 +37,6 @@ export const CELO_CHAIN: Chain = {
 export const GOODDAO_HOUSES_ABI = parseAbi([
   'function minimumStake(uint8 house) view returns (uint256)',
   'function getMember(address account) view returns ((uint8 house, uint8 status, uint256 stakedAmount, uint64 joinedAt, uint64 updatedAt, uint64 unstakedAt, uint256 memberIndex, string name, string socialLinks, string projectWebpage, string missionStatement, string distributionStrategy))',
-  'function getHoaEligibility(address account) view returns ((bool isEligible, uint64 listedAt, uint64 updatedAt, uint64 delistedAt))',
   'function getActiveMembers(uint8 house) view returns (address[])',
   'function getActiveMembers(uint8 house, uint256 startIndex, uint256 endIndex) view returns (address[])',
   'function cycleStartTime() view returns (uint64)',
@@ -92,13 +91,6 @@ export interface GovernanceFlowSplitterConfig {
   splitter: Address
   poolId: bigint
   poolAddress: Address
-}
-
-export interface GovernanceHoaEligibilityRecord {
-  isEligible: boolean
-  listedAt: number | null
-  updatedAt: number | null
-  delistedAt: number | null
 }
 
 export interface GovernanceContractAddresses {
@@ -260,15 +252,6 @@ export function mapFlowSplitterConfig(rawConfig: readonly unknown[] | Record<str
     splitter: (tupleValue(rawConfig, 0, 'splitter') ?? ZERO_ADDRESS) as Address,
     poolId: BigInt(String(tupleValue(rawConfig, 1, 'poolId') ?? 0)),
     poolAddress: (tupleValue(rawConfig, 2, 'poolAddress') ?? ZERO_ADDRESS) as Address,
-  }
-}
-
-export function mapHoaEligibilityRecord(rawRecord: readonly unknown[] | Record<string, unknown>): GovernanceHoaEligibilityRecord {
-  return {
-    isEligible: Boolean(tupleValue(rawRecord, 0, 'isEligible')),
-    listedAt: safeMillisecondsFromSeconds(BigInt(String(tupleValue(rawRecord, 1, 'listedAt') ?? 0))),
-    updatedAt: safeMillisecondsFromSeconds(BigInt(String(tupleValue(rawRecord, 2, 'updatedAt') ?? 0))),
-    delistedAt: safeMillisecondsFromSeconds(BigInt(String(tupleValue(rawRecord, 3, 'delistedAt') ?? 0))),
   }
 }
 
