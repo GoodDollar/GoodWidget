@@ -448,14 +448,12 @@ export function HistoryTab({ state, actions }: HistoryTabProps) {
     error,
     activeSources,
   } = state
-  const [datesOpen, setDatesOpen] = useState(false)
   const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null)
   const defaultRange = useMemo(() => getLast90DaysRange(), [])
   const isDefaultRange = fromDate === defaultRange.from && toDate === defaultRange.to
   const rangeSummary = isDefaultRange
     ? `Last ${HISTORY_LOOKBACK_DAYS} days activity`
     : `${formatShortDate(fromDate)} – ${formatShortDate(toDate)}`
-  const dateSummary = `${formatShortDate(fromDate)} | ${formatShortDate(toDate)}`
   const accumulatedG = useMemo(
     () => formatAccumulatedG(sumFilteredGdWei(entries)),
     [entries],
@@ -501,81 +499,28 @@ export function HistoryTab({ state, actions }: HistoryTabProps) {
           value={statusFilter}
           onValueChange={actions.setStatusFilter}
         />
-
-        <XStack
-          flex={1.4}
-          minWidth={0}
-          height="$7"
-          alignItems="center"
-          justifyContent="space-between"
-          gap="$2"
-          paddingHorizontal="$3"
-          borderRadius="$3"
-          borderWidth={1}
-          borderColor="$borderColor"
-          backgroundColor="$backgroundDark"
-          cursor="pointer"
-          onPress={() => setDatesOpen((open) => !open)}
-        >
-          <Text fontSize="$2" color="$placeholderColor" numberOfLines={1} flex={1}>
-            {datesOpen ? 'From | To' : dateSummary}
-          </Text>
-          <Icon name="chevron-down" size="xs" color="muted" />
-        </XStack>
-
-        <YStack
-          width="$7"
-          height="$7"
-          borderRadius="$3"
-          alignItems="center"
-          justifyContent="center"
-          backgroundColor="$backgroundDark"
-          borderWidth={1}
-          borderColor="$borderColor"
-          cursor="pointer"
-          flexShrink={0}
-          onPress={() => setDatesOpen((open) => !open)}
-        >
-          <Icon name="settings" size="xs" color="muted" />
-        </YStack>
       </XStack>
 
-      {datesOpen ? (
-        <XStack gap="$2" flexWrap="wrap" width="100%">
-          <YStack flex={1} minWidth={130}>
-            <Input
-              size="sm"
-              type="date"
-              label="From"
-              value={fromDate}
-              onChangeText={actions.setFromDate}
-            />
-          </YStack>
-          <YStack flex={1} minWidth={130}>
-            <Input
-              size="sm"
-              type="date"
-              label="To"
-              value={toDate}
-              onChangeText={actions.setToDate}
-            />
-          </YStack>
-          {!isDefaultRange ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              alignSelf="flex-end"
-              {...compactButtonProps}
-              onPress={() => {
-                actions.setFromDate(defaultRange.from)
-                actions.setToDate(defaultRange.to)
-              }}
-            >
-              <ButtonText>Last {HISTORY_LOOKBACK_DAYS} days</ButtonText>
-            </Button>
-          ) : null}
-        </XStack>
-      ) : null}
+      <XStack gap="$2" width="100%">
+        <YStack flex={1} minWidth={0}>
+          <Input
+            size="sm"
+            type="date"
+            label="From"
+            value={fromDate}
+            onChangeText={actions.setFromDate}
+          />
+        </YStack>
+        <YStack flex={1} minWidth={0}>
+          <Input
+            size="sm"
+            type="date"
+            label="To"
+            value={toDate}
+            onChangeText={actions.setToDate}
+          />
+        </YStack>
+      </XStack>
 
       <XStack alignItems="center" justifyContent="space-between" gap="$2" width="100%">
         <Text fontSize="$1" fontWeight="700" secondary letterSpacing={0.6}>
