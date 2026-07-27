@@ -16,7 +16,7 @@ export const HISTORY_SOURCE_OPTIONS: {
   { id: 'deposit', label: 'Deposit', defaultChecked: true },
   { id: 'streamUpdate', label: 'Stream update', defaultChecked: true },
   { id: 'streamRequest', label: 'Stream credit', defaultChecked: true },
-  { id: 'streamCron', label: 'Daily stream credit', defaultChecked: false },
+  { id: 'streamCron', label: 'Stream credit', defaultChecked: true },
 ]
 
 export function formatHistoryDateInput(date: Date): string {
@@ -168,7 +168,12 @@ export function useAiCreditsHistory(options: {
   }, [loadHistory])
 
   const setSourceChecked = useCallback((source: CreditHistorySource, checked: boolean) => {
-    setSelectedSources((prev) => ({ ...prev, [source]: checked }))
+    setSelectedSources((prev) => {
+      if (source === 'streamRequest' || source === 'streamCron') {
+        return { ...prev, streamRequest: checked, streamCron: checked }
+      }
+      return { ...prev, [source]: checked }
+    })
   }, [])
 
   const reload = useCallback(async () => {

@@ -121,9 +121,11 @@ test('AiCreditsWidget history tab', async ({ page }) => {
   await gotoStory(page, STORY_IDS.historyTab)
   const root = widget(page, 'AiCreditsWidget-history-tab')
   await expect(root).toBeVisible()
-  await expect(root.getByText('AI credit history')).toBeVisible()
-  await expect(root.getByText('Last 90 days')).toBeVisible()
-  await expect(root.getByText('G$ deposit')).toBeVisible({ timeout: 10_000 })
+  await expect(root.getByText('AI Credit History')).toBeVisible()
+  await expect(root.getByText('Last 90 days activity')).toBeVisible()
+  await expect(root.getByText('Deposit')).toBeVisible()
+  await expect(root.getByText('RECENT TRANSACTIONS')).toBeVisible()
+  await expect(root.getByText('G$ Deposit')).toBeVisible({ timeout: 10_000 })
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-13-history-tab.png',
     fullPage: true,
