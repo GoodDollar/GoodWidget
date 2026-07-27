@@ -93,6 +93,14 @@ test('Invite Rewards offers deferred join before whitelisting or having a person
   })
 })
 
+test('Invite Rewards shows a more polished hero card before the action sections', async ({ page }) => {
+  await gotoStory(page, 'collectable')
+
+  await expect(page.getByText(/share your code/i)).toBeVisible()
+  await expect(page.getByText('Use invite code')).toBeVisible()
+  await expect(page.getByText('Total rewards earned')).toBeVisible()
+})
+
 test('Invite Rewards labels approved/pending/collectable using protocol values, not raw invitee count', async ({
   page,
 }) => {

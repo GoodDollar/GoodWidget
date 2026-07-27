@@ -73,7 +73,7 @@ function InviteJoinCard({ compact = false }: { compact?: boolean }) {
   if (!canJoin || state.status === 'disconnected' || state.status === 'unsupported') return null
 
   return (
-    <Card padding="$4" gap="$3">
+    <Card padding="$4" gap="$3" borderWidth={1} borderColor="$borderColor">
       <Heading level={compact ? 4 : 3}>Use invite code</Heading>
       <Text secondary>Enter your inviter&apos;s code to join their invite rewards.</Text>
       <Input
@@ -117,7 +117,7 @@ function InviteShareCard() {
   if (!hasCode) {
     const isVerified = state.selfEligibility?.inviteeWhitelisted
     return (
-      <Card padding="$4" gap="$3">
+      <Card padding="$4" gap="$3" borderWidth={1} borderColor="$borderColor">
         <Heading level={3}>Share your invite</Heading>
         {isVerified ? (
           <>
@@ -134,7 +134,7 @@ function InviteShareCard() {
   }
 
   return (
-    <Card padding="$4" gap="$3">
+    <Card padding="$4" gap="$3" borderWidth={1} borderColor="$borderColor">
       <Heading level={3}>Share your invite</Heading>
       <Text secondary>Your invite code</Text>
       <Text fontWeight="700">{decodeInviteCode(state.user.inviteCode)}</Text>
@@ -174,7 +174,7 @@ function TotalEarnedCard() {
   const totalEarned = formatInviteBounty(state.user?.totalEarned ?? 0n, state.chainId)
 
   return (
-    <Card padding="$4" gap="$1">
+    <Card padding="$4" gap="$1" borderWidth={1} borderColor="$borderColor">
       <Text secondary>Total rewards earned</Text>
       <Heading level={2}>{totalEarned} G$</Heading>
     </Card>
@@ -190,7 +190,7 @@ function InviteeStatus() {
   const approvedCount = Number(state.user?.totalApprovedInvites ?? 0n)
 
   return (
-    <Card padding="$4" gap="$3">
+    <Card padding="$4" gap="$3" borderWidth={1} borderColor="$borderColor">
       <Heading level={3}>Your invite rewards</Heading>
       <YStack gap="$2">
         <Text secondary>
@@ -269,19 +269,22 @@ export function InviteRewards() {
 
   return (
     <YStack gap="$4" padding="$4">
-      <Card padding="$4" gap="$2" alignItems="center">
+      <Card padding="$4" gap="$3" alignItems="center" borderWidth={1} borderColor="$borderColor">
         <Heading level={2}>Invite Rewards</Heading>
+        <Text secondary center>
+          Share your code, invite friends, and get rewarded when they join and claim.
+        </Text>
         {state.level && (
-          <>
+          <YStack alignItems="center" gap="$1">
             <Text fontWeight="700" center>
               Get {formatInviteBounty(state.level.bounty, state.chainId)} G$ every time a friend
               joins!
             </Text>
             <Text secondary center>
-              (Your invitee will also receive{' '}
-              {formatInviteBounty(state.level.bounty / 2n, state.chainId)} G$)
+              Your invitee will also receive{' '}
+              {formatInviteBounty(state.level.bounty / 2n, state.chainId)} G$.
             </Text>
-          </>
+          </YStack>
         )}
         <HowItWorksDrawer />
       </Card>
