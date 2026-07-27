@@ -38,7 +38,7 @@ import {
   patchPayerSession,
   readPayerSession,
 } from './payerSession'
-import { executeCeloPayment, G_TOKEN_CELO_ADDRESS } from './celoPayment'
+import { executeCeloPayment, G_TOKEN_CELO_ADDRESS, isStreamAmountChanged } from './celoPayment'
 import { startGoodIdVerification, isUserRejectedWalletRequest } from './goodIdVerification'
 import { mapPaymentError } from './paymentErrors'
 import { fetchVaultPaymentMinimums, validateVaultPaymentAmounts } from './vaultMinimums'
@@ -711,12 +711,10 @@ export function useAiCreditsAdapter({
         throw new Error('Connect your wallet and generate a buyer key before paying')
       }
 
-      const depositAmountG = Number.parseFloat(quote.depositAmountG)
-      const streamAmountG = Number.parseFloat(quote.streamAmountG)
-      const hasDeposit = depositAmountG > 0
-      const hasStream = streamAmountG > 0
-      if (!hasDeposit && !hasStream) {
-        throw new Error('Enter a deposit or monthly stream amount')
+      const hasDeposit = Number.parseFloat(quote.depositAmountG) > 0
+      const streamChanged = isStreamAmountChanged(quote.streamAmountG, currentState.monthlyStreamG)
+      if (!hasDeposit && !streamChanged) {
+        throw new Error('Enter a deposit or change the monthly stream amount')
       }
 
       let gdUsdPerToken = currentState.gdUsdPerToken
@@ -746,6 +744,7 @@ export function useAiCreditsAdapter({
             payer: currentState.address as Address,
             depositAmount: quote.depositAmountG,
             streamAmount: quote.streamAmountG,
+            currentStreamAmount: currentState.monthlyStreamG,
           })
         } catch (error) {
           const message =
@@ -802,8 +801,9 @@ export function useAiCreditsAdapter({
           payer: payerAddress,
           buyer: buyerAddress,
           vault,
-          depositAmountG,
-          streamAmountG,
+          depositAmountG: quote.depositAmountG,
+          streamAmountG: quote.streamAmountG,
+          currentStreamAmountG: currentState.monthlyStreamG,
         })
 
         const txHash = txHashes[txHashes.length - 1]!

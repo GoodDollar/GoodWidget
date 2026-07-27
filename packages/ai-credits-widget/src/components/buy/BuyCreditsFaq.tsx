@@ -15,7 +15,8 @@ const FAQ_ITEMS = [
     question: 'How do I buy credits?',
     answer:
       'Complete the Buy Credits steps: generate a buyer key, sign operator consent, ' +
-      'then enter a one-time G$ deposit and/or a monthly G$ stream and confirm the Celo transaction.',
+      'then enter a one-time G$ deposit and/or a monthly G$ stream and confirm one Celo transaction ' +
+      '(approve, deposit, and stream changes are batched when needed).',
   },
   {
     id: 'deposit-vs-stream',
