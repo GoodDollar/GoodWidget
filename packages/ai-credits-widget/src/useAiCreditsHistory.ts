@@ -3,8 +3,7 @@ import type { GdCreditEntry } from './backendTypes'
 import { createBackendClient } from './backendClient'
 
 export const HISTORY_PAGE_SIZE = 10
-export const HISTORY_DEFAULT_FROM = '2026-01-01'
-export const HISTORY_DEFAULT_TO = '2030-12-31'
+export const HISTORY_LOOKBACK_DAYS = 90
 
 export type CreditHistorySource = GdCreditEntry['source']
 export type CreditHistoryStatusFilter = 'all' | GdCreditEntry['fundingStatus']
@@ -16,9 +15,23 @@ export const HISTORY_SOURCE_OPTIONS: {
 }[] = [
   { id: 'deposit', label: 'Deposit', defaultChecked: true },
   { id: 'streamUpdate', label: 'Stream update', defaultChecked: true },
-  { id: 'streamRequest', label: 'Stream request', defaultChecked: true },
-  { id: 'streamCron', label: 'Auto (cron)', defaultChecked: false },
+  { id: 'streamRequest', label: 'Stream credit', defaultChecked: true },
+  { id: 'streamCron', label: 'Daily stream credit', defaultChecked: false },
 ]
+
+export function formatHistoryDateInput(date: Date): string {
+  return date.toISOString().slice(0, 10)
+}
+
+export function getLast90DaysRange(now = new Date()): { from: string; to: string } {
+  const to = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+  const from = new Date(to)
+  from.setUTCDate(from.getUTCDate() - HISTORY_LOOKBACK_DAYS)
+  return {
+    from: formatHistoryDateInput(from),
+    to: formatHistoryDateInput(to),
+  }
+}
 
 function createDefaultSelectedSources(): Record<CreditHistorySource, boolean> {
   return Object.fromEntries(
@@ -27,14 +40,14 @@ function createDefaultSelectedSources(): Record<CreditHistorySource, boolean> {
 }
 
 function toIsoStartOfDay(dateValue: string): string | undefined {
-  if (!dateValue || dateValue === HISTORY_DEFAULT_FROM) return undefined
+  if (!dateValue) return undefined
   const parsed = Date.parse(`${dateValue}T00:00:00.000Z`)
   if (Number.isNaN(parsed)) return undefined
   return new Date(parsed).toISOString()
 }
 
 function toIsoEndOfDay(dateValue: string): string | undefined {
-  if (!dateValue || dateValue === HISTORY_DEFAULT_TO) return undefined
+  if (!dateValue) return undefined
   const parsed = Date.parse(`${dateValue}T23:59:59.999Z`)
   if (Number.isNaN(parsed)) return undefined
   return new Date(parsed).toISOString()
@@ -73,11 +86,12 @@ export function useAiCreditsHistory(options: {
   backendUrl?: string
 }): UseAiCreditsHistoryResult {
   const { address, backendUrl } = options
+  const defaultRange = useMemo(() => getLast90DaysRange(), [])
 
   const [selectedSources, setSelectedSources] = useState(createDefaultSelectedSources)
   const [statusFilter, setStatusFilter] = useState<CreditHistoryStatusFilter>('all')
-  const [fromDate, setFromDate] = useState(HISTORY_DEFAULT_FROM)
-  const [toDate, setToDate] = useState(HISTORY_DEFAULT_TO)
+  const [fromDate, setFromDate] = useState(defaultRange.from)
+  const [toDate, setToDate] = useState(defaultRange.to)
   const [entries, setEntries] = useState<GdCreditEntry[]>([])
   const [offset, setOffset] = useState(0)
   const [hasMore, setHasMore] = useState(false)

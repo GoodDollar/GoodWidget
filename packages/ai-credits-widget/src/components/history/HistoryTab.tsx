@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo, useState } from 'react'
 import {
   Button,
   ButtonText,
@@ -15,7 +15,6 @@ import {
 import type { IconName } from '@goodwidget/ui'
 import type { GdCreditEntry } from '../../backendTypes'
 import { usdToCredits, weiToG } from '../../quoteMath'
-import { InfoTooltip } from '../shared/tooltips'
 import { compactButtonProps } from '../shared/styles'
 import type {
   AiCreditsHistoryActions,
@@ -24,7 +23,9 @@ import type {
   CreditHistoryStatusFilter,
 } from '../../useAiCreditsHistory'
 import {
+  HISTORY_LOOKBACK_DAYS,
   HISTORY_SOURCE_OPTIONS,
+  getLast90DaysRange,
 } from '../../useAiCreditsHistory'
 
 const STATUS_OPTIONS = [
@@ -42,6 +43,7 @@ export interface HistoryTabProps {
 function sourceLabel(source: CreditHistorySource): string {
   if (source === 'deposit') return 'G$ deposit'
   if (source === 'streamUpdate') return 'Stream update'
+  if (source === 'streamCron') return 'Daily stream credit'
   return 'Stream credit'
 }
 
@@ -80,18 +82,41 @@ function amountSummary(entry: GdCreditEntry): string | null {
   return formatGAmount(entry.gdAmountWei)
 }
 
-function entryTooltip(entry: GdCreditEntry): string {
-  const lines = [
-    `Source: ${entry.source}`,
-    `Status: ${entry.fundingStatus}`,
-    `Credits: ${usdToCredits(entry.totalCreditUsd)}`,
+function entryDetailRows(entry: GdCreditEntry): { label: string; value: string }[] {
+  const rows: { label: string; value: string }[] = [
+    { label: 'Type', value: sourceLabel(entry.source) },
+    { label: 'Status', value: statusLabel(entry.fundingStatus) },
+    { label: 'Credits', value: `${usdToCredits(entry.totalCreditUsd)} cr` },
   ]
   const gAmount = formatGAmount(entry.gdAmountWei)
-  if (gAmount) lines.push(`G$: ${gAmount}`)
-  if (entry.txHash) lines.push(`Tx: ${entry.txHash}`)
-  if (entry.fundingTxHash) lines.push(`Funding tx: ${entry.fundingTxHash}`)
-  if (entry.fundingError) lines.push(`Error: ${entry.fundingError}`)
-  return lines.join('\n')
+  if (gAmount) rows.push({ label: 'G$', value: gAmount })
+  if (entry.source !== 'streamUpdate') {
+    rows.push(
+      { label: 'Principal', value: `${usdToCredits(entry.principalUsd)} cr` },
+      { label: 'Bonus', value: `${usdToCredits(entry.bonusUsd)} cr` },
+    )
+  }
+  if (entry.txHash) rows.push({ label: 'Celo tx', value: entry.txHash })
+  if (entry.fundingTxHash) rows.push({ label: 'Funding tx', value: entry.fundingTxHash })
+  return rows
+}
+
+function EntryDetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <XStack gap="$2" alignItems="flex-start" width="100%">
+      <Text fontSize="$1" fontWeight="600" secondary minWidth={72} flexShrink={0}>
+        {label}
+      </Text>
+      <Text
+        fontSize="$1"
+        flex={1}
+        minWidth={0}
+        style={{ wordBreak: 'break-all', overflowWrap: 'anywhere' }}
+      >
+        {value}
+      </Text>
+    </XStack>
+  )
 }
 
 function entryAccent(entry: GdCreditEntry): string {
@@ -104,8 +129,8 @@ function entryAccent(entry: GdCreditEntry): string {
 function entryIconName(entry: GdCreditEntry): IconName {
   if (entry.fundingStatus === 'failed') return 'alert-circle'
   if (entry.source === 'deposit') return 'plus'
-  if (entry.source === 'streamUpdate') return 'arrows-left-right'
-  return 'more-horizontal'
+  if (entry.source === 'streamUpdate') return 'refresh'
+  return 'arrow-down'
 }
 
 function entryIconBackground(entry: GdCreditEntry): string {
@@ -123,7 +148,26 @@ function statusLabel(status: GdCreditEntry['fundingStatus']): string {
   return status.toUpperCase()
 }
 
-function CreditHistoryEntryRow({ entry }: { entry: GdCreditEntry }) {
+function formatShortDate(dateValue: string): string {
+  const date = new Date(`${dateValue}T00:00:00.000Z`)
+  if (Number.isNaN(date.getTime())) return dateValue
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
+}
+
+function CreditHistoryEntryRow({
+  entry,
+  expanded,
+  onToggle,
+}: {
+  entry: GdCreditEntry
+  expanded: boolean
+  onToggle: () => void
+}) {
   const accent = entryAccent(entry)
   const amount = amountSummary(entry)
   const showStatus = shouldShowStatus(entry)
@@ -131,7 +175,13 @@ function CreditHistoryEntryRow({ entry }: { entry: GdCreditEntry }) {
 
   return (
     <Card gap="$2">
-      <XStack alignItems="center" gap="$3" width="100%">
+      <XStack
+        alignItems="center"
+        gap="$3"
+        width="100%"
+        cursor="pointer"
+        onPress={onToggle}
+      >
         <YStack
           width={40}
           height={40}
@@ -166,14 +216,11 @@ function CreditHistoryEntryRow({ entry }: { entry: GdCreditEntry }) {
         </YStack>
 
         <YStack alignItems="flex-end" gap="$0.5" flexShrink={0}>
-          <XStack alignItems="center" gap="$1.5">
-            {amount && (
-              <Text fontSize="$3" fontWeight="700" color={accent}>
-                {amount}
-              </Text>
-            )}
-            <InfoTooltip message={entryTooltip(entry)} />
-          </XStack>
+          {amount && (
+            <Text fontSize="$3" fontWeight="700" color={accent}>
+              {amount}
+            </Text>
+          )}
           {showStatus && (
             <XStack alignItems="center" gap="$1">
               <YStack
@@ -188,7 +235,17 @@ function CreditHistoryEntryRow({ entry }: { entry: GdCreditEntry }) {
             </XStack>
           )}
         </YStack>
+
+        <Icon name={expanded ? 'chevron-up' : 'chevron-down'} size="xs" color="muted" />
       </XStack>
+
+      {expanded ? (
+        <YStack gap="$1.5" paddingTop="$1">
+          {entryDetailRows(entry).map((row) => (
+            <EntryDetailRow key={row.label} label={row.label} value={row.value} />
+          ))}
+        </YStack>
+      ) : null}
     </Card>
   )
 }
@@ -249,69 +306,96 @@ export function HistoryTab({ state, actions }: HistoryTabProps) {
     error,
     activeSources,
   } = state
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null)
+  const defaultRange = useMemo(() => getLast90DaysRange(), [])
+  const isDefaultRange = fromDate === defaultRange.from && toDate === defaultRange.to
+  const rangeSummary = isDefaultRange
+    ? `Last ${HISTORY_LOOKBACK_DAYS} days`
+    : `${formatShortDate(fromDate)} – ${formatShortDate(toDate)}`
 
   return (
     <YStack gap="$3" width="100%">
       <Card gap="$3">
-        <Heading level={4}>AI credit history</Heading>
+        <XStack alignItems="center" justifyContent="space-between" gap="$2" width="100%">
+          <YStack flex={1} gap="$0.5" minWidth={0}>
+            <Heading level={4}>AI credit history</Heading>
+            {!filtersOpen ? (
+              <Text fontSize="$1" secondary>
+                {rangeSummary}
+              </Text>
+            ) : null}
+          </YStack>
+          <Button
+            variant="ghost"
+            size="sm"
+            {...compactButtonProps}
+            onPress={() => setFiltersOpen((open) => !open)}
+          >
+            <Icon name={filtersOpen ? 'chevron-up' : 'settings'} size="xs" color="text" />
+            <ButtonText>Filter</ButtonText>
+          </Button>
+        </XStack>
 
-        <YStack gap="$2" width="100%">
+        {filtersOpen ? (
           <YStack gap="$2" width="100%">
-            <Text fontSize="$2" fontWeight="600">
-              Source:
-            </Text>
-            <XStack gap="$2" flexWrap="wrap">
-              {HISTORY_SOURCE_OPTIONS.map((option) => (
-                <SourceFilterChip
-                  key={option.id}
-                  label={option.label}
-                  selected={selectedSources[option.id]}
-                  onPress={() =>
-                    actions.setSourceChecked(option.id, !selectedSources[option.id])
+            <YStack gap="$2" width="100%">
+              <Text fontSize="$2" fontWeight="600">
+                Source:
+              </Text>
+              <XStack gap="$2" flexWrap="wrap">
+                {HISTORY_SOURCE_OPTIONS.map((option) => (
+                  <SourceFilterChip
+                    key={option.id}
+                    label={option.label}
+                    selected={selectedSources[option.id]}
+                    onPress={() =>
+                      actions.setSourceChecked(option.id, !selectedSources[option.id])
+                    }
+                  />
+                ))}
+              </XStack>
+            </YStack>
+
+            <XStack gap="$2" alignItems="center" flexWrap="wrap">
+              <Text fontSize="$2" fontWeight="600" minWidth={52}>
+                Status:
+              </Text>
+              <YStack flex={1} minWidth={140} maxWidth={220}>
+                <Select
+                  options={STATUS_OPTIONS}
+                  value={statusFilter}
+                  onValueChange={(value) =>
+                    actions.setStatusFilter(value as CreditHistoryStatusFilter)
                   }
                 />
-              ))}
+              </YStack>
+            </XStack>
+
+            <XStack gap="$2" alignItems="center" flexWrap="wrap">
+              <XStack gap="$2" flex={1} flexWrap="wrap">
+                <YStack flex={1} minWidth={130}>
+                  <Input
+                    size="sm"
+                    type="date"
+                    label="From"
+                    value={fromDate}
+                    onChangeText={actions.setFromDate}
+                  />
+                </YStack>
+                <YStack flex={1} minWidth={130}>
+                  <Input
+                    size="sm"
+                    type="date"
+                    label="To"
+                    value={toDate}
+                    onChangeText={actions.setToDate}
+                  />
+                </YStack>
+              </XStack>
             </XStack>
           </YStack>
-
-          <XStack gap="$2" alignItems="center" flexWrap="wrap">
-            <Text fontSize="$2" fontWeight="600" minWidth={52}>
-              Status:
-            </Text>
-            <YStack flex={1} minWidth={140} maxWidth={220}>
-              <Select
-                options={STATUS_OPTIONS}
-                value={statusFilter}
-                onValueChange={(value) =>
-                  actions.setStatusFilter(value as CreditHistoryStatusFilter)
-                }
-              />
-            </YStack>
-          </XStack>
-
-          <XStack gap="$2" alignItems="center" flexWrap="wrap">
-            <XStack gap="$2" flex={1} flexWrap="wrap">
-              <YStack flex={1} minWidth={130}>
-                <Input
-                  size="sm"
-                  type="date"
-                  label="From"
-                  value={fromDate}
-                  onChangeText={actions.setFromDate}
-                />
-              </YStack>
-              <YStack flex={1} minWidth={130}>
-                <Input
-                  size="sm"
-                  type="date"
-                  label="To"
-                  value={toDate}
-                  onChangeText={actions.setToDate}
-                />
-              </YStack>
-            </XStack>
-          </XStack>
-        </YStack>
+        ) : null}
       </Card>
 
       {loading ? (
@@ -357,7 +441,14 @@ export function HistoryTab({ state, actions }: HistoryTabProps) {
       ) : (
         <YStack gap="$2" width="100%">
           {entries.map((entry) => (
-            <CreditHistoryEntryRow key={entry.id} entry={entry} />
+            <CreditHistoryEntryRow
+              key={entry.id}
+              entry={entry}
+              expanded={expandedEntryId === entry.id}
+              onToggle={() =>
+                setExpandedEntryId((current) => (current === entry.id ? null : entry.id))
+              }
+            />
           ))}
         </YStack>
       )}
