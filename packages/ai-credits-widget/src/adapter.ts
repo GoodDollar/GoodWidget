@@ -110,32 +110,15 @@ const WALLET_LOADING_STATE: Partial<AiCreditsWidgetAdapterState> = {
   operatorAddress: null,
 }
 
-function isInBuyFlowStatus(status: AiCreditsWidgetStatus): boolean {
-  return (
-    status === 'purchase_setup' ||
-    status === 'quote_ready' ||
-    status === 'payment_pending' ||
-    status === 'payment_confirmed' ||
-    status === 'payment_failed'
-  )
-}
-
 function resolveActiveTab(
   prev: AiCreditsWidgetAdapterState,
   overrides: Partial<AiCreditsWidgetAdapterState>,
-  status: AiCreditsWidgetStatus,
 ): AiCreditsWidgetTab {
   if (overrides.activeTab !== undefined) return overrides.activeTab
 
-  const balance = overrides.totalCreditUsd ?? prev.totalCreditUsd
-  const justConnected = !prev.address && Boolean(overrides.address)
-  const creditsAdded =
-    overrides.totalCreditUsd !== undefined &&
-    hasCreditBalance(overrides.totalCreditUsd) &&
-    !hasCreditBalance(prev.totalCreditUsd)
-
-  if (justConnected && hasCreditBalance(balance)) return 'manage'
-  if (creditsAdded && !isInBuyFlowStatus(status)) return 'manage'
+  if (overrides.totalCreditUsd !== undefined && overrides.totalCreditUsd !== null) {
+    return hasCreditBalance(overrides.totalCreditUsd) ? 'manage' : 'buy'
+  }
 
   return prev.activeTab ?? 'buy'
 }
@@ -224,7 +207,7 @@ function withDerivedStatus(
   return {
     ...merged,
     status,
-    activeTab: resolveActiveTab(prev, overrides, status),
+    activeTab: resolveActiveTab(prev, overrides),
   }
 }
 
@@ -464,7 +447,7 @@ export function useAiCreditsAdapter({
           const accountSwitched = !addressesMatch(prev.address, address)
           const accountPatch = account
             ? viewToStatePatch(account.view, account.enriched, prev, {
-                balanceMode: 'if_positive',
+                balanceMode: 'always',
               })
             : {}
           const buyerFields = mergeSessionFields(prev, sessionPatch, accountPatch, accountSwitched)
@@ -480,6 +463,7 @@ export function useAiCreditsAdapter({
               ...patch,
               ...accountPatch,
               ...buyerFields,
+              ...(account ? {} : { activeTab: 'buy' as const }),
             },
             true,
           )
