@@ -13,7 +13,7 @@ import {
 } from '@goodwidget/ui'
 import type { IconName } from '@goodwidget/ui'
 import type { GdCreditEntry } from '../../backendTypes'
-import { usdToCredits, weiToG } from '../../quoteMath'
+import { formatUsdMicro, weiToG } from '../../quoteMath'
 import { compactButtonProps } from '../shared/styles'
 import type {
   AiCreditsHistoryActions,
@@ -60,45 +60,53 @@ function formatEntryDate(createdAt: string): string {
   })
 }
 
-function formatCredits(totalCreditUsd: string): string | null {
-  const micro = BigInt(totalCreditUsd || '0')
-  if (micro <= 0n) return null
-  return `+${usdToCredits(micro.toString())} cr`
-}
-
 function formatGAmount(gdAmountWei: string): string | null {
-  const amountWei = BigInt(gdAmountWei || '0')
-  if (amountWei <= 0n) return null
-  return `${weiToG(amountWei)} G$`
+  try {
+    const amountWei = BigInt(gdAmountWei || '0')
+    if (amountWei <= 0n) return null
+    return `${weiToG(amountWei)} G$`
+  } catch {
+    return null
+  }
 }
 
-function amountSummary(entry: GdCreditEntry): string | null {
+function formatUsdCredit(usdMicro: string): string | null {
+  try {
+    const micro = BigInt(usdMicro || '0')
+    if (micro <= 0n) return null
+    return `+$${formatUsdMicro(usdMicro)}`
+  } catch {
+    return null
+  }
+}
+
+function formatUsdValue(usdMicro: string): string {
+  return `$${formatUsdMicro(usdMicro || '0')}`
+}
+
+function amountLines(entry: GdCreditEntry): { primary: string; secondary?: string } | null {
+  const gAmount = formatGAmount(entry.gdAmountWei)
+  const usdCredit = formatUsdCredit(entry.totalCreditUsd)
+
   if (entry.source === 'streamUpdate') {
-    const gAmount = formatGAmount(entry.gdAmountWei)
-    return gAmount ? `${gAmount}/mo` : null
+    const addedG = gAmount ? `+${gAmount}` : null
+    if (addedG && usdCredit) return { primary: addedG, secondary: usdCredit }
+    if (addedG) return { primary: addedG }
+    if (usdCredit) return { primary: usdCredit }
+    return null
   }
-  const credits = formatCredits(entry.totalCreditUsd)
-  if (credits) return credits
-  if (entry.fundingStatus === 'failed') {
-    return `${usdToCredits(entry.totalCreditUsd || '0')} cr`
-  }
-  return formatGAmount(entry.gdAmountWei)
+
+  if (gAmount && usdCredit) return { primary: gAmount, secondary: usdCredit }
+  if (gAmount) return { primary: gAmount }
+  if (usdCredit) return { primary: usdCredit }
+  return null
 }
 
 function entryDetailRows(entry: GdCreditEntry): { label: string; value: string }[] {
   const rows: { label: string; value: string }[] = [
-    { label: 'Type', value: sourceLabel(entry.source) },
-    { label: 'Status', value: statusLabel(entry.fundingStatus) },
-    { label: 'Credits', value: `${usdToCredits(entry.totalCreditUsd)} cr` },
+    { label: 'Principal', value: formatUsdValue(entry.principalUsd) },
+    { label: 'Bonus', value: formatUsdValue(entry.bonusUsd) },
   ]
-  const gAmount = formatGAmount(entry.gdAmountWei)
-  if (gAmount) rows.push({ label: 'G$', value: gAmount })
-  if (entry.source !== 'streamUpdate') {
-    rows.push(
-      { label: 'Principal', value: `${usdToCredits(entry.principalUsd)} cr` },
-      { label: 'Bonus', value: `${usdToCredits(entry.bonusUsd)} cr` },
-    )
-  }
   if (entry.txHash) rows.push({ label: 'Celo tx', value: entry.txHash })
   if (entry.fundingTxHash) rows.push({ label: 'Funding tx', value: entry.fundingTxHash })
   return rows
@@ -130,7 +138,6 @@ function entryAccent(entry: GdCreditEntry): string {
 
 function amountAccent(entry: GdCreditEntry): string {
   if (entry.fundingStatus === 'failed') return '$error'
-  if (entry.source === 'streamUpdate') return '$color'
   if (entry.fundingStatus === 'pending') return '$warning'
   return '$success'
 }
@@ -205,7 +212,7 @@ function exportEntriesCsv(entries: GdCreditEntry[]): void {
     'id',
     'source',
     'status',
-    'credits',
+    'usdCredit',
     'gdAmountWei',
     'createdAt',
     'txHash',
@@ -216,7 +223,7 @@ function exportEntriesCsv(entries: GdCreditEntry[]): void {
       entry.id,
       entry.source,
       entry.fundingStatus,
-      usdToCredits(entry.totalCreditUsd),
+      formatUsdMicro(entry.totalCreditUsd),
       entry.gdAmountWei,
       entry.createdAt,
       entry.txHash ?? '',
@@ -246,7 +253,8 @@ function CreditHistoryEntryRow({
 }) {
   const accent = entryAccent(entry)
   const amountColor = amountAccent(entry)
-  const amount = amountSummary(entry)
+  const amounts = amountLines(entry)
+  const detailRows = entryDetailRows(entry)
   const titleColor = entry.fundingStatus === 'failed' ? '$error' : '$color'
 
   return (
@@ -292,9 +300,14 @@ function CreditHistoryEntryRow({
         </YStack>
 
         <YStack alignItems="flex-end" gap="$0.5" flexShrink={0}>
-          {amount ? (
+          {amounts?.primary ? (
             <Text fontSize="$3" fontWeight="700" color={amountColor}>
-              {amount}
+              {amounts.primary}
+            </Text>
+          ) : null}
+          {amounts?.secondary ? (
+            <Text fontSize="$2" fontWeight="600" color={amountColor}>
+              {amounts.secondary}
             </Text>
           ) : null}
           <Text fontSize="$1" secondary>
@@ -303,9 +316,9 @@ function CreditHistoryEntryRow({
         </YStack>
       </XStack>
 
-      {expanded ? (
+      {expanded && detailRows.length > 0 ? (
         <YStack gap="$1.5" paddingTop="$1">
-          {entryDetailRows(entry).map((row) => (
+          {detailRows.map((row) => (
             <EntryDetailRow key={row.label} label={row.label} value={row.value} />
           ))}
         </YStack>
