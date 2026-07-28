@@ -22,6 +22,7 @@ export const ChainRowCard = createComponent(Card, {
   flexDirection: 'row' as const,
   alignItems: 'center' as const,
   justifyContent: 'space-between' as const,
+  flexWrap: 'wrap' as const,
   gap: '$2',
 })
 
@@ -31,7 +32,7 @@ export const AddressFormCard = createComponent(Card, {
   gap: '$3',
 })
 
-export function ActionButton({ children, minWidth = 108, size = 'sm', ...props }: ButtonProps) {
+export function ActionButton({ children, minWidth, size = 'sm', ...props }: ButtonProps) {
   return (
     <Button minWidth={minWidth} size={size} {...props}>
       {children}
