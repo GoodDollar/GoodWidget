@@ -10,6 +10,7 @@ import {
   PaymentPendingStory,
   PaymentConfirmedStory,
   CreditsManagementStory,
+  HistoryTabStory,
   InsufficientGBalanceStory,
   PaymentFailedStory,
   BackendUnavailableStory,
@@ -63,6 +64,10 @@ export const PaymentConfirmed: Story = {
 
 export const CreditsManagement: Story = {
   render: () => <CreditsManagementStory />,
+}
+
+export const HistoryTab: Story = {
+  render: () => <HistoryTabStory />,
 }
 
 export const InsufficientGBalance: Story = {

@@ -17,6 +17,8 @@ import {
   updateToast,
 } from '@goodwidget/ui'
 import { useAiCreditsAdapter } from './adapter'
+import { useAiCreditsHistory } from './useAiCreditsHistory'
+import { DEPOSIT_BONUS_PERCENT, STREAM_BONUS_PERCENT } from './quoteMath'
 import {
   AiCreditsHero,
   AiCreditsFlowStepper,
@@ -26,7 +28,7 @@ import {
   CreditsManagementCard,
   BuyerOperatorCard,
   SetupSnippet,
-  UsageLog,
+  HistoryTab,
 } from './components'
 import type {
   AiCreditsWidgetProps,
@@ -216,20 +218,16 @@ function BuyCreditsPanel({ state, actions, isPending, onPay }: BuyPanelProps) {
 function ManagePanel({
   state,
   actions,
-  backendUrl,
 }: {
   state: AiCreditsWidgetAdapterState
   actions: AiCreditsWidgetAdapterActions
-  backendUrl?: string
 }) {
   const [refreshing, setRefreshing] = React.useState(false)
-  const [usageLogRefreshSignal, setUsageLogRefreshSignal] = React.useState(0)
 
   const handleRefresh = async () => {
     setRefreshing(true)
     try {
       await actions.refresh()
-      setUsageLogRefreshSignal((value) => value + 1)
     } finally {
       setRefreshing(false)
     }
@@ -250,12 +248,6 @@ function ManagePanel({
       <BuyerOperatorCard state={state} actions={actions} />
 
       <SetupSnippet />
-
-      <UsageLog
-        address={state.address}
-        backendUrl={backendUrl}
-        refreshSignal={usageLogRefreshSignal}
-      />
 
       <YStack gap="$2" width="100%" alignItems="center">
         {state.error && (
@@ -312,6 +304,11 @@ function AiCreditsInner({
   )
 
   const { state, actions } = activeAdapter
+
+  const history = useAiCreditsHistory({
+    address: state.address,
+    backendUrl,
+  })
 
   const handlePay = useCallback(
     async (quote: AiCreditsQuote) => {
@@ -373,13 +370,16 @@ function AiCreditsInner({
         tabs={[
           { id: 'buy', label: 'Buy Credits' },
           { id: 'manage', label: 'Manage' },
+          { id: 'history', label: 'History' },
         ]}
         activeTab={state.activeTab}
         onTabChange={handleTabChange}
         chainId={state.chainId ?? CELO_CHAIN_ID}
       />
       {state.activeTab === 'manage' ? (
-        <ManagePanel state={state} actions={actions} backendUrl={backendUrl} />
+        <ManagePanel state={state} actions={actions} />
+      ) : state.activeTab === 'history' ? (
+        <HistoryTab state={history.state} actions={history.actions} />
       ) : (
         buyPanel
       )}

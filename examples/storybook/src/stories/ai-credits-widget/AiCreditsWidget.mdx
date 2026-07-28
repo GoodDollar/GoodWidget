@@ -45,7 +45,8 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
       <DocsCard title="S3 – Quote Ready">Buy tab — pay step available via drawer CTA; ready to confirm Celo transaction.</DocsCard>
       <DocsCard title="S4 – Payment Pending">Buy tab — Celo tx submitted.</DocsCard>
       <DocsCard title="S5 – Payment Confirmed">Buy tab — settling on Base.</DocsCard>
-      <DocsCard title="S6 – Manage tab">Manage tab — balance, stream, history, close/withdraw, API setup.</DocsCard>
+      <DocsCard title="S6 – Manage tab">Manage tab — balance, stream, close/withdraw, API setup.</DocsCard>
+      <DocsCard title="S6b – History tab">History tab — filtered, paginated AI credit funding history.</DocsCard>
       <DocsCard title="S7 – Insufficient G$">G$ below minimum purchase threshold.</DocsCard>
       <DocsCard title="S8 – Payment Failed">Transaction or settlement error.</DocsCard>
       <DocsCard title="S9 – Backend Unavailable">Backend unreachable.</DocsCard>
@@ -55,11 +56,12 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
 
   <DocsSection
     title="Widget navigation"
-    description="When a wallet is connected, Buy Credits and Manage appear as tabs at the top (with the GoodDollar header and chain badge). Switch tabs anytime — including during payment pending or failed states."
+    description="When a wallet is connected, Buy Credits, Manage, and History appear as tabs at the top (with the GoodDollar header and chain badge). Switch tabs anytime — including during payment pending or failed states."
   >
     <DocsGrid>
       <DocsCard title="Buy Credits">Stepper for buyer key, consent, and pay — tap a step or CTA to open it in a drawer.</DocsCard>
-      <DocsCard title="Manage">Credits balance, stream info, close/withdraw, API setup, and history.</DocsCard>
+      <DocsCard title="Manage">Credits balance, stream info, close/withdraw, and API setup.</DocsCard>
+      <DocsCard title="History">Paginated credit history with source, status, and date filters.</DocsCard>
     </DocsGrid>
   </DocsSection>
 

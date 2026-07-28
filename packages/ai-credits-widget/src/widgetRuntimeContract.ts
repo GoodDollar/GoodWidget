@@ -15,7 +15,7 @@ export type AiCreditsWidgetStatus =
   | 'backend_unavailable'
   | 'unsupported_chain'
 
-export type AiCreditsWidgetTab = 'buy' | 'manage'
+export type AiCreditsWidgetTab = 'buy' | 'manage' | 'history'
 
 export interface AiCreditsQuote {
   depositAmountG: string
