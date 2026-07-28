@@ -47,7 +47,6 @@ export interface HistoryTabProps {
 function sourceLabel(source: CreditHistorySource): string {
   if (source === 'deposit') return 'G$ Deposit'
   if (source === 'streamUpdate') return 'Stream Update'
-  if (source === 'streamCron') return 'Auto Credit'
   return 'Stream Credit'
 }
 

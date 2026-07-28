@@ -16,7 +16,7 @@ export const HISTORY_SOURCE_OPTIONS: {
   { id: 'deposit', label: 'Deposit', defaultChecked: true },
   { id: 'streamUpdate', label: 'Stream update', defaultChecked: true },
   { id: 'streamRequest', label: 'Stream credit', defaultChecked: true },
-  { id: 'streamCron', label: 'Auto credit', defaultChecked: true },
+  { id: 'streamCron', label: 'Stream credit', defaultChecked: true },
 ]
 
 export function formatHistoryDateInput(date: Date): string {
