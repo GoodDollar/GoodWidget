@@ -47,6 +47,7 @@ export interface HistoryTabProps {
 function sourceLabel(source: CreditHistorySource): string {
   if (source === 'deposit') return 'G$ Deposit'
   if (source === 'streamUpdate') return 'Stream Update'
+  if (source === 'streamCron') return 'Auto Credit'
   return 'Stream Credit'
 }
 
@@ -537,7 +538,7 @@ export function HistoryTab({ state, actions }: HistoryTabProps) {
 
       <XStack alignItems="center" justifyContent="space-between" gap="$2" width="100%">
         <Text fontSize="$1" fontWeight="700" secondary letterSpacing={0.6}>
-          CREDIT History
+          CREDIT HISTORY
         </Text>
         <XStack
           tag="button"

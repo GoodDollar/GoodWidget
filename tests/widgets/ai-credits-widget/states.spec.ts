@@ -122,7 +122,7 @@ test('AiCreditsWidget history tab', async ({ page }) => {
   await expect(root.getByText('AI Credit History')).toBeVisible()
   await expect(root.getByText('Last 90 days activity')).toBeVisible()
   await expect(root.getByRole('checkbox', { name: 'Deposit' })).toBeVisible()
-  await expect(root.getByText('CREDIT History', { exact: true })).toBeVisible()
+  await expect(root.getByText('CREDIT HISTORY', { exact: true })).toBeVisible()
   await expect(root.getByText('G$ Deposit')).toBeVisible({ timeout: 10_000 })
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-13-history-tab.png',
