@@ -110,16 +110,6 @@ const WALLET_LOADING_STATE: Partial<AiCreditsWidgetAdapterState> = {
   operatorAddress: null,
 }
 
-function isInBuyFlowStatus(status: AiCreditsWidgetStatus): boolean {
-  return (
-    status === 'purchase_setup' ||
-    status === 'quote_ready' ||
-    status === 'payment_pending' ||
-    status === 'payment_confirmed' ||
-    status === 'payment_failed'
-  )
-}
-
 function isNonBuyTab(tab: AiCreditsWidgetTab): boolean {
   return tab === 'manage' || tab === 'history'
 }
@@ -341,6 +331,10 @@ export function useAiCreditsAdapter({
 }: UseAiCreditsAdapterOptions): AiCreditsWidgetAdapterResult {
   const { address, chainId, isConnected, provider, connect } = useWallet()
   const [state, setState] = useState<AiCreditsWidgetAdapterState>(INITIAL_STATE)
+  const configurationError =
+    environment === 'development' || backendUrl
+      ? null
+      : 'AI Credits backend is not configured'
 
   const providerRef = useRef<EIP1193Provider | null>(null)
   providerRef.current = provider as EIP1193Provider | null
@@ -349,25 +343,35 @@ export function useAiCreditsAdapter({
   const celoVault = vaultAddress ?? CELO_GD_ANTSEED_VAULT_FALLBACK
 
   const backendClient = useMemo<AiCreditsBackendClient>(
-    () => createBackendClient(backendUrl),
-    [backendUrl],
+    () => createBackendClient(backendUrl, environment),
+    [backendUrl, environment],
   )
 
   const chainClient = useMemo<AiCreditsChainClient>(
     () =>
-      createChainClient(backendUrl, {
+      createChainClient({
         baseRpcUrl,
         celoRpcUrl,
         fundingVaultAddress,
         celoVaultAddress: celoVault,
         celoGoodIdAddress: goodIdAddress ?? CELO_GOODID_ADDRESS,
-      }),
-    [backendUrl, baseRpcUrl, celoRpcUrl, fundingVaultAddress, celoVault, goodIdAddress],
+      }, environment),
+    [environment, baseRpcUrl, celoRpcUrl, fundingVaultAddress, celoVault, goodIdAddress],
   )
 
   useEffect(() => {
     if (!isConnected || !address) {
       setState((prev) => (prev.status === 'connecting' ? prev : { ...INITIAL_STATE }))
+      return
+    }
+    if (configurationError) {
+      setState((prev) => ({
+        ...prev,
+        address,
+        chainId,
+        status: 'backend_unavailable',
+        error: configurationError,
+      }))
       return
     }
 
@@ -511,7 +515,7 @@ export function useAiCreditsAdapter({
     return () => {
       cancelled = true
     }
-  }, [isConnected, address, chainId, backendClient, chainClient, celoVault])
+  }, [isConnected, address, chainId, backendClient, chainClient, celoVault, configurationError])
 
   const handleConnect = useCallback(async () => {
     setState((prev) => withDerivedStatus(prev, { status: 'connecting', error: null }, false))

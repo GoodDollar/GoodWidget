@@ -1,5 +1,3 @@
-import { AiCreditsWidgetElement } from './element'
-
 const DEFAULT_TAG_NAME = 'ai-credits-widget'
 
 /**
@@ -11,18 +9,20 @@ const DEFAULT_TAG_NAME = 'ai-credits-widget'
  * Then use in HTML:
  *   <ai-credits-widget></ai-credits-widget>
  *
- * Returns the tag name so you can use it programmatically:
- *   const tag = register()  // 'ai-credits-widget'
+ * Resolves to the tag name so you can use it programmatically:
+ *   const tag = await register()  // 'ai-credits-widget'
  *
  * Or register under a custom tag:
- *   const tag = register('my-ai-credits-widget')
+ *   const tag = await register('my-ai-credits-widget')
  */
-export function register(tagName: string = DEFAULT_TAG_NAME): string {
+export async function register(tagName: string = DEFAULT_TAG_NAME): Promise<string> {
+  // Keep browser-only Custom Element dependencies out of server evaluation.
   if (typeof customElements === 'undefined') return tagName
   if (!customElements.get(tagName)) {
+    const { AiCreditsWidgetElement } = await import('./element')
     customElements.define(tagName, AiCreditsWidgetElement)
   }
   return tagName
 }
 
-register()
+void register()

@@ -28,6 +28,7 @@ export type {
 export {
   MockAiCreditsBackendClient,
   ProductionAiCreditsBackendClient,
+  UnavailableAiCreditsBackendClient,
   createBackendClient,
   buildAccountView,
   enrichAccountView,

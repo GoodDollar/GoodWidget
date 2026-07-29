@@ -18,7 +18,6 @@ import {
 } from '@goodwidget/ui'
 import { useAiCreditsAdapter } from './adapter'
 import { useAiCreditsHistory } from './useAiCreditsHistory'
-import { DEPOSIT_BONUS_PERCENT, STREAM_BONUS_PERCENT } from './quoteMath'
 import {
   AiCreditsHero,
   AiCreditsFlowStepper,

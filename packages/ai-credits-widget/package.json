@@ -2,10 +2,18 @@
   "name": "@goodwidget/ai-credits-widget",
   "version": "0.1.0",
   "description": "GoodWidget for buying AI coding credits with G$ on Celo",
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "sideEffects": [
+    "./dist/register.js",
+    "./dist/register.cjs"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

@@ -490,10 +490,7 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     return { txHash, events: [entry] }
   }
 
-  async waitForSettlement(
-    ref: AccountRef,
-    _options: { txHashes?: string[]; previousBalance?: string } = {},
-  ): Promise<SettlementResult> {
+  async waitForSettlement(ref: AccountRef): Promise<SettlementResult> {
     await sleep(MOCK_DELAY_MS)
     const state = this.getState(ref.payer)
     for (const entry of state.transactions) {
@@ -505,10 +502,7 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     return { totalCreditUsd: totalCreditUsdFromProfile(this.buildProfile(ref.payer)) }
   }
 
-  async closeChannel(
-    channelId: string,
-    _body: ChannelOperationRequest = {},
-  ): Promise<ChannelOperationResponse> {
+  async closeChannel(channelId: string): Promise<ChannelOperationResponse> {
     await sleep(MOCK_DELAY_MS)
     return { channelId, action: 'close', bridge: { enabled: true, txHash: '0xmock' } }
   }
@@ -525,10 +519,7 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     }
   }
 
-  async submitOperatorConsent(
-    buyer: string,
-    _body: OperatorConsentRequest,
-  ): Promise<OperatorConsentResponse> {
+  async submitOperatorConsent(buyer: string): Promise<OperatorConsentResponse> {
     await sleep(MOCK_DELAY_MS)
     const normalizedBuyer = normalizeAddress(buyer)
     markMockOperatorConsent(normalizedBuyer)
@@ -710,9 +701,61 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
   }
 }
 
-export function createBackendClient(backendUrl: string | undefined): AiCreditsBackendClient {
-  if (!backendUrl) {
+export class UnavailableAiCreditsBackendClient implements AiCreditsBackendClient {
+  private unavailable(): never {
+    throw new Error('AI Credits backend is not configured')
+  }
+
+  async getDiscountConfig() {
+    return this.unavailable()
+  }
+
+  async getAccountCredit() {
+    return this.unavailable()
+  }
+
+  async getCreditHistory() {
+    return this.unavailable()
+  }
+
+  async getOutstanding() {
+    return this.unavailable()
+  }
+
+  async getTransactions() {
+    return this.unavailable()
+  }
+
+  async notifyPayment() {
+    return this.unavailable()
+  }
+
+  async waitForSettlement() {
+    return this.unavailable()
+  }
+
+  async closeChannel() {
+    return this.unavailable()
+  }
+
+  async withdrawCredits() {
+    return this.unavailable()
+  }
+
+  async submitOperatorConsent() {
+    return this.unavailable()
+  }
+}
+
+export function createBackendClient(
+  backendUrl: string | undefined,
+  environment: 'production' | 'staging' | 'development' = 'production',
+): AiCreditsBackendClient {
+  if (!backendUrl && environment === 'development') {
     return new MockAiCreditsBackendClient()
+  }
+  if (!backendUrl) {
+    return new UnavailableAiCreditsBackendClient()
   }
   return new ProductionAiCreditsBackendClient(backendUrl)
 }

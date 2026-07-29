@@ -6,7 +6,7 @@ import {
   type Chain,
   type PublicClient,
 } from 'viem'
-import type { AiCreditsQuote } from './widgetRuntimeContract'
+import type { AiCreditsQuote, AiCreditsWidgetEnvironment } from './widgetRuntimeContract'
 import type { BuyerOperatorStatus, OperatorConsentPayloadResponse } from './operatorConsent'
 import { ANTSEED_DEPOSITS_BASE_ADDRESS, buildSetOperatorPayload } from './operatorConsent'
 import type { AccountRef } from './backendTypes'
@@ -254,7 +254,7 @@ export class MockAiCreditsChainClient implements AiCreditsChainClient {
     this.goodIdVerified = options.goodIdVerified ?? false
   }
 
-  async isGoodIdVerified(_account: string): Promise<boolean> {
+  async isGoodIdVerified(): Promise<boolean> {
     return this.goodIdVerified
   }
 
@@ -308,16 +308,16 @@ export class MockAiCreditsChainClient implements AiCreditsChainClient {
     }
   }
 
-  async getWithdrawableUsd(_buyer: string): Promise<string> {
+  async getWithdrawableUsd(): Promise<string> {
     return '0'
   }
 }
 
 export function createChainClient(
-  backendUrl: string | undefined,
   options: AiCreditsChainClientOptions = {},
+  environment: AiCreditsWidgetEnvironment = 'production',
 ): AiCreditsChainClient {
-  if (!backendUrl) {
+  if (environment === 'development') {
     return new MockAiCreditsChainClient()
   }
   return new ProductionAiCreditsChainClient({

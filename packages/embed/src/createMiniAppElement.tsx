@@ -56,13 +56,10 @@ export function createMiniAppElement(
   App: React.ComponentType<Record<string, unknown>>,
   options: MiniAppElementOptions = {},
 ) {
-  const HTMLElementBase =
+  const HTMLElementBase: typeof HTMLElement =
     typeof globalThis !== 'undefined' && 'HTMLElement' in globalThis
       ? (globalThis as { HTMLElement: typeof HTMLElement }).HTMLElement
-      : undefined
-  if (!HTMLElementBase) {
-    throw new Error('createMiniAppElement is only supported in DOM environments')
-  }
+      : (class {} as typeof HTMLElement)
 
   const {
     shadow = true,
@@ -91,7 +88,7 @@ export function createMiniAppElement(
 
     static get observedAttributes(): string[] {
       return Object.entries(normalizedProps)
-        .filter(([_, def]) => def.type === 'attribute')
+        .filter(([, def]) => def.type === 'attribute')
         .map(([name]) => toKebabCase(name))
     }
 
@@ -181,6 +178,10 @@ export function createMiniAppElement(
 
       const appProps: Record<string, unknown> = {
         ...this.#extraProps,
+        provider: this.#provider ?? undefined,
+        config: this.#config ?? defaultConfig,
+        themeOverrides: mergedOverrides,
+        defaultTheme,
       }
 
       for (const eventName of events) {
