@@ -105,13 +105,28 @@ export function createMiniAppElement(
 
     constructor() {
       super()
-      for (const [name, definition] of Object.entries(normalizedProps)) {
-        if (definition.type !== 'property' || !Object.prototype.hasOwnProperty.call(this, name)) {
-          continue
-        }
+      const upgradeProperty = (name: string, apply: (value: unknown) => void) => {
+        if (!Object.prototype.hasOwnProperty.call(this, name)) return
         const value = (this as unknown as Record<string, unknown>)[name]
         delete (this as unknown as Record<string, unknown>)[name]
-        this[setBridgedProperty](name, value)
+        apply(value)
+      }
+
+      upgradeProperty('provider', (value) => {
+        this.provider = (value as EIP1193Provider | null | undefined) ?? null
+      })
+      upgradeProperty('themeOverrides', (value) => {
+        this.themeOverrides = value as GoodWidgetThemeOverrides | undefined
+      })
+      upgradeProperty('config', (value) => {
+        this.config = value as GoodWidgetConfig | undefined
+      })
+
+      for (const [name, definition] of Object.entries(normalizedProps)) {
+        if (definition.type !== 'property') continue
+        upgradeProperty(name, (value) => {
+          this[setBridgedProperty](name, value)
+        })
       }
     }
 

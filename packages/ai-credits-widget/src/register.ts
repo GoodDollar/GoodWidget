@@ -25,4 +25,4 @@ export async function register(tagName: string = DEFAULT_TAG_NAME): Promise<stri
   return tagName
 }
 
-void register()
+void register().catch(() => undefined)

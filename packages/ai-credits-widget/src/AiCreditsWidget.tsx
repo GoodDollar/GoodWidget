@@ -307,6 +307,7 @@ function AiCreditsInner({
   const history = useAiCreditsHistory({
     address: state.address,
     backendUrl,
+    environment,
   })
 
   const handlePay = useCallback(
