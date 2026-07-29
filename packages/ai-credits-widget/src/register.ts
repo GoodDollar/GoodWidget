@@ -1,5 +1,3 @@
-import { AiCreditsWidgetElement } from './element'
-
 const DEFAULT_TAG_NAME = 'ai-credits-widget'
 
 /**
@@ -11,18 +9,22 @@ const DEFAULT_TAG_NAME = 'ai-credits-widget'
  * Then use in HTML:
  *   <ai-credits-widget></ai-credits-widget>
  *
- * Returns the tag name so you can use it programmatically:
- *   const tag = register()  // 'ai-credits-widget'
+ * Resolves to the tag name so you can use it programmatically:
+ *   const tag = await register()  // 'ai-credits-widget'
  *
  * Or register under a custom tag:
- *   const tag = register('my-ai-credits-widget')
+ *   const tag = await register('my-ai-credits-widget')
  */
-export function register(tagName: string = DEFAULT_TAG_NAME): string {
+export async function register(tagName: string = DEFAULT_TAG_NAME): Promise<string> {
+  // Keep the element and its browser-focused React/Tamagui dependency graph
+  // out of server evaluation. A static import here would execute that graph
+  // before this DOM guard could protect an SSR or package-inspection process.
   if (typeof customElements === 'undefined') return tagName
   if (!customElements.get(tagName)) {
+    const { AiCreditsWidgetElement } = await import('./element')
     customElements.define(tagName, AiCreditsWidgetElement)
   }
   return tagName
 }
 
-register()
+void register()

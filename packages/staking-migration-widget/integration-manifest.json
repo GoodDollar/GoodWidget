@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "2.0.0",
+  "hostContractVersion": "1.0.0",
+  "widgetId": "goodwidget.staking-migration",
+  "packageName": "@goodwidget/staking-migration-widget",
+  "entries": {
+    "react": {
+      "export": "StakingMigrationWidget"
+    },
+    "webComponent": {
+      "registerPath": "./register",
+      "tagName": "gw-staking-migration-widget"
+    }
+  }
+}

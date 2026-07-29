@@ -15,6 +15,7 @@ const TAG_NAME = 'gw-claim-widget'
  *   const tag = register()  // 'gw-claim-widget'
  */
 export function register(tagName: string = TAG_NAME): string {
+  if (typeof customElements === 'undefined') return tagName
   if (!customElements.get(tagName)) {
     customElements.define(tagName, ClaimWidgetElement)
   }

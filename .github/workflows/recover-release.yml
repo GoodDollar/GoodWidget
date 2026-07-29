@@ -1,0 +1,57 @@
+name: Recover committed npm release
+
+# Recovery never computes a new version. It republishes (or only verifies) the version
+# already committed on next after an interrupted registry publication.
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: Already-versioned production package to publish or verify
+        required: true
+        type: choice
+        options:
+          - '@goodwidget/ui'
+          - '@goodwidget/core'
+          - '@goodwidget/embed'
+          - '@goodwidget/ai-credits-widget'
+          - '@goodwidget/citizen-claim-widget'
+          - '@goodwidget/goodreserve-widget'
+          - '@goodwidget/staking-migration-widget'
+          - '@goodwidget/streaming-widget'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: goodwidget-npm-release
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    permissions:
+      contents: read
+      id-token: write
+    environment: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          ref: next
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22.14.0
+          registry-url: https://registry.npmjs.org
+      - name: Configure pinned toolchain
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - name: Publish the authoritative committed version
+        env:
+          RECOVERY_PACKAGE: ${{ inputs.package }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: 'true'
+          GOODWALLET_DISPATCH_PAT: ${{ secrets.GOODWALLET_DISPATCH_PAT }}
+          ENABLE_GOODWALLET_DISPATCH: ${{ vars.ENABLE_GOODWALLET_DISPATCH }}
+        run: pnpm release:recover

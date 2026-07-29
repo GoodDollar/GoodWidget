@@ -1,5 +1,5 @@
 import type { EIP1193Provider } from './eip1193'
-import type { HostEnvironment, HostCapabilities, HostDetectionResult } from './types'
+import type { HostCapabilities, HostDetectionResult } from './types'
 
 interface WindowWithProviders {
   ethereum?: EIP1193Provider & {

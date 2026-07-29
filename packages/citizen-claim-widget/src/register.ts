@@ -1,5 +1,3 @@
-import { CitizenClaimWidgetElement } from './element'
-
 const DEFAULT_TAG_NAME = 'gw-citizen-claim'
 
 /**
@@ -11,17 +9,21 @@ const DEFAULT_TAG_NAME = 'gw-citizen-claim'
  * Then use in HTML:
  *   <gw-citizen-claim></gw-citizen-claim>
  *
- * Returns the tag name so you can use it programmatically:
- *   const tag = register()  // 'gw-citizen-claim'
+ * Resolves to the tag name so you can use it programmatically:
+ *   const tag = await register()  // 'gw-citizen-claim'
  *
  * Or register under a custom tag:
- *   const tag = register('my-claim-widget')
+ *   const tag = await register('my-claim-widget')
  */
-export function register(tagName: string = DEFAULT_TAG_NAME): string {
+export async function register(tagName: string = DEFAULT_TAG_NAME): Promise<string> {
+  // A server must not evaluate the browser-only element dependency graph.
+  // Load it only after confirming that this is a Custom Elements runtime.
+  if (typeof customElements === 'undefined') return tagName
   if (!customElements.get(tagName)) {
+    const { CitizenClaimWidgetElement } = await import('./element')
     customElements.define(tagName, CitizenClaimWidgetElement)
   }
   return tagName
 }
 
-register()
+void register()
