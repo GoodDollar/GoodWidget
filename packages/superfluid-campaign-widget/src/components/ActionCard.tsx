@@ -1,18 +1,8 @@
 import React from 'react'
 import { Button, ButtonText, Card, Icon, Text, XStack, YStack } from '@goodwidget/ui'
-import type { IconName } from '@goodwidget/ui'
 import { ACTIVITY_ICON_MAP } from '../widgetRuntimeContract'
 import type { CampaignActionMockData } from '../widgetRuntimeContract'
-
-/** Same registry-gap workaround as ActivityIcons — see that file's comment for why. */
-const ACTIVITY_ICON_NAME_FALLBACK: Record<CampaignActionMockData['activity'], IconName> = {
-  'claim-ubi': 'check',
-  'invite-users': 'user',
-  'flow-state-vote': 'arrow-up',
-  'flow-state-funding': 'arrows-left-right',
-  'gardens-donation': 'wallet',
-  'gardens-funding': 'refresh',
-}
+import { ACTIVITY_ICON_NAME_FALLBACK } from './activityIconFallback'
 
 interface ActionCardProps {
   action: CampaignActionMockData
