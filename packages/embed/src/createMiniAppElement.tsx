@@ -20,6 +20,20 @@ export interface MiniAppElementOptions {
   defaultConfig?: GoodWidgetConfig
 }
 
+export interface MiniAppElement extends HTMLElement {
+  provider: EIP1193Provider | null
+  themeOverrides: GoodWidgetThemeOverrides | undefined
+  config: GoodWidgetConfig | undefined
+  emitEvent(eventName: string, detail?: unknown): void
+}
+
+export interface MiniAppElementConstructor {
+  new (): MiniAppElement
+  readonly prototype: MiniAppElement
+  readonly observedAttributes: string[]
+  themeManifest: ThemeManifest
+}
+
 function deepMergeOverrides(
   a?: GoodWidgetThemeOverrides,
   b?: GoodWidgetThemeOverrides,
@@ -58,7 +72,7 @@ function deepMergeOverrides(
 export function createMiniAppElement(
   App: React.ComponentType<Record<string, unknown>>,
   options: MiniAppElementOptions = {},
-) {
+): MiniAppElementConstructor {
   const HTMLElementBase: typeof HTMLElement =
     typeof globalThis !== 'undefined' && 'HTMLElement' in globalThis
       ? (globalThis as { HTMLElement: typeof HTMLElement }).HTMLElement
