@@ -9,6 +9,9 @@ import { readCSSOverrides, observeCSSChanges } from './cssPropertyBridge'
 import { normalizePropDefs, toKebabCase, toCamelCase, emitEvent } from './bridge'
 import type { PropDefinitions } from './bridge'
 
+const getBridgedProperty = Symbol('getBridgedProperty')
+const setBridgedProperty = Symbol('setBridgedProperty')
+
 export interface MiniAppElementOptions {
   shadow?: boolean
   props?: PropDefinitions
@@ -85,6 +88,18 @@ export function createMiniAppElement(
     #disconnectObserver: (() => void) | null = null
     #disconnectStyleSync: (() => void) | null = null
     #extraProps: Record<string, unknown> = {}
+
+    constructor() {
+      super()
+      for (const [name, definition] of Object.entries(normalizedProps)) {
+        if (definition.type !== 'property' || !Object.prototype.hasOwnProperty.call(this, name)) {
+          continue
+        }
+        const value = (this as unknown as Record<string, unknown>)[name]
+        delete (this as unknown as Record<string, unknown>)[name]
+        this[setBridgedProperty](name, value)
+      }
+    }
 
     static get observedAttributes(): string[] {
       return Object.entries(normalizedProps)
@@ -171,6 +186,15 @@ export function createMiniAppElement(
       emitEvent(this, eventName, detail)
     }
 
+    [getBridgedProperty](name: string): unknown {
+      return this.#extraProps[name]
+    }
+
+    [setBridgedProperty](name: string, value: unknown): void {
+      this.#extraProps[name] = value
+      this.#render()
+    }
+
     #render() {
       if (!this.#root) return
 
@@ -205,6 +229,20 @@ export function createMiniAppElement(
         </GoodWidgetProvider>,
       )
     }
+  }
+
+  for (const [name, definition] of Object.entries(normalizedProps)) {
+    if (definition.type !== 'property' || name in GoodWidgetElement.prototype) continue
+    Object.defineProperty(GoodWidgetElement.prototype, name, {
+      configurable: true,
+      enumerable: true,
+      get(this: GoodWidgetElement) {
+        return this[getBridgedProperty](name)
+      },
+      set(this: GoodWidgetElement, value: unknown) {
+        this[setBridgedProperty](name, value)
+      },
+    })
   }
 
   return GoodWidgetElement

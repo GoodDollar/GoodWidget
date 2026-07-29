@@ -382,8 +382,7 @@ export function useAiCreditsAdapter({
       if (
         prev.status === 'payment_pending' ||
         prev.status === 'payment_confirmed' ||
-        prev.status === 'payment_failed' ||
-        prev.status === 'backend_unavailable'
+        prev.status === 'payment_failed'
       ) {
         return prev
       }
@@ -905,7 +904,9 @@ export function useAiCreditsAdapter({
           const statusSeed =
             options?.afterGoodIdVerify && prev.status === 'payment_failed'
               ? 'quote_ready'
-              : prev.status
+              : prev.status === 'backend_unavailable'
+                ? 'purchase_setup'
+                : prev.status
           return withDerivedStatus(
             { ...prev, status: statusSeed },
             {
@@ -1105,10 +1106,16 @@ export function useAiCreditsAdapter({
   )
 
   const handleRetry = useCallback(async () => {
-    setState((prev) =>
-      withDerivedStatus(prev, { activeTab: 'buy', status: 'purchase_setup', error: null }, true),
-    )
-  }, [])
+    if (configurationError) {
+      setState((prev) => ({
+        ...prev,
+        status: 'backend_unavailable',
+        error: configurationError,
+      }))
+      return
+    }
+    await handleRefresh()
+  }, [configurationError, handleRefresh])
 
   const handleSetActiveTab = useCallback((tab: AiCreditsWidgetTab) => {
     if (tab === 'buy') {
