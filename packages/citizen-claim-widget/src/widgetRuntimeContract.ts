@@ -21,6 +21,8 @@ export type CitizenClaimWidgetPrimaryAction =
   | 'switch_chain'
   | 'none'
 
+export type CitizenClaimTab = 'claim' | 'invite-rewards' | 'news-feed'
+
 export interface CitizenClaimWidgetSuccessDetail {
   address: string
   chainId: number
@@ -102,4 +104,6 @@ export interface CitizenClaimWidgetProps {
   config?: GoodWidgetConfig
   /** Starting color scheme. Defaults to 'light'. */
   defaultTheme?: 'light' | 'dark'
+  /** Tab shown on first render. Defaults to 'claim' when omitted. */
+  initialTab?: CitizenClaimTab
 }

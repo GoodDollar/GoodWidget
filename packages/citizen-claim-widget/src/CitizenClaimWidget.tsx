@@ -27,6 +27,7 @@ import type {
   CitizenClaimWidgetSuccessDetail,
   CitizenClaimWidgetErrorDetail,
   CitizenClaimWidgetEnvironment,
+  CitizenClaimTab,
 } from './widgetRuntimeContract'
 
 // ---------------------------------------------------------------------------
@@ -506,7 +507,6 @@ function CitizenClaimInner({ environment, onClaimSuccess, onClaimError }: Citize
 // ---------------------------------------------------------------------------
 // Public component
 // ---------------------------------------------------------------------------
-type CitizenClaimTab = 'claim' | 'invite-rewards' | 'news-feed'
 /**
  * CitizenClaimWidget — real SDK-backed GoodDollar UBI claim flow.
  *
@@ -529,8 +529,10 @@ export function CitizenClaimWidget({
   defaultTheme = 'dark',
   onClaimSuccess,
   onClaimError,
+  initialTab,
 }: CitizenClaimWidgetProps) {
-  const [activeTab, setActiveTab] = useState<CitizenClaimTab>('claim')
+  // Initial tab only — not synced after mount, matching existing internal-state pattern.
+  const [activeTab, setActiveTab] = useState<CitizenClaimTab>(initialTab ?? 'claim')
 
   return (
     <GoodWidgetProvider
