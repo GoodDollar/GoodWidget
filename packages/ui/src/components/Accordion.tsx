@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
 import type { ReactNode } from 'react'
+import { XStack, YStack } from 'tamagui'
 import { Icon } from './Icon'
 import { Text } from './Text'
-import { XStack, YStack } from '../components-test/Stacks'
 import { createComponent } from '../createComponent'
 
 export interface AccordionItem {
@@ -92,7 +92,20 @@ export function Accordion({ items, allowMultipleOpen = false }: AccordionProps) 
 
         return (
           <AccordionRow key={item.id} isLast={index === items.length - 1}>
-            <AccordionHeader isOpen={isOpen} onPress={() => toggleItem(item.id)}>
+            <AccordionHeader
+              isOpen={isOpen}
+              onPress={() => toggleItem(item.id)}
+              role="button"
+              tabIndex={0}
+              aria-expanded={isOpen}
+              aria-controls={`accordion-content-${item.id}`}
+              onKeyDown={(e: React.KeyboardEvent) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  toggleItem(item.id)
+                }
+              }}
+            >
               <Text flex={1}>{item.title}</Text>
               <Icon
                 name="chevron-down"
@@ -104,7 +117,9 @@ export function Accordion({ items, allowMultipleOpen = false }: AccordionProps) 
                 }}
               />
             </AccordionHeader>
-            {isOpen && <AccordionContent>{item.content}</AccordionContent>}
+            {isOpen && (
+              <AccordionContent id={`accordion-content-${item.id}`}>{item.content}</AccordionContent>
+            )}
           </AccordionRow>
         )
       })}

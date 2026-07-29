@@ -23,6 +23,11 @@ interface SuperfluidCampaignRuntimeProps {
   data: SuperfluidCampaignWidgetProps['data']
   citizenClaimEnvironment: SuperfluidCampaignWidgetProps['citizenClaimEnvironment']
   initialView: SuperfluidCampaignView
+  /** Forwarded to the embedded CitizenClaimWidget so it shares the same provider/config/theme context. */
+  provider?: SuperfluidCampaignWidgetProps['provider']
+  config?: SuperfluidCampaignWidgetProps['config']
+  themeOverrides?: SuperfluidCampaignWidgetProps['themeOverrides']
+  defaultTheme?: SuperfluidCampaignWidgetProps['defaultTheme']
 }
 
 /**
@@ -49,7 +54,7 @@ function handleActionCta(action: CampaignActionMockData, openClaimTab: (tab: Emb
   }
 }
 
-function SuperfluidCampaignRuntime({ data, citizenClaimEnvironment, initialView }: SuperfluidCampaignRuntimeProps) {
+function SuperfluidCampaignRuntime({ data, citizenClaimEnvironment, initialView, provider, config, themeOverrides, defaultTheme }: SuperfluidCampaignRuntimeProps) {
   const { isConnected, connect } = useWallet()
   const [view, setView] = useState<SuperfluidCampaignView>(initialView)
   const [embeddedClaimTab, setEmbeddedClaimTab] = useState<EmbeddedClaimTab>(null)
@@ -61,7 +66,14 @@ function SuperfluidCampaignRuntime({ data, citizenClaimEnvironment, initialView 
   if (embeddedClaimTab) {
     return (
       <YStack gap="$3" width="100%">
-        <CitizenClaimWidget environment={citizenClaimEnvironment} initialTab={embeddedClaimTab} />
+        <CitizenClaimWidget
+          provider={provider}
+          config={config}
+          themeOverrides={themeOverrides}
+          defaultTheme={defaultTheme}
+          environment={citizenClaimEnvironment}
+          initialTab={embeddedClaimTab}
+        />
         <Text variant="caption" secondary center onPress={() => setEmbeddedClaimTab(null)} cursor="pointer">
           Back to campaign
         </Text>
@@ -134,6 +146,10 @@ export function SuperfluidCampaignWidget({
           data={data}
           citizenClaimEnvironment={citizenClaimEnvironment}
           initialView={initialView}
+          provider={provider}
+          config={config}
+          themeOverrides={themeOverrides}
+          defaultTheme={defaultTheme}
         />
       </Card>
       <ToastContainer />

@@ -1,6 +1,6 @@
 import React from 'react'
+import { XStack, YStack } from 'tamagui'
 import { Text } from './Text'
-import { XStack, YStack } from '../components-test/Stacks'
 import { createComponent } from '../createComponent'
 
 export interface ProgressBarProps {
@@ -51,7 +51,13 @@ export function ProgressBar({ value, max, label, variant = 'default' }: Progress
           <Text variant="caption">{Math.round(percentage)}%</Text>
         </XStack>
       )}
-      <ProgressTrack>
+      <ProgressTrack
+        role="progressbar"
+        aria-valuenow={Math.round(percentage)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={label}
+      >
         <ProgressFill variant={variant} width={`${percentage}%`} />
       </ProgressTrack>
     </YStack>

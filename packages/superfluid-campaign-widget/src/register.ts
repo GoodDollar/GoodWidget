@@ -18,10 +18,12 @@ const DEFAULT_TAG_NAME = 'gw-superfluid-campaign'
  *   const tag = register('my-superfluid-campaign-widget')
  */
 export function register(tagName: string = DEFAULT_TAG_NAME): string {
-  if (!customElements.get(tagName)) {
+  if (typeof window !== 'undefined' && 'customElements' in window && !customElements.get(tagName)) {
     customElements.define(tagName, SuperfluidCampaignWidgetElement)
   }
   return tagName
 }
 
-register()
+if (typeof window !== 'undefined' && 'customElements' in window) {
+  register()
+}
