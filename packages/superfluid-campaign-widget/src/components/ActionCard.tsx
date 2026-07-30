@@ -74,13 +74,7 @@ export function ActionCard({ action, onPressCta }: ActionCardProps) {
         <XStack flexShrink={0}>
           <ActivityIconComponent size={24} color={iconColor} />
         </XStack>
-        {/* flexBasis={0} (not the flex={1} default of "auto") keeps this column's
-            hypothetical flex-line size at 0 rather than its near-max-content width —
-            without it, the browser's line-wrap decision used the description's
-            unwrapped width, forcing a premature wrap onto a new line even at widths
-            (e.g. 480px) where the row actually fits once the description wraps
-            internally. */}
-        <Text tone="soft" flex={1} flexBasis={0}>
+        <Text tone="soft" flex={1}>
           {action.description}
         </Text>
         <YStack gap="$2" alignItems="flex-end" flexShrink={0} marginLeft="auto">
