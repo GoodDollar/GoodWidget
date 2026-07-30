@@ -221,3 +221,78 @@ test('AiCreditsWidget appkit connect wallet opens modal', async ({ page }) => {
     fullPage: true,
   })
 })
+
+// ---------------------------------------------------------------------------
+// Multi-buyer tests
+// ---------------------------------------------------------------------------
+
+const MULTI_BUYER_STORY_IDS = {
+  multiBuyerManage:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--multi-buyer-manage&viewMode=story',
+  addressOnlyBuyer:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--address-only-buyer&viewMode=story',
+  multiBuyerHistory:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--multi-buyer-history&viewMode=story',
+} as const
+
+test('AiCreditsWidget multi-buyer manage: buyer selector is visible', async ({ page }) => {
+  await gotoStory(page, MULTI_BUYER_STORY_IDS.multiBuyerManage)
+  const root = widget(page, 'AiCreditsWidget-multi-buyer-manage')
+  await expect(root).toBeVisible()
+
+  // Buyer selector should list all buyers when more than one exists
+  await expect(root.getByText('Buyer 1')).toBeVisible()
+  await expect(root.getByText('Buyer 2')).toBeVisible()
+
+  // New Buyer button should be visible (not the first-time Sign & Generate)
+  await expect(root.getByRole('button', { name: /New Buyer/i })).toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-15-multi-buyer-manage.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget address-only buyer: sign-required actions disabled', async ({ page }) => {
+  await gotoStory(page, MULTI_BUYER_STORY_IDS.addressOnlyBuyer)
+  const root = widget(page, 'AiCreditsWidget-address-only-buyer')
+  await expect(root).toBeVisible()
+
+  // Sign Consent button should be disabled for address-only buyer
+  const signConsentButton = root.getByRole('button', { name: /Sign Consent/i })
+  await expect(signConsentButton).toBeDisabled()
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-16-address-only-buyer.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget multi-buyer history: buyer filter dropdown is visible', async ({ page }) => {
+  await gotoStory(page, MULTI_BUYER_STORY_IDS.multiBuyerHistory)
+  const root = widget(page, 'AiCreditsWidget-multi-buyer-history')
+  await expect(root).toBeVisible()
+
+  // History tab should show a buyer filter that starts with "All buyers"
+  await expect(root.getByText(/Buyer: All buyers/i)).toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-17-multi-buyer-history.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget multi-buyer: import or watch link is visible', async ({ page }) => {
+  await gotoStory(page, MULTI_BUYER_STORY_IDS.multiBuyerManage)
+  const root = widget(page, 'AiCreditsWidget-multi-buyer-manage')
+  await expect(root).toBeVisible()
+
+  // Import/watch link should always be available in the Buyer & Operator card
+  await expect(root.getByText(/Import or watch a buyer/i)).toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-18-import-watch-link.png',
+    fullPage: true,
+  })
+})
+

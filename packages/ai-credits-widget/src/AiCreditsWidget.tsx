@@ -308,6 +308,8 @@ function AiCreditsInner({
   const history = useAiCreditsHistory({
     address: state.address,
     backendUrl,
+    // Default to the active buyer so users see filtered history immediately
+    defaultBuyerFilter: state.activeBuyerAddress ?? 'all',
   })
 
   const handlePay = useCallback(
@@ -379,7 +381,11 @@ function AiCreditsInner({
       {state.activeTab === 'manage' ? (
         <ManagePanel state={state} actions={actions} />
       ) : state.activeTab === 'history' ? (
-        <HistoryTab state={history.state} actions={history.actions} />
+        <HistoryTab
+          state={history.state}
+          actions={history.actions}
+          knownBuyers={state.buyers.map((b) => ({ address: b.address, label: b.label }))}
+        />
       ) : (
         buyPanel
       )}

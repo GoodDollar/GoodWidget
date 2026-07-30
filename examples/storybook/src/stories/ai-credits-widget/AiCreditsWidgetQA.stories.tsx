@@ -16,6 +16,9 @@ import {
   BackendUnavailableStory,
   UnsupportedChainStory,
   AppKitConnectWalletStory,
+  MultiBuyerManageStory,
+  AddressOnlyBuyerStory,
+  MultiBuyerHistoryStory,
 } from '../helpers/aiCreditsWidgetStories'
 
 const meta: Meta<typeof AiCreditsWidget> = {
@@ -84,6 +87,21 @@ export const BackendUnavailable: Story = {
 
 export const UnsupportedChain: Story = {
   render: () => <UnsupportedChainStory />,
+}
+
+/** Multi-buyer manage tab: buyer selector and private-key reveal. */
+export const MultiBuyerManage: Story = {
+  render: () => <MultiBuyerManageStory />,
+}
+
+/** Address-only buyer: sign-required actions are disabled. */
+export const AddressOnlyBuyer: Story = {
+  render: () => <AddressOnlyBuyerStory />,
+}
+
+/** History tab with buyer filter dropdown. */
+export const MultiBuyerHistory: Story = {
+  render: () => <MultiBuyerHistoryStory />,
 }
 
 export const AppKitConnectWallet: Story = {

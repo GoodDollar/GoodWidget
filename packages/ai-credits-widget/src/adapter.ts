@@ -37,7 +37,9 @@ import {
   patchPayerSessionFields,
   patchPayerSession,
   readPayerSession,
+  addBuyerToSession,
 } from './payerSession'
+import type { BuyerRecord } from './payerSession'
 import { executeCeloPayment, G_TOKEN_CELO_ADDRESS, isStreamAmountChanged } from './celoPayment'
 import { startGoodIdVerification, isUserRejectedWalletRequest } from './goodIdVerification'
 import { mapPaymentError } from './paymentErrors'
@@ -95,6 +97,8 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   streamBonusPercent: DEFAULT_DISCOUNT_CONFIG.streamBonusPercent,
   error: null,
   activeTab: 'buy',
+  buyers: [],
+  activeBuyerAddress: null,
 }
 
 const WALLET_LOADING_STATE: Partial<AiCreditsWidgetAdapterState> = {
@@ -285,7 +289,12 @@ function mergeSessionFields(
   sessionPatch: ReturnType<typeof patchPayerSessionFields>,
   accountPatch: Partial<AiCreditsWidgetAdapterState>,
   accountSwitched: boolean,
-): Partial<Pick<AiCreditsWidgetAdapterState, 'buyerPubKey' | 'buyerPrvKey' | 'operatorConsented'>> {
+): Partial<
+  Pick<
+    AiCreditsWidgetAdapterState,
+    'buyerPubKey' | 'buyerPrvKey' | 'operatorConsented' | 'buyers' | 'activeBuyerAddress'
+  >
+> {
   const buyerPubKey =
     sessionPatch.buyerPubKey ??
     accountPatch.buyerPubKey ??
@@ -294,11 +303,17 @@ function mergeSessionFields(
   const operatorConsented = accountSwitched
     ? (sessionPatch.operatorConsented ?? accountPatch.operatorConsented ?? false)
     : (accountPatch.operatorConsented ?? sessionPatch.operatorConsented ?? prev.operatorConsented)
+  const buyers = accountSwitched ? sessionPatch.buyers : (sessionPatch.buyers.length > 0 ? sessionPatch.buyers : prev.buyers)
+  const activeBuyerAddress = accountSwitched
+    ? (sessionPatch.activeBuyerAddress ?? null)
+    : (sessionPatch.activeBuyerAddress ?? prev.activeBuyerAddress)
 
   return {
     buyerPubKey,
     buyerPrvKey,
     operatorConsented,
+    buyers,
+    activeBuyerAddress,
   }
 }
 
@@ -307,11 +322,21 @@ function syncOperatorConsentSession(address: string, operatorConsented: boolean 
   patchPayerSession(address, { operatorConsented })
 }
 
+/**
+ * Ensures a buyer derived from the backend account view is reflected in the session.
+ * Only adds the buyer when no session buyers exist yet (first-time sync).
+ */
 function syncBuyerPubKeySession(address: string, buyerPubKey: string | null | undefined): void {
   if (!buyerPubKey) return
   const existing = readPayerSession(address)
-  if (existing?.buyerPubKey) return
-  patchPayerSession(address, { buyerPubKey })
+  if (existing?.buyers && existing.buyers.length > 0) return
+  // Persist as a derived buyer at index 0 (legacy-compatible)
+  addBuyerToSession(address, {
+    address: buyerPubKey,
+    type: 'derived',
+    derivationIndex: 0,
+    label: 'Buyer 1',
+  })
 }
 
 export interface UseAiCreditsAdapterOptions {
@@ -555,7 +580,9 @@ export function useAiCreditsAdapter({
 
     try {
       const payerAddress = address as Address
-      const message = buildBuyerKeyMessage(payerAddress)
+      // Use index 0 for the first/default buyer to preserve backward compatibility
+      const nextIndex = 0
+      const message = buildBuyerKeyMessage(payerAddress, nextIndex)
       const walletClient = createWalletClient({
         account: payerAddress,
         chain: CELO_CHAIN,
@@ -566,17 +593,25 @@ export function useAiCreditsAdapter({
         message,
       })
       const privateKey = deriveBuyerPrivateKeyFromSignature(signature)
-      const account = privateKeyToAccount(privateKey)
+      const buyerAccount = privateKeyToAccount(privateKey)
+      const label = 'Buyer 1'
 
-      patchPayerSession(payerAddress, {
-        buyerPubKey: account.address,
-        buyerPrvKey: privateKey,
-      })
+      const buyerRecord: BuyerRecord = {
+        address: buyerAccount.address,
+        privateKey,
+        type: 'derived',
+        derivationIndex: nextIndex,
+        label,
+      }
+      addBuyerToSession(payerAddress, buyerRecord)
 
+      const updatedSession = patchPayerSessionFields(payerAddress)
       setState((prev) =>
         mergeStatePreservingNonBuyTab(prev, {
-          buyerPubKey: account.address,
+          buyerPubKey: buyerAccount.address,
           buyerPrvKey: privateKey,
+          buyers: updatedSession.buyers,
+          activeBuyerAddress: buyerAccount.address,
           error: null,
           ...(!isNonBuyTab(prev.activeTab) ? { status: 'purchase_setup' } : {}),
         }),
@@ -593,6 +628,299 @@ export function useAiCreditsAdapter({
       )
     }
   }, [address])
+
+  /**
+   * Creates a new derived buyer at the next available derivation index.
+   * Prompts the connected wallet to sign a unique message for each buyer.
+   */
+  const handleCreateBuyer = useCallback(async () => {
+    if (!address || !providerRef.current) {
+      setState((prev) =>
+        withDerivedStatus(
+          prev,
+          { error: 'Connect your wallet before creating a buyer' },
+          true,
+        ),
+      )
+      return
+    }
+
+    try {
+      const payerAddress = address as Address
+      const existingSession = patchPayerSessionFields(payerAddress)
+      // Next index = highest derivation index + 1, or 0 if none exist
+      const nextIndex = existingSession.buyers
+        .filter((b) => b.type === 'derived' && b.derivationIndex !== undefined)
+        .reduce((max, b) => Math.max(max, b.derivationIndex ?? 0), -1) + 1
+
+      const message = buildBuyerKeyMessage(payerAddress, nextIndex)
+      const walletClient = createWalletClient({
+        account: payerAddress,
+        chain: CELO_CHAIN,
+        transport: custom(providerRef.current),
+      })
+      const signature = await walletClient.signMessage({
+        account: payerAddress,
+        message,
+      })
+      const privateKey = deriveBuyerPrivateKeyFromSignature(signature)
+      const buyerAccount = privateKeyToAccount(privateKey)
+      const label = `Buyer ${nextIndex + 1}`
+
+      const buyerRecord: BuyerRecord = {
+        address: buyerAccount.address,
+        privateKey,
+        type: 'derived',
+        derivationIndex: nextIndex,
+        label,
+      }
+      addBuyerToSession(payerAddress, buyerRecord)
+
+      const updatedSession = patchPayerSessionFields(payerAddress)
+      setState((prev) =>
+        mergeStatePreservingNonBuyTab(prev, {
+          buyerPubKey: buyerAccount.address,
+          buyerPrvKey: privateKey,
+          buyers: updatedSession.buyers,
+          activeBuyerAddress: buyerAccount.address,
+          // Reset operator consent since this is a new buyer
+          operatorConsented: false,
+          error: null,
+          ...(!isNonBuyTab(prev.activeTab) ? { status: 'purchase_setup' } : {}),
+        }),
+      )
+    } catch (err: unknown) {
+      setState((prev) =>
+        withDerivedStatus(
+          prev,
+          {
+            error: err instanceof Error ? err.message : 'Buyer creation was rejected',
+          },
+          true,
+        ),
+      )
+    }
+  }, [address])
+
+  /**
+   * Switches the active buyer to an existing one in the session.
+   * Resets operator consent so it is re-verified for the newly selected buyer.
+   */
+  const handleSelectBuyer = useCallback(
+    (buyerAddress: string) => {
+      if (!address) return
+      const session = patchPayerSessionFields(address)
+      const target = session.buyers.find(
+        (b) => b.address.toLowerCase() === buyerAddress.toLowerCase(),
+      )
+      if (!target) return
+
+      patchPayerSession(address, { activeBuyerAddress: target.address, operatorConsented: false })
+
+      setState((prev) =>
+        mergeStatePreservingNonBuyTab(prev, {
+          buyerPubKey: target.address,
+          buyerPrvKey: target.privateKey ?? null,
+          buyers: session.buyers,
+          activeBuyerAddress: target.address,
+          // Reset consent and chain-loaded data for the newly selected buyer
+          operatorConsented: false,
+          operatorAddress: null,
+          totalCreditUsd: null,
+          withdrawableUsd: null,
+          totalGdDepositedG: null,
+          monthlyStreamG: null,
+          error: null,
+        }),
+      )
+    },
+    [address],
+  )
+
+  /**
+   * Imports a buyer identity from a hex-encoded private key string.
+   * Validates the key format strictly before accepting.
+   */
+  const handleImportBuyerFromPrivateKey = useCallback(
+    async (rawPrivateKey: string) => {
+      if (!address) {
+        setState((prev) =>
+          withDerivedStatus(prev, { error: 'Connect your wallet before importing a buyer key' }, true),
+        )
+        return
+      }
+
+      const trimmed = rawPrivateKey.trim()
+      const normalized = trimmed.startsWith('0x') ? trimmed : `0x${trimmed}`
+      if (!/^0x[0-9a-fA-F]{64}$/.test(normalized)) {
+        setState((prev) =>
+          withDerivedStatus(
+            prev,
+            { error: 'Invalid private key format — expected 0x followed by 64 hex characters' },
+            true,
+          ),
+        )
+        return
+      }
+
+      try {
+        const privateKey = normalized as `0x${string}`
+        const buyerAccount = privateKeyToAccount(privateKey)
+        const existingSession = patchPayerSessionFields(address)
+        const label = `Imported ${existingSession.buyers.filter((b) => b.type === 'imported').length + 1}`
+
+        const buyerRecord: BuyerRecord = {
+          address: buyerAccount.address,
+          privateKey,
+          type: 'imported',
+          label,
+        }
+        addBuyerToSession(address, buyerRecord)
+
+        const updatedSession = patchPayerSessionFields(address)
+        setState((prev) =>
+          mergeStatePreservingNonBuyTab(prev, {
+            buyerPubKey: buyerAccount.address,
+            buyerPrvKey: privateKey,
+            buyers: updatedSession.buyers,
+            activeBuyerAddress: buyerAccount.address,
+            operatorConsented: false,
+            operatorAddress: null,
+            totalCreditUsd: null,
+            withdrawableUsd: null,
+            totalGdDepositedG: null,
+            monthlyStreamG: null,
+            error: null,
+            ...(!isNonBuyTab(prev.activeTab) ? { status: 'purchase_setup' } : {}),
+          }),
+        )
+      } catch {
+        setState((prev) =>
+          withDerivedStatus(prev, { error: 'Could not derive an account from the provided private key' }, true),
+        )
+      }
+    },
+    [address],
+  )
+
+  /**
+   * Registers a buyer address without a private key (view / consent-pairing mode).
+   * Actions that require signing will be disabled for this buyer in the UI.
+   */
+  const handleSelectBuyerByAddress = useCallback(
+    (buyerAddress: string) => {
+      if (!address) {
+        setState((prev) =>
+          withDerivedStatus(prev, { error: 'Connect your wallet before selecting a buyer address' }, true),
+        )
+        return
+      }
+
+      const trimmed = buyerAddress.trim()
+      if (!/^0x[0-9a-fA-F]{40}$/.test(trimmed)) {
+        setState((prev) =>
+          withDerivedStatus(
+            prev,
+            { error: 'Invalid buyer address format — expected 0x followed by 40 hex characters' },
+            true,
+          ),
+        )
+        return
+      }
+
+      const existingSession = patchPayerSessionFields(address)
+      const existingBuyer = existingSession.buyers.find(
+        (b) => b.address.toLowerCase() === trimmed.toLowerCase(),
+      )
+
+      const buyerRecord: BuyerRecord = existingBuyer ?? {
+        address: trimmed,
+        type: 'address-only',
+        label: `Watch ${trimmed.slice(0, 6)}…${trimmed.slice(-4)}`,
+      }
+
+      addBuyerToSession(address, buyerRecord)
+
+      const updatedSession = patchPayerSessionFields(address)
+      setState((prev) =>
+        mergeStatePreservingNonBuyTab(prev, {
+          buyerPubKey: trimmed,
+          buyerPrvKey: existingBuyer?.privateKey ?? null,
+          buyers: updatedSession.buyers,
+          activeBuyerAddress: trimmed,
+          operatorConsented: false,
+          operatorAddress: null,
+          totalCreditUsd: null,
+          withdrawableUsd: null,
+          totalGdDepositedG: null,
+          monthlyStreamG: null,
+          error: null,
+        }),
+      )
+    },
+    [address],
+  )
+
+  /**
+   * Applies a deep-link buyer assignment from URL GET parameters.
+   * Validates that the provided address is a valid EVM address and that
+   * the accompanying signature is a non-empty hex string before accepting.
+   * The buyer is registered as an address-only identity since we do not
+   * receive the private key through the URL.
+   */
+  const handleApplyDeepLinkBuyer = useCallback(
+    async (buyerAddress: string, buyerSignature: string) => {
+      if (!address) {
+        setState((prev) =>
+          withDerivedStatus(prev, { error: 'Connect your wallet before applying a deep-link buyer' }, true),
+        )
+        return
+      }
+
+      const trimmedAddress = buyerAddress.trim()
+      const trimmedSignature = buyerSignature.trim()
+
+      if (!/^0x[0-9a-fA-F]{40}$/.test(trimmedAddress)) {
+        setState((prev) =>
+          withDerivedStatus(prev, { error: 'Deep-link buyer address is invalid' }, true),
+        )
+        return
+      }
+
+      if (!/^0x[0-9a-fA-F]{2,}$/.test(trimmedSignature)) {
+        setState((prev) =>
+          withDerivedStatus(prev, { error: 'Deep-link buyer signature is invalid' }, true),
+        )
+        return
+      }
+
+      const buyerRecord: BuyerRecord = {
+        address: trimmedAddress,
+        type: 'address-only',
+        label: `Partner ${trimmedAddress.slice(0, 6)}…${trimmedAddress.slice(-4)}`,
+      }
+
+      addBuyerToSession(address, buyerRecord)
+
+      const updatedSession = patchPayerSessionFields(address)
+      setState((prev) =>
+        mergeStatePreservingNonBuyTab(prev, {
+          buyerPubKey: trimmedAddress,
+          buyerPrvKey: null,
+          buyers: updatedSession.buyers,
+          activeBuyerAddress: trimmedAddress,
+          operatorConsented: false,
+          operatorAddress: null,
+          totalCreditUsd: null,
+          withdrawableUsd: null,
+          totalGdDepositedG: null,
+          monthlyStreamG: null,
+          error: null,
+        }),
+      )
+    },
+    [address],
+  )
 
   const handleSignOperatorConsent = useCallback(async () => {
     const currentState = state
@@ -1120,11 +1448,28 @@ export function useAiCreditsAdapter({
     handleSetActiveTab('buy')
   }, [handleSetActiveTab])
 
+  // Parse URL GET parameters for deep-link buyer assignment (runs once on mount).
+  // The effect intentionally runs only once — URL params are read at mount time only.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const urlBuyerAddress = params.get('buyerAddress')
+    const urlBuyerSignature = params.get('buyerSignature')
+    if (urlBuyerAddress && urlBuyerSignature) {
+      void handleApplyDeepLinkBuyer(urlBuyerAddress, urlBuyerSignature)
+    }
+  }, [handleApplyDeepLinkBuyer])
+
   const actions: AiCreditsWidgetAdapterActions = useMemo(
     () => ({
       connect: handleConnect,
       switchChain: handleSwitchChain,
       generateBuyerKey: handleGenerateBuyerKey,
+      createBuyer: handleCreateBuyer,
+      selectBuyer: handleSelectBuyer,
+      importBuyerFromPrivateKey: handleImportBuyerFromPrivateKey,
+      selectBuyerByAddress: handleSelectBuyerByAddress,
+      applyDeepLinkBuyer: handleApplyDeepLinkBuyer,
       signOperatorConsent: handleSignOperatorConsent,
       syncOperatorConsentFromChain: handleSyncOperatorConsentFromChain,
       buildQuote: handleBuildQuote,
@@ -1141,6 +1486,11 @@ export function useAiCreditsAdapter({
       handleConnect,
       handleSwitchChain,
       handleGenerateBuyerKey,
+      handleCreateBuyer,
+      handleSelectBuyer,
+      handleImportBuyerFromPrivateKey,
+      handleSelectBuyerByAddress,
+      handleApplyDeepLinkBuyer,
       handleSignOperatorConsent,
       handleSyncOperatorConsentFromChain,
       handleBuildQuote,

@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
-import { Button, ButtonText, Card, Heading, Icon, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
+import { Button, ButtonText, Card, Heading, Icon, Input, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
 import type { AiCreditsWidgetAdapterActions, AiCreditsWidgetAdapterState } from '../../widgetRuntimeContract'
+import type { BuyerRecord } from '../../payerSession'
 import { AddressView } from '../shared/AddressView'
 import { monospaceSingleLineStyle, compactButtonProps } from '../shared/styles'
 import { useCopyFeedback } from '../shared/useCopyFeedback'
@@ -8,17 +9,194 @@ import { useCopyFeedback } from '../shared/useCopyFeedback'
 interface BuyerOperatorCardProps {
   state: Pick<
     AiCreditsWidgetAdapterState,
-    'address' | 'buyerPubKey' | 'buyerPrvKey' | 'operatorConsented'
+    'address' | 'buyerPubKey' | 'buyerPrvKey' | 'operatorConsented' | 'buyers' | 'activeBuyerAddress'
   >
-  actions: Pick<AiCreditsWidgetAdapterActions, 'generateBuyerKey' | 'signOperatorConsent'>
+  actions: Pick<
+    AiCreditsWidgetAdapterActions,
+    | 'generateBuyerKey'
+    | 'createBuyer'
+    | 'selectBuyer'
+    | 'importBuyerFromPrivateKey'
+    | 'selectBuyerByAddress'
+    | 'signOperatorConsent'
+  >
+}
+
+/** Displays a short label for a buyer in the selector list. */
+function buyerDisplayLabel(buyer: BuyerRecord): string {
+  if (buyer.label) return buyer.label
+  const shortAddr = `${buyer.address.slice(0, 6)}…${buyer.address.slice(-4)}`
+  if (buyer.type === 'address-only') return `Watch ${shortAddr}`
+  if (buyer.type === 'imported') return `Import ${shortAddr}`
+  return shortAddr
+}
+
+/** Renders the buyer selection list when multiple buyers are present. */
+function BuyerSelector({
+  buyers,
+  activeBuyerAddress,
+  onSelect,
+}: {
+  buyers: BuyerRecord[]
+  activeBuyerAddress: string | null
+  onSelect: (address: string) => void
+}) {
+  if (buyers.length <= 1) return null
+
+  return (
+    <YStack gap="$1">
+      <Text fontSize="$1" secondary fontWeight="600">
+        Buyers
+      </Text>
+      <YStack gap="$1">
+        {buyers.map((buyer) => {
+          const isActive = buyer.address.toLowerCase() === activeBuyerAddress?.toLowerCase()
+          return (
+            <XStack
+              key={buyer.address}
+              tag="button"
+              role="option"
+              alignItems="center"
+              justifyContent="space-between"
+              gap="$2"
+              paddingHorizontal="$2"
+              paddingVertical="$1.5"
+              borderRadius="$2"
+              borderWidth={1}
+              borderColor={isActive ? '$primary' : '$borderColor'}
+              backgroundColor={isActive ? '$infoMuted' : '$backgroundDark'}
+              cursor={isActive ? 'default' : 'pointer'}
+              hoverStyle={isActive ? {} : { backgroundColor: '$backgroundPress' }}
+              onPress={() => {
+                if (!isActive) onSelect(buyer.address)
+              }}
+            >
+              <YStack flex={1} minWidth={0}>
+                <Text fontSize="$2" fontWeight={isActive ? '700' : '500'} color={isActive ? '$primary' : '$color'} numberOfLines={1}>
+                  {buyerDisplayLabel(buyer)}
+                </Text>
+                <Text fontSize="$1" secondary numberOfLines={1} style={monospaceSingleLineStyle}>
+                  {buyer.address.slice(0, 10)}…{buyer.address.slice(-6)}
+                </Text>
+              </YStack>
+              {buyer.type === 'address-only' && (
+                <Text fontSize="$1" color="$warning" fontWeight="600">
+                  view only
+                </Text>
+              )}
+              {isActive && <Icon name="check" size="xs" color="primary" />}
+            </XStack>
+          )
+        })}
+      </YStack>
+    </YStack>
+  )
+}
+
+/** Collapsible panel to import a buyer from a hex private key or address. */
+function BuyerImportPanel({
+  onImportPrivateKey,
+  onSelectAddress,
+}: {
+  onImportPrivateKey: (key: string) => Promise<void>
+  onSelectAddress: (address: string) => void
+}) {
+  const [mode, setMode] = useState<'none' | 'private-key' | 'address'>('none')
+  const [inputValue, setInputValue] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  function handleCancel() {
+    setMode('none')
+    setInputValue('')
+  }
+
+  async function handleSubmit() {
+    if (!inputValue.trim()) return
+    setIsSubmitting(true)
+    try {
+      if (mode === 'private-key') {
+        await onImportPrivateKey(inputValue.trim())
+      } else {
+        onSelectAddress(inputValue.trim())
+      }
+      setInputValue('')
+      setMode('none')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  if (mode === 'none') {
+    return (
+      <XStack gap="$1" flexWrap="wrap">
+        <Button
+          size="sm"
+          variant="outline"
+          {...compactButtonProps}
+          onPress={() => setMode('private-key')}
+        >
+          <ButtonText>Import Key</ButtonText>
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          {...compactButtonProps}
+          onPress={() => setMode('address')}
+        >
+          <ButtonText>Watch Address</ButtonText>
+        </Button>
+      </XStack>
+    )
+  }
+
+  return (
+    <YStack gap="$2">
+      <Text fontSize="$1" secondary fontWeight="600">
+        {mode === 'private-key' ? 'Paste private key (0x…)' : 'Paste buyer address (0x…)'}
+      </Text>
+      <Input
+        size="sm"
+        value={inputValue}
+        onChangeText={setInputValue}
+        placeholder={mode === 'private-key' ? '0x…' : '0x…'}
+        secureTextEntry={mode === 'private-key'}
+        autoFocus
+      />
+      <XStack gap="$1">
+        <Button
+          size="sm"
+          {...compactButtonProps}
+          disabled={!inputValue.trim() || isSubmitting}
+          onPress={() => { void handleSubmit() }}
+        >
+          <ButtonText>{isSubmitting ? 'Importing…' : 'Confirm'}</ButtonText>
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          {...compactButtonProps}
+          disabled={isSubmitting}
+          onPress={handleCancel}
+        >
+          <ButtonText>Cancel</ButtonText>
+        </Button>
+      </XStack>
+    </YStack>
+  )
 }
 
 export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
-  const { address, buyerPubKey, buyerPrvKey, operatorConsented } = state
+  const { address, buyerPubKey, buyerPrvKey, operatorConsented, buyers, activeBuyerAddress } = state
   const { copied: copiedPrivate, copy: copyPrivate } = useCopyFeedback()
   const [isPrivateKeyVisible, setIsPrivateKeyVisible] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isCreating, setIsCreating] = useState(false)
   const [isSigning, setIsSigning] = useState(false)
+  const [showImport, setShowImport] = useState(false)
+
+  /** The buyer has a private key and can sign transactions. */
+  const buyerCanSign = Boolean(buyerPrvKey)
+  const hasBuyers = buyers.length > 0
 
   return (
     <Card gap="$2">
@@ -27,21 +205,50 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
       {address && <AddressView label="Payer" address={address} />}
       {buyerPubKey && <AddressView label="Buyer" address={buyerPubKey} />}
 
+      {/* Buyer selector — visible only when more than one buyer exists */}
+      <BuyerSelector
+        buyers={buyers}
+        activeBuyerAddress={activeBuyerAddress}
+        onSelect={actions.selectBuyer}
+      />
+
+      {/* Primary buyer action buttons */}
       <XStack gap="$2" alignItems="stretch" width="100%">
-        <Button
-          flex={1}
-          flexBasis={0}
-          minWidth={0}
-          size="sm"
-          {...compactButtonProps}
-          onPress={() => {
-            setIsGenerating(true)
-            void Promise.resolve(actions.generateBuyerKey()).finally(() => setIsGenerating(false))
-          }}
-          disabled={isGenerating}
-        >
-          <ButtonText>{isGenerating ? 'Signing…' : 'Sign & Generate'}</ButtonText>
-        </Button>
+        {!hasBuyers ? (
+          // First buyer: sign & generate deterministic key
+          <Button
+            flex={1}
+            flexBasis={0}
+            minWidth={0}
+            size="sm"
+            {...compactButtonProps}
+            onPress={() => {
+              setIsGenerating(true)
+              void Promise.resolve(actions.generateBuyerKey()).finally(() => setIsGenerating(false))
+            }}
+            disabled={isGenerating}
+          >
+            <ButtonText>{isGenerating ? 'Signing…' : 'Sign & Generate'}</ButtonText>
+          </Button>
+        ) : (
+          // Additional buyer: create next derived buyer
+          <Button
+            flex={1}
+            flexBasis={0}
+            minWidth={0}
+            size="sm"
+            variant="outline"
+            {...compactButtonProps}
+            onPress={() => {
+              setIsCreating(true)
+              void Promise.resolve(actions.createBuyer()).finally(() => setIsCreating(false))
+            }}
+            disabled={isCreating}
+          >
+            <Icon name="plus" size="xs" color="muted" />
+            <ButtonText>{isCreating ? 'Signing…' : 'New Buyer'}</ButtonText>
+          </Button>
+        )}
 
         <Button
           flex={1}
@@ -53,7 +260,7 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
             setIsSigning(true)
             void Promise.resolve(actions.signOperatorConsent()).finally(() => setIsSigning(false))
           }}
-          disabled={operatorConsented || isSigning || !buyerPrvKey}
+          disabled={operatorConsented || isSigning || !buyerCanSign}
         >
           {isSigning ? (
             <Spinner size="sm" />
@@ -63,6 +270,25 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
         </Button>
       </XStack>
 
+      {/* Import / address-only section */}
+      {showImport ? (
+        <BuyerImportPanel
+          onImportPrivateKey={actions.importBuyerFromPrivateKey}
+          onSelectAddress={actions.selectBuyerByAddress}
+        />
+      ) : (
+        <Button
+          size="sm"
+          variant="text"
+          alignSelf="flex-start"
+          {...compactButtonProps}
+          onPress={() => setShowImport(true)}
+        >
+          <ButtonText>Import or watch a buyer…</ButtonText>
+        </Button>
+      )}
+
+      {/* Private key reveal section */}
       {buyerPrvKey && (
         <YStack gap="$2">
           <XStack justifyContent="space-between" alignItems="center">

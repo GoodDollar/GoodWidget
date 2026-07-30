@@ -44,6 +44,8 @@ function createMockState(
     streamBonusPercent: 20,
     error: null,
     activeTab: 'buy',
+    buyers: [],
+    activeBuyerAddress: null,
   }
   return { ...base, ...overrides }
 }
@@ -58,6 +60,11 @@ function createAdapterFactory(
       connect: async () => {},
       switchChain: async () => {},
       generateBuyerKey: async () => {},
+      createBuyer: async () => {},
+      selectBuyer: () => {},
+      importBuyerFromPrivateKey: async () => {},
+      selectBuyerByAddress: () => {},
+      applyDeepLinkBuyer: async () => {},
       signOperatorConsent: async () => {},
       syncOperatorConsentFromChain: async () => {},
       buildQuote: async (depositG, streamG) => ({
@@ -396,5 +403,94 @@ export function InjectedWalletStory() {
         </YStack>
       )}
     </YStack>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Multi-buyer fixture stories
+// ---------------------------------------------------------------------------
+
+const BUYER_A = {
+  address: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a' as const,
+  privateKey: '0x0000000000000000000000000000000000000000000000000000000000000001' as const,
+  label: 'Buyer 1',
+}
+
+const BUYER_B = {
+  address: '0xAbcDef1234567890AbcDef1234567890AbcDef12' as const,
+  privateKey: '0x0000000000000000000000000000000000000000000000000000000000000002' as const,
+  label: 'Buyer 2',
+}
+
+const BUYER_WATCH = {
+  address: '0x1111111111111111111111111111111111111111' as const,
+  label: 'Watch 0x1111…1111',
+}
+
+/** Multi-buyer manage tab: two derived buyers + one address-only watcher. */
+export function MultiBuyerManageStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-multi-buyer-manage"
+      adapterFactory={createAdapterFactory('quote_ready', {
+        totalCreditUsd: '110000000',
+        buyerPubKey: BUYER_A.address,
+        buyerPrvKey: BUYER_A.privateKey,
+        operatorConsented: true,
+        operatorAddress: '0x0000000000000000000000000000000000000004',
+        totalGdDepositedG: '50.00',
+        monthlyStreamG: '5.00',
+        gBalance: '42.50',
+        activeTab: 'manage',
+        buyers: [
+          { address: BUYER_A.address, privateKey: BUYER_A.privateKey, type: 'derived', derivationIndex: 0, label: BUYER_A.label },
+          { address: BUYER_B.address, privateKey: BUYER_B.privateKey, type: 'derived', derivationIndex: 1, label: BUYER_B.label },
+          { address: BUYER_WATCH.address, type: 'address-only', label: BUYER_WATCH.label },
+        ],
+        activeBuyerAddress: BUYER_A.address,
+      })}
+    />
+  )
+}
+
+/** Address-only buyer selected: sign-required actions should be disabled. */
+export function AddressOnlyBuyerStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-address-only-buyer"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        buyerPubKey: BUYER_WATCH.address,
+        buyerPrvKey: null,
+        operatorConsented: false,
+        gBalance: '42.50',
+        activeTab: 'manage',
+        buyers: [
+          { address: BUYER_WATCH.address, type: 'address-only', label: BUYER_WATCH.label },
+        ],
+        activeBuyerAddress: BUYER_WATCH.address,
+      })}
+    />
+  )
+}
+
+/** History tab with multi-buyer filter options available. */
+export function MultiBuyerHistoryStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-multi-buyer-history"
+      adapterFactory={createAdapterFactory('quote_ready', {
+        totalCreditUsd: '110000000',
+        buyerPubKey: BUYER_A.address,
+        buyerPrvKey: BUYER_A.privateKey,
+        operatorConsented: true,
+        gBalance: '42.50',
+        activeTab: 'history',
+        buyers: [
+          { address: BUYER_A.address, privateKey: BUYER_A.privateKey, type: 'derived', derivationIndex: 0, label: BUYER_A.label },
+          { address: BUYER_B.address, privateKey: BUYER_B.privateKey, type: 'derived', derivationIndex: 1, label: BUYER_B.label },
+        ],
+        activeBuyerAddress: BUYER_A.address,
+      })}
+    />
   )
 }

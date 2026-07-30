@@ -14,7 +14,10 @@ export type {
   AiCreditsPaySuccessDetail,
   AiCreditsPayErrorDetail,
   AiCreditsQuote,
+  BuyerRecord,
 } from './widgetRuntimeContract'
+
+export type { BuyerIdentityType } from './payerSession'
 
 export type {
   AiCreditsBackendClient,

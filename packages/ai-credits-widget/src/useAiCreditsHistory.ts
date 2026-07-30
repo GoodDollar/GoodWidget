@@ -8,6 +8,10 @@ export const HISTORY_LOOKBACK_DAYS = 90
 export type CreditHistorySource = GdCreditEntry['source']
 export type CreditHistoryStatusFilter = 'all' | GdCreditEntry['fundingStatus']
 
+/** Special sentinel meaning "show entries for every known buyer". */
+export const BUYER_FILTER_ALL = 'all' as const
+export type BuyerAddressFilter = typeof BUYER_FILTER_ALL | string
+
 export const HISTORY_SOURCE_OPTIONS: {
   id: CreditHistorySource
   label: string
@@ -56,6 +60,8 @@ function toIsoEndOfDay(dateValue: string): string | undefined {
 export interface AiCreditsHistoryState {
   selectedSources: Record<CreditHistorySource, boolean>
   statusFilter: CreditHistoryStatusFilter
+  /** Address of the selected buyer to filter by, or `'all'` to show all buyers. */
+  buyerAddressFilter: BuyerAddressFilter
   fromDate: string
   toDate: string
   entries: GdCreditEntry[]
@@ -70,6 +76,8 @@ export interface AiCreditsHistoryState {
 export interface AiCreditsHistoryActions {
   setSourceChecked: (source: CreditHistorySource, checked: boolean) => void
   setStatusFilter: (status: CreditHistoryStatusFilter) => void
+  /** Sets the buyer address filter; pass `'all'` to show all buyers. */
+  setBuyerAddressFilter: (value: BuyerAddressFilter) => void
   setFromDate: (value: string) => void
   setToDate: (value: string) => void
   reload: () => Promise<void>
@@ -84,12 +92,15 @@ export interface UseAiCreditsHistoryResult {
 export function useAiCreditsHistory(options: {
   address: string | null
   backendUrl?: string
+  /** Default buyer address filter; defaults to `'all'`. */
+  defaultBuyerFilter?: BuyerAddressFilter
 }): UseAiCreditsHistoryResult {
-  const { address, backendUrl } = options
+  const { address, backendUrl, defaultBuyerFilter = BUYER_FILTER_ALL } = options
   const defaultRange = useMemo(() => getLast90DaysRange(), [])
 
   const [selectedSources, setSelectedSources] = useState(createDefaultSelectedSources)
   const [statusFilter, setStatusFilter] = useState<CreditHistoryStatusFilter>('all')
+  const [buyerAddressFilter, setBuyerAddressFilter] = useState<BuyerAddressFilter>(defaultBuyerFilter)
   const [fromDate, setFromDate] = useState(defaultRange.from)
   const [toDate, setToDate] = useState(defaultRange.to)
   const [entries, setEntries] = useState<GdCreditEntry[]>([])
@@ -143,12 +154,23 @@ export function useAiCreditsHistory(options: {
           from: toIsoStartOfDay(fromDate),
           to: toIsoEndOfDay(toDate),
         })
-        const pageItems =
+
+        // Apply client-side source filter for multi-source queries
+        const sourceFiltered =
           activeSources.length === 1
             ? response.items
             : response.items.filter((entry) => selectedSources[entry.source])
 
-        setEntries((prev) => (append ? [...prev, ...pageItems] : pageItems))
+        // Apply buyer address filter on the client side using the `buyerAddress` field
+        const buyerFiltered =
+          buyerAddressFilter === BUYER_FILTER_ALL
+            ? sourceFiltered
+            : sourceFiltered.filter(
+                (entry) =>
+                  entry.buyerAddress?.toLowerCase() === buyerAddressFilter.toLowerCase(),
+              )
+
+        setEntries((prev) => (append ? [...prev, ...buyerFiltered] : buyerFiltered))
         setOffset(nextOffset)
         setHasMore(response.hasMore)
       } catch (err: unknown) {
@@ -160,7 +182,7 @@ export function useAiCreditsHistory(options: {
         setLoadingMore(false)
       }
     },
-    [address, backendUrl, activeSources, statusFilter, fromDate, toDate, selectedSources],
+    [address, backendUrl, activeSources, statusFilter, buyerAddressFilter, fromDate, toDate, selectedSources],
   )
 
   useEffect(() => {
@@ -188,6 +210,7 @@ export function useAiCreditsHistory(options: {
     state: {
       selectedSources,
       statusFilter,
+      buyerAddressFilter,
       fromDate,
       toDate,
       entries,
@@ -201,6 +224,7 @@ export function useAiCreditsHistory(options: {
     actions: {
       setSourceChecked,
       setStatusFilter,
+      setBuyerAddressFilter,
       setFromDate,
       setToDate,
       reload,
