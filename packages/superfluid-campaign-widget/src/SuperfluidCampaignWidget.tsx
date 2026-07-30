@@ -113,8 +113,8 @@ function SuperfluidCampaignRuntime({ data, citizenClaimEnvironment, initialView,
       <YStack gap="$1">
         <Heading level={4}>How to participate</Heading>
         <Text tone="soft">
-          Complete eligible actions across the two campaign pools to earn points. Your share of each pool is based
-          on the points you earn in that pool.
+          Complete eligible actions to earn points. Your SUP share is based on your points. Use Claim SUP rewards to
+          create or update your rewards stream.
         </Text>
       </YStack>
 

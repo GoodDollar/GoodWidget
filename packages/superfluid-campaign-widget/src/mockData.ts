@@ -19,8 +19,7 @@ import type { CampaignMockData } from './widgetRuntimeContract'
 export const DEFAULT_CAMPAIGN_MOCK_DATA: CampaignMockData = {
   seasonLabel: 'SEASON 6',
   title: 'Superfluid Ecosystem Rewards',
-  description:
-    'Earn SUP by claiming G$, inviting new users, voting on Flow State to help allocate funding, and supporting GoodBuilders through Flow State and Gardens.',
+  description: 'Complete eligible actions across GoodDollar, Flow State, and Gardens to earn SUP rewards.',
   supAllocatedLabel: '622K SUP allocated',
   endsLabel: 'Ends 30 September',
   pools: [
