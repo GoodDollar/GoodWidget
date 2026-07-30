@@ -6,6 +6,7 @@ const preview: Preview = {
     layout: 'centered',
     controls: {
       expanded: true,
+      disableSaveFromUI: true,
     },
     options: {
       storySort: {

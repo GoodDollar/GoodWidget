@@ -210,12 +210,14 @@ function PreviewStoryShell({
   initialTab = 'streams',
   initialStreamsFormOpen = false,
   defaultTheme,
+  themeOverrides,
 }: {
   adapter: StreamingWidgetAdapterResult
   dataTestId: string
   initialTab?: StreamingWidgetTab
   initialStreamsFormOpen?: boolean
   defaultTheme?: 'light' | 'dark'
+  themeOverrides?: StreamingWidgetProps['themeOverrides']
 }) {
   return (
     <StoryShell dataTestId={dataTestId}>
@@ -224,6 +226,7 @@ function PreviewStoryShell({
         initialTab={initialTab}
         initialStreamsFormOpen={initialStreamsFormOpen}
         defaultTheme={defaultTheme}
+        themeOverrides={themeOverrides}
       />
     </StoryShell>
   )
@@ -234,11 +237,13 @@ function StreamingWidgetStoryShell({
   dataTestId,
   apiKey,
   defaultTheme,
+  themeOverrides,
 }: {
   provider: unknown
   dataTestId: string
   apiKey?: string
   defaultTheme?: 'light' | 'dark'
+  themeOverrides?: StreamingWidgetProps['themeOverrides']
 }) {
   const trimmedApiKey = apiKey?.trim()
 
@@ -249,12 +254,17 @@ function StreamingWidgetStoryShell({
         environment="production"
         apiKey={trimmedApiKey || undefined}
         defaultTheme={defaultTheme}
+        themeOverrides={themeOverrides}
       />
     </StoryShell>
   )
 }
 
-export function InjectedWalletStory({ apiKey }: Pick<StreamingWidgetProps, 'apiKey'>) {
+export function InjectedWalletStory({
+  apiKey,
+  defaultTheme,
+  themeOverrides,
+}: Pick<StreamingWidgetProps, 'apiKey' | 'defaultTheme' | 'themeOverrides'>) {
   const injectedProvider = getInjectedEip1193Provider()
   const usableProvider = isInjectedProviderUsable(injectedProvider)
 
@@ -272,6 +282,8 @@ export function InjectedWalletStory({ apiKey }: Pick<StreamingWidgetProps, 'apiK
           supTokenBalance: null,
         })}
         dataTestId="StreamingWidget-no-injected-wallet"
+        defaultTheme={defaultTheme}
+        themeOverrides={themeOverrides}
       />
     )
   }
@@ -281,11 +293,17 @@ export function InjectedWalletStory({ apiKey }: Pick<StreamingWidgetProps, 'apiK
       provider={injectedProvider}
       dataTestId="StreamingWidget-injected-wallet"
       apiKey={apiKey}
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }
 
-export function CustodialLocalFixtureStory({ apiKey }: Pick<StreamingWidgetProps, 'apiKey'>) {
+export function CustodialLocalFixtureStory({
+  apiKey,
+  defaultTheme,
+  themeOverrides,
+}: Pick<StreamingWidgetProps, 'apiKey' | 'defaultTheme' | 'themeOverrides'>) {
   try {
     const provider = createCustodialEip1193Provider()
     return (
@@ -293,6 +311,8 @@ export function CustodialLocalFixtureStory({ apiKey }: Pick<StreamingWidgetProps
         provider={provider}
         dataTestId="StreamingWidget-custodial-wallet"
         apiKey={apiKey}
+        defaultTheme={defaultTheme}
+        themeOverrides={themeOverrides}
       />
     )
   } catch (error: unknown) {
@@ -312,7 +332,12 @@ export function CustodialLocalFixtureStory({ apiKey }: Pick<StreamingWidgetProps
   }
 }
 
-export function NoWalletStory() {
+type ThemeArgs = {
+  defaultTheme?: 'light' | 'dark'
+  themeOverrides?: StreamingWidgetProps['themeOverrides']
+}
+
+export function NoWalletStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   return (
     <PreviewStoryShell
       adapter={createAdapter({
@@ -326,11 +351,13 @@ export function NoWalletStory() {
         supTokenBalance: null,
       })}
       dataTestId="StreamingWidget-no-wallet"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }
 
-export function WrongChainStory() {
+export function WrongChainStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   return (
     <PreviewStoryShell
       adapter={createAdapter({
@@ -338,11 +365,13 @@ export function WrongChainStory() {
         isWrongChain: true,
       })}
       dataTestId="StreamingWidget-wrong-chain"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }
 
-export function LoadingStateStory() {
+export function LoadingStateStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   return (
     <PreviewStoryShell
       adapter={createAdapter({
@@ -357,11 +386,13 @@ export function LoadingStateStory() {
         supReserveLoading: true,
       })}
       dataTestId="StreamingWidget-loading-state"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }
 
-export function EmptyStateStory() {
+export function EmptyStateStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   return (
     <PreviewStoryShell
       adapter={createAdapter({
@@ -372,11 +403,13 @@ export function EmptyStateStory() {
         supTokenBalance: '0',
       })}
       dataTestId="StreamingWidget-empty-state"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }
 
-export function ErrorStateStory() {
+export function ErrorStateStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   return (
     <PreviewStoryShell
       adapter={createAdapter({
@@ -391,29 +424,37 @@ export function ErrorStateStory() {
         supReserveError: 'Unable to load SUP reserve.',
       })}
       dataTestId="StreamingWidget-error-state"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }
 
-export function PopulatedStateStory() {
+export function PopulatedStateStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   return (
-    <PreviewStoryShell adapter={createAdapter()} dataTestId="StreamingWidget-populated-state" />
+    <PreviewStoryShell
+      adapter={createAdapter()}
+      dataTestId="StreamingWidget-populated-state"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
   )
 }
 
-export function LightThemePopulatedStory() {
+export function LightThemePopulatedStory({ themeOverrides }: Pick<ThemeArgs, 'themeOverrides'> = {}) {
   return (
     <GoodWidgetProvider defaultTheme="light">
       <PreviewStoryShell
         adapter={createAdapter()}
         dataTestId="StreamingWidget-light-theme-populated"
         defaultTheme="light"
+        themeOverrides={themeOverrides}
       />
     </GoodWidgetProvider>
   )
 }
 
-export function CreateUpdateFormStory() {
+export function CreateUpdateFormStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   const [form, setForm] = React.useState<SetStreamFormState>(validForm)
 
   return (
@@ -432,21 +473,25 @@ export function CreateUpdateFormStory() {
       )}
       dataTestId="StreamingWidget-create-update-form"
       initialStreamsFormOpen
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }
 
-export function CreateUpdateInvalidInputStory() {
+export function CreateUpdateInvalidInputStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   return (
     <PreviewStoryShell
       adapter={createAdapter({ setStreamForm: invalidForm })}
       dataTestId="StreamingWidget-create-update-invalid"
       initialStreamsFormOpen
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }
 
-export function CreateUpdatePendingStory() {
+export function CreateUpdatePendingStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   return (
     <PreviewStoryShell
       adapter={createAdapter({
@@ -455,11 +500,13 @@ export function CreateUpdatePendingStory() {
       })}
       dataTestId="StreamingWidget-create-update-pending"
       initialStreamsFormOpen
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }
 
-export function CreateUpdateSuccessStory() {
+export function CreateUpdateSuccessStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   return (
     <PreviewStoryShell
       adapter={createAdapter({
@@ -469,11 +516,13 @@ export function CreateUpdateSuccessStory() {
       })}
       dataTestId="StreamingWidget-create-update-success"
       initialStreamsFormOpen
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }
 
-export function CreateUpdateFailureStory() {
+export function CreateUpdateFailureStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   return (
     <PreviewStoryShell
       adapter={createAdapter({
@@ -483,11 +532,13 @@ export function CreateUpdateFailureStory() {
       })}
       dataTestId="StreamingWidget-create-update-failure"
       initialStreamsFormOpen
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }
 
-export function PoolClaimStateStory() {
+export function PoolClaimStateStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   return (
     <PreviewStoryShell
       adapter={createAdapter({
@@ -495,11 +546,13 @@ export function PoolClaimStateStory() {
       })}
       dataTestId="StreamingWidget-pool-claim"
       initialTab="pools"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }
 
-export function PoolConnectedStateStory() {
+export function PoolConnectedStateStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   return (
     <PreviewStoryShell
       adapter={createAdapter({
@@ -507,11 +560,13 @@ export function PoolConnectedStateStory() {
       })}
       dataTestId="StreamingWidget-pool-connected"
       initialTab="pools"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }
 
-export function PoolClaimPendingStory() {
+export function PoolClaimPendingStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   return (
     <PreviewStoryShell
       adapter={createAdapter({
@@ -520,11 +575,13 @@ export function PoolClaimPendingStory() {
       })}
       dataTestId="StreamingWidget-pool-claim-pending"
       initialTab="pools"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }
 
-export function PoolClaimSuccessStory() {
+export function PoolClaimSuccessStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   return (
     <PreviewStoryShell
       adapter={createAdapter({
@@ -533,11 +590,13 @@ export function PoolClaimSuccessStory() {
       })}
       dataTestId="StreamingWidget-pool-claim-success"
       initialTab="pools"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }
 
-export function PoolClaimErrorStory() {
+export function PoolClaimErrorStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   return (
     <PreviewStoryShell
       adapter={createAdapter({
@@ -547,11 +606,13 @@ export function PoolClaimErrorStory() {
       })}
       dataTestId="StreamingWidget-pool-claim-error"
       initialTab="pools"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }
 
-export function PoolClaimableAmountErrorStory() {
+export function PoolClaimableAmountErrorStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   const [retrying, setRetrying] = React.useState(false)
 
   return (
@@ -578,11 +639,13 @@ export function PoolClaimableAmountErrorStory() {
       )}
       dataTestId="StreamingWidget-pool-claimable-amount-error"
       initialTab="pools"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }
 
-export function BaseSupBalanceAndReserveStory() {
+export function BaseSupBalanceAndReserveStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   return (
     <PreviewStoryShell
       adapter={createAdapter({
@@ -601,11 +664,13 @@ export function BaseSupBalanceAndReserveStory() {
       })}
       dataTestId="StreamingWidget-base-sup-reserve"
       initialTab="balances"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }
 
-export function NonBaseSupReserveDisabledStory() {
+export function NonBaseSupReserveDisabledStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   return (
     <PreviewStoryShell
       adapter={createAdapter({
@@ -624,6 +689,8 @@ export function NonBaseSupReserveDisabledStory() {
       })}
       dataTestId="StreamingWidget-non-base-reserve"
       initialTab="balances"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
     />
   )
 }
