@@ -107,7 +107,7 @@ function SuperfluidCampaignRuntime({ data, citizenClaimEnvironment, initialView,
     <YStack gap="$5" width="100%" padding="$5" style={{ boxSizing: 'border-box' }}>
       {/* Disconnected-state CTA per #127 acceptance criteria now lives in the header's
           top-right slot (see CampaignHeader) instead of its own row here. */}
-      <CampaignHeader data={campaignData} isConnected={isConnected} onConnect={connect} />
+      <CampaignHeader data={campaignData} address={address} isConnected={isConnected} onConnect={connect} />
 
       <LeaderboardSummary leaderboard={campaignData.leaderboard} onViewLeaderboard={() => setView('leaderboard')} />
 

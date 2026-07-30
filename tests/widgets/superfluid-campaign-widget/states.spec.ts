@@ -80,6 +80,9 @@ test('SuperfluidCampaignWidget renders connected content view', async ({ page })
   await expect(page.getByText('SEASON 6')).toBeVisible()
   // Connect Wallet CTA must NOT appear for connected wallet
   await expect(page.getByText('Connect Wallet')).not.toBeVisible()
+  // Header's top-right slot must show the truncated-address wallet chip
+  // (0x1a2b...9a0b form), not the old decorative placeholder box.
+  await expect(page.getByText(/^0x[0-9a-fA-F]{4}\.\.\.[0-9a-fA-F]{4}$/)).toBeVisible()
   await expect(page.getByText('How to participate')).toBeVisible()
 
   await page.screenshot({

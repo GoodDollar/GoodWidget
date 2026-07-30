@@ -1,14 +1,15 @@
 import React from 'react'
-import { Badge, BadgeText, Button, ButtonText, Heading, Text, XStack, YStack } from '@goodwidget/ui'
+import { Badge, BadgeText, Button, ButtonText, Heading, Icon, Text, XStack, YStack } from '@goodwidget/ui'
 import type { CampaignMockData } from '../widgetRuntimeContract'
 import { ConnectWalletPrompt } from './ConnectWalletPrompt'
-import { compactButtonProps } from './shared/styles'
+import { compactButtonProps, truncateAddress } from './shared/styles'
 
 /** claim.superfluid.org is the Superfluid-operated claim app — always opened in a new tab, never embedded. */
 const SUPERFLUID_CLAIM_APP_URL = 'https://claim.superfluid.org/'
 
 interface CampaignHeaderProps {
   data: Pick<CampaignMockData, 'seasonLabel' | 'title' | 'description' | 'supAllocatedLabel' | 'endsLabel'>
+  address: string | null
   isConnected: boolean
   onConnect: () => void
 }
@@ -16,10 +17,12 @@ interface CampaignHeaderProps {
 /**
  * Top-of-page header: "Superfluid" wordmark + season badge, top-right slot,
  * title, description, and the two info pills. The top-right slot shows the
- * "Connect wallet" CTA while disconnected, per #127 follow-up, and falls
- * back to the decorative wave art once a wallet is connected.
+ * "Connect wallet" CTA while disconnected, per #127 follow-up, and the same
+ * address chip (status dot + truncated address + dropdown chevron) used on
+ * LeaderboardView's header once connected — there is no close affordance
+ * here since this screen has nothing to close.
  */
-export function CampaignHeader({ data, isConnected, onConnect }: CampaignHeaderProps) {
+export function CampaignHeader({ data, address, isConnected, onConnect }: CampaignHeaderProps) {
   return (
     <YStack gap="$4" width="100%">
       {/* Wraps below the wordmark/badge group on narrow viewports instead of staying
@@ -35,16 +38,19 @@ export function CampaignHeader({ data, isConnected, onConnect }: CampaignHeaderP
         </XStack>
 
         {isConnected ? (
-          // Decorative wave art — non-interactive, safe to fully hide from a11y tree.
           <XStack
-            width={120}
-            height={48}
-            borderRadius="$3"
-            backgroundColor="$primary"
-            opacity={0.4}
-            $gtSm={{ opacity: 1 }}
-            aria-hidden
-          />
+            gap="$2"
+            alignItems="center"
+            paddingHorizontal="$3"
+            paddingVertical="$2"
+            borderRadius="$full"
+            borderWidth={1}
+            borderColor="$borderColor"
+          >
+            <YStack width={8} height={8} borderRadius="$full" backgroundColor="$success" />
+            <Text variant="label">{address ? truncateAddress(address) : ''}</Text>
+            <Icon name="chevron-down" size="xs" color="muted" />
+          </XStack>
         ) : (
           <ConnectWalletPrompt onConnect={onConnect} />
         )}
