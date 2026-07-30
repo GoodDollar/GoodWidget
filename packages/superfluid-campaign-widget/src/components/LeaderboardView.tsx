@@ -19,6 +19,7 @@ import { useCampaignLeaderboard } from '../hooks/useCampaignLeaderboard'
 import type { CampaignPoolMockData, LeaderboardEntryMockData } from '../widgetRuntimeContract'
 import { LeaderboardRow } from './LeaderboardRow'
 import { compactButtonProps, truncateAddress } from './shared/styles'
+import { WalletChip } from './shared/WalletChip'
 
 interface LeaderboardViewProps {
   /** Matches the "SEASON N" badge shown next to the wordmark on the content view's header. */
@@ -29,6 +30,7 @@ interface LeaderboardViewProps {
   leaderboardAdapter?: CampaignLeaderboardAdapter
   isConnected: boolean
   onConnect: () => void
+  onDisconnect: () => void
   onClose: () => void
   airdropStatus: { status: AirdropStatus | null; isLoading: boolean; error: string | null }
 }
@@ -68,6 +70,7 @@ export function LeaderboardView({
   leaderboardAdapter,
   isConnected,
   onConnect,
+  onDisconnect,
   onClose,
   airdropStatus,
 }: LeaderboardViewProps) {
@@ -112,11 +115,7 @@ export function LeaderboardView({
             </Badge>
           </XStack>
           {isConnected ? (
-            <XStack gap="$2" alignItems="center" paddingHorizontal="$3" paddingVertical="$2" borderRadius="$full" borderWidth={1} borderColor="$borderColor">
-              <YStack width={8} height={8} borderRadius="$full" backgroundColor="$success" />
-              <Text variant="label">{address ? truncateAddress(address) : ''}</Text>
-              <Icon name="chevron-down" size="xs" color="muted" />
-            </XStack>
+            <WalletChip address={address} onDisconnect={onDisconnect} />
           ) : (
             <Button size="sm" {...compactButtonProps} onPress={onConnect}>
               <ButtonText>Connect wallet</ButtonText>

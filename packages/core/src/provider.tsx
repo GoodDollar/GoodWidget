@@ -22,12 +22,14 @@ const DEFAULT_CAPABILITIES: HostCapabilities = {
 
 export interface WalletContextValue extends WalletState {
   connect: () => Promise<void>
+  disconnect: () => void
 }
 
 export type HostContextValue = HostState
 
 export interface GoodWidgetContextValue extends GoodWidgetState {
   connect: () => Promise<void>
+  disconnect: () => void
 }
 
 export const WalletContext = React.createContext<WalletContextValue>({
@@ -36,6 +38,7 @@ export const WalletContext = React.createContext<WalletContextValue>({
   isConnected: false,
   provider: null,
   connect: async () => {},
+  disconnect: () => {},
 })
 
 export const HostContext = React.createContext<HostContextValue>({
@@ -51,6 +54,7 @@ export const GoodWidgetContext = React.createContext<GoodWidgetContextValue>({
   host: 'injected',
   capabilities: DEFAULT_CAPABILITIES,
   connect: async () => {},
+  disconnect: () => {},
 })
 
 export function GoodWidgetProvider({
@@ -127,6 +131,13 @@ export function GoodWidgetProvider({
     if (accounts.length > 0) setAddress(accounts[0])
   }, [connectOverride, resolvedProvider])
 
+  // Injected/host wallets expose no revoke-permission API, so "disconnect" only
+  // clears GoodWidget's own connected-address state — the host wallet extension
+  // or app stays available and can reconnect without a fresh permission prompt.
+  const disconnect = useCallback(() => {
+    setAddress(null)
+  }, [])
+
   const mergedConfig = useMemo(() => {
     const finalConfig = mergeThemeOverrides(authorConfig, themeOverrides)
     return createGoodWidgetConfig(finalConfig ?? undefined)
@@ -139,8 +150,9 @@ export function GoodWidgetProvider({
       isConnected: address !== null,
       provider: resolvedProvider,
       connect,
+      disconnect,
     }),
-    [address, chainId, resolvedProvider, connect],
+    [address, chainId, resolvedProvider, connect, disconnect],
   )
 
   const hostValue = useMemo<HostContextValue>(() => ({ host, capabilities }), [host, capabilities])

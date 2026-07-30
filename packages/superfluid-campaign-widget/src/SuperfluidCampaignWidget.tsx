@@ -58,7 +58,7 @@ function handleActionCta(action: CampaignActionMockData, openClaimTab: (tab: Emb
 }
 
 function SuperfluidCampaignRuntime({ data, citizenClaimEnvironment, initialView, provider, config, themeOverrides, defaultTheme, airdropStatusAdapter, leaderboardAdapter, supTotalsAdapter }: SuperfluidCampaignRuntimeProps) {
-  const { isConnected, connect, address } = useWallet()
+  const { isConnected, connect, disconnect, address } = useWallet()
   const [view, setView] = useState<SuperfluidCampaignView>(initialView)
   const [embeddedClaimTab, setEmbeddedClaimTab] = useState<EmbeddedClaimTab>(null)
 
@@ -97,6 +97,7 @@ function SuperfluidCampaignRuntime({ data, citizenClaimEnvironment, initialView,
         leaderboardAdapter={leaderboardAdapter}
         isConnected={isConnected}
         onConnect={connect}
+        onDisconnect={disconnect}
         onClose={() => setView('content')}
         airdropStatus={airdropStatus}
       />
@@ -107,7 +108,13 @@ function SuperfluidCampaignRuntime({ data, citizenClaimEnvironment, initialView,
     <YStack gap="$5" width="100%" padding="$5" style={{ boxSizing: 'border-box' }}>
       {/* Disconnected-state CTA per #127 acceptance criteria now lives in the header's
           top-right slot (see CampaignHeader) instead of its own row here. */}
-      <CampaignHeader data={campaignData} address={address} isConnected={isConnected} onConnect={connect} />
+      <CampaignHeader
+        data={campaignData}
+        address={address}
+        isConnected={isConnected}
+        onConnect={connect}
+        onDisconnect={disconnect}
+      />
 
       <LeaderboardSummary leaderboard={campaignData.leaderboard} onViewLeaderboard={() => setView('leaderboard')} />
 

@@ -454,3 +454,42 @@ for (const view of LEADERBOARD_CLOSE_BUTTON_VIEWS) {
     })
   }
 }
+
+// Regression coverage for the wallet chip's "Disconnect" dropdown (#127
+// follow-up): clicking the connected-wallet chip opens a single-action menu,
+// and choosing Disconnect reverts the header back to the "Connect wallet" CTA.
+// Covered on both CampaignHeader (content view) and LeaderboardView, since
+// each renders its own copy of the shared WalletChip component.
+const WALLET_CHIP_DISCONNECT_VIEWS = [
+  { key: 'content', storyUrl: STORY_IDS.custodialContent, screenshotIndex: 35 },
+  { key: 'leaderboard', storyUrl: STORY_IDS.custodialLeaderboard, screenshotIndex: 36 },
+]
+
+for (const view of WALLET_CHIP_DISCONNECT_VIEWS) {
+  test(`SuperfluidCampaignWidget ${view.key} wallet chip: Disconnect returns to the Connect wallet CTA`, async ({ page }) => {
+    await page.setViewportSize({ width: 480, height: 900 })
+    await gotoStory(page, view.storyUrl)
+
+    const chip = page.getByLabel('Wallet options')
+    await expect(chip).toBeVisible()
+    await chip.click()
+
+    const disconnectItem = page.getByText('Disconnect', { exact: true })
+    await expect(disconnectItem).toBeVisible()
+
+    await page.screenshot({
+      path: `tests/widgets/superfluid-campaign-widget/test-results/scw-${view.screenshotIndex}-${view.key}-wallet-chip-menu-open.png`,
+      fullPage: true,
+    })
+
+    await disconnectItem.click()
+
+    await expect(page.getByText('Connect wallet')).toBeVisible()
+    await expect(chip).not.toBeVisible()
+
+    await page.screenshot({
+      path: `tests/widgets/superfluid-campaign-widget/test-results/scw-${view.screenshotIndex}-${view.key}-wallet-chip-after-disconnect.png`,
+      fullPage: true,
+    })
+  })
+}
