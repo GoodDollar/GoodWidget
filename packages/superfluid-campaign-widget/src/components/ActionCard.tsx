@@ -1,8 +1,9 @@
 import React from 'react'
-import { Button, ButtonText, Card, Icon, Text, XStack, YStack } from '@goodwidget/ui'
+import { Badge, BadgeText, Button, ButtonText, Card, Text, XStack, YStack } from '@goodwidget/ui'
 import { ACTIVITY_ICON_MAP } from '../widgetRuntimeContract'
 import type { CampaignActionMockData } from '../widgetRuntimeContract'
-import { ACTIVITY_ICON_NAME_FALLBACK } from './activityIconFallback'
+import { ACTIVITY_ICON_COMPONENT, resolveActivityIconColorToken } from './activityIconComponents'
+import { compactButtonProps } from './shared/styles'
 
 interface ActionCardProps {
   action: CampaignActionMockData
@@ -12,56 +13,44 @@ interface ActionCardProps {
 /**
  * A single reward-pool action row.
  *
- * Desktop ($gtSm and up): one horizontal row — icon/title/source/description on
- * the left, points-pill + CTA button on the right.
- * Phone (below $gtSm, <480px): the row still becomes a column, but the
- * description — previously free to wrap to 2-3 lines — is clamped to a single
- * truncated line, since it's supporting copy the pool/action title already
- * summarizes. That's the difference between three-plus lines of card height
- * and a fixed, predictable two-line block. Point-rule and CTA keep the same
- * relative position (bottom) as before.
+ * Two-row column at every breakpoint: row 1 is the title (+ source), on its
+ * own flex line so it never reflows when row 2's description wraps. Row 2 is
+ * a flex-row of icon, wrappable description, and a final column pairing the
+ * points pill above the CTA button. Kept identical at wide and mobile sizing
+ * per #127 follow-up — only spacing/padding scale down at $sm, not structure.
  */
 export function ActionCard({ action, onPressCta }: ActionCardProps) {
   const iconSpec = ACTIVITY_ICON_MAP[action.activity]
+  const ActivityIconComponent = ACTIVITY_ICON_COMPONENT[action.activity]
+  const iconColor = resolveActivityIconColorToken(iconSpec.colorVariant, true)
 
   return (
-    <Card
-      flexDirection="row"
-      alignItems="center"
-      justifyContent="space-between"
-      gap="$3"
-      $sm={{ flexDirection: 'column', alignItems: 'stretch', gap: '$2', padding: '$3' }}
-    >
-      <XStack gap="$3" alignItems="center" flex={1} $sm={{ flexDirection: 'row' }}>
-        <Icon
-          name={ACTIVITY_ICON_NAME_FALLBACK[action.activity]}
-          size="md"
-          color={iconSpec.colorVariant === 'green' ? 'success' : 'primary'}
-        />
-        <YStack flex={1} gap="$1">
-          <XStack gap="$2" alignItems="center" flexWrap="wrap">
-            <Text fontWeight="700">{action.title}</Text>
-            <Text variant="caption" secondary>
-              {action.source}
-            </Text>
-          </XStack>
-          <Text
-            variant="caption"
-            secondary
-            $sm={{ numberOfLines: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-          >
-            {action.description}
-          </Text>
-        </YStack>
+    <Card flexDirection="column" gap="$3" $sm={{ gap: '$2', padding: '$3' }}>
+      {/* Row 1: title + source, isolated in its own flex line so it can't
+          reflow or shrink when row 2's description wraps to multiple lines. */}
+      <XStack gap="$2" alignItems="center" flexWrap="wrap">
+        <Text fontWeight="700">{action.title}</Text>
+        <Text variant="caption" tone="secondary">
+          {action.source}
+        </Text>
       </XStack>
 
-      <XStack gap="$3" alignItems="center" $sm={{ justifyContent: 'space-between' }}>
-        <Text variant="label" color="$primary">
-          {action.pointsLabel}
+      {/* Row 2: icon <> wrappable copy <> final column (pill above button). */}
+      <XStack gap="$3" alignItems="flex-start">
+        <XStack flexShrink={0}>
+          <ActivityIconComponent size={24} color={iconColor} />
+        </XStack>
+        <Text tone="soft" flex={1}>
+          {action.description}
         </Text>
-        <Button size="sm" onPress={() => onPressCta(action)}>
-          <ButtonText>{action.ctaLabel}</ButtonText>
-        </Button>
+        <YStack gap="$2" alignItems="flex-end" flexShrink={0}>
+          <Badge type="info">
+            <BadgeText>{action.pointsLabel}</BadgeText>
+          </Badge>
+          <Button size="sm" {...compactButtonProps} onPress={() => onPressCta(action)}>
+            <ButtonText>{action.ctaLabel}</ButtonText>
+          </Button>
+        </YStack>
       </XStack>
     </Card>
   )
