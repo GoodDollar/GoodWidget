@@ -21,6 +21,8 @@ import { LeaderboardRow } from './LeaderboardRow'
 import { compactButtonProps, truncateAddress } from './shared/styles'
 
 interface LeaderboardViewProps {
+  /** Matches the "SEASON N" badge shown next to the wordmark on the content view's header. */
+  seasonLabel: string
   /** #127's two fixed reward pools, one leaderboard tab each. */
   pools: CampaignPoolMockData[]
   address: string | null
@@ -60,6 +62,7 @@ function toLeaderboardEntries(accounts: CampaignPointsAccount[]): LeaderboardEnt
  * is out of scope, matching the pre-existing pagination placeholder.
  */
 export function LeaderboardView({
+  seasonLabel,
   pools,
   address,
   leaderboardAdapter,
@@ -94,9 +97,14 @@ export function LeaderboardView({
   const visibleRows = rankedEntries.filter(matchesQuery)
 
   return (
-    <YStack gap="$4" width="100%">
+    <YStack gap="$5" width="100%" padding="$5" style={{ boxSizing: 'border-box' }}>
       <XStack justifyContent="space-between" alignItems="center" width="100%">
-        <Heading level={5}>Superfluid</Heading>
+        <XStack gap="$2" alignItems="center">
+          <Heading level={5}>Superfluid</Heading>
+          <Badge type="info">
+            <BadgeText>{seasonLabel}</BadgeText>
+          </Badge>
+        </XStack>
         <XStack gap="$2" alignItems="center">
           {isConnected ? (
             <XStack gap="$2" alignItems="center" paddingHorizontal="$3" paddingVertical="$2" borderRadius="$full" borderWidth={1} borderColor="$borderColor">

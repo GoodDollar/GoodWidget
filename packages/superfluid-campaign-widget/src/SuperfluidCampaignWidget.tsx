@@ -91,6 +91,7 @@ function SuperfluidCampaignRuntime({ data, citizenClaimEnvironment, initialView,
   if (view === 'leaderboard') {
     return (
       <LeaderboardView
+        seasonLabel={campaignData.seasonLabel}
         pools={campaignData.pools}
         address={address}
         leaderboardAdapter={leaderboardAdapter}
