@@ -6,7 +6,7 @@ import {
   type ProgramSupTotalsAdapter,
   type SuperfluidCampaignView,
 } from '@goodwidget/superfluid-campaign-widget'
-import { MiniAppShell, YStack } from '@goodwidget/ui'
+import { MiniAppShell, YStack, type GoodWidgetThemeOverrides } from '@goodwidget/ui'
 import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
 import { getInjectedEip1193Provider, isInjectedProviderUsable } from '../../fixtures/injectedEip1193'
 
@@ -163,8 +163,20 @@ function SuperfluidCampaignWidgetStoryShell({
   )
 }
 
-/** Manual showcase — requires a real injected wallet (MetaMask, Rabby, etc). */
-export function InjectedWalletStory() {
+/**
+ * Showcase story — real injected wallet (MetaMask, Rabby, etc.) with live API data.
+ * No adapter overrides are passed so all three data sources (airdrop status,
+ * leaderboard, SUP totals) hit the live endpoints.
+ */
+export function InjectedWalletStory({
+  defaultTheme,
+  themeOverrides,
+  initialView = 'content',
+}: {
+  defaultTheme?: 'light' | 'dark'
+  themeOverrides?: GoodWidgetThemeOverrides
+  initialView?: SuperfluidCampaignView
+} = {}) {
   const injectedProvider = getInjectedEip1193Provider()
   const usableProvider = isInjectedProviderUsable(injectedProvider)
 
@@ -180,7 +192,41 @@ export function InjectedWalletStory() {
   }
 
   return (
-    <SuperfluidCampaignWidgetStoryShell provider={injectedProvider} dataTestId="SuperfluidCampaignWidget-injected-wallet" />
+    <StoryShell dataTestId="SuperfluidCampaignWidget-injected-wallet">
+      <SuperfluidCampaignWidget
+        provider={injectedProvider}
+        environment="production"
+        initialView={initialView}
+        defaultTheme={defaultTheme}
+        themeOverrides={themeOverrides}
+      />
+    </StoryShell>
+  )
+}
+
+/**
+ * Showcase story — no wallet connected, live API data.
+ * Shows the public/disconnected view with real leaderboard and SUP-totals data.
+ */
+export function LiveDataNoWalletStory({
+  defaultTheme,
+  themeOverrides,
+  initialView = 'content',
+}: {
+  defaultTheme?: 'light' | 'dark'
+  themeOverrides?: GoodWidgetThemeOverrides
+  initialView?: SuperfluidCampaignView
+} = {}) {
+  return (
+    <StoryShell dataTestId="SuperfluidCampaignWidget-live-no-wallet">
+      <SuperfluidCampaignWidget
+        provider={undefined}
+        environment="production"
+        initialView={initialView}
+        defaultTheme={defaultTheme}
+        themeOverrides={themeOverrides}
+      />
+    </StoryShell>
   )
 }
 
