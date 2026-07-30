@@ -415,3 +415,39 @@ for (const view of HEADER_WRAP_VIEWS) {
     })
   }
 }
+
+// Regression test for the Leaderboard header's close (X) button: it must stay
+// pinned top-right at all times, even when the "Connect wallet"/wallet-chip
+// group next to it wraps onto its own row for lack of space. Covers both the
+// disconnected (Connect wallet button) and connected (wallet chip) variants
+// across the same breakpoint set used above, plus a wide viewport where the
+// row comfortably fits on one line, to prove the pin holds in both states.
+const LEADERBOARD_CLOSE_BUTTON_VIEWS = [
+  { key: 'leaderboard-disconnected', storyUrl: STORY_IDS.noWalletLeaderboard },
+  { key: 'leaderboard-connected', storyUrl: STORY_IDS.custodialLeaderboard },
+]
+const CLOSE_BUTTON_PIN_WIDTHS = [320, 360, 375, 390, 412, 900]
+
+for (const view of LEADERBOARD_CLOSE_BUTTON_VIEWS) {
+  for (const width of CLOSE_BUTTON_PIN_WIDTHS) {
+    test(`SuperfluidCampaignWidget ${view.key} close button stays pinned top-right at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 })
+      await gotoStory(page, view.storyUrl)
+
+      const heading = page.getByText('Superfluid', { exact: true })
+      const closeButton = page.getByLabel('Close leaderboard')
+      await expect(heading).toBeVisible()
+      await expect(closeButton).toBeVisible()
+
+      const headingBox = await heading.boundingBox()
+      const closeButtonBox = await closeButton.boundingBox()
+      if (!headingBox || !closeButtonBox) throw new Error('Expected heading and close button to have layout boxes')
+
+      // The close button must remain on the same row as the "Superfluid" wordmark
+      // regardless of whether the CTA/wallet-chip group next to it has wrapped —
+      // this is the exact bug reported: the close button used to drop down with
+      // the CTA instead of staying pinned.
+      expect(Math.abs(closeButtonBox.y - headingBox.y)).toBeLessThan(5)
+    })
+  }
+}

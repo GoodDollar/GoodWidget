@@ -98,20 +98,19 @@ export function LeaderboardView({
 
   return (
     <YStack gap="$5" width="100%" padding="$5" style={{ boxSizing: 'border-box' }}>
-      {/* Wraps below the wordmark/badge group on narrow viewports instead of staying
-          rigid — same fix as CampaignHeader's header row, applied here since this
-          view renders its own separate header rather than reusing that component.
-          Without flexWrap, the wallet chip/CTA and close button are pushed past the
-          card's right edge and silently clipped by the card's own rounded-corner
-          overflow at sub-480px widths. */}
-      <XStack justifyContent="space-between" alignItems="center" width="100%" gap="$2" flexWrap="wrap">
-        <XStack gap="$2" alignItems="center">
-          <Heading level={5}>Superfluid</Heading>
-          <Badge type="info">
-            <BadgeText>{seasonLabel}</BadgeText>
-          </Badge>
-        </XStack>
-        <XStack gap="$2" alignItems="center">
+      {/* The close button is kept as its own flex item in a row that never wraps
+          (alignItems="flex-start" pins it to the top), so it always stays top-right —
+          only the inner wordmark/badge + wallet CTA group wraps to its own line
+          below when it doesn't fit. Without this split, the close button used to
+          wrap down together with the CTA since both lived inside one flex item. */}
+      <XStack justifyContent="space-between" alignItems="flex-start" width="100%" gap="$2">
+        <XStack flexWrap="wrap" justifyContent="space-between" alignItems="center" gap="$2" flex={1}>
+          <XStack gap="$2" alignItems="center">
+            <Heading level={5}>Superfluid</Heading>
+            <Badge type="info">
+              <BadgeText>{seasonLabel}</BadgeText>
+            </Badge>
+          </XStack>
           {isConnected ? (
             <XStack gap="$2" alignItems="center" paddingHorizontal="$3" paddingVertical="$2" borderRadius="$full" borderWidth={1} borderColor="$borderColor">
               <YStack width={8} height={8} borderRadius="$full" backgroundColor="$success" />
@@ -123,17 +122,18 @@ export function LeaderboardView({
               <ButtonText>Connect wallet</ButtonText>
             </Button>
           )}
-          <Button
-            size="sm"
-            {...compactButtonProps}
-            variant="ghost"
-            iconSize="sm"
-            onPress={onClose}
-            aria-label="Close leaderboard"
-          >
-            <Icon name="x" size="sm" />
-          </Button>
         </XStack>
+        <Button
+          size="sm"
+          {...compactButtonProps}
+          variant="ghost"
+          iconSize="sm"
+          flexShrink={0}
+          onPress={onClose}
+          aria-label="Close leaderboard"
+        >
+          <Icon name="x" size="sm" />
+        </Button>
       </XStack>
 
       <YStack gap="$1">
