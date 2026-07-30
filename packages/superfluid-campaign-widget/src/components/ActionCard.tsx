@@ -61,23 +61,15 @@ export function ActionCard({ action, onPressCta }: ActionCardProps) {
 
       {/* Row 2: icon <> wrappable copy <> final column (pill above button).
           Gap tightens at $sm so the description column keeps a bit more of
-          the card's width on narrow screens. The pill+button column keeps its
-          natural (non-shrinking) size always — shrinking it would either clip
-          the pill label or force the button below a tappable width — so
-          flexWrap lets it drop to its own full-width line instead of being
-          pushed past the card edge and clipped when the longest pill labels
-          (e.g. "2 PTS PER $1 STREAMED") don't fit alongside the description
-          under ~480px (#130 change request 7). marginLeft: auto keeps it
-          right-aligned on that wrapped line, matching its aligned position
-          when there's room to share the row with the description. */}
-      <XStack gap="$3" $sm={{ gap: '$2' }} alignItems="flex-start" flexWrap="wrap">
+          the card's width on narrow screens. */}
+      <XStack gap="$3" $sm={{ gap: '$2' }} alignItems="flex-start">
         <XStack flexShrink={0}>
           <ActivityIconComponent size={24} color={iconColor} />
         </XStack>
         <Text tone="soft" flex={1}>
           {action.description}
         </Text>
-        <YStack gap="$2" alignItems="flex-end" flexShrink={0} marginLeft="auto">
+        <YStack gap="$2" alignItems="flex-end" flexShrink={0}>
           <Badge type="info">
             <BadgeText>{action.pointsLabel}</BadgeText>
           </Badge>

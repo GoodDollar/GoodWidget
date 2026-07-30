@@ -22,12 +22,7 @@ interface CampaignHeaderProps {
 export function CampaignHeader({ data, isConnected, onConnect }: CampaignHeaderProps) {
   return (
     <YStack gap="$4" width="100%">
-      {/* Wraps below the wordmark/badge group on narrow viewports instead of staying
-          rigid — without this, the disconnected-state CTA (or the connected-state wave
-          art) was pushed past the card's right edge and silently clipped by the card's
-          own rounded-corner overflow at every audited sub-480px width (#130 change
-          request 7). */}
-      <XStack justifyContent="space-between" alignItems="flex-start" width="100%" gap="$2" flexWrap="wrap">
+      <XStack justifyContent="space-between" alignItems="flex-start" width="100%">
         <XStack gap="$2" alignItems="center">
           <Heading level={5}>Superfluid</Heading>
           <Badge type="info">
