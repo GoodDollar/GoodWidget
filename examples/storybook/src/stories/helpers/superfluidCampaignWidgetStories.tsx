@@ -44,7 +44,7 @@ function fixedAirdropStatusAdapter(scenario: keyof typeof AIRDROP_STATUS_FIXTURE
  * Fixed campaign-leaderboard pages keyed by campaignId, shaped exactly like the
  * live Superfluid Points API (cms.superfluid.pro/points) responses confirmed in
  * change-request-3 — one entry per #127 reward pool (606 = GoodDollar actions,
- * 614 = Ecosystem funding actions) so tab-switching shows distinct data.
+ * 614 = Ecosystem actions) so tab-switching shows distinct data.
  */
 const LEADERBOARD_DATA_FIXTURES: Record<number, ReturnType<CampaignLeaderboardAdapter>['data']> = {
   606: {

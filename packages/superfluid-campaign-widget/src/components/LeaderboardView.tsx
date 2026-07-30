@@ -49,7 +49,7 @@ function toLeaderboardEntries(accounts: CampaignPointsAccount[]): LeaderboardEnt
 
 /**
  * Full leaderboard view — one tab per campaign pool (GoodDollar actions /
- * Ecosystem funding actions), each backed by its own live Superfluid Points
+ * Ecosystem actions), each backed by its own live Superfluid Points
  * API fetch via useCampaignLeaderboard. The hook is called a fixed number of
  * times, once per pool in prop order, rather than in a loop over `pools`,
  * since React requires the same hooks in the same order on every render and

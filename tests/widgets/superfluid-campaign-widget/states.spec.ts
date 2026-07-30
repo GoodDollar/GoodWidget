@@ -32,7 +32,7 @@ const STORY_IDS = {
 } as const
 
 // Top-ranked account address (truncated) for each campaign in LEADERBOARD_DATA_FIXTURES
-// (superfluidCampaignWidgetStories.tsx) — 606 = GoodDollar actions (default tab), 614 = Ecosystem funding actions.
+// (superfluidCampaignWidgetStories.tsx) — 606 = GoodDollar actions (default tab), 614 = Ecosystem actions.
 const GOOD_DOLLAR_ACTIONS_TOP_ADDRESS = '0x1a2b...9a0b'
 const ECOSYSTEM_FUNDING_ACTIONS_TOP_ADDRESS = '0x4d5e...2d3e'
 
@@ -265,7 +265,7 @@ test('SuperfluidCampaignWidget campaign leaderboard: switching tabs shows each c
   await expect(page.getByText(GOOD_DOLLAR_ACTIONS_TOP_ADDRESS)).toBeVisible()
   await expect(page.getByText(ECOSYSTEM_FUNDING_ACTIONS_TOP_ADDRESS)).not.toBeVisible()
 
-  await page.getByText('Ecosystem funding actions').click()
+  await page.getByText('Ecosystem actions').click()
 
   await expect(page.getByText(ECOSYSTEM_FUNDING_ACTIONS_TOP_ADDRESS)).toBeVisible()
   await expect(page.getByText(GOOD_DOLLAR_ACTIONS_TOP_ADDRESS)).not.toBeVisible()
@@ -283,7 +283,7 @@ test('SuperfluidCampaignWidget SUP totals: populated from the Superfluid program
   // SUP_TOTALS_FIXTURES, not DEFAULT_CAMPAIGN_MOCK_DATA's static placeholder
   // (75,895 / 217,700), proving the progress bar is sourced from the adapter.
   await expect(page.getByText('128,940 / 217,700 SUP')).toBeVisible()
-  // 614 (Ecosystem funding actions) has no matching program id yet, so
+  // 614 (Ecosystem actions) has no matching program id yet, so
   // RewardPoolSection falls back to its own unchanged mock placeholder.
   await expect(page.getByText('262,450 / 404,300 SUP')).toBeVisible()
 
@@ -305,4 +305,41 @@ test('SuperfluidCampaignWidget SUP totals: request failed falls back to placehol
     path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-18-sup-totals-request-failed.png',
     fullPage: true,
   })
+})
+
+test('SuperfluidCampaignWidget entire action card is clickable and triggers the same action as its CTA button', async ({ page, context }) => {
+  await gotoStory(page, STORY_IDS.noWalletContent)
+
+  // Click the card via its title text, away from the CTA button itself, to
+  // confirm the whole card (not just the button) is a click target.
+  const cardTitle = page.getByText('Vote on Flow State').first()
+  await expect(cardTitle).toBeVisible()
+
+  const [newPage] = await Promise.all([context.waitForEvent('page'), cardTitle.click()])
+  await newPage.waitForLoadState('domcontentloaded').catch(() => {})
+  expect(newPage.url()).toContain('flowstate.network')
+  await newPage.close()
+
+  await page.screenshot({
+    path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-19-action-card-whole-card-click.png',
+    fullPage: true,
+  })
+})
+
+test('SuperfluidCampaignWidget clicking the CTA button directly does not double-fire the action', async ({ page, context }) => {
+  await gotoStory(page, STORY_IDS.noWalletContent)
+
+  const voteButton = page.getByText('Vote', { exact: true }).first()
+  await expect(voteButton).toBeVisible()
+
+  const pagesBefore = context.pages().length
+  const [newPage] = await Promise.all([context.waitForEvent('page'), voteButton.click()])
+  await newPage.waitForLoadState('domcontentloaded').catch(() => {})
+
+  // Give a duplicate-fire regression a moment to open a second tab before
+  // asserting exactly one new page resulted from this single click.
+  await page.waitForTimeout(300)
+  expect(context.pages().length).toBe(pagesBefore + 1)
+  expect(newPage.url()).toContain('flowstate.network')
+  await newPage.close()
 })

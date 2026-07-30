@@ -45,7 +45,7 @@ export const CAMPAIGN_GDA_POOL_CONFIG: Record<number, CampaignPoolConfig> = {
     totalAllocated: 217700,
   },
   /**
-   * Ecosystem funding actions pool (campaign 614, Season 6).
+   * Ecosystem actions pool (campaign 614, Season 6).
    * Budget: 404,300 SUP. No on-chain program registered yet as of Season 6 launch.
    */
   614: {

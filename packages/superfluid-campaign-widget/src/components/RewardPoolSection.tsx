@@ -21,7 +21,7 @@ export function RewardPoolSection({ pool, onPressActionCta, supTotalsAdapter }: 
   // Live on-chain SUP totals for this pool's campaign, when a matching program
   // exists (see useProgramSupTotals). While loading, on request failure, or
   // when no program is registered yet for this campaignId (true today for
-  // Ecosystem funding actions/614), fall back to the pool's placeholder
+  // Ecosystem actions/614), fall back to the pool's placeholder
   // figures rather than showing a loading/error state for this small section.
   const supTotals = useProgramSupTotals(pool.campaignId, supTotalsAdapter)
   const supDistributed = supTotals.data?.totalClaimed ?? pool.supDistributed

@@ -45,7 +45,7 @@ export interface ProgramSupTotals {
 
 export interface ProgramSupTotalsResult {
   /** Null when the campaign has no on-chain program registered yet (a normal,
-   *  handled case — e.g. Ecosystem funding actions/614 as of Season 6 launch — not an error). */
+   *  handled case — e.g. Ecosystem actions/614 as of Season 6 launch — not an error). */
   data: ProgramSupTotals | null
   isLoading: boolean
   error: string | null
