@@ -12,6 +12,7 @@ import {
   XStack,
   YStack,
 } from '@goodwidget/ui'
+import type { AirdropStatus } from '../hooks/useAirdropStatus'
 import type { LeaderboardEntryMockData, LeaderboardMockData } from '../widgetRuntimeContract'
 import { ActivityIcons } from './ActivityIcons'
 import { LeaderboardRow } from './LeaderboardRow'
@@ -21,6 +22,7 @@ interface LeaderboardViewProps {
   isConnected: boolean
   onConnect: () => void
   onClose: () => void
+  airdropStatus: { status: AirdropStatus | null; isLoading: boolean; error: string | null }
 }
 
 /**
@@ -59,7 +61,7 @@ function formatAddress(address: string): string {
  * placeholders since the mock dataset only has one page of rows — real
  * pagination wiring against a live leaderboard API is out of scope here.
  */
-export function LeaderboardView({ leaderboard, isConnected, onConnect, onClose }: LeaderboardViewProps) {
+export function LeaderboardView({ leaderboard, isConnected, onConnect, onClose, airdropStatus }: LeaderboardViewProps) {
   const [searchQuery, setSearchQuery] = useState('')
 
   const rankedTopRows = buildRankedRowsWithCurrentUser(leaderboard.topEntries, leaderboard.currentUserEntry)
@@ -116,6 +118,38 @@ export function LeaderboardView({ leaderboard, isConnected, onConnect, onClose }
             <Text variant="label">Your points: {leaderboard.currentUserEntry.points.toLocaleString()}</Text>
           </XStack>
           <ActivityIcons completedActivities={leaderboard.currentUserEntry.completedActivities} />
+        </Card>
+      )}
+
+      {/*
+        Live airdrop-eligibility check against the connected wallet. Deliberately
+        kept separate from the "Your position" points card above: the airdrop
+        endpoint reports claim/invite eligibility, not the campaign points total
+        (which still comes from the mock dataset pending live leaderboard data —
+        see widgetRuntimeContract.ts). Don't merge the two into one "points" figure.
+      */}
+      {isConnected && (
+        <Card gap="$2">
+          <Text variant="label">Airdrop status</Text>
+          {airdropStatus.isLoading && <Text secondary>Checking your Superfluid airdrop status...</Text>}
+          {airdropStatus.error && <Text secondary color="$error">{airdropStatus.error}</Text>}
+          {!airdropStatus.isLoading && !airdropStatus.error && airdropStatus.status && (
+            <Text secondary>
+              {airdropStatus.status.error === 'not whitelisted'
+                ? 'Not yet whitelisted for the SUP airdrop.'
+                : (airdropStatus.status.error ?? 'Eligible for the SUP airdrop.')}
+            </Text>
+          )}
+          {airdropStatus.status?.walletData && (
+            <XStack gap="$3">
+              <Text variant="caption" secondary>
+                Claims: {airdropStatus.status.walletData.claims}
+              </Text>
+              <Text variant="caption" secondary>
+                Invites: {airdropStatus.status.walletData.invites}
+              </Text>
+            </XStack>
+          )}
         </Card>
       )}
 

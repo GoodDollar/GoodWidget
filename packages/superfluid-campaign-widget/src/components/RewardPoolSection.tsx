@@ -26,7 +26,13 @@ export function RewardPoolSection({ pool, onPressActionCta }: RewardPoolSectionP
         </Text>
       </YStack>
 
-      <ProgressBar value={pool.supDistributed} max={pool.supTotal} label={progressLabel} variant="success" />
+      <ProgressBar
+        value={pool.supDistributed}
+        max={pool.supTotal}
+        label={progressLabel}
+        variant="success"
+        hidePercentageOnMobile
+      />
 
       <YStack gap="$2">
         {pool.actions.map((action) => (

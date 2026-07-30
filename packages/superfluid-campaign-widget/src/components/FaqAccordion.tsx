@@ -1,23 +1,34 @@
 import React from 'react'
-import { Accordion, Heading, Text, YStack } from '@goodwidget/ui'
+import { Accordion, Text } from '@goodwidget/ui'
 import type { FaqItemMockData } from '../widgetRuntimeContract'
 
 interface FaqAccordionProps {
   faq: FaqItemMockData[]
 }
 
-/** Thin wrapper feeding CampaignMockData.faq into the shared Accordion primitive. */
+/**
+ * FAQ is one top-level collapsible ("FAQ") rather than N top-level accordion
+ * items — this keeps the collapsed page short on phone. Opening it reveals an
+ * inner Accordion with one item per question, each toggling independently.
+ */
 export function FaqAccordion({ faq }: FaqAccordionProps) {
   return (
-    <YStack gap="$3" width="100%">
-      <Heading level={4}>FAQ</Heading>
-      <Accordion
-        items={faq.map((item, index) => ({
-          id: `faq-${index}`,
-          title: item.question,
-          content: <Text secondary>{item.answer}</Text>,
-        }))}
-      />
-    </YStack>
+    <Accordion
+      items={[
+        {
+          id: 'faq-section',
+          title: 'FAQ',
+          content: (
+            <Accordion
+              items={faq.map((item, index) => ({
+                id: `faq-${index}`,
+                title: item.question,
+                content: <Text secondary>{item.answer}</Text>,
+              }))}
+            />
+          ),
+        },
+      ]}
+    />
   )
 }
