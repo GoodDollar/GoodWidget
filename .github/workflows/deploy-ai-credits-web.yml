@@ -13,9 +13,21 @@ on:
       - 'packages/embed/**'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
+  pull_request_target:
+    types: [opened, synchronize, edited, ready_for_review]
+    branches:
+      - main
+    paths:
+      - 'apps/ai-credits-web/**'
+      - 'packages/ai-credits-widget/**'
+      - 'packages/core/**'
+      - 'packages/ui/**'
+      - 'packages/embed/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
 
 concurrency:
-  group: deploy-ai-credits-web-${{ github.ref }}
+  group: deploy-ai-credits-web-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
@@ -23,7 +35,57 @@ env:
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_AI_CREDITS_WEB_PROJECT_ID }}
 
 jobs:
+  # Fork PRs wait on the `external` environment, where maintainers configure
+  # required reviewers. Internal PRs continue directly to their preview.
+  authorize-preview:
+    if: github.event_name == 'pull_request_target'
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.pull_request.head.repo.full_name != github.repository && 'external' || 'internal' }}
+    steps:
+      - run: true
+
+  preview:
+    if: github.event_name == 'pull_request_target'
+    needs: authorize-preview
+    runs-on: ubuntu-latest
+    environment:
+      name: preview
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - name: Checkout pull request head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: ${{ github.workspace }}
+
+      - name: Pull Vercel project settings
+        run: pnpm exec vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build preview deployment
+        run: pnpm exec vercel build --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy preview
+        id: deploy
+        run: |
+          url="$(pnpm exec vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
   production:
+    if: github.event_name != 'pull_request_target'
     runs-on: ubuntu-latest
     environment:
       name: production
