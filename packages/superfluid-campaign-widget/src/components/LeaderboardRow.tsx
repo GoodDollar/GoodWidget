@@ -2,6 +2,7 @@ import React from 'react'
 import { Badge, BadgeText, Card, Text, XStack, YStack } from '@goodwidget/ui'
 import type { LeaderboardEntryMockData } from '../widgetRuntimeContract'
 import { ActivityIcons } from './ActivityIcons'
+import { truncateAddress } from './shared/styles'
 
 interface LeaderboardRowProps {
   entry: LeaderboardEntryMockData
@@ -19,7 +20,7 @@ interface LeaderboardRowProps {
  * groups in the same order (rank+address, then points, then activities).
  */
 export function LeaderboardRow({ entry, isCurrentUser = false }: LeaderboardRowProps) {
-  const addressLabel = entry.ensName ?? entry.address
+  const addressLabel = entry.ensName ?? truncateAddress(entry.address)
 
   return (
     <Card
@@ -51,9 +52,14 @@ export function LeaderboardRow({ entry, isCurrentUser = false }: LeaderboardRowP
         <Text fontWeight="600">{entry.points.toLocaleString()} pts</Text>
       </YStack>
 
-      <XStack flex={2} $md={{ flexWrap: 'wrap' }} $sm={{ width: '100%' }}>
-        <ActivityIcons completedActivities={entry.completedActivities} />
-      </XStack>
+      {/* Omitted for rows sourced from the live Points API, which has no
+          per-activity breakdown — hide the column rather than show misleading
+          all-dimmed icons. */}
+      {entry.completedActivities && (
+        <XStack flex={2} $md={{ flexWrap: 'wrap' }} $sm={{ width: '100%' }}>
+          <ActivityIcons completedActivities={entry.completedActivities} />
+        </XStack>
+      )}
     </Card>
   )
 }

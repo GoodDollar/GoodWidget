@@ -3,36 +3,13 @@ import type { CampaignMockData } from './widgetRuntimeContract'
 // ---------------------------------------------------------------------------
 // DEFAULT_CAMPAIGN_MOCK_DATA
 //
-// Static fixture satisfying the approved #127 content + leaderboard mockups.
-// This phase renders UI against mock data only — no live points/leaderboard
-// API integration. Consumers can override via SuperfluidCampaignWidgetProps.data.
+// Static fixture satisfying the approved #127 content mockup. Leaderboard
+// rows are sourced live from the Superfluid Points API (see
+// useCampaignLeaderboard) rather than mock data — only the SUP-totals fields
+// below remain placeholders, since that API has no SUP-allocated figures.
+// Consumers can still override the content fixture via
+// SuperfluidCampaignWidgetProps.data.
 // ---------------------------------------------------------------------------
-
-/**
- * Six representative leaderboard rows spanning ranks 1-909, split into the
- * always-visible top/bottom bands the mockup shows around the "..." gap.
- */
-const TOP_LEADERBOARD_ENTRIES = [
-  { rank: 1, address: '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b', ensName: 'flowmaster.eth', points: 4820, completedActivities: ['claim-ubi', 'invite-users', 'flow-state-vote', 'flow-state-funding', 'gardens-donation', 'gardens-funding'] as const },
-  { rank: 2, address: '0x2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c', ensName: 'superflow.eth', points: 4390, completedActivities: ['claim-ubi', 'invite-users', 'flow-state-vote', 'gardens-donation', 'gardens-funding'] as const },
-  { rank: 3, address: '0x3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d', points: 3910, completedActivities: ['claim-ubi', 'flow-state-vote', 'flow-state-funding', 'gardens-funding'] as const },
-  { rank: 4, address: '0x4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e', ensName: 'gardener.eth', points: 3420, completedActivities: ['claim-ubi', 'invite-users', 'gardens-donation'] as const },
-  { rank: 5, address: '0x5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f', points: 2985, completedActivities: ['claim-ubi', 'flow-state-vote', 'gardens-funding'] as const },
-]
-
-const BOTTOM_LEADERBOARD_ENTRIES = [
-  { rank: 908, address: '0xa0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9', points: 12, completedActivities: ['claim-ubi'] as const },
-  { rank: 909, address: '0xb1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0', points: 8, completedActivities: [] as const },
-]
-
-/** Connected-only row — rendered in "Your position" and inserted into the ranked table. */
-const CURRENT_USER_ENTRY = {
-  rank: 342,
-  address: '0x7f8e9d0c1b2a3f4e5d6c7b8a9f0e1d2c3b4a5f6e',
-  ensName: 'you.eth',
-  points: 186,
-  completedActivities: ['claim-ubi', 'invite-users'] as const,
-}
 
 export const DEFAULT_CAMPAIGN_MOCK_DATA: CampaignMockData = {
   seasonLabel: 'SEASON 6',
@@ -44,6 +21,7 @@ export const DEFAULT_CAMPAIGN_MOCK_DATA: CampaignMockData = {
   pools: [
     {
       id: 'good-dollar-actions',
+      campaignId: 606,
       label: 'GoodDollar actions',
       supDistributed: 75895,
       supTotal: 217700,
@@ -81,6 +59,7 @@ export const DEFAULT_CAMPAIGN_MOCK_DATA: CampaignMockData = {
     },
     {
       id: 'ecosystem-funding-actions',
+      campaignId: 614,
       label: 'Ecosystem funding actions',
       supDistributed: 262450,
       supTotal: 404300,
@@ -119,18 +98,10 @@ export const DEFAULT_CAMPAIGN_MOCK_DATA: CampaignMockData = {
       ],
     },
   ],
+  // supDistributed/supTotal/totalParticipants/lastUpdatedLabel remain placeholders:
+  // the live Points API (see useCampaignLeaderboard) has no SUP-allocation totals,
+  // only points fields — confirmed gap, reported separately to the campaign owner.
   leaderboard: {
-    topEntries: TOP_LEADERBOARD_ENTRIES.map((entry) => ({
-      ...entry,
-      completedActivities: [...entry.completedActivities],
-    })),
-    bottomEntries: BOTTOM_LEADERBOARD_ENTRIES.map((entry) => ({
-      ...entry,
-      completedActivities: [...entry.completedActivities],
-    })),
-    // null here represents the disconnected view; SuperfluidCampaignWidget swaps in
-    // CURRENT_USER_ENTRY-shaped data once useWallet() reports a connected address.
-    currentUserEntry: null,
     totalParticipants: 2184,
     supDistributed: 316300,
     supTotal: 622000,
@@ -195,13 +166,4 @@ export const DEFAULT_CAMPAIGN_MOCK_DATA: CampaignMockData = {
         'Wait a few minutes, then check BaseScan (basescan.org) to confirm a non-zero ETH balance on Base. Check/update the gas fee suggestion in your wallet (e.g. MetaMask) and retry. If it persists, contact the GoodDollar Telegram support group (t.me/GoodDollarX).',
     },
   ],
-}
-
-/** Connected-view variant of the mock dataset, with a populated currentUserEntry. */
-export const CONNECTED_CAMPAIGN_MOCK_DATA: CampaignMockData = {
-  ...DEFAULT_CAMPAIGN_MOCK_DATA,
-  leaderboard: {
-    ...DEFAULT_CAMPAIGN_MOCK_DATA.leaderboard,
-    currentUserEntry: { ...CURRENT_USER_ENTRY, completedActivities: [...CURRENT_USER_ENTRY.completedActivities] },
-  },
 }

@@ -19,7 +19,18 @@ const STORY_IDS = {
     '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--airdrop-status-not-whitelisted&viewMode=story',
   airdropStatusEligible:
     '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--airdrop-status-eligible&viewMode=story',
+  leaderboardLoading:
+    '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--leaderboard-loading&viewMode=story',
+  leaderboardRequestFailed:
+    '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--leaderboard-request-failed&viewMode=story',
+  leaderboardPopulated:
+    '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--leaderboard-populated&viewMode=story',
 } as const
+
+// Top-ranked account address (truncated) for each campaign in LEADERBOARD_DATA_FIXTURES
+// (superfluidCampaignWidgetStories.tsx) — 606 = GoodDollar actions (default tab), 614 = Ecosystem funding actions.
+const GOOD_DOLLAR_ACTIONS_TOP_ADDRESS = '0x1a2b...9a0b'
+const ECOSYSTEM_FUNDING_ACTIONS_TOP_ADDRESS = '0x4d5e...2d3e'
 
 async function gotoStory(page: Page, storyUrl: string): Promise<void> {
   await page.goto(storyUrl)
@@ -49,8 +60,8 @@ test('SuperfluidCampaignWidget renders disconnected leaderboard view', async ({ 
   await gotoStory(page, STORY_IDS.noWalletLeaderboard)
 
   await expect(page.getByText('Leaderboard')).toBeVisible()
-  // Top-ranked entry from mock data
-  await expect(page.getByText('flowmaster.eth')).toBeVisible()
+  // Top-ranked entry from the live Points API leaderboard fixture (GoodDollar actions tab, default)
+  await expect(page.getByText(GOOD_DOLLAR_ACTIONS_TOP_ADDRESS)).toBeVisible()
 
   await page.screenshot({
     path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-02-no-wallet-leaderboard.png',
@@ -77,7 +88,7 @@ test('SuperfluidCampaignWidget renders connected leaderboard view', async ({ pag
   await gotoStory(page, STORY_IDS.custodialLeaderboard)
 
   await expect(page.getByText('Leaderboard')).toBeVisible()
-  await expect(page.getByText('flowmaster.eth')).toBeVisible()
+  await expect(page.getByText(GOOD_DOLLAR_ACTIONS_TOP_ADDRESS)).toBeVisible()
 
   await page.screenshot({
     path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-04-custodial-leaderboard.png',
@@ -122,7 +133,7 @@ test('SuperfluidCampaignWidget leaderboard back button returns to content view',
   await expect(viewLeaderboardBtn).toBeVisible()
   await viewLeaderboardBtn.click()
 
-  await expect(page.getByText('flowmaster.eth')).toBeVisible()
+  await expect(page.getByText(GOOD_DOLLAR_ACTIONS_TOP_ADDRESS)).toBeVisible()
 
   await page.screenshot({
     path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-06-leaderboard-navigation.png',
@@ -217,6 +228,46 @@ test('SuperfluidCampaignWidget airdrop status: eligible', async ({ page }) => {
 
   await page.screenshot({
     path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-13-airdrop-status-eligible.png',
+    fullPage: true,
+  })
+})
+
+test('SuperfluidCampaignWidget campaign leaderboard: loading', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.leaderboardLoading)
+
+  await expect(page.getByText('Loading leaderboard...')).toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-14-leaderboard-loading.png',
+    fullPage: true,
+  })
+})
+
+test('SuperfluidCampaignWidget campaign leaderboard: request failed', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.leaderboardRequestFailed)
+
+  await expect(page.getByText('Campaign leaderboard request failed (500)')).toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-15-leaderboard-request-failed.png',
+    fullPage: true,
+  })
+})
+
+test('SuperfluidCampaignWidget campaign leaderboard: switching tabs shows each campaign\'s own accounts', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.leaderboardPopulated)
+
+  // Default tab (GoodDollar actions, campaignId 606)
+  await expect(page.getByText(GOOD_DOLLAR_ACTIONS_TOP_ADDRESS)).toBeVisible()
+  await expect(page.getByText(ECOSYSTEM_FUNDING_ACTIONS_TOP_ADDRESS)).not.toBeVisible()
+
+  await page.getByText('Ecosystem funding actions').click()
+
+  await expect(page.getByText(ECOSYSTEM_FUNDING_ACTIONS_TOP_ADDRESS)).toBeVisible()
+  await expect(page.getByText(GOOD_DOLLAR_ACTIONS_TOP_ADDRESS)).not.toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-16-leaderboard-tab-switch.png',
     fullPage: true,
   })
 })

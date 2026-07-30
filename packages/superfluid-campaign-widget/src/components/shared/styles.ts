@@ -7,3 +7,8 @@ export const compactButtonProps = {
   height: '$7',
   paddingHorizontal: '$3',
 } as const
+
+/** Shortens a wallet address to the "0x1a2b...9a0b" form used across leaderboard rows and headers. */
+export function truncateAddress(address: string): string {
+  return `${address.slice(0, 6)}...${address.slice(-4)}`
+}

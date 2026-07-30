@@ -1,6 +1,7 @@
 import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
 import type { CitizenClaimWidgetEnvironment } from '@goodwidget/citizen-claim-widget'
 import type { AirdropStatusAdapter } from './hooks/useAirdropStatus'
+import type { CampaignLeaderboardAdapter } from './hooks/useCampaignLeaderboard'
 
 // ---------------------------------------------------------------------------
 // Environment type, matching the other GoodWidget packages
@@ -72,6 +73,8 @@ export interface CampaignActionMockData {
 
 export interface CampaignPoolMockData {
   id: CampaignPoolId
+  /** Superfluid Points API campaign id backing this pool's leaderboard tab. */
+  campaignId: number
   label: string
   supDistributed: number
   supTotal: number
@@ -89,17 +92,13 @@ export interface LeaderboardEntryMockData {
   address: string
   ensName?: string
   points: number
-  completedActivities: ActivityType[]
+  /** Omitted for rows sourced from the live Points API, which has no per-activity
+   *  breakdown — the activity-icons column is hidden entirely for those rows
+   *  rather than rendering misleading all-dimmed icons. */
+  completedActivities?: ActivityType[]
 }
 
 export interface LeaderboardMockData {
-  /** Always visible, highest-ranked rows (e.g. ranks 1-5). */
-  topEntries: LeaderboardEntryMockData[]
-  /** Always visible, lowest-ranked rows shown after the "..." gap. */
-  bottomEntries: LeaderboardEntryMockData[]
-  /** Present only in the connected view; rendered as its own summary block
-   *  and as a highlighted row inserted between topEntries and bottomEntries. */
-  currentUserEntry: LeaderboardEntryMockData | null
   totalParticipants: number
   supDistributed: number
   supTotal: number
@@ -152,4 +151,11 @@ export interface SuperfluidCampaignWidgetProps {
    * whitelist status.
    */
   airdropStatusAdapter?: AirdropStatusAdapter
+  /**
+   * Overrides the live Superfluid Points API fetch (cms.superfluid.pro/points)
+   * with a fixed result per campaignId, the same DI seam airdropStatusAdapter
+   * uses. Lets Storybook fixtures and Playwright specs render every
+   * leaderboard state deterministically instead of depending on live standings.
+   */
+  leaderboardAdapter?: CampaignLeaderboardAdapter
 }

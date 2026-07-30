@@ -20,8 +20,18 @@ export { ACTIVITY_ICON_MAP } from './widgetRuntimeContract'
 // Airdrop status adapter DI seam (Storybook/Playwright fixtures)
 export type { AirdropStatus, AirdropStatusAdapter, AirdropStatusAdapterResult } from './hooks/useAirdropStatus'
 
+// Campaign leaderboard adapter DI seam (Storybook/Playwright fixtures)
+export type {
+  CampaignLeaderboardAdapter,
+  CampaignLeaderboardData,
+  CampaignLeaderboardResult,
+  CampaignPointsAccount,
+  CampaignPointsPagination,
+  CampaignPointsSummary,
+} from './hooks/useCampaignLeaderboard'
+
 // Mock dataset
-export { DEFAULT_CAMPAIGN_MOCK_DATA, CONNECTED_CAMPAIGN_MOCK_DATA } from './mockData'
+export { DEFAULT_CAMPAIGN_MOCK_DATA } from './mockData'
 
 // Widget component
 export { SuperfluidCampaignWidget } from './SuperfluidCampaignWidget'

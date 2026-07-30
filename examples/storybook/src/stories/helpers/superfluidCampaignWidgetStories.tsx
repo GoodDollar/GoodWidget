@@ -2,6 +2,7 @@ import React from 'react'
 import {
   SuperfluidCampaignWidget,
   type AirdropStatusAdapter,
+  type CampaignLeaderboardAdapter,
   type SuperfluidCampaignView,
 } from '@goodwidget/superfluid-campaign-widget'
 import { MiniAppShell, YStack } from '@goodwidget/ui'
@@ -38,6 +39,63 @@ function fixedAirdropStatusAdapter(scenario: keyof typeof AIRDROP_STATUS_FIXTURE
   return () => AIRDROP_STATUS_FIXTURES[scenario]()
 }
 
+/**
+ * Fixed campaign-leaderboard pages keyed by campaignId, shaped exactly like the
+ * live Superfluid Points API (cms.superfluid.pro/points) responses confirmed in
+ * change-request-3 — one entry per #127 reward pool (606 = GoodDollar actions,
+ * 614 = Ecosystem funding actions) so tab-switching shows distinct data.
+ */
+const LEADERBOARD_DATA_FIXTURES: Record<number, ReturnType<CampaignLeaderboardAdapter>['data']> = {
+  606: {
+    summary: {
+      campaignId: 606,
+      name: 'GoodDollar Actions',
+      slug: 'good-dollar-actions',
+      totalPoints: 128450,
+      memberCount: 624,
+      totalEvents: 3891,
+      lastEventAt: '2026-07-29T18:42:00.000Z',
+      createdAt: '2026-01-05T00:00:00.000Z',
+    },
+    accounts: [
+      { account: '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b', totalPoints: 4820, eventCount: 96, lastEventAt: '2026-07-29T12:00:00.000Z' },
+      { account: '0x2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c', totalPoints: 4390, eventCount: 88, lastEventAt: '2026-07-29T11:00:00.000Z' },
+      { account: '0x3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d', totalPoints: 3910, eventCount: 79, lastEventAt: '2026-07-29T10:00:00.000Z' },
+    ],
+    pagination: { page: 1, limit: 50, totalDocs: 624, totalPages: 13, hasNextPage: true, hasPrevPage: false },
+  },
+  614: {
+    summary: {
+      campaignId: 614,
+      name: 'Ecosystem Contributions',
+      slug: 'ecosystem-funding-actions',
+      totalPoints: 84200,
+      memberCount: 318,
+      totalEvents: 1745,
+      lastEventAt: '2026-07-29T17:10:00.000Z',
+      createdAt: '2026-01-05T00:00:00.000Z',
+    },
+    accounts: [
+      { account: '0x4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e', totalPoints: 3420, eventCount: 55, lastEventAt: '2026-07-29T09:00:00.000Z' },
+      { account: '0x5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f', totalPoints: 2985, eventCount: 47, lastEventAt: '2026-07-29T08:00:00.000Z' },
+    ],
+    pagination: { page: 1, limit: 50, totalDocs: 318, totalPages: 7, hasNextPage: true, hasPrevPage: false },
+  },
+}
+
+/** Named leaderboard scenarios exercised by the QA stories/Playwright spec below. */
+function fixedCampaignLeaderboardAdapter(
+  scenario: 'populated' | 'loading' | 'requestFailed',
+): CampaignLeaderboardAdapter {
+  return (campaignId) => {
+    if (scenario === 'loading') return { data: null, isLoading: true, error: null }
+    if (scenario === 'requestFailed') {
+      return { data: null, isLoading: false, error: 'Campaign leaderboard request failed (500)' }
+    }
+    return { data: LEADERBOARD_DATA_FIXTURES[campaignId] ?? null, isLoading: false, error: null }
+  }
+}
+
 function StoryShell({ children, dataTestId }: { children: React.ReactNode; dataTestId: string }) {
   return (
     <MiniAppShell>
@@ -56,11 +114,13 @@ function SuperfluidCampaignWidgetStoryShell({
   dataTestId,
   initialView = 'content',
   airdropStatusAdapter,
+  leaderboardAdapter,
 }: {
   provider: unknown
   dataTestId: string
   initialView?: SuperfluidCampaignView
   airdropStatusAdapter?: AirdropStatusAdapter
+  leaderboardAdapter?: CampaignLeaderboardAdapter
 }) {
   return (
     <StoryShell dataTestId={dataTestId}>
@@ -69,6 +129,7 @@ function SuperfluidCampaignWidgetStoryShell({
         environment="production"
         initialView={initialView}
         airdropStatusAdapter={airdropStatusAdapter}
+        leaderboardAdapter={leaderboardAdapter}
       />
     </StoryShell>
   )
@@ -105,9 +166,11 @@ export function InjectedWalletStory() {
 export function CustodialLocalFixtureStory({
   initialView,
   airdropStatusAdapter = fixedAirdropStatusAdapter('notWhitelisted'),
+  leaderboardAdapter = fixedCampaignLeaderboardAdapter('populated'),
 }: {
   initialView?: SuperfluidCampaignView
   airdropStatusAdapter?: AirdropStatusAdapter
+  leaderboardAdapter?: CampaignLeaderboardAdapter
 }) {
   try {
     const provider = createCustodialEip1193Provider()
@@ -117,6 +180,7 @@ export function CustodialLocalFixtureStory({
         dataTestId="SuperfluidCampaignWidget-custodial-wallet"
         initialView={initialView}
         airdropStatusAdapter={airdropStatusAdapter}
+        leaderboardAdapter={leaderboardAdapter}
       />
     )
   } catch (error: unknown) {
@@ -139,12 +203,28 @@ export function CustodialAirdropStatusStory({
 }
 
 /** QA fixture — no wallet connected, matches the disconnected (public) mockup. */
-export function NoWalletStory({ initialView }: { initialView?: SuperfluidCampaignView }) {
+export function NoWalletStory({
+  initialView,
+  leaderboardAdapter = fixedCampaignLeaderboardAdapter('populated'),
+}: {
+  initialView?: SuperfluidCampaignView
+  leaderboardAdapter?: CampaignLeaderboardAdapter
+}) {
   return (
     <SuperfluidCampaignWidgetStoryShell
       provider={undefined}
       dataTestId="SuperfluidCampaignWidget-no-wallet"
       initialView={initialView}
+      leaderboardAdapter={leaderboardAdapter}
     />
   )
+}
+
+/** QA fixture — no wallet connected, leaderboard fixed to a single scenario (loading/error/populated). */
+export function NoWalletLeaderboardStory({
+  scenario,
+}: {
+  scenario: 'populated' | 'loading' | 'requestFailed'
+}) {
+  return <NoWalletStory initialView="leaderboard" leaderboardAdapter={fixedCampaignLeaderboardAdapter(scenario)} />
 }

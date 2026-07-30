@@ -9,7 +9,7 @@ import { LeaderboardSummary } from './components/LeaderboardSummary'
 import { LeaderboardView } from './components/LeaderboardView'
 import { RewardPoolSection } from './components/RewardPoolSection'
 import { useAirdropStatus } from './hooks/useAirdropStatus'
-import { DEFAULT_CAMPAIGN_MOCK_DATA, CONNECTED_CAMPAIGN_MOCK_DATA } from './mockData'
+import { DEFAULT_CAMPAIGN_MOCK_DATA } from './mockData'
 import type {
   CampaignActionMockData,
   SuperfluidCampaignView,
@@ -29,6 +29,7 @@ interface SuperfluidCampaignRuntimeProps {
   themeOverrides?: SuperfluidCampaignWidgetProps['themeOverrides']
   defaultTheme?: SuperfluidCampaignWidgetProps['defaultTheme']
   airdropStatusAdapter?: SuperfluidCampaignWidgetProps['airdropStatusAdapter']
+  leaderboardAdapter?: SuperfluidCampaignWidgetProps['leaderboardAdapter']
 }
 
 /**
@@ -55,7 +56,7 @@ function handleActionCta(action: CampaignActionMockData, openClaimTab: (tab: Emb
   }
 }
 
-function SuperfluidCampaignRuntime({ data, citizenClaimEnvironment, initialView, provider, config, themeOverrides, defaultTheme, airdropStatusAdapter }: SuperfluidCampaignRuntimeProps) {
+function SuperfluidCampaignRuntime({ data, citizenClaimEnvironment, initialView, provider, config, themeOverrides, defaultTheme, airdropStatusAdapter, leaderboardAdapter }: SuperfluidCampaignRuntimeProps) {
   const { isConnected, connect, address } = useWallet()
   const [view, setView] = useState<SuperfluidCampaignView>(initialView)
   const [embeddedClaimTab, setEmbeddedClaimTab] = useState<EmbeddedClaimTab>(null)
@@ -66,9 +67,7 @@ function SuperfluidCampaignRuntime({ data, citizenClaimEnvironment, initialView,
   // result for deterministic Storybook/Playwright fixtures.
   const airdropStatus = useAirdropStatus(address, airdropStatusAdapter)
 
-  // The mock dataset's connected-user leaderboard row only exists once a wallet
-  // is connected — swap in the connected fixture rather than mutating null in place.
-  const campaignData = data ?? (isConnected ? CONNECTED_CAMPAIGN_MOCK_DATA : DEFAULT_CAMPAIGN_MOCK_DATA)
+  const campaignData = data ?? DEFAULT_CAMPAIGN_MOCK_DATA
 
   if (embeddedClaimTab) {
     return (
@@ -91,7 +90,9 @@ function SuperfluidCampaignRuntime({ data, citizenClaimEnvironment, initialView,
   if (view === 'leaderboard') {
     return (
       <LeaderboardView
-        leaderboard={campaignData.leaderboard}
+        pools={campaignData.pools}
+        address={address}
+        leaderboardAdapter={leaderboardAdapter}
         isConnected={isConnected}
         onConnect={connect}
         onClose={() => setView('content')}
@@ -141,6 +142,7 @@ export function SuperfluidCampaignWidget({
   citizenClaimEnvironment = 'production',
   initialView = 'content',
   airdropStatusAdapter,
+  leaderboardAdapter,
 }: SuperfluidCampaignWidgetProps) {
   return (
     <GoodWidgetProvider
@@ -159,6 +161,7 @@ export function SuperfluidCampaignWidget({
           themeOverrides={themeOverrides}
           defaultTheme={defaultTheme}
           airdropStatusAdapter={airdropStatusAdapter}
+          leaderboardAdapter={leaderboardAdapter}
         />
       </Card>
       <ToastContainer />

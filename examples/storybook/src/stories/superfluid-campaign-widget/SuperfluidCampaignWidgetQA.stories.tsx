@@ -3,6 +3,7 @@ import { SuperfluidCampaignWidget } from '@goodwidget/superfluid-campaign-widget
 import {
   CustodialAirdropStatusStory,
   CustodialLocalFixtureStory,
+  NoWalletLeaderboardStory,
   NoWalletStory,
 } from '../helpers/superfluidCampaignWidgetStories'
 
@@ -48,4 +49,18 @@ export const AirdropStatusNotWhitelisted: Story = {
 
 export const AirdropStatusEligible: Story = {
   render: () => <CustodialAirdropStatusStory scenario="eligible" />,
+}
+
+// Campaign leaderboard states — each fixes the Points API response via
+// leaderboardAdapter so the leaderboard/tabs screenshot is deterministic.
+export const LeaderboardLoading: Story = {
+  render: () => <NoWalletLeaderboardStory scenario="loading" />,
+}
+
+export const LeaderboardRequestFailed: Story = {
+  render: () => <NoWalletLeaderboardStory scenario="requestFailed" />,
+}
+
+export const LeaderboardPopulated: Story = {
+  render: () => <NoWalletLeaderboardStory scenario="populated" />,
 }
