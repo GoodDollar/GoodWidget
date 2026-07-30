@@ -343,3 +343,62 @@ test('SuperfluidCampaignWidget clicking the CTA button directly does not double-
   expect(newPage.url()).toContain('flowstate.network')
   await newPage.close()
 })
+
+// Small-screen breakpoint audit per change-request-7: real device widths from
+// the minimum supported width up through common Android/iPhone sizes, checked
+// for horizontal overflow, unchanged "Claim SUP rewards" CTA, and readable
+// action cards. One test per breakpoint keeps failures attributable to a
+// specific width instead of collapsing into a single parameterized report.
+const RESPONSIVE_AUDIT_BREAKPOINTS = [
+  { width: 320, label: 'min-supported', screenshotIndex: 20 },
+  { width: 360, label: 'common-android', screenshotIndex: 21 },
+  { width: 375, label: 'iphone-se', screenshotIndex: 22 },
+  { width: 390, label: 'modern-iphone', screenshotIndex: 23 },
+  { width: 412, label: 'larger-android', screenshotIndex: 24 },
+]
+
+for (const { width, label, screenshotIndex } of RESPONSIVE_AUDIT_BREAKPOINTS) {
+  test(`SuperfluidCampaignWidget has no horizontal overflow at ${width}px (${label})`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 })
+    await gotoStory(page, STORY_IDS.noWalletContent)
+
+    await expect(page.getByText('Superfluid Ecosystem Rewards')).toBeVisible()
+    // Scoped to the button role: "Claim SUP rewards" also appears as plain
+    // copy inside "How to participate", which getByText(...) would also match.
+    await expect(page.getByRole('button', { name: 'Claim SUP rewards' })).toBeVisible()
+    await expect(page.getByText('Connect wallet')).toBeVisible()
+    await expect(page.getByText('Claim UBI')).toBeVisible()
+
+    // Document must never grow wider than the viewport — a +1px tolerance
+    // absorbs sub-pixel rounding without masking a real overflow.
+    const documentScrollWidth = await page.evaluate(() => document.documentElement.scrollWidth)
+    expect(documentScrollWidth).toBeLessThanOrEqual(width + 1)
+
+    // A button can be silently clipped by an ancestor's overflow:hidden (e.g.
+    // the card's own rounded-corner clipping) without ever growing the
+    // document's scrollWidth above — this is exactly how the header CTA and
+    // "Fund GoodBuilders Season 4" button were cut off pre-fix (#130 change
+    // request 7), invisible to the scrollWidth check alone.
+    const clippedButtons = await page.evaluate(() => {
+      const clipped: string[] = []
+      for (const btn of Array.from(document.querySelectorAll('button'))) {
+        const rect = btn.getBoundingClientRect()
+        for (let el = btn.parentElement; el; el = el.parentElement) {
+          const style = getComputedStyle(el)
+          const elRect = el.getBoundingClientRect()
+          if ((style.overflowX === 'hidden' || style.overflow === 'hidden') && rect.right > elRect.right + 0.5) {
+            clipped.push(btn.textContent?.trim() ?? '(unlabeled button)')
+            break
+          }
+        }
+      }
+      return clipped
+    })
+    expect(clippedButtons).toEqual([])
+
+    await page.screenshot({
+      path: `tests/widgets/superfluid-campaign-widget/test-results/scw-${screenshotIndex}-responsive-${width}px-${label}.png`,
+      fullPage: true,
+    })
+  })
+}
