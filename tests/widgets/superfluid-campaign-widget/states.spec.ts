@@ -343,3 +343,75 @@ test('SuperfluidCampaignWidget clicking the CTA button directly does not double-
   expect(newPage.url()).toContain('flowstate.network')
   await newPage.close()
 })
+
+// Narrow-viewport regression suite for the header "Connect wallet" CTA, covering
+// both Content view's CampaignHeader and Leaderboard view's own (separately
+// coded) header row. Reuses the change-request-7 breakpoint set (min-supported
+// through larger-Android widths). Scoped to the header buttons only — ActionCard
+// has its own separate, pre-existing pill/button clipping at these widths that
+// is out of scope for this fix, so it is deliberately not asserted here.
+async function findClippedButtons(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const clipped: string[] = []
+    for (const btn of Array.from(document.querySelectorAll('button'))) {
+      const rect = btn.getBoundingClientRect()
+      for (let el = btn.parentElement; el; el = el.parentElement) {
+        const style = getComputedStyle(el)
+        const elRect = el.getBoundingClientRect()
+        if ((style.overflowX === 'hidden' || style.overflow === 'hidden') && rect.right > elRect.right + 0.5) {
+          clipped.push(btn.textContent?.trim() ?? '(unlabeled button)')
+          break
+        }
+      }
+    }
+    return clipped
+  })
+}
+
+const HEADER_WRAP_BREAKPOINTS = [
+  { width: 320, label: 'min-supported' },
+  { width: 360, label: 'common-android' },
+  { width: 375, label: 'iphone-se' },
+  { width: 390, label: 'modern-iphone' },
+  { width: 412, label: 'larger-android' },
+]
+
+const HEADER_WRAP_VIEWS = [
+  { key: 'content', storyUrl: STORY_IDS.noWalletContent, headerButtonText: 'Connect wallet', screenshotBase: 20 },
+  { key: 'leaderboard-disconnected', storyUrl: STORY_IDS.noWalletLeaderboard, headerButtonText: 'Connect wallet', screenshotBase: 25 },
+  { key: 'leaderboard-connected', storyUrl: STORY_IDS.custodialLeaderboard, headerButtonText: 'Close leaderboard', screenshotBase: 30 },
+]
+
+for (const view of HEADER_WRAP_VIEWS) {
+  for (const [i, { width, label }] of HEADER_WRAP_BREAKPOINTS.entries()) {
+    const screenshotIndex = view.screenshotBase + i
+
+    test(`SuperfluidCampaignWidget ${view.key} header has no button clipping at ${width}px (${label})`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 })
+      await gotoStory(page, view.storyUrl)
+
+      // headerButtonText is matched against either visible text (Connect wallet)
+      // or an aria-label (Close leaderboard's icon-only button has no text content).
+      await expect(page.getByText(view.headerButtonText).or(page.getByLabel(view.headerButtonText))).toBeVisible()
+
+      // Document must never grow wider than the viewport — a +1px tolerance
+      // absorbs sub-pixel rounding without masking a real overflow.
+      const documentScrollWidth = await page.evaluate(() => document.documentElement.scrollWidth)
+      expect(documentScrollWidth).toBeLessThanOrEqual(width + 1)
+
+      // A button can be silently clipped by an ancestor's overflow:hidden (e.g.
+      // the card's own rounded-corner clipping) without ever growing the
+      // document's scrollWidth above — this is exactly how the header CTA was
+      // cut off pre-fix. Only assert on the header's own buttons; ActionCard's
+      // separate clipping issue at these widths is intentionally not checked here.
+      const clippedButtons = await findClippedButtons(page)
+      expect(clippedButtons).not.toContain('Connect wallet')
+      expect(clippedButtons).not.toContain('')
+
+      await page.screenshot({
+        path: `tests/widgets/superfluid-campaign-widget/test-results/scw-${screenshotIndex}-responsive-${view.key}-${width}px-${label}.png`,
+        fullPage: true,
+      })
+    })
+  }
+}

@@ -98,7 +98,13 @@ export function LeaderboardView({
 
   return (
     <YStack gap="$5" width="100%" padding="$5" style={{ boxSizing: 'border-box' }}>
-      <XStack justifyContent="space-between" alignItems="center" width="100%">
+      {/* Wraps below the wordmark/badge group on narrow viewports instead of staying
+          rigid — same fix as CampaignHeader's header row, applied here since this
+          view renders its own separate header rather than reusing that component.
+          Without flexWrap, the wallet chip/CTA and close button are pushed past the
+          card's right edge and silently clipped by the card's own rounded-corner
+          overflow at sub-480px widths. */}
+      <XStack justifyContent="space-between" alignItems="center" width="100%" gap="$2" flexWrap="wrap">
         <XStack gap="$2" alignItems="center">
           <Heading level={5}>Superfluid</Heading>
           <Badge type="info">
