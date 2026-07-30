@@ -37,7 +37,8 @@
     "@goodwidget/citizen-claim-widget": "workspace:*",
     "@goodwidget/core": "workspace:*",
     "@goodwidget/embed": "workspace:*",
-    "@goodwidget/ui": "workspace:*"
+    "@goodwidget/ui": "workspace:*",
+    "viem": "^2.0.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.0",

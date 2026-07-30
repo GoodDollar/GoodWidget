@@ -30,6 +30,9 @@ export type {
   CampaignPointsSummary,
 } from './hooks/useCampaignLeaderboard'
 
+// SUP program totals adapter DI seam (Storybook/Playwright fixtures)
+export type { ProgramSupTotals, ProgramSupTotalsAdapter, ProgramSupTotalsResult } from './hooks/useProgramSupTotals'
+
 // Mock dataset
 export { DEFAULT_CAMPAIGN_MOCK_DATA } from './mockData'
 

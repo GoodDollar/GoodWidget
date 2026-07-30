@@ -25,6 +25,10 @@ const STORY_IDS = {
     '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--leaderboard-request-failed&viewMode=story',
   leaderboardPopulated:
     '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--leaderboard-populated&viewMode=story',
+  supTotalsRequestFailed:
+    '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--sup-totals-request-failed&viewMode=story',
+  supTotalsPopulated:
+    '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--sup-totals-populated&viewMode=story',
 } as const
 
 // Top-ranked account address (truncated) for each campaign in LEADERBOARD_DATA_FIXTURES
@@ -268,6 +272,37 @@ test('SuperfluidCampaignWidget campaign leaderboard: switching tabs shows each c
 
   await page.screenshot({
     path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-16-leaderboard-tab-switch.png',
+    fullPage: true,
+  })
+})
+
+test('SuperfluidCampaignWidget SUP totals: populated from the Superfluid programs API for campaign 606, 614 stays placeholder', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.supTotalsPopulated)
+
+  // 606 (GoodDollar actions) resolves a live program match — figures come from
+  // SUP_TOTALS_FIXTURES, not DEFAULT_CAMPAIGN_MOCK_DATA's static placeholder
+  // (75,895 / 217,700), proving the progress bar is sourced from the adapter.
+  await expect(page.getByText('128,940 / 217,700 SUP')).toBeVisible()
+  // 614 (Ecosystem funding actions) has no matching program id yet, so
+  // RewardPoolSection falls back to its own unchanged mock placeholder.
+  await expect(page.getByText('262,450 / 404,300 SUP')).toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-17-sup-totals-populated.png',
+    fullPage: true,
+  })
+})
+
+test('SuperfluidCampaignWidget SUP totals: request failed falls back to placeholder figures for both pools', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.supTotalsRequestFailed)
+
+  // Neither pool has data on a failed request, so both fall back to their
+  // mock placeholders rather than showing an error state or blank bar.
+  await expect(page.getByText('75,895 / 217,700 SUP')).toBeVisible()
+  await expect(page.getByText('262,450 / 404,300 SUP')).toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-18-sup-totals-request-failed.png',
     fullPage: true,
   })
 })

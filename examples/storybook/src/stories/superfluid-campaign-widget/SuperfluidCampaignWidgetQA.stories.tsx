@@ -5,6 +5,7 @@ import {
   CustodialLocalFixtureStory,
   NoWalletLeaderboardStory,
   NoWalletStory,
+  NoWalletSupTotalsStory,
 } from '../helpers/superfluidCampaignWidgetStories'
 
 const meta: Meta<typeof SuperfluidCampaignWidget> = {
@@ -63,4 +64,14 @@ export const LeaderboardRequestFailed: Story = {
 
 export const LeaderboardPopulated: Story = {
   render: () => <NoWalletLeaderboardStory scenario="populated" />,
+}
+
+// SUP-totals progress bar states — each fixes the programs API response via
+// supTotalsAdapter so the reward-pool progress bar screenshot is deterministic.
+export const SupTotalsRequestFailed: Story = {
+  render: () => <NoWalletSupTotalsStory scenario="requestFailed" />,
+}
+
+export const SupTotalsPopulated: Story = {
+  render: () => <NoWalletSupTotalsStory scenario="populated" />,
 }

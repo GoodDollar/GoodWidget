@@ -5,8 +5,13 @@ import type { CampaignMockData } from './widgetRuntimeContract'
 //
 // Static fixture satisfying the approved #127 content mockup. Leaderboard
 // rows are sourced live from the Superfluid Points API (see
-// useCampaignLeaderboard) rather than mock data — only the SUP-totals fields
-// below remain placeholders, since that API has no SUP-allocated figures.
+// useCampaignLeaderboard). Each pool's supDistributed/supTotal below are now
+// only a fallback: useProgramSupTotals overrides them per-pool with live
+// on-chain figures when a matching Superfluid program exists for that
+// campaignId (currently true for 606/GoodDollar actions, not yet for
+// 614/Ecosystem funding actions — see change-request-4). The aggregate
+// leaderboard.supDistributed/supTotal below has no live source at all (no
+// endpoint combines both pools' on-chain totals) and remains a placeholder.
 // Consumers can still override the content fixture via
 // SuperfluidCampaignWidgetProps.data.
 // ---------------------------------------------------------------------------
@@ -99,8 +104,8 @@ export const DEFAULT_CAMPAIGN_MOCK_DATA: CampaignMockData = {
     },
   ],
   // supDistributed/supTotal/totalParticipants/lastUpdatedLabel remain placeholders:
-  // the live Points API (see useCampaignLeaderboard) has no SUP-allocation totals,
-  // only points fields — confirmed gap, reported separately to the campaign owner.
+  // no endpoint combines both pools' on-chain SUP totals into one aggregate
+  // figure — confirmed gap, reported separately to the campaign owner.
   leaderboard: {
     totalParticipants: 2184,
     supDistributed: 316300,

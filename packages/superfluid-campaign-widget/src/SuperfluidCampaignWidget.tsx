@@ -30,6 +30,7 @@ interface SuperfluidCampaignRuntimeProps {
   defaultTheme?: SuperfluidCampaignWidgetProps['defaultTheme']
   airdropStatusAdapter?: SuperfluidCampaignWidgetProps['airdropStatusAdapter']
   leaderboardAdapter?: SuperfluidCampaignWidgetProps['leaderboardAdapter']
+  supTotalsAdapter?: SuperfluidCampaignWidgetProps['supTotalsAdapter']
 }
 
 /**
@@ -56,7 +57,7 @@ function handleActionCta(action: CampaignActionMockData, openClaimTab: (tab: Emb
   }
 }
 
-function SuperfluidCampaignRuntime({ data, citizenClaimEnvironment, initialView, provider, config, themeOverrides, defaultTheme, airdropStatusAdapter, leaderboardAdapter }: SuperfluidCampaignRuntimeProps) {
+function SuperfluidCampaignRuntime({ data, citizenClaimEnvironment, initialView, provider, config, themeOverrides, defaultTheme, airdropStatusAdapter, leaderboardAdapter, supTotalsAdapter }: SuperfluidCampaignRuntimeProps) {
   const { isConnected, connect, address } = useWallet()
   const [view, setView] = useState<SuperfluidCampaignView>(initialView)
   const [embeddedClaimTab, setEmbeddedClaimTab] = useState<EmbeddedClaimTab>(null)
@@ -124,6 +125,7 @@ function SuperfluidCampaignRuntime({ data, citizenClaimEnvironment, initialView,
             key={pool.id}
             pool={pool}
             onPressActionCta={(action) => handleActionCta(action, setEmbeddedClaimTab)}
+            supTotalsAdapter={supTotalsAdapter}
           />
         ))}
       </YStack>
@@ -143,6 +145,7 @@ export function SuperfluidCampaignWidget({
   initialView = 'content',
   airdropStatusAdapter,
   leaderboardAdapter,
+  supTotalsAdapter,
 }: SuperfluidCampaignWidgetProps) {
   return (
     <GoodWidgetProvider
@@ -162,6 +165,7 @@ export function SuperfluidCampaignWidget({
           defaultTheme={defaultTheme}
           airdropStatusAdapter={airdropStatusAdapter}
           leaderboardAdapter={leaderboardAdapter}
+          supTotalsAdapter={supTotalsAdapter}
         />
       </Card>
       <ToastContainer />

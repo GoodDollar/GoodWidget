@@ -2,6 +2,7 @@ import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
 import type { CitizenClaimWidgetEnvironment } from '@goodwidget/citizen-claim-widget'
 import type { AirdropStatusAdapter } from './hooks/useAirdropStatus'
 import type { CampaignLeaderboardAdapter } from './hooks/useCampaignLeaderboard'
+import type { ProgramSupTotalsAdapter } from './hooks/useProgramSupTotals'
 
 // ---------------------------------------------------------------------------
 // Environment type, matching the other GoodWidget packages
@@ -73,9 +74,12 @@ export interface CampaignActionMockData {
 
 export interface CampaignPoolMockData {
   id: CampaignPoolId
-  /** Superfluid Points API campaign id backing this pool's leaderboard tab. */
+  /** Superfluid Points API campaign id backing this pool's leaderboard tab,
+   *  and the Superfluid programs API id backing its SUP-totals progress bar. */
   campaignId: number
   label: string
+  /** Placeholder fallback, used until useProgramSupTotals resolves a live
+   *  on-chain match for this pool's campaignId (see RewardPoolSection). */
   supDistributed: number
   supTotal: number
   participants: number
@@ -158,4 +162,12 @@ export interface SuperfluidCampaignWidgetProps {
    * leaderboard state deterministically instead of depending on live standings.
    */
   leaderboardAdapter?: CampaignLeaderboardAdapter
+  /**
+   * Overrides the live Superfluid programs fetch (claim.superfluid.org/api/programs)
+   * with a fixed result per campaignId, the same DI seam leaderboardAdapter uses.
+   * Lets Storybook fixtures and Playwright specs render each reward pool's
+   * SUP-totals progress bar deterministically instead of depending on the
+   * live programs list, whose on-chain funding state changes over time.
+   */
+  supTotalsAdapter?: ProgramSupTotalsAdapter
 }

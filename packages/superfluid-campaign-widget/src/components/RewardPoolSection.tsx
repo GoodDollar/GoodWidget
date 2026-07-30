@@ -1,11 +1,14 @@
 import React from 'react'
 import { Heading, ProgressBar, Text, YStack } from '@goodwidget/ui'
+import type { ProgramSupTotalsAdapter } from '../hooks/useProgramSupTotals'
+import { useProgramSupTotals } from '../hooks/useProgramSupTotals'
 import type { CampaignActionMockData, CampaignPoolMockData } from '../widgetRuntimeContract'
 import { ActionCard } from './ActionCard'
 
 interface RewardPoolSectionProps {
   pool: CampaignPoolMockData
   onPressActionCta: (action: CampaignActionMockData) => void
+  supTotalsAdapter?: ProgramSupTotalsAdapter
 }
 
 /**
@@ -14,8 +17,17 @@ interface RewardPoolSectionProps {
  * feeds always stack vertically at every breakpoint — no responsive change
  * needed at this level.
  */
-export function RewardPoolSection({ pool, onPressActionCta }: RewardPoolSectionProps) {
-  const progressLabel = `${pool.supDistributed.toLocaleString()} / ${pool.supTotal.toLocaleString()} SUP`
+export function RewardPoolSection({ pool, onPressActionCta, supTotalsAdapter }: RewardPoolSectionProps) {
+  // Live on-chain SUP totals for this pool's campaign, when a matching program
+  // exists (see useProgramSupTotals). While loading, on request failure, or
+  // when no program is registered yet for this campaignId (true today for
+  // Ecosystem funding actions/614), fall back to the pool's placeholder
+  // figures rather than showing a loading/error state for this small section.
+  const supTotals = useProgramSupTotals(pool.campaignId, supTotalsAdapter)
+  const supDistributed = supTotals.data?.totalClaimed ?? pool.supDistributed
+  const supTotal = supTotals.data?.totalAllocated ?? pool.supTotal
+
+  const progressLabel = `${supDistributed.toLocaleString()} / ${supTotal.toLocaleString()} SUP`
 
   return (
     <YStack gap="$3" width="100%">
@@ -27,8 +39,8 @@ export function RewardPoolSection({ pool, onPressActionCta }: RewardPoolSectionP
       </YStack>
 
       <ProgressBar
-        value={pool.supDistributed}
-        max={pool.supTotal}
+        value={supDistributed}
+        max={supTotal}
         label={progressLabel}
         variant="success"
         hidePercentageOnMobile

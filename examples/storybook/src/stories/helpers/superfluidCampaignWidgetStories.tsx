@@ -3,6 +3,7 @@ import {
   SuperfluidCampaignWidget,
   type AirdropStatusAdapter,
   type CampaignLeaderboardAdapter,
+  type ProgramSupTotalsAdapter,
   type SuperfluidCampaignView,
 } from '@goodwidget/superfluid-campaign-widget'
 import { MiniAppShell, YStack } from '@goodwidget/ui'
@@ -96,6 +97,30 @@ function fixedCampaignLeaderboardAdapter(
   }
 }
 
+/**
+ * Fixed SUP program totals keyed by campaignId. 606 (GoodDollar actions) is
+ * illustrative "healthy progress" data, not the live snapshot — the real
+ * program exists but funding hasn't started yet as of change-request-4, so
+ * its live totalAllocated/totalClaimed are both currently 0. 614 (Ecosystem
+ * funding actions) has no matching entry on purpose: no on-chain program is
+ * registered for it yet, so RewardPoolSection falls back to its own
+ * placeholder — the same "no match found" case the live endpoint returns.
+ */
+const SUP_TOTALS_FIXTURES: Record<number, ReturnType<ProgramSupTotalsAdapter>['data']> = {
+  606: { totalAllocated: 217700, totalClaimed: 128940 },
+}
+
+/** Named SUP-totals scenarios exercised by the QA stories/Playwright spec below. */
+function fixedProgramSupTotalsAdapter(scenario: 'populated' | 'loading' | 'requestFailed'): ProgramSupTotalsAdapter {
+  return (campaignId) => {
+    if (scenario === 'loading') return { data: null, isLoading: true, error: null }
+    if (scenario === 'requestFailed') {
+      return { data: null, isLoading: false, error: 'SUP program totals request failed (500)' }
+    }
+    return { data: SUP_TOTALS_FIXTURES[campaignId] ?? null, isLoading: false, error: null }
+  }
+}
+
 function StoryShell({ children, dataTestId }: { children: React.ReactNode; dataTestId: string }) {
   return (
     <MiniAppShell>
@@ -115,12 +140,14 @@ function SuperfluidCampaignWidgetStoryShell({
   initialView = 'content',
   airdropStatusAdapter,
   leaderboardAdapter,
+  supTotalsAdapter = fixedProgramSupTotalsAdapter('populated'),
 }: {
   provider: unknown
   dataTestId: string
   initialView?: SuperfluidCampaignView
   airdropStatusAdapter?: AirdropStatusAdapter
   leaderboardAdapter?: CampaignLeaderboardAdapter
+  supTotalsAdapter?: ProgramSupTotalsAdapter
 }) {
   return (
     <StoryShell dataTestId={dataTestId}>
@@ -130,6 +157,7 @@ function SuperfluidCampaignWidgetStoryShell({
         initialView={initialView}
         airdropStatusAdapter={airdropStatusAdapter}
         leaderboardAdapter={leaderboardAdapter}
+        supTotalsAdapter={supTotalsAdapter}
       />
     </StoryShell>
   )
@@ -167,10 +195,12 @@ export function CustodialLocalFixtureStory({
   initialView,
   airdropStatusAdapter = fixedAirdropStatusAdapter('notWhitelisted'),
   leaderboardAdapter = fixedCampaignLeaderboardAdapter('populated'),
+  supTotalsAdapter = fixedProgramSupTotalsAdapter('populated'),
 }: {
   initialView?: SuperfluidCampaignView
   airdropStatusAdapter?: AirdropStatusAdapter
   leaderboardAdapter?: CampaignLeaderboardAdapter
+  supTotalsAdapter?: ProgramSupTotalsAdapter
 }) {
   try {
     const provider = createCustodialEip1193Provider()
@@ -181,6 +211,7 @@ export function CustodialLocalFixtureStory({
         initialView={initialView}
         airdropStatusAdapter={airdropStatusAdapter}
         leaderboardAdapter={leaderboardAdapter}
+        supTotalsAdapter={supTotalsAdapter}
       />
     )
   } catch (error: unknown) {
@@ -206,9 +237,11 @@ export function CustodialAirdropStatusStory({
 export function NoWalletStory({
   initialView,
   leaderboardAdapter = fixedCampaignLeaderboardAdapter('populated'),
+  supTotalsAdapter = fixedProgramSupTotalsAdapter('populated'),
 }: {
   initialView?: SuperfluidCampaignView
   leaderboardAdapter?: CampaignLeaderboardAdapter
+  supTotalsAdapter?: ProgramSupTotalsAdapter
 }) {
   return (
     <SuperfluidCampaignWidgetStoryShell
@@ -216,8 +249,18 @@ export function NoWalletStory({
       dataTestId="SuperfluidCampaignWidget-no-wallet"
       initialView={initialView}
       leaderboardAdapter={leaderboardAdapter}
+      supTotalsAdapter={supTotalsAdapter}
     />
   )
+}
+
+/** QA fixture — no wallet connected, SUP-totals fixed to a single scenario (requestFailed/populated). */
+export function NoWalletSupTotalsStory({
+  scenario,
+}: {
+  scenario: 'populated' | 'loading' | 'requestFailed'
+}) {
+  return <NoWalletStory initialView="content" supTotalsAdapter={fixedProgramSupTotalsAdapter(scenario)} />
 }
 
 /** QA fixture — no wallet connected, leaderboard fixed to a single scenario (loading/error/populated). */
