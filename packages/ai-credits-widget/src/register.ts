@@ -1,5 +1,10 @@
 const DEFAULT_TAG_NAME = 'ai-credits-widget'
 
+export const goodWidgetMetadata = {
+  packageName: '@goodwidget/ai-credits-widget',
+  packageVersion: '0.1.0',
+} as const
+
 /**
  * Register the <ai-credits-widget> custom element.
  *
