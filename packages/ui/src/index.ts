@@ -81,6 +81,10 @@ export type { ProgressBarProps } from './components/ProgressBar'
 export { Icon } from './components/Icon'
 export type { IconName, IconSize, IconColor, IconProps } from './components/Icon'
 
+// Activity icons — re-exported originals from @tamagui/lucide-icons for the
+// widget "activity" glyph spec (#127). See components/ActivityIcons.ts.
+export { CalendarDays, UserPlus, Megaphone, Waves, HandCoins } from './components/ActivityIcons'
+
 // Dialog — new component backed by imperative store
 export {
   GoodWidgetDialog,

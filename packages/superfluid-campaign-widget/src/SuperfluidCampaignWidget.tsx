@@ -4,7 +4,6 @@ import type { EIP1193Provider } from '@goodwidget/core'
 import { CitizenClaimWidget } from '@goodwidget/citizen-claim-widget'
 import { Card, Heading, Text, ToastContainer, YStack } from '@goodwidget/ui'
 import { CampaignHeader } from './components/CampaignHeader'
-import { ConnectWalletPrompt } from './components/ConnectWalletPrompt'
 import { FaqAccordion } from './components/FaqAccordion'
 import { LeaderboardSummary } from './components/LeaderboardSummary'
 import { LeaderboardView } from './components/LeaderboardView'
@@ -82,7 +81,7 @@ function SuperfluidCampaignRuntime({ data, citizenClaimEnvironment, initialView,
           environment={citizenClaimEnvironment}
           initialTab={embeddedClaimTab}
         />
-        <Text variant="caption" secondary center onPress={() => setEmbeddedClaimTab(null)} cursor="pointer">
+        <Text variant="caption" tone="secondary" center onPress={() => setEmbeddedClaimTab(null)} cursor="pointer">
           Back to campaign
         </Text>
       </YStack>
@@ -103,16 +102,15 @@ function SuperfluidCampaignRuntime({ data, citizenClaimEnvironment, initialView,
 
   return (
     <YStack gap="$5" width="100%" padding="$5" style={{ boxSizing: 'border-box' }}>
-      <CampaignHeader data={campaignData} />
-
-      {/* Required disconnected-state CTA per #127 acceptance criteria — hidden once a wallet is connected. */}
-      {!isConnected && <ConnectWalletPrompt onConnect={connect} />}
+      {/* Disconnected-state CTA per #127 acceptance criteria now lives in the header's
+          top-right slot (see CampaignHeader) instead of its own row here. */}
+      <CampaignHeader data={campaignData} isConnected={isConnected} onConnect={connect} />
 
       <LeaderboardSummary leaderboard={campaignData.leaderboard} onViewLeaderboard={() => setView('leaderboard')} />
 
       <YStack gap="$1">
         <Heading level={4}>How to participate</Heading>
-        <Text secondary>
+        <Text tone="soft">
           Complete eligible actions across the two campaign pools to earn points. Your share of each pool is based
           on the points you earn in that pool.
         </Text>

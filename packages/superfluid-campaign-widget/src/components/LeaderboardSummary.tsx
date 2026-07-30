@@ -1,6 +1,7 @@
 import React from 'react'
 import { Button, ButtonText, Card, Heading, Icon, ProgressBar, Text, XStack, YStack } from '@goodwidget/ui'
 import type { LeaderboardMockData } from '../widgetRuntimeContract'
+import { compactButtonProps } from './shared/styles'
 
 interface LeaderboardSummaryProps {
   leaderboard: LeaderboardMockData
@@ -22,12 +23,12 @@ export function LeaderboardSummary({ leaderboard, onViewLeaderboard }: Leaderboa
           <Icon name="party-popper" size="lg" color="primary" />
           <YStack gap="$1">
             <Heading level={4}>Leaderboard</Heading>
-            <Text variant="caption" secondary>
+            <Text variant="caption" tone="secondary">
               Top contributors
             </Text>
           </YStack>
         </XStack>
-        <Button onPress={onViewLeaderboard}>
+        <Button size="sm" {...compactButtonProps} onPress={onViewLeaderboard}>
           <ButtonText>View Leaderboard</ButtonText>
         </Button>
       </XStack>
@@ -41,10 +42,10 @@ export function LeaderboardSummary({ leaderboard, onViewLeaderboard }: Leaderboa
       />
 
       <XStack justifyContent="space-between" alignItems="center" flexWrap="wrap" gap="$2">
-        <Text variant="caption" secondary>
+        <Text variant="caption" tone="secondary">
           {leaderboard.totalParticipants.toLocaleString()} participants
         </Text>
-        <Text variant="caption" secondary>
+        <Text variant="caption" tone="secondary">
           {leaderboard.lastUpdatedLabel}
         </Text>
       </XStack>

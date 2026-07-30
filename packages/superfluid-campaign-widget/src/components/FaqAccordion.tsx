@@ -23,7 +23,7 @@ export function FaqAccordion({ faq }: FaqAccordionProps) {
               items={faq.map((item, index) => ({
                 id: `faq-${index}`,
                 title: item.question,
-                content: <Text secondary>{item.answer}</Text>,
+                content: <Text tone="soft">{item.answer}</Text>,
               }))}
             />
           ),

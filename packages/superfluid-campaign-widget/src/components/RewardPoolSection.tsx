@@ -21,7 +21,7 @@ export function RewardPoolSection({ pool, onPressActionCta }: RewardPoolSectionP
     <YStack gap="$3" width="100%">
       <YStack gap="$1">
         <Heading level={4}>{pool.label}</Heading>
-        <Text variant="caption" secondary>
+        <Text variant="caption" tone="secondary">
           {pool.participants.toLocaleString()} participants
         </Text>
       </YStack>

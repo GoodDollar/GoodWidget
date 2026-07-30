@@ -16,6 +16,7 @@ import type { AirdropStatus } from '../hooks/useAirdropStatus'
 import type { LeaderboardEntryMockData, LeaderboardMockData } from '../widgetRuntimeContract'
 import { ActivityIcons } from './ActivityIcons'
 import { LeaderboardRow } from './LeaderboardRow'
+import { compactButtonProps } from './shared/styles'
 
 interface LeaderboardViewProps {
   leaderboard: LeaderboardMockData
@@ -89,11 +90,18 @@ export function LeaderboardView({ leaderboard, isConnected, onConnect, onClose, 
               <Icon name="chevron-down" size="xs" color="muted" />
             </XStack>
           ) : (
-            <Button size="sm" onPress={onConnect}>
+            <Button size="sm" {...compactButtonProps} onPress={onConnect}>
               <ButtonText>Connect wallet</ButtonText>
             </Button>
           )}
-          <Button size="sm" variant="ghost" iconSize="sm" onPress={onClose} aria-label="Close leaderboard">
+          <Button
+            size="sm"
+            {...compactButtonProps}
+            variant="ghost"
+            iconSize="sm"
+            onPress={onClose}
+            aria-label="Close leaderboard"
+          >
             <Icon name="x" size="sm" />
           </Button>
         </XStack>
@@ -101,7 +109,7 @@ export function LeaderboardView({ leaderboard, isConnected, onConnect, onClose, 
 
       <YStack gap="$1">
         <Heading level={2}>Leaderboard</Heading>
-        <Text secondary>See how you rank against other campaign participants.</Text>
+        <Text tone="soft">See how you rank against other campaign participants.</Text>
       </YStack>
 
       {isConnected && leaderboard.currentUserEntry && (
@@ -131,10 +139,10 @@ export function LeaderboardView({ leaderboard, isConnected, onConnect, onClose, 
       {isConnected && (
         <Card gap="$2">
           <Text variant="label">Airdrop status</Text>
-          {airdropStatus.isLoading && <Text secondary>Checking your Superfluid airdrop status...</Text>}
-          {airdropStatus.error && <Text secondary color="$error">{airdropStatus.error}</Text>}
+          {airdropStatus.isLoading && <Text tone="soft">Checking your Superfluid airdrop status...</Text>}
+          {airdropStatus.error && <Text color="$error">{airdropStatus.error}</Text>}
           {!airdropStatus.isLoading && !airdropStatus.error && airdropStatus.status && (
-            <Text secondary>
+            <Text tone="soft">
               {airdropStatus.status.error === 'not whitelisted'
                 ? 'Not yet whitelisted for the SUP airdrop.'
                 : (airdropStatus.status.error ?? 'Eligible for the SUP airdrop.')}
@@ -142,10 +150,10 @@ export function LeaderboardView({ leaderboard, isConnected, onConnect, onClose, 
           )}
           {airdropStatus.status?.walletData && (
             <XStack gap="$3">
-              <Text variant="caption" secondary>
+              <Text variant="caption" tone="secondary">
                 Claims: {airdropStatus.status.walletData.claims}
               </Text>
-              <Text variant="caption" secondary>
+              <Text variant="caption" tone="secondary">
                 Invites: {airdropStatus.status.walletData.invites}
               </Text>
             </XStack>
@@ -159,7 +167,7 @@ export function LeaderboardView({ leaderboard, isConnected, onConnect, onClose, 
         onChangeText={setSearchQuery}
       />
 
-      <Text variant="caption" secondary>
+      <Text variant="caption" tone="secondary">
         Total participants: {leaderboard.totalParticipants.toLocaleString()}
       </Text>
 
@@ -174,7 +182,7 @@ export function LeaderboardView({ leaderboard, isConnected, onConnect, onClose, 
 
         {visibleBottomRows.length > 0 && (
           <XStack justifyContent="center" paddingVertical="$2">
-            <Text secondary>...</Text>
+            <Text tone="secondary">...</Text>
           </XStack>
         )}
 
@@ -184,19 +192,19 @@ export function LeaderboardView({ leaderboard, isConnected, onConnect, onClose, 
       </YStack>
 
       <YStack gap="$2" alignItems="center">
-        <Text variant="caption" secondary>
+        <Text variant="caption" tone="secondary">
           Points update every few minutes.
         </Text>
         {/* Placeholder pagination — only one page exists in the mock dataset;
             real pagination wiring is out of scope for this mock-data phase. */}
         <XStack gap="$1">
-          <Button size="sm" variant="secondary" disabled>
+          <Button size="sm" {...compactButtonProps} variant="secondary" disabled>
             <ButtonText>1</ButtonText>
           </Button>
-          <Button size="sm" variant="ghost" disabled>
+          <Button size="sm" {...compactButtonProps} variant="ghost" disabled>
             <ButtonText>2</ButtonText>
           </Button>
-          <Button size="sm" variant="ghost" disabled>
+          <Button size="sm" {...compactButtonProps} variant="ghost" disabled>
             <ButtonText>3</ButtonText>
           </Button>
         </XStack>
