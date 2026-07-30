@@ -36,10 +36,14 @@ const STORY_IDS = {
 const GOOD_DOLLAR_ACTIONS_TOP_ADDRESS = '0x1a2b...9a0b'
 const ECOSYSTEM_FUNDING_ACTIONS_TOP_ADDRESS = '0x4d5e...2d3e'
 
-async function gotoStory(page: Page, storyUrl: string): Promise<void> {
-  await page.goto(storyUrl)
+async function waitForStoryReady(page: Page): Promise<void> {
   await page.waitForLoadState('domcontentloaded')
   await page.waitForFunction(() => document.body.innerText.trim().length > 0)
+}
+
+async function gotoStory(page: Page, storyUrl: string): Promise<void> {
+  await page.goto(storyUrl)
+  await waitForStoryReady(page)
 }
 
 test('SuperfluidCampaignWidget renders disconnected content view', async ({ page }) => {
@@ -493,3 +497,49 @@ for (const view of WALLET_CHIP_DISCONNECT_VIEWS) {
     })
   })
 }
+
+// The wallet's own eth_accounts check has no concept of "this dApp was
+// disconnected" — it just reports whatever the wallet still authorizes — so
+// GoodWidgetProvider tracks disconnect intent itself (see WALLET_DISCONNECTED_STORAGE_KEY
+// in packages/core/src/provider.tsx). This test guards the full loop reported
+// by the Bounty Lead: disconnect must survive a refresh, and the user must
+// still be able to explicitly reconnect (and have THAT survive a refresh too).
+test('SuperfluidCampaignWidget content wallet chip: Disconnect survives a refresh, and reconnecting afterward works', async ({ page }) => {
+  await page.setViewportSize({ width: 480, height: 900 })
+  await gotoStory(page, STORY_IDS.custodialContent)
+
+  const chip = page.getByLabel('Wallet options')
+  await expect(chip).toBeVisible()
+  await chip.click()
+  await page.getByText('Disconnect', { exact: true }).click()
+  await expect(page.getByText('Connect wallet')).toBeVisible()
+
+  // Refresh right after disconnecting — the custodial fixture's eth_accounts
+  // always answers with the same account regardless of prior state, so without
+  // the persisted disconnect flag this would silently reconnect here.
+  await page.reload()
+  await waitForStoryReady(page)
+  await expect(page.getByText('Connect wallet')).toBeVisible()
+  await expect(chip).not.toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-37-content-wallet-chip-disconnected-after-refresh.png',
+    fullPage: true,
+  })
+
+  // The user must still be able to explicitly reconnect afterward.
+  await page.getByText('Connect wallet').click()
+  await expect(chip).toBeVisible()
+
+  // And that reconnect must itself survive a further refresh — proving the
+  // disconnect flag is cleared on connect(), not stuck on permanently.
+  await page.reload()
+  await waitForStoryReady(page)
+  await expect(chip).toBeVisible()
+  await expect(page.getByText('Connect wallet')).not.toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-37-content-wallet-chip-reconnected-after-refresh.png',
+    fullPage: true,
+  })
+})
