@@ -11,6 +11,12 @@ export interface ProgressBarProps {
   label?: string
   /** 'success' drives the campaign-style green fill via the $success token */
   variant?: 'default' | 'success'
+  /**
+   * Hides the numeric percentage on narrow viewports, keeping only the label
+   * and the visual bar. Off by default so existing consumers (governance-widget,
+   * staking-migration-widget) are unaffected.
+   */
+  hidePercentageOnMobile?: boolean
 }
 
 const ProgressTrack = createComponent(YStack, {
@@ -39,7 +45,7 @@ const ProgressFill = createComponent(YStack, {
   },
 })
 
-export function ProgressBar({ value, max, label, variant = 'default' }: ProgressBarProps) {
+export function ProgressBar({ value, max, label, variant = 'default', hidePercentageOnMobile = false }: ProgressBarProps) {
   // Guard against max <= 0 and clamp so callers can pass live/unbounded values safely
   const percentage = max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0
 
@@ -48,7 +54,9 @@ export function ProgressBar({ value, max, label, variant = 'default' }: Progress
       {label && (
         <XStack justifyContent="space-between" alignItems="center">
           <Text variant="label">{label}</Text>
-          <Text variant="caption">{Math.round(percentage)}%</Text>
+          <Text variant="caption" $sm={hidePercentageOnMobile ? { display: 'none' } : undefined}>
+            {Math.round(percentage)}%
+          </Text>
         </XStack>
       )}
       <ProgressTrack

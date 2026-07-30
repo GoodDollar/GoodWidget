@@ -37,6 +37,7 @@ export function LeaderboardSummary({ leaderboard, onViewLeaderboard }: Leaderboa
         max={leaderboard.supTotal}
         label={progressLabel}
         variant="success"
+        hidePercentageOnMobile
       />
 
       <XStack justifyContent="space-between" alignItems="center" flexWrap="wrap" gap="$2">

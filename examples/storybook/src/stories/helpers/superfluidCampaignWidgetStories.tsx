@@ -1,8 +1,42 @@
 import React from 'react'
-import { SuperfluidCampaignWidget, type SuperfluidCampaignView } from '@goodwidget/superfluid-campaign-widget'
+import {
+  SuperfluidCampaignWidget,
+  type AirdropStatusAdapter,
+  type SuperfluidCampaignView,
+} from '@goodwidget/superfluid-campaign-widget'
 import { MiniAppShell, YStack } from '@goodwidget/ui'
 import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
 import { getInjectedEip1193Provider, isInjectedProviderUsable } from '../../fixtures/injectedEip1193'
+
+/**
+ * Every real airdrop-status response sampled against the live endpoint so far
+ * came back "not whitelisted" (see useAirdropStatus.ts) — that shape is the
+ * only one used as a QA/Playwright default. The loading/error/eligible
+ * variants below are illustrative fixtures for exercising those UI states,
+ * not observed live responses.
+ */
+const AIRDROP_STATUS_FIXTURES = {
+  loading: (): ReturnType<AirdropStatusAdapter> => ({ status: null, isLoading: true, error: null }),
+  requestFailed: (): ReturnType<AirdropStatusAdapter> => ({
+    status: null,
+    isLoading: false,
+    error: 'Airdrop status request failed (500)',
+  }),
+  notWhitelisted: (): ReturnType<AirdropStatusAdapter> => ({
+    status: { error: 'not whitelisted', walletData: { claims: '0', invites: '1000' } },
+    isLoading: false,
+    error: null,
+  }),
+  eligible: (): ReturnType<AirdropStatusAdapter> => ({
+    status: { walletData: { claims: '3', invites: '1000' } },
+    isLoading: false,
+    error: null,
+  }),
+} as const
+
+function fixedAirdropStatusAdapter(scenario: keyof typeof AIRDROP_STATUS_FIXTURES): AirdropStatusAdapter {
+  return () => AIRDROP_STATUS_FIXTURES[scenario]()
+}
 
 function StoryShell({ children, dataTestId }: { children: React.ReactNode; dataTestId: string }) {
   return (
@@ -21,14 +55,21 @@ function SuperfluidCampaignWidgetStoryShell({
   provider,
   dataTestId,
   initialView = 'content',
+  airdropStatusAdapter,
 }: {
   provider: unknown
   dataTestId: string
   initialView?: SuperfluidCampaignView
+  airdropStatusAdapter?: AirdropStatusAdapter
 }) {
   return (
     <StoryShell dataTestId={dataTestId}>
-      <SuperfluidCampaignWidget provider={provider} environment="production" initialView={initialView} />
+      <SuperfluidCampaignWidget
+        provider={provider}
+        environment="production"
+        initialView={initialView}
+        airdropStatusAdapter={airdropStatusAdapter}
+      />
     </StoryShell>
   )
 }
@@ -54,8 +95,20 @@ export function InjectedWalletStory() {
   )
 }
 
-/** QA fixture — deterministic custodial wallet, reproducible for Playwright screenshots. */
-export function CustodialLocalFixtureStory({ initialView }: { initialView?: SuperfluidCampaignView }) {
+/**
+ * QA fixture — deterministic custodial wallet, reproducible for Playwright
+ * screenshots. Defaults the airdrop-status card to the "not whitelisted"
+ * fixture (the one shape actually observed from the live endpoint) rather
+ * than leaving it to hit the network, which would make the leaderboard
+ * screenshot's airdrop card non-deterministic across CI runs.
+ */
+export function CustodialLocalFixtureStory({
+  initialView,
+  airdropStatusAdapter = fixedAirdropStatusAdapter('notWhitelisted'),
+}: {
+  initialView?: SuperfluidCampaignView
+  airdropStatusAdapter?: AirdropStatusAdapter
+}) {
   try {
     const provider = createCustodialEip1193Provider()
     return (
@@ -63,6 +116,7 @@ export function CustodialLocalFixtureStory({ initialView }: { initialView?: Supe
         provider={provider}
         dataTestId="SuperfluidCampaignWidget-custodial-wallet"
         initialView={initialView}
+        airdropStatusAdapter={airdropStatusAdapter}
       />
     )
   } catch (error: unknown) {
@@ -73,6 +127,15 @@ export function CustodialLocalFixtureStory({ initialView }: { initialView?: Supe
       </YStack>
     )
   }
+}
+
+/** QA fixture — custodial wallet with the airdrop-status card fixed to a single scenario. */
+export function CustodialAirdropStatusStory({
+  scenario,
+}: {
+  scenario: keyof typeof AIRDROP_STATUS_FIXTURES
+}) {
+  return <CustodialLocalFixtureStory initialView="leaderboard" airdropStatusAdapter={fixedAirdropStatusAdapter(scenario)} />
 }
 
 /** QA fixture — no wallet connected, matches the disconnected (public) mockup. */

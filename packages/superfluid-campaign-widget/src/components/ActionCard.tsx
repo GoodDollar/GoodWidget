@@ -14,8 +14,12 @@ interface ActionCardProps {
  *
  * Desktop ($gtSm and up): one horizontal row — icon/title/source/description on
  * the left, points-pill + CTA button on the right.
- * Phone (below $gtSm, <480px): the same XStack becomes a YStack — icon+title row,
- * then description, then points-pill+CTA row — same content and order, relayout only.
+ * Phone (below $gtSm, <480px): the row still becomes a column, but the
+ * description — previously free to wrap to 2-3 lines — is clamped to a single
+ * truncated line, since it's supporting copy the pool/action title already
+ * summarizes. That's the difference between three-plus lines of card height
+ * and a fixed, predictable two-line block. Point-rule and CTA keep the same
+ * relative position (bottom) as before.
  */
 export function ActionCard({ action, onPressCta }: ActionCardProps) {
   const iconSpec = ACTIVITY_ICON_MAP[action.activity]
@@ -26,7 +30,7 @@ export function ActionCard({ action, onPressCta }: ActionCardProps) {
       alignItems="center"
       justifyContent="space-between"
       gap="$3"
-      $sm={{ flexDirection: 'column', alignItems: 'stretch' }}
+      $sm={{ flexDirection: 'column', alignItems: 'stretch', gap: '$2', padding: '$3' }}
     >
       <XStack gap="$3" alignItems="center" flex={1} $sm={{ flexDirection: 'row' }}>
         <Icon
@@ -41,7 +45,11 @@ export function ActionCard({ action, onPressCta }: ActionCardProps) {
               {action.source}
             </Text>
           </XStack>
-          <Text variant="caption" secondary>
+          <Text
+            variant="caption"
+            secondary
+            $sm={{ numberOfLines: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+          >
             {action.description}
           </Text>
         </YStack>

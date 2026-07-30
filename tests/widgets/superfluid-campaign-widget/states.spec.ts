@@ -11,6 +11,14 @@ const STORY_IDS = {
     '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--custodial-local-fixture-content&viewMode=story',
   custodialLeaderboard:
     '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--custodial-local-fixture-leaderboard&viewMode=story',
+  airdropStatusLoading:
+    '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--airdrop-status-loading&viewMode=story',
+  airdropStatusRequestFailed:
+    '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--airdrop-status-request-failed&viewMode=story',
+  airdropStatusNotWhitelisted:
+    '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--airdrop-status-not-whitelisted&viewMode=story',
+  airdropStatusEligible:
+    '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--airdrop-status-eligible&viewMode=story',
 } as const
 
 async function gotoStory(page: Page, storyUrl: string): Promise<void> {
@@ -77,18 +85,23 @@ test('SuperfluidCampaignWidget renders connected leaderboard view', async ({ pag
   })
 })
 
-test('SuperfluidCampaignWidget FAQ accordion expands and collapses', async ({ page }) => {
+test('SuperfluidCampaignWidget FAQ is one collapsible section wrapping per-question toggles', async ({ page }) => {
   await gotoStory(page, STORY_IDS.noWalletContent)
 
-  // Find FAQ section — it renders at the bottom of the content view
-  const faqTrigger = page.getByText('How are my SUP rewards calculated?').first()
-  await expect(faqTrigger).toBeVisible()
+  // The individual question is nested inside the outer "FAQ" section and is
+  // not part of the page's collapsed reading order until that section opens.
+  const faqSectionTrigger = page.getByText('FAQ', { exact: true }).first()
+  await expect(faqSectionTrigger).toBeVisible()
+  const questionTrigger = page.getByText('How are my SUP rewards calculated?').first()
+  await expect(questionTrigger).not.toBeVisible()
 
-  // Answer text is hidden before expanding
+  // Expand the outer FAQ section — individual questions become visible, still collapsed.
+  await faqSectionTrigger.click()
+  await expect(questionTrigger).toBeVisible()
   await expect(page.getByText('Two separate reward pools')).not.toBeVisible()
 
-  // Expand the FAQ item
-  await faqTrigger.click()
+  // Expand one question independently of the others.
+  await questionTrigger.click()
   await expect(page.getByText('Two separate reward pools')).toBeVisible()
 
   await page.screenshot({
@@ -96,8 +109,8 @@ test('SuperfluidCampaignWidget FAQ accordion expands and collapses', async ({ pa
     fullPage: true,
   })
 
-  // Collapse again
-  await faqTrigger.click()
+  // Collapse the question again; the outer section stays open.
+  await questionTrigger.click()
   await expect(page.getByText('Two separate reward pools')).not.toBeVisible()
 })
 
@@ -138,6 +151,72 @@ test('SuperfluidCampaignWidget wide layout (900px)', async ({ page }) => {
 
   await page.screenshot({
     path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-08-wide-content.png',
+    fullPage: true,
+  })
+})
+
+test('SuperfluidCampaignWidget Claim SUP rewards CTA opens claim.superfluid.org in a new tab', async ({ page, context }) => {
+  await gotoStory(page, STORY_IDS.noWalletContent)
+
+  const claimButton = page.getByText('Claim SUP rewards').first()
+  await expect(claimButton).toBeVisible()
+
+  const [newPage] = await Promise.all([context.waitForEvent('page'), claimButton.click()])
+  await newPage.waitForLoadState('domcontentloaded').catch(() => {})
+  expect(newPage.url()).toContain('claim.superfluid.org')
+  await newPage.close()
+
+  await page.screenshot({
+    path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-09-claim-cta.png',
+    fullPage: true,
+  })
+})
+
+test('SuperfluidCampaignWidget airdrop status: loading', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.airdropStatusLoading)
+
+  await expect(page.getByText('Airdrop status', { exact: true })).toBeVisible()
+  await expect(page.getByText('Checking your Superfluid airdrop status...')).toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-10-airdrop-status-loading.png',
+    fullPage: true,
+  })
+})
+
+test('SuperfluidCampaignWidget airdrop status: request failed', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.airdropStatusRequestFailed)
+
+  await expect(page.getByText('Airdrop status', { exact: true })).toBeVisible()
+  await expect(page.getByText('Airdrop status request failed (500)')).toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-11-airdrop-status-request-failed.png',
+    fullPage: true,
+  })
+})
+
+test('SuperfluidCampaignWidget airdrop status: not whitelisted', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.airdropStatusNotWhitelisted)
+
+  await expect(page.getByText('Not yet whitelisted for the SUP airdrop.')).toBeVisible()
+  await expect(page.getByText('Claims: 0')).toBeVisible()
+  await expect(page.getByText('Invites: 1000')).toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-12-airdrop-status-not-whitelisted.png',
+    fullPage: true,
+  })
+})
+
+test('SuperfluidCampaignWidget airdrop status: eligible', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.airdropStatusEligible)
+
+  await expect(page.getByText('Eligible for the SUP airdrop.')).toBeVisible()
+  await expect(page.getByText('Claims: 3')).toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-13-airdrop-status-eligible.png',
     fullPage: true,
   })
 })

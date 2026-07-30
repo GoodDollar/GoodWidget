@@ -9,6 +9,7 @@ import { FaqAccordion } from './components/FaqAccordion'
 import { LeaderboardSummary } from './components/LeaderboardSummary'
 import { LeaderboardView } from './components/LeaderboardView'
 import { RewardPoolSection } from './components/RewardPoolSection'
+import { useAirdropStatus } from './hooks/useAirdropStatus'
 import { DEFAULT_CAMPAIGN_MOCK_DATA, CONNECTED_CAMPAIGN_MOCK_DATA } from './mockData'
 import type {
   CampaignActionMockData,
@@ -28,6 +29,7 @@ interface SuperfluidCampaignRuntimeProps {
   config?: SuperfluidCampaignWidgetProps['config']
   themeOverrides?: SuperfluidCampaignWidgetProps['themeOverrides']
   defaultTheme?: SuperfluidCampaignWidgetProps['defaultTheme']
+  airdropStatusAdapter?: SuperfluidCampaignWidgetProps['airdropStatusAdapter']
 }
 
 /**
@@ -54,10 +56,16 @@ function handleActionCta(action: CampaignActionMockData, openClaimTab: (tab: Emb
   }
 }
 
-function SuperfluidCampaignRuntime({ data, citizenClaimEnvironment, initialView, provider, config, themeOverrides, defaultTheme }: SuperfluidCampaignRuntimeProps) {
-  const { isConnected, connect } = useWallet()
+function SuperfluidCampaignRuntime({ data, citizenClaimEnvironment, initialView, provider, config, themeOverrides, defaultTheme, airdropStatusAdapter }: SuperfluidCampaignRuntimeProps) {
+  const { isConnected, connect, address } = useWallet()
   const [view, setView] = useState<SuperfluidCampaignView>(initialView)
   const [embeddedClaimTab, setEmbeddedClaimTab] = useState<EmbeddedClaimTab>(null)
+
+  // Keyed on `address` alone (see useAirdropStatus) so this fires on connect, on
+  // load when already connected, and on address change — not on every render.
+  // airdropStatusAdapter, when supplied, replaces the live fetch with a fixed
+  // result for deterministic Storybook/Playwright fixtures.
+  const airdropStatus = useAirdropStatus(address, airdropStatusAdapter)
 
   // The mock dataset's connected-user leaderboard row only exists once a wallet
   // is connected — swap in the connected fixture rather than mutating null in place.
@@ -88,6 +96,7 @@ function SuperfluidCampaignRuntime({ data, citizenClaimEnvironment, initialView,
         isConnected={isConnected}
         onConnect={connect}
         onClose={() => setView('content')}
+        airdropStatus={airdropStatus}
       />
     )
   }
@@ -133,6 +142,7 @@ export function SuperfluidCampaignWidget({
   data,
   citizenClaimEnvironment = 'production',
   initialView = 'content',
+  airdropStatusAdapter,
 }: SuperfluidCampaignWidgetProps) {
   return (
     <GoodWidgetProvider
@@ -150,6 +160,7 @@ export function SuperfluidCampaignWidget({
           config={config}
           themeOverrides={themeOverrides}
           defaultTheme={defaultTheme}
+          airdropStatusAdapter={airdropStatusAdapter}
         />
       </Card>
       <ToastContainer />

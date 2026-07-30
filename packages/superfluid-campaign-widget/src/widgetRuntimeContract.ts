@@ -1,5 +1,6 @@
 import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
 import type { CitizenClaimWidgetEnvironment } from '@goodwidget/citizen-claim-widget'
+import type { AirdropStatusAdapter } from './hooks/useAirdropStatus'
 
 // ---------------------------------------------------------------------------
 // Environment type, matching the other GoodWidget packages
@@ -143,4 +144,12 @@ export interface SuperfluidCampaignWidgetProps {
    * and deep links land directly on the leaderboard without a click.
    */
   initialView?: SuperfluidCampaignView
+  /**
+   * Overrides the live airdrop-status fetch (superfluid-airdrop.goodworker.workers.dev)
+   * with a fixed result, the same DI seam AiCreditsWidget's adapterFactory uses.
+   * Lets Storybook fixtures and Playwright specs render every airdrop-status
+   * state deterministically instead of depending on a real wallet's live
+   * whitelist status.
+   */
+  airdropStatusAdapter?: AirdropStatusAdapter
 }
