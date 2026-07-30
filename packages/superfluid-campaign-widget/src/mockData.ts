@@ -7,11 +7,11 @@ import type { CampaignMockData } from './widgetRuntimeContract'
 // rows are sourced live from the Superfluid Points API (see
 // useCampaignLeaderboard). Each pool's supDistributed/supTotal below are now
 // only a fallback: useProgramSupTotals overrides them per-pool with live
-// on-chain figures when a matching Superfluid program exists for that
-// campaignId (currently true for 606/GoodDollar actions, not yet for
-// 614/Ecosystem funding actions — see change-request-4). The aggregate
-// leaderboard.supDistributed/supTotal below has no live source at all (no
-// endpoint combines both pools' on-chain totals) and remains a placeholder.
+// on-chain figures by querying the Superfluid Base subgraph when a pool address
+// has been configured for that campaignId in CAMPAIGN_GDA_POOL_CONFIG (currently
+// null for both 606 and 614 — see hooks/campaignPoolConfig.ts for details). The
+// aggregate leaderboard.supDistributed/supTotal below has no live source at all
+// (no endpoint combines both pools' on-chain totals) and remains a placeholder.
 // Consumers can still override the content fixture via
 // SuperfluidCampaignWidgetProps.data.
 // ---------------------------------------------------------------------------

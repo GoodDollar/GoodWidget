@@ -100,11 +100,12 @@ function fixedCampaignLeaderboardAdapter(
 /**
  * Fixed SUP program totals keyed by campaignId. 606 (GoodDollar actions) is
  * illustrative "healthy progress" data, not the live snapshot — the real
- * program exists but funding hasn't started yet as of change-request-4, so
- * its live totalAllocated/totalClaimed are both currently 0. 614 (Ecosystem
- * funding actions) has no matching entry on purpose: no on-chain program is
- * registered for it yet, so RewardPoolSection falls back to its own
- * placeholder — the same "no match found" case the live endpoint returns.
+ * program exists but funding hasn't started yet as of Season 6 launch, so
+ * its live totalClaimed is currently 0. totalAllocated is 217,700 SUP per the
+ * campaign spec (stored in CAMPAIGN_GDA_POOL_CONFIG). 614 (Ecosystem funding
+ * actions) has no matching entry on purpose: no on-chain program is registered
+ * for it yet, so RewardPoolSection falls back to its own placeholder —
+ * the same "no pool address configured" case the live subgraph query returns null.
  */
 const SUP_TOTALS_FIXTURES: Record<number, ReturnType<ProgramSupTotalsAdapter>['data']> = {
   606: { totalAllocated: 217700, totalClaimed: 128940 },
