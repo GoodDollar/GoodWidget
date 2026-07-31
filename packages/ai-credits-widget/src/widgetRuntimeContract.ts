@@ -60,12 +60,13 @@ export interface AiCreditsWidgetAdapterActions {
   switchChain: () => Promise<void>
   /**
    * Creates a new deterministically-derived buyer by signing a wallet message.
-   * The index is automatically assigned as the next available slot.
+   * Uses the next free derivation index (index 0 when none exist yet).
+   * Safe to call after buyers already exist — never re-forces index 0.
    */
   generateBuyerKey: () => Promise<void>
   /**
    * Creates an additional deterministic buyer (next derivation index).
-   * Alias kept separate from `generateBuyerKey` for UI clarity.
+   * Shares the same implementation as `generateBuyerKey`.
    */
   createBuyer: () => Promise<void>
   /**

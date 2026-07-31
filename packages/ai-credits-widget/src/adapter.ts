@@ -583,72 +583,9 @@ export function useAiCreditsAdapter({
     })
   }, [])
 
-  const handleGenerateBuyerKey = useCallback(async () => {
-    if (!address || !providerRef.current) {
-      setState((prev) =>
-        withDerivedStatus(
-          prev,
-          { error: 'Connect your wallet before generating a buyer key' },
-          true,
-        ),
-      )
-      return
-    }
-
-    try {
-      const payerAddress = address as Address
-      // Use index 0 for the first/default buyer to preserve backward compatibility
-      const nextIndex = 0
-      const message = buildBuyerKeyMessage(payerAddress, nextIndex)
-      const walletClient = createWalletClient({
-        account: payerAddress,
-        chain: CELO_CHAIN,
-        transport: custom(providerRef.current),
-      })
-      const signature = await walletClient.signMessage({
-        account: payerAddress,
-        message,
-      })
-      const privateKey = deriveBuyerPrivateKeyFromSignature(signature)
-      const buyerAccount = privateKeyToAccount(privateKey)
-      const label = 'Buyer 1'
-
-      const buyerRecord: BuyerRecord = {
-        address: buyerAccount.address,
-        privateKey,
-        type: 'derived',
-        derivationIndex: nextIndex,
-        label,
-      }
-      addBuyerToSession(payerAddress, buyerRecord)
-
-      const updatedSession = patchPayerSessionFields(payerAddress)
-      setState((prev) =>
-        mergeStatePreservingNonBuyTab(prev, {
-          buyerPubKey: buyerAccount.address,
-          buyerPrvKey: privateKey,
-          buyers: updatedSession.buyers,
-          activeBuyerAddress: buyerAccount.address,
-          error: null,
-          ...(!isNonBuyTab(prev.activeTab) ? { status: 'purchase_setup' } : {}),
-        }),
-      )
-    } catch (err: unknown) {
-      setState((prev) =>
-        withDerivedStatus(
-          prev,
-          {
-            error: err instanceof Error ? err.message : 'Buyer key generation was rejected',
-          },
-          true,
-        ),
-      )
-    }
-  }, [address])
-
   /**
-   * Creates a new derived buyer at the next available derivation index.
-   * Prompts the connected wallet to sign a unique message for each buyer.
+   * Creates a derived buyer at the next available derivation index.
+   * Index 0 preserves the legacy single-buyer message for backward compatibility.
    */
   const handleCreateBuyer = useCallback(async () => {
     if (!address || !providerRef.current) {
@@ -665,10 +602,10 @@ export function useAiCreditsAdapter({
     try {
       const payerAddress = address as Address
       const existingSession = patchPayerSessionFields(payerAddress)
-      // Next index = highest derivation index + 1, or 0 if none exist
-      const nextIndex = existingSession.buyers
-        .filter((b) => b.type === 'derived' && b.derivationIndex !== undefined)
-        .reduce((max, b) => Math.max(max, b.derivationIndex ?? 0), -1) + 1
+      const nextIndex =
+        existingSession.buyers
+          .filter((b) => b.type === 'derived' && b.derivationIndex !== undefined)
+          .reduce((max, b) => Math.max(max, b.derivationIndex ?? 0), -1) + 1
 
       const message = buildBuyerKeyMessage(payerAddress, nextIndex)
       const walletClient = createWalletClient({
@@ -700,7 +637,6 @@ export function useAiCreditsAdapter({
           buyerPrvKey: privateKey,
           buyers: updatedSession.buyers,
           activeBuyerAddress: buyerAccount.address,
-          // Reset operator consent since this is a new buyer
           operatorConsented: false,
           error: null,
           ...(!isNonBuyTab(prev.activeTab) ? { status: 'purchase_setup' } : {}),
@@ -718,6 +654,14 @@ export function useAiCreditsAdapter({
       )
     }
   }, [address])
+
+  /**
+   * First-buyer entry point used by the purchase flow.
+   * Delegates to createBuyer so later calls never re-derive index 0 over existing buyers.
+   */
+  const handleGenerateBuyerKey = useCallback(async () => {
+    await handleCreateBuyer()
+  }, [handleCreateBuyer])
 
   /**
    * Switches the active buyer to an existing one in the session.
