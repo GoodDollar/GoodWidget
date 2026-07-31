@@ -33,6 +33,13 @@ import {
 import type { AiCreditsChainClient } from './chainClient'
 import { signOperatorConsentFromTypedData } from './operatorConsent'
 import {
+  isValidBuyerAddress,
+  isValidOperatorSignature,
+  parseDeepLinkParams,
+  stripDeepLinkParamsFromUrl,
+  type DeepLinkParams,
+} from './deepLinkParams'
+import {
   addressesMatch,
   patchPayerSessionFields,
   patchPayerSession,
@@ -862,51 +869,76 @@ export function useAiCreditsAdapter({
   )
 
   /**
-   * Applies a deep-link buyer assignment from URL GET parameters.
-   * Validates that the provided address is a valid EVM address and that
-   * the accompanying signature is a non-empty hex string before accepting.
-   * The buyer is registered as an address-only identity since we do not
-   * receive the private key through the URL.
+   * Registers a buyer from an NCDI deep link and submits the pre-signed
+   * operator-approval token. Never stores a buyer private key from the URL.
    */
   const handleApplyDeepLinkBuyer = useCallback(
-    async (buyerAddress: string, buyerSignature: string) => {
+    async (buyerAddress: string, operatorSignature: string) => {
       if (!address) {
-        setState((prev) =>
-          withDerivedStatus(prev, { error: 'Connect your wallet before applying a deep-link buyer' }, true),
-        )
         return
       }
 
       const trimmedAddress = buyerAddress.trim()
-      const trimmedSignature = buyerSignature.trim()
+      const trimmedSignature = operatorSignature.trim()
 
-      if (!/^0x[0-9a-fA-F]{40}$/.test(trimmedAddress)) {
+      if (!isValidBuyerAddress(trimmedAddress)) {
         setState((prev) =>
-          withDerivedStatus(prev, { error: 'Deep-link buyer address is invalid' }, true),
+          withDerivedStatus(
+            prev,
+            {
+              error:
+                'Deep-link buyerAddress is invalid. Select or import a buyer manually to continue.',
+            },
+            true,
+          ),
         )
         return
       }
 
-      if (!/^0x[0-9a-fA-F]{2,}$/.test(trimmedSignature)) {
+      if (!isValidOperatorSignature(trimmedSignature)) {
         setState((prev) =>
-          withDerivedStatus(prev, { error: 'Deep-link buyer signature is invalid' }, true),
+          withDerivedStatus(
+            prev,
+            {
+              error:
+                'Deep-link operatorSignature is invalid. Select or import a buyer manually to continue.',
+            },
+            true,
+          ),
         )
         return
       }
+
+      const existingSession = patchPayerSessionFields(address)
+      const existingBuyer = existingSession.buyers.find(
+        (b) => b.address.toLowerCase() === trimmedAddress.toLowerCase(),
+      )
 
       const buyerRecord: BuyerRecord = {
         address: trimmedAddress,
-        type: 'address-only',
-        label: `Partner ${trimmedAddress.slice(0, 6)}…${trimmedAddress.slice(-4)}`,
+        type: existingBuyer?.privateKey ? existingBuyer.type : 'address-only',
+        ...(existingBuyer?.privateKey ? { privateKey: existingBuyer.privateKey } : {}),
+        ...(existingBuyer?.derivationIndex !== undefined
+          ? { derivationIndex: existingBuyer.derivationIndex }
+          : {}),
+        label:
+          existingBuyer?.label ??
+          `Partner ${trimmedAddress.slice(0, 6)}…${trimmedAddress.slice(-4)}`,
+        operatorSignature: trimmedSignature,
       }
 
       addBuyerToSession(address, buyerRecord)
+      patchPayerSession(address, {
+        activeBuyerAddress: trimmedAddress,
+        operatorSignature: trimmedSignature,
+        operatorConsented: false,
+      })
 
       const updatedSession = patchPayerSessionFields(address)
       setState((prev) =>
         mergeStatePreservingNonBuyTab(prev, {
           buyerPubKey: trimmedAddress,
-          buyerPrvKey: null,
+          buyerPrvKey: existingBuyer?.privateKey ?? null,
           buyers: updatedSession.buyers,
           activeBuyerAddress: trimmedAddress,
           operatorConsented: false,
@@ -915,16 +947,88 @@ export function useAiCreditsAdapter({
           withdrawableUsd: null,
           totalGdDepositedG: null,
           monthlyStreamG: null,
+          activeTab: 'buy',
           error: null,
         }),
       )
+
+      const ref: AccountRef = { payer: address, buyer: trimmedAddress }
+
+      try {
+        const operatorStatus = await chainClient.getBuyerOperatorStatus(ref)
+
+        if (!operatorStatus.enabled) {
+          throw new Error('Operator consent is not available for this deep-link buyer')
+        }
+
+        if (!operatorStatus.operatorAccepted) {
+          await backendClient.submitOperatorConsent(ref.buyer, {
+            nonce: operatorStatus.consentNonce,
+            signature: trimmedSignature,
+          })
+          await waitForOperatorConsent(chainClient, ref)
+        }
+
+        patchPayerSession(address, {
+          operatorConsented: true,
+          operatorSignature: trimmedSignature,
+        })
+        setState((prev) =>
+          withDerivedStatus(
+            prev,
+            {
+              buyerPubKey: trimmedAddress,
+              buyerPrvKey: existingBuyer?.privateKey ?? null,
+              buyers: updatedSession.buyers,
+              activeBuyerAddress: trimmedAddress,
+              operatorConsented: true,
+              activeTab: 'buy',
+              error: null,
+            },
+            true,
+          ),
+        )
+        stripDeepLinkParamsFromUrl()
+      } catch (err: unknown) {
+        setState((prev) =>
+          withDerivedStatus(
+            prev,
+            {
+              error:
+                err instanceof Error
+                  ? err.message
+                  : 'Could not apply deep-link operator approval. Select a buyer manually to continue.',
+              activeTab: 'buy',
+            },
+            true,
+          ),
+        )
+      }
     },
-    [address],
+    [address, backendClient, chainClient],
   )
 
   const handleSignOperatorConsent = useCallback(async () => {
     const currentState = state
-    if (!currentState.address || !currentState.buyerPubKey || !currentState.buyerPrvKey) {
+    if (!currentState.address || !currentState.buyerPubKey) {
+      setState((prev) =>
+        withDerivedStatus(
+          prev,
+          { error: 'Select a buyer before signing operator consent' },
+          true,
+        ),
+      )
+      return
+    }
+
+    const session = readPayerSession(currentState.address)
+    const activeBuyer = session?.buyers.find(
+      (b) => b.address.toLowerCase() === currentState.buyerPubKey!.toLowerCase(),
+    )
+    const storedOperatorSignature =
+      activeBuyer?.operatorSignature ?? session?.operatorSignature ?? null
+
+    if (!currentState.buyerPrvKey && !storedOperatorSignature) {
       setState((prev) =>
         withDerivedStatus(
           prev,
@@ -957,16 +1061,21 @@ export function useAiCreditsAdapter({
         return
       }
 
-      const payload = await chainClient.buildOperatorConsentPayload(ref, operatorStatus)
+      let buyerSig: `0x${string}`
+      if (storedOperatorSignature) {
+        buyerSig = storedOperatorSignature as `0x${string}`
+      } else {
+        const payload = await chainClient.buildOperatorConsentPayload(ref, operatorStatus)
 
-      if (!payload.enabled || !payload.typedData) {
-        throw new Error('Operator consent is not available')
+        if (!payload.enabled || !payload.typedData) {
+          throw new Error('Operator consent is not available')
+        }
+
+        buyerSig = await signOperatorConsentFromTypedData(
+          currentState.buyerPrvKey as `0x${string}`,
+          payload.typedData,
+        )
       }
-
-      const buyerSig = await signOperatorConsentFromTypedData(
-        currentState.buyerPrvKey as `0x${string}`,
-        payload.typedData,
-      )
 
       await backendClient.submitOperatorConsent(ref.buyer, {
         nonce: operatorStatus.consentNonce,
@@ -1448,17 +1557,60 @@ export function useAiCreditsAdapter({
     handleSetActiveTab('buy')
   }, [handleSetActiveTab])
 
-  // Parse URL GET parameters for deep-link buyer assignment (runs once on mount).
-  // The effect intentionally runs only once — URL params are read at mount time only.
+  const pendingDeepLinkRef = useRef<DeepLinkParams | null>(null)
+  const deepLinkParseDoneRef = useRef(false)
+  const deepLinkApplyInFlightRef = useRef(false)
+
   useEffect(() => {
-    if (typeof window === 'undefined') return
-    const params = new URLSearchParams(window.location.search)
-    const urlBuyerAddress = params.get('buyerAddress')
-    const urlBuyerSignature = params.get('buyerSignature')
-    if (urlBuyerAddress && urlBuyerSignature) {
-      void handleApplyDeepLinkBuyer(urlBuyerAddress, urlBuyerSignature)
+    if (typeof window === 'undefined' || deepLinkParseDoneRef.current) return
+    deepLinkParseDoneRef.current = true
+
+    const parsed = parseDeepLinkParams(window.location.search)
+    if (parsed.status === 'absent') return
+
+    if (parsed.status === 'partial') {
+      const missing =
+        parsed.present === 'buyerAddress' ? 'operatorSignature' : 'buyerAddress'
+      setState((prev) =>
+        withDerivedStatus(
+          prev,
+          {
+            error: `Deep link is missing ${missing}. Select or import a buyer manually to continue.`,
+            activeTab: 'buy',
+          },
+          false,
+        ),
+      )
+      return
     }
-  }, [handleApplyDeepLinkBuyer])
+
+    if (parsed.status === 'invalid') {
+      setState((prev) =>
+        withDerivedStatus(
+          prev,
+          {
+            error: `${parsed.reason}. Select or import a buyer manually to continue.`,
+            activeTab: 'buy',
+          },
+          false,
+        ),
+      )
+      return
+    }
+
+    pendingDeepLinkRef.current = parsed.value
+  }, [])
+
+  useEffect(() => {
+    const pending = pendingDeepLinkRef.current
+    if (!address || !pending || deepLinkApplyInFlightRef.current) return
+
+    deepLinkApplyInFlightRef.current = true
+    void handleApplyDeepLinkBuyer(pending.buyerAddress, pending.operatorSignature).finally(() => {
+      deepLinkApplyInFlightRef.current = false
+      pendingDeepLinkRef.current = null
+    })
+  }, [address, handleApplyDeepLinkBuyer])
 
   const actions: AiCreditsWidgetAdapterActions = useMemo(
     () => ({

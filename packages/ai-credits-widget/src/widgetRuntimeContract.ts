@@ -84,10 +84,11 @@ export interface AiCreditsWidgetAdapterActions {
    */
   selectBuyerByAddress: (address: string) => void
   /**
-   * Applies a deep-link buyer assignment from URL GET parameters.
-   * Validates the provided buyer address and signature before accepting.
+   * Applies an NCDI deep-link buyer assignment from URL GET parameters
+   * (`buyerAddress` + `operatorSignature`). Submits the pre-signed operator
+   * approval token and starts the buy flow. Never accepts a buyer private key.
    */
-  applyDeepLinkBuyer: (address: string, signature: string) => Promise<void>
+  applyDeepLinkBuyer: (address: string, operatorSignature: string) => Promise<void>
   signOperatorConsent: () => Promise<void>
   syncOperatorConsentFromChain: () => Promise<void>
   buildQuote: (depositG: string, streamG: string) => Promise<AiCreditsQuote>

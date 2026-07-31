@@ -16,6 +16,11 @@ export type BuyerRecord = {
   derivationIndex?: number
   /** Optional human-readable label shown in the UI. */
   label?: string
+  /**
+   * Pre-signed operator-approval token from an external host (NCDI deep link).
+   * Used for operator-consent submission; never a buyer private key.
+   */
+  operatorSignature?: string
 }
 
 export type PayerWalletSession = {
@@ -25,6 +30,8 @@ export type PayerWalletSession = {
   activeBuyerAddress: string | null
   /** Whether operator consent has been granted for the active buyer. */
   operatorConsented: boolean
+  /** Last deep-link operator signature retained for retries within this session. */
+  operatorSignature?: string | null
 }
 
 const payerWalletSessions = new Map<string, PayerWalletSession>()
@@ -98,15 +105,24 @@ export function addBuyerToSession(address: string, buyer: BuyerRecord): void {
   )
 
   const updatedBuyers = alreadyExists
-    ? existing.buyers.map((b) =>
-        b.address.toLowerCase() === buyer.address.toLowerCase() ? { ...b, ...buyer } : b,
-      )
+    ? existing.buyers.map((b) => {
+        if (b.address.toLowerCase() !== buyer.address.toLowerCase()) return b
+        const privateKey = buyer.privateKey ?? b.privateKey
+        return {
+          ...b,
+          ...buyer,
+          privateKey,
+          type: privateKey ? (buyer.privateKey ? buyer.type : b.type) : 'address-only',
+          operatorSignature: buyer.operatorSignature ?? b.operatorSignature,
+        }
+      })
     : [...existing.buyers, buyer]
 
   payerWalletSessions.set(payerSessionKey(address), {
     ...existing,
     buyers: updatedBuyers,
     activeBuyerAddress: buyer.address,
+    operatorSignature: buyer.operatorSignature ?? existing.operatorSignature ?? null,
   })
 }
 

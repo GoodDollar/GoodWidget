@@ -19,6 +19,13 @@ export type {
 
 export type { BuyerIdentityType } from './payerSession'
 
+export {
+  parseDeepLinkParams,
+  isValidBuyerAddress,
+  isValidOperatorSignature,
+} from './deepLinkParams'
+export type { DeepLinkParams, DeepLinkParseResult } from './deepLinkParams'
+
 export type {
   AiCreditsBackendClient,
   AccountRef,

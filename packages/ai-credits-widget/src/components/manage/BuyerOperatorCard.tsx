@@ -194,8 +194,12 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
   const [isSigning, setIsSigning] = useState(false)
   const [showImport, setShowImport] = useState(false)
 
-  /** The buyer has a private key and can sign transactions. */
-  const buyerCanSign = Boolean(buyerPrvKey)
+  /** The buyer can approve the operator via private key or a stored deep-link signature. */
+  const activeBuyer = buyers.find(
+    (buyer) =>
+      buyer.address.toLowerCase() === (activeBuyerAddress ?? buyerPubKey ?? '').toLowerCase(),
+  )
+  const buyerCanSign = Boolean(buyerPrvKey || activeBuyer?.operatorSignature)
   const hasBuyers = buyers.length > 0
 
   return (
