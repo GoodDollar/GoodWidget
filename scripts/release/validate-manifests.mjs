@@ -10,6 +10,9 @@ const allowedKeys = {
 }
 
 function exactKeys(value, keys, label) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`${label} must be an object containing exactly: ${keys.join(', ')}`)
+  }
   const actual = Object.keys(value).sort()
   const expected = [...keys].sort()
   if (actual.join('\0') !== expected.join('\0'))

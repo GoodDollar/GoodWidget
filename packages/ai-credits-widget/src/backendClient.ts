@@ -423,7 +423,10 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     return { txHash, events: [entry] }
   }
 
-  async waitForSettlement(ref: AccountRef): Promise<SettlementResult> {
+  async waitForSettlement(
+    ref: AccountRef,
+    _options: { txHashes?: string[]; previousBalance?: string } = {},
+  ): Promise<SettlementResult> {
     await sleep(MOCK_DELAY_MS)
     const state = this.getState(ref.payer)
     for (const entry of state.transactions) {
@@ -435,7 +438,10 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     return { totalCreditUsd: totalCreditUsdFromProfile(this.buildProfile(ref.payer)) }
   }
 
-  async closeChannel(channelId: string): Promise<ChannelOperationResponse> {
+  async closeChannel(
+    channelId: string,
+    _body: ChannelOperationRequest = {},
+  ): Promise<ChannelOperationResponse> {
     await sleep(MOCK_DELAY_MS)
     return { channelId, action: 'close', bridge: { enabled: true, txHash: '0xmock' } }
   }
@@ -452,7 +458,10 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     }
   }
 
-  async submitOperatorConsent(buyer: string): Promise<OperatorConsentResponse> {
+  async submitOperatorConsent(
+    buyer: string,
+    _body: OperatorConsentRequest,
+  ): Promise<OperatorConsentResponse> {
     await sleep(MOCK_DELAY_MS)
     const normalizedBuyer = normalizeAddress(buyer)
     markMockOperatorConsent(normalizedBuyer)

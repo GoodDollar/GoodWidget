@@ -254,7 +254,7 @@ export class MockAiCreditsChainClient implements AiCreditsChainClient {
     this.goodIdVerified = options.goodIdVerified ?? false
   }
 
-  async isGoodIdVerified(): Promise<boolean> {
+  async isGoodIdVerified(_account: string): Promise<boolean> {
     return this.goodIdVerified
   }
 
@@ -308,7 +308,7 @@ export class MockAiCreditsChainClient implements AiCreditsChainClient {
     }
   }
 
-  async getWithdrawableUsd(): Promise<string> {
+  async getWithdrawableUsd(_buyer: string): Promise<string> {
     return '0'
   }
 }

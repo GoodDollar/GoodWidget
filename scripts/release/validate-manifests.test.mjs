@@ -45,6 +45,20 @@ test('rejects undeclared fields and entry points missing from the package', () =
   )
 })
 
+test('rejects malformed nested descriptor objects with a clear validation error', () => {
+  assert.throws(
+    () =>
+      validateManifest(
+        {
+          ...descriptor,
+          entries: null,
+        },
+        packageJson,
+      ),
+    /entries must be an object containing exactly/,
+  )
+})
+
 test('builds a release envelope without duplicating descriptor fields', () => {
   const envelope = createReleaseEnvelope(descriptor, {
     version: '1.2.3',

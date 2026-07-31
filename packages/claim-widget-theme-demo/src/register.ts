@@ -1,5 +1,3 @@
-import { ClaimWidgetElement } from './element'
-
 const TAG_NAME = 'gw-claim-widget'
 
 /**
@@ -11,15 +9,16 @@ const TAG_NAME = 'gw-claim-widget'
  * Then use in HTML:
  *   <gw-claim-widget></gw-claim-widget>
  *
- * Returns the tag name so you can use it programmatically:
- *   const tag = register()  // 'gw-claim-widget'
+ * Resolves to the tag name so you can use it programmatically:
+ *   const tag = await register()  // 'gw-claim-widget'
  */
-export function register(tagName: string = TAG_NAME): string {
+export async function register(tagName: string = TAG_NAME): Promise<string> {
   if (typeof customElements === 'undefined') return tagName
   if (!customElements.get(tagName)) {
+    const { ClaimWidgetElement } = await import('./element')
     customElements.define(tagName, ClaimWidgetElement)
   }
   return tagName
 }
 
-register()
+void register()
