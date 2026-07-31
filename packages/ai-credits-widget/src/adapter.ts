@@ -355,7 +355,7 @@ export function useAiCreditsAdapter({
         fundingVaultAddress,
         celoVaultAddress: celoVault,
         celoGoodIdAddress: goodIdAddress ?? CELO_GOODID_ADDRESS,
-      }, environment),
+      }, environment === 'development' ? 'development' : 'production'),
     [environment, baseRpcUrl, celoRpcUrl, fundingVaultAddress, celoVault, goodIdAddress],
   )
 

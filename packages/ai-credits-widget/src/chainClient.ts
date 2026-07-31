@@ -6,7 +6,7 @@ import {
   type Chain,
   type PublicClient,
 } from 'viem'
-import type { AiCreditsQuote, AiCreditsWidgetEnvironment } from './widgetRuntimeContract'
+import type { AiCreditsQuote } from './widgetRuntimeContract'
 import type { BuyerOperatorStatus, OperatorConsentPayloadResponse } from './operatorConsent'
 import { ANTSEED_DEPOSITS_BASE_ADDRESS, buildSetOperatorPayload } from './operatorConsent'
 import type { AccountRef } from './backendTypes'
@@ -314,33 +314,9 @@ export class MockAiCreditsChainClient implements AiCreditsChainClient {
 }
 
 export function createChainClient(
-  backendUrl: string | undefined,
-  options?: AiCreditsChainClientOptions,
-  environment?: AiCreditsWidgetEnvironment,
-): AiCreditsChainClient
-export function createChainClient(
-  options?: AiCreditsChainClientOptions,
-  environment?: AiCreditsWidgetEnvironment,
-): AiCreditsChainClient
-export function createChainClient(
-  backendUrlOrOptions: string | undefined | AiCreditsChainClientOptions = {},
-  optionsOrEnvironment: AiCreditsChainClientOptions | AiCreditsWidgetEnvironment = {},
-  maybeEnvironment?: AiCreditsWidgetEnvironment,
+  options: AiCreditsChainClientOptions = {},
+  environment: 'development' | 'production' = 'production',
 ): AiCreditsChainClient {
-  const usingLegacySignature =
-    typeof backendUrlOrOptions === 'string' ||
-    (backendUrlOrOptions === undefined &&
-      (typeof optionsOrEnvironment === 'object' || typeof optionsOrEnvironment === 'undefined'))
-  const backendUrl = usingLegacySignature ? backendUrlOrOptions : undefined
-  const options = (usingLegacySignature
-    ? typeof optionsOrEnvironment === 'object'
-      ? optionsOrEnvironment
-      : {}
-    : backendUrlOrOptions) as AiCreditsChainClientOptions
-  const environment: AiCreditsWidgetEnvironment = usingLegacySignature
-    ? (maybeEnvironment ?? (backendUrl ? 'production' : 'development'))
-    : (typeof optionsOrEnvironment === 'string' ? optionsOrEnvironment : 'production')
-
   if (environment === 'development') {
     return new MockAiCreditsChainClient()
   }
