@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "2.0.0",
+  "hostContractVersion": "1.0.0",
+  "widgetId": "goodwidget.ai-credits",
+  "packageName": "@goodwidget/ai-credits-widget",
+  "entries": {
+    "react": {
+      "export": "AiCreditsWidget"
+    },
+    "webComponent": {
+      "registerPath": "./register",
+      "tagName": "ai-credits-widget"
+    }
+  }
+}

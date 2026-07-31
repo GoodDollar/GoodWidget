@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "2.0.0",
+  "hostContractVersion": "1.0.0",
+  "widgetId": "goodwidget.streaming",
+  "packageName": "@goodwidget/streaming-widget",
+  "entries": {
+    "react": {
+      "export": "StreamingWidget"
+    },
+    "webComponent": {
+      "registerPath": "./register",
+      "tagName": "gw-streaming"
+    }
+  }
+}

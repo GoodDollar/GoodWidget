@@ -1,6 +1,7 @@
 {
   "name": "goodwidget",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
@@ -16,7 +17,12 @@
     "vercel:deploy:production": "pnpm vercel:build:production && vercel deploy --prebuilt --prod",
     "test:storybook": "pnpm --filter @goodwidget/storybook test:storybook",
     "test:demo": "playwright test",
-    "test:ai-credits-web": "playwright test --config apps/ai-credits-web/playwright.config.ts"
+    "test:ai-credits-web": "playwright test --config apps/ai-credits-web/playwright.config.ts",
+    "test:release": "node --test scripts/release/*.test.mjs && node scripts/release/validate-packages.mjs && node scripts/release/validate-manifests.mjs",
+    "release:widgets": "node scripts/release/release.mjs",
+    "release:recover": "node scripts/release/release.mjs recover",
+    "validate:manifests": "node scripts/release/validate-manifests.mjs",
+    "validate:register-entries": "node scripts/release/validate-register-entries.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.44.0",
@@ -26,6 +32,7 @@
     "prettier": "^3.5.0",
     "@typescript-eslint/eslint-plugin": "^8.25.0",
     "@typescript-eslint/parser": "^8.25.0",
+    "ajv": "8.17.1",
     "vercel": "^54.14.2"
   },
   "packageManager": "pnpm@9.15.0"

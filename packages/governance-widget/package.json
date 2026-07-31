@@ -2,6 +2,7 @@
   "name": "@goodwidget/governance-widget",
   "version": "0.1.0",
   "description": "Presentational governance homepage components for GoodWidget",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

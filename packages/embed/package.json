@@ -1,6 +1,20 @@
 {
   "name": "@goodwidget/embed",
   "version": "0.1.0",
+  "description": "Web Component and host bridge for GoodWidget applications.",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GoodDollar/GoodWidget.git",
+    "directory": "packages/embed"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -28,8 +42,8 @@
     "react-dom": ">=18.0.0"
   },
   "dependencies": {
-    "@goodwidget/core": "workspace:*",
-    "@goodwidget/ui": "workspace:*",
+    "@goodwidget/core": "workspace:^",
+    "@goodwidget/ui": "workspace:^",
     "@r2wc/react-to-web-component": "^2.0.3",
     "@reown/appkit": "^1.8.22",
     "@reown/appkit-adapter-wagmi": "^1.8.22",

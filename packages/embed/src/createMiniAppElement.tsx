@@ -56,13 +56,15 @@ export function createMiniAppElement(
   App: React.ComponentType<Record<string, unknown>>,
   options: MiniAppElementOptions = {},
 ) {
-  const HTMLElementBase =
+  // Package entry points are also inspected by SSR-aware bundlers. Defining
+  // the class must therefore be safe when Node has no DOM globals. The
+  // fallback is never instantiated on the server; browser and server bundles
+  // evaluate this module in separate runtimes, so the browser still extends
+  // the platform's real HTMLElement.
+  const HTMLElementBase: typeof HTMLElement =
     typeof globalThis !== 'undefined' && 'HTMLElement' in globalThis
       ? (globalThis as { HTMLElement: typeof HTMLElement }).HTMLElement
-      : undefined
-  if (!HTMLElementBase) {
-    throw new Error('createMiniAppElement is only supported in DOM environments')
-  }
+      : (class {} as typeof HTMLElement)
 
   const {
     shadow = true,
@@ -91,7 +93,7 @@ export function createMiniAppElement(
 
     static get observedAttributes(): string[] {
       return Object.entries(normalizedProps)
-        .filter(([_, def]) => def.type === 'attribute')
+        .filter(([, def]) => def.type === 'attribute')
         .map(([name]) => toKebabCase(name))
     }
 

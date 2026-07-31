@@ -129,20 +129,29 @@ export const MyWidgetElement = createMiniAppElement(
 
 ```ts
 // src/register.ts
-import { MyWidgetElement } from './element'
-
 const TAG = 'my-widget'
 
-export function register(tagName: string = TAG): string {
+export async function register(tagName: string = TAG): Promise<string> {
+  // SSR-aware bundlers may evaluate this entry without browser globals. Keep
+  // the browser-focused element graph behind the guard as well as DOM access.
+  if (typeof customElements === 'undefined') return tagName
   if (!customElements.get(tagName)) {
+    const { MyWidgetElement } = await import('./element')
     customElements.define(tagName, MyWidgetElement)
   }
   return tagName
 }
 
 // Auto-register on import
-register()
+void register()
 ```
+
+`createMiniAppElement()` and `register.ts` must both be safe to evaluate in
+Node. The dynamic element import is deliberately reached only in a browser;
+registration becomes a no-op on the server and runs normally when the browser
+bundle evaluates. This lets Next.js inspect the package without loading
+browser-focused dependencies or attempting to mount a Custom Element during
+server rendering.
 
 ```ts
 // src/index.ts

@@ -1,0 +1,35 @@
+name: Validate release contracts
+
+# Keep graph detection, packaging, and the wallet-facing manifest contract reviewable
+# before either promotion or release credentials can be reached.
+on:
+  pull_request:
+    paths:
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'packages/**'
+      - 'schemas/**'
+      - 'scripts/release/**'
+      - '.github/workflows/**'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22.14.0
+      - name: Configure pinned toolchain
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:release
+      - run: pnpm lint
+      - run: pnpm build
+      - run: pnpm validate:register-entries

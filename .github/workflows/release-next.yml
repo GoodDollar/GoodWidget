@@ -1,0 +1,56 @@
+name: Release production packages
+
+# Publication is intentionally branch-gated: pushes to main may deploy demos, but cannot
+# enter this workflow. A maintainer must first promote main to next.
+on:
+  push:
+    branches: [next]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: goodwidget-npm-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    # The release script pushes its authoritative version commit back to next. The marker
+    # prevents that bot-authored push from recursively starting another release.
+    if: ${{ !contains(github.event.head_commit.message, '[goodwidget release]') }}
+    permissions:
+      contents: write
+      id-token: write
+    environment: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          ref: next
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22.14.0
+          registry-url: https://registry.npmjs.org
+      - name: Configure pinned toolchain
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.0 --activate
+          node --version
+          pnpm --version
+      - name: Install immutable workspace
+        run: pnpm install --frozen-lockfile
+      - name: Configure release identity
+        run: |
+          git config user.name goodwidget-release
+          git config user.email goodwidget-release@users.noreply.github.com
+      - name: Build, pack, publish, verify, and dispatch
+        env:
+          RELEASE_BASE_SHA: ${{ github.event.before }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: 'true'
+          GOODWALLET_DISPATCH_PAT: ${{ secrets.GOODWALLET_DISPATCH_PAT }}
+          # Wallet automation remains inert until both this explicit switch and its scoped
+          # repository-dispatch credential are configured in the protected environment.
+          ENABLE_GOODWALLET_DISPATCH: ${{ vars.ENABLE_GOODWALLET_DISPATCH }}
+        run: pnpm release:widgets

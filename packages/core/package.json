@@ -1,6 +1,20 @@
 {
   "name": "@goodwidget/core",
   "version": "0.1.0",
+  "description": "Provider, wallet, and host runtime for GoodWidget applications.",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GoodDollar/GoodWidget.git",
+    "directory": "packages/core"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -33,7 +47,7 @@
     }
   },
   "dependencies": {
-    "@goodwidget/ui": "workspace:*",
+    "@goodwidget/ui": "workspace:^",
     "tamagui": "1.121.0"
   },
   "devDependencies": {

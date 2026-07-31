@@ -1,7 +1,25 @@
 {
   "name": "@goodwidget/citizen-claim-widget",
-  "version": "0.2.0-beta",
+  "version": "0.2.0",
   "description": "GoodWidget migration target for the GoodSDKs citizen claim flow",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "integration-manifest.json",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GoodDollar/GoodWidget.git",
+    "directory": "packages/citizen-claim-widget"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": [
+    "./dist/register.js",
+    "./dist/register.cjs"
+  ],
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -21,7 +39,8 @@
       "types": "./dist/register.d.ts",
       "import": "./dist/register.js",
       "require": "./dist/register.cjs"
-    }
+    },
+    "./integration-manifest": "./integration-manifest.json"
   },
   "scripts": {
     "build": "tsup",
@@ -35,9 +54,9 @@
   },
   "dependencies": {
     "@goodsdks/citizen-sdk": "1.2.7",
-    "@goodwidget/core": "workspace:*",
-    "@goodwidget/embed": "workspace:*",
-    "@goodwidget/ui": "workspace:*",
+    "@goodwidget/core": "workspace:^",
+    "@goodwidget/embed": "workspace:^",
+    "@goodwidget/ui": "workspace:^",
     "viem": "^2.0.0"
   },
   "devDependencies": {
