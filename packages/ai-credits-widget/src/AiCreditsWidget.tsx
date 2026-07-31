@@ -184,6 +184,15 @@ function BuyCreditsPanel({ state, actions, isPending, onPay }: BuyPanelProps) {
   } else {
     content = (
       <>
+        {state.error && (
+          <AiCreditsStatusNotice>
+            <Text color="$error" fontWeight="700">
+              Deep link unavailable
+            </Text>
+            <Text secondary>{state.error}</Text>
+          </AiCreditsStatusNotice>
+        )}
+
         {state.address && (
           <AiCreditsHero
             gBalance={state.gBalance}

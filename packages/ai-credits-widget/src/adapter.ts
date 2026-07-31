@@ -33,10 +33,12 @@ import {
 import type { AiCreditsChainClient } from './chainClient'
 import { signOperatorConsentFromTypedData } from './operatorConsent'
 import {
+  clearDeepLinkArtifacts,
+  deepLinkManualFallbackMessage,
   isValidBuyerAddress,
   isValidOperatorSignature,
-  parseDeepLinkParams,
-  stripDeepLinkParamsFromUrl,
+  resolveDeepLinkParams,
+  storeDeepLinkParams,
   type DeepLinkParams,
 } from './deepLinkParams'
 import {
@@ -194,7 +196,15 @@ function deriveStatus(params: {
 
   if (chainId !== null && chainId !== CELO_CHAIN_ID) return 'unsupported_chain'
 
-  if (error && !isNonBuyTab(activeTab)) return 'payment_failed'
+  if (
+    error &&
+    !isNonBuyTab(activeTab) &&
+    currentStatus !== 'purchase_setup' &&
+    currentStatus !== 'connecting' &&
+    currentStatus !== 'disconnected'
+  ) {
+    return 'payment_failed'
+  }
 
   if (gBalance === null) return 'purchase_setup'
 
@@ -886,8 +896,9 @@ export function useAiCreditsAdapter({
           withDerivedStatus(
             prev,
             {
-              error:
-                'Deep-link buyerAddress is invalid. Select or import a buyer manually to continue.',
+              error: deepLinkManualFallbackMessage('Deep-link buyerAddress is invalid.'),
+              activeTab: 'buy',
+              status: 'purchase_setup',
             },
             true,
           ),
@@ -900,14 +911,20 @@ export function useAiCreditsAdapter({
           withDerivedStatus(
             prev,
             {
-              error:
-                'Deep-link operatorSignature is invalid. Select or import a buyer manually to continue.',
+              error: deepLinkManualFallbackMessage('Deep-link operatorSignature is invalid.'),
+              activeTab: 'buy',
+              status: 'purchase_setup',
             },
             true,
           ),
         )
         return
       }
+
+      storeDeepLinkParams({
+        buyerAddress: trimmedAddress,
+        operatorSignature: trimmedSignature,
+      })
 
       const existingSession = patchPayerSessionFields(address)
       const existingBuyer = existingSession.buyers.find(
@@ -988,17 +1005,19 @@ export function useAiCreditsAdapter({
             true,
           ),
         )
-        stripDeepLinkParamsFromUrl()
+        clearDeepLinkArtifacts()
       } catch (err: unknown) {
         setState((prev) =>
           withDerivedStatus(
             prev,
             {
-              error:
+              error: deepLinkManualFallbackMessage(
                 err instanceof Error
                   ? err.message
-                  : 'Could not apply deep-link operator approval. Select a buyer manually to continue.',
+                  : 'Could not apply deep-link operator approval.',
+              ),
               activeTab: 'buy',
+              status: 'purchase_setup',
             },
             true,
           ),
@@ -1565,7 +1584,7 @@ export function useAiCreditsAdapter({
     if (typeof window === 'undefined' || deepLinkParseDoneRef.current) return
     deepLinkParseDoneRef.current = true
 
-    const parsed = parseDeepLinkParams(window.location.search)
+    const parsed = resolveDeepLinkParams(window.location.search)
     if (parsed.status === 'absent') return
 
     if (parsed.status === 'partial') {
@@ -1575,8 +1594,9 @@ export function useAiCreditsAdapter({
         withDerivedStatus(
           prev,
           {
-            error: `Deep link is missing ${missing}. Select or import a buyer manually to continue.`,
+            error: deepLinkManualFallbackMessage(`Deep link is missing ${missing}.`),
             activeTab: 'buy',
+            status: 'purchase_setup',
           },
           false,
         ),
@@ -1589,8 +1609,9 @@ export function useAiCreditsAdapter({
         withDerivedStatus(
           prev,
           {
-            error: `${parsed.reason}. Select or import a buyer manually to continue.`,
+            error: deepLinkManualFallbackMessage(`${parsed.reason}.`),
             activeTab: 'buy',
+            status: 'purchase_setup',
           },
           false,
         ),

@@ -21,8 +21,15 @@ export type { BuyerIdentityType } from './payerSession'
 
 export {
   parseDeepLinkParams,
+  resolveDeepLinkParams,
   isValidBuyerAddress,
   isValidOperatorSignature,
+  storeDeepLinkParams,
+  readStoredDeepLinkParams,
+  clearStoredDeepLinkParams,
+  clearDeepLinkArtifacts,
+  deepLinkManualFallbackMessage,
+  DEEP_LINK_MANUAL_FALLBACK_HINT,
 } from './deepLinkParams'
 export type { DeepLinkParams, DeepLinkParseResult } from './deepLinkParams'
 
