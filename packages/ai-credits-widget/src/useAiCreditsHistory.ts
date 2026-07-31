@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { GdCreditEntry } from './backendTypes'
 import { createBackendClient } from './backendClient'
+import type { AiCreditsBackendClient } from './backendClient'
 import type { AiCreditsWidgetEnvironment } from './widgetRuntimeContract'
 
 export const HISTORY_PAGE_SIZE = 10
@@ -86,8 +87,9 @@ export function useAiCreditsHistory(options: {
   address: string | null
   backendUrl?: string
   environment?: AiCreditsWidgetEnvironment
+  backendClient?: AiCreditsBackendClient
 }): UseAiCreditsHistoryResult {
-  const { address, backendUrl, environment = 'production' } = options
+  const { address, backendUrl, environment = 'production', backendClient } = options
   const defaultRange = useMemo(() => getLast90DaysRange(), [])
 
   const [selectedSources, setSelectedSources] = useState(createDefaultSelectedSources)
@@ -132,7 +134,7 @@ export function useAiCreditsHistory(options: {
       else setLoading(true)
       setError(null)
 
-      const client = createBackendClient(backendUrl, environment)
+      const client = backendClient ?? createBackendClient(backendUrl)
       const apiSource = activeSources.length === 1 ? activeSources[0] : undefined
       const fundingStatus = statusFilter === 'all' ? undefined : statusFilter
 
@@ -162,7 +164,17 @@ export function useAiCreditsHistory(options: {
         setLoadingMore(false)
       }
     },
-    [address, backendUrl, environment, activeSources, statusFilter, fromDate, toDate, selectedSources],
+    [
+      address,
+      backendUrl,
+      environment,
+      backendClient,
+      activeSources,
+      statusFilter,
+      fromDate,
+      toDate,
+      selectedSources,
+    ],
   )
 
   useEffect(() => {

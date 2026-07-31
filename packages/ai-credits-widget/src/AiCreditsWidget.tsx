@@ -35,6 +35,7 @@ import type {
   AiCreditsPaySuccessDetail,
   AiCreditsPayErrorDetail,
   AiCreditsWidgetAdapterFactory,
+  AiCreditsWidgetAdapterOptions,
   AiCreditsWidgetAdapterActions,
   AiCreditsWidgetAdapterState,
   AiCreditsWidgetTab,
@@ -53,6 +54,7 @@ interface AiCreditsInnerProps {
   vaultAddress?: string
   goodIdAddress?: string
   adapterFactory?: AiCreditsWidgetAdapterFactory
+  adapterOptions?: AiCreditsWidgetAdapterOptions
   onPaySuccess?: (detail: AiCreditsPaySuccessDetail) => void
   onPayError?: (detail: AiCreditsPayErrorDetail) => void
 }
@@ -282,6 +284,7 @@ function AiCreditsInner({
   vaultAddress,
   goodIdAddress,
   adapterFactory,
+  adapterOptions,
   onPaySuccess,
   onPayError,
 }: AiCreditsInnerProps) {
@@ -295,6 +298,10 @@ function AiCreditsInner({
     goodIdAddress: goodIdAddress as `0x${string}` | undefined,
     onPaySuccess,
     onPayError,
+    backendClient: adapterOptions?.backendClient,
+    chainClient: adapterOptions?.chainClient,
+    skipVaultPaymentValidation: adapterOptions?.skipVaultPaymentValidation,
+    prepareSettlement: adapterOptions?.prepareSettlement,
   })
 
   const activeAdapter = useMemo(
@@ -308,6 +315,7 @@ function AiCreditsInner({
     address: state.address,
     backendUrl,
     environment,
+    backendClient: adapterOptions?.backendClient,
   })
 
   const handlePay = useCallback(
@@ -403,6 +411,7 @@ export function AiCreditsWidget({
   onPaySuccess,
   onPayError,
   adapterFactory,
+  adapterOptions,
   testId,
 }: AiCreditsWidgetProps) {
   return (
@@ -423,6 +432,7 @@ export function AiCreditsWidget({
           vaultAddress={vaultAddress}
           goodIdAddress={goodIdAddress}
           adapterFactory={adapterFactory}
+          adapterOptions={adapterOptions}
           onPaySuccess={onPaySuccess}
           onPayError={onPayError}
         />

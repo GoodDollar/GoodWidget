@@ -15,7 +15,6 @@ import { privateKeyToAccount } from 'viem/accounts'
 import { buildBuyerKeyMessage, deriveBuyerPrivateKeyFromSignature } from './buyerKeyDerivation'
 import { normalizeChannelId, signRequestClose, signWithdrawPrincipal } from './buyerSignatures'
 import {
-  MockAiCreditsBackendClient,
   totalCreditUsdFromProfile,
   buildAccountView,
   createBackendClient,
@@ -315,6 +314,10 @@ export interface UseAiCreditsAdapterOptions {
   goodIdReturnUrl?: string
   onPaySuccess?: (detail: AiCreditsPaySuccessDetail) => void
   onPayError?: (detail: AiCreditsPayErrorDetail) => void
+  backendClient?: AiCreditsBackendClient
+  chainClient?: AiCreditsChainClient
+  skipVaultPaymentValidation?: boolean
+  prepareSettlement?: (ref: AccountRef, creditUsd: bigint) => void
 }
 
 export function useAiCreditsAdapter({
@@ -328,11 +331,15 @@ export function useAiCreditsAdapter({
   goodIdReturnUrl,
   onPaySuccess,
   onPayError,
+  backendClient: backendClientOverride,
+  chainClient: chainClientOverride,
+  skipVaultPaymentValidation = false,
+  prepareSettlement,
 }: UseAiCreditsAdapterOptions): AiCreditsWidgetAdapterResult {
   const { address, chainId, isConnected, provider, connect } = useWallet()
   const [state, setState] = useState<AiCreditsWidgetAdapterState>(INITIAL_STATE)
   const configurationError =
-    environment === 'development' || backendUrl
+    backendClientOverride || backendUrl
       ? null
       : 'AI Credits backend is not configured'
 
@@ -343,20 +350,21 @@ export function useAiCreditsAdapter({
   const celoVault = vaultAddress ?? CELO_GD_ANTSEED_VAULT_FALLBACK
 
   const backendClient = useMemo<AiCreditsBackendClient>(
-    () => createBackendClient(backendUrl, environment),
-    [backendUrl, environment],
+    () => backendClientOverride ?? createBackendClient(backendUrl),
+    [backendClientOverride, backendUrl],
   )
 
   const chainClient = useMemo<AiCreditsChainClient>(
     () =>
+      chainClientOverride ??
       createChainClient({
         baseRpcUrl,
         celoRpcUrl,
         fundingVaultAddress,
         celoVaultAddress: celoVault,
         celoGoodIdAddress: goodIdAddress ?? CELO_GOODID_ADDRESS,
-      }, environment === 'development' ? 'development' : 'production'),
-    [environment, baseRpcUrl, celoRpcUrl, fundingVaultAddress, celoVault, goodIdAddress],
+      }),
+    [chainClientOverride, baseRpcUrl, celoRpcUrl, fundingVaultAddress, celoVault, goodIdAddress],
   )
 
   useEffect(() => {
@@ -428,7 +436,7 @@ export function useAiCreditsAdapter({
         .catch(() => null)
 
       const minimumsPromise =
-        backendClient instanceof MockAiCreditsBackendClient
+        skipVaultPaymentValidation
           ? Promise.resolve({
               minDepositUsd: '1.00',
               minStreamUsd: '1.00',
@@ -738,7 +746,7 @@ export function useAiCreditsAdapter({
         throw new Error('Could not build quote — check chain connectivity')
       }
 
-      if (!(backendClient instanceof MockAiCreditsBackendClient)) {
+      if (!skipVaultPaymentValidation) {
         try {
           const publicClient = createPublicClient({ chain: CELO_CHAIN, transport: http() })
           await validateVaultPaymentAmounts({
@@ -790,12 +798,12 @@ export function useAiCreditsAdapter({
           buyer: currentState.buyerPubKey,
         }
 
-        if (backendClient instanceof MockAiCreditsBackendClient) {
+        if (prepareSettlement) {
           const creditUsdMicro = quoteTotalUsdMicro(quote, gdUsdPerToken, currentState.isGoodIdVerified, {
             depositBonusPercent: currentState.depositBonusPercent,
             streamBonusPercent: currentState.streamBonusPercent,
           })
-          backendClient.prepareSettlement(accountRef, creditUsdMicro)
+          prepareSettlement(accountRef, creditUsdMicro)
         }
 
         const { txHashes } = await executeCeloPayment({
@@ -864,7 +872,16 @@ export function useAiCreditsAdapter({
         throw new Error(message)
       }
     },
-    [state, backendClient, chainClient, celoVault, onPaySuccess, onPayError],
+    [
+      state,
+      backendClient,
+      chainClient,
+      celoVault,
+      onPaySuccess,
+      onPayError,
+      prepareSettlement,
+      skipVaultPaymentValidation,
+    ],
   )
 
   const handleRefresh = useCallback(

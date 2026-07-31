@@ -29,6 +29,11 @@
       "types": "./dist/register.d.ts",
       "import": "./dist/register.js",
       "require": "./dist/register.cjs"
+    },
+    "./mocked": {
+      "types": "./dist/mocked/index.d.ts",
+      "import": "./dist/mocked/index.js",
+      "require": "./dist/mocked/index.cjs"
     }
   },
   "scripts": {
