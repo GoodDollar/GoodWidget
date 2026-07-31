@@ -8,13 +8,28 @@ import type { CampaignMockData } from './widgetRuntimeContract'
 // useCampaignLeaderboard). Each pool's supDistributed/supTotal below are now
 // only a fallback: useProgramSupTotals overrides them per-pool with live
 // on-chain figures by querying the Superfluid Base subgraph when a pool address
-// has been configured for that campaignId in CAMPAIGN_GDA_POOL_CONFIG (currently
-// null for both 606 and 614 — see hooks/campaignPoolConfig.ts for details). The
+// is supplied through SuperfluidCampaignWidgetProps.poolAddresses. The
 // aggregate leaderboard.supDistributed/supTotal below has no live source at all
 // (no endpoint combines both pools' on-chain totals) and remains a placeholder.
 // Consumers can still override the content fixture via
 // SuperfluidCampaignWidgetProps.data.
+//
+// pointsEventNames below are the canonical event-producer contract assumed by
+// the widget. If an existing producer uses different names, pass data with the
+// corresponding aliases instead of changing ActivityType or the icon mapping.
 // ---------------------------------------------------------------------------
+
+const POINTS_EVENT_NAMES = {
+  claimUbi: 'claimed',
+  inviteUsers: 'validInvites',
+  flowStateFunding: 'roundStreamed',
+  gardensDonation: 'opensourceSent',
+  gardensFunding: 'opensourceStreamed',
+  // TODO: Replace when the Flow State voting points producer is implemented.
+  // Keeping a distinct placeholder preserves the action and icon flow without
+  // incorrectly treating another event as proof that the user voted.
+  flowStateVote: 'flowStateVoted',
+} as const
 
 export const DEFAULT_CAMPAIGN_MOCK_DATA: CampaignMockData = {
   seasonLabel: 'SEASON 6',
@@ -33,6 +48,7 @@ export const DEFAULT_CAMPAIGN_MOCK_DATA: CampaignMockData = {
       actions: [
         {
           activity: 'claim-ubi',
+          pointsEventNames: [POINTS_EVENT_NAMES.claimUbi],
           title: 'Claim UBI',
           source: 'GoodDollar',
           description: 'Claim your daily G$. Earn every time you claim.',
@@ -42,6 +58,7 @@ export const DEFAULT_CAMPAIGN_MOCK_DATA: CampaignMockData = {
         },
         {
           activity: 'invite-users',
+          pointsEventNames: [POINTS_EVENT_NAMES.inviteUsers],
           title: 'Invite users',
           source: 'GoodDollar',
           description: 'Invite someone to claim G$ through GoodWallet.',
@@ -51,6 +68,7 @@ export const DEFAULT_CAMPAIGN_MOCK_DATA: CampaignMockData = {
         },
         {
           activity: 'flow-state-vote',
+          pointsEventNames: [POINTS_EVENT_NAMES.flowStateVote],
           title: 'Vote on Flow State',
           source: 'Flow State',
           description: 'Vote to help allocate GoodBuilders Season 4 funding.',
@@ -71,6 +89,7 @@ export const DEFAULT_CAMPAIGN_MOCK_DATA: CampaignMockData = {
       actions: [
         {
           activity: 'flow-state-funding',
+          pointsEventNames: [POINTS_EVENT_NAMES.flowStateFunding],
           title: 'Fund GoodBuilders Season 4',
           source: 'Flow State',
           description: 'Start a stream to the GoodBuilders Season 4 pool.',
@@ -81,6 +100,7 @@ export const DEFAULT_CAMPAIGN_MOCK_DATA: CampaignMockData = {
         },
         {
           activity: 'gardens-donation',
+          pointsEventNames: [POINTS_EVENT_NAMES.gardensDonation],
           title: 'Make a one-time donation',
           source: 'Gardens',
           description: 'Donate to an eligible Community Pool.',
@@ -91,6 +111,7 @@ export const DEFAULT_CAMPAIGN_MOCK_DATA: CampaignMockData = {
         },
         {
           activity: 'gardens-funding',
+          pointsEventNames: [POINTS_EVENT_NAMES.gardensFunding],
           title: 'Stream to a Community Pool',
           source: 'Gardens',
           description: 'Start a stream to an eligible Community Pool.',

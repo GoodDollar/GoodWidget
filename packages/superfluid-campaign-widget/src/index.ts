@@ -7,6 +7,7 @@ export type {
   CampaignActionMockData,
   CampaignMockData,
   CampaignPoolId,
+  CampaignPoolAddresses,
   CampaignPoolMockData,
   FaqItemMockData,
   LeaderboardEntryMockData,

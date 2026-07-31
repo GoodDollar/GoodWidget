@@ -4,7 +4,7 @@ import { truncateAddress } from './styles'
 
 interface WalletChipProps {
   address: string | null
-  onDisconnect: () => void
+  onDisconnect?: () => Promise<void>
 }
 
 /**
@@ -17,6 +17,7 @@ interface WalletChipProps {
  */
 export function WalletChip({ address, onDisconnect }: WalletChipProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [disconnectMessage, setDisconnectMessage] = useState<string | null>(null)
 
   return (
     <XStack position="relative" alignItems="center">
@@ -29,7 +30,10 @@ export function WalletChip({ address, onDisconnect }: WalletChipProps) {
         borderWidth={1}
         borderColor="$borderColor"
         cursor="pointer"
-        onPress={() => setIsMenuOpen((open) => !open)}
+        onPress={() => {
+          setDisconnectMessage(null)
+          setIsMenuOpen((open) => !open)
+        }}
         aria-label="Wallet options"
       >
         <YStack width={8} height={8} borderRadius="$full" backgroundColor="$success" />
@@ -42,7 +46,15 @@ export function WalletChip({ address, onDisconnect }: WalletChipProps) {
           {/* Invisible full-viewport layer so any outside press closes the menu,
               same dismiss approach as ActionSheet's overlay. Sits below the menu
               itself in z-index so the menu's own press still reaches its button. */}
-          <XStack position="fixed" top={0} left={0} right={0} bottom={0} zIndex={100} onPress={() => setIsMenuOpen(false)} />
+          <XStack
+            position="fixed"
+            top={0}
+            left={0}
+            right={0}
+            bottom={0}
+            zIndex={100}
+            onPress={() => setIsMenuOpen(false)}
+          />
           <YStack
             position="absolute"
             top="100%"
@@ -59,14 +71,23 @@ export function WalletChip({ address, onDisconnect }: WalletChipProps) {
             <Button
               size="sm"
               variant="list"
-              onPress={() => {
+              onPress={async () => {
+                if (!onDisconnect) {
+                  setDisconnectMessage('Disconnect should be done in your wallets session')
+                  return
+                }
                 setIsMenuOpen(false)
-                onDisconnect()
+                await onDisconnect()
               }}
             >
               <Icon name="log-out" size="xs" color="muted" />
               <ButtonText>Disconnect</ButtonText>
             </Button>
+            {disconnectMessage && (
+              <Text variant="caption" tone="secondary" padding="$2">
+                {disconnectMessage}
+              </Text>
+            )}
           </YStack>
         </>
       )}

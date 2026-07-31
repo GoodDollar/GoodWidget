@@ -4,6 +4,7 @@ import {
   type AirdropStatusAdapter,
   type CampaignLeaderboardAdapter,
   type ProgramSupTotalsAdapter,
+  type SuperfluidCampaignWidgetProps,
   type SuperfluidCampaignView,
 } from '@goodwidget/superfluid-campaign-widget'
 import { MiniAppShell, YStack, type GoodWidgetThemeOverrides } from '@goodwidget/ui'
@@ -59,11 +60,29 @@ const LEADERBOARD_DATA_FIXTURES: Record<number, ReturnType<CampaignLeaderboardAd
       createdAt: '2026-01-05T00:00:00.000Z',
     },
     accounts: [
-      { account: '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b', totalPoints: 4820, eventCount: 96, lastEventAt: '2026-07-29T12:00:00.000Z' },
-      { account: '0x2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c', totalPoints: 4390, eventCount: 88, lastEventAt: '2026-07-29T11:00:00.000Z' },
-      { account: '0x3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d', totalPoints: 3910, eventCount: 79, lastEventAt: '2026-07-29T10:00:00.000Z' },
+      {
+        account: '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b',
+        totalPoints: 4820,
+        eventCount: 96,
+        lastEventAt: '2026-07-29T12:00:00.000Z',
+        completedActivities: ['claim-ubi', 'invite-users', 'flow-state-vote'],
+      },
+      {
+        account: '0x2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c',
+        totalPoints: 4390,
+        eventCount: 88,
+        lastEventAt: '2026-07-29T11:00:00.000Z',
+        completedActivities: ['claim-ubi', 'invite-users'],
+      },
+      {
+        account: '0x3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d',
+        totalPoints: 3910,
+        eventCount: 79,
+        lastEventAt: '2026-07-29T10:00:00.000Z',
+        completedActivities: ['claim-ubi'],
+      },
     ],
-    pagination: { page: 1, limit: 50, totalDocs: 624, totalPages: 13, hasNextPage: true, hasPrevPage: false },
+    pagination: { page: 1, limit: 10, totalDocs: 624, totalPages: 63, hasNextPage: true, hasPrevPage: false },
   },
   614: {
     summary: {
@@ -77,10 +96,22 @@ const LEADERBOARD_DATA_FIXTURES: Record<number, ReturnType<CampaignLeaderboardAd
       createdAt: '2026-01-05T00:00:00.000Z',
     },
     accounts: [
-      { account: '0x4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e', totalPoints: 3420, eventCount: 55, lastEventAt: '2026-07-29T09:00:00.000Z' },
-      { account: '0x5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f', totalPoints: 2985, eventCount: 47, lastEventAt: '2026-07-29T08:00:00.000Z' },
+      {
+        account: '0x4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e',
+        totalPoints: 3420,
+        eventCount: 55,
+        lastEventAt: '2026-07-29T09:00:00.000Z',
+        completedActivities: ['flow-state-funding', 'gardens-donation', 'gardens-funding'],
+      },
+      {
+        account: '0x5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f',
+        totalPoints: 2985,
+        eventCount: 47,
+        lastEventAt: '2026-07-29T08:00:00.000Z',
+        completedActivities: ['gardens-donation'],
+      },
     ],
-    pagination: { page: 1, limit: 50, totalDocs: 318, totalPages: 7, hasNextPage: true, hasPrevPage: false },
+    pagination: { page: 1, limit: 10, totalDocs: 318, totalPages: 32, hasNextPage: true, hasPrevPage: false },
   },
 }
 
@@ -102,13 +133,12 @@ function fixedCampaignLeaderboardAdapter(
  * illustrative "healthy progress" data, not the live snapshot — the real
  * program exists but funding hasn't started yet as of Season 6 launch, so
  * its live totalClaimed is currently 0. totalAllocated is 217,700 SUP per the
- * campaign spec (stored in CAMPAIGN_GDA_POOL_CONFIG). 614 (Ecosystem funding
- * actions) has no matching entry on purpose: no on-chain program is registered
- * for it yet, so RewardPoolSection falls back to its own placeholder —
- * the same "no pool address configured" case the live subgraph query returns null.
+ * campaign spec. 614 (Ecosystem funding actions) has no matching entry on
+ * purpose, so RewardPoolSection falls back to its own placeholder—the same
+ * result produced when no pool address is passed to the live widget.
  */
 const SUP_TOTALS_FIXTURES: Record<number, ReturnType<ProgramSupTotalsAdapter>['data']> = {
-  606: { totalAllocated: 217700, totalClaimed: 128940 },
+  606: { totalAllocated: 217700, totalClaimed: 128940, totalMembers: 712 },
 }
 
 /** Named SUP-totals scenarios exercised by the QA stories/Playwright spec below. */
@@ -213,10 +243,12 @@ export function LiveDataNoWalletStory({
   defaultTheme,
   themeOverrides,
   initialView = 'content',
+  poolAddresses,
 }: {
   defaultTheme?: 'light' | 'dark'
   themeOverrides?: GoodWidgetThemeOverrides
   initialView?: SuperfluidCampaignView
+  poolAddresses?: SuperfluidCampaignWidgetProps['poolAddresses']
 } = {}) {
   return (
     <StoryShell dataTestId="SuperfluidCampaignWidget-live-no-wallet">
@@ -224,6 +256,7 @@ export function LiveDataNoWalletStory({
         provider={undefined}
         environment="production"
         initialView={initialView}
+        poolAddresses={poolAddresses}
         defaultTheme={defaultTheme}
         themeOverrides={themeOverrides}
       />

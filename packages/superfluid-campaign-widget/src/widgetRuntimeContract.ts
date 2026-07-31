@@ -1,5 +1,6 @@
 import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
 import type { CitizenClaimWidgetEnvironment } from '@goodwidget/citizen-claim-widget'
+import type { Address } from 'viem'
 import type { AirdropStatusAdapter } from './hooks/useAirdropStatus'
 import type { CampaignLeaderboardAdapter } from './hooks/useCampaignLeaderboard'
 import type { ProgramSupTotalsAdapter } from './hooks/useProgramSupTotals'
@@ -40,18 +41,49 @@ export interface ActivityIconSpec {
 
 /** Exact mapping from the approved spec in #127 — do not derive from mockup pixels. */
 export const ACTIVITY_ICON_MAP: Record<ActivityType, ActivityIconSpec> = {
-  'claim-ubi': { activity: 'claim-ubi', iconName: 'calendar', colorVariant: 'blue', label: 'Claim UBI' },
-  'invite-users': { activity: 'invite-users', iconName: 'person-plus', colorVariant: 'blue', label: 'Successful invite' },
-  'flow-state-vote': { activity: 'flow-state-vote', iconName: 'megaphone', colorVariant: 'blue', label: 'Flow State vote' },
-  'flow-state-funding': { activity: 'flow-state-funding', iconName: 'stream', colorVariant: 'blue', label: 'Flow State funding stream' },
-  'gardens-donation': { activity: 'gardens-donation', iconName: 'hand-coin', colorVariant: 'green', label: 'Gardens one-time donation' },
-  'gardens-funding': { activity: 'gardens-funding', iconName: 'stream', colorVariant: 'green', label: 'Gardens funding stream' },
+  'claim-ubi': {
+    activity: 'claim-ubi',
+    iconName: 'calendar',
+    colorVariant: 'blue',
+    label: 'Claim UBI',
+  },
+  'invite-users': {
+    activity: 'invite-users',
+    iconName: 'person-plus',
+    colorVariant: 'blue',
+    label: 'Successful invite',
+  },
+  'flow-state-vote': {
+    activity: 'flow-state-vote',
+    iconName: 'megaphone',
+    colorVariant: 'blue',
+    label: 'Flow State vote',
+  },
+  'flow-state-funding': {
+    activity: 'flow-state-funding',
+    iconName: 'stream',
+    colorVariant: 'blue',
+    label: 'Flow State funding stream',
+  },
+  'gardens-donation': {
+    activity: 'gardens-donation',
+    iconName: 'hand-coin',
+    colorVariant: 'green',
+    label: 'Gardens one-time donation',
+  },
+  'gardens-funding': {
+    activity: 'gardens-funding',
+    iconName: 'stream',
+    colorVariant: 'green',
+    label: 'Gardens funding stream',
+  },
 }
 
 // ---------------------------------------------------------------------------
 // Reward pools — two fixed pools per #127, stacked vertically at every breakpoint.
 // ---------------------------------------------------------------------------
 export type CampaignPoolId = 'good-dollar-actions' | 'ecosystem-funding-actions'
+export type CampaignPoolAddresses = Partial<Record<number, Address>>
 
 /**
  * How an action card's CTA is handled. The claim-widget variants embed
@@ -62,6 +94,14 @@ export type CampaignActionCtaKind = 'claim-widget-claim' | 'claim-widget-invite'
 
 export interface CampaignActionMockData {
   activity: ActivityType
+  /**
+   * Points API event names that prove this activity was completed. When omitted,
+   * the canonical ActivityType value is used. For existing producers, provide
+   * their actual event name here (for example `claimed` for `claim-ubi`).
+   * Aliases let an integrator match an existing event producer without changing
+   * the widget's stable activity names or icon mapping.
+   */
+  pointsEventNames?: string[]
   title: string
   source: string
   description: string
@@ -74,8 +114,7 @@ export interface CampaignActionMockData {
 
 export interface CampaignPoolMockData {
   id: CampaignPoolId
-  /** Superfluid Points API campaign id backing this pool's leaderboard tab,
-   *  and the Superfluid programs API id backing its SUP-totals progress bar. */
+  /** Superfluid Points API campaign id backing this pool's leaderboard tab. */
   campaignId: number
   label: string
   /** Placeholder fallback, used until useProgramSupTotals resolves a live
@@ -96,10 +135,8 @@ export interface LeaderboardEntryMockData {
   address: string
   ensName?: string
   points: number
-  /** Omitted for rows sourced from the live Points API, which has no per-activity
-   *  breakdown — the activity-icons column is hidden entirely for those rows
-   *  rather than rendering misleading all-dimmed icons. */
-  completedActivities?: ActivityType[]
+  /** Activities with at least one positive point event for this account. */
+  completedActivities: ActivityType[]
 }
 
 export interface LeaderboardMockData {
@@ -130,6 +167,10 @@ export interface CampaignMockData {
 // ---------------------------------------------------------------------------
 export interface SuperfluidCampaignWidgetProps {
   provider?: unknown
+  /** Integrator-owned wallet connect flow, matching AiCreditsWidget. */
+  connectOverride?: () => Promise<void>
+  /** Integrator-owned wallet disconnect flow. */
+  disconnectOverride?: () => Promise<void>
   environment?: SuperfluidCampaignWidgetEnvironment
   themeOverrides?: GoodWidgetThemeOverrides
   config?: GoodWidgetConfig
@@ -137,7 +178,7 @@ export interface SuperfluidCampaignWidgetProps {
   /**
    * Overrides the built-in mock dataset (DEFAULT_CAMPAIGN_MOCK_DATA). Lets
    * Storybook fixtures and tests substitute data without touching component
-   * internals. Real points/leaderboard data is out of scope for this phase.
+   * internals and configure Points API event-name aliases.
    */
   data?: CampaignMockData
   /** Passed through to the embedded CitizenClaimWidget for Claim/Invite CTAs. */
@@ -147,6 +188,15 @@ export interface SuperfluidCampaignWidgetProps {
    * and deep links land directly on the leaderboard without a click.
    */
   initialView?: SuperfluidCampaignView
+  /**
+   * Public on-chain GDA pool addresses, keyed by Points API campaign id.
+   *
+   * The widget deliberately does not resolve these through
+   * claim.superfluid.org/api/programs because that endpoint is not available
+   * to arbitrary browser origins. Integrators may source these values from
+   * environment variables and pass them here.
+   */
+  poolAddresses?: CampaignPoolAddresses
   /**
    * Overrides the live airdrop-status fetch (superfluid-airdrop.goodworker.workers.dev)
    * with a fixed result, the same DI seam AiCreditsWidget's adapterFactory uses.
@@ -163,11 +213,10 @@ export interface SuperfluidCampaignWidgetProps {
    */
   leaderboardAdapter?: CampaignLeaderboardAdapter
   /**
-   * Overrides the live Superfluid programs fetch (claim.superfluid.org/api/programs)
-   * with a fixed result per campaignId, the same DI seam leaderboardAdapter uses.
+   * Overrides the live Superfluid protocol-subgraph fetch with a fixed result
+   * per campaignId, using the same DI seam as leaderboardAdapter.
    * Lets Storybook fixtures and Playwright specs render each reward pool's
-   * SUP-totals progress bar deterministically instead of depending on the
-   * live programs list, whose on-chain funding state changes over time.
+   * distribution progress and active-member count deterministically.
    */
   supTotalsAdapter?: ProgramSupTotalsAdapter
 }

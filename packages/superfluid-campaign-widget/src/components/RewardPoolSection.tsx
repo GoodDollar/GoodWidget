@@ -1,5 +1,6 @@
 import React from 'react'
 import { Heading, ProgressBar, Text, YStack } from '@goodwidget/ui'
+import type { Address } from 'viem'
 import type { ProgramSupTotalsAdapter } from '../hooks/useProgramSupTotals'
 import { useProgramSupTotals } from '../hooks/useProgramSupTotals'
 import type { CampaignActionMockData, CampaignPoolMockData } from '../widgetRuntimeContract'
@@ -7,6 +8,7 @@ import { ActionCard } from './ActionCard'
 
 interface RewardPoolSectionProps {
   pool: CampaignPoolMockData
+  poolAddress?: Address
   onPressActionCta: (action: CampaignActionMockData) => void
   supTotalsAdapter?: ProgramSupTotalsAdapter
 }
@@ -17,15 +19,25 @@ interface RewardPoolSectionProps {
  * feeds always stack vertically at every breakpoint — no responsive change
  * needed at this level.
  */
-export function RewardPoolSection({ pool, onPressActionCta, supTotalsAdapter }: RewardPoolSectionProps) {
+export function RewardPoolSection({
+  pool,
+  poolAddress,
+  onPressActionCta,
+  supTotalsAdapter,
+}: RewardPoolSectionProps) {
   // Live on-chain SUP totals for this pool's campaign, when a matching program
   // exists (see useProgramSupTotals). While loading, on request failure, or
-  // when no program is registered yet for this campaignId (true today for
-  // Ecosystem actions/614), fall back to the pool's placeholder
-  // figures rather than showing a loading/error state for this small section.
-  const supTotals = useProgramSupTotals(pool.campaignId, supTotalsAdapter)
+  // when the integrator has not supplied a pool address, fall back to the
+  // pool's placeholder figures rather than making an unresolvable subgraph query.
+  const supTotals = useProgramSupTotals(
+    pool.campaignId,
+    poolAddress,
+    pool.supTotal,
+    supTotalsAdapter,
+  )
   const supDistributed = supTotals.data?.totalClaimed ?? pool.supDistributed
   const supTotal = supTotals.data?.totalAllocated ?? pool.supTotal
+  const participants = supTotals.data?.totalMembers ?? pool.participants
 
   const progressLabel = `${supDistributed.toLocaleString()} / ${supTotal.toLocaleString()} SUP`
 
@@ -34,7 +46,7 @@ export function RewardPoolSection({ pool, onPressActionCta, supTotalsAdapter }: 
       <YStack gap="$1">
         <Heading level={4}>{pool.label}</Heading>
         <Text variant="caption" tone="secondary">
-          {pool.participants.toLocaleString()} participants
+          {participants.toLocaleString()} participants
         </Text>
       </YStack>
 

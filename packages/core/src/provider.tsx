@@ -20,46 +20,16 @@ const DEFAULT_CAPABILITIES: HostCapabilities = {
   signin: false,
 }
 
-// Injected wallets expose no way to ask "was this dApp explicitly disconnected?" —
-// eth_accounts just returns whatever the wallet still authorizes, so the
-// mount-time silent check below can't tell "never connected" apart from "the
-// user pressed Disconnect a moment ago." Track that intent ourselves so a page
-// reload right after Disconnect doesn't silently repopulate `address`.
-const WALLET_DISCONNECTED_STORAGE_KEY = 'goodwidget:wallet-disconnected'
-
-function readWalletDisconnectedFlag(): boolean {
-  if (typeof window === 'undefined') return false
-  try {
-    return window.localStorage.getItem(WALLET_DISCONNECTED_STORAGE_KEY) === 'true'
-  } catch {
-    return false
-  }
-}
-
-function writeWalletDisconnectedFlag(disconnected: boolean): void {
-  if (typeof window === 'undefined') return
-  try {
-    if (disconnected) {
-      window.localStorage.setItem(WALLET_DISCONNECTED_STORAGE_KEY, 'true')
-    } else {
-      window.localStorage.removeItem(WALLET_DISCONNECTED_STORAGE_KEY)
-    }
-  } catch {
-    // Ignore storage failures (e.g. private browsing) — worst case the silent
-    // eth_accounts check below repopulates `address` as it did before this fix.
-  }
-}
-
 export interface WalletContextValue extends WalletState {
   connect: () => Promise<void>
-  disconnect: () => void
+  disconnect: () => Promise<void>
 }
 
 export type HostContextValue = HostState
 
 export interface GoodWidgetContextValue extends GoodWidgetState {
   connect: () => Promise<void>
-  disconnect: () => void
+  disconnect: () => Promise<void>
 }
 
 export const WalletContext = React.createContext<WalletContextValue>({
@@ -68,7 +38,7 @@ export const WalletContext = React.createContext<WalletContextValue>({
   isConnected: false,
   provider: null,
   connect: async () => {},
-  disconnect: () => {},
+  disconnect: async () => {},
 })
 
 export const HostContext = React.createContext<HostContextValue>({
@@ -84,12 +54,13 @@ export const GoodWidgetContext = React.createContext<GoodWidgetContextValue>({
   host: 'injected',
   capabilities: DEFAULT_CAPABILITIES,
   connect: async () => {},
-  disconnect: () => {},
+  disconnect: async () => {},
 })
 
 export function GoodWidgetProvider({
   provider: explicitProvider,
   connectOverride,
+  disconnectOverride,
   config: authorConfig,
   themeOverrides,
   defaultTheme = 'dark',
@@ -132,7 +103,6 @@ export function GoodWidgetProvider({
     resolvedProvider
       .request({ method: 'eth_accounts' })
       .then((accounts) => {
-        if (readWalletDisconnectedFlag()) return
         const accs = accounts as string[]
         if (accs.length > 0) setAddress(accs[0])
       })
@@ -152,7 +122,6 @@ export function GoodWidgetProvider({
   const connect = useCallback(async () => {
     if (connectOverride) {
       await connectOverride()
-      writeWalletDisconnectedFlag(false)
       return
     }
 
@@ -162,19 +131,15 @@ export function GoodWidgetProvider({
     })) as string[]
     if (accounts.length > 0) {
       setAddress(accounts[0])
-      writeWalletDisconnectedFlag(false)
     }
   }, [connectOverride, resolvedProvider])
 
-  // Injected/host wallets expose no revoke-permission API, so "disconnect" only
-  // clears GoodWidget's own connected-address state — the host wallet extension
-  // or app stays available and can reconnect without a fresh permission prompt.
-  // The persisted flag is what keeps that cleared state from being silently
-  // undone by the eth_accounts mount-check above on the next page load.
-  const disconnect = useCallback(() => {
-    setAddress(null)
-    writeWalletDisconnectedFlag(true)
-  }, [])
+  // Wallet session ownership stays with the integrator. Provider/account
+  // updates after the override resolves flow back through the normal EIP-1193
+  // accountsChanged event or a changed provider prop.
+  const disconnect = useCallback(async () => {
+    await disconnectOverride?.()
+  }, [disconnectOverride])
 
   const mergedConfig = useMemo(() => {
     const finalConfig = mergeThemeOverrides(authorConfig, themeOverrides)

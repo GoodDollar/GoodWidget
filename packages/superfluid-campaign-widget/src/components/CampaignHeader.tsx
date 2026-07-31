@@ -9,11 +9,14 @@ import { WalletChip } from './shared/WalletChip'
 const SUPERFLUID_CLAIM_APP_URL = 'https://claim.superfluid.org/'
 
 interface CampaignHeaderProps {
-  data: Pick<CampaignMockData, 'seasonLabel' | 'title' | 'description' | 'supAllocatedLabel' | 'endsLabel'>
+  data: Pick<
+    CampaignMockData,
+    'seasonLabel' | 'title' | 'description' | 'supAllocatedLabel' | 'endsLabel'
+  >
   address: string | null
   isConnected: boolean
   onConnect: () => void
-  onDisconnect: () => void
+  onDisconnect?: () => Promise<void>
 }
 
 /**
@@ -24,14 +27,26 @@ interface CampaignHeaderProps {
  * Disconnect menu) used on LeaderboardView's header once connected — there
  * is no close affordance here since this screen has nothing to close.
  */
-export function CampaignHeader({ data, address, isConnected, onConnect, onDisconnect }: CampaignHeaderProps) {
+export function CampaignHeader({
+  data,
+  address,
+  isConnected,
+  onConnect,
+  onDisconnect,
+}: CampaignHeaderProps) {
   return (
     <YStack gap="$4" width="100%">
       {/* Wraps below the wordmark/badge group on narrow viewports instead of staying
           rigid — without this, the disconnected-state CTA (or the connected-state wave
           art) is pushed past the card's right edge and silently clipped by the card's
           own rounded-corner overflow at sub-480px widths. */}
-      <XStack justifyContent="space-between" alignItems="flex-start" width="100%" gap="$2" flexWrap="wrap">
+      <XStack
+        justifyContent="space-between"
+        alignItems="flex-start"
+        width="100%"
+        gap="$2"
+        flexWrap="wrap"
+      >
         <XStack gap="$2" alignItems="center">
           <Heading level={5}>Superfluid</Heading>
           <Badge type="info">

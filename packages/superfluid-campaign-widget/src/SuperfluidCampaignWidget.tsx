@@ -23,11 +23,13 @@ interface SuperfluidCampaignRuntimeProps {
   data: SuperfluidCampaignWidgetProps['data']
   citizenClaimEnvironment: SuperfluidCampaignWidgetProps['citizenClaimEnvironment']
   initialView: SuperfluidCampaignView
+  poolAddresses?: SuperfluidCampaignWidgetProps['poolAddresses']
   /** Forwarded to the embedded CitizenClaimWidget so it shares the same provider/config/theme context. */
   provider?: SuperfluidCampaignWidgetProps['provider']
   config?: SuperfluidCampaignWidgetProps['config']
   themeOverrides?: SuperfluidCampaignWidgetProps['themeOverrides']
   defaultTheme?: SuperfluidCampaignWidgetProps['defaultTheme']
+  hasDisconnectOverride: boolean
   airdropStatusAdapter?: SuperfluidCampaignWidgetProps['airdropStatusAdapter']
   leaderboardAdapter?: SuperfluidCampaignWidgetProps['leaderboardAdapter']
   supTotalsAdapter?: SuperfluidCampaignWidgetProps['supTotalsAdapter']
@@ -41,7 +43,10 @@ interface SuperfluidCampaignRuntimeProps {
  *     window.open(url, '_blank', 'noopener,noreferrer') pattern already used for
  *     external verification links in citizen-claim-widget/ai-credits-widget
  */
-function handleActionCta(action: CampaignActionMockData, openClaimTab: (tab: EmbeddedClaimTab) => void) {
+function handleActionCta(
+  action: CampaignActionMockData,
+  openClaimTab: (tab: EmbeddedClaimTab) => void,
+) {
   switch (action.ctaKind) {
     case 'claim-widget-claim':
       openClaimTab('claim')
@@ -57,7 +62,20 @@ function handleActionCta(action: CampaignActionMockData, openClaimTab: (tab: Emb
   }
 }
 
-function SuperfluidCampaignRuntime({ data, citizenClaimEnvironment, initialView, provider, config, themeOverrides, defaultTheme, airdropStatusAdapter, leaderboardAdapter, supTotalsAdapter }: SuperfluidCampaignRuntimeProps) {
+function SuperfluidCampaignRuntime({
+  data,
+  citizenClaimEnvironment,
+  initialView,
+  poolAddresses,
+  provider,
+  config,
+  themeOverrides,
+  defaultTheme,
+  hasDisconnectOverride,
+  airdropStatusAdapter,
+  leaderboardAdapter,
+  supTotalsAdapter,
+}: SuperfluidCampaignRuntimeProps) {
   const { isConnected, connect, disconnect, address } = useWallet()
   const [view, setView] = useState<SuperfluidCampaignView>(initialView)
   const [embeddedClaimTab, setEmbeddedClaimTab] = useState<EmbeddedClaimTab>(null)
@@ -81,7 +99,13 @@ function SuperfluidCampaignRuntime({ data, citizenClaimEnvironment, initialView,
           environment={citizenClaimEnvironment}
           initialTab={embeddedClaimTab}
         />
-        <Text variant="caption" tone="secondary" center onPress={() => setEmbeddedClaimTab(null)} cursor="pointer">
+        <Text
+          variant="caption"
+          tone="secondary"
+          center
+          onPress={() => setEmbeddedClaimTab(null)}
+          cursor="pointer"
+        >
           Back to campaign
         </Text>
       </YStack>
@@ -97,7 +121,7 @@ function SuperfluidCampaignRuntime({ data, citizenClaimEnvironment, initialView,
         leaderboardAdapter={leaderboardAdapter}
         isConnected={isConnected}
         onConnect={connect}
-        onDisconnect={disconnect}
+        onDisconnect={hasDisconnectOverride ? disconnect : undefined}
         onClose={() => setView('content')}
         airdropStatus={airdropStatus}
       />
@@ -113,16 +137,19 @@ function SuperfluidCampaignRuntime({ data, citizenClaimEnvironment, initialView,
         address={address}
         isConnected={isConnected}
         onConnect={connect}
-        onDisconnect={disconnect}
+        onDisconnect={hasDisconnectOverride ? disconnect : undefined}
       />
 
-      <LeaderboardSummary leaderboard={campaignData.leaderboard} onViewLeaderboard={() => setView('leaderboard')} />
+      <LeaderboardSummary
+        leaderboard={campaignData.leaderboard}
+        onViewLeaderboard={() => setView('leaderboard')}
+      />
 
       <YStack gap="$1">
         <Heading level={4}>How to participate</Heading>
         <Text tone="soft">
-          Complete eligible actions to earn points. Your SUP share is based on your points. Use Claim SUP rewards to
-          create or update your rewards stream.
+          Complete eligible actions to earn points. Your SUP share is based on your points. Use
+          Claim SUP rewards to create or update your rewards stream.
         </Text>
       </YStack>
 
@@ -132,6 +159,7 @@ function SuperfluidCampaignRuntime({ data, citizenClaimEnvironment, initialView,
           <RewardPoolSection
             key={pool.id}
             pool={pool}
+            poolAddress={poolAddresses?.[pool.campaignId]}
             onPressActionCta={(action) => handleActionCta(action, setEmbeddedClaimTab)}
             supTotalsAdapter={supTotalsAdapter}
           />
@@ -145,12 +173,15 @@ function SuperfluidCampaignRuntime({ data, citizenClaimEnvironment, initialView,
 
 export function SuperfluidCampaignWidget({
   provider,
+  connectOverride,
+  disconnectOverride,
   themeOverrides,
   config,
   defaultTheme = 'dark',
   data,
   citizenClaimEnvironment = 'production',
   initialView = 'content',
+  poolAddresses,
   airdropStatusAdapter,
   leaderboardAdapter,
   supTotalsAdapter,
@@ -158,6 +189,8 @@ export function SuperfluidCampaignWidget({
   return (
     <GoodWidgetProvider
       provider={provider as EIP1193Provider | undefined}
+      connectOverride={connectOverride}
+      disconnectOverride={disconnectOverride}
       config={config}
       themeOverrides={themeOverrides}
       defaultTheme={defaultTheme}
@@ -167,10 +200,12 @@ export function SuperfluidCampaignWidget({
           data={data}
           citizenClaimEnvironment={citizenClaimEnvironment}
           initialView={initialView}
+          poolAddresses={poolAddresses}
           provider={provider}
           config={config}
           themeOverrides={themeOverrides}
           defaultTheme={defaultTheme}
+          hasDisconnectOverride={Boolean(disconnectOverride)}
           airdropStatusAdapter={airdropStatusAdapter}
           leaderboardAdapter={leaderboardAdapter}
           supTotalsAdapter={supTotalsAdapter}

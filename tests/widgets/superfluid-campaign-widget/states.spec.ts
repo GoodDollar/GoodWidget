@@ -25,10 +25,14 @@ const STORY_IDS = {
     '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--leaderboard-request-failed&viewMode=story',
   leaderboardPopulated:
     '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--leaderboard-populated&viewMode=story',
+  leaderboardApiContract:
+    '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--leaderboard-api-contract&viewMode=story',
   supTotalsRequestFailed:
     '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--sup-totals-request-failed&viewMode=story',
   supTotalsPopulated:
     '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--sup-totals-populated&viewMode=story',
+  supTotalsSubgraphContract:
+    '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--sup-totals-subgraph-contract&viewMode=story',
 } as const
 
 // Top-ranked account address (truncated) for each campaign in LEADERBOARD_DATA_FIXTURES
@@ -70,6 +74,10 @@ test('SuperfluidCampaignWidget renders disconnected leaderboard view', async ({ 
   await expect(page.getByText('Leaderboard')).toBeVisible()
   // Top-ranked entry from the live Points API leaderboard fixture (GoodDollar actions tab, default)
   await expect(page.getByText(GOOD_DOLLAR_ACTIONS_TOP_ADDRESS)).toBeVisible()
+  // Activity completion is derived from Points API events and must remain
+  // visible for public leaderboard rows.
+  await expect(page.getByLabel('Claim UBI: done').first()).toBeVisible()
+  await expect(page.getByLabel('Successful invite: done').first()).toBeVisible()
 
   await page.screenshot({
     path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-02-no-wallet-leaderboard.png',
@@ -107,7 +115,9 @@ test('SuperfluidCampaignWidget renders connected leaderboard view', async ({ pag
   })
 })
 
-test('SuperfluidCampaignWidget FAQ is one collapsible section wrapping per-question toggles', async ({ page }) => {
+test('SuperfluidCampaignWidget FAQ is one collapsible section wrapping per-question toggles', async ({
+  page,
+}) => {
   await gotoStory(page, STORY_IDS.noWalletContent)
 
   // The individual question is nested inside the outer "FAQ" section and is
@@ -136,7 +146,9 @@ test('SuperfluidCampaignWidget FAQ is one collapsible section wrapping per-quest
   await expect(page.getByText('Two separate reward pools')).not.toBeVisible()
 })
 
-test('SuperfluidCampaignWidget leaderboard back button returns to content view', async ({ page }) => {
+test('SuperfluidCampaignWidget leaderboard back button returns to content view', async ({
+  page,
+}) => {
   await gotoStory(page, STORY_IDS.noWalletContent)
 
   // Navigate to leaderboard
@@ -177,7 +189,10 @@ test('SuperfluidCampaignWidget wide layout (900px)', async ({ page }) => {
   })
 })
 
-test('SuperfluidCampaignWidget Claim SUP rewards CTA opens claim.superfluid.org in a new tab', async ({ page, context }) => {
+test('SuperfluidCampaignWidget Claim SUP rewards CTA opens claim.superfluid.org in a new tab', async ({
+  page,
+  context,
+}) => {
   await gotoStory(page, STORY_IDS.noWalletContent)
 
   const claimButton = page.getByText('Claim SUP rewards').first()
@@ -265,7 +280,9 @@ test('SuperfluidCampaignWidget campaign leaderboard: request failed', async ({ p
   })
 })
 
-test('SuperfluidCampaignWidget campaign leaderboard: switching tabs shows each campaign\'s own accounts', async ({ page }) => {
+test("SuperfluidCampaignWidget campaign leaderboard: switching tabs shows each campaign's own accounts", async ({
+  page,
+}) => {
   await gotoStory(page, STORY_IDS.leaderboardPopulated)
 
   // Default tab (GoodDollar actions, campaignId 606)
@@ -283,13 +300,86 @@ test('SuperfluidCampaignWidget campaign leaderboard: switching tabs shows each c
   })
 })
 
-test('SuperfluidCampaignWidget SUP totals: populated from the Superfluid programs API for campaign 606, 614 stays placeholder', async ({ page }) => {
+test('SuperfluidCampaignWidget enriches a leaderboard page from per-account point events', async ({
+  page,
+}) => {
+  const account = '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+
+  await page.route('**/points/campaign?*', async (route) => {
+    await route.fulfill({
+      json: {
+        campaignId: 606,
+        name: 'GoodDollar Actions',
+        slug: 'good-dollar-actions',
+        totalPoints: 12,
+        memberCount: 1,
+        totalEvents: 3,
+        lastEventAt: '2026-07-31T00:00:00.000Z',
+        createdAt: '2026-07-01T00:00:00.000Z',
+      },
+    })
+  })
+  await page.route('**/points/accounts?*', async (route) => {
+    await route.fulfill({
+      json: {
+        accounts: [
+          {
+            account,
+            totalPoints: 12,
+            eventCount: 3,
+            lastEventAt: '2026-07-31T00:00:00.000Z',
+          },
+        ],
+        pagination: {
+          page: 1,
+          limit: 10,
+          totalDocs: 1,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPrevPage: false,
+        },
+      },
+    })
+  })
+  await page.route('**/points/events?*', async (route) => {
+    expect(new URL(route.request().url()).searchParams.get('account')).toBe(account)
+    await route.fulfill({
+      json: {
+        events: [
+          { eventName: 'claimed', points: 1 },
+          { eventName: 'validInvites', points: -10 },
+          { eventName: 'flowStateVoted', points: 0 },
+        ],
+        pagination: {
+          page: 1,
+          limit: 100,
+          totalDocs: 3,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPrevPage: false,
+        },
+      },
+    })
+  })
+
+  await gotoStory(page, STORY_IDS.leaderboardApiContract)
+
+  await expect(page.getByLabel('Claim UBI: done')).toBeVisible()
+  await expect(page.getByLabel('Successful invite: not done')).toBeVisible()
+  await expect(page.getByLabel('Flow State vote: not done')).toBeVisible()
+})
+
+test('SuperfluidCampaignWidget SUP distribution and members: populated from the protocol subgraph adapter for campaign 606', async ({
+  page,
+}) => {
   await gotoStory(page, STORY_IDS.supTotalsPopulated)
 
   // 606 (GoodDollar actions) resolves a live program match — figures come from
   // SUP_TOTALS_FIXTURES, not DEFAULT_CAMPAIGN_MOCK_DATA's static placeholder
   // (75,895 / 217,700), proving the progress bar is sourced from the adapter.
   await expect(page.getByText('128,940 / 217,700 SUP')).toBeVisible()
+  // The same subgraph Pool response supplies the current >0-unit member count.
+  await expect(page.getByText('712 participants')).toBeVisible()
   // 614 (Ecosystem actions) has no matching program id yet, so
   // RewardPoolSection falls back to its own unchanged mock placeholder.
   await expect(page.getByText('262,450 / 404,300 SUP')).toBeVisible()
@@ -300,7 +390,9 @@ test('SuperfluidCampaignWidget SUP totals: populated from the Superfluid program
   })
 })
 
-test('SuperfluidCampaignWidget SUP totals: request failed falls back to placeholder figures for both pools', async ({ page }) => {
+test('SuperfluidCampaignWidget SUP totals: request failed falls back to placeholder figures for both pools', async ({
+  page,
+}) => {
   await gotoStory(page, STORY_IDS.supTotalsRequestFailed)
 
   // Neither pool has data on a failed request, so both fall back to their
@@ -314,7 +406,42 @@ test('SuperfluidCampaignWidget SUP totals: request failed falls back to placehol
   })
 })
 
-test('SuperfluidCampaignWidget entire action card is clickable and triggers the same action as its CTA button', async ({ page, context }) => {
+test('SuperfluidCampaignWidget uses a passed pool address for live distribution and active members', async ({
+  page,
+}) => {
+  await page.route('https://base-mainnet.subgraph.x.superfluid.dev/', async (route) => {
+    const body = route.request().postDataJSON() as {
+      variables: { id: string }
+      query: string
+    }
+    expect(body.variables.id).toBe('0x1111111111111111111111111111111111111111')
+    expect(body.query).toContain('totalMembers')
+    expect(body.query).toContain('totalAmountDistributedUntilUpdatedAt')
+
+    await route.fulfill({
+      json: {
+        data: {
+          pool: {
+            totalAmountDistributedUntilUpdatedAt: '1000000000000000000',
+            totalMembers: 42,
+            flowRate: '0',
+            updatedAtTimestamp: '1785456000',
+          },
+        },
+      },
+    })
+  })
+
+  await gotoStory(page, STORY_IDS.supTotalsSubgraphContract)
+
+  await expect(page.getByText('1 / 217,700 SUP')).toBeVisible()
+  await expect(page.getByText('42 participants')).toBeVisible()
+})
+
+test('SuperfluidCampaignWidget entire action card is clickable and triggers the same action as its CTA button', async ({
+  page,
+  context,
+}) => {
   await gotoStory(page, STORY_IDS.noWalletContent)
 
   // Click the card via its title text, away from the CTA button itself, to
@@ -333,7 +460,10 @@ test('SuperfluidCampaignWidget entire action card is clickable and triggers the 
   })
 })
 
-test('SuperfluidCampaignWidget clicking the CTA button directly does not double-fire the action', async ({ page, context }) => {
+test('SuperfluidCampaignWidget clicking the CTA button directly does not double-fire the action', async ({
+  page,
+  context,
+}) => {
   await gotoStory(page, STORY_IDS.noWalletContent)
 
   const voteButton = page.getByText('Vote', { exact: true }).first()
@@ -354,9 +484,7 @@ test('SuperfluidCampaignWidget clicking the CTA button directly does not double-
 // Narrow-viewport regression suite for the header "Connect wallet" CTA, covering
 // both Content view's CampaignHeader and Leaderboard view's own (separately
 // coded) header row. Reuses the change-request-7 breakpoint set (min-supported
-// through larger-Android widths). Scoped to the header buttons only — ActionCard
-// has its own separate, pre-existing pill/button clipping at these widths that
-// is out of scope for this fix, so it is deliberately not asserted here.
+// through larger-Android widths).
 async function findClippedButtons(page: Page): Promise<string[]> {
   return page.evaluate(() => {
     const clipped: string[] = []
@@ -365,7 +493,10 @@ async function findClippedButtons(page: Page): Promise<string[]> {
       for (let el = btn.parentElement; el; el = el.parentElement) {
         const style = getComputedStyle(el)
         const elRect = el.getBoundingClientRect()
-        if ((style.overflowX === 'hidden' || style.overflow === 'hidden') && rect.right > elRect.right + 0.5) {
+        if (
+          (style.overflowX === 'hidden' || style.overflow === 'hidden') &&
+          rect.right > elRect.right + 0.5
+        ) {
           clipped.push(btn.textContent?.trim() ?? '(unlabeled button)')
           break
         }
@@ -384,22 +515,86 @@ const HEADER_WRAP_BREAKPOINTS = [
 ]
 
 const HEADER_WRAP_VIEWS = [
-  { key: 'content', storyUrl: STORY_IDS.noWalletContent, headerButtonText: 'Connect wallet', screenshotBase: 20 },
-  { key: 'leaderboard-disconnected', storyUrl: STORY_IDS.noWalletLeaderboard, headerButtonText: 'Connect wallet', screenshotBase: 25 },
-  { key: 'leaderboard-connected', storyUrl: STORY_IDS.custodialLeaderboard, headerButtonText: 'Close leaderboard', screenshotBase: 30 },
+  {
+    key: 'content',
+    storyUrl: STORY_IDS.noWalletContent,
+    headerButtonText: 'Connect wallet',
+    screenshotBase: 20,
+  },
+  {
+    key: 'leaderboard-disconnected',
+    storyUrl: STORY_IDS.noWalletLeaderboard,
+    headerButtonText: 'Connect wallet',
+    screenshotBase: 25,
+  },
+  {
+    key: 'leaderboard-connected',
+    storyUrl: STORY_IDS.custodialLeaderboard,
+    headerButtonText: 'Close leaderboard',
+    screenshotBase: 30,
+  },
 ]
+
+for (const { width, label } of HEADER_WRAP_BREAKPOINTS) {
+  test(`SuperfluidCampaignWidget action cards stack cleanly at ${width}px (${label})`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 })
+    await gotoStory(page, STORY_IDS.noWalletContent)
+
+    const actionLayouts = page.locator('[data-testid^="ActionCard-layout-"]')
+    await expect(actionLayouts).toHaveCount(6)
+
+    // Every supported phone width is below the shared 480px $sm breakpoint.
+    // The description and action footer must therefore stack instead of
+    // competing for the same horizontal line, and its CTA fills that row.
+    for (const layout of await actionLayouts.all()) {
+      await expect(layout).toHaveCSS('flex-direction', 'column')
+      const layoutBox = await layout.boundingBox()
+      const buttonBox = await layout.locator('button').boundingBox()
+      if (!layoutBox || !buttonBox) throw new Error('Expected action layout and CTA boxes')
+      expect(Math.abs(buttonBox.width - layoutBox.width)).toBeLessThan(1)
+    }
+
+    const documentScrollWidth = await page.evaluate(() => document.documentElement.scrollWidth)
+    expect(documentScrollWidth).toBeLessThanOrEqual(width + 1)
+
+    // No CTA may be silently cut off by the card's rounded overflow boundary.
+    const clippedButtons = await findClippedButtons(page)
+    for (const actionLabel of ['Claim', 'Invite', 'Vote', 'Fund', 'Donate']) {
+      expect(clippedButtons).not.toContain(actionLabel)
+    }
+  })
+}
+
+test('SuperfluidCampaignWidget action cards retain their desktop row above 480px', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 900, height: 900 })
+  await gotoStory(page, STORY_IDS.noWalletContent)
+
+  const actionLayouts = page.locator('[data-testid^="ActionCard-layout-"]')
+  await expect(actionLayouts).toHaveCount(6)
+  for (const layout of await actionLayouts.all()) {
+    await expect(layout).toHaveCSS('flex-direction', 'row')
+  }
+})
 
 for (const view of HEADER_WRAP_VIEWS) {
   for (const [i, { width, label }] of HEADER_WRAP_BREAKPOINTS.entries()) {
     const screenshotIndex = view.screenshotBase + i
 
-    test(`SuperfluidCampaignWidget ${view.key} header has no button clipping at ${width}px (${label})`, async ({ page }) => {
+    test(`SuperfluidCampaignWidget ${view.key} header has no button clipping at ${width}px (${label})`, async ({
+      page,
+    }) => {
       await page.setViewportSize({ width, height: 900 })
       await gotoStory(page, view.storyUrl)
 
       // headerButtonText is matched against either visible text (Connect wallet)
       // or an aria-label (Close leaderboard's icon-only button has no text content).
-      await expect(page.getByText(view.headerButtonText).or(page.getByLabel(view.headerButtonText))).toBeVisible()
+      await expect(
+        page.getByText(view.headerButtonText).or(page.getByLabel(view.headerButtonText)),
+      ).toBeVisible()
 
       // Document must never grow wider than the viewport — a +1px tolerance
       // absorbs sub-pixel rounding without masking a real overflow.
@@ -409,8 +604,7 @@ for (const view of HEADER_WRAP_VIEWS) {
       // A button can be silently clipped by an ancestor's overflow:hidden (e.g.
       // the card's own rounded-corner clipping) without ever growing the
       // document's scrollWidth above — this is exactly how the header CTA was
-      // cut off pre-fix. Only assert on the header's own buttons; ActionCard's
-      // separate clipping issue at these widths is intentionally not checked here.
+      // cut off pre-fix.
       const clippedButtons = await findClippedButtons(page)
       expect(clippedButtons).not.toContain('Connect wallet')
       expect(clippedButtons).not.toContain('')
@@ -437,7 +631,9 @@ const CLOSE_BUTTON_PIN_WIDTHS = [320, 360, 375, 390, 412, 900]
 
 for (const view of LEADERBOARD_CLOSE_BUTTON_VIEWS) {
   for (const width of CLOSE_BUTTON_PIN_WIDTHS) {
-    test(`SuperfluidCampaignWidget ${view.key} close button stays pinned top-right at ${width}px`, async ({ page }) => {
+    test(`SuperfluidCampaignWidget ${view.key} close button stays pinned top-right at ${width}px`, async ({
+      page,
+    }) => {
       await page.setViewportSize({ width, height: 900 })
       await gotoStory(page, view.storyUrl)
 
@@ -448,7 +644,8 @@ for (const view of LEADERBOARD_CLOSE_BUTTON_VIEWS) {
 
       const headingBox = await heading.boundingBox()
       const closeButtonBox = await closeButton.boundingBox()
-      if (!headingBox || !closeButtonBox) throw new Error('Expected heading and close button to have layout boxes')
+      if (!headingBox || !closeButtonBox)
+        throw new Error('Expected heading and close button to have layout boxes')
 
       // The close button must remain on the same row as the "Superfluid" wordmark
       // regardless of whether the CTA/wallet-chip group next to it has wrapped —
@@ -459,9 +656,8 @@ for (const view of LEADERBOARD_CLOSE_BUTTON_VIEWS) {
   }
 }
 
-// Regression coverage for the wallet chip's "Disconnect" dropdown (#127
-// follow-up): clicking the connected-wallet chip opens a single-action menu,
-// and choosing Disconnect reverts the header back to the "Connect wallet" CTA.
+// Without an integrator-owned disconnectOverride, the wallet chip keeps its
+// Disconnect affordance but explains where the wallet session must be managed.
 // Covered on both CampaignHeader (content view) and LeaderboardView, since
 // each renders its own copy of the shared WalletChip component.
 const WALLET_CHIP_DISCONNECT_VIEWS = [
@@ -470,7 +666,9 @@ const WALLET_CHIP_DISCONNECT_VIEWS = [
 ]
 
 for (const view of WALLET_CHIP_DISCONNECT_VIEWS) {
-  test(`SuperfluidCampaignWidget ${view.key} wallet chip: Disconnect returns to the Connect wallet CTA`, async ({ page }) => {
+  test(`SuperfluidCampaignWidget ${view.key} wallet chip: Disconnect without an override shows integrator guidance`, async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 480, height: 900 })
     await gotoStory(page, view.storyUrl)
 
@@ -488,8 +686,8 @@ for (const view of WALLET_CHIP_DISCONNECT_VIEWS) {
 
     await disconnectItem.click()
 
-    await expect(page.getByText('Connect wallet')).toBeVisible()
-    await expect(chip).not.toBeVisible()
+    await expect(page.getByText('Disconnect should be done in your wallets session')).toBeVisible()
+    await expect(chip).toBeVisible()
 
     await page.screenshot({
       path: `tests/widgets/superfluid-campaign-widget/test-results/scw-${view.screenshotIndex}-${view.key}-wallet-chip-after-disconnect.png`,
@@ -497,49 +695,3 @@ for (const view of WALLET_CHIP_DISCONNECT_VIEWS) {
     })
   })
 }
-
-// The wallet's own eth_accounts check has no concept of "this dApp was
-// disconnected" — it just reports whatever the wallet still authorizes — so
-// GoodWidgetProvider tracks disconnect intent itself (see WALLET_DISCONNECTED_STORAGE_KEY
-// in packages/core/src/provider.tsx). This test guards the full loop reported
-// by the Bounty Lead: disconnect must survive a refresh, and the user must
-// still be able to explicitly reconnect (and have THAT survive a refresh too).
-test('SuperfluidCampaignWidget content wallet chip: Disconnect survives a refresh, and reconnecting afterward works', async ({ page }) => {
-  await page.setViewportSize({ width: 480, height: 900 })
-  await gotoStory(page, STORY_IDS.custodialContent)
-
-  const chip = page.getByLabel('Wallet options')
-  await expect(chip).toBeVisible()
-  await chip.click()
-  await page.getByText('Disconnect', { exact: true }).click()
-  await expect(page.getByText('Connect wallet')).toBeVisible()
-
-  // Refresh right after disconnecting — the custodial fixture's eth_accounts
-  // always answers with the same account regardless of prior state, so without
-  // the persisted disconnect flag this would silently reconnect here.
-  await page.reload()
-  await waitForStoryReady(page)
-  await expect(page.getByText('Connect wallet')).toBeVisible()
-  await expect(chip).not.toBeVisible()
-
-  await page.screenshot({
-    path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-37-content-wallet-chip-disconnected-after-refresh.png',
-    fullPage: true,
-  })
-
-  // The user must still be able to explicitly reconnect afterward.
-  await page.getByText('Connect wallet').click()
-  await expect(chip).toBeVisible()
-
-  // And that reconnect must itself survive a further refresh — proving the
-  // disconnect flag is cleared on connect(), not stuck on permanently.
-  await page.reload()
-  await waitForStoryReady(page)
-  await expect(chip).toBeVisible()
-  await expect(page.getByText('Connect wallet')).not.toBeVisible()
-
-  await page.screenshot({
-    path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-37-content-wallet-chip-reconnected-after-refresh.png',
-    fullPage: true,
-  })
-})

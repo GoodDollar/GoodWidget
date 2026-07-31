@@ -3,6 +3,7 @@ import { SuperfluidCampaignWidget } from '@goodwidget/superfluid-campaign-widget
 import {
   CustodialAirdropStatusStory,
   CustodialLocalFixtureStory,
+  LiveDataNoWalletStory,
   NoWalletLeaderboardStory,
   NoWalletStory,
   NoWalletSupTotalsStory,
@@ -66,7 +67,13 @@ export const LeaderboardPopulated: Story = {
   render: () => <NoWalletLeaderboardStory scenario="populated" />,
 }
 
-// SUP-totals progress bar states — each fixes the programs API response via
+// Unadapted story used with Playwright network routes to verify the real Points
+// API response contract, including per-account event enrichment.
+export const LeaderboardApiContract: Story = {
+  render: () => <LiveDataNoWalletStory initialView="leaderboard" />,
+}
+
+// SUP-totals progress bar states — each fixes the protocol-subgraph response via
 // supTotalsAdapter so the reward-pool progress bar screenshot is deterministic.
 export const SupTotalsRequestFailed: Story = {
   render: () => <NoWalletSupTotalsStory scenario="requestFailed" />,
@@ -74,4 +81,15 @@ export const SupTotalsRequestFailed: Story = {
 
 export const SupTotalsPopulated: Story = {
   render: () => <NoWalletSupTotalsStory scenario="populated" />,
+}
+
+// Unadapted story used with a mocked subgraph response to verify that a passed
+// pool address drives both live distribution and current-member figures.
+export const SupTotalsSubgraphContract: Story = {
+  render: () => (
+    <LiveDataNoWalletStory
+      initialView="content"
+      poolAddresses={{ 606: '0x1111111111111111111111111111111111111111' }}
+    />
+  ),
 }

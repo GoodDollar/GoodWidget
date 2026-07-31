@@ -14,7 +14,11 @@ import {
   YStack,
 } from '@goodwidget/ui'
 import type { AirdropStatus } from '../hooks/useAirdropStatus'
-import type { CampaignLeaderboardAdapter, CampaignPointsAccount } from '../hooks/useCampaignLeaderboard'
+import type {
+  CampaignLeaderboardAdapter,
+  CampaignPointsAccount,
+  CampaignPointsPagination,
+} from '../hooks/useCampaignLeaderboard'
 import { useCampaignLeaderboard } from '../hooks/useCampaignLeaderboard'
 import type { CampaignPoolMockData, LeaderboardEntryMockData } from '../widgetRuntimeContract'
 import { LeaderboardRow } from './LeaderboardRow'
@@ -30,24 +34,26 @@ interface LeaderboardViewProps {
   leaderboardAdapter?: CampaignLeaderboardAdapter
   isConnected: boolean
   onConnect: () => void
-  onDisconnect: () => void
+  onDisconnect?: () => Promise<void>
   onClose: () => void
   airdropStatus: { status: AirdropStatus | null; isLoading: boolean; error: string | null }
 }
 
 /**
  * Converts one campaign's ranked accounts page into the row shape LeaderboardRow
- * expects. Rank is derived from position within the page — the Points API
- * returns accounts pre-sorted by totalPoints desc but has no rank field of
- * its own. completedActivities is intentionally omitted: the live API has no
- * per-activity breakdown, so LeaderboardRow hides that column for these rows
- * rather than rendering misleading all-dimmed icons.
+ * expects. Rank is derived from the page offset because the Points API returns
+ * accounts pre-sorted by totalPoints but has no rank field of its own.
  */
-function toLeaderboardEntries(accounts: CampaignPointsAccount[]): LeaderboardEntryMockData[] {
+function toLeaderboardEntries(
+  accounts: CampaignPointsAccount[],
+  pagination: CampaignPointsPagination | undefined,
+): LeaderboardEntryMockData[] {
+  const rankOffset = pagination ? (pagination.page - 1) * pagination.limit : 0
   return accounts.map((account, index) => ({
-    rank: index + 1,
+    rank: rankOffset + index + 1,
     address: account.account,
     points: account.totalPoints,
+    completedActivities: account.completedActivities,
   }))
 }
 
@@ -59,9 +65,9 @@ function toLeaderboardEntries(accounts: CampaignPointsAccount[]): LeaderboardEnt
  * since React requires the same hooks in the same order on every render and
  * #127's two pools are a fixed structural constant.
  *
- * Search is a local filter over the active tab's fetched page only — there is
- * no server-side search endpoint. Pagination beyond the first 50-account page
- * is out of scope, matching the pre-existing pagination placeholder.
+ * Search is a local filter over the active tab's fetched page only because the
+ * API has no server-side search endpoint. Pages are intentionally small: each
+ * account is enriched with its own event history to derive activity icons.
  */
 export function LeaderboardView({
   seasonLabel,
@@ -76,20 +82,40 @@ export function LeaderboardView({
 }: LeaderboardViewProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCampaignTab, setActiveCampaignTab] = useState<string>(pools[0]?.id ?? '')
+  const [pageByPoolId, setPageByPoolId] = useState<Record<string, number>>({})
 
-  const firstPoolResult = useCampaignLeaderboard(pools[0]?.campaignId ?? 0, leaderboardAdapter)
-  const secondPoolResult = useCampaignLeaderboard(pools[1]?.campaignId ?? 0, leaderboardAdapter)
+  const firstPool = pools[0]
+  const secondPool = pools[1]
+  const firstPoolResult = useCampaignLeaderboard(
+    firstPool?.campaignId ?? 0,
+    firstPool?.actions ?? [],
+    firstPool ? (pageByPoolId[firstPool.id] ?? 1) : 1,
+    Boolean(firstPool && activeCampaignTab === firstPool.id),
+    leaderboardAdapter,
+  )
+  const secondPoolResult = useCampaignLeaderboard(
+    secondPool?.campaignId ?? 0,
+    secondPool?.actions ?? [],
+    secondPool ? (pageByPoolId[secondPool.id] ?? 1) : 1,
+    Boolean(secondPool && activeCampaignTab === secondPool.id),
+    leaderboardAdapter,
+  )
   const resultByPoolId: Record<string, typeof firstPoolResult> = {}
   if (pools[0]) resultByPoolId[pools[0].id] = firstPoolResult
   if (pools[1]) resultByPoolId[pools[1].id] = secondPoolResult
 
   const activePool = pools.find((pool) => pool.id === activeCampaignTab) ?? pools[0]
   const activeResult = activePool ? resultByPoolId[activePool.id] : undefined
-  const rankedEntries = toLeaderboardEntries(activeResult?.data?.accounts ?? [])
+  const activePagination = activeResult?.data?.pagination
+  const rankedEntries = toLeaderboardEntries(
+    activeResult?.data?.accounts ?? [],
+    activePagination,
+  )
 
   const currentUserEntry =
     isConnected && address
-      ? (rankedEntries.find((entry) => entry.address.toLowerCase() === address.toLowerCase()) ?? null)
+      ? (rankedEntries.find((entry) => entry.address.toLowerCase() === address.toLowerCase()) ??
+        null)
       : null
 
   const matchesQuery = (entry: LeaderboardEntryMockData) => {
@@ -98,6 +124,10 @@ export function LeaderboardView({
   }
 
   const visibleRows = rankedEntries.filter(matchesQuery)
+  const setActivePage = (page: number) => {
+    if (!activePool) return
+    setPageByPoolId((current) => ({ ...current, [activePool.id]: page }))
+  }
 
   return (
     <YStack gap="$5" width="100%" padding="$5" style={{ boxSizing: 'border-box' }}>
@@ -107,7 +137,13 @@ export function LeaderboardView({
           below when it doesn't fit. Without this split, the close button used to
           wrap down together with the CTA since both lived inside one flex item. */}
       <XStack justifyContent="space-between" alignItems="flex-start" width="100%" gap="$2">
-        <XStack flexWrap="wrap" justifyContent="space-between" alignItems="center" gap="$2" flex={1}>
+        <XStack
+          flexWrap="wrap"
+          justifyContent="space-between"
+          alignItems="center"
+          gap="$2"
+          flex={1}
+        >
           <XStack gap="$2" alignItems="center">
             <Heading level={5}>Superfluid</Heading>
             <Badge type="info">
@@ -149,7 +185,13 @@ export function LeaderboardView({
 
       {isConnected && currentUserEntry && (
         <Card gap="$3">
-          <XStack justifyContent="space-between" alignItems="center" flexWrap="wrap" gap="$2" $sm={{ flexDirection: 'column', alignItems: 'stretch' }}>
+          <XStack
+            justifyContent="space-between"
+            alignItems="center"
+            flexWrap="wrap"
+            gap="$2"
+            $sm={{ flexDirection: 'column', alignItems: 'stretch' }}
+          >
             <XStack gap="$2" alignItems="center">
               <Text variant="label">Your position</Text>
               <Text fontWeight="700">#{currentUserEntry.rank}</Text>
@@ -173,7 +215,9 @@ export function LeaderboardView({
       {isConnected && (
         <Card gap="$2">
           <Text variant="label">Airdrop status</Text>
-          {airdropStatus.isLoading && <Text tone="soft">Checking your Superfluid airdrop status...</Text>}
+          {airdropStatus.isLoading && (
+            <Text tone="soft">Checking your Superfluid airdrop status...</Text>
+          )}
           {airdropStatus.error && <Text color="$error">{airdropStatus.error}</Text>}
           {!airdropStatus.isLoading && !airdropStatus.error && airdropStatus.status && (
             <Text tone="soft">
@@ -195,7 +239,11 @@ export function LeaderboardView({
         </Card>
       )}
 
-      <Input placeholder="Search by wallet address" value={searchQuery} onChangeText={setSearchQuery} />
+      <Input
+        placeholder="Search by wallet address"
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+      />
 
       {/* supDistributed/supTotal have no live source (Points API gap, reported
           separately) — totalParticipants below is the live per-tab count. */}
@@ -211,7 +259,11 @@ export function LeaderboardView({
       {!activeResult?.isLoading && !activeResult?.error && (
         <YStack gap="$2" width="100%">
           {visibleRows.map((entry) => (
-            <LeaderboardRow key={entry.address} entry={entry} isCurrentUser={entry.address === currentUserEntry?.address} />
+            <LeaderboardRow
+              key={entry.address}
+              entry={entry}
+              isCurrentUser={entry.address === currentUserEntry?.address}
+            />
           ))}
         </YStack>
       )}
@@ -220,18 +272,34 @@ export function LeaderboardView({
         <Text variant="caption" tone="secondary">
           Points update every few minutes.
         </Text>
-        {/* Placeholder pagination — the Points API's accounts endpoint is fetched
-            as a single 50-row page; real pagination wiring against further pages
-            is out of scope here. */}
+        {/* Keep pagination deliberately compact. Ten rows bounds the associated
+            per-account event requests while Previous/Next still expose the
+            complete leaderboard. */}
         <XStack gap="$1">
+          <Button
+            size="sm"
+            {...compactButtonProps}
+            variant="ghost"
+            disabled={!activePagination?.hasPrevPage}
+            onPress={() => setActivePage((activePagination?.page ?? 1) - 1)}
+          >
+            <ButtonText>Previous</ButtonText>
+          </Button>
           <Button size="sm" {...compactButtonProps} variant="secondary" disabled>
-            <ButtonText>1</ButtonText>
+            <ButtonText>
+              {activePagination
+                ? `${activePagination.page} / ${activePagination.totalPages}`
+                : '1 / 1'}
+            </ButtonText>
           </Button>
-          <Button size="sm" {...compactButtonProps} variant="ghost" disabled>
-            <ButtonText>2</ButtonText>
-          </Button>
-          <Button size="sm" {...compactButtonProps} variant="ghost" disabled>
-            <ButtonText>3</ButtonText>
+          <Button
+            size="sm"
+            {...compactButtonProps}
+            variant="ghost"
+            disabled={!activePagination?.hasNextPage}
+            onPress={() => setActivePage((activePagination?.page ?? 1) + 1)}
+          >
+            <ButtonText>Next</ButtonText>
           </Button>
         </XStack>
       </YStack>

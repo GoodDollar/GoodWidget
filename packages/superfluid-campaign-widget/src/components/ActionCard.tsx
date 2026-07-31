@@ -13,11 +13,11 @@ interface ActionCardProps {
 /**
  * A single reward-pool action row.
  *
- * Two-row column at every breakpoint: row 1 is the title (+ source), on its
- * own flex line so it never reflows when row 2's description wraps. Row 2 is
- * a flex-row of icon, wrappable description, and a final column pairing the
- * points pill above the CTA button. Kept identical at wide and mobile sizing
- * per #127 follow-up — only spacing/padding scale down at $sm, not structure.
+ * At desktop widths, row 1 contains the title/source and row 2 keeps the icon,
+ * description, and action footer side by side. At the shared $sm breakpoint
+ * (480px and below), the icon joins the title row while row 2 becomes a column:
+ * description first, then the unchanged points-pill/button footer. This gives
+ * the longest labels enough room instead of clipping them inside the card.
  *
  * The whole card is a click target for the same action as the CTA button
  * (mouse and keyboard), while the CTA button stays visible rather than being
@@ -50,32 +50,49 @@ export function ActionCard({ action, onPressCta }: ActionCardProps) {
         }
       }}
     >
-      {/* Row 1: title + source, isolated in its own flex line so it can't
-          reflow or shrink when row 2's description wraps to multiple lines. */}
-      <XStack gap="$2" alignItems="center" flexWrap="wrap">
-        <Text fontWeight="700">{action.title}</Text>
-        <Text variant="caption" tone="secondary">
-          {action.source}
-        </Text>
+      {/* On mobile the icon moves beside a dedicated title/source column.
+          Keeping the copy in its own flexible column lets long ecosystem
+          titles wrap without pushing the icon onto a line by itself. */}
+      <XStack gap="$2" alignItems="flex-start">
+        <XStack display="none" $sm={{ display: 'flex' }} flexShrink={0}>
+          <ActivityIconComponent size={24} color={iconColor} />
+        </XStack>
+        <YStack gap="$1" flex={1} minWidth={0}>
+          <Text fontWeight="700">{action.title}</Text>
+          <Text variant="caption" tone="secondary">
+            {action.source}
+          </Text>
+        </YStack>
       </XStack>
 
-      {/* Row 2: icon <> wrappable copy <> final column (pill above button).
-          Gap tightens at $sm so the description column keeps a bit more of
-          the card's width on narrow screens. */}
-      <XStack gap="$3" $sm={{ gap: '$2' }} alignItems="flex-start">
-        <XStack flexShrink={0}>
+      {/* The desktop action row switches to a vertical content/footer flow at
+          $sm. Button and badge sizing stay unchanged; only their placement
+          changes so neither can be squeezed or clipped by the description. */}
+      <XStack
+        data-testid={`ActionCard-layout-${action.activity}`}
+        gap="$3"
+        alignItems="flex-start"
+        $sm={{ flexDirection: 'column', alignItems: 'stretch', gap: '$2' }}
+      >
+        <XStack flexShrink={0} $sm={{ display: 'none' }}>
           <ActivityIconComponent size={24} color={iconColor} />
         </XStack>
         <Text tone="soft" flex={1}>
           {action.description}
         </Text>
-        <YStack gap="$2" alignItems="flex-end" flexShrink={0}>
+        <YStack
+          gap="$2"
+          alignItems="flex-end"
+          flexShrink={0}
+          $sm={{ alignItems: 'center', alignSelf: 'stretch' }}
+        >
           <Badge type="info">
             <BadgeText>{action.pointsLabel}</BadgeText>
           </Badge>
           <Button
             size="sm"
             {...compactButtonProps}
+            $sm={{ width: '100%' }}
             onPress={(e: { stopPropagation: () => void }) => {
               // Card itself is now a click target for the same action (see Card's
               // onPress above) — stop propagation here so this direct button click

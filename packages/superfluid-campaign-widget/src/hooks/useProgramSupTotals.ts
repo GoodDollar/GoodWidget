@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { formatUnits } from 'viem'
-import { CAMPAIGN_GDA_POOL_CONFIG } from './campaignPoolConfig'
+import type { Address } from 'viem'
 
 /**
  * Superfluid protocol-v1 subgraph for Base mainnet.
@@ -13,6 +13,7 @@ const SUPERFLUID_BASE_SUBGRAPH = 'https://base-mainnet.subgraph.x.superfluid.dev
  * Pool entity fields needed for SUP distribution totals.
  * totalAmountDistributedUntilUpdatedAt: cumulative amount distributed to all members
  *   up to the last on-chain state change (instant + flow, in wei).
+ * totalMembers: current members with more than zero units in the pool.
  * flowRate: current ongoing distribution rate (wei/second); 0 for instant-only pools.
  * updatedAtTimestamp: Unix seconds of the last on-chain update to this pool.
  */
@@ -20,6 +21,7 @@ const GET_POOL_TOTALS_QUERY = `
   query GetPoolTotals($id: ID!) {
     pool(id: $id) {
       totalAmountDistributedUntilUpdatedAt
+      totalMembers
       flowRate
       updatedAtTimestamp
     }
@@ -28,6 +30,7 @@ const GET_POOL_TOTALS_QUERY = `
 
 interface SubgraphPoolFields {
   totalAmountDistributedUntilUpdatedAt: string
+  totalMembers: number
   flowRate: string
   updatedAtTimestamp: string
 }
@@ -40,6 +43,12 @@ interface SubgraphResponse {
 /** Human-readable SUP amounts (already converted from 18-decimal wei). */
 export interface ProgramSupTotals {
   totalAllocated: number
+  /** Current pool members with more than zero units. */
+  totalMembers: number
+  /**
+   * Historical public name retained for compatibility. This is the amount the
+   * pool has distributed so far, including flow accrued since its last update.
+   */
   totalClaimed: number
 }
 
@@ -53,9 +62,8 @@ export interface ProgramSupTotalsResult {
 
 /**
  * Mirrors useCampaignLeaderboard's DI seam: Storybook fixtures and Playwright
- * specs pass one of these, keyed by campaignId, to render the SUP-totals
- * progress bar deterministically instead of depending on the live programs
- * list (whose funding state, and therefore totals, changes over time).
+ * specs pass one of these, keyed by campaignId, to render distribution and
+ * member totals deterministically instead of depending on live pool state.
  */
 export type ProgramSupTotalsAdapter = (campaignId: number) => ProgramSupTotalsResult
 
@@ -76,19 +84,23 @@ function formatProgramSupTotalsError(error: unknown): string {
  * streaming (flowRate × seconds elapsed since the last on-chain update), giving
  * a live approximation without requiring an additional RPC call.
  *
- * totalAllocated is the static campaign budget stored in CAMPAIGN_GDA_POOL_CONFIG —
- * it represents the total SUP committed to this program by Superfluid and does not
- * change unless the program budget is explicitly updated.
+ * totalAllocated is supplied alongside the campaign content. It represents
+ * the total SUP committed to this program and is not a live subgraph value.
  *
  * Returns null (→ RewardPoolSection falls back to mock data) when:
- * - No pool address has been configured for this campaignId yet, OR
+ * - The integrator did not pass a pool address for this campaignId, OR
  * - The subgraph returns no pool for the configured address.
  *
  * `adapterOverride`, when supplied, replaces the live fetch entirely and its
  * result is returned as-is; the effect still runs (hook order must stay stable)
  * but exits immediately without touching the network.
  */
-export function useProgramSupTotals(campaignId: number, adapterOverride?: ProgramSupTotalsAdapter): ProgramSupTotalsResult {
+export function useProgramSupTotals(
+  campaignId: number,
+  poolAddress: Address | undefined,
+  totalAllocated: number,
+  adapterOverride?: ProgramSupTotalsAdapter,
+): ProgramSupTotalsResult {
   const [data, setData] = useState<ProgramSupTotals | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -96,10 +108,9 @@ export function useProgramSupTotals(campaignId: number, adapterOverride?: Progra
   useEffect(() => {
     if (adapterOverride) return
 
-    const poolConfig = CAMPAIGN_GDA_POOL_CONFIG[campaignId]
-    if (!poolConfig?.poolAddress) {
-      // No pool registered for this campaign yet — return null so the UI falls
-      // back to the pool's static placeholder figures.
+    if (!poolAddress) {
+      // A Points API campaign id cannot identify a GDA pool in the protocol
+      // subgraph. The public pool address must be supplied by the integrator.
       setData(null)
       setIsLoading(false)
       setError(null)
@@ -115,7 +126,7 @@ export function useProgramSupTotals(campaignId: number, adapterOverride?: Progra
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         query: GET_POOL_TOTALS_QUERY,
-        variables: { id: poolConfig.poolAddress.toLowerCase() },
+        variables: { id: poolAddress.toLowerCase() },
       }),
       signal: controller.signal,
     })
@@ -147,7 +158,8 @@ export function useProgramSupTotals(campaignId: number, adapterOverride?: Progra
         const inFlightWei = flowRate > 0n ? flowRate * (nowSeconds - updatedAt) : 0n
 
         setData({
-          totalAllocated: poolConfig.totalAllocated,
+          totalAllocated,
+          totalMembers: pool.totalMembers,
           totalClaimed: Number(formatUnits(distributedWei + inFlightWei, 18)),
         })
         setIsLoading(false)
@@ -159,7 +171,7 @@ export function useProgramSupTotals(campaignId: number, adapterOverride?: Progra
       })
 
     return () => controller.abort()
-  }, [campaignId, adapterOverride])
+  }, [campaignId, poolAddress, totalAllocated, adapterOverride])
 
   if (adapterOverride) return adapterOverride(campaignId)
   return { data, isLoading, error }
