@@ -5,12 +5,10 @@ import type { CampaignMockData } from './widgetRuntimeContract'
 //
 // Static fixture satisfying the approved #127 content mockup. Leaderboard
 // rows are sourced live from the Superfluid Points API (see
-// useCampaignLeaderboard). Each pool's supDistributed/supTotal below are now
-// only a fallback: useProgramSupTotals overrides them per-pool with live
-// on-chain figures when a matching Superfluid program exists for that
-// campaignId (fetched from https://claim.superfluid.org/api/programs). The
-// aggregate leaderboard.supDistributed/supTotal below has no live source at all
-// (no endpoint combines both pools' on-chain totals) and remains a placeholder.
+// useCampaignLeaderboard). Pool supDistributed/supTotal/participants are
+// omitted — useProgramSupTotals provides live values per pool; RewardPoolSection
+// falls back to 0 when the hook has no data. The aggregate
+// leaderboard.supDistributed/supTotal has no live source and remains a placeholder.
 // Consumers can still override the content fixture via
 // SuperfluidCampaignWidgetProps.data.
 //
@@ -34,7 +32,8 @@ const POINTS_EVENT_NAMES = {
 export const DEFAULT_CAMPAIGN_MOCK_DATA: CampaignMockData = {
   seasonLabel: 'SEASON 6',
   title: 'Superfluid Ecosystem Rewards',
-  description: 'Complete eligible actions across GoodDollar, Flow State, and Gardens to earn SUP rewards.',
+  description:
+    'Complete eligible actions across GoodDollar, Flow State, and Gardens to earn SUP rewards.',
   supAllocatedLabel: '622K SUP allocated',
   endsLabel: 'Ends 30 September',
   pools: [
@@ -42,9 +41,6 @@ export const DEFAULT_CAMPAIGN_MOCK_DATA: CampaignMockData = {
       id: 'good-dollar-actions',
       campaignId: 606,
       label: 'GoodDollar actions',
-      supDistributed: 75895,
-      supTotal: 217700,
-      participants: 624,
       actions: [
         {
           activity: 'claim-ubi',
@@ -83,9 +79,6 @@ export const DEFAULT_CAMPAIGN_MOCK_DATA: CampaignMockData = {
       id: 'ecosystem-funding-actions',
       campaignId: 614,
       label: 'Ecosystem actions',
-      supDistributed: 262450,
-      supTotal: 404300,
-      participants: 318,
       actions: [
         {
           activity: 'flow-state-funding',
@@ -166,15 +159,18 @@ export const DEFAULT_CAMPAIGN_MOCK_DATA: CampaignMockData = {
     },
     {
       question: 'Do my rewards arrive automatically?',
-      answer: 'No. Your campaign activity earns points, but you need to open the Superfluid Claim App and claim your available SUP.',
+      answer:
+        'No. Your campaign activity earns points, but you need to open the Superfluid Claim App and claim your available SUP.',
     },
     {
       question: 'Where does my SUP go?',
-      answer: 'Your claimed SUP streams into your Superfluid Reserve, manageable at claim.superfluid.org/reserve.',
+      answer:
+        'Your claimed SUP streams into your Superfluid Reserve, manageable at claim.superfluid.org/reserve.',
     },
     {
       question: 'Can I earn SUP from other campaigns?',
-      answer: 'Yes — visit Discover, Use and Earn (claim.superfluid.org/apps) to explore other eligible campaigns.',
+      answer:
+        'Yes — visit Discover, Use and Earn (claim.superfluid.org/apps) to explore other eligible campaigns.',
     },
     {
       question: 'Which network is used to claim SUP?',

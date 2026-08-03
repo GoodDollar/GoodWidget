@@ -29,15 +29,10 @@ export function RewardPoolSection({
   // exists (see useProgramSupTotals). While loading, on request failure, or
   // when the integrator has not supplied a pool address, fall back to the
   // pool's placeholder figures rather than making an unresolvable subgraph query.
-  const supTotals = useProgramSupTotals(
-    pool.campaignId,
-    poolAddress,
-    pool.supTotal,
-    supTotalsAdapter,
-  )
-  const supDistributed = supTotals.data?.totalClaimed ?? pool.supDistributed
-  const supTotal = supTotals.data?.totalAllocated ?? pool.supTotal
-  const participants = supTotals.data?.totalMembers ?? pool.participants
+  const supTotals = useProgramSupTotals(pool.campaignId, poolAddress, 0, supTotalsAdapter)
+  const supDistributed = supTotals.data?.totalClaimed ?? 0
+  const supTotal = supTotals.data?.totalAllocated ?? 0
+  const participants = supTotals.data?.totalMembers ?? 0
 
   const progressLabel = `${supDistributed.toLocaleString()} / ${supTotal.toLocaleString()} SUP`
 

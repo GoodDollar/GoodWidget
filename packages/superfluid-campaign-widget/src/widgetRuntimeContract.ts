@@ -117,11 +117,10 @@ export interface CampaignPoolMockData {
   /** Superfluid Points API campaign id backing this pool's leaderboard tab. */
   campaignId: number
   label: string
-  /** Placeholder fallback, used until useProgramSupTotals resolves a live
-   *  on-chain match for this pool's campaignId (see RewardPoolSection). */
-  supDistributed: number
-  supTotal: number
-  participants: number
+  /** Omit these — useProgramSupTotals provides live values; 0 is used as the fallback when the hook has no data. */
+  supDistributed?: number
+  supTotal?: number
+  participants?: number
   actions: CampaignActionMockData[]
 }
 

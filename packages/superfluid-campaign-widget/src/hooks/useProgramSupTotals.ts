@@ -94,7 +94,9 @@ export function useProgramSupTotals(
         return envelope.json
       })
       .then((programs) => {
-        const onchainInfo = programs.find((entry) => entry.program?.id === campaignId)?.program?.onchainInfo
+        const onchainInfo = programs.find((entry) => entry.program?.id === campaignId)?.program
+          ?.onchainInfo
+
         setData(
           onchainInfo
             ? {

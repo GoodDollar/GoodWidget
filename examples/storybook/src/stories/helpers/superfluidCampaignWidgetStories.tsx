@@ -129,16 +129,14 @@ function fixedCampaignLeaderboardAdapter(
 }
 
 /**
- * Fixed SUP program totals keyed by campaignId. 606 (GoodDollar actions) is
- * illustrative "healthy progress" data, not the live snapshot — the real
- * program exists but funding hasn't started yet as of Season 6 launch, so
- * its live totalClaimed is currently 0. totalAllocated is 217,700 SUP per the
- * campaign spec. 614 (Ecosystem funding actions) has no matching entry on
- * purpose, so RewardPoolSection falls back to its own placeholder—the same
- * result produced when the programs API returns no matching program for that campaignId.
+ * Fixed SUP program totals keyed by campaignId. 606 (GoodDollar actions) uses
+ * illustrative "healthy progress" data (totalClaimed ≈ 59 % of totalAllocated,
+ * not a live snapshot). 614 (Ecosystem funding actions) uses deterministic
+ * fixture values so both pools are fully covered in QA stories.
  */
 const SUP_TOTALS_FIXTURES: Record<number, ReturnType<ProgramSupTotalsAdapter>['data']> = {
   606: { totalAllocated: 217700, totalClaimed: 128940, totalMembers: 712 },
+  614: { totalAllocated: 404300, totalClaimed: 262450, totalMembers: 318 },
 }
 
 /** Named SUP-totals scenarios exercised by the QA stories/Playwright spec below. */
