@@ -1,17 +1,25 @@
 import { useEffect, useState } from 'react'
 import { formatUnits } from 'viem'
+import type { Address } from 'viem'
 
 const PROGRAMS_ENDPOINT = 'https://claim.superfluid.org/api/programs'
 
 /** Human-readable SUP amounts (already converted from 18-decimal wei). */
 export interface ProgramSupTotals {
   totalAllocated: number
+  /**
+   * Historical public name retained for compatibility. This is the amount the
+   * pool has claimed/distributed so far.
+   */
   totalClaimed: number
+  /** Current pool members with more than zero units. Not available from the
+   *  programs API — present only when supplied by a fixture adapter. */
+  totalMembers?: number
 }
 
 export interface ProgramSupTotalsResult {
   /** Null when the campaign has no on-chain program registered yet (a normal,
-   *  handled case — e.g. Ecosystem funding actions/614 as of change-request-4 — not an error). */
+   *  handled case — e.g. Ecosystem funding actions/614 as of Season 6 launch — not an error). */
   data: ProgramSupTotals | null
   isLoading: boolean
   error: string | null
@@ -52,12 +60,24 @@ interface SuperfluidProgramsResponse {
  * Fetches every Superfluid SUP reward program and looks up the one matching
  * `campaignId`, converting its on-chain wei totals to human-readable SUP.
  *
+ * `poolAddress` is accepted for interface compatibility with callers that also
+ * support subgraph-based lookups, but is not used by this endpoint (the programs
+ * API indexes by campaign id directly).
+ *
+ * `totalAllocated` is accepted as a pass-through param but the live value is
+ * taken from the API response when available; the param is ignored.
+ *
  * `adapterOverride`, when supplied, replaces the live fetch entirely and its
  * result is returned as-is; the effect below still runs (hook order must stay
  * stable across the two pool sections) but exits immediately without
  * touching the network.
  */
-export function useProgramSupTotals(campaignId: number, adapterOverride?: ProgramSupTotalsAdapter): ProgramSupTotalsResult {
+export function useProgramSupTotals(
+  campaignId: number,
+  _poolAddress: Address | undefined,
+  _totalAllocated: number,
+  adapterOverride?: ProgramSupTotalsAdapter,
+): ProgramSupTotalsResult {
   const [data, setData] = useState<ProgramSupTotals | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
