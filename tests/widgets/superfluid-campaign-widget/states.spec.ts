@@ -31,8 +31,8 @@ const STORY_IDS = {
     '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--sup-totals-request-failed&viewMode=story',
   supTotalsPopulated:
     '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--sup-totals-populated&viewMode=story',
-  supTotalsSubgraphContract:
-    '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--sup-totals-subgraph-contract&viewMode=story',
+  supTotalsProgramsApiContract:
+    '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--sup-totals-programs-api-contract&viewMode=story',
 } as const
 
 // Top-ranked account address (truncated) for each campaign in LEADERBOARD_DATA_FIXTURES
@@ -378,7 +378,7 @@ test('SuperfluidCampaignWidget SUP distribution and members: populated from the 
   // SUP_TOTALS_FIXTURES, not DEFAULT_CAMPAIGN_MOCK_DATA's static placeholder
   // (75,895 / 217,700), proving the progress bar is sourced from the adapter.
   await expect(page.getByText('128,940 / 217,700 SUP')).toBeVisible()
-  // The same subgraph Pool response supplies the current >0-unit member count.
+  // The programs API fixture adapter supplies the member count.
   await expect(page.getByText('712 participants')).toBeVisible()
   // 614 (Ecosystem actions) has no matching program id yet, so
   // RewardPoolSection falls back to its own unchanged mock placeholder.
@@ -406,35 +406,33 @@ test('SuperfluidCampaignWidget SUP totals: request failed falls back to placehol
   })
 })
 
-test('SuperfluidCampaignWidget uses a passed pool address for live distribution and active members', async ({
+test('SuperfluidCampaignWidget SUP distribution and members sourced from the programs API for campaign 606', async ({
   page,
 }) => {
-  await page.route('https://base-mainnet.subgraph.x.superfluid.dev/', async (route) => {
-    const body = route.request().postDataJSON() as {
-      variables: { id: string }
-      query: string
-    }
-    expect(body.variables.id).toBe('0x1111111111111111111111111111111111111111')
-    expect(body.query).toContain('totalMembers')
-    expect(body.query).toContain('totalAmountDistributedUntilUpdatedAt')
-
+  // Mock the programs API endpoint with a minimal superjson envelope for campaign 606.
+  await page.route('https://claim.superfluid.org/api/programs', async (route) => {
     await route.fulfill({
       json: {
-        data: {
-          pool: {
-            totalAmountDistributedUntilUpdatedAt: '1000000000000000000',
-            totalMembers: 42,
-            flowRate: '0',
-            updatedAtTimestamp: '1785456000',
+        json: [
+          {
+            program: {
+              id: 606,
+              onchainInfo: {
+                totalAllocated: '50000000000000000000000',
+                totalClaimed: '1000000000000000000',
+                totalMembers: 42,
+              },
+            },
           },
-        },
+        ],
       },
     })
   })
 
-  await gotoStory(page, STORY_IDS.supTotalsSubgraphContract)
+  await gotoStory(page, STORY_IDS.supTotalsProgramsApiContract)
 
-  await expect(page.getByText('1 / 217,700 SUP')).toBeVisible()
+  // 50,000 SUP allocated, 1 SUP claimed — verifies the API response drives the bar.
+  await expect(page.getByText('1 / 50,000 SUP')).toBeVisible()
   await expect(page.getByText('42 participants')).toBeVisible()
 })
 

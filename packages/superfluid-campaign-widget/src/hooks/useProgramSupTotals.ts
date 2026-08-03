@@ -7,14 +7,9 @@ const PROGRAMS_ENDPOINT = 'https://claim.superfluid.org/api/programs'
 /** Human-readable SUP amounts (already converted from 18-decimal wei). */
 export interface ProgramSupTotals {
   totalAllocated: number
-  /**
-   * Historical public name retained for compatibility. This is the amount the
-   * pool has claimed/distributed so far.
-   */
   totalClaimed: number
-  /** Current pool members with more than zero units. Not available from the
-   *  programs API — present only when supplied by a fixture adapter. */
-  totalMembers?: number
+  /** Current pool members with more than zero units, as returned by the programs API. */
+  totalMembers: number
 }
 
 export interface ProgramSupTotalsResult {
@@ -51,6 +46,7 @@ interface SuperfluidProgramsResponse {
       onchainInfo?: {
         totalAllocated: string
         totalClaimed: string
+        totalMembers: number
       }
     }
   }>
@@ -104,6 +100,7 @@ export function useProgramSupTotals(
             ? {
                 totalAllocated: Number(formatUnits(BigInt(onchainInfo.totalAllocated), 18)),
                 totalClaimed: Number(formatUnits(BigInt(onchainInfo.totalClaimed), 18)),
+                totalMembers: onchainInfo.totalMembers,
               }
             : null,
         )

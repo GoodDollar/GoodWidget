@@ -73,7 +73,7 @@ export const LeaderboardApiContract: Story = {
   render: () => <LiveDataNoWalletStory initialView="leaderboard" />,
 }
 
-// SUP-totals progress bar states — each fixes the protocol-subgraph response via
+// SUP-totals progress bar states — each fixes the programs API response via
 // supTotalsAdapter so the reward-pool progress bar screenshot is deterministic.
 export const SupTotalsRequestFailed: Story = {
   render: () => <NoWalletSupTotalsStory scenario="requestFailed" />,
@@ -83,13 +83,8 @@ export const SupTotalsPopulated: Story = {
   render: () => <NoWalletSupTotalsStory scenario="populated" />,
 }
 
-// Unadapted story used with a mocked subgraph response to verify that a passed
-// pool address drives both live distribution and current-member figures.
-export const SupTotalsSubgraphContract: Story = {
-  render: () => (
-    <LiveDataNoWalletStory
-      initialView="content"
-      poolAddresses={{ 606: '0x1111111111111111111111111111111111111111' }}
-    />
-  ),
+// Unadapted story used with a mocked programs API response to verify that
+// campaign-606 distribution totals and member count are sourced from the live endpoint.
+export const SupTotalsProgramsApiContract: Story = {
+  render: () => <LiveDataNoWalletStory initialView="content" />,
 }
