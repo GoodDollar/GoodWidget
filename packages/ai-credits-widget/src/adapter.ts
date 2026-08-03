@@ -15,7 +15,6 @@ import { privateKeyToAccount } from 'viem/accounts'
 import { buildBuyerKeyMessage, deriveBuyerPrivateKeyFromSignature } from './buyerKeyDerivation'
 import { normalizeChannelId, signRequestClose, signWithdrawPrincipal } from './buyerSignatures'
 import {
-  MockAiCreditsBackendClient,
   totalCreditUsdFromProfile,
   buildAccountView,
   createBackendClient,
@@ -108,16 +107,6 @@ const WALLET_LOADING_STATE: Partial<AiCreditsWidgetAdapterState> = {
   monthlyStreamG: null,
   withdrawableUsd: null,
   operatorAddress: null,
-}
-
-function isInBuyFlowStatus(status: AiCreditsWidgetStatus): boolean {
-  return (
-    status === 'purchase_setup' ||
-    status === 'quote_ready' ||
-    status === 'payment_pending' ||
-    status === 'payment_confirmed' ||
-    status === 'payment_failed'
-  )
 }
 
 function isNonBuyTab(tab: AiCreditsWidgetTab): boolean {
@@ -325,6 +314,10 @@ export interface UseAiCreditsAdapterOptions {
   goodIdReturnUrl?: string
   onPaySuccess?: (detail: AiCreditsPaySuccessDetail) => void
   onPayError?: (detail: AiCreditsPayErrorDetail) => void
+  backendClient?: AiCreditsBackendClient
+  chainClient?: AiCreditsChainClient
+  skipVaultPaymentValidation?: boolean
+  prepareSettlement?: (ref: AccountRef, creditUsd: bigint) => void
 }
 
 export function useAiCreditsAdapter({
@@ -338,9 +331,17 @@ export function useAiCreditsAdapter({
   goodIdReturnUrl,
   onPaySuccess,
   onPayError,
+  backendClient: backendClientOverride,
+  chainClient: chainClientOverride,
+  skipVaultPaymentValidation = false,
+  prepareSettlement,
 }: UseAiCreditsAdapterOptions): AiCreditsWidgetAdapterResult {
   const { address, chainId, isConnected, provider, connect } = useWallet()
   const [state, setState] = useState<AiCreditsWidgetAdapterState>(INITIAL_STATE)
+  const configurationError =
+    backendClientOverride || backendUrl
+      ? null
+      : 'AI Credits backend is not configured'
 
   const providerRef = useRef<EIP1193Provider | null>(null)
   providerRef.current = provider as EIP1193Provider | null
@@ -349,25 +350,36 @@ export function useAiCreditsAdapter({
   const celoVault = vaultAddress ?? CELO_GD_ANTSEED_VAULT_FALLBACK
 
   const backendClient = useMemo<AiCreditsBackendClient>(
-    () => createBackendClient(backendUrl),
-    [backendUrl],
+    () => backendClientOverride ?? createBackendClient(backendUrl),
+    [backendClientOverride, backendUrl],
   )
 
   const chainClient = useMemo<AiCreditsChainClient>(
     () =>
-      createChainClient(backendUrl, {
+      chainClientOverride ??
+      createChainClient({
         baseRpcUrl,
         celoRpcUrl,
         fundingVaultAddress,
         celoVaultAddress: celoVault,
         celoGoodIdAddress: goodIdAddress ?? CELO_GOODID_ADDRESS,
       }),
-    [backendUrl, baseRpcUrl, celoRpcUrl, fundingVaultAddress, celoVault, goodIdAddress],
+    [chainClientOverride, baseRpcUrl, celoRpcUrl, fundingVaultAddress, celoVault, goodIdAddress],
   )
 
   useEffect(() => {
     if (!isConnected || !address) {
       setState((prev) => (prev.status === 'connecting' ? prev : { ...INITIAL_STATE }))
+      return
+    }
+    if (configurationError) {
+      setState((prev) => ({
+        ...prev,
+        address,
+        chainId,
+        status: 'backend_unavailable',
+        error: configurationError,
+      }))
       return
     }
 
@@ -378,8 +390,7 @@ export function useAiCreditsAdapter({
       if (
         prev.status === 'payment_pending' ||
         prev.status === 'payment_confirmed' ||
-        prev.status === 'payment_failed' ||
-        prev.status === 'backend_unavailable'
+        prev.status === 'payment_failed'
       ) {
         return prev
       }
@@ -425,7 +436,7 @@ export function useAiCreditsAdapter({
         .catch(() => null)
 
       const minimumsPromise =
-        backendClient instanceof MockAiCreditsBackendClient
+        skipVaultPaymentValidation
           ? Promise.resolve({
               minDepositUsd: '1.00',
               minStreamUsd: '1.00',
@@ -511,7 +522,7 @@ export function useAiCreditsAdapter({
     return () => {
       cancelled = true
     }
-  }, [isConnected, address, chainId, backendClient, chainClient, celoVault])
+  }, [isConnected, address, chainId, backendClient, chainClient, celoVault, configurationError])
 
   const handleConnect = useCallback(async () => {
     setState((prev) => withDerivedStatus(prev, { status: 'connecting', error: null }, false))
@@ -735,7 +746,7 @@ export function useAiCreditsAdapter({
         throw new Error('Could not build quote — check chain connectivity')
       }
 
-      if (!(backendClient instanceof MockAiCreditsBackendClient)) {
+      if (!skipVaultPaymentValidation) {
         try {
           const publicClient = createPublicClient({ chain: CELO_CHAIN, transport: http() })
           await validateVaultPaymentAmounts({
@@ -787,12 +798,12 @@ export function useAiCreditsAdapter({
           buyer: currentState.buyerPubKey,
         }
 
-        if (backendClient instanceof MockAiCreditsBackendClient) {
+        if (prepareSettlement) {
           const creditUsdMicro = quoteTotalUsdMicro(quote, gdUsdPerToken, currentState.isGoodIdVerified, {
             depositBonusPercent: currentState.depositBonusPercent,
             streamBonusPercent: currentState.streamBonusPercent,
           })
-          backendClient.prepareSettlement(accountRef, creditUsdMicro)
+          prepareSettlement(accountRef, creditUsdMicro)
         }
 
         const { txHashes } = await executeCeloPayment({
@@ -861,7 +872,16 @@ export function useAiCreditsAdapter({
         throw new Error(message)
       }
     },
-    [state, backendClient, chainClient, celoVault, onPaySuccess, onPayError],
+    [
+      state,
+      backendClient,
+      chainClient,
+      celoVault,
+      onPaySuccess,
+      onPayError,
+      prepareSettlement,
+      skipVaultPaymentValidation,
+    ],
   )
 
   const handleRefresh = useCallback(
@@ -901,7 +921,9 @@ export function useAiCreditsAdapter({
           const statusSeed =
             options?.afterGoodIdVerify && prev.status === 'payment_failed'
               ? 'quote_ready'
-              : prev.status
+              : prev.status === 'backend_unavailable'
+                ? 'purchase_setup'
+                : prev.status
           return withDerivedStatus(
             { ...prev, status: statusSeed },
             {
@@ -1101,10 +1123,16 @@ export function useAiCreditsAdapter({
   )
 
   const handleRetry = useCallback(async () => {
-    setState((prev) =>
-      withDerivedStatus(prev, { activeTab: 'buy', status: 'purchase_setup', error: null }, true),
-    )
-  }, [])
+    if (configurationError) {
+      setState((prev) => ({
+        ...prev,
+        status: 'backend_unavailable',
+        error: configurationError,
+      }))
+      return
+    }
+    await handleRefresh()
+  }, [configurationError, handleRefresh])
 
   const handleSetActiveTab = useCallback((tab: AiCreditsWidgetTab) => {
     if (tab === 'buy') {

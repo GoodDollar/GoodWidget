@@ -9,12 +9,29 @@ import { readCSSOverrides, observeCSSChanges } from './cssPropertyBridge'
 import { normalizePropDefs, toKebabCase, toCamelCase, emitEvent } from './bridge'
 import type { PropDefinitions } from './bridge'
 
+const getBridgedProperty = Symbol('getBridgedProperty')
+const setBridgedProperty = Symbol('setBridgedProperty')
+
 export interface MiniAppElementOptions {
   shadow?: boolean
   props?: PropDefinitions
   events?: string[]
   defaultTheme?: 'light' | 'dark'
   defaultConfig?: GoodWidgetConfig
+}
+
+export interface MiniAppElement extends HTMLElement {
+  provider: EIP1193Provider | null
+  themeOverrides: GoodWidgetThemeOverrides | undefined
+  config: GoodWidgetConfig | undefined
+  emitEvent(eventName: string, detail?: unknown): void
+}
+
+export interface MiniAppElementConstructor {
+  new (): MiniAppElement
+  readonly prototype: MiniAppElement
+  readonly observedAttributes: string[]
+  themeManifest: ThemeManifest
 }
 
 function deepMergeOverrides(
@@ -55,14 +72,11 @@ function deepMergeOverrides(
 export function createMiniAppElement(
   App: React.ComponentType<Record<string, unknown>>,
   options: MiniAppElementOptions = {},
-) {
-  const HTMLElementBase =
+): MiniAppElementConstructor {
+  const HTMLElementBase: typeof HTMLElement =
     typeof globalThis !== 'undefined' && 'HTMLElement' in globalThis
       ? (globalThis as { HTMLElement: typeof HTMLElement }).HTMLElement
-      : undefined
-  if (!HTMLElementBase) {
-    throw new Error('createMiniAppElement is only supported in DOM environments')
-  }
+      : (class {} as typeof HTMLElement)
 
   const {
     shadow = true,
@@ -89,9 +103,36 @@ export function createMiniAppElement(
     #disconnectStyleSync: (() => void) | null = null
     #extraProps: Record<string, unknown> = {}
 
+    constructor() {
+      super()
+      const upgradeProperty = (name: string, apply: (value: unknown) => void) => {
+        if (!Object.prototype.hasOwnProperty.call(this, name)) return
+        const value = (this as unknown as Record<string, unknown>)[name]
+        delete (this as unknown as Record<string, unknown>)[name]
+        apply(value)
+      }
+
+      upgradeProperty('provider', (value) => {
+        this.provider = (value as EIP1193Provider | null | undefined) ?? null
+      })
+      upgradeProperty('themeOverrides', (value) => {
+        this.themeOverrides = value as GoodWidgetThemeOverrides | undefined
+      })
+      upgradeProperty('config', (value) => {
+        this.config = value as GoodWidgetConfig | undefined
+      })
+
+      for (const [name, definition] of Object.entries(normalizedProps)) {
+        if (definition.type !== 'property') continue
+        upgradeProperty(name, (value) => {
+          this[setBridgedProperty](name, value)
+        })
+      }
+    }
+
     static get observedAttributes(): string[] {
       return Object.entries(normalizedProps)
-        .filter(([_, def]) => def.type === 'attribute')
+        .filter(([, def]) => def.type === 'attribute')
         .map(([name]) => toKebabCase(name))
     }
 
@@ -174,6 +215,15 @@ export function createMiniAppElement(
       emitEvent(this, eventName, detail)
     }
 
+    [getBridgedProperty](name: string): unknown {
+      return this.#extraProps[name]
+    }
+
+    [setBridgedProperty](name: string, value: unknown): void {
+      this.#extraProps[name] = value
+      this.#render()
+    }
+
     #render() {
       if (!this.#root) return
 
@@ -181,6 +231,10 @@ export function createMiniAppElement(
 
       const appProps: Record<string, unknown> = {
         ...this.#extraProps,
+        provider: this.#provider ?? undefined,
+        config: this.#config ?? defaultConfig,
+        themeOverrides: mergedOverrides,
+        defaultTheme,
       }
 
       for (const eventName of events) {
@@ -204,6 +258,20 @@ export function createMiniAppElement(
         </GoodWidgetProvider>,
       )
     }
+  }
+
+  for (const [name, definition] of Object.entries(normalizedProps)) {
+    if (definition.type !== 'property' || name in GoodWidgetElement.prototype) continue
+    Object.defineProperty(GoodWidgetElement.prototype, name, {
+      configurable: true,
+      enumerable: true,
+      get(this: GoodWidgetElement) {
+        return this[getBridgedProperty](name)
+      },
+      set(this: GoodWidgetElement, value: unknown) {
+        this[setBridgedProperty](name, value)
+      },
+    })
   }
 
   return GoodWidgetElement
