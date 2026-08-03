@@ -339,20 +339,14 @@ function syncOperatorConsentSession(address: string, operatorConsented: boolean 
   patchPayerSession(address, { operatorConsented })
 }
 
-/**
- * Ensures a buyer derived from the backend account view is reflected in the session.
- * Only adds the buyer when no session buyers exist yet (first-time sync).
- */
 function syncBuyerPubKeySession(address: string, buyerPubKey: string | null | undefined): void {
   if (!buyerPubKey) return
   const existing = readPayerSession(address)
   if (existing?.buyers && existing.buyers.length > 0) return
-  // Persist as a derived buyer at index 0 (legacy-compatible)
   addBuyerToSession(address, {
     address: buyerPubKey,
     type: 'derived',
-    derivationIndex: 0,
-    label: 'Buyer 1',
+    label: 'Wallet buyer',
   })
 }
 
@@ -584,30 +578,46 @@ export function useAiCreditsAdapter({
   }, [])
 
   /**
-   * Creates a derived buyer at the next available derivation index.
-   * Index 0 preserves the legacy single-buyer message for backward compatibility.
+   * Creates or restores the single deterministic wallet buyer.
+   * If that buyer already exists with a private key, it is selected instead of re-derived.
    */
-  const handleCreateBuyer = useCallback(async () => {
+  const handleGenerateBuyerKey = useCallback(async () => {
     if (!address || !providerRef.current) {
       setState((prev) =>
         withDerivedStatus(
           prev,
-          { error: 'Connect your wallet before creating a buyer' },
+          { error: 'Connect your wallet before generating a buyer key' },
           true,
         ),
       )
       return
     }
 
-    try {
-      const payerAddress = address as Address
-      const existingSession = patchPayerSessionFields(payerAddress)
-      const nextIndex =
-        existingSession.buyers
-          .filter((b) => b.type === 'derived' && b.derivationIndex !== undefined)
-          .reduce((max, b) => Math.max(max, b.derivationIndex ?? 0), -1) + 1
+    const payerAddress = address as Address
+    const existingSession = patchPayerSessionFields(payerAddress)
+    const existingDerived = existingSession.buyers.find((buyer) => buyer.type === 'derived')
 
-      const message = buildBuyerKeyMessage(payerAddress, nextIndex)
+    if (existingDerived?.privateKey) {
+      patchPayerSession(payerAddress, {
+        activeBuyerAddress: existingDerived.address,
+        operatorConsented: false,
+      })
+      setState((prev) =>
+        mergeStatePreservingNonBuyTab(prev, {
+          buyerPubKey: existingDerived.address,
+          buyerPrvKey: existingDerived.privateKey ?? null,
+          buyers: existingSession.buyers,
+          activeBuyerAddress: existingDerived.address,
+          operatorConsented: false,
+          error: null,
+          ...(!isNonBuyTab(prev.activeTab) ? { status: 'purchase_setup' } : {}),
+        }),
+      )
+      return
+    }
+
+    try {
+      const message = buildBuyerKeyMessage(payerAddress)
       const walletClient = createWalletClient({
         account: payerAddress,
         chain: CELO_CHAIN,
@@ -619,14 +629,12 @@ export function useAiCreditsAdapter({
       })
       const privateKey = deriveBuyerPrivateKeyFromSignature(signature)
       const buyerAccount = privateKeyToAccount(privateKey)
-      const label = `Buyer ${nextIndex + 1}`
 
       const buyerRecord: BuyerRecord = {
         address: buyerAccount.address,
         privateKey,
         type: 'derived',
-        derivationIndex: nextIndex,
-        label,
+        label: existingDerived?.label ?? 'Wallet buyer',
       }
       addBuyerToSession(payerAddress, buyerRecord)
 
@@ -647,21 +655,13 @@ export function useAiCreditsAdapter({
         withDerivedStatus(
           prev,
           {
-            error: err instanceof Error ? err.message : 'Buyer creation was rejected',
+            error: err instanceof Error ? err.message : 'Buyer key generation was rejected',
           },
           true,
         ),
       )
     }
   }, [address])
-
-  /**
-   * First-buyer entry point used by the purchase flow.
-   * Delegates to createBuyer so later calls never re-derive index 0 over existing buyers.
-   */
-  const handleGenerateBuyerKey = useCallback(async () => {
-    await handleCreateBuyer()
-  }, [handleCreateBuyer])
 
   /**
    * Switches the active buyer to an existing one in the session.
@@ -879,9 +879,6 @@ export function useAiCreditsAdapter({
         address: trimmedAddress,
         type: existingBuyer?.privateKey ? existingBuyer.type : 'address-only',
         ...(existingBuyer?.privateKey ? { privateKey: existingBuyer.privateKey } : {}),
-        ...(existingBuyer?.derivationIndex !== undefined
-          ? { derivationIndex: existingBuyer.derivationIndex }
-          : {}),
         label:
           existingBuyer?.label ??
           `Partner ${trimmedAddress.slice(0, 6)}…${trimmedAddress.slice(-4)}`,
@@ -1025,9 +1022,7 @@ export function useAiCreditsAdapter({
       }
 
       let buyerSig: `0x${string}`
-      if (storedOperatorSignature) {
-        buyerSig = storedOperatorSignature as `0x${string}`
-      } else {
+      if (currentState.buyerPrvKey) {
         const payload = await chainClient.buildOperatorConsentPayload(ref, operatorStatus)
 
         if (!payload.enabled || !payload.typedData) {
@@ -1038,6 +1033,10 @@ export function useAiCreditsAdapter({
           currentState.buyerPrvKey as `0x${string}`,
           payload.typedData,
         )
+      } else if (storedOperatorSignature) {
+        buyerSig = storedOperatorSignature as `0x${string}`
+      } else {
+        throw new Error('Generate a buyer key before signing operator consent')
       }
 
       await backendClient.submitOperatorConsent(ref.buyer, {
@@ -1582,7 +1581,6 @@ export function useAiCreditsAdapter({
       connect: handleConnect,
       switchChain: handleSwitchChain,
       generateBuyerKey: handleGenerateBuyerKey,
-      createBuyer: handleCreateBuyer,
       selectBuyer: handleSelectBuyer,
       importBuyerFromPrivateKey: handleImportBuyerFromPrivateKey,
       selectBuyerByAddress: handleSelectBuyerByAddress,
@@ -1603,7 +1601,6 @@ export function useAiCreditsAdapter({
       handleConnect,
       handleSwitchChain,
       handleGenerateBuyerKey,
-      handleCreateBuyer,
       handleSelectBuyer,
       handleImportBuyerFromPrivateKey,
       handleSelectBuyerByAddress,

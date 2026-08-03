@@ -60,7 +60,6 @@ function createAdapterFactory(
       connect: async () => {},
       switchChain: async () => {},
       generateBuyerKey: async () => {},
-      createBuyer: async () => {},
       selectBuyer: () => {},
       importBuyerFromPrivateKey: async () => {},
       selectBuyerByAddress: () => {},
@@ -410,16 +409,16 @@ export function InjectedWalletStory() {
 // Multi-buyer fixture stories
 // ---------------------------------------------------------------------------
 
-const BUYER_A = {
+const BUYER_WALLET = {
   address: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a' as const,
   privateKey: '0x0000000000000000000000000000000000000000000000000000000000000001' as const,
-  label: 'Buyer 1',
+  label: 'Wallet buyer',
 }
 
-const BUYER_B = {
+const BUYER_IMPORTED = {
   address: '0xAbcDef1234567890AbcDef1234567890AbcDef12' as const,
   privateKey: '0x0000000000000000000000000000000000000000000000000000000000000002' as const,
-  label: 'Buyer 2',
+  label: 'Imported 1',
 }
 
 const BUYER_WATCH = {
@@ -427,15 +426,15 @@ const BUYER_WATCH = {
   label: 'Watch 0x1111…1111',
 }
 
-/** Multi-buyer manage tab: two derived buyers + one address-only watcher. */
+/** Multi-buyer manage: one wallet-derived buyer, one imported key, one address-only. */
 export function MultiBuyerManageStory() {
   return (
     <MockStoryShell
       dataTestId="AiCreditsWidget-multi-buyer-manage"
       adapterFactory={createAdapterFactory('quote_ready', {
         totalCreditUsd: '110000000',
-        buyerPubKey: BUYER_A.address,
-        buyerPrvKey: BUYER_A.privateKey,
+        buyerPubKey: BUYER_WALLET.address,
+        buyerPrvKey: BUYER_WALLET.privateKey,
         operatorConsented: true,
         operatorAddress: '0x0000000000000000000000000000000000000004',
         totalGdDepositedG: '50.00',
@@ -443,11 +442,21 @@ export function MultiBuyerManageStory() {
         gBalance: '42.50',
         activeTab: 'manage',
         buyers: [
-          { address: BUYER_A.address, privateKey: BUYER_A.privateKey, type: 'derived', derivationIndex: 0, label: BUYER_A.label },
-          { address: BUYER_B.address, privateKey: BUYER_B.privateKey, type: 'derived', derivationIndex: 1, label: BUYER_B.label },
+          {
+            address: BUYER_WALLET.address,
+            privateKey: BUYER_WALLET.privateKey,
+            type: 'derived',
+            label: BUYER_WALLET.label,
+          },
+          {
+            address: BUYER_IMPORTED.address,
+            privateKey: BUYER_IMPORTED.privateKey,
+            type: 'imported',
+            label: BUYER_IMPORTED.label,
+          },
           { address: BUYER_WATCH.address, type: 'address-only', label: BUYER_WATCH.label },
         ],
-        activeBuyerAddress: BUYER_A.address,
+        activeBuyerAddress: BUYER_WALLET.address,
       })}
     />
   )
@@ -480,16 +489,26 @@ export function MultiBuyerHistoryStory() {
       dataTestId="AiCreditsWidget-multi-buyer-history"
       adapterFactory={createAdapterFactory('quote_ready', {
         totalCreditUsd: '110000000',
-        buyerPubKey: BUYER_A.address,
-        buyerPrvKey: BUYER_A.privateKey,
+        buyerPubKey: BUYER_WALLET.address,
+        buyerPrvKey: BUYER_WALLET.privateKey,
         operatorConsented: true,
         gBalance: '42.50',
         activeTab: 'history',
         buyers: [
-          { address: BUYER_A.address, privateKey: BUYER_A.privateKey, type: 'derived', derivationIndex: 0, label: BUYER_A.label },
-          { address: BUYER_B.address, privateKey: BUYER_B.privateKey, type: 'derived', derivationIndex: 1, label: BUYER_B.label },
+          {
+            address: BUYER_WALLET.address,
+            privateKey: BUYER_WALLET.privateKey,
+            type: 'derived',
+            label: BUYER_WALLET.label,
+          },
+          {
+            address: BUYER_IMPORTED.address,
+            privateKey: BUYER_IMPORTED.privateKey,
+            type: 'imported',
+            label: BUYER_IMPORTED.label,
+          },
         ],
-        activeBuyerAddress: BUYER_A.address,
+        activeBuyerAddress: BUYER_WALLET.address,
       })}
     />
   )

@@ -3,34 +3,19 @@ export type BuyerIdentityType = 'derived' | 'imported' | 'address-only'
 
 /** A single buyer identity stored per payer session. */
 export type BuyerRecord = {
-  /** Buyer's public address (checksummed or lowercase). */
   address: string
-  /** Private key – absent for address-only buyers. */
+  /** Present for derived/imported buyers; absent for address-only / deep-link. */
   privateKey?: string
-  /** How the buyer was created. */
   type: BuyerIdentityType
-  /**
-   * Derivation index used when signing the wallet message (undefined for
-   * imported/address-only buyers).
-   */
-  derivationIndex?: number
-  /** Optional human-readable label shown in the UI. */
   label?: string
-  /**
-   * Pre-signed operator-approval token from an external host (NCDI deep link).
-   * Used for operator-consent submission; never a buyer private key.
-   */
+  /** Pre-signed operator-approval token (NCDI deep link). Never a private key. */
   operatorSignature?: string
 }
 
 export type PayerWalletSession = {
-  /** Ordered list of buyer identities known for this payer. */
   buyers: BuyerRecord[]
-  /** Address of the currently active buyer, or null if none selected. */
   activeBuyerAddress: string | null
-  /** Whether operator consent has been granted for the active buyer. */
   operatorConsented: boolean
-  /** Last deep-link operator signature retained for retries within this session. */
   operatorSignature?: string | null
 }
 
@@ -63,8 +48,7 @@ export function readPayerSession(address: string | null): PayerWalletSession | n
               address: legacy.buyerPubKey,
               privateKey: legacy.buyerPrvKey,
               type: 'derived',
-              derivationIndex: 0,
-              label: 'Buyer 1',
+              label: 'Wallet buyer',
             },
           ]
         : [],

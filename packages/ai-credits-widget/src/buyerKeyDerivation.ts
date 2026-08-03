@@ -3,14 +3,8 @@ import { privateKeyToAccount } from 'viem/accounts'
 
 const SECP256K1_ORDER = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141n
 
-/**
- * Builds the wallet-signature message used to derive a buyer private key.
- * Index 0 preserves the legacy single-buyer message for backward compatibility.
- * Index > 0 appends the index so each buyer gets a unique deterministic key.
- */
-export function buildBuyerKeyMessage(payerAddress: string, buyerIndex = 0): string {
-  const base = `Generate a key for G$ credits from payer wallet of '${payerAddress.toLowerCase()}'`
-  return buyerIndex === 0 ? base : `${base} (buyer ${buyerIndex})`
+export function buildBuyerKeyMessage(payerAddress: string): string {
+  return `Generate a key for G$ credits from payer wallet of '${payerAddress.toLowerCase()}'`
 }
 
 export function deriveBuyerPrivateKeyFromSignature(signature: Hex): `0x${string}` {

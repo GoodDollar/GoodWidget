@@ -14,7 +14,6 @@ interface BuyerOperatorCardProps {
   actions: Pick<
     AiCreditsWidgetAdapterActions,
     | 'generateBuyerKey'
-    | 'createBuyer'
     | 'selectBuyer'
     | 'importBuyerFromPrivateKey'
     | 'selectBuyerByAddress'
@@ -22,16 +21,14 @@ interface BuyerOperatorCardProps {
   >
 }
 
-/** Displays a short label for a buyer in the selector list. */
 function buyerDisplayLabel(buyer: BuyerRecord): string {
   if (buyer.label) return buyer.label
   const shortAddr = `${buyer.address.slice(0, 6)}…${buyer.address.slice(-4)}`
   if (buyer.type === 'address-only') return `Watch ${shortAddr}`
   if (buyer.type === 'imported') return `Import ${shortAddr}`
-  return shortAddr
+  return 'Wallet buyer'
 }
 
-/** Renders the buyer selection list when multiple buyers are present. */
 function BuyerSelector({
   buyers,
   activeBuyerAddress,
@@ -72,7 +69,12 @@ function BuyerSelector({
               }}
             >
               <YStack flex={1} minWidth={0}>
-                <Text fontSize="$2" fontWeight={isActive ? '700' : '500'} color={isActive ? '$primary' : '$color'} numberOfLines={1}>
+                <Text
+                  fontSize="$2"
+                  fontWeight={isActive ? '700' : '500'}
+                  color={isActive ? '$primary' : '$color'}
+                  numberOfLines={1}
+                >
                   {buyerDisplayLabel(buyer)}
                 </Text>
                 <Text fontSize="$1" secondary numberOfLines={1} style={monospaceSingleLineStyle}>
@@ -93,7 +95,6 @@ function BuyerSelector({
   )
 }
 
-/** Collapsible panel to import a buyer from a hex private key or address. */
 function BuyerImportPanel({
   onImportPrivateKey,
   onSelectAddress,
@@ -158,7 +159,7 @@ function BuyerImportPanel({
         size="sm"
         value={inputValue}
         onChangeText={setInputValue}
-        placeholder={mode === 'private-key' ? '0x…' : '0x…'}
+        placeholder="0x…"
         secureTextEntry={mode === 'private-key'}
         autoFocus
       />
@@ -167,7 +168,9 @@ function BuyerImportPanel({
           size="sm"
           {...compactButtonProps}
           disabled={!inputValue.trim() || isSubmitting}
-          onPress={() => { void handleSubmit() }}
+          onPress={() => {
+            void handleSubmit()
+          }}
         >
           <ButtonText>{isSubmitting ? 'Importing…' : 'Confirm'}</ButtonText>
         </Button>
@@ -190,17 +193,15 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
   const { copied: copiedPrivate, copy: copyPrivate } = useCopyFeedback()
   const [isPrivateKeyVisible, setIsPrivateKeyVisible] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
-  const [isCreating, setIsCreating] = useState(false)
   const [isSigning, setIsSigning] = useState(false)
   const [showImport, setShowImport] = useState(false)
 
-  /** The buyer can approve the operator via private key or a stored deep-link signature. */
   const activeBuyer = buyers.find(
     (buyer) =>
       buyer.address.toLowerCase() === (activeBuyerAddress ?? buyerPubKey ?? '').toLowerCase(),
   )
   const buyerCanSign = Boolean(buyerPrvKey || activeBuyer?.operatorSignature)
-  const hasBuyers = buyers.length > 0
+  const hasDerivedBuyer = buyers.some((buyer) => buyer.type === 'derived')
 
   return (
     <Card gap="$2">
@@ -209,17 +210,14 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
       {address && <AddressView label="Payer" address={address} />}
       {buyerPubKey && <AddressView label="Buyer" address={buyerPubKey} />}
 
-      {/* Buyer selector — visible only when more than one buyer exists */}
       <BuyerSelector
         buyers={buyers}
         activeBuyerAddress={activeBuyerAddress}
         onSelect={actions.selectBuyer}
       />
 
-      {/* Primary buyer action buttons */}
       <XStack gap="$2" alignItems="stretch" width="100%">
-        {!hasBuyers ? (
-          // First buyer: sign & generate deterministic key
+        {!hasDerivedBuyer && (
           <Button
             flex={1}
             flexBasis={0}
@@ -233,24 +231,6 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
             disabled={isGenerating}
           >
             <ButtonText>{isGenerating ? 'Signing…' : 'Sign & Generate'}</ButtonText>
-          </Button>
-        ) : (
-          // Additional buyer: create next derived buyer
-          <Button
-            flex={1}
-            flexBasis={0}
-            minWidth={0}
-            size="sm"
-            variant="outline"
-            {...compactButtonProps}
-            onPress={() => {
-              setIsCreating(true)
-              void Promise.resolve(actions.createBuyer()).finally(() => setIsCreating(false))
-            }}
-            disabled={isCreating}
-          >
-            <Icon name="plus" size="xs" color="muted" />
-            <ButtonText>{isCreating ? 'Signing…' : 'New Buyer'}</ButtonText>
           </Button>
         )}
 
@@ -274,7 +254,6 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
         </Button>
       </XStack>
 
-      {/* Import / address-only section */}
       {showImport ? (
         <BuyerImportPanel
           onImportPrivateKey={actions.importBuyerFromPrivateKey}
@@ -292,7 +271,6 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
         </Button>
       )}
 
-      {/* Private key reveal section */}
       {buyerPrvKey && (
         <YStack gap="$2">
           <XStack justifyContent="space-between" alignItems="center">
@@ -337,4 +315,3 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
     </Card>
   )
 }
-
