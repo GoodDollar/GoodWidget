@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { GdCreditEntry } from './backendTypes'
 import { createBackendClient } from './backendClient'
+import type { AiCreditsBackendClient } from './backendClient'
+import type { AiCreditsWidgetEnvironment } from './widgetRuntimeContract'
 
 export const HISTORY_PAGE_SIZE = 10
 export const HISTORY_LOOKBACK_DAYS = 90
@@ -92,10 +94,11 @@ export interface UseAiCreditsHistoryResult {
 export function useAiCreditsHistory(options: {
   address: string | null
   backendUrl?: string
-  /** Default buyer address filter; defaults to `'all'`. */
   defaultBuyerFilter?: BuyerAddressFilter
+  environment?: AiCreditsWidgetEnvironment
+  backendClient?: AiCreditsBackendClient
 }): UseAiCreditsHistoryResult {
-  const { address, backendUrl, defaultBuyerFilter = BUYER_FILTER_ALL } = options
+  const { address, backendUrl, defaultBuyerFilter = BUYER_FILTER_ALL , environment = 'production', backendClient } = options
   const defaultRange = useMemo(() => getLast90DaysRange(), [])
 
   const [selectedSources, setSelectedSources] = useState(createDefaultSelectedSources)
@@ -141,7 +144,7 @@ export function useAiCreditsHistory(options: {
       else setLoading(true)
       setError(null)
 
-      const client = createBackendClient(backendUrl)
+      const client = backendClient ?? createBackendClient(backendUrl)
       const apiSource = activeSources.length === 1 ? activeSources[0] : undefined
       const fundingStatus = statusFilter === 'all' ? undefined : statusFilter
 
@@ -182,7 +185,18 @@ export function useAiCreditsHistory(options: {
         setLoadingMore(false)
       }
     },
-    [address, backendUrl, activeSources, statusFilter, buyerAddressFilter, fromDate, toDate, selectedSources],
+    [
+      address,
+      backendUrl,
+      environment,
+      backendClient,
+      activeSources,
+      statusFilter,
+      buyerAddressFilter,
+      fromDate,
+      toDate,
+      selectedSources,
+    ],
   )
 
   useEffect(() => {

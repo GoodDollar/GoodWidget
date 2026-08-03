@@ -18,7 +18,6 @@ import {
 } from '@goodwidget/ui'
 import { useAiCreditsAdapter } from './adapter'
 import { useAiCreditsHistory } from './useAiCreditsHistory'
-import { DEPOSIT_BONUS_PERCENT, STREAM_BONUS_PERCENT } from './quoteMath'
 import {
   AiCreditsHero,
   AiCreditsFlowStepper,
@@ -36,6 +35,7 @@ import type {
   AiCreditsPaySuccessDetail,
   AiCreditsPayErrorDetail,
   AiCreditsWidgetAdapterFactory,
+  AiCreditsWidgetAdapterOptions,
   AiCreditsWidgetAdapterActions,
   AiCreditsWidgetAdapterState,
   AiCreditsWidgetTab,
@@ -54,6 +54,7 @@ interface AiCreditsInnerProps {
   vaultAddress?: string
   goodIdAddress?: string
   adapterFactory?: AiCreditsWidgetAdapterFactory
+  adapterOptions?: AiCreditsWidgetAdapterOptions
   onPaySuccess?: (detail: AiCreditsPaySuccessDetail) => void
   onPayError?: (detail: AiCreditsPayErrorDetail) => void
 }
@@ -292,6 +293,7 @@ function AiCreditsInner({
   vaultAddress,
   goodIdAddress,
   adapterFactory,
+  adapterOptions,
   onPaySuccess,
   onPayError,
 }: AiCreditsInnerProps) {
@@ -305,6 +307,10 @@ function AiCreditsInner({
     goodIdAddress: goodIdAddress as `0x${string}` | undefined,
     onPaySuccess,
     onPayError,
+    backendClient: adapterOptions?.backendClient,
+    chainClient: adapterOptions?.chainClient,
+    skipVaultPaymentValidation: adapterOptions?.skipVaultPaymentValidation,
+    prepareSettlement: adapterOptions?.prepareSettlement,
   })
 
   const activeAdapter = useMemo(
@@ -319,6 +325,8 @@ function AiCreditsInner({
     backendUrl,
     // Default to the active buyer so users see filtered history immediately
     defaultBuyerFilter: state.activeBuyerAddress ?? 'all',
+    environment,
+    backendClient: adapterOptions?.backendClient,
   })
 
   const handlePay = useCallback(
@@ -418,6 +426,7 @@ export function AiCreditsWidget({
   onPaySuccess,
   onPayError,
   adapterFactory,
+  adapterOptions,
   testId,
 }: AiCreditsWidgetProps) {
   return (
@@ -438,6 +447,7 @@ export function AiCreditsWidget({
           vaultAddress={vaultAddress}
           goodIdAddress={goodIdAddress}
           adapterFactory={adapterFactory}
+          adapterOptions={adapterOptions}
           onPaySuccess={onPaySuccess}
           onPayError={onPayError}
         />

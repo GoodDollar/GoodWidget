@@ -1,5 +1,8 @@
 import type { Address } from 'viem'
 import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
+import type { AccountRef } from './backendTypes'
+import type { AiCreditsBackendClient } from './backendClient'
+import type { AiCreditsChainClient } from './chainClient'
 
 export type AiCreditsWidgetEnvironment = 'production' | 'staging' | 'development'
 
@@ -107,6 +110,13 @@ export type AiCreditsWidgetAdapterFactory = (
   input: AiCreditsWidgetAdapterFactoryInput,
 ) => AiCreditsWidgetAdapterResult
 
+export interface AiCreditsWidgetAdapterOptions {
+  backendClient?: AiCreditsBackendClient
+  chainClient?: AiCreditsChainClient
+  skipVaultPaymentValidation?: boolean
+  prepareSettlement?: (ref: AccountRef, creditUsd: bigint) => void
+}
+
 export interface AiCreditsPaySuccessDetail {
   address: string
   chainId: number
@@ -137,6 +147,7 @@ export interface AiCreditsWidgetProps {
   onPaySuccess?: (detail: AiCreditsPaySuccessDetail) => void
   onPayError?: (detail: AiCreditsPayErrorDetail) => void
   adapterFactory?: AiCreditsWidgetAdapterFactory
+  adapterOptions?: AiCreditsWidgetAdapterOptions
   testId?: string
 }
 

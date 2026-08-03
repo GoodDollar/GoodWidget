@@ -7,6 +7,7 @@ import {
   type AiCreditsWidgetAdapterState,
   type AiCreditsWidgetStatus,
 } from '@goodwidget/ai-credits-widget'
+import { MockAiCreditsWidget } from '@goodwidget/ai-credits-widget/mocked'
 import {
   DefaultAppKitProvider,
   useAppKit,
@@ -301,7 +302,7 @@ export function MockBackendStory() {
 
   return (
     <YStack data-testid="AiCreditsWidget-mock-backend" style={{ width: 380 }}>
-      <AiCreditsWidget provider={injectedProvider} />
+      <MockAiCreditsWidget provider={injectedProvider} />
     </YStack>
   )
 }

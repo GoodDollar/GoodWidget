@@ -389,7 +389,7 @@ function StatusFilterSelect({
     <YStack flex={1} minWidth={0} position="relative" zIndex={open ? 20 : 1}>
       <XStack
         tag="button"
-        role="listbox"
+        role="combobox"
         height="$7"
         alignItems="center"
         justifyContent="space-between"

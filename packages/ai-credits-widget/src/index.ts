@@ -41,8 +41,8 @@ export type {
   GdCreditEntry,
 } from './backendClient'
 export {
-  MockAiCreditsBackendClient,
   ProductionAiCreditsBackendClient,
+  UnavailableAiCreditsBackendClient,
   createBackendClient,
   buildAccountView,
   enrichAccountView,
