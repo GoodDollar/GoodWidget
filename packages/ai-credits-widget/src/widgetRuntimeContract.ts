@@ -36,7 +36,7 @@ export interface AiCreditsWidgetAdapterState {
   isGoodIdVerified: boolean
   /** Active buyer public address (derived from `buyers` + `activeBuyerAddress`). */
   buyerPubKey: string | null
-  /** Active buyer private key – absent for address-only buyers. */
+  /** Active buyer private key – absent for deep-link buyers. */
   buyerPrvKey: string | null
   operatorConsented: boolean
   operatorAddress: string | null
@@ -60,7 +60,7 @@ export interface AiCreditsWidgetAdapterActions {
   switchChain: () => Promise<void>
   /**
    * Creates or restores the single deterministic buyer for this payer wallet.
-   * Additional buyers come from private-key import or address + operatorSignature.
+   * Additional buyers come from private-key import or NCDI deep link.
    */
   generateBuyerKey: () => Promise<void>
   /**
@@ -74,14 +74,10 @@ export interface AiCreditsWidgetAdapterActions {
    */
   importBuyerFromPrivateKey: (privateKey: string) => Promise<void>
   /**
-   * Registers a buyer address without a private key (view/consent-pairing mode).
-   * Sign-required actions will be disabled for this buyer.
-   */
-  selectBuyerByAddress: (address: string) => void
-  /**
    * Applies an NCDI deep-link buyer assignment from URL GET parameters
-   * (`buyerAddress` + `operatorSignature`). Submits the pre-signed operator
-   * approval token and starts the buy flow. Never accepts a buyer private key.
+   * (`buyerAddress` + `operatorSignature`). Registers a `deep-link` buyer,
+   * submits the pre-signed operator approval token, and starts the buy flow.
+   * Never accepts a buyer private key.
    */
   applyDeepLinkBuyer: (address: string, operatorSignature: string) => Promise<void>
   signOperatorConsent: () => Promise<void>

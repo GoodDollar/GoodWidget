@@ -229,8 +229,8 @@ test('AiCreditsWidget appkit connect wallet opens modal', async ({ page }) => {
 const MULTI_BUYER_STORY_IDS = {
   multiBuyerManage:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--multi-buyer-manage&viewMode=story',
-  addressOnlyBuyer:
-    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--address-only-buyer&viewMode=story',
+  deepLinkBuyer:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--deep-link-buyer&viewMode=story',
   multiBuyerHistory:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--multi-buyer-history&viewMode=story',
 } as const
@@ -242,7 +242,7 @@ test('AiCreditsWidget multi-buyer manage: buyer selector is visible', async ({ p
 
   await expect(root.getByText('Wallet buyer')).toBeVisible()
   await expect(root.getByText('Imported 1')).toBeVisible()
-  await expect(root.getByText(/Watch 0x1111/i)).toBeVisible()
+  await expect(root.getByText(/Partner 0x1111/i)).toBeVisible()
   await expect(root.getByRole('button', { name: /New Buyer/i })).toHaveCount(0)
   await expect(root.getByRole('button', { name: /Sign & Generate/i })).toHaveCount(0)
 
@@ -252,17 +252,18 @@ test('AiCreditsWidget multi-buyer manage: buyer selector is visible', async ({ p
   })
 })
 
-test('AiCreditsWidget address-only buyer: sign-required actions disabled', async ({ page }) => {
-  await gotoStory(page, MULTI_BUYER_STORY_IDS.addressOnlyBuyer)
-  const root = widget(page, 'AiCreditsWidget-address-only-buyer')
+test('AiCreditsWidget deep-link buyer: Sign Consent enabled via operatorSignature', async ({
+  page,
+}) => {
+  await gotoStory(page, MULTI_BUYER_STORY_IDS.deepLinkBuyer)
+  const root = widget(page, 'AiCreditsWidget-deep-link-buyer')
   await expect(root).toBeVisible()
 
-  // Sign Consent button should be disabled for address-only buyer
   const signConsentButton = root.getByRole('button', { name: /Sign Consent/i })
-  await expect(signConsentButton).toBeDisabled()
+  await expect(signConsentButton).toBeEnabled()
 
   await page.screenshot({
-    path: 'tests/widgets/ai-credits-widget/test-results/acw-16-address-only-buyer.png',
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-16-deep-link-buyer.png',
     fullPage: true,
   })
 })
@@ -272,7 +273,6 @@ test('AiCreditsWidget multi-buyer history: buyer filter dropdown is visible', as
   const root = widget(page, 'AiCreditsWidget-multi-buyer-history')
   await expect(root).toBeVisible()
 
-  // History tab should show a buyer filter that starts with "All buyers"
   await expect(root.getByText(/Buyer: All buyers/i)).toBeVisible()
 
   await page.screenshot({
@@ -281,16 +281,16 @@ test('AiCreditsWidget multi-buyer history: buyer filter dropdown is visible', as
   })
 })
 
-test('AiCreditsWidget multi-buyer: import or watch link is visible', async ({ page }) => {
+test('AiCreditsWidget multi-buyer: import buyer key link is visible', async ({ page }) => {
   await gotoStory(page, MULTI_BUYER_STORY_IDS.multiBuyerManage)
   const root = widget(page, 'AiCreditsWidget-multi-buyer-manage')
   await expect(root).toBeVisible()
 
-  // Import/watch link should always be available in the Buyer & Operator card
-  await expect(root.getByText(/Import or watch a buyer/i)).toBeVisible()
+  await expect(root.getByText(/Import a buyer key/i)).toBeVisible()
+  await expect(root.getByText(/Watch Address/i)).toHaveCount(0)
 
   await page.screenshot({
-    path: 'tests/widgets/ai-credits-widget/test-results/acw-18-import-watch-link.png',
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-18-import-key-link.png',
     fullPage: true,
   })
 })

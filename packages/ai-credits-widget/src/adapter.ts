@@ -765,64 +765,6 @@ export function useAiCreditsAdapter({
   )
 
   /**
-   * Registers a buyer address without a private key (view / consent-pairing mode).
-   * Actions that require signing will be disabled for this buyer in the UI.
-   */
-  const handleSelectBuyerByAddress = useCallback(
-    (buyerAddress: string) => {
-      if (!address) {
-        setState((prev) =>
-          withDerivedStatus(prev, { error: 'Connect your wallet before selecting a buyer address' }, true),
-        )
-        return
-      }
-
-      const trimmed = buyerAddress.trim()
-      if (!/^0x[0-9a-fA-F]{40}$/.test(trimmed)) {
-        setState((prev) =>
-          withDerivedStatus(
-            prev,
-            { error: 'Invalid buyer address format — expected 0x followed by 40 hex characters' },
-            true,
-          ),
-        )
-        return
-      }
-
-      const existingSession = patchPayerSessionFields(address)
-      const existingBuyer = existingSession.buyers.find(
-        (b) => b.address.toLowerCase() === trimmed.toLowerCase(),
-      )
-
-      const buyerRecord: BuyerRecord = existingBuyer ?? {
-        address: trimmed,
-        type: 'address-only',
-        label: `Watch ${trimmed.slice(0, 6)}…${trimmed.slice(-4)}`,
-      }
-
-      addBuyerToSession(address, buyerRecord)
-
-      const updatedSession = patchPayerSessionFields(address)
-      setState((prev) =>
-        mergeStatePreservingNonBuyTab(prev, {
-          buyerPubKey: trimmed,
-          buyerPrvKey: existingBuyer?.privateKey ?? null,
-          buyers: updatedSession.buyers,
-          activeBuyerAddress: trimmed,
-          operatorConsented: false,
-          operatorAddress: null,
-          totalCreditUsd: null,
-          withdrawableUsd: null,
-          totalGdDepositedG: null,
-          monthlyStreamG: null,
-          error: null,
-        }),
-      )
-    },
-    [address],
-  )
-
-  /**
    * Registers a buyer from an NCDI deep link and submits the pre-signed
    * operator-approval token. Never stores a buyer private key from the URL.
    */
@@ -877,7 +819,7 @@ export function useAiCreditsAdapter({
 
       const buyerRecord: BuyerRecord = {
         address: trimmedAddress,
-        type: existingBuyer?.privateKey ? existingBuyer.type : 'address-only',
+        type: existingBuyer?.privateKey ? existingBuyer.type : 'deep-link',
         ...(existingBuyer?.privateKey ? { privateKey: existingBuyer.privateKey } : {}),
         label:
           existingBuyer?.label ??
@@ -1583,7 +1525,6 @@ export function useAiCreditsAdapter({
       generateBuyerKey: handleGenerateBuyerKey,
       selectBuyer: handleSelectBuyer,
       importBuyerFromPrivateKey: handleImportBuyerFromPrivateKey,
-      selectBuyerByAddress: handleSelectBuyerByAddress,
       applyDeepLinkBuyer: handleApplyDeepLinkBuyer,
       signOperatorConsent: handleSignOperatorConsent,
       syncOperatorConsentFromChain: handleSyncOperatorConsentFromChain,
@@ -1603,7 +1544,6 @@ export function useAiCreditsAdapter({
       handleGenerateBuyerKey,
       handleSelectBuyer,
       handleImportBuyerFromPrivateKey,
-      handleSelectBuyerByAddress,
       handleApplyDeepLinkBuyer,
       handleSignOperatorConsent,
       handleSyncOperatorConsentFromChain,

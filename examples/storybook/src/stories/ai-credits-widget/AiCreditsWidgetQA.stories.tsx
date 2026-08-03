@@ -17,7 +17,7 @@ import {
   UnsupportedChainStory,
   AppKitConnectWalletStory,
   MultiBuyerManageStory,
-  AddressOnlyBuyerStory,
+  DeepLinkBuyerStory,
   MultiBuyerHistoryStory,
 } from '../helpers/aiCreditsWidgetStories'
 
@@ -94,9 +94,9 @@ export const MultiBuyerManage: Story = {
   render: () => <MultiBuyerManageStory />,
 }
 
-/** Address-only buyer: sign-required actions are disabled. */
-export const AddressOnlyBuyer: Story = {
-  render: () => <AddressOnlyBuyerStory />,
+/** Deep-link partner buyer: consent via pre-signed operatorSignature. */
+export const DeepLinkBuyer: Story = {
+  render: () => <DeepLinkBuyerStory />,
 }
 
 /** History tab with buyer filter dropdown. */

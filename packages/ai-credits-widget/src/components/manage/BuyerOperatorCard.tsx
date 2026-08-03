@@ -16,7 +16,6 @@ interface BuyerOperatorCardProps {
     | 'generateBuyerKey'
     | 'selectBuyer'
     | 'importBuyerFromPrivateKey'
-    | 'selectBuyerByAddress'
     | 'signOperatorConsent'
   >
 }
@@ -24,7 +23,7 @@ interface BuyerOperatorCardProps {
 function buyerDisplayLabel(buyer: BuyerRecord): string {
   if (buyer.label) return buyer.label
   const shortAddr = `${buyer.address.slice(0, 6)}…${buyer.address.slice(-4)}`
-  if (buyer.type === 'address-only') return `Watch ${shortAddr}`
+  if (buyer.type === 'deep-link') return `Partner ${shortAddr}`
   if (buyer.type === 'imported') return `Import ${shortAddr}`
   return 'Wallet buyer'
 }
@@ -81,9 +80,9 @@ function BuyerSelector({
                   {buyer.address.slice(0, 10)}…{buyer.address.slice(-6)}
                 </Text>
               </YStack>
-              {buyer.type === 'address-only' && (
-                <Text fontSize="$1" color="$warning" fontWeight="600">
-                  view only
+              {buyer.type === 'deep-link' && (
+                <Text fontSize="$1" color="$info" fontWeight="600">
+                  partner
                 </Text>
               )}
               {isActive && <Icon name="check" size="xs" color="primary" />}
@@ -97,70 +96,37 @@ function BuyerSelector({
 
 function BuyerImportPanel({
   onImportPrivateKey,
-  onSelectAddress,
+  onClose,
 }: {
   onImportPrivateKey: (key: string) => Promise<void>
-  onSelectAddress: (address: string) => void
+  onClose: () => void
 }) {
-  const [mode, setMode] = useState<'none' | 'private-key' | 'address'>('none')
   const [inputValue, setInputValue] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-
-  function handleCancel() {
-    setMode('none')
-    setInputValue('')
-  }
 
   async function handleSubmit() {
     if (!inputValue.trim()) return
     setIsSubmitting(true)
     try {
-      if (mode === 'private-key') {
-        await onImportPrivateKey(inputValue.trim())
-      } else {
-        onSelectAddress(inputValue.trim())
-      }
+      await onImportPrivateKey(inputValue.trim())
       setInputValue('')
-      setMode('none')
+      onClose()
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  if (mode === 'none') {
-    return (
-      <XStack gap="$1" flexWrap="wrap">
-        <Button
-          size="sm"
-          variant="outline"
-          {...compactButtonProps}
-          onPress={() => setMode('private-key')}
-        >
-          <ButtonText>Import Key</ButtonText>
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          {...compactButtonProps}
-          onPress={() => setMode('address')}
-        >
-          <ButtonText>Watch Address</ButtonText>
-        </Button>
-      </XStack>
-    )
-  }
-
   return (
     <YStack gap="$2">
       <Text fontSize="$1" secondary fontWeight="600">
-        {mode === 'private-key' ? 'Paste private key (0x…)' : 'Paste buyer address (0x…)'}
+        Paste private key (0x…)
       </Text>
       <Input
         size="sm"
         value={inputValue}
         onChangeText={setInputValue}
         placeholder="0x…"
-        secureTextEntry={mode === 'private-key'}
+        secureTextEntry
         autoFocus
       />
       <XStack gap="$1">
@@ -179,7 +145,7 @@ function BuyerImportPanel({
           variant="outline"
           {...compactButtonProps}
           disabled={isSubmitting}
-          onPress={handleCancel}
+          onPress={onClose}
         >
           <ButtonText>Cancel</ButtonText>
         </Button>
@@ -257,7 +223,7 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
       {showImport ? (
         <BuyerImportPanel
           onImportPrivateKey={actions.importBuyerFromPrivateKey}
-          onSelectAddress={actions.selectBuyerByAddress}
+          onClose={() => setShowImport(false)}
         />
       ) : (
         <Button
@@ -267,7 +233,7 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
           {...compactButtonProps}
           onPress={() => setShowImport(true)}
         >
-          <ButtonText>Import or watch a buyer…</ButtonText>
+          <ButtonText>Import a buyer key…</ButtonText>
         </Button>
       )}
 

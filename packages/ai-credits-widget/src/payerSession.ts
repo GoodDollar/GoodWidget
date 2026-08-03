@@ -1,10 +1,10 @@
 /** Indicates how a buyer identity was created or loaded. */
-export type BuyerIdentityType = 'derived' | 'imported' | 'address-only'
+export type BuyerIdentityType = 'derived' | 'imported' | 'deep-link'
 
 /** A single buyer identity stored per payer session. */
 export type BuyerRecord = {
   address: string
-  /** Present for derived/imported buyers; absent for address-only / deep-link. */
+  /** Present for derived/imported buyers; absent for deep-link buyers. */
   privateKey?: string
   type: BuyerIdentityType
   label?: string
@@ -96,7 +96,7 @@ export function addBuyerToSession(address: string, buyer: BuyerRecord): void {
           ...b,
           ...buyer,
           privateKey,
-          type: privateKey ? (buyer.privateKey ? buyer.type : b.type) : 'address-only',
+          type: privateKey ? (buyer.privateKey ? buyer.type : b.type) : buyer.type ?? b.type,
           operatorSignature: buyer.operatorSignature ?? b.operatorSignature,
         }
       })

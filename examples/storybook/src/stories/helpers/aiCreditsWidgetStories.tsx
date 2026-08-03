@@ -62,7 +62,6 @@ function createAdapterFactory(
       generateBuyerKey: async () => {},
       selectBuyer: () => {},
       importBuyerFromPrivateKey: async () => {},
-      selectBuyerByAddress: () => {},
       applyDeepLinkBuyer: async () => {},
       signOperatorConsent: async () => {},
       syncOperatorConsentFromChain: async () => {},
@@ -421,12 +420,14 @@ const BUYER_IMPORTED = {
   label: 'Imported 1',
 }
 
-const BUYER_WATCH = {
+const BUYER_PARTNER = {
   address: '0x1111111111111111111111111111111111111111' as const,
-  label: 'Watch 0x1111…1111',
+  label: 'Partner 0x1111…1111',
+  operatorSignature:
+    '0x1111111111111111111111111111111111111111111111111111111111111111222222222222222222222222222222222222222222222222222222222222222200' as const,
 }
 
-/** Multi-buyer manage: one wallet-derived buyer, one imported key, one address-only. */
+/** Multi-buyer manage: one wallet-derived buyer, one imported key, one deep-link partner. */
 export function MultiBuyerManageStory() {
   return (
     <MockStoryShell
@@ -454,7 +455,12 @@ export function MultiBuyerManageStory() {
             type: 'imported',
             label: BUYER_IMPORTED.label,
           },
-          { address: BUYER_WATCH.address, type: 'address-only', label: BUYER_WATCH.label },
+          {
+            address: BUYER_PARTNER.address,
+            type: 'deep-link',
+            label: BUYER_PARTNER.label,
+            operatorSignature: BUYER_PARTNER.operatorSignature,
+          },
         ],
         activeBuyerAddress: BUYER_WALLET.address,
       })}
@@ -462,21 +468,26 @@ export function MultiBuyerManageStory() {
   )
 }
 
-/** Address-only buyer selected: sign-required actions should be disabled. */
-export function AddressOnlyBuyerStory() {
+/** Deep-link partner buyer: consent uses pre-signed operatorSignature (no private key). */
+export function DeepLinkBuyerStory() {
   return (
     <MockStoryShell
-      dataTestId="AiCreditsWidget-address-only-buyer"
+      dataTestId="AiCreditsWidget-deep-link-buyer"
       adapterFactory={createAdapterFactory('purchase_setup', {
-        buyerPubKey: BUYER_WATCH.address,
+        buyerPubKey: BUYER_PARTNER.address,
         buyerPrvKey: null,
         operatorConsented: false,
         gBalance: '42.50',
         activeTab: 'manage',
         buyers: [
-          { address: BUYER_WATCH.address, type: 'address-only', label: BUYER_WATCH.label },
+          {
+            address: BUYER_PARTNER.address,
+            type: 'deep-link',
+            label: BUYER_PARTNER.label,
+            operatorSignature: BUYER_PARTNER.operatorSignature,
+          },
         ],
-        activeBuyerAddress: BUYER_WATCH.address,
+        activeBuyerAddress: BUYER_PARTNER.address,
       })}
     />
   )
