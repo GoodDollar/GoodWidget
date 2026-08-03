@@ -7,34 +7,20 @@ import type { CampaignMockData } from './widgetRuntimeContract'
 // rows are sourced live from the Superfluid Points API (see
 // useCampaignLeaderboard). Each pool's supDistributed/supTotal below are now
 // only a fallback: useProgramSupTotals overrides them per-pool with live
-// on-chain figures by querying the Superfluid Base subgraph when a pool address
-// is supplied through SuperfluidCampaignWidgetProps.poolAddresses. The
-// aggregate leaderboard.supDistributed/supTotal below has no live source at all
-// (no endpoint combines both pools' on-chain totals) and remains a placeholder.
+// on-chain figures when a matching Superfluid program exists for that
+// campaignId (currently true for 606/GoodDollar actions, not yet for
+// 614/Ecosystem funding actions — see change-request-4). The aggregate
+// leaderboard.supDistributed/supTotal below has no live source at all (no
+// endpoint combines both pools' on-chain totals) and remains a placeholder.
 // Consumers can still override the content fixture via
 // SuperfluidCampaignWidgetProps.data.
-//
-// pointsEventNames below are the canonical event-producer contract assumed by
-// the widget. If an existing producer uses different names, pass data with the
-// corresponding aliases instead of changing ActivityType or the icon mapping.
 // ---------------------------------------------------------------------------
-
-const POINTS_EVENT_NAMES = {
-  claimUbi: 'claimed',
-  inviteUsers: 'validInvites',
-  flowStateFunding: 'roundStreamed',
-  gardensDonation: 'opensourceSent',
-  gardensFunding: 'opensourceStreamed',
-  // TODO: Replace when the Flow State voting points producer is implemented.
-  // Keeping a distinct placeholder preserves the action and icon flow without
-  // incorrectly treating another event as proof that the user voted.
-  flowStateVote: 'flowStateVoted',
-} as const
 
 export const DEFAULT_CAMPAIGN_MOCK_DATA: CampaignMockData = {
   seasonLabel: 'SEASON 6',
   title: 'Superfluid Ecosystem Rewards',
-  description: 'Complete eligible actions across GoodDollar, Flow State, and Gardens to earn SUP rewards.',
+  description:
+    'Earn SUP by claiming G$, inviting new users, voting on Flow State to help allocate funding, and supporting GoodBuilders through Flow State and Gardens.',
   supAllocatedLabel: '622K SUP allocated',
   endsLabel: 'Ends 30 September',
   pools: [
@@ -48,31 +34,28 @@ export const DEFAULT_CAMPAIGN_MOCK_DATA: CampaignMockData = {
       actions: [
         {
           activity: 'claim-ubi',
-          pointsEventNames: [POINTS_EVENT_NAMES.claimUbi],
           title: 'Claim UBI',
           source: 'GoodDollar',
-          description: 'Claim your daily G$. Earn every time you claim.',
-          pointsLabel: '1 PT PER CLAIM',
+          description: 'Claim your daily G$. The more days you claim, the more points you earn.',
+          pointsLabel: '1 POINT PER CLAIM',
           ctaLabel: 'Claim',
           ctaKind: 'claim-widget-claim',
         },
         {
           activity: 'invite-users',
-          pointsEventNames: [POINTS_EVENT_NAMES.inviteUsers],
           title: 'Invite users',
           source: 'GoodDollar',
           description: 'Invite someone to claim G$ through GoodWallet.',
-          pointsLabel: '10 PTS PER INVITE',
+          pointsLabel: '10 POINTS PER INVITE',
           ctaLabel: 'Invite',
           ctaKind: 'claim-widget-invite',
         },
         {
           activity: 'flow-state-vote',
-          pointsEventNames: [POINTS_EVENT_NAMES.flowStateVote],
           title: 'Vote on Flow State',
           source: 'Flow State',
-          description: 'Vote to help allocate GoodBuilders Season 4 funding.',
-          pointsLabel: '5 PTS PER VOTE',
+          description: 'Vote to help decide how GoodBuilders Season 4 participants receive funding.',
+          pointsLabel: '5 POINTS PER VOTE',
           ctaLabel: 'Vote',
           ctaKind: 'external-link',
           href: 'https://flowstate.network/flow-councils/42220/0x582e3314d4ef56c18930acb10bb64313525e7820',
@@ -82,40 +65,37 @@ export const DEFAULT_CAMPAIGN_MOCK_DATA: CampaignMockData = {
     {
       id: 'ecosystem-funding-actions',
       campaignId: 614,
-      label: 'Ecosystem actions',
+      label: 'Ecosystem funding actions',
       supDistributed: 262450,
       supTotal: 404300,
       participants: 318,
       actions: [
         {
           activity: 'flow-state-funding',
-          pointsEventNames: [POINTS_EVENT_NAMES.flowStateFunding],
           title: 'Fund GoodBuilders Season 4',
           source: 'Flow State',
-          description: 'Start a stream to the GoodBuilders Season 4 pool.',
-          pointsLabel: '2 PTS PER $1 STREAMED',
+          description: 'Open a funding stream to the GoodBuilders Season 4 pool.',
+          pointsLabel: '2 POINTS PER $1 STREAMED',
           ctaLabel: 'Fund',
           ctaKind: 'external-link',
           href: 'https://flowstate.network/flow-councils/42220/0x582e3314d4ef56c18930acb10bb64313525e7820',
         },
         {
           activity: 'gardens-donation',
-          pointsEventNames: [POINTS_EVENT_NAMES.gardensDonation],
           title: 'Make a one-time donation',
           source: 'Gardens',
-          description: 'Donate to an eligible Community Pool.',
-          pointsLabel: '1 PT PER $1 DONATED',
+          description: 'Make a one-time donation to an eligible GoodBuilders Community Pool.',
+          pointsLabel: '1 POINT PER $1 DONATED',
           ctaLabel: 'Donate',
           ctaKind: 'external-link',
           href: 'https://app.gardens.fund/gardens/42220/0xf42c9ca2b10010142e2bac34ebdddb0b82177684',
         },
         {
           activity: 'gardens-funding',
-          pointsEventNames: [POINTS_EVENT_NAMES.gardensFunding],
           title: 'Stream to a Community Pool',
           source: 'Gardens',
-          description: 'Start a stream to an eligible Community Pool.',
-          pointsLabel: '2 PTS PER $1 STREAMED',
+          description: 'Open a funding stream to an eligible GoodBuilders Community Pool.',
+          pointsLabel: '2 POINTS PER $1 STREAMED',
           ctaLabel: 'Fund',
           ctaKind: 'external-link',
           href: 'https://app.gardens.fund/gardens/42220/0xf42c9ca2b10010142e2bac34ebdddb0b82177684',
@@ -142,7 +122,7 @@ export const DEFAULT_CAMPAIGN_MOCK_DATA: CampaignMockData = {
     {
       question: 'How are my SUP rewards calculated?',
       answer:
-        'Two separate reward pools: GoodDollar actions, and Ecosystem actions. Your share of each pool depends on how many points you earn compared with everyone else in that pool. Rewards from both pools are then combined.',
+        'Two separate reward pools: GoodDollar actions, and Ecosystem funding actions. Your share of each pool depends on how many points you earn compared with everyone else in that pool. Rewards from both pools are then combined.',
     },
     {
       question: 'When does an invite count as successful?',
