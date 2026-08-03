@@ -6,8 +6,9 @@ export function mapStatusToActiveStep(
   buyerPubKeySaved: boolean,
 ): AiCreditsFlowStep | null {
   if (state.operatorConsented) return 'pay'
-  if (!state.buyerPubKey || !state.buyerPrvKey) return 'buyer_key'
-  if (!buyerPubKeySaved) return 'buyer_key'
+  if (!state.buyerPubKey) return 'buyer_key'
+  if (!state.buyerPrvKey && !state.operatorSignature) return 'buyer_key'
+  if (state.buyerPrvKey && !buyerPubKeySaved) return 'buyer_key'
   if (!state.operatorConsented) return 'consent'
   if (
     state.status === 'purchase_setup' ||

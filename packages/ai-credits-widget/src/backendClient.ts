@@ -81,11 +81,14 @@ export type WithdrawPrincipalResponse = {
 export type OperatorConsentRequest = {
   nonce: string
   signature: string
+  payer: string
 }
 
 export type OperatorConsentResponse = {
   buyer: string
+  payer?: string
   bridge: BridgeResponse
+  buyers?: Array<{ address: string; consentedAt?: string }>
 }
 
 async function readBridgeResponseBody<T extends { bridge?: BridgeResponse }>(
@@ -296,6 +299,7 @@ export async function enrichAccountView(
 export interface AiCreditsBackendClient {
   getDiscountConfig(): Promise<DiscountConfig>
   getAccountCredit(payer: string): Promise<AccountCreditResponse>
+  getBuyerAddresses(payer: string): Promise<string[]>
   getCreditHistory(payer: string, options?: CreditHistoryQuery): Promise<CreditHistoryResponse>
   getOutstanding(payer: string): Promise<{ outstandingFundingUsd: string; count: number }>
   getTransactions(
@@ -362,6 +366,7 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
       bonusUsd: bigint
       transactions: GdCreditEntry[]
       rootAccount: string
+      buyers: Array<{ address: string; consentedAt: string }>
     }
   >()
 
@@ -373,6 +378,7 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
         bonusUsd: 0n,
         transactions: createDemoHistory(key),
         rootAccount: key,
+        buyers: [],
       })
     }
     return this.accountStates.get(key)!
@@ -400,6 +406,7 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
       totalGDStreamedWei: '0',
       totalOutstandingFundingUsd: outstanding.toString(),
       streamFlowRateWeiPerSecond: '0',
+      buyers: state.buyers,
     }
   }
 
@@ -410,6 +417,11 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
       account: profile.account,
       profile,
     }
+  }
+
+  async getBuyerAddresses(payer: string): Promise<string[]> {
+    await sleep(MOCK_DELAY_MS)
+    return this.getState(payer).buyers.map((buyer) => buyer.address)
   }
 
   async getCreditHistory(
@@ -527,14 +539,24 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
 
   async submitOperatorConsent(
     buyer: string,
-    _body: OperatorConsentRequest,
+    body: OperatorConsentRequest,
   ): Promise<OperatorConsentResponse> {
     await sleep(MOCK_DELAY_MS)
     const normalizedBuyer = normalizeAddress(buyer)
+    const normalizedPayer = normalizeAddress(body.payer)
     markMockOperatorConsent(normalizedBuyer)
+    const state = this.getState(normalizedPayer)
+    if (!state.buyers.some((item) => item.address === normalizedBuyer)) {
+      state.buyers = [
+        ...state.buyers,
+        { address: normalizedBuyer, consentedAt: new Date().toISOString() },
+      ]
+    }
     return {
       buyer: normalizedBuyer,
+      payer: normalizedPayer,
       bridge: { enabled: true, txHash: '0xmock' },
+      buyers: state.buyers,
     }
   }
 }
@@ -561,6 +583,15 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
     const response = await fetch(`${this.accountBase(payer)}/profile`)
     if (!response.ok) throw new Error(`Account profile request failed: ${response.status}`)
     return response.json() as Promise<AccountCreditResponse>
+  }
+
+  async getBuyerAddresses(payer: string): Promise<string[]> {
+    const response = await fetch(`${this.accountBase(payer)}/buyers`)
+    if (!response.ok) throw new Error(`Buyer list request failed: ${response.status}`)
+    const payload = (await response.json()) as { account?: string; buyers?: string[] }
+    return Array.isArray(payload.buyers)
+      ? payload.buyers.map((buyer) => normalizeAddress(buyer))
+      : []
   }
 
   async getCreditHistory(
@@ -700,12 +731,15 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
       body: JSON.stringify({
         nonce: body.nonce,
         signature: body.signature,
+        payer: normalizeAddress(body.payer),
       }),
     })
     const payload = await readBridgeResponseBody<OperatorConsentResponse>(response, 'Operator consent')
     return {
       buyer: normalizeAddress(payload.buyer ?? buyer),
+      payer: payload.payer ? normalizeAddress(payload.payer) : normalizeAddress(body.payer),
       bridge: payload.bridge,
+      buyers: payload.buyers,
     }
   }
 }
@@ -737,16 +771,16 @@ export async function buildAccountView(
   options: BuildAccountViewOptions = {},
 ): Promise<AccountView> {
   const normalizedPayer = normalizeAddress(payer)
-  const [credit, outstanding, history] = await Promise.all([
+  const [credit, outstanding] = await Promise.all([
     backend.getAccountCredit(payer),
     backend.getOutstanding(payer),
-    backend.getCreditHistory(payer, { limit: MAX_HISTORY_LIMIT, offset: 0 }),
   ])
+  const profileBuyers = (credit.profile.buyers ?? []).map((buyer) => normalizeAddress(buyer.address))
   const sessionBuyer =
     options.buyerAddress && isAddress(options.buyerAddress)
       ? normalizeAddress(options.buyerAddress)
       : null
-  const buyer = sessionBuyer ?? resolveBuyerAddress(history.items)
+  const buyer = sessionBuyer ?? profileBuyers[0] ?? null
   const [operator, withdrawableUsd] = buyer
     ? await Promise.all([
         chain.getBuyerOperatorStatus({ payer: normalizedPayer, buyer }),

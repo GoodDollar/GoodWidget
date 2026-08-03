@@ -1,6 +1,5 @@
 import type { Address } from 'viem'
 import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
-import type { BuyerRecord } from './payerSession'
 
 export type AiCreditsWidgetEnvironment = 'production' | 'staging' | 'development'
 
@@ -24,7 +23,7 @@ export interface AiCreditsQuote {
 }
 
 /** Re-export for consumers that don't want to import from payerSession directly. */
-export type { BuyerRecord }
+export type { BuyerKeyEntry } from './payerSession'
 
 export interface AiCreditsWidgetAdapterState {
   status: AiCreditsWidgetStatus
@@ -34,10 +33,12 @@ export interface AiCreditsWidgetAdapterState {
   gdUsdPerToken: number | null
   totalCreditUsd: string | null
   isGoodIdVerified: boolean
-  /** Active buyer public address (derived from `buyers` + `activeBuyerAddress`). */
+  /** Active buyer public address. */
   buyerPubKey: string | null
-  /** Active buyer private key – absent for deep-link buyers. */
+  /** Active buyer private key from the local per-payer key map. */
   buyerPrvKey: string | null
+  /** Active buyer deep-link operator signature, if present. */
+  operatorSignature: string | null
   operatorConsented: boolean
   operatorAddress: string | null
   minDepositUsd: string | null
@@ -49,8 +50,8 @@ export interface AiCreditsWidgetAdapterState {
   streamBonusPercent: number
   error: string | null
   activeTab: AiCreditsWidgetTab
-  /** All buyer identities known for the connected payer in this session. */
-  buyers: BuyerRecord[]
+  /** Backend buyer address list (plus temporary local selections not yet on backend). */
+  buyers: string[]
   /** Address of the currently selected buyer (matches `buyerPubKey`). */
   activeBuyerAddress: string | null
 }
@@ -60,22 +61,21 @@ export interface AiCreditsWidgetAdapterActions {
   switchChain: () => Promise<void>
   /**
    * Creates or restores the single deterministic buyer for this payer wallet.
-   * Additional buyers come from private-key import or NCDI deep link.
+   * If a derived key already exists locally, selects that buyer without re-signing.
    */
   generateBuyerKey: () => Promise<void>
   /**
-   * Switches the active buyer to an existing buyer in the session.
-   * The buyer must already be present in `state.buyers`.
+   * Switches the active buyer. Address should be in `state.buyers`.
    */
   selectBuyer: (address: string) => void
   /**
    * Imports a buyer identity from a hex private key string.
-   * Validates the key format before accepting.
+   * Selects it immediately even if it is not yet on the backend list.
    */
   importBuyerFromPrivateKey: (privateKey: string) => Promise<void>
   /**
    * Applies an NCDI deep-link buyer assignment from URL GET parameters
-   * (`buyerAddress` + `operatorSignature`). Registers a `deep-link` buyer,
+   * (`buyerAddress` + `operatorSignature`). Selects the buyer immediately,
    * submits the pre-signed operator approval token, and starts the buy flow.
    * Never accepts a buyer private key.
    */

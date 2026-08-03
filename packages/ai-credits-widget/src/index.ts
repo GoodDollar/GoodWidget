@@ -14,10 +14,8 @@ export type {
   AiCreditsPaySuccessDetail,
   AiCreditsPayErrorDetail,
   AiCreditsQuote,
-  BuyerRecord,
+  BuyerKeyEntry,
 } from './widgetRuntimeContract'
-
-export type { BuyerIdentityType } from './payerSession'
 
 export {
   parseDeepLinkParams,

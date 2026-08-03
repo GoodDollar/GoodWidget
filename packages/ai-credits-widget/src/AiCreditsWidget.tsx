@@ -393,7 +393,7 @@ function AiCreditsInner({
         <HistoryTab
           state={history.state}
           actions={history.actions}
-          knownBuyers={state.buyers.map((b) => ({ address: b.address, label: b.label }))}
+          knownBuyers={state.buyers.map((address) => ({ address }))}
         />
       ) : (
         buyPanel

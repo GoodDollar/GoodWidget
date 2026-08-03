@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { Button, ButtonText, Card, Heading, Icon, Input, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
 import type { AiCreditsWidgetAdapterActions, AiCreditsWidgetAdapterState } from '../../widgetRuntimeContract'
-import type { BuyerRecord } from '../../payerSession'
 import { AddressView } from '../shared/AddressView'
 import { monospaceSingleLineStyle, compactButtonProps } from '../shared/styles'
 import { useCopyFeedback } from '../shared/useCopyFeedback'
@@ -9,7 +8,13 @@ import { useCopyFeedback } from '../shared/useCopyFeedback'
 interface BuyerOperatorCardProps {
   state: Pick<
     AiCreditsWidgetAdapterState,
-    'address' | 'buyerPubKey' | 'buyerPrvKey' | 'operatorConsented' | 'buyers' | 'activeBuyerAddress'
+    | 'address'
+    | 'buyerPubKey'
+    | 'buyerPrvKey'
+    | 'operatorSignature'
+    | 'operatorConsented'
+    | 'buyers'
+    | 'activeBuyerAddress'
   >
   actions: Pick<
     AiCreditsWidgetAdapterActions,
@@ -20,12 +25,8 @@ interface BuyerOperatorCardProps {
   >
 }
 
-function buyerDisplayLabel(buyer: BuyerRecord): string {
-  if (buyer.label) return buyer.label
-  const shortAddr = `${buyer.address.slice(0, 6)}…${buyer.address.slice(-4)}`
-  if (buyer.type === 'deep-link') return `Partner ${shortAddr}`
-  if (buyer.type === 'imported') return `Import ${shortAddr}`
-  return 'Wallet buyer'
+function shortAddress(address: string): string {
+  return `${address.slice(0, 6)}…${address.slice(-4)}`
 }
 
 function BuyerSelector({
@@ -33,7 +34,7 @@ function BuyerSelector({
   activeBuyerAddress,
   onSelect,
 }: {
-  buyers: BuyerRecord[]
+  buyers: string[]
   activeBuyerAddress: string | null
   onSelect: (address: string) => void
 }) {
@@ -46,10 +47,10 @@ function BuyerSelector({
       </Text>
       <YStack gap="$1">
         {buyers.map((buyer) => {
-          const isActive = buyer.address.toLowerCase() === activeBuyerAddress?.toLowerCase()
+          const isActive = buyer.toLowerCase() === activeBuyerAddress?.toLowerCase()
           return (
             <XStack
-              key={buyer.address}
+              key={buyer}
               tag="button"
               role="option"
               alignItems="center"
@@ -64,7 +65,7 @@ function BuyerSelector({
               cursor={isActive ? 'default' : 'pointer'}
               hoverStyle={isActive ? {} : { backgroundColor: '$backgroundPress' }}
               onPress={() => {
-                if (!isActive) onSelect(buyer.address)
+                if (!isActive) onSelect(buyer)
               }}
             >
               <YStack flex={1} minWidth={0}>
@@ -73,18 +74,14 @@ function BuyerSelector({
                   fontWeight={isActive ? '700' : '500'}
                   color={isActive ? '$primary' : '$color'}
                   numberOfLines={1}
+                  style={monospaceSingleLineStyle}
                 >
-                  {buyerDisplayLabel(buyer)}
+                  {shortAddress(buyer)}
                 </Text>
                 <Text fontSize="$1" secondary numberOfLines={1} style={monospaceSingleLineStyle}>
-                  {buyer.address.slice(0, 10)}…{buyer.address.slice(-6)}
+                  {buyer.slice(0, 10)}…{buyer.slice(-6)}
                 </Text>
               </YStack>
-              {buyer.type === 'deep-link' && (
-                <Text fontSize="$1" color="$info" fontWeight="600">
-                  partner
-                </Text>
-              )}
               {isActive && <Icon name="check" size="xs" color="primary" />}
             </XStack>
           )
@@ -126,7 +123,6 @@ function BuyerImportPanel({
         value={inputValue}
         onChangeText={setInputValue}
         placeholder="0x…"
-        secureTextEntry
         autoFocus
       />
       <XStack gap="$1">
@@ -155,19 +151,22 @@ function BuyerImportPanel({
 }
 
 export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
-  const { address, buyerPubKey, buyerPrvKey, operatorConsented, buyers, activeBuyerAddress } = state
+  const {
+    address,
+    buyerPubKey,
+    buyerPrvKey,
+    operatorSignature,
+    operatorConsented,
+    buyers,
+    activeBuyerAddress,
+  } = state
   const { copied: copiedPrivate, copy: copyPrivate } = useCopyFeedback()
   const [isPrivateKeyVisible, setIsPrivateKeyVisible] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSigning, setIsSigning] = useState(false)
   const [showImport, setShowImport] = useState(false)
 
-  const activeBuyer = buyers.find(
-    (buyer) =>
-      buyer.address.toLowerCase() === (activeBuyerAddress ?? buyerPubKey ?? '').toLowerCase(),
-  )
-  const buyerCanSign = Boolean(buyerPrvKey || activeBuyer?.operatorSignature)
-  const hasDerivedBuyer = buyers.some((buyer) => buyer.type === 'derived')
+  const buyerCanSign = Boolean(buyerPrvKey || operatorSignature)
 
   return (
     <Card gap="$2">
@@ -183,22 +182,20 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
       />
 
       <XStack gap="$2" alignItems="stretch" width="100%">
-        {!hasDerivedBuyer && (
-          <Button
-            flex={1}
-            flexBasis={0}
-            minWidth={0}
-            size="sm"
-            {...compactButtonProps}
-            onPress={() => {
-              setIsGenerating(true)
-              void Promise.resolve(actions.generateBuyerKey()).finally(() => setIsGenerating(false))
-            }}
-            disabled={isGenerating}
-          >
-            <ButtonText>{isGenerating ? 'Signing…' : 'Sign & Generate'}</ButtonText>
-          </Button>
-        )}
+        <Button
+          flex={1}
+          flexBasis={0}
+          minWidth={0}
+          size="sm"
+          {...compactButtonProps}
+          onPress={() => {
+            setIsGenerating(true)
+            void Promise.resolve(actions.generateBuyerKey()).finally(() => setIsGenerating(false))
+          }}
+          disabled={isGenerating}
+        >
+          <ButtonText>{isGenerating ? 'Signing…' : 'Sign & Generate'}</ButtonText>
+        </Button>
 
         <Button
           flex={1}

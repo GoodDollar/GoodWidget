@@ -240,11 +240,10 @@ test('AiCreditsWidget multi-buyer manage: buyer selector is visible', async ({ p
   const root = widget(page, 'AiCreditsWidget-multi-buyer-manage')
   await expect(root).toBeVisible()
 
-  await expect(root.getByText('Wallet buyer')).toBeVisible()
-  await expect(root.getByText('Imported 1')).toBeVisible()
-  await expect(root.getByText(/Partner 0x1111/i)).toBeVisible()
-  await expect(root.getByRole('button', { name: /New Buyer/i })).toHaveCount(0)
-  await expect(root.getByRole('button', { name: /Sign & Generate/i })).toHaveCount(0)
+  await expect(root.getByText(/0xfc12/i)).toBeVisible()
+  await expect(root.getByText(/0xAbcD|0xabcd/i)).toBeVisible()
+  await expect(root.getByText(/0x1111/i)).toBeVisible()
+  await expect(root.getByRole('button', { name: /Sign & Generate/i })).toBeVisible()
 
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-15-multi-buyer-manage.png',

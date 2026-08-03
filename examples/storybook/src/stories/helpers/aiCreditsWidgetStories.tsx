@@ -33,6 +33,7 @@ function createMockState(
     isGoodIdVerified: false,
     buyerPubKey: null,
     buyerPrvKey: null,
+    operatorSignature: null,
     operatorConsented: false,
     operatorAddress: null,
     minDepositUsd: '1.00',
@@ -411,23 +412,20 @@ export function InjectedWalletStory() {
 const BUYER_WALLET = {
   address: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a' as const,
   privateKey: '0x0000000000000000000000000000000000000000000000000000000000000001' as const,
-  label: 'Wallet buyer',
 }
 
 const BUYER_IMPORTED = {
   address: '0xAbcDef1234567890AbcDef1234567890AbcDef12' as const,
   privateKey: '0x0000000000000000000000000000000000000000000000000000000000000002' as const,
-  label: 'Imported 1',
 }
 
 const BUYER_PARTNER = {
   address: '0x1111111111111111111111111111111111111111' as const,
-  label: 'Partner 0x1111…1111',
   operatorSignature:
     '0x1111111111111111111111111111111111111111111111111111111111111111222222222222222222222222222222222222222222222222222222222222222200' as const,
 }
 
-/** Multi-buyer manage: one wallet-derived buyer, one imported key, one deep-link partner. */
+/** Multi-buyer manage: backend address list with one selected buyer that has a local key. */
 export function MultiBuyerManageStory() {
   return (
     <MockStoryShell
@@ -442,26 +440,7 @@ export function MultiBuyerManageStory() {
         monthlyStreamG: '5.00',
         gBalance: '42.50',
         activeTab: 'manage',
-        buyers: [
-          {
-            address: BUYER_WALLET.address,
-            privateKey: BUYER_WALLET.privateKey,
-            type: 'derived',
-            label: BUYER_WALLET.label,
-          },
-          {
-            address: BUYER_IMPORTED.address,
-            privateKey: BUYER_IMPORTED.privateKey,
-            type: 'imported',
-            label: BUYER_IMPORTED.label,
-          },
-          {
-            address: BUYER_PARTNER.address,
-            type: 'deep-link',
-            label: BUYER_PARTNER.label,
-            operatorSignature: BUYER_PARTNER.operatorSignature,
-          },
-        ],
+        buyers: [BUYER_WALLET.address, BUYER_IMPORTED.address, BUYER_PARTNER.address],
         activeBuyerAddress: BUYER_WALLET.address,
       })}
     />
@@ -476,17 +455,11 @@ export function DeepLinkBuyerStory() {
       adapterFactory={createAdapterFactory('purchase_setup', {
         buyerPubKey: BUYER_PARTNER.address,
         buyerPrvKey: null,
+        operatorSignature: BUYER_PARTNER.operatorSignature,
         operatorConsented: false,
         gBalance: '42.50',
         activeTab: 'manage',
-        buyers: [
-          {
-            address: BUYER_PARTNER.address,
-            type: 'deep-link',
-            label: BUYER_PARTNER.label,
-            operatorSignature: BUYER_PARTNER.operatorSignature,
-          },
-        ],
+        buyers: [BUYER_PARTNER.address],
         activeBuyerAddress: BUYER_PARTNER.address,
       })}
     />
@@ -505,20 +478,7 @@ export function MultiBuyerHistoryStory() {
         operatorConsented: true,
         gBalance: '42.50',
         activeTab: 'history',
-        buyers: [
-          {
-            address: BUYER_WALLET.address,
-            privateKey: BUYER_WALLET.privateKey,
-            type: 'derived',
-            label: BUYER_WALLET.label,
-          },
-          {
-            address: BUYER_IMPORTED.address,
-            privateKey: BUYER_IMPORTED.privateKey,
-            type: 'imported',
-            label: BUYER_IMPORTED.label,
-          },
-        ],
+        buyers: [BUYER_WALLET.address, BUYER_IMPORTED.address],
         activeBuyerAddress: BUYER_WALLET.address,
       })}
     />

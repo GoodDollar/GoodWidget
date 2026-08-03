@@ -5,6 +5,7 @@ import { truncateAddress, compactButtonProps } from '../shared/styles'
 interface OperatorConsentStepProps {
   buyerPubKey: string | null
   buyerPrvKey: string | null
+  operatorSignature?: string | null
   operatorConsented: boolean
   onSign: () => Promise<void>
   embedded?: boolean
@@ -13,12 +14,13 @@ interface OperatorConsentStepProps {
 export function OperatorConsentStep({
   buyerPubKey,
   buyerPrvKey,
+  operatorSignature = null,
   operatorConsented,
   onSign,
   embedded = false,
 }: OperatorConsentStepProps) {
   const [isSigning, setIsSigning] = useState(false)
-  const canSign = Boolean(buyerPubKey && buyerPrvKey)
+  const canSign = Boolean(buyerPubKey && (buyerPrvKey || operatorSignature))
 
   const Shell = embedded ? YStack : Card
 
