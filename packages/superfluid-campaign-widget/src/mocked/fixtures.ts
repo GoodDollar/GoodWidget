@@ -1,21 +1,17 @@
-import type { AirdropStatusAdapter } from '../hooks/useAirdropStatus'
 import type { CampaignLeaderboardAdapter } from '../hooks/useCampaignLeaderboard'
 import type { ProgramSupTotalsAdapter } from '../hooks/useProgramSupTotals'
 import { DEFAULT_CAMPAIGN_DEFINITION } from '../campaignDefinition'
 import type { CampaignDefinition, LeaderboardSummaryData } from '../widgetRuntimeContract'
 
-export type MockAirdropStatusScenario = 'loading' | 'requestFailed' | 'notWhitelisted' | 'eligible'
 export type MockLeaderboardScenario = 'populated' | 'empty' | 'loading' | 'requestFailed'
 export type MockProgramSupTotalsScenario = 'populated' | 'noProgram' | 'loading' | 'requestFailed'
 
 export interface MockSuperfluidCampaignScenario {
-  airdropStatus: MockAirdropStatusScenario
   leaderboard: MockLeaderboardScenario
   programSupTotals: MockProgramSupTotalsScenario
 }
 
 export const DEFAULT_MOCK_SUPERFLUID_CAMPAIGN_SCENARIO: MockSuperfluidCampaignScenario = {
-  airdropStatus: 'notWhitelisted',
   leaderboard: 'populated',
   programSupTotals: 'populated',
 }
@@ -31,31 +27,6 @@ export const MOCK_CAMPAIGN_DEFINITION: CampaignDefinition = {
   ...DEFAULT_CAMPAIGN_DEFINITION,
   supAllocatedLabel: '622K SUP allocated',
 }
-
-/**
- * Every real airdrop-status response sampled against the live endpoint so far
- * came back "not whitelisted" (see useAirdropStatus.ts) — that shape is the
- * default. The loading/error/eligible variants exercise UI states and are not
- * assertions that those exact responses have been observed live.
- */
-const AIRDROP_STATUS_FIXTURES = {
-  loading: { status: null, isLoading: true, error: null },
-  requestFailed: {
-    status: null,
-    isLoading: false,
-    error: 'Airdrop status request failed (500)',
-  },
-  notWhitelisted: {
-    status: { error: 'not whitelisted', walletData: { claims: '0', invites: '1000' } },
-    isLoading: false,
-    error: null,
-  },
-  eligible: {
-    status: { walletData: { claims: '3', invites: '1000' } },
-    isLoading: false,
-    error: null,
-  },
-} satisfies Record<MockAirdropStatusScenario, ReturnType<AirdropStatusAdapter>>
 
 /**
  * Fixed campaign-leaderboard pages keyed by campaignId, shaped like the live
@@ -157,12 +128,6 @@ const SUP_TOTALS_FIXTURES: Record<
 > = {
   606: { totalAllocated: 217700, totalClaimed: 128940, totalMembers: 712 },
   614: { totalAllocated: 404300, totalClaimed: 262450, totalMembers: 318 },
-}
-
-export function createMockAirdropStatusAdapter(
-  scenario: MockAirdropStatusScenario,
-): AirdropStatusAdapter {
-  return () => AIRDROP_STATUS_FIXTURES[scenario]
 }
 
 /** Named leaderboard scenarios exercised by Storybook and Playwright. */

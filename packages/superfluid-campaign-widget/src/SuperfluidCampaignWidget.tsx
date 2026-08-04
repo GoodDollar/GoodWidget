@@ -8,7 +8,6 @@ import { FaqAccordion } from './components/FaqAccordion'
 import { LeaderboardSummary } from './components/LeaderboardSummary'
 import { LeaderboardView } from './components/LeaderboardView'
 import { RewardPoolSection } from './components/RewardPoolSection'
-import { useAirdropStatus } from './hooks/useAirdropStatus'
 import { DEFAULT_CAMPAIGN_DEFINITION } from './campaignDefinition'
 import {
   PRODUCTION_SUPERFLUID_CAMPAIGN_DATA_CLIENT,
@@ -16,16 +15,19 @@ import {
 } from './dataClient'
 import type {
   CampaignActionDefinition,
+  CampaignActionLinkOverrides,
+  CampaignDefinition,
   LeaderboardSummaryData,
   SuperfluidCampaignView,
   SuperfluidCampaignWidgetProps,
 } from './widgetRuntimeContract'
 
-/** Which embedded CitizenClaimWidget tab (if any) is currently open as a CTA overlay. */
-type EmbeddedClaimTab = 'claim' | 'invite-rewards' | null
+/** The claim widget is an in-place view within the Superfluid campaign shell. */
+type EmbeddedClaimTab = 'claim' | null
 
 interface SuperfluidCampaignRuntimeProps {
   data: SuperfluidCampaignWidgetProps['data']
+  actionLinks?: CampaignActionLinkOverrides
   leaderboardSummary?: LeaderboardSummaryData
   dataClient: SuperfluidCampaignDataClient
   citizenClaimEnvironment: SuperfluidCampaignWidgetProps['citizenClaimEnvironment']
@@ -41,8 +43,7 @@ interface SuperfluidCampaignRuntimeProps {
 
 /**
  * Routes a CampaignActionDefinition CTA press to its handler:
- *   - claim-widget-claim / claim-widget-invite → open the embedded CitizenClaimWidget
- *     on the matching tab
+ *   - claim-widget-claim → open the embedded CitizenClaimWidget
  *   - external-link → open the Flow State / Gardens URL in a new tab, mirroring the
  *     window.open(url, '_blank', 'noopener,noreferrer') pattern already used for
  *     external verification links in citizen-claim-widget/ai-credits-widget
@@ -56,7 +57,11 @@ function handleActionCta(
       openClaimTab('claim')
       return
     case 'claim-widget-invite':
-      openClaimTab('invite-rewards')
+      window.open(
+        action.href ?? 'https://goodwallet.xyz/en/gooddollar',
+        '_blank',
+        'noopener,noreferrer',
+      )
       return
     case 'external-link':
       if (action.href) {
@@ -66,8 +71,27 @@ function handleActionCta(
   }
 }
 
+function applyActionLinkOverrides(
+  campaign: CampaignDefinition,
+  actionLinks?: CampaignActionLinkOverrides,
+): CampaignDefinition {
+  if (!actionLinks) return campaign
+
+  return {
+    ...campaign,
+    pools: campaign.pools.map((pool) => ({
+      ...pool,
+      actions: pool.actions.map((action) => {
+        const href = actionLinks[action.activity]
+        return href && action.ctaKind !== 'claim-widget-claim' ? { ...action, href } : action
+      }),
+    })),
+  }
+}
+
 function SuperfluidCampaignRuntime({
   data,
+  actionLinks,
   leaderboardSummary,
   dataClient,
   citizenClaimEnvironment,
@@ -83,19 +107,21 @@ function SuperfluidCampaignRuntime({
   const [view, setView] = useState<SuperfluidCampaignView>(initialView)
   const [embeddedClaimTab, setEmbeddedClaimTab] = useState<EmbeddedClaimTab>(null)
 
-  // Keyed on `address` alone (see useAirdropStatus) so this fires on connect, on
-  // load when already connected, and on address change — not on every render.
   const isMockRuntime = dataClient.kind === 'mock'
-  const airdropStatus = useAirdropStatus(
-    address,
-    isMockRuntime ? dataClient.airdropStatus : undefined,
-  )
 
-  const campaignData = data ?? DEFAULT_CAMPAIGN_DEFINITION
+  const campaignData = applyActionLinkOverrides(data ?? DEFAULT_CAMPAIGN_DEFINITION, actionLinks)
 
   if (embeddedClaimTab) {
     return (
-      <YStack gap="$3" width="100%">
+      <YStack gap="$5" width="100%" padding="$5" style={{ boxSizing: 'border-box' }}>
+        <CampaignHeader
+          data={campaignData}
+          address={address}
+          isConnected={isConnected}
+          onConnect={connect}
+          onDisconnect={hasDisconnectOverride ? disconnect : undefined}
+          onClose={() => setEmbeddedClaimTab(null)}
+        />
         <CitizenClaimWidget
           provider={provider}
           config={config}
@@ -104,15 +130,6 @@ function SuperfluidCampaignRuntime({
           environment={citizenClaimEnvironment}
           initialTab={embeddedClaimTab}
         />
-        <Text
-          variant="caption"
-          tone="secondary"
-          center
-          onPress={() => setEmbeddedClaimTab(null)}
-          cursor="pointer"
-        >
-          Back to campaign
-        </Text>
       </YStack>
     )
   }
@@ -128,7 +145,6 @@ function SuperfluidCampaignRuntime({
         onConnect={connect}
         onDisconnect={hasDisconnectOverride ? disconnect : undefined}
         onClose={() => setView('content')}
-        airdropStatus={airdropStatus}
       />
     )
   }
@@ -189,7 +205,9 @@ export function SuperfluidCampaignWidgetWithClient({
   themeOverrides,
   config,
   defaultTheme = 'dark',
+  contentMaxWidth,
   data,
+  actionLinks,
   citizenClaimEnvironment = 'production',
   initialView = 'content',
   poolAddresses,
@@ -204,10 +222,12 @@ export function SuperfluidCampaignWidgetWithClient({
       config={config}
       themeOverrides={themeOverrides}
       defaultTheme={defaultTheme}
+      contentMaxWidth={contentMaxWidth}
     >
       <Card padding={0} backgroundColor="$backgroundDark" width="100%">
         <SuperfluidCampaignRuntime
           data={data}
+          actionLinks={actionLinks}
           leaderboardSummary={leaderboardSummary}
           dataClient={dataClient}
           citizenClaimEnvironment={citizenClaimEnvironment}

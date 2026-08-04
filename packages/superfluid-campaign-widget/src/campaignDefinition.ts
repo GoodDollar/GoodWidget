@@ -24,7 +24,7 @@ const POINTS_EVENT_NAMES = {
   // TODO: Replace when the Flow State voting points producer is implemented.
   // Keeping a distinct placeholder preserves the action and icon flow without
   // incorrectly treating another event as proof that the user voted.
-  flowStateVote: 'flowStateVoted',
+  flowStateVote: 'roundVotes',
 } as const
 
 export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
@@ -57,7 +57,8 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
           description: 'Invite someone to claim G$ through GoodWallet.',
           pointsLabel: '10 PTS PER INVITE',
           ctaLabel: 'Invite',
-          ctaKind: 'claim-widget-invite',
+          ctaKind: 'external-link',
+          href: 'https://goodwallet.xyz/en/gooddollar',
         },
         {
           activity: 'flow-state-vote',

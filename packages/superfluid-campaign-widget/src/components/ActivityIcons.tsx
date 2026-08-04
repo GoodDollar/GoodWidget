@@ -7,6 +7,8 @@ import { ACTIVITY_ICON_COMPONENT, resolveActivityIconColorToken } from './activi
 interface ActivityIconsProps {
   /** Activities the row's owner has completed — drives the done/not-done glyph state. */
   completedActivities: ActivityType[]
+  /** Only show the activities configured for the currently selected campaign. */
+  activities: ActivityType[]
   size?: 'xs' | 'sm'
 }
 
@@ -14,17 +16,18 @@ interface ActivityIconsProps {
 const ICON_PX: Record<'xs' | 'sm', number> = { xs: 16, sm: 20 }
 
 /**
- * Renders the six fixed activity glyphs (order matches ACTIVITY_ICON_MAP)
- * for a leaderboard row, dimming any activity absent from completedActivities.
+ * Renders the selected campaign's activity glyphs in campaign-definition order,
+ * dimming any activity absent from completedActivities.
  * Desktop keeps all six inline; below $gtMd they wrap to a second line
  * within the cell instead of truncating (see LeaderboardRow's cell wrapper).
  */
-export function ActivityIcons({ completedActivities, size = 'sm' }: ActivityIconsProps) {
+export function ActivityIcons({ completedActivities, activities, size = 'sm' }: ActivityIconsProps) {
   const completedSet = new Set(completedActivities)
 
   return (
     <XStack gap="$2" flexWrap="wrap" alignItems="center">
-      {Object.values(ACTIVITY_ICON_MAP).map((spec) => {
+      {activities.map((activity) => {
+        const spec = ACTIVITY_ICON_MAP[activity]
         const isDone = completedSet.has(spec.activity)
         const ActivityIconComponent = ACTIVITY_ICON_COMPONENT[spec.activity]
         const color = resolveActivityIconColorToken(spec.colorVariant, isDone)

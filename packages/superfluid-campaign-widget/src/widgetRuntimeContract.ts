@@ -83,9 +83,10 @@ export type CampaignPoolId = 'good-dollar-actions' | 'ecosystem-funding-actions'
 export type CampaignPoolAddresses = Partial<Record<number, Address>>
 
 /**
- * How an action card's CTA is handled. The claim-widget variants embed
- * CitizenClaimWidget with initialTab set; external-link opens the Flow
- * State / Gardens URL from #127 in a new tab.
+ * How an action card's CTA is handled. Claim embeds CitizenClaimWidget;
+ * external-link opens the configured destination in a new tab. The invite
+ * variant remains for backwards-compatible custom definitions and redirects
+ * to GoodWallet rather than embedding the unfinished invite flow.
  */
 export type CampaignActionCtaKind = 'claim-widget-claim' | 'claim-widget-invite' | 'external-link'
 
@@ -154,6 +155,12 @@ export interface CampaignDefinition {
   faq: FaqItemDefinition[]
 }
 
+/**
+ * Integrator-specific destinations for action cards. These are applied only to
+ * actions that open a link; omitted keys keep the campaign definition's URL.
+ */
+export type CampaignActionLinkOverrides = Partial<Record<ActivityType, string>>
+
 // ---------------------------------------------------------------------------
 // Public component props
 // ---------------------------------------------------------------------------
@@ -167,13 +174,21 @@ export interface SuperfluidCampaignWidgetProps {
   themeOverrides?: GoodWidgetThemeOverrides
   config?: GoodWidgetConfig
   defaultTheme?: 'light' | 'dark'
+  /** Optional wider desktop content cap; mobile remains capped at 480px. */
+  contentMaxWidth?: number
   /**
    * Overrides the built-in campaign definition. This is stable campaign
    * configuration (copy, actions, identifiers, links and event-name aliases),
    * never changing runtime totals or leaderboard results.
    */
   data?: CampaignDefinition
-  /** Passed through to the embedded CitizenClaimWidget for Claim/Invite CTAs. */
+  /**
+   * Replaces the destination of link-based action cards (for example, to add
+   * integration-specific UTM parameters). Built-in campaign URLs remain the
+   * default for every omitted action.
+   */
+  actionLinks?: CampaignActionLinkOverrides
+  /** Passed through to the embedded CitizenClaimWidget for the Claim CTA. */
   citizenClaimEnvironment?: CitizenClaimWidgetEnvironment
   /**
    * View shown on first render. Defaults to 'content'. Lets Storybook fixtures

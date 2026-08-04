@@ -11,14 +11,6 @@ const STORY_IDS = {
     '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--custodial-local-fixture-content&viewMode=story',
   custodialLeaderboard:
     '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--custodial-local-fixture-leaderboard&viewMode=story',
-  airdropStatusLoading:
-    '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--airdrop-status-loading&viewMode=story',
-  airdropStatusRequestFailed:
-    '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--airdrop-status-request-failed&viewMode=story',
-  airdropStatusNotWhitelisted:
-    '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--airdrop-status-not-whitelisted&viewMode=story',
-  airdropStatusEligible:
-    '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--airdrop-status-eligible&viewMode=story',
   leaderboardLoading:
     '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--leaderboard-loading&viewMode=story',
   leaderboardRequestFailed:
@@ -62,8 +54,7 @@ test('SuperfluidCampaignWidget QA runtime makes no production data requests', as
     const url = request.url()
     if (
       url.startsWith('https://claim.superfluid.org/api/programs') ||
-      url.startsWith('https://cms.superfluid.pro/points') ||
-      url.startsWith('https://superfluid-airdrop.goodworker.workers.dev/')
+      url.startsWith('https://cms.superfluid.pro/points')
     ) {
       productionRequests.push(url)
     }
@@ -102,6 +93,11 @@ test('SuperfluidCampaignWidget renders disconnected leaderboard view', async ({ 
   // visible for public leaderboard rows.
   await expect(page.getByLabel('Claim UBI: done').first()).toBeVisible()
   await expect(page.getByLabel('Successful invite: done').first()).toBeVisible()
+  await expect(page.getByText('Rank', { exact: true })).toBeVisible()
+  await expect(page.getByText('Address', { exact: true })).toBeVisible()
+  await expect(page.getByText('Points', { exact: true })).toBeVisible()
+  await expect(page.getByText('Actions', { exact: true })).toBeVisible()
+  await expect(page.getByLabel('Gardens one-time donation: not done')).not.toBeVisible()
 
   await page.screenshot({
     path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-02-no-wallet-leaderboard.png',
@@ -132,6 +128,7 @@ test('SuperfluidCampaignWidget renders connected leaderboard view', async ({ pag
 
   await expect(page.getByText('Leaderboard')).toBeVisible()
   await expect(page.getByText(GOOD_DOLLAR_ACTIONS_TOP_ADDRESS)).toBeVisible()
+  await expect(page.getByText('Airdrop status', { exact: true })).not.toBeVisible()
 
   await page.screenshot({
     path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-04-custodial-leaderboard.png',
@@ -201,6 +198,25 @@ test('SuperfluidCampaignWidget mobile layout (480px)', async ({ page }) => {
   })
 })
 
+test('SuperfluidCampaignWidget mobile leaderboard keeps its headers and scrolls horizontally', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 480, height: 900 })
+  await gotoStory(page, STORY_IDS.noWalletLeaderboard)
+
+  await expect(page.getByText('Rank', { exact: true })).toBeVisible()
+  await expect(page.getByText('Address', { exact: true })).toBeVisible()
+  await expect(page.getByText('Points', { exact: true })).toBeVisible()
+  await expect(page.getByText('Actions', { exact: true })).toBeVisible()
+  await expect(page.getByTestId('LeaderboardRow-1')).toHaveCSS('flex-direction', 'row')
+
+  const scrollMetrics = await page.getByTestId('Leaderboard-table-scroll').evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+  }))
+  expect(scrollMetrics.scrollWidth).toBeGreaterThan(scrollMetrics.clientWidth)
+})
+
 test('SuperfluidCampaignWidget wide layout (900px)', async ({ page }) => {
   await page.setViewportSize({ width: 900, height: 900 })
   await gotoStory(page, STORY_IDS.noWalletContent)
@@ -229,55 +245,6 @@ test('SuperfluidCampaignWidget Claim SUP rewards CTA opens claim.superfluid.org 
 
   await page.screenshot({
     path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-09-claim-cta.png',
-    fullPage: true,
-  })
-})
-
-test('SuperfluidCampaignWidget airdrop status: loading', async ({ page }) => {
-  await gotoStory(page, STORY_IDS.airdropStatusLoading)
-
-  await expect(page.getByText('Airdrop status', { exact: true })).toBeVisible()
-  await expect(page.getByText('Checking your Superfluid airdrop status...')).toBeVisible()
-
-  await page.screenshot({
-    path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-10-airdrop-status-loading.png',
-    fullPage: true,
-  })
-})
-
-test('SuperfluidCampaignWidget airdrop status: request failed', async ({ page }) => {
-  await gotoStory(page, STORY_IDS.airdropStatusRequestFailed)
-
-  await expect(page.getByText('Airdrop status', { exact: true })).toBeVisible()
-  await expect(page.getByText('Airdrop status request failed (500)')).toBeVisible()
-
-  await page.screenshot({
-    path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-11-airdrop-status-request-failed.png',
-    fullPage: true,
-  })
-})
-
-test('SuperfluidCampaignWidget airdrop status: not whitelisted', async ({ page }) => {
-  await gotoStory(page, STORY_IDS.airdropStatusNotWhitelisted)
-
-  await expect(page.getByText('Not yet whitelisted for the SUP airdrop.')).toBeVisible()
-  await expect(page.getByText('Claims: 0')).toBeVisible()
-  await expect(page.getByText('Invites: 1000')).toBeVisible()
-
-  await page.screenshot({
-    path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-12-airdrop-status-not-whitelisted.png',
-    fullPage: true,
-  })
-})
-
-test('SuperfluidCampaignWidget airdrop status: eligible', async ({ page }) => {
-  await gotoStory(page, STORY_IDS.airdropStatusEligible)
-
-  await expect(page.getByText('Eligible for the SUP airdrop.')).toBeVisible()
-  await expect(page.getByText('Claims: 3')).toBeVisible()
-
-  await page.screenshot({
-    path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-13-airdrop-status-eligible.png',
     fullPage: true,
   })
 })
@@ -329,6 +296,31 @@ test("SuperfluidCampaignWidget campaign leaderboard: switching tabs shows each c
     path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-16-leaderboard-tab-switch.png',
     fullPage: true,
   })
+})
+
+test('SuperfluidCampaignWidget leaderboard addresses link to the Base Superfluid Explorer', async ({
+  page,
+}) => {
+  await gotoStory(page, STORY_IDS.noWalletLeaderboard)
+
+  await expect(page.getByRole('link', { name: GOOD_DOLLAR_ACTIONS_TOP_ADDRESS })).toHaveAttribute(
+    'href',
+    'https://explorer.superfluid.org/base-mainnet/accounts/0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b',
+  )
+})
+
+test('SuperfluidCampaignWidget leaderboard only shows actions for the selected campaign', async ({
+  page,
+}) => {
+  await gotoStory(page, STORY_IDS.leaderboardPopulated)
+
+  await expect(page.getByLabel('Claim UBI: done').first()).toBeVisible()
+  await expect(page.getByLabel('Gardens funding stream: not done')).not.toBeVisible()
+
+  await page.getByText('Ecosystem actions').click()
+
+  await expect(page.getByLabel('Gardens funding stream: done').first()).toBeVisible()
+  await expect(page.getByLabel('Claim UBI: not done')).not.toBeVisible()
 })
 
 test('SuperfluidCampaignWidget enriches a leaderboard page from per-account point events', async ({
@@ -515,6 +507,33 @@ test('SuperfluidCampaignWidget clicking the CTA button directly does not double-
   expect(context.pages().length).toBe(pagesBefore + 1)
   expect(newPage.url()).toContain('flowstate.network')
   await newPage.close()
+})
+
+test('SuperfluidCampaignWidget claim keeps the Superfluid header and can be closed', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.noWalletContent)
+
+  await page.getByTestId('ActionCard-layout-claim-ubi').getByText('Claim', { exact: true }).click()
+
+  await expect(page.getByText('Superfluid Ecosystem Rewards')).toBeVisible()
+  const closeButton = page.getByLabel('Close claim widget')
+  await expect(closeButton).toBeVisible()
+  await closeButton.click()
+
+  await expect(page.getByTestId('ActionCard-layout-claim-ubi')).toBeVisible()
+})
+
+test('SuperfluidCampaignWidget invite opens GoodWallet instead of the Citizen Claim widget', async ({
+  page,
+  context,
+}) => {
+  await gotoStory(page, STORY_IDS.noWalletContent)
+
+  const inviteCard = page.getByTestId('ActionCard-layout-invite-users')
+  const [newPage] = await Promise.all([context.waitForEvent('page'), inviteCard.click()])
+  await newPage.waitForLoadState('domcontentloaded').catch(() => {})
+  expect(newPage.url()).toContain('goodwallet.xyz/en/gooddollar')
+  await newPage.close()
+  await expect(page.getByLabel('Close claim widget')).not.toBeVisible()
 })
 
 // Narrow-viewport regression suite for the header "Connect wallet" CTA, covering

@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { MockSuperfluidCampaignWidget } from '@goodwidget/superfluid-campaign-widget/mocked'
 import {
-  CustodialAirdropStatusStory,
   CustodialLocalFixtureStory,
   NoWalletLeaderboardStory,
   NoWalletStory,
@@ -32,24 +31,6 @@ export const CustodialLocalFixtureContent: Story = {
 
 export const CustodialLocalFixtureLeaderboard: Story = {
   render: () => <CustodialLocalFixtureStory initialView="leaderboard" />,
-}
-
-// Airdrop-status card states — each fixes the live endpoint's response via
-// the mocked airdrop source so the leaderboard screenshot is deterministic.
-export const AirdropStatusLoading: Story = {
-  render: () => <CustodialAirdropStatusStory scenario="loading" />,
-}
-
-export const AirdropStatusRequestFailed: Story = {
-  render: () => <CustodialAirdropStatusStory scenario="requestFailed" />,
-}
-
-export const AirdropStatusNotWhitelisted: Story = {
-  render: () => <CustodialAirdropStatusStory scenario="notWhitelisted" />,
-}
-
-export const AirdropStatusEligible: Story = {
-  render: () => <CustodialAirdropStatusStory scenario="eligible" />,
 }
 
 // Campaign leaderboard states — each fixes the Points API response via

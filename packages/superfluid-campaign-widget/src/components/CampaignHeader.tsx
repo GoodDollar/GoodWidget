@@ -1,5 +1,5 @@
 import React from 'react'
-import { Badge, BadgeText, Button, ButtonText, Heading, Text, XStack, YStack } from '@goodwidget/ui'
+import { Badge, BadgeText, Button, ButtonText, Heading, Icon, Text, XStack, YStack } from '@goodwidget/ui'
 import type { CampaignDefinition } from '../widgetRuntimeContract'
 import { ConnectWalletPrompt } from './ConnectWalletPrompt'
 import { compactButtonProps } from './shared/styles'
@@ -17,6 +17,8 @@ interface CampaignHeaderProps {
   isConnected: boolean
   onConnect: () => void
   onDisconnect?: () => Promise<void>
+  /** Present when the campaign shell is showing an in-place child widget. */
+  onClose?: () => void
 }
 
 /**
@@ -24,8 +26,9 @@ interface CampaignHeaderProps {
  * title, description, and configured campaign-info pills. The top-right slot shows the
  * "Connect wallet" CTA while disconnected, per #127 follow-up, and the same
  * WalletChip (status dot + truncated address + dropdown chevron, opening a
- * Disconnect menu) used on LeaderboardView's header once connected — there
- * is no close affordance here since this screen has nothing to close.
+ * Disconnect menu) used on LeaderboardView's header once connected. An
+ * optional close affordance is supplied when this header frames an in-place
+ * child widget, such as the Citizen Claim flow.
  */
 export function CampaignHeader({
   data,
@@ -33,6 +36,7 @@ export function CampaignHeader({
   isConnected,
   onConnect,
   onDisconnect,
+  onClose,
 }: CampaignHeaderProps) {
   return (
     <YStack gap="$4" width="100%">
@@ -54,11 +58,25 @@ export function CampaignHeader({
           </Badge>
         </XStack>
 
-        {isConnected ? (
-          <WalletChip address={address} onDisconnect={onDisconnect} />
-        ) : (
-          <ConnectWalletPrompt onConnect={onConnect} />
-        )}
+        <XStack gap="$2" alignItems="center">
+          {isConnected ? (
+            <WalletChip address={address} onDisconnect={onDisconnect} />
+          ) : (
+            <ConnectWalletPrompt onConnect={onConnect} />
+          )}
+          {onClose && (
+            <Button
+              size="sm"
+              {...compactButtonProps}
+              variant="ghost"
+              iconSize="sm"
+              onPress={onClose}
+              aria-label="Close claim widget"
+            >
+              <Icon name="x" size="sm" />
+            </Button>
+          )}
+        </XStack>
       </XStack>
 
       <YStack gap="$2">

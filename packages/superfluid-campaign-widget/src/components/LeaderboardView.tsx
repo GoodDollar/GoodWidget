@@ -13,7 +13,6 @@ import {
   XStack,
   YStack,
 } from '@goodwidget/ui'
-import type { AirdropStatus } from '../hooks/useAirdropStatus'
 import type {
   CampaignLeaderboardAdapter,
   CampaignPointsAccount,
@@ -21,7 +20,7 @@ import type {
 } from '../hooks/useCampaignLeaderboard'
 import { useCampaignLeaderboard } from '../hooks/useCampaignLeaderboard'
 import type { CampaignPoolDefinition, LeaderboardEntry } from '../widgetRuntimeContract'
-import { LeaderboardRow } from './LeaderboardRow'
+import { LEADERBOARD_COLUMN_WIDTHS, LeaderboardRow } from './LeaderboardRow'
 import { compactButtonProps, truncateAddress } from './shared/styles'
 import { WalletChip } from './shared/WalletChip'
 
@@ -36,7 +35,6 @@ interface LeaderboardViewProps {
   onConnect: () => void
   onDisconnect?: () => Promise<void>
   onClose: () => void
-  airdropStatus: { status: AirdropStatus | null; isLoading: boolean; error: string | null }
 }
 
 /**
@@ -78,7 +76,6 @@ export function LeaderboardView({
   onConnect,
   onDisconnect,
   onClose,
-  airdropStatus,
 }: LeaderboardViewProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCampaignTab, setActiveCampaignTab] = useState<string>(pools[0]?.id ?? '')
@@ -202,40 +199,6 @@ export function LeaderboardView({
         </Card>
       )}
 
-      {/*
-        Live airdrop-eligibility check against the connected wallet. Deliberately
-        kept separate from the "Your position" points card above: the airdrop
-        endpoint reports claim/invite eligibility, not the campaign points total
-        (which comes from the live Points API leaderboard fetch above — see
-        useCampaignLeaderboard). Don't merge the two into one "points" figure.
-      */}
-      {isConnected && (
-        <Card gap="$2">
-          <Text variant="label">Airdrop status</Text>
-          {airdropStatus.isLoading && (
-            <Text tone="soft">Checking your Superfluid airdrop status...</Text>
-          )}
-          {airdropStatus.error && <Text color="$error">{airdropStatus.error}</Text>}
-          {!airdropStatus.isLoading && !airdropStatus.error && airdropStatus.status && (
-            <Text tone="soft">
-              {airdropStatus.status.error === 'not whitelisted'
-                ? 'Not yet whitelisted for the SUP airdrop.'
-                : (airdropStatus.status.error ?? 'Eligible for the SUP airdrop.')}
-            </Text>
-          )}
-          {airdropStatus.status?.walletData && (
-            <XStack gap="$3">
-              <Text variant="caption" tone="secondary">
-                Claims: {airdropStatus.status.walletData.claims}
-              </Text>
-              <Text variant="caption" tone="secondary">
-                Invites: {airdropStatus.status.walletData.invites}
-              </Text>
-            </XStack>
-          )}
-        </Card>
-      )}
-
       <Input
         placeholder="Search by wallet address"
         value={searchQuery}
@@ -254,14 +217,34 @@ export function LeaderboardView({
       {activeResult?.error && <Text color="$error">{activeResult.error}</Text>}
 
       {!activeResult?.isLoading && !activeResult?.error && (
-        <YStack gap="$2" width="100%">
-          {visibleRows.map((entry) => (
-            <LeaderboardRow
-              key={entry.address}
-              entry={entry}
-              isCurrentUser={entry.address === currentUserEntry?.address}
-            />
-          ))}
+        <YStack data-testid="Leaderboard-table-scroll" width="100%" style={{ overflowX: 'auto' }}>
+          {/* The minimum table width is only active below $sm (480px). Header
+              and rows share this one scroll container, so their columns stay
+              aligned while the complete table remains available horizontally. */}
+          <YStack gap="$2" width="100%" minWidth={0} $sm={{ minWidth: 480 }}>
+            <XStack alignItems="center" gap="$3" padding="$3">
+              <Text variant="label" width={LEADERBOARD_COLUMN_WIDTHS.rank}>
+                Rank
+              </Text>
+              <Text variant="label" width={LEADERBOARD_COLUMN_WIDTHS.address}>
+                Address
+              </Text>
+              <Text variant="label" width={LEADERBOARD_COLUMN_WIDTHS.points}>
+                Points
+              </Text>
+              <Text variant="label" width={LEADERBOARD_COLUMN_WIDTHS.actions}>
+                Actions
+              </Text>
+            </XStack>
+            {visibleRows.map((entry) => (
+              <LeaderboardRow
+                key={entry.address}
+                entry={entry}
+                isCurrentUser={entry.address === currentUserEntry?.address}
+                activities={activePool?.actions.map((action) => action.activity) ?? []}
+              />
+            ))}
+          </YStack>
         </YStack>
       )}
 

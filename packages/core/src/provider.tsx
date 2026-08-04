@@ -64,6 +64,7 @@ export function GoodWidgetProvider({
   config: authorConfig,
   themeOverrides,
   defaultTheme = 'dark',
+  contentMaxWidth = 480,
   children,
 }: GoodWidgetProviderProps) {
   const [resolvedProvider, setResolvedProvider] = useState<EIP1193Provider | null>(
@@ -180,7 +181,8 @@ export function GoodWidgetProvider({
               marginHorizontal="auto"
               flex={1}
               alignItems="center"
-              maxWidth={480} // todo: fix or at least review, should be handling responsive layouts better
+              maxWidth={contentMaxWidth}
+              $sm={{ maxWidth: 480 }}
             >
               <Stack
                 flex={1}

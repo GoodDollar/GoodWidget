@@ -62,8 +62,8 @@ export interface CampaignLeaderboardResult {
 }
 
 /**
- * Mirrors useAirdropStatus's DI seam: Storybook fixtures and Playwright specs
- * pass one of these, keyed by campaignId, to render every leaderboard state
+ * Storybook fixtures and Playwright specs pass one of these, keyed by campaignId,
+ * to render every leaderboard state
  * (loading/error/populated) deterministically instead of depending on the
  * live Points API's current standings.
  */

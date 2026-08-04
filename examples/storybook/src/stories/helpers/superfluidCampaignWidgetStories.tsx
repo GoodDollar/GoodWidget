@@ -6,7 +6,6 @@ import {
 } from '@goodwidget/superfluid-campaign-widget'
 import {
   MockSuperfluidCampaignWidget,
-  type MockAirdropStatusScenario,
   type MockLeaderboardScenario,
   type MockProgramSupTotalsScenario,
 } from '@goodwidget/superfluid-campaign-widget/mocked'
@@ -32,7 +31,6 @@ function StoryShell({ children, dataTestId }: { children: React.ReactNode; dataT
 
 interface MockStoryProps {
   initialView?: SuperfluidCampaignView
-  airdropStatusScenario?: MockAirdropStatusScenario
   leaderboardScenario?: MockLeaderboardScenario
   programSupTotalsScenario?: MockProgramSupTotalsScenario
 }
@@ -41,7 +39,6 @@ function MockSuperfluidCampaignWidgetStoryShell({
   provider,
   dataTestId,
   initialView = 'content',
-  airdropStatusScenario,
   leaderboardScenario,
   programSupTotalsScenario,
 }: MockStoryProps & { provider: unknown; dataTestId: string }) {
@@ -50,7 +47,6 @@ function MockSuperfluidCampaignWidgetStoryShell({
       <MockSuperfluidCampaignWidget
         provider={provider}
         initialView={initialView}
-        airdropStatusScenario={airdropStatusScenario}
         leaderboardScenario={leaderboardScenario}
         programSupTotalsScenario={programSupTotalsScenario}
       />
@@ -149,10 +145,6 @@ export function CustodialLocalFixtureStory(props: MockStoryProps) {
       </YStack>
     )
   }
-}
-
-export function CustodialAirdropStatusStory({ scenario }: { scenario: MockAirdropStatusScenario }) {
-  return <CustodialLocalFixtureStory initialView="leaderboard" airdropStatusScenario={scenario} />
 }
 
 /** QA fixture: disconnected wallet and fully mocked runtime. */

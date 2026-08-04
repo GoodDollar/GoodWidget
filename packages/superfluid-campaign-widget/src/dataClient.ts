@@ -1,11 +1,10 @@
-import type { AirdropStatusAdapter } from './hooks/useAirdropStatus'
 import type { CampaignLeaderboardAdapter } from './hooks/useCampaignLeaderboard'
 import type { ProgramSupTotalsAdapter } from './hooks/useProgramSupTotals'
 
 /**
  * The single runtime boundary used by the shared widget implementation.
  * Production deliberately has no override functions, so its hooks always use
- * their live endpoints. The mocked entry point must provide all three sources.
+ * their live endpoints. The mocked entry point must provide every active source.
  */
 export type SuperfluidCampaignDataClient =
   | ProductionSuperfluidCampaignDataClient
@@ -17,7 +16,6 @@ export interface ProductionSuperfluidCampaignDataClient {
 
 export interface MockSuperfluidCampaignDataClient {
   kind: 'mock'
-  airdropStatus: AirdropStatusAdapter
   leaderboard: CampaignLeaderboardAdapter
   programSupTotals: ProgramSupTotalsAdapter
 }

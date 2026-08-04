@@ -42,5 +42,7 @@ export interface GoodWidgetProviderProps {
   config?: GoodWidgetConfig
   themeOverrides?: GoodWidgetThemeOverrides
   defaultTheme?: 'light' | 'dark'
+  /** Desktop content cap. Defaults to the existing 480px mobile-first layout. */
+  contentMaxWidth?: number
   children: ReactNode
 }
