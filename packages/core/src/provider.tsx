@@ -22,12 +22,14 @@ const DEFAULT_CAPABILITIES: HostCapabilities = {
 
 export interface WalletContextValue extends WalletState {
   connect: () => Promise<void>
+  disconnect: () => Promise<void>
 }
 
 export type HostContextValue = HostState
 
 export interface GoodWidgetContextValue extends GoodWidgetState {
   connect: () => Promise<void>
+  disconnect: () => Promise<void>
 }
 
 export const WalletContext = React.createContext<WalletContextValue>({
@@ -36,6 +38,7 @@ export const WalletContext = React.createContext<WalletContextValue>({
   isConnected: false,
   provider: null,
   connect: async () => {},
+  disconnect: async () => {},
 })
 
 export const HostContext = React.createContext<HostContextValue>({
@@ -51,14 +54,17 @@ export const GoodWidgetContext = React.createContext<GoodWidgetContextValue>({
   host: 'injected',
   capabilities: DEFAULT_CAPABILITIES,
   connect: async () => {},
+  disconnect: async () => {},
 })
 
 export function GoodWidgetProvider({
   provider: explicitProvider,
   connectOverride,
+  disconnectOverride,
   config: authorConfig,
   themeOverrides,
   defaultTheme = 'dark',
+  contentMaxWidth = 480,
   children,
 }: GoodWidgetProviderProps) {
   const [resolvedProvider, setResolvedProvider] = useState<EIP1193Provider | null>(
@@ -124,8 +130,17 @@ export function GoodWidgetProvider({
     const accounts = (await resolvedProvider.request({
       method: 'eth_requestAccounts',
     })) as string[]
-    if (accounts.length > 0) setAddress(accounts[0])
+    if (accounts.length > 0) {
+      setAddress(accounts[0])
+    }
   }, [connectOverride, resolvedProvider])
+
+  // Wallet session ownership stays with the integrator. Provider/account
+  // updates after the override resolves flow back through the normal EIP-1193
+  // accountsChanged event or a changed provider prop.
+  const disconnect = useCallback(async () => {
+    await disconnectOverride?.()
+  }, [disconnectOverride])
 
   const mergedConfig = useMemo(() => {
     const finalConfig = mergeThemeOverrides(authorConfig, themeOverrides)
@@ -139,8 +154,9 @@ export function GoodWidgetProvider({
       isConnected: address !== null,
       provider: resolvedProvider,
       connect,
+      disconnect,
     }),
-    [address, chainId, resolvedProvider, connect],
+    [address, chainId, resolvedProvider, connect, disconnect],
   )
 
   const hostValue = useMemo<HostContextValue>(() => ({ host, capabilities }), [host, capabilities])
@@ -165,7 +181,8 @@ export function GoodWidgetProvider({
               marginHorizontal="auto"
               flex={1}
               alignItems="center"
-              maxWidth={480} // todo: fix or at least review, should be handling responsive layouts better
+              maxWidth={contentMaxWidth}
+              $sm={{ maxWidth: 480 }}
             >
               <Stack
                 flex={1}

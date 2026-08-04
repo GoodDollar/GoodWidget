@@ -1,0 +1,207 @@
+import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
+import type { CitizenClaimWidgetEnvironment } from '@goodwidget/citizen-claim-widget'
+import type { Address } from 'viem'
+
+// ---------------------------------------------------------------------------
+// Environment type, matching the other GoodWidget packages
+// ---------------------------------------------------------------------------
+export type SuperfluidCampaignWidgetEnvironment = 'production' | 'staging' | 'development'
+
+// ---------------------------------------------------------------------------
+// The two top-level views: the campaign content page, and the full leaderboard.
+// Mirrors the two approved desktop mockups (#127).
+// ---------------------------------------------------------------------------
+export type SuperfluidCampaignView = 'content' | 'leaderboard'
+
+// ---------------------------------------------------------------------------
+// The six eligible activity types (#127 "Activity icons" section).
+// Exact icon glyph/color mapping is fixed by the approved spec, not themeable.
+// ---------------------------------------------------------------------------
+export type ActivityType =
+  | 'claim-ubi'
+  | 'invite-users'
+  | 'flow-state-vote'
+  | 'flow-state-funding'
+  | 'gardens-donation'
+  | 'gardens-funding'
+
+export type ActivityIconColorVariant = 'blue' | 'green'
+
+export interface ActivityIconSpec {
+  activity: ActivityType
+  /** Icon glyph name, resolved against @goodwidget/ui's Icon registry. */
+  iconName: string
+  colorVariant: ActivityIconColorVariant
+  /** Accessible label, also used as a tooltip on the done/not-done glyph. */
+  label: string
+}
+
+/** Exact mapping from the approved spec in #127 — do not derive from mockup pixels. */
+export const ACTIVITY_ICON_MAP: Record<ActivityType, ActivityIconSpec> = {
+  'claim-ubi': {
+    activity: 'claim-ubi',
+    iconName: 'calendar',
+    colorVariant: 'blue',
+    label: 'Claim UBI',
+  },
+  'invite-users': {
+    activity: 'invite-users',
+    iconName: 'person-plus',
+    colorVariant: 'blue',
+    label: 'Successful invite',
+  },
+  'flow-state-vote': {
+    activity: 'flow-state-vote',
+    iconName: 'megaphone',
+    colorVariant: 'blue',
+    label: 'Flow State vote',
+  },
+  'flow-state-funding': {
+    activity: 'flow-state-funding',
+    iconName: 'stream',
+    colorVariant: 'blue',
+    label: 'Flow State funding stream',
+  },
+  'gardens-donation': {
+    activity: 'gardens-donation',
+    iconName: 'hand-coin',
+    colorVariant: 'green',
+    label: 'Gardens one-time donation',
+  },
+  'gardens-funding': {
+    activity: 'gardens-funding',
+    iconName: 'stream',
+    colorVariant: 'green',
+    label: 'Gardens funding stream',
+  },
+}
+
+// ---------------------------------------------------------------------------
+// Reward pools — two fixed pools per #127, stacked vertically at every breakpoint.
+// ---------------------------------------------------------------------------
+export type CampaignPoolId = 'good-dollar-actions' | 'ecosystem-funding-actions'
+export type CampaignPoolAddresses = Partial<Record<number, Address>>
+
+/**
+ * How an action card's CTA is handled. Claim embeds CitizenClaimWidget;
+ * external-link opens the configured destination in a new tab. The invite
+ * variant remains for backwards-compatible custom definitions and redirects
+ * to GoodWallet rather than embedding the unfinished invite flow.
+ */
+export type CampaignActionCtaKind = 'claim-widget-claim' | 'claim-widget-invite' | 'external-link'
+
+export interface CampaignActionDefinition {
+  activity: ActivityType
+  /**
+   * Points API event names that prove this activity was completed. When omitted,
+   * the canonical ActivityType value is used. For existing producers, provide
+   * their actual event name here (for example `claimed` for `claim-ubi`).
+   * Aliases let an integrator match an existing event producer without changing
+   * the widget's stable activity names or icon mapping.
+   */
+  pointsEventNames?: string[]
+  title: string
+  source: string
+  description: string
+  pointsLabel: string
+  ctaLabel: string
+  ctaKind: CampaignActionCtaKind
+  /** Required when ctaKind is 'external-link'. */
+  href?: string
+}
+
+export interface CampaignPoolDefinition {
+  id: CampaignPoolId
+  /** Superfluid Points API campaign id backing this pool's leaderboard tab. */
+  campaignId: number
+  label: string
+  actions: CampaignActionDefinition[]
+}
+
+// ---------------------------------------------------------------------------
+// Leaderboard — split into always-public rows and a connected-only user row,
+// matching the disconnected/connected mockups (the user's row simply doesn't
+// exist in the disconnected view rather than being hidden/blurred).
+// ---------------------------------------------------------------------------
+export interface LeaderboardEntry {
+  rank: number
+  address: string
+  ensName?: string
+  points: number
+  /** Activities with at least one positive point event for this account. */
+  completedActivities: ActivityType[]
+}
+
+export interface LeaderboardSummaryData {
+  totalParticipants: number
+  supDistributed: number
+  supTotal: number
+  lastUpdatedLabel: string
+}
+
+export interface FaqItemDefinition {
+  question: string
+  answer: string
+}
+
+export interface CampaignDefinition {
+  seasonLabel: string
+  title: string
+  description: string
+  /** Optional fixed campaign copy; mock fixtures use this for visual-state coverage. */
+  supAllocatedLabel?: string
+  endsLabel: string
+  pools: CampaignPoolDefinition[]
+  faq: FaqItemDefinition[]
+}
+
+/**
+ * Integrator-specific destinations for action cards. These are applied only to
+ * actions that open a link; omitted keys keep the campaign definition's URL.
+ */
+export type CampaignActionLinkOverrides = Partial<Record<ActivityType, string>>
+
+// ---------------------------------------------------------------------------
+// Public component props
+// ---------------------------------------------------------------------------
+export interface SuperfluidCampaignWidgetProps {
+  provider?: unknown
+  /** Integrator-owned wallet connect flow, matching AiCreditsWidget. */
+  connectOverride?: () => Promise<void>
+  /** Integrator-owned wallet disconnect flow. */
+  disconnectOverride?: () => Promise<void>
+  environment?: SuperfluidCampaignWidgetEnvironment
+  themeOverrides?: GoodWidgetThemeOverrides
+  config?: GoodWidgetConfig
+  defaultTheme?: 'light' | 'dark'
+  /** Optional wider desktop content cap; mobile remains capped at 480px. */
+  contentMaxWidth?: number
+  /**
+   * Overrides the built-in campaign definition. This is stable campaign
+   * configuration (copy, actions, identifiers, links and event-name aliases),
+   * never changing runtime totals or leaderboard results.
+   */
+  data?: CampaignDefinition
+  /**
+   * Replaces the destination of link-based action cards (for example, to add
+   * integration-specific UTM parameters). Built-in campaign URLs remain the
+   * default for every omitted action.
+   */
+  actionLinks?: CampaignActionLinkOverrides
+  /** Passed through to the embedded CitizenClaimWidget for the Claim CTA. */
+  citizenClaimEnvironment?: CitizenClaimWidgetEnvironment
+  /**
+   * View shown on first render. Defaults to 'content'. Lets Storybook fixtures
+   * and deep links land directly on the leaderboard without a click.
+   */
+  initialView?: SuperfluidCampaignView
+  /**
+   * Public on-chain GDA pool addresses, keyed by Points API campaign id.
+   *
+   * The widget deliberately does not resolve these through
+   * claim.superfluid.org/api/programs because that endpoint is not available
+   * to arbitrary browser origins. Integrators may source these values from
+   * environment variables and pass them here.
+   */
+  poolAddresses?: CampaignPoolAddresses
+}
