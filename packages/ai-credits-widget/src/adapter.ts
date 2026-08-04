@@ -137,9 +137,7 @@ function deriveStatus(params: {
   buyerPubKey: string | null
   buyerPrvKey: string | null
   operatorConsented: boolean
-  error: string | null
   currentStatus: AiCreditsWidgetStatus
-  activeTab: AiCreditsWidgetTab
 }): AiCreditsWidgetStatus {
   const {
     isConnected,
@@ -148,9 +146,7 @@ function deriveStatus(params: {
     buyerPubKey,
     buyerPrvKey,
     operatorConsented,
-    error,
     currentStatus,
-    activeTab,
   } = params
 
   if (
@@ -171,8 +167,6 @@ function deriveStatus(params: {
   }
 
   if (chainId !== null && chainId !== CELO_CHAIN_ID) return 'unsupported_chain'
-
-  if (error && !isNonBuyTab(activeTab)) return 'payment_failed'
 
   if (gBalance === null) return 'purchase_setup'
 
@@ -203,9 +197,7 @@ function withDerivedStatus(
     buyerPubKey: merged.buyerPubKey,
     buyerPrvKey: merged.buyerPrvKey,
     operatorConsented: merged.operatorConsented,
-    error: merged.error,
     currentStatus: merged.status,
-    activeTab: merged.activeTab,
   })
   return {
     ...merged,
@@ -230,9 +222,7 @@ function mergeStatePreservingNonBuyTab(
     buyerPubKey: overrides.buyerPubKey ?? prev.buyerPubKey,
     buyerPrvKey: overrides.buyerPrvKey ?? prev.buyerPrvKey,
     operatorConsented: overrides.operatorConsented ?? prev.operatorConsented,
-    error: overrides.error ?? prev.error,
     currentStatus: overrides.status ?? prev.status,
-    activeTab,
   })
   return {
     ...prev,
