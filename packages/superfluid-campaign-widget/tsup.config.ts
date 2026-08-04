@@ -5,6 +5,7 @@ export default defineConfig({
     index: 'src/index.ts',
     element: 'src/element.ts',
     register: 'src/register.ts',
+    'mocked/index': 'src/mocked/index.ts',
   },
   format: ['esm', 'cjs'],
   dts: true,

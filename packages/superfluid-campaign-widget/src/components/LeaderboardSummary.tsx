@@ -1,10 +1,20 @@
 import React from 'react'
-import { Button, ButtonText, Card, Heading, Icon, ProgressBar, Text, XStack, YStack } from '@goodwidget/ui'
-import type { LeaderboardMockData } from '../widgetRuntimeContract'
+import {
+  Button,
+  ButtonText,
+  Card,
+  Heading,
+  Icon,
+  ProgressBar,
+  Text,
+  XStack,
+  YStack,
+} from '@goodwidget/ui'
+import type { LeaderboardSummaryData } from '../widgetRuntimeContract'
 import { compactButtonProps } from './shared/styles'
 
 interface LeaderboardSummaryProps {
-  leaderboard: LeaderboardMockData
+  leaderboard?: LeaderboardSummaryData
   onViewLeaderboard: () => void
 }
 
@@ -14,7 +24,9 @@ interface LeaderboardSummaryProps {
  * then a green SUP-progress bar and participant/last-updated captions.
  */
 export function LeaderboardSummary({ leaderboard, onViewLeaderboard }: LeaderboardSummaryProps) {
-  const progressLabel = `SUP allocated ${leaderboard.supDistributed.toLocaleString()} / ${leaderboard.supTotal.toLocaleString()} SUP`
+  const progressLabel = leaderboard
+    ? `SUP allocated ${leaderboard.supDistributed.toLocaleString()} / ${leaderboard.supTotal.toLocaleString()} SUP`
+    : ''
 
   return (
     <Card gap="$4">
@@ -33,22 +45,26 @@ export function LeaderboardSummary({ leaderboard, onViewLeaderboard }: Leaderboa
         </Button>
       </XStack>
 
-      <ProgressBar
-        value={leaderboard.supDistributed}
-        max={leaderboard.supTotal}
-        label={progressLabel}
-        variant="success"
-        hidePercentageOnMobile
-      />
+      {leaderboard && (
+        <>
+          <ProgressBar
+            value={leaderboard.supDistributed}
+            max={leaderboard.supTotal}
+            label={progressLabel}
+            variant="success"
+            hidePercentageOnMobile
+          />
 
-      <XStack justifyContent="space-between" alignItems="center" flexWrap="wrap" gap="$2">
-        <Text variant="caption" tone="secondary">
-          {leaderboard.totalParticipants.toLocaleString()} participants
-        </Text>
-        <Text variant="caption" tone="secondary">
-          {leaderboard.lastUpdatedLabel}
-        </Text>
-      </XStack>
+          <XStack justifyContent="space-between" alignItems="center" flexWrap="wrap" gap="$2">
+            <Text variant="caption" tone="secondary">
+              {leaderboard.totalParticipants.toLocaleString()} participants
+            </Text>
+            <Text variant="caption" tone="secondary">
+              {leaderboard.lastUpdatedLabel}
+            </Text>
+          </XStack>
+        </>
+      )}
     </Card>
   )
 }

@@ -1,15 +1,13 @@
-import type { CampaignMockData } from './widgetRuntimeContract'
+import type { CampaignDefinition } from './widgetRuntimeContract'
 
 // ---------------------------------------------------------------------------
-// DEFAULT_CAMPAIGN_MOCK_DATA
+// DEFAULT_CAMPAIGN_DEFINITION
 //
-// Static fixture satisfying the approved #127 content mockup. Leaderboard
+// Stable configuration satisfying the approved #127 campaign definition. Leaderboard
 // rows are sourced live from the Superfluid Points API (see
-// useCampaignLeaderboard). Pool supDistributed/supTotal/participants are
-// omitted — useProgramSupTotals provides live values per pool; RewardPoolSection
-// falls back to 0 when the hook has no data. The aggregate
-// leaderboard.supDistributed/supTotal has no live source and remains a placeholder.
-// Consumers can still override the content fixture via
+// useCampaignLeaderboard). Pool totals and aggregate figures are deliberately
+// not part of this definition because they
+// have no authoritative live source. Consumers can override stable content via
 // SuperfluidCampaignWidgetProps.data.
 //
 // pointsEventNames below are the canonical event-producer contract assumed by
@@ -29,12 +27,11 @@ const POINTS_EVENT_NAMES = {
   flowStateVote: 'flowStateVoted',
 } as const
 
-export const DEFAULT_CAMPAIGN_MOCK_DATA: CampaignMockData = {
+export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
   seasonLabel: 'SEASON 6',
   title: 'Superfluid Ecosystem Rewards',
   description:
     'Complete eligible actions across GoodDollar, Flow State, and Gardens to earn SUP rewards.',
-  supAllocatedLabel: '622K SUP allocated',
   endsLabel: 'Ends 30 September',
   pools: [
     {
@@ -116,15 +113,6 @@ export const DEFAULT_CAMPAIGN_MOCK_DATA: CampaignMockData = {
       ],
     },
   ],
-  // supDistributed/supTotal/totalParticipants/lastUpdatedLabel remain placeholders:
-  // no endpoint combines both pools' on-chain SUP totals into one aggregate
-  // figure — confirmed gap, reported separately to the campaign owner.
-  leaderboard: {
-    totalParticipants: 2184,
-    supDistributed: 316300,
-    supTotal: 622000,
-    lastUpdatedLabel: 'Last updated: 18m ago',
-  },
   // Exact FAQ copy from issue #127 — do not paraphrase, this is user-facing legal/support text.
   faq: [
     {

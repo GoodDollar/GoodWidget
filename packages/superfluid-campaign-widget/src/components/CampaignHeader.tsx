@@ -1,6 +1,6 @@
 import React from 'react'
 import { Badge, BadgeText, Button, ButtonText, Heading, Text, XStack, YStack } from '@goodwidget/ui'
-import type { CampaignMockData } from '../widgetRuntimeContract'
+import type { CampaignDefinition } from '../widgetRuntimeContract'
 import { ConnectWalletPrompt } from './ConnectWalletPrompt'
 import { compactButtonProps } from './shared/styles'
 import { WalletChip } from './shared/WalletChip'
@@ -10,7 +10,7 @@ const SUPERFLUID_CLAIM_APP_URL = 'https://claim.superfluid.org/'
 
 interface CampaignHeaderProps {
   data: Pick<
-    CampaignMockData,
+    CampaignDefinition,
     'seasonLabel' | 'title' | 'description' | 'supAllocatedLabel' | 'endsLabel'
   >
   address: string | null
@@ -21,7 +21,7 @@ interface CampaignHeaderProps {
 
 /**
  * Top-of-page header: "Superfluid" wordmark + season badge, top-right slot,
- * title, description, and the two info pills. The top-right slot shows the
+ * title, description, and configured campaign-info pills. The top-right slot shows the
  * "Connect wallet" CTA while disconnected, per #127 follow-up, and the same
  * WalletChip (status dot + truncated address + dropdown chevron, opening a
  * Disconnect menu) used on LeaderboardView's header once connected — there
@@ -72,9 +72,11 @@ export function CampaignHeader({
 
       <XStack gap="$2" alignItems="center" flexWrap="wrap" justifyContent="space-between">
         <XStack gap="$2" flexWrap="wrap">
-          <Badge type="default">
-            <BadgeText>{data.supAllocatedLabel}</BadgeText>
-          </Badge>
+          {data.supAllocatedLabel && (
+            <Badge type="default">
+              <BadgeText>{data.supAllocatedLabel}</BadgeText>
+            </Badge>
+          )}
           <Badge type="default">
             <BadgeText>{data.endsLabel}</BadgeText>
           </Badge>

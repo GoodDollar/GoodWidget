@@ -20,7 +20,7 @@ import type {
   CampaignPointsPagination,
 } from '../hooks/useCampaignLeaderboard'
 import { useCampaignLeaderboard } from '../hooks/useCampaignLeaderboard'
-import type { CampaignPoolMockData, LeaderboardEntryMockData } from '../widgetRuntimeContract'
+import type { CampaignPoolDefinition, LeaderboardEntry } from '../widgetRuntimeContract'
 import { LeaderboardRow } from './LeaderboardRow'
 import { compactButtonProps, truncateAddress } from './shared/styles'
 import { WalletChip } from './shared/WalletChip'
@@ -29,7 +29,7 @@ interface LeaderboardViewProps {
   /** Matches the "SEASON N" badge shown next to the wordmark on the content view's header. */
   seasonLabel: string
   /** #127's two fixed reward pools, one leaderboard tab each. */
-  pools: CampaignPoolMockData[]
+  pools: CampaignPoolDefinition[]
   address: string | null
   leaderboardAdapter?: CampaignLeaderboardAdapter
   isConnected: boolean
@@ -47,7 +47,7 @@ interface LeaderboardViewProps {
 function toLeaderboardEntries(
   accounts: CampaignPointsAccount[],
   pagination: CampaignPointsPagination | undefined,
-): LeaderboardEntryMockData[] {
+): LeaderboardEntry[] {
   const rankOffset = pagination ? (pagination.page - 1) * pagination.limit : 0
   return accounts.map((account, index) => ({
     rank: rankOffset + index + 1,
@@ -107,10 +107,7 @@ export function LeaderboardView({
   const activePool = pools.find((pool) => pool.id === activeCampaignTab) ?? pools[0]
   const activeResult = activePool ? resultByPoolId[activePool.id] : undefined
   const activePagination = activeResult?.data?.pagination
-  const rankedEntries = toLeaderboardEntries(
-    activeResult?.data?.accounts ?? [],
-    activePagination,
-  )
+  const rankedEntries = toLeaderboardEntries(activeResult?.data?.accounts ?? [], activePagination)
 
   const currentUserEntry =
     isConnected && address
@@ -118,7 +115,7 @@ export function LeaderboardView({
         null)
       : null
 
-  const matchesQuery = (entry: LeaderboardEntryMockData) => {
+  const matchesQuery = (entry: LeaderboardEntry) => {
     if (!searchQuery.trim()) return true
     return entry.address.toLowerCase().includes(searchQuery.trim().toLowerCase())
   }

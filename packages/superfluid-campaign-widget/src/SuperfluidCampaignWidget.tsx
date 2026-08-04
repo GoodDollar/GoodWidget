@@ -9,9 +9,14 @@ import { LeaderboardSummary } from './components/LeaderboardSummary'
 import { LeaderboardView } from './components/LeaderboardView'
 import { RewardPoolSection } from './components/RewardPoolSection'
 import { useAirdropStatus } from './hooks/useAirdropStatus'
-import { DEFAULT_CAMPAIGN_MOCK_DATA } from './mockData'
+import { DEFAULT_CAMPAIGN_DEFINITION } from './campaignDefinition'
+import {
+  PRODUCTION_SUPERFLUID_CAMPAIGN_DATA_CLIENT,
+  type SuperfluidCampaignDataClient,
+} from './dataClient'
 import type {
-  CampaignActionMockData,
+  CampaignActionDefinition,
+  LeaderboardSummaryData,
   SuperfluidCampaignView,
   SuperfluidCampaignWidgetProps,
 } from './widgetRuntimeContract'
@@ -21,6 +26,8 @@ type EmbeddedClaimTab = 'claim' | 'invite-rewards' | null
 
 interface SuperfluidCampaignRuntimeProps {
   data: SuperfluidCampaignWidgetProps['data']
+  leaderboardSummary?: LeaderboardSummaryData
+  dataClient: SuperfluidCampaignDataClient
   citizenClaimEnvironment: SuperfluidCampaignWidgetProps['citizenClaimEnvironment']
   initialView: SuperfluidCampaignView
   poolAddresses?: SuperfluidCampaignWidgetProps['poolAddresses']
@@ -30,13 +37,10 @@ interface SuperfluidCampaignRuntimeProps {
   themeOverrides?: SuperfluidCampaignWidgetProps['themeOverrides']
   defaultTheme?: SuperfluidCampaignWidgetProps['defaultTheme']
   hasDisconnectOverride: boolean
-  airdropStatusAdapter?: SuperfluidCampaignWidgetProps['airdropStatusAdapter']
-  leaderboardAdapter?: SuperfluidCampaignWidgetProps['leaderboardAdapter']
-  supTotalsAdapter?: SuperfluidCampaignWidgetProps['supTotalsAdapter']
 }
 
 /**
- * Routes a CampaignActionMockData CTA press to its handler:
+ * Routes a CampaignActionDefinition CTA press to its handler:
  *   - claim-widget-claim / claim-widget-invite → open the embedded CitizenClaimWidget
  *     on the matching tab
  *   - external-link → open the Flow State / Gardens URL in a new tab, mirroring the
@@ -44,7 +48,7 @@ interface SuperfluidCampaignRuntimeProps {
  *     external verification links in citizen-claim-widget/ai-credits-widget
  */
 function handleActionCta(
-  action: CampaignActionMockData,
+  action: CampaignActionDefinition,
   openClaimTab: (tab: EmbeddedClaimTab) => void,
 ) {
   switch (action.ctaKind) {
@@ -64,6 +68,8 @@ function handleActionCta(
 
 function SuperfluidCampaignRuntime({
   data,
+  leaderboardSummary,
+  dataClient,
   citizenClaimEnvironment,
   initialView,
   poolAddresses,
@@ -72,9 +78,6 @@ function SuperfluidCampaignRuntime({
   themeOverrides,
   defaultTheme,
   hasDisconnectOverride,
-  airdropStatusAdapter,
-  leaderboardAdapter,
-  supTotalsAdapter,
 }: SuperfluidCampaignRuntimeProps) {
   const { isConnected, connect, disconnect, address } = useWallet()
   const [view, setView] = useState<SuperfluidCampaignView>(initialView)
@@ -82,11 +85,13 @@ function SuperfluidCampaignRuntime({
 
   // Keyed on `address` alone (see useAirdropStatus) so this fires on connect, on
   // load when already connected, and on address change — not on every render.
-  // airdropStatusAdapter, when supplied, replaces the live fetch with a fixed
-  // result for deterministic Storybook/Playwright fixtures.
-  const airdropStatus = useAirdropStatus(address, airdropStatusAdapter)
+  const isMockRuntime = dataClient.kind === 'mock'
+  const airdropStatus = useAirdropStatus(
+    address,
+    isMockRuntime ? dataClient.airdropStatus : undefined,
+  )
 
-  const campaignData = data ?? DEFAULT_CAMPAIGN_MOCK_DATA
+  const campaignData = data ?? DEFAULT_CAMPAIGN_DEFINITION
 
   if (embeddedClaimTab) {
     return (
@@ -118,7 +123,7 @@ function SuperfluidCampaignRuntime({
         seasonLabel={campaignData.seasonLabel}
         pools={campaignData.pools}
         address={address}
-        leaderboardAdapter={leaderboardAdapter}
+        leaderboardAdapter={isMockRuntime ? dataClient.leaderboard : undefined}
         isConnected={isConnected}
         onConnect={connect}
         onDisconnect={hasDisconnectOverride ? disconnect : undefined}
@@ -141,7 +146,7 @@ function SuperfluidCampaignRuntime({
       />
 
       <LeaderboardSummary
-        leaderboard={campaignData.leaderboard}
+        leaderboard={leaderboardSummary}
         onViewLeaderboard={() => setView('leaderboard')}
       />
 
@@ -161,7 +166,7 @@ function SuperfluidCampaignRuntime({
             pool={pool}
             poolAddress={poolAddresses?.[pool.campaignId]}
             onPressActionCta={(action) => handleActionCta(action, setEmbeddedClaimTab)}
-            supTotalsAdapter={supTotalsAdapter}
+            supTotalsAdapter={isMockRuntime ? dataClient.programSupTotals : undefined}
           />
         ))}
       </YStack>
@@ -171,7 +176,13 @@ function SuperfluidCampaignRuntime({
   )
 }
 
-export function SuperfluidCampaignWidget({
+interface SuperfluidCampaignWidgetWithClientProps extends SuperfluidCampaignWidgetProps {
+  dataClient: SuperfluidCampaignDataClient
+  leaderboardSummary?: LeaderboardSummaryData
+}
+
+/** Shared provider/runtime shell used only by the production and mocked entry points. */
+export function SuperfluidCampaignWidgetWithClient({
   provider,
   connectOverride,
   disconnectOverride,
@@ -182,10 +193,9 @@ export function SuperfluidCampaignWidget({
   citizenClaimEnvironment = 'production',
   initialView = 'content',
   poolAddresses,
-  airdropStatusAdapter,
-  leaderboardAdapter,
-  supTotalsAdapter,
-}: SuperfluidCampaignWidgetProps) {
+  dataClient,
+  leaderboardSummary,
+}: SuperfluidCampaignWidgetWithClientProps) {
   return (
     <GoodWidgetProvider
       provider={provider as EIP1193Provider | undefined}
@@ -198,6 +208,8 @@ export function SuperfluidCampaignWidget({
       <Card padding={0} backgroundColor="$backgroundDark" width="100%">
         <SuperfluidCampaignRuntime
           data={data}
+          leaderboardSummary={leaderboardSummary}
+          dataClient={dataClient}
           citizenClaimEnvironment={citizenClaimEnvironment}
           initialView={initialView}
           poolAddresses={poolAddresses}
@@ -206,12 +218,19 @@ export function SuperfluidCampaignWidget({
           themeOverrides={themeOverrides}
           defaultTheme={defaultTheme}
           hasDisconnectOverride={Boolean(disconnectOverride)}
-          airdropStatusAdapter={airdropStatusAdapter}
-          leaderboardAdapter={leaderboardAdapter}
-          supTotalsAdapter={supTotalsAdapter}
         />
       </Card>
       <ToastContainer />
     </GoodWidgetProvider>
+  )
+}
+
+/** Production entry point: every changing value is sourced from live endpoints. */
+export function SuperfluidCampaignWidget(props: SuperfluidCampaignWidgetProps) {
+  return (
+    <SuperfluidCampaignWidgetWithClient
+      {...props}
+      dataClient={PRODUCTION_SUPERFLUID_CAMPAIGN_DATA_CLIENT}
+    />
   )
 }

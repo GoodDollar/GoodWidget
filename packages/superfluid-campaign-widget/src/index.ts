@@ -4,26 +4,23 @@ export type {
   ActivityIconColorVariant,
   ActivityIconSpec,
   CampaignActionCtaKind,
-  CampaignActionMockData,
-  CampaignMockData,
+  CampaignActionDefinition,
+  CampaignDefinition,
   CampaignPoolId,
   CampaignPoolAddresses,
-  CampaignPoolMockData,
-  FaqItemMockData,
-  LeaderboardEntryMockData,
-  LeaderboardMockData,
+  CampaignPoolDefinition,
+  FaqItemDefinition,
+  LeaderboardEntry,
   SuperfluidCampaignView,
   SuperfluidCampaignWidgetEnvironment,
   SuperfluidCampaignWidgetProps,
 } from './widgetRuntimeContract'
 export { ACTIVITY_ICON_MAP } from './widgetRuntimeContract'
 
-// Airdrop status adapter DI seam (Storybook/Playwright fixtures)
-export type { AirdropStatus, AirdropStatusAdapter, AirdropStatusAdapterResult } from './hooks/useAirdropStatus'
+export type { AirdropStatus, AirdropStatusAdapterResult } from './hooks/useAirdropStatus'
 
-// Campaign leaderboard adapter DI seam (Storybook/Playwright fixtures)
+// Live campaign leaderboard response types
 export type {
-  CampaignLeaderboardAdapter,
   CampaignLeaderboardData,
   CampaignLeaderboardResult,
   CampaignPointsAccount,
@@ -31,11 +28,11 @@ export type {
   CampaignPointsSummary,
 } from './hooks/useCampaignLeaderboard'
 
-// SUP program totals adapter DI seam (Storybook/Playwright fixtures)
-export type { ProgramSupTotals, ProgramSupTotalsAdapter, ProgramSupTotalsResult } from './hooks/useProgramSupTotals'
+// Live SUP program response types
+export type { ProgramSupTotals, ProgramSupTotalsResult } from './hooks/useProgramSupTotals'
 
-// Mock dataset
-export { DEFAULT_CAMPAIGN_MOCK_DATA } from './mockData'
+// Stable campaign definition
+export { DEFAULT_CAMPAIGN_DEFINITION } from './campaignDefinition'
 
 // Widget component
 export { SuperfluidCampaignWidget } from './SuperfluidCampaignWidget'

@@ -3,13 +3,13 @@ import { Heading, ProgressBar, Text, YStack } from '@goodwidget/ui'
 import type { Address } from 'viem'
 import type { ProgramSupTotalsAdapter } from '../hooks/useProgramSupTotals'
 import { useProgramSupTotals } from '../hooks/useProgramSupTotals'
-import type { CampaignActionMockData, CampaignPoolMockData } from '../widgetRuntimeContract'
+import type { CampaignActionDefinition, CampaignPoolDefinition } from '../widgetRuntimeContract'
 import { ActionCard } from './ActionCard'
 
 interface RewardPoolSectionProps {
-  pool: CampaignPoolMockData
+  pool: CampaignPoolDefinition
   poolAddress?: Address
-  onPressActionCta: (action: CampaignActionMockData) => void
+  onPressActionCta: (action: CampaignActionDefinition) => void
   supTotalsAdapter?: ProgramSupTotalsAdapter
 }
 
@@ -27,8 +27,7 @@ export function RewardPoolSection({
 }: RewardPoolSectionProps) {
   // Live on-chain SUP totals for this pool's campaign, when a matching program
   // exists (see useProgramSupTotals). While loading, on request failure, or
-  // when the integrator has not supplied a pool address, fall back to the
-  // pool's placeholder figures rather than making an unresolvable subgraph query.
+  // when no program exists, render zero totals rather than inventing campaign values.
   const supTotals = useProgramSupTotals(pool.campaignId, poolAddress, 0, supTotalsAdapter)
   const supDistributed = supTotals.data?.totalClaimed ?? 0
   const supTotal = supTotals.data?.totalAllocated ?? 0

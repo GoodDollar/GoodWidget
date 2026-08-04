@@ -1,9 +1,6 @@
 import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
 import type { CitizenClaimWidgetEnvironment } from '@goodwidget/citizen-claim-widget'
 import type { Address } from 'viem'
-import type { AirdropStatusAdapter } from './hooks/useAirdropStatus'
-import type { CampaignLeaderboardAdapter } from './hooks/useCampaignLeaderboard'
-import type { ProgramSupTotalsAdapter } from './hooks/useProgramSupTotals'
 
 // ---------------------------------------------------------------------------
 // Environment type, matching the other GoodWidget packages
@@ -92,7 +89,7 @@ export type CampaignPoolAddresses = Partial<Record<number, Address>>
  */
 export type CampaignActionCtaKind = 'claim-widget-claim' | 'claim-widget-invite' | 'external-link'
 
-export interface CampaignActionMockData {
+export interface CampaignActionDefinition {
   activity: ActivityType
   /**
    * Points API event names that prove this activity was completed. When omitted,
@@ -112,16 +109,12 @@ export interface CampaignActionMockData {
   href?: string
 }
 
-export interface CampaignPoolMockData {
+export interface CampaignPoolDefinition {
   id: CampaignPoolId
   /** Superfluid Points API campaign id backing this pool's leaderboard tab. */
   campaignId: number
   label: string
-  /** Omit these — useProgramSupTotals provides live values; 0 is used as the fallback when the hook has no data. */
-  supDistributed?: number
-  supTotal?: number
-  participants?: number
-  actions: CampaignActionMockData[]
+  actions: CampaignActionDefinition[]
 }
 
 // ---------------------------------------------------------------------------
@@ -129,7 +122,7 @@ export interface CampaignPoolMockData {
 // matching the disconnected/connected mockups (the user's row simply doesn't
 // exist in the disconnected view rather than being hidden/blurred).
 // ---------------------------------------------------------------------------
-export interface LeaderboardEntryMockData {
+export interface LeaderboardEntry {
   rank: number
   address: string
   ensName?: string
@@ -138,27 +131,27 @@ export interface LeaderboardEntryMockData {
   completedActivities: ActivityType[]
 }
 
-export interface LeaderboardMockData {
+export interface LeaderboardSummaryData {
   totalParticipants: number
   supDistributed: number
   supTotal: number
   lastUpdatedLabel: string
 }
 
-export interface FaqItemMockData {
+export interface FaqItemDefinition {
   question: string
   answer: string
 }
 
-export interface CampaignMockData {
+export interface CampaignDefinition {
   seasonLabel: string
   title: string
   description: string
-  supAllocatedLabel: string
+  /** Optional fixed campaign copy; mock fixtures use this for visual-state coverage. */
+  supAllocatedLabel?: string
   endsLabel: string
-  pools: CampaignPoolMockData[]
-  leaderboard: LeaderboardMockData
-  faq: FaqItemMockData[]
+  pools: CampaignPoolDefinition[]
+  faq: FaqItemDefinition[]
 }
 
 // ---------------------------------------------------------------------------
@@ -175,11 +168,11 @@ export interface SuperfluidCampaignWidgetProps {
   config?: GoodWidgetConfig
   defaultTheme?: 'light' | 'dark'
   /**
-   * Overrides the built-in mock dataset (DEFAULT_CAMPAIGN_MOCK_DATA). Lets
-   * Storybook fixtures and tests substitute data without touching component
-   * internals and configure Points API event-name aliases.
+   * Overrides the built-in campaign definition. This is stable campaign
+   * configuration (copy, actions, identifiers, links and event-name aliases),
+   * never changing runtime totals or leaderboard results.
    */
-  data?: CampaignMockData
+  data?: CampaignDefinition
   /** Passed through to the embedded CitizenClaimWidget for Claim/Invite CTAs. */
   citizenClaimEnvironment?: CitizenClaimWidgetEnvironment
   /**
@@ -196,26 +189,4 @@ export interface SuperfluidCampaignWidgetProps {
    * environment variables and pass them here.
    */
   poolAddresses?: CampaignPoolAddresses
-  /**
-   * Overrides the live airdrop-status fetch (superfluid-airdrop.goodworker.workers.dev)
-   * with a fixed result, the same DI seam AiCreditsWidget's adapterFactory uses.
-   * Lets Storybook fixtures and Playwright specs render every airdrop-status
-   * state deterministically instead of depending on a real wallet's live
-   * whitelist status.
-   */
-  airdropStatusAdapter?: AirdropStatusAdapter
-  /**
-   * Overrides the live Superfluid Points API fetch (cms.superfluid.pro/points)
-   * with a fixed result per campaignId, the same DI seam airdropStatusAdapter
-   * uses. Lets Storybook fixtures and Playwright specs render every
-   * leaderboard state deterministically instead of depending on live standings.
-   */
-  leaderboardAdapter?: CampaignLeaderboardAdapter
-  /**
-   * Overrides the live Superfluid protocol-subgraph fetch with a fixed result
-   * per campaignId, using the same DI seam as leaderboardAdapter.
-   * Lets Storybook fixtures and Playwright specs render each reward pool's
-   * distribution progress and active-member count deterministically.
-   */
-  supTotalsAdapter?: ProgramSupTotalsAdapter
 }

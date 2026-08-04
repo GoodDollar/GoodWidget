@@ -1,9 +1,9 @@
 import React from 'react'
 import { Accordion, Text } from '@goodwidget/ui'
-import type { FaqItemMockData } from '../widgetRuntimeContract'
+import type { FaqItemDefinition } from '../widgetRuntimeContract'
 
 interface FaqAccordionProps {
-  faq: FaqItemMockData[]
+  faq: FaqItemDefinition[]
 }
 
 /**

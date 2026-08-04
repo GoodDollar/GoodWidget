@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { ActivityType, CampaignActionMockData } from '../widgetRuntimeContract'
+import type { ActivityType, CampaignActionDefinition } from '../widgetRuntimeContract'
 
 const POINTS_API_BASE = 'https://cms.superfluid.pro/points'
 export const LEADERBOARD_PAGE_SIZE = 10
@@ -89,7 +89,7 @@ function formatCampaignLeaderboardError(error: unknown): string {
  */
 export function useCampaignLeaderboard(
   campaignId: number,
-  actions: CampaignActionMockData[],
+  actions: CampaignActionDefinition[],
   page: number,
   enabled: boolean,
   adapterOverride?: CampaignLeaderboardAdapter,
@@ -106,7 +106,7 @@ export function useCampaignLeaderboard(
     setIsLoading(true)
     setError(null)
 
-    const fetchJson = async <T,>(path: string, params: Record<string, string>): Promise<T> => {
+    const fetchJson = async <T>(path: string, params: Record<string, string>): Promise<T> => {
       const url = new URL(`${POINTS_API_BASE}${path}`)
       for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value)
       const response = await fetch(url.toString(), { signal: controller.signal })
@@ -167,7 +167,10 @@ export function useCampaignLeaderboard(
 
     Promise.all([
       fetchJson<CampaignPointsSummary>('/campaign', { campaignId: String(campaignId) }),
-      fetchJson<{ accounts: CampaignPointsAccountResponse[]; pagination: CampaignPointsPagination }>('/accounts', {
+      fetchJson<{
+        accounts: CampaignPointsAccountResponse[]
+        pagination: CampaignPointsPagination
+      }>('/accounts', {
         campaignId: String(campaignId),
         orderBy: 'totalPoints',
         order: 'desc',

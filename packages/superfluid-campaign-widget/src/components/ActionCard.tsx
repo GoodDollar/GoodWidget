@@ -1,13 +1,13 @@
 import React from 'react'
 import { Badge, BadgeText, Button, ButtonText, Card, Text, XStack, YStack } from '@goodwidget/ui'
 import { ACTIVITY_ICON_MAP } from '../widgetRuntimeContract'
-import type { CampaignActionMockData } from '../widgetRuntimeContract'
+import type { CampaignActionDefinition } from '../widgetRuntimeContract'
 import { ACTIVITY_ICON_COMPONENT, resolveActivityIconColorToken } from './activityIconComponents'
 import { compactButtonProps } from './shared/styles'
 
 interface ActionCardProps {
-  action: CampaignActionMockData
-  onPressCta: (action: CampaignActionMockData) => void
+  action: CampaignActionDefinition
+  onPressCta: (action: CampaignActionDefinition) => void
 }
 
 /**

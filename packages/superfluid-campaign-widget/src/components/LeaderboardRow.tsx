@@ -1,11 +1,11 @@
 import React from 'react'
 import { Badge, BadgeText, Card, Text, XStack, YStack } from '@goodwidget/ui'
-import type { LeaderboardEntryMockData } from '../widgetRuntimeContract'
+import type { LeaderboardEntry } from '../widgetRuntimeContract'
 import { ActivityIcons } from './ActivityIcons'
 import { truncateAddress } from './shared/styles'
 
 interface LeaderboardRowProps {
-  entry: LeaderboardEntryMockData
+  entry: LeaderboardEntry
   /** Drives the highlighted/bordered treatment for the connected user's own row. */
   isCurrentUser?: boolean
 }
