@@ -81,14 +81,11 @@ export type WithdrawPrincipalResponse = {
 export type OperatorConsentRequest = {
   nonce: string
   signature: string
-  payer: string
 }
 
 export type OperatorConsentResponse = {
   buyer: string
-  payer?: string
   bridge: BridgeResponse
-  buyers?: Array<{ address: string; consentedAt?: string }>
 }
 
 async function readBridgeResponseBody<T extends { bridge?: BridgeResponse }>(
@@ -136,6 +133,19 @@ export function resolveBuyerAddress(entries: GdCreditEntry[]): string | null {
     }
   }
   return null
+}
+
+export function collectBuyerAddressesFromEntries(entries: GdCreditEntry[]): string[] {
+  const seen = new Set<string>()
+  const result: string[] = []
+  for (const entry of entries) {
+    if (!entry.buyerAddress || !isAddress(entry.buyerAddress)) continue
+    const key = normalizeAddress(entry.buyerAddress)
+    if (seen.has(key)) continue
+    seen.add(key)
+    result.push(key)
+  }
+  return result
 }
 
 function defaultOperatorStatus(payer: string): BuyerOperatorStatus {
@@ -194,7 +204,6 @@ export async function enrichAccountView(
 export interface AiCreditsBackendClient {
   getDiscountConfig(): Promise<DiscountConfig>
   getAccountCredit(payer: string): Promise<AccountCreditResponse>
-  getBuyerAddresses(payer: string): Promise<string[]>
   getCreditHistory(payer: string, options?: CreditHistoryQuery): Promise<CreditHistoryResponse>
   getOutstanding(payer: string): Promise<{ outstandingFundingUsd: string; count: number }>
   getTransactions(
@@ -271,15 +280,6 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
     const response = await fetch(`${this.accountBase(payer)}/profile`)
     if (!response.ok) throw new Error(`Account profile request failed: ${response.status}`)
     return response.json() as Promise<AccountCreditResponse>
-  }
-
-  async getBuyerAddresses(payer: string): Promise<string[]> {
-    const response = await fetch(`${this.accountBase(payer)}/buyers`)
-    if (!response.ok) throw new Error(`Buyer list request failed: ${response.status}`)
-    const payload = (await response.json()) as { account?: string; buyers?: string[] }
-    return Array.isArray(payload.buyers)
-      ? payload.buyers.map((buyer) => normalizeAddress(buyer))
-      : []
   }
 
   async getCreditHistory(
@@ -419,15 +419,12 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
       body: JSON.stringify({
         nonce: body.nonce,
         signature: body.signature,
-        payer: normalizeAddress(body.payer),
       }),
     })
     const payload = await readBridgeResponseBody<OperatorConsentResponse>(response, 'Operator consent')
     return {
       buyer: normalizeAddress(payload.buyer ?? buyer),
-      payer: payload.payer ? normalizeAddress(payload.payer) : normalizeAddress(body.payer),
       bridge: payload.bridge,
-      buyers: payload.buyers,
     }
   }
 }
@@ -442,10 +439,6 @@ export class UnavailableAiCreditsBackendClient implements AiCreditsBackendClient
   }
 
   async getAccountCredit() {
-    return this.unavailable()
-  }
-
-  async getBuyerAddresses() {
     return this.unavailable()
   }
 
@@ -515,12 +508,10 @@ export async function buildAccountView(
     backend.getAccountCredit(payer),
     backend.getOutstanding(payer),
   ])
-  const profileBuyers = (credit.profile.buyers ?? []).map((buyer) => normalizeAddress(buyer.address))
-  const sessionBuyer =
+  const buyer =
     options.buyerAddress && isAddress(options.buyerAddress)
       ? normalizeAddress(options.buyerAddress)
       : null
-  const buyer = sessionBuyer ?? profileBuyers[0] ?? null
   const [operator, withdrawableUsd] = buyer
     ? await Promise.all([
         chain.getBuyerOperatorStatus({ payer: normalizedPayer, buyer }),

@@ -17,6 +17,7 @@ import { normalizeChannelId, signRequestClose, signWithdrawPrincipal } from './b
 import {
   totalCreditUsdFromProfile,
   buildAccountView,
+  collectBuyerAddressesFromEntries,
   createBackendClient,
   DEFAULT_DISCOUNT_CONFIG,
   enrichAccountView,
@@ -48,7 +49,8 @@ import {
   upsertBuyerKey,
   setActiveBuyerAddress,
   mergeBuyerAddressList,
-  normalizeBuyerAddressList,
+  rememberBuyerAddresses,
+  listKnownBuyerAddresses,
   getBuyerKeyEntry,
 } from './payerSession'
 import { executeCeloPayment, G_TOKEN_CELO_ADDRESS, isStreamAmountChanged } from './celoPayment'
@@ -124,6 +126,39 @@ const WALLET_LOADING_STATE: Partial<AiCreditsWidgetAdapterState> = {
   monthlyStreamG: null,
   withdrawableUsd: null,
   operatorAddress: null,
+}
+
+const BUYER_HISTORY_LOOKUP_LIMIT = 100
+
+async function resolveLocalBuyerAddresses(
+  payer: string,
+  backend: AiCreditsBackendClient,
+  ...extras: Array<string | null | undefined>
+): Promise<string[]> {
+  let historyBuyers: string[] = []
+  try {
+    const history = await backend.getCreditHistory(payer, {
+      limit: BUYER_HISTORY_LOOKUP_LIMIT,
+      offset: 0,
+    })
+    historyBuyers = collectBuyerAddressesFromEntries(history.items)
+  } catch {
+    historyBuyers = []
+  }
+  return rememberBuyerAddresses(payer, [...historyBuyers, ...extras])
+}
+
+function selectPreferredBuyer(
+  buyers: string[],
+  preferredBuyer?: string | null,
+): string | null {
+  if (
+    preferredBuyer &&
+    buyers.some((item) => item.toLowerCase() === preferredBuyer.toLowerCase())
+  ) {
+    return preferredBuyer
+  }
+  return buyers[0] ?? preferredBuyer ?? null
 }
 
 function isNonBuyTab(tab: AiCreditsWidgetTab): boolean {
@@ -466,7 +501,10 @@ export function useAiCreditsAdapter({
       ])
 
       const accountPromise = buildAccountView(address!, backendClient, chainClient, {
-        buyerAddress: pendingDeepLinkRef.current?.buyerAddress ?? null,
+        buyerAddress:
+          pendingDeepLinkRef.current?.buyerAddress ??
+          patchPayerSessionFields(address!).activeBuyerAddress ??
+          null,
       })
         .then(async (view) => ({
           view,
@@ -484,15 +522,25 @@ export function useAiCreditsAdapter({
 
       const gdUsdPerTokenPromise = chainClient.fetchGdUsdPerToken().catch(() => null)
       const discountConfigPromise = backendClient.getDiscountConfig().catch(() => null)
+      const sessionBuyer = patchPayerSessionFields(address!).activeBuyerAddress
+      const preferredBuyer =
+        pendingDeepLinkRef.current?.buyerAddress ?? sessionBuyer ?? null
+      const buyersPromise = resolveLocalBuyerAddresses(
+        address!,
+        backendClient,
+        preferredBuyer,
+        ...listKnownBuyerAddresses(address!),
+      )
 
       try {
-        const [[rawBalance, decimals], account, minimums, gdUsdPerToken, discountConfig] =
+        const [[rawBalance, decimals], account, minimums, gdUsdPerToken, discountConfig, buyers] =
           await Promise.all([
             balancePromise,
             accountPromise,
             minimumsPromise,
             gdUsdPerTokenPromise,
             discountConfigPromise,
+            buyersPromise,
           ])
         if (cancelled) return
 
@@ -515,12 +563,11 @@ export function useAiCreditsAdapter({
                 balanceMode: 'always',
               })
             : {}
-          const backendBuyers = account
-            ? normalizeBuyerAddressList(account.view.profile.buyers)
-            : []
           const pendingDeepLink = pendingDeepLinkRef.current
-          const selectedBuyer = pendingDeepLink?.buyerAddress ?? backendBuyers[0] ?? null
-          const buyers = mergeBuyerAddressList(backendBuyers, pendingDeepLink?.buyerAddress)
+          const selectedBuyer = selectPreferredBuyer(
+            buyers,
+            pendingDeepLink?.buyerAddress ?? sessionBuyer,
+          )
           const buyerFields = buyerSelectionFields(address!, buyers, selectedBuyer)
           if (pendingDeepLink?.operatorSignature && selectedBuyer) {
             upsertBuyerKey(address!, selectedBuyer, {
@@ -699,6 +746,24 @@ export function useAiCreditsAdapter({
     [address],
   )
 
+  const handleDiscoverBuyers = useCallback(
+    (addresses: string[]) => {
+      if (!address || addresses.length === 0) return
+      const buyers = rememberBuyerAddresses(address, addresses)
+      setState((prev) => {
+        const sameLength = buyers.length === prev.buyers.length
+        const unchanged =
+          sameLength &&
+          buyers.every(
+            (item, index) => item.toLowerCase() === prev.buyers[index]?.toLowerCase(),
+          )
+        if (unchanged) return prev
+        return { ...prev, buyers }
+      })
+    },
+    [address],
+  )
+
   const handleImportBuyerFromPrivateKey = useCallback(
     async (rawPrivateKey: string) => {
       if (!address) {
@@ -750,14 +815,8 @@ export function useAiCreditsAdapter({
 
   const reloadBuyerAddresses = useCallback(
     async (payer: string, preferredBuyer?: string | null) => {
-      const backendBuyers = await backendClient.getBuyerAddresses(payer)
-      const preferredStillPresent =
-        !!preferredBuyer &&
-        backendBuyers.some((item) => item.toLowerCase() === preferredBuyer.toLowerCase())
-      const selected = preferredStillPresent
-        ? preferredBuyer
-        : backendBuyers[0] ?? preferredBuyer ?? null
-      const buyers = mergeBuyerAddressList(backendBuyers, preferredBuyer)
+      const buyers = await resolveLocalBuyerAddresses(payer, backendClient, preferredBuyer)
+      const selected = selectPreferredBuyer(buyers, preferredBuyer)
       return { buyers, selected }
     },
     [backendClient],
@@ -845,7 +904,6 @@ export function useAiCreditsAdapter({
           await backendClient.submitOperatorConsent(ref.buyer, {
             nonce: operatorStatus.consentNonce,
             signature: trimmedSignature,
-            payer: address,
           })
           await waitForOperatorConsent(chainClient, ref)
         }
@@ -962,7 +1020,6 @@ export function useAiCreditsAdapter({
       await backendClient.submitOperatorConsent(ref.buyer, {
         nonce: operatorStatus.consentNonce,
         signature: buyerSig,
-        payer: currentState.address,
       })
       await waitForOperatorConsent(chainClient, ref)
 
@@ -1526,6 +1583,7 @@ export function useAiCreditsAdapter({
       switchChain: handleSwitchChain,
       generateBuyerKey: handleGenerateBuyerKey,
       selectBuyer: handleSelectBuyer,
+      discoverBuyers: handleDiscoverBuyers,
       importBuyerFromPrivateKey: handleImportBuyerFromPrivateKey,
       applyDeepLinkBuyer: handleApplyDeepLinkBuyer,
       signOperatorConsent: handleSignOperatorConsent,
@@ -1545,6 +1603,7 @@ export function useAiCreditsAdapter({
       handleSwitchChain,
       handleGenerateBuyerKey,
       handleSelectBuyer,
+      handleDiscoverBuyers,
       handleImportBuyerFromPrivateKey,
       handleApplyDeepLinkBuyer,
       handleSignOperatorConsent,

@@ -17,7 +17,6 @@ export type UserCreditProfile = {
   totalOutstandingFundingUsd: string
   streamFlowRateWeiPerSecond: string
   lastStreamCreditAt?: string
-  buyers?: Array<{ address: string; consentedAt?: string }>
 }
 
 export type GdCreditEntry = {

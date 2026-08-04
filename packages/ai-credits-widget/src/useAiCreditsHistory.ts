@@ -97,8 +97,16 @@ export function useAiCreditsHistory(options: {
   defaultBuyerFilter?: BuyerAddressFilter
   environment?: AiCreditsWidgetEnvironment
   backendClient?: AiCreditsBackendClient
+  onBuyersDiscovered?: (addresses: string[]) => void
 }): UseAiCreditsHistoryResult {
-  const { address, backendUrl, defaultBuyerFilter = BUYER_FILTER_ALL , environment = 'production', backendClient } = options
+  const {
+    address,
+    backendUrl,
+    defaultBuyerFilter = BUYER_FILTER_ALL,
+    environment = 'production',
+    backendClient,
+    onBuyersDiscovered,
+  } = options
   const defaultRange = useMemo(() => getLast90DaysRange(), [])
 
   const [selectedSources, setSelectedSources] = useState(createDefaultSelectedSources)
@@ -158,13 +166,18 @@ export function useAiCreditsHistory(options: {
           to: toIsoEndOfDay(toDate),
         })
 
-        // Apply client-side source filter for multi-source queries
         const sourceFiltered =
           activeSources.length === 1
             ? response.items
             : response.items.filter((entry) => selectedSources[entry.source])
 
-        // Apply buyer address filter on the client side using the `buyerAddress` field
+        const discoveredBuyers = sourceFiltered
+          .map((entry) => entry.buyerAddress)
+          .filter((value): value is string => Boolean(value))
+        if (discoveredBuyers.length > 0) {
+          onBuyersDiscovered?.(discoveredBuyers)
+        }
+
         const buyerFiltered =
           buyerAddressFilter === BUYER_FILTER_ALL
             ? sourceFiltered
@@ -196,6 +209,7 @@ export function useAiCreditsHistory(options: {
       fromDate,
       toDate,
       selectedSources,
+      onBuyersDiscovered,
     ],
   )
 

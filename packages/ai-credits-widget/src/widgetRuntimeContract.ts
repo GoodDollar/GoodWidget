@@ -53,7 +53,6 @@ export interface AiCreditsWidgetAdapterState {
   streamBonusPercent: number
   error: string | null
   activeTab: AiCreditsWidgetTab
-  /** Backend buyer address list (plus temporary local selections not yet on backend). */
   buyers: string[]
   /** Address of the currently selected buyer (matches `buyerPubKey`). */
   activeBuyerAddress: string | null
@@ -71,10 +70,7 @@ export interface AiCreditsWidgetAdapterActions {
    * Switches the active buyer. Address should be in `state.buyers`.
    */
   selectBuyer: (address: string) => void
-  /**
-   * Imports a buyer identity from a hex private key string.
-   * Selects it immediately even if it is not yet on the backend list.
-   */
+  discoverBuyers: (addresses: string[]) => void
   importBuyerFromPrivateKey: (privateKey: string) => Promise<void>
   /**
    * Applies an NCDI deep-link buyer assignment from URL GET parameters

@@ -100,7 +100,6 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     bonusUsd: bigint
     transactions: GdCreditEntry[]
     rootAccount: string
-    buyers: Array<{ address: string; consentedAt: string }>
   }>()
 
   private getState(payer: string) {
@@ -111,7 +110,6 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
         bonusUsd: 0n,
         transactions: createDemoHistory(key),
         rootAccount: key,
-        buyers: [],
       })
     }
     return this.accountStates.get(key)!
@@ -139,7 +137,6 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
       totalGDStreamedWei: '0',
       totalOutstandingFundingUsd: outstanding.toString(),
       streamFlowRateWeiPerSecond: '0',
-      buyers: state.buyers,
     }
   }
 
@@ -147,11 +144,6 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     await sleep(MOCK_DELAY_MS)
     const profile = this.buildProfile(payer)
     return { account: profile.account, profile }
-  }
-
-  async getBuyerAddresses(payer: string): Promise<string[]> {
-    await sleep(MOCK_DELAY_MS)
-    return this.getState(payer).buyers.map((buyer) => buyer.address)
   }
 
   async getCreditHistory(payer: string, options: CreditHistoryQuery = {}): Promise<CreditHistoryResponse> {
@@ -222,24 +214,14 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
 
   async submitOperatorConsent(
     buyer: string,
-    body: { nonce: string; signature: string; payer: string },
+    _body: { nonce: string; signature: string },
   ): Promise<OperatorConsentResponse> {
     await sleep(MOCK_DELAY_MS)
     const normalizedBuyer = normalizeAddress(buyer)
-    const normalizedPayer = normalizeAddress(body.payer)
     markMockOperatorConsent(normalizedBuyer)
-    const state = this.getState(normalizedPayer)
-    if (!state.buyers.some((item) => item.address === normalizedBuyer)) {
-      state.buyers = [
-        ...state.buyers,
-        { address: normalizedBuyer, consentedAt: new Date().toISOString() },
-      ]
-    }
     return {
       buyer: normalizedBuyer,
-      payer: normalizedPayer,
       bridge: { enabled: true, txHash: '0xmock' },
-      buyers: state.buyers,
     }
   }
 }

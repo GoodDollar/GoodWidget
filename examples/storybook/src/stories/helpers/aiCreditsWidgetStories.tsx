@@ -63,6 +63,7 @@ function createAdapterFactory(
       switchChain: async () => {},
       generateBuyerKey: async () => {},
       selectBuyer: () => {},
+      discoverBuyers: () => {},
       importBuyerFromPrivateKey: async () => {},
       applyDeepLinkBuyer: async () => {},
       signOperatorConsent: async () => {},

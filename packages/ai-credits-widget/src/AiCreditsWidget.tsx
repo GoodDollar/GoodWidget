@@ -323,10 +323,10 @@ function AiCreditsInner({
   const history = useAiCreditsHistory({
     address: state.address,
     backendUrl,
-    // Default to the active buyer so users see filtered history immediately
     defaultBuyerFilter: state.activeBuyerAddress ?? 'all',
     environment,
     backendClient: adapterOptions?.backendClient,
+    onBuyersDiscovered: actions.discoverBuyers,
   })
 
   const handlePay = useCallback(
