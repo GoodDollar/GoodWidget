@@ -244,6 +244,19 @@ export function InsufficientGBalanceStory() {
   )
 }
 
+export function BuyTabErrorStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-buy-tab-error"
+      adapterFactory={createAdapterFactory('quote_ready', {
+        buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
+        operatorConsented: true,
+        error: 'Network request failed. Please try again.',
+      })}
+    />
+  )
+}
+
 export function PaymentFailedStory() {
   return (
     <MockStoryShell
