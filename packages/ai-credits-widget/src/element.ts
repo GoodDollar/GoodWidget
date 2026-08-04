@@ -10,11 +10,6 @@ const AiCreditsWidgetElementBase = createMiniAppElement(
     props: {
       backendUrl: 'property',
       fundingVaultAddress: 'property',
-      vaultAddress: 'property',
-      goodIdAddress: 'property',
-      baseRpcUrl: 'property',
-      celoRpcUrl: 'property',
-      environment: 'property',
     },
     events: ['pay-success', 'pay-error'],
   },
@@ -23,9 +18,4 @@ const AiCreditsWidgetElementBase = createMiniAppElement(
 export class AiCreditsWidgetElement extends AiCreditsWidgetElementBase {
   declare backendUrl: string | undefined
   declare fundingVaultAddress: string | undefined
-  declare vaultAddress: string | undefined
-  declare goodIdAddress: string | undefined
-  declare baseRpcUrl: string | undefined
-  declare celoRpcUrl: string | undefined
-  declare environment: string | undefined
 }
