@@ -148,9 +148,7 @@ function deriveStatus(params: {
     buyerPubKey,
     buyerPrvKey,
     operatorConsented,
-    error,
     currentStatus,
-    activeTab,
   } = params
 
   if (
@@ -171,8 +169,6 @@ function deriveStatus(params: {
   }
 
   if (chainId !== null && chainId !== CELO_CHAIN_ID) return 'unsupported_chain'
-
-  if (error && !isNonBuyTab(activeTab)) return 'payment_failed'
 
   if (gBalance === null) return 'purchase_setup'
 
