@@ -28,6 +28,9 @@ function AppKitSuperfluidCampaignWidget() {
         await open({ view: 'Connect' })
         if (!addressRef.current) throw new Error('wallet_connect_cancelled')
       }}
+      disconnectOverride={async () => {
+        await open({ view: 'Account' })
+      }}
     />
   )
 }
