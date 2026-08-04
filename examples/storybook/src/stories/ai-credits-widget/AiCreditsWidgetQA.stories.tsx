@@ -12,6 +12,7 @@ import {
   CreditsManagementStory,
   HistoryTabStory,
   InsufficientGBalanceStory,
+  BuyTabErrorStory,
   PaymentFailedStory,
   BackendUnavailableStory,
   UnsupportedChainStory,
@@ -75,6 +76,10 @@ export const HistoryTab: Story = {
 
 export const InsufficientGBalance: Story = {
   render: () => <InsufficientGBalanceStory />,
+}
+
+export const BuyTabError: Story = {
+  render: () => <BuyTabErrorStory />,
 }
 
 export const PaymentFailed: Story = {

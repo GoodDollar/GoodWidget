@@ -34,6 +34,7 @@
   "dependencies": {
     "@tamagui/animations-react-native": "^1.121.0",
     "@tamagui/core": "1.121.0",
+    "@tamagui/lucide-icons": "1.121.0",
     "@tamagui/themes": "1.121.0",
     "tamagui": "1.121.0"
   },

@@ -74,10 +74,16 @@ export { PageWizardProvider, PageWizardShell, usePageWizard } from './components
 export type { PageWizardContextValue, PageWizardStep } from './components/PageWizard'
 export { Stepper } from './components/Stepper'
 export type { StepperProps, StepperStepItem, StepperStepStatus } from './components/Stepper'
+export { ProgressBar } from './components/ProgressBar'
+export type { ProgressBarProps } from './components/ProgressBar'
 
 // Icon — new component with inline SVG registry and semantic color/size props
 export { Icon } from './components/Icon'
 export type { IconName, IconSize, IconColor, IconProps } from './components/Icon'
+
+// Activity icons — re-exported originals from @tamagui/lucide-icons for the
+// widget "activity" glyph spec (#127). See components/ActivityIcons.ts.
+export { CalendarDays, UserPlus, Megaphone, Waves, HandCoins } from './components/ActivityIcons'
 
 // Dialog — new component backed by imperative store
 export {
@@ -101,6 +107,8 @@ export { MiniAppShell } from './components/MiniAppShell'
 export { CircularActionButton } from './components/CircularActionButton'
 export type { CircularActionButtonProps } from './components/CircularActionButton'
 export { WidgetTabs } from './components/WidgetTabs'
+export { Accordion } from './components/Accordion'
+export type { AccordionProps, AccordionItem } from './components/Accordion'
 export { ActionSheet } from './components-test/ActionSheet'
 export { TokenInput } from './components-test/TokenInput'
 

@@ -201,6 +201,15 @@ function BuyCreditsPanel({ state, actions, isPending, onPay }: BuyPanelProps) {
           />
         )}
 
+        {state.error && (
+          <AiCreditsStatusNotice>
+            <Text color="$error" fontWeight="700">
+              Request Failed
+            </Text>
+            <Text secondary>{state.error}</Text>
+          </AiCreditsStatusNotice>
+        )}
+
         {state.gBalance !== null && Number.parseFloat(state.gBalance) <= 0 && (
           <AiCreditsStatusNotice>
             <Text secondary>You need G$ before you can buy AI credits.</Text>

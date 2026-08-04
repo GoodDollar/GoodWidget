@@ -18,6 +18,8 @@ const STORY_IDS = {
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--history-tab&viewMode=story',
   insufficientBalance:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--insufficient-g-balance&viewMode=story',
+  buyTabError:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--buy-tab-error&viewMode=story',
   paymentFailed:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--payment-failed&viewMode=story',
   backendUnavailable:
@@ -135,6 +137,19 @@ test('AiCreditsWidget insufficient_g_balance', async ({ page }) => {
   await expect(page.getByTestId('AiCreditsWidget-insufficient-balance')).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-08-insufficient-g-balance.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget buy tab with error', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.buyTabError)
+  const root = page.getByTestId('AiCreditsWidget-buy-tab-error')
+  await expect(root).toBeVisible()
+  await expect(root.getByText('Request Failed', { exact: true })).toBeVisible()
+  await expect(root.getByText('Network request failed. Please try again.', { exact: true })).toBeVisible()
+  await expect(root.getByRole('button', { name: 'Buy AI Credits' })).toBeVisible()
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-15-buy-tab-error.png',
     fullPage: true,
   })
 })

@@ -15,6 +15,7 @@ import type React from 'react'
  *   const el = document.querySelector('ai-credits-widget')
  *   el.provider = window.ethereum
  *   el.backendUrl = 'https://api.antseed.xyz'
+ *   el.fundingVaultAddress = '0xYourVaultAddress'
  *   el.themeOverrides = { tokens: { color: { primary: '#00AFFE' } } }
  */
 const AiCreditsWidgetElementBase = createMiniAppElement(
@@ -24,6 +25,7 @@ const AiCreditsWidgetElementBase = createMiniAppElement(
     defaultTheme: 'dark',
     props: {
       backendUrl: 'property',
+      fundingVaultAddress: 'property',
     },
     events: ['pay-success', 'pay-error'],
   },
@@ -31,4 +33,5 @@ const AiCreditsWidgetElementBase = createMiniAppElement(
 
 export class AiCreditsWidgetElement extends AiCreditsWidgetElementBase {
   declare backendUrl: string | undefined
+  declare fundingVaultAddress: string | undefined
 }
