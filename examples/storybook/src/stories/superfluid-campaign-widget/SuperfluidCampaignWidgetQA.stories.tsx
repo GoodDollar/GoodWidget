@@ -1,17 +1,16 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import { SuperfluidCampaignWidget } from '@goodwidget/superfluid-campaign-widget'
+import { MockSuperfluidCampaignWidget } from '@goodwidget/superfluid-campaign-widget/mocked'
 import {
   CustodialAirdropStatusStory,
   CustodialLocalFixtureStory,
-  LiveDataNoWalletStory,
   NoWalletLeaderboardStory,
   NoWalletStory,
   NoWalletSupTotalsStory,
 } from '../helpers/superfluidCampaignWidgetStories'
 
-const meta: Meta<typeof SuperfluidCampaignWidget> = {
+const meta: Meta<typeof MockSuperfluidCampaignWidget> = {
   title: 'QA/SuperfluidCampaignWidget/Runtime Fixtures',
-  component: SuperfluidCampaignWidget,
+  component: MockSuperfluidCampaignWidget,
   tags: ['autodocs', 'qa'],
   parameters: { layout: 'padded' },
 }
@@ -36,7 +35,7 @@ export const CustodialLocalFixtureLeaderboard: Story = {
 }
 
 // Airdrop-status card states — each fixes the live endpoint's response via
-// airdropStatusAdapter so the leaderboard screenshot is deterministic.
+// the mocked airdrop source so the leaderboard screenshot is deterministic.
 export const AirdropStatusLoading: Story = {
   render: () => <CustodialAirdropStatusStory scenario="loading" />,
 }
@@ -54,7 +53,7 @@ export const AirdropStatusEligible: Story = {
 }
 
 // Campaign leaderboard states — each fixes the Points API response via
-// leaderboardAdapter so the leaderboard/tabs screenshot is deterministic.
+// the mocked leaderboard source so the leaderboard/tabs screenshot is deterministic.
 export const LeaderboardLoading: Story = {
   render: () => <NoWalletLeaderboardStory scenario="loading" />,
 }
@@ -67,24 +66,24 @@ export const LeaderboardPopulated: Story = {
   render: () => <NoWalletLeaderboardStory scenario="populated" />,
 }
 
-// Unadapted story used with Playwright network routes to verify the real Points
-// API response contract, including per-account event enrichment.
-export const LeaderboardApiContract: Story = {
-  render: () => <LiveDataNoWalletStory initialView="leaderboard" />,
+export const LeaderboardEmpty: Story = {
+  render: () => <NoWalletLeaderboardStory scenario="empty" />,
 }
 
 // SUP-totals progress bar states — each fixes the programs API response via
-// supTotalsAdapter so the reward-pool progress bar screenshot is deterministic.
+// the mocked programs source so the reward-pool screenshot is deterministic.
 export const SupTotalsRequestFailed: Story = {
   render: () => <NoWalletSupTotalsStory scenario="requestFailed" />,
 }
 
-export const SupTotalsPopulated: Story = {
-  render: () => <NoWalletSupTotalsStory scenario="populated" />,
+export const SupTotalsLoading: Story = {
+  render: () => <NoWalletSupTotalsStory scenario="loading" />,
 }
 
-// Unadapted story used with a mocked programs API response to verify that
-// campaign-606 distribution totals and member count are sourced from the live endpoint.
-export const SupTotalsProgramsApiContract: Story = {
-  render: () => <LiveDataNoWalletStory initialView="content" />,
+export const SupTotalsNoProgram: Story = {
+  render: () => <NoWalletSupTotalsStory scenario="noProgram" />,
+}
+
+export const SupTotalsPopulated: Story = {
+  render: () => <NoWalletSupTotalsStory scenario="populated" />,
 }

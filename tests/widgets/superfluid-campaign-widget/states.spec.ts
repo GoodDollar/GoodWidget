@@ -25,14 +25,20 @@ const STORY_IDS = {
     '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--leaderboard-request-failed&viewMode=story',
   leaderboardPopulated:
     '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--leaderboard-populated&viewMode=story',
+  leaderboardEmpty:
+    '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--leaderboard-empty&viewMode=story',
   leaderboardApiContract:
-    '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--leaderboard-api-contract&viewMode=story',
+    '/iframe.html?id=widgets-superfluidcampaignwidget-api-contracts--leaderboard-api-contract&viewMode=story',
   supTotalsRequestFailed:
     '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--sup-totals-request-failed&viewMode=story',
+  supTotalsLoading:
+    '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--sup-totals-loading&viewMode=story',
+  supTotalsNoProgram:
+    '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--sup-totals-no-program&viewMode=story',
   supTotalsPopulated:
     '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--sup-totals-populated&viewMode=story',
   supTotalsProgramsApiContract:
-    '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--sup-totals-programs-api-contract&viewMode=story',
+    '/iframe.html?id=widgets-superfluidcampaignwidget-api-contracts--sup-totals-programs-api-contract&viewMode=story',
 } as const
 
 // Top-ranked account address (truncated) for each campaign in LEADERBOARD_DATA_FIXTURES
@@ -49,6 +55,24 @@ async function gotoStory(page: Page, storyUrl: string): Promise<void> {
   await page.goto(storyUrl)
   await waitForStoryReady(page)
 }
+
+test('SuperfluidCampaignWidget QA runtime makes no production data requests', async ({ page }) => {
+  const productionRequests: string[] = []
+  page.on('request', (request) => {
+    const url = request.url()
+    if (
+      url.startsWith('https://claim.superfluid.org/api/programs') ||
+      url.startsWith('https://cms.superfluid.pro/points') ||
+      url.startsWith('https://superfluid-airdrop.goodworker.workers.dev/')
+    ) {
+      productionRequests.push(url)
+    }
+  })
+
+  await gotoStory(page, STORY_IDS.custodialLeaderboard)
+  await expect(page.getByText(GOOD_DOLLAR_ACTIONS_TOP_ADDRESS)).toBeVisible()
+  expect(productionRequests).toEqual([])
+})
 
 test('SuperfluidCampaignWidget renders disconnected content view', async ({ page }) => {
   await gotoStory(page, STORY_IDS.noWalletContent)
@@ -280,6 +304,13 @@ test('SuperfluidCampaignWidget campaign leaderboard: request failed', async ({ p
   })
 })
 
+test('SuperfluidCampaignWidget campaign leaderboard: empty', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.leaderboardEmpty)
+
+  await expect(page.getByText('Total participants: 0')).toBeVisible()
+  await expect(page.getByText(GOOD_DOLLAR_ACTIONS_TOP_ADDRESS)).not.toBeVisible()
+})
+
 test("SuperfluidCampaignWidget campaign leaderboard: switching tabs shows each campaign's own accounts", async ({
   page,
 }) => {
@@ -369,14 +400,13 @@ test('SuperfluidCampaignWidget enriches a leaderboard page from per-account poin
   await expect(page.getByLabel('Flow State vote: not done')).toBeVisible()
 })
 
-test('SuperfluidCampaignWidget SUP distribution and members: populated from the protocol subgraph adapter for campaign 606', async ({
+test('SuperfluidCampaignWidget SUP distribution and members: populated from the mocked programs client for campaign 606', async ({
   page,
 }) => {
   await gotoStory(page, STORY_IDS.supTotalsPopulated)
 
-  // 606 (GoodDollar actions) resolves a live program match — figures come from
-  // SUP_TOTALS_FIXTURES, not DEFAULT_CAMPAIGN_MOCK_DATA's static placeholder
-  // (75,895 / 217,700), proving the progress bar is sourced from the adapter.
+  // Figures come from the mocked runtime client, proving changing values are
+  // separate from the stable campaign definition.
   await expect(page.getByText('128,940 / 217,700 SUP')).toBeVisible()
   // The programs API fixture adapter supplies the member count.
   await expect(page.getByText('712 participants')).toBeVisible()
@@ -390,20 +420,28 @@ test('SuperfluidCampaignWidget SUP distribution and members: populated from the 
   })
 })
 
-test('SuperfluidCampaignWidget SUP totals: request failed falls back to placeholder figures for both pools', async ({
+test('SuperfluidCampaignWidget SUP totals: request failed renders empty totals for both pools', async ({
   page,
 }) => {
   await gotoStory(page, STORY_IDS.supTotalsRequestFailed)
 
-  // Neither pool has data on a failed request, so both fall back to their
-  // mock placeholders rather than showing an error state or blank bar.
-  await expect(page.getByText('75,895 / 217,700 SUP')).toBeVisible()
-  await expect(page.getByText('262,450 / 404,300 SUP')).toBeVisible()
+  // This preserves the existing hook/component behavior: absent totals use zero.
+  await expect(page.getByText('0 / 0 SUP')).toHaveCount(2)
 
   await page.screenshot({
     path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-18-sup-totals-request-failed.png',
     fullPage: true,
   })
+})
+
+test('SuperfluidCampaignWidget SUP totals: loading stays deterministic', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.supTotalsLoading)
+  await expect(page.getByText('0 / 0 SUP')).toHaveCount(2)
+})
+
+test('SuperfluidCampaignWidget SUP totals: no program renders empty totals', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.supTotalsNoProgram)
+  await expect(page.getByText('0 / 0 SUP')).toHaveCount(2)
 })
 
 test('SuperfluidCampaignWidget SUP distribution and members sourced from the programs API for campaign 606', async ({
