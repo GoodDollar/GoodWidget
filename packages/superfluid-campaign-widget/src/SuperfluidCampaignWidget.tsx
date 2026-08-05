@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import { GoodWidgetProvider, useWallet } from '@goodwidget/core'
 import type { EIP1193Provider } from '@goodwidget/core'
 import { CitizenClaimWidget } from '@goodwidget/citizen-claim-widget'
@@ -8,6 +8,7 @@ import { FaqAccordion } from './components/FaqAccordion'
 import { LeaderboardSummary } from './components/LeaderboardSummary'
 import { LeaderboardView } from './components/LeaderboardView'
 import { RewardPoolSection } from './components/RewardPoolSection'
+import { useAirdropStatus } from './hooks/useAirdropStatus'
 import { DEFAULT_CAMPAIGN_DEFINITION } from './campaignDefinition'
 import {
   PRODUCTION_SUPERFLUID_CAMPAIGN_DATA_CLIENT,
@@ -106,8 +107,18 @@ function SuperfluidCampaignRuntime({
   const { isConnected, connect, disconnect, address } = useWallet()
   const [view, setView] = useState<SuperfluidCampaignView>(initialView)
   const [embeddedClaimTab, setEmbeddedClaimTab] = useState<EmbeddedClaimTab>(null)
+  const [leaderboardRefreshKey, setLeaderboardRefreshKey] = useState(0)
 
   const isMockRuntime = dataClient.kind === 'mock'
+  const handleAirdropStatusUpdated = useCallback(() => {
+    setLeaderboardRefreshKey((current) => current + 1)
+  }, [])
+  const airdropStatus = useAirdropStatus(
+    address,
+    isMockRuntime ? dataClient.airdropStatus : undefined,
+    handleAirdropStatusUpdated,
+  )
+  void airdropStatus
 
   const campaignData = applyActionLinkOverrides(data ?? DEFAULT_CAMPAIGN_DEFINITION, actionLinks)
 
@@ -145,6 +156,7 @@ function SuperfluidCampaignRuntime({
         onConnect={connect}
         onDisconnect={hasDisconnectOverride ? disconnect : undefined}
         onClose={() => setView('content')}
+        leaderboardRefreshKey={leaderboardRefreshKey}
       />
     )
   }
