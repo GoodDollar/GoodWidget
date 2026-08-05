@@ -1,6 +1,6 @@
 {
   "name": "@goodwidget/ai-credits-widget",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "GoodWidget for buying AI coding credits with G$ on Celo",
   "files": [
     "dist",
