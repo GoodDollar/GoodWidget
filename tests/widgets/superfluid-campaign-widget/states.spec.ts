@@ -412,13 +412,17 @@ test('SuperfluidCampaignWidget SUP distribution and members: populated from the 
   })
 })
 
-test('SuperfluidCampaignWidget SUP totals: request failed renders empty totals for both pools', async ({
+test('SuperfluidCampaignWidget SUP totals: request failure stays visible with empty fallback totals', async ({
   page,
 }) => {
   await gotoStory(page, STORY_IDS.supTotalsRequestFailed)
 
-  // This preserves the existing hook/component behavior: absent totals use zero.
+  // The zero fallback remains deterministic, but the request failure must not be hidden.
   await expect(page.getByText('0 / 0 SUP')).toHaveCount(2)
+  await expect(page.getByText('Request Failed', { exact: true })).toHaveCount(2)
+  await expect(
+    page.getByText('SUP program totals request failed (500)', { exact: true }),
+  ).toHaveCount(2)
 
   await page.screenshot({
     path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-18-sup-totals-request-failed.png',
