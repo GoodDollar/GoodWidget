@@ -59,7 +59,6 @@ export type CreditHistoryQuery = {
   fundingStatus?: GdCreditEntry['fundingStatus']
   from?: string
   to?: string
-  buyerAddress?: string
 }
 
 export type AccountView = {

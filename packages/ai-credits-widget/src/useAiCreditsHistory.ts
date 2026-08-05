@@ -162,8 +162,7 @@ export function useAiCreditsHistory(options: {
       const client = backendClient ?? createBackendClient(backendUrl)
       const apiSource = activeSources.length === 1 ? activeSources[0] : undefined
       const fundingStatus = statusFilter === 'all' ? undefined : statusFilter
-      const apiBuyerAddress =
-        buyerAddressFilter === BUYER_FILTER_ALL ? undefined : buyerAddressFilter
+      const filterByBuyer = buyerAddressFilter !== BUYER_FILTER_ALL
 
       try {
         const collected: GdCreditEntry[] = []
@@ -171,7 +170,11 @@ export function useAiCreditsHistory(options: {
         let apiHasMore = true
         let pages = 0
 
-        while (pages < BUYER_FILTER_FILL_MAX_PAGES && collected.length < HISTORY_PAGE_SIZE && apiHasMore) {
+        while (
+          pages < BUYER_FILTER_FILL_MAX_PAGES &&
+          collected.length < HISTORY_PAGE_SIZE &&
+          apiHasMore
+        ) {
           const response = await client.getCreditHistory(address, {
             limit: HISTORY_PAGE_SIZE,
             offset: cursor,
@@ -179,7 +182,6 @@ export function useAiCreditsHistory(options: {
             fundingStatus,
             from: toIsoStartOfDay(fromDate),
             to: toIsoEndOfDay(toDate),
-            buyerAddress: apiBuyerAddress,
           })
 
           const sourceFiltered =
@@ -203,8 +205,7 @@ export function useAiCreditsHistory(options: {
           cursor = response.offset + response.limit
           pages += 1
 
-          if (!apiBuyerAddress) break
-          if (buyerFiltered.length === response.items.length) break
+          if (!filterByBuyer) break
         }
 
         setEntries((prev) => (append ? [...prev, ...collected] : collected))
