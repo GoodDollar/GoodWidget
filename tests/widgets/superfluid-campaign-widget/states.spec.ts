@@ -209,6 +209,7 @@ test('SuperfluidCampaignWidget mobile leaderboard keeps its headers and scrolls 
   await expect(page.getByText('Points', { exact: true })).toBeVisible()
   await expect(page.getByText('Actions', { exact: true })).toBeVisible()
   await expect(page.getByTestId('LeaderboardRow-1')).toHaveCSS('flex-direction', 'row')
+  await expect(page.getByTestId('LeaderboardRow-1')).toHaveCSS('min-width', '480px')
 
   const scrollMetrics = await page.getByTestId('Leaderboard-table-scroll').evaluate((element) => ({
     clientWidth: element.clientWidth,

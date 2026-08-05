@@ -20,7 +20,11 @@ import type {
 } from '../hooks/useCampaignLeaderboard'
 import { useCampaignLeaderboard } from '../hooks/useCampaignLeaderboard'
 import type { CampaignPoolDefinition, LeaderboardEntry } from '../widgetRuntimeContract'
-import { LEADERBOARD_COLUMN_WIDTHS, LeaderboardRow } from './LeaderboardRow'
+import {
+  LEADERBOARD_COLUMN_WIDTHS,
+  LEADERBOARD_ROW_MIN_WIDTH,
+  LeaderboardRow,
+} from './LeaderboardRow'
 import { compactButtonProps, truncateAddress } from './shared/styles'
 import { WalletChip } from './shared/WalletChip'
 
@@ -35,6 +39,7 @@ interface LeaderboardViewProps {
   onConnect: () => void
   onDisconnect?: () => Promise<void>
   onClose: () => void
+  leaderboardRefreshKey: number
 }
 
 /**
@@ -76,6 +81,7 @@ export function LeaderboardView({
   onConnect,
   onDisconnect,
   onClose,
+  leaderboardRefreshKey,
 }: LeaderboardViewProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCampaignTab, setActiveCampaignTab] = useState<string>(pools[0]?.id ?? '')
@@ -89,6 +95,7 @@ export function LeaderboardView({
     firstPool ? (pageByPoolId[firstPool.id] ?? 1) : 1,
     Boolean(firstPool && activeCampaignTab === firstPool.id),
     leaderboardAdapter,
+    leaderboardRefreshKey,
   )
   const secondPoolResult = useCampaignLeaderboard(
     secondPool?.campaignId ?? 0,
@@ -96,6 +103,7 @@ export function LeaderboardView({
     secondPool ? (pageByPoolId[secondPool.id] ?? 1) : 1,
     Boolean(secondPool && activeCampaignTab === secondPool.id),
     leaderboardAdapter,
+    leaderboardRefreshKey,
   )
   const resultByPoolId: Record<string, typeof firstPoolResult> = {}
   if (pools[0]) resultByPoolId[pools[0].id] = firstPoolResult
@@ -218,10 +226,10 @@ export function LeaderboardView({
 
       {!activeResult?.isLoading && !activeResult?.error && (
         <YStack data-testid="Leaderboard-table-scroll" width="100%" style={{ overflowX: 'auto' }}>
-          {/* The minimum table width is only active below $sm (480px). Header
-              and rows share this one scroll container, so their columns stay
-              aligned while the complete table remains available horizontally. */}
-          <YStack gap="$2" width="100%" minWidth={0} $sm={{ minWidth: 480 }}>
+          {/* Header and rows share this one scroll container. The fixed minimum
+              width keeps every column aligned, including when the widget's
+              padded content area is narrower than the table. */}
+          <YStack gap="$2" width="100%" minWidth={LEADERBOARD_ROW_MIN_WIDTH}>
             <XStack alignItems="center" gap="$3" padding="$3">
               <Text variant="label" width={LEADERBOARD_COLUMN_WIDTHS.rank}>
                 Rank

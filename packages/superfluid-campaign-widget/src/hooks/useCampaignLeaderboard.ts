@@ -93,6 +93,7 @@ export function useCampaignLeaderboard(
   page: number,
   enabled: boolean,
   adapterOverride?: CampaignLeaderboardAdapter,
+  refreshKey = 0,
 ): CampaignLeaderboardResult {
   const [data, setData] = useState<CampaignLeaderboardData | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -195,7 +196,7 @@ export function useCampaignLeaderboard(
       })
 
     return () => controller.abort()
-  }, [campaignId, actions, page, enabled, adapterOverride])
+  }, [campaignId, actions, page, enabled, adapterOverride, refreshKey])
 
   if (adapterOverride && enabled) return adapterOverride(campaignId, page)
   if (!enabled) return { data: null, isLoading: false, error: null }
