@@ -27,7 +27,10 @@ function formatCompact(value: number, decimals: number): string {
   let thresholdIndex = COMPACT_THRESHOLDS.findIndex(({ threshold }) => absValue >= threshold)
 
   if (thresholdIndex === -1) {
-    return value.toFixed(decimals)
+    // Below the smallest compact threshold: whole-number metrics (wallet
+    // counts, day counts, etc.) render without decimal places regardless of
+    // the requested precision — "47", not "47.0".
+    return Number.isInteger(value) ? String(value) : value.toFixed(decimals)
   }
 
   // Rounding the scaled value can carry it up to the next unit (e.g. 999_950 → "1000.0K"

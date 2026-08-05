@@ -114,8 +114,9 @@ test('Stepper/Default story renders active-step hierarchy', async ({ page }) => 
 test('Scorecard/Default story renders all 5 mock-data rows in both variants', async ({ page }) => {
   // Taller than the default viewport so both the bare and card rows fit
   // without clipping — 10 cards across two rows need more vertical space
-  // than a single-row story.
-  await page.setViewportSize({ width: 1280, height: 900 })
+  // than a single-row story. 1000 (rather than 900) accounts for the
+  // increased card padding/spacing from the golden-ratio spacing pass.
+  await page.setViewportSize({ width: 1280, height: 1000 })
   await gotoStory(page, 'design-system-primitives-scorecard--default')
   const frame = getStoryFrame(page)
   await expect(frame.getByTestId('Scorecard-default')).toBeVisible()

@@ -62,6 +62,20 @@ const SECONDARY_SIZE_PX: Record<ScorecardSize, number> = {
   sm: clampFontSize(VALUE_SIZE_PX.sm / GOLDEN_RATIO),
 }
 
+/**
+ * Vertical rhythm derived from the same base/ratio as the type scale, so
+ * spacing and typography stay on one proportional system instead of mixing
+ * in unrelated design tokens.
+ */
+const LABEL_TO_VALUE_GAP_PX = SCORECARD_BASE_SIZE_PX / GOLDEN_RATIO ** 2
+const VALUE_TO_TREND_GAP_PX = SCORECARD_BASE_SIZE_PX / GOLDEN_RATIO
+const CARD_PADDING_PX = SCORECARD_BASE_SIZE_PX
+
+/** Semi-transparent white applied over the card background to lift it off the canvas by lightness rather than a border. */
+const CARD_ELEVATION_OVERLAY_COLOR = 'rgba(255,255,255,0.045)'
+/** Simulates a light source hitting the card's top edge, replacing a hard border. */
+const CARD_TOP_HIGHLIGHT_COLOR = 'rgba(255,255,255,0.06)'
+
 const TREND_DIRECTION_COLOR_TOKEN: Record<ScorecardTrend['direction'], string> = {
   up: '$success',
   down: '$error',
@@ -101,7 +115,7 @@ function resolveThemeColor(theme: ReturnType<typeof useTheme>, token: string): s
 const ScorecardFrame = createComponent(YStack, {
   name: 'Scorecard',
   alignItems: 'center',
-  gap: '$2',
+  justifyContent: 'center',
 })
 
 const ScorecardLabelText = createComponent(TamaguiText, {
@@ -125,13 +139,38 @@ const ScorecardValueRow = createComponent(XStack, {
   name: 'ScorecardValueRow',
   alignItems: 'baseline',
   gap: '$1',
+  marginTop: LABEL_TO_VALUE_GAP_PX,
 })
 
 const ScorecardValueText = createComponent(TamaguiText, {
   name: 'ScorecardValueText',
   fontFamily: '$body',
   fontWeight: '700',
-  color: '$primary',
+  // Theme text color, not $primary — $primary reads as an interactive/link
+  // hue, and the value is a headline, not a call to action.
+  color: '$color',
+
+  variants: {
+    size: {
+      sm: { fontSize: VALUE_SIZE_PX.sm },
+      md: { fontSize: VALUE_SIZE_PX.md },
+      lg: { fontSize: VALUE_SIZE_PX.lg },
+    },
+  } as const,
+
+  defaultVariants: { size: 'md' },
+})
+
+/**
+ * Prefix/suffix (e.g. "G$", "/day") — same font size as the value since it's
+ * still part of the value row, but lighter weight and dimmer color so it
+ * stays subordinate to the value instead of competing with it.
+ */
+const ScorecardAffixText = createComponent(TamaguiText, {
+  name: 'ScorecardAffixText',
+  fontFamily: '$body',
+  fontWeight: '400',
+  color: '$placeholderColor',
 
   variants: {
     size: {
@@ -148,6 +187,7 @@ const ScorecardTrendRow = createComponent(XStack, {
   name: 'ScorecardTrendRow',
   alignItems: 'center',
   gap: '$1',
+  marginTop: VALUE_TO_TREND_GAP_PX,
 })
 
 const ScorecardTrendText = createComponent(TamaguiText, {
@@ -194,6 +234,22 @@ function TrendGlyph({ direction, color, size }: { direction: ScorecardTrend['dir
   )
 }
 
+/**
+ * Elevation-by-lightness overlay for the card variant: an absolutely
+ * positioned semi-transparent white layer over the canvas-colored card,
+ * standing in for a shadow/border so depth reads from tone, not an outline.
+ * Sits as a sibling behind ScorecardContent inside a position:relative Card.
+ */
+const ScorecardCardOverlay = createComponent(YStack, {
+  name: 'ScorecardCardOverlay',
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: CARD_ELEVATION_OVERLAY_COLOR,
+})
+
 function formatTrendPercentage(trendValue: number, direction: ScorecardTrend['direction']): string {
   const magnitude = Math.abs(trendValue).toFixed(1)
   if (direction === 'up') return `+${magnitude}%`
@@ -222,9 +278,9 @@ function ScorecardContent({
     <ScorecardFrame testID={testID} data-testid={testID}>
       <ScorecardLabelText size={size}>{label}</ScorecardLabelText>
       <ScorecardValueRow>
-        {prefix ? <ScorecardValueText size={size}>{prefix}</ScorecardValueText> : null}
+        {prefix ? <ScorecardAffixText size={size}>{prefix}</ScorecardAffixText> : null}
         <ScorecardValueText size={size}>{formattedValue}</ScorecardValueText>
-        {suffix ? <ScorecardValueText size={size}>{suffix}</ScorecardValueText> : null}
+        {suffix ? <ScorecardAffixText size={size}>{suffix}</ScorecardAffixText> : null}
       </ScorecardValueRow>
       {trend ? (
         <ScorecardTrendRow>
@@ -246,7 +302,24 @@ function ScorecardContent({
 export function Scorecard({ variant = 'bare', ...contentProps }: ScorecardProps) {
   if (variant === 'card') {
     return (
-      <Card>
+      // Overrides scoped to this call site only — Card.ts itself stays
+      // untouched since it's shared by ~26 other widget-package consumers.
+      // position:relative + overflow:hidden host the absolutely positioned
+      // elevation overlay; justifyContent:center keeps content centered
+      // whether or not a trend row is present, so cards with/without a
+      // trend row still align evenly in a row layout.
+      <Card
+        position="relative"
+        overflow="hidden"
+        padding={CARD_PADDING_PX}
+        backgroundColor="$background"
+        borderWidth={0}
+        borderTopWidth={1}
+        borderTopColor={CARD_TOP_HIGHLIGHT_COLOR}
+        shadowOpacity={0}
+        justifyContent="center"
+      >
+        <ScorecardCardOverlay />
         <ScorecardContent {...contentProps} />
       </Card>
     )
