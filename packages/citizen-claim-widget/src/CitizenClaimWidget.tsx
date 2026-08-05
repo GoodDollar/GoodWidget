@@ -28,6 +28,8 @@ import type {
   CitizenClaimWidgetErrorDetail,
   CitizenClaimWidgetEnvironment,
   CitizenClaimTab,
+  CitizenClaimWidgetClientFactory,
+  CitizenClaimWidgetCustodialExecution,
 } from './widgetRuntimeContract'
 
 // ---------------------------------------------------------------------------
@@ -193,13 +195,24 @@ function Countdown({ nextClaim }: { nextClaim: Date }) {
 // ---------------------------------------------------------------------------
 interface CitizenClaimInnerProps {
   environment?: CitizenClaimWidgetEnvironment
-  // walletMode: 'custodial' | 'injected'
+  clientFactory?: CitizenClaimWidgetClientFactory
+  claimExecution?: CitizenClaimWidgetCustodialExecution
   onClaimSuccess?: (detail: CitizenClaimWidgetSuccessDetail) => void
   onClaimError?: (detail: CitizenClaimWidgetErrorDetail) => void
 }
 
-function CitizenClaimInner({ environment, onClaimSuccess, onClaimError }: CitizenClaimInnerProps) {
-  const { state, actions } = useCitizenClaimAdapter({ environment })
+function CitizenClaimInner({
+  environment,
+  clientFactory,
+  claimExecution,
+  onClaimSuccess,
+  onClaimError,
+}: CitizenClaimInnerProps) {
+  const { state, actions } = useCitizenClaimAdapter({
+    environment,
+    clientFactory,
+    claimExecution,
+  })
   const {
     status,
     address,
@@ -276,17 +289,32 @@ function CitizenClaimInner({ environment, onClaimSuccess, onClaimError }: Citize
             break
           }
 
+          const toastByChain = new Map<number, string>()
           for (const claimEntry of claimPlan) {
             const entryChainName =
               chainNameById.get(claimEntry.chainId) ?? getChainName(claimEntry.chainId)
-            const toastId = createToast({
-              message: `Claim initiated on ${entryChainName}`,
-              status: 'pending',
-              duration: 0,
-            })
+            toastByChain.set(
+              claimEntry.chainId,
+              createToast({
+                message: `Claim initiated on ${entryChainName}`,
+                status: 'pending',
+                duration: 0,
+              }),
+            )
+          }
+
+          const claimResults = await actions.claimAll(claimPlan.map((entry) => entry.chainId))
+
+          for (const claimResult of claimResults) {
+            const entryChainName =
+              chainNameById.get(claimResult.chainId) ?? getChainName(claimResult.chainId)
+            const toastId = toastByChain.get(claimResult.chainId)
+            if (!toastId) continue
 
             try {
-              const receipt = await actions.claimOnChain(claimEntry.chainId)
+              if (claimResult.status === 'rejected') {
+                throw claimResult.error
+              }
               updateToast(toastId, {
                 message: `Claim succeeded on ${entryChainName}`,
                 status: 'success',
@@ -294,8 +322,8 @@ function CitizenClaimInner({ environment, onClaimSuccess, onClaimError }: Citize
               })
               onClaimSuccess?.({
                 address: address!,
-                chainId: claimEntry.chainId,
-                transactionHash: (receipt as { transactionHash?: string } | undefined)
+                chainId: claimResult.chainId,
+                transactionHash: (claimResult.receipt as { transactionHash?: string } | undefined)
                   ?.transactionHash,
               })
             } catch (multiClaimError: unknown) {
@@ -306,11 +334,10 @@ function CitizenClaimInner({ environment, onClaimSuccess, onClaimError }: Citize
               })
               onClaimError?.({
                 address: address ?? null,
-                chainId: claimEntry.chainId,
+                chainId: claimResult.chainId,
                 message:
                   multiClaimError instanceof Error ? multiClaimError.message : 'Claim failed',
               })
-            } finally {
             }
           }
 
@@ -337,6 +364,8 @@ function CitizenClaimInner({ environment, onClaimSuccess, onClaimError }: Citize
   }, [
     primaryAction,
     actions,
+    clientFactory,
+    claimExecution,
     address,
     chainId,
     chainNameById,
@@ -524,6 +553,8 @@ export function CitizenClaimWidget({
   provider,
   environment = 'production',
   chainId,
+  clientFactory,
+  claimExecution,
   themeOverrides,
   config,
   defaultTheme = 'dark',
@@ -555,7 +586,8 @@ export function CitizenClaimWidget({
         <>
           <CitizenClaimInner
             environment={environment}
-            // walletMode={walletMode}
+            clientFactory={clientFactory}
+            claimExecution={claimExecution}
             onClaimSuccess={onClaimSuccess}
             onClaimError={onClaimError}
           />

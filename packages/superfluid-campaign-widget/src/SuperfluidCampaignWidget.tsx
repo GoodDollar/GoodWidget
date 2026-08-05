@@ -32,6 +32,7 @@ interface SuperfluidCampaignRuntimeProps {
   leaderboardSummary?: LeaderboardSummaryData
   dataClient: SuperfluidCampaignDataClient
   citizenClaimEnvironment: SuperfluidCampaignWidgetProps['citizenClaimEnvironment']
+  citizenClaimExecution: SuperfluidCampaignWidgetProps['citizenClaimExecution']
   initialView: SuperfluidCampaignView
   poolAddresses?: SuperfluidCampaignWidgetProps['poolAddresses']
   /** Forwarded to the embedded CitizenClaimWidget so it shares the same provider/config/theme context. */
@@ -96,6 +97,7 @@ function SuperfluidCampaignRuntime({
   leaderboardSummary,
   dataClient,
   citizenClaimEnvironment,
+  citizenClaimExecution,
   initialView,
   poolAddresses,
   provider,
@@ -139,6 +141,7 @@ function SuperfluidCampaignRuntime({
           themeOverrides={themeOverrides}
           defaultTheme={defaultTheme}
           environment={citizenClaimEnvironment}
+          claimExecution={citizenClaimExecution}
           initialTab={embeddedClaimTab}
         />
       </YStack>
@@ -221,6 +224,7 @@ export function SuperfluidCampaignWidgetWithClient({
   data,
   actionLinks,
   citizenClaimEnvironment = 'production',
+  citizenClaimExecution,
   initialView = 'content',
   poolAddresses,
   dataClient,
@@ -243,6 +247,7 @@ export function SuperfluidCampaignWidgetWithClient({
           leaderboardSummary={leaderboardSummary}
           dataClient={dataClient}
           citizenClaimEnvironment={citizenClaimEnvironment}
+          citizenClaimExecution={citizenClaimExecution}
           initialView={initialView}
           poolAddresses={poolAddresses}
           provider={provider}

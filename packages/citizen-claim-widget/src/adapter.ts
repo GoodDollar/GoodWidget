@@ -1,9 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useWallet } from '@goodwidget/core'
-import { createPublicClient, createWalletClient, custom, formatUnits, http, type Chain } from 'viem'
+import {
+  createPublicClient,
+  createWalletClient,
+  custom,
+  formatUnits,
+  http,
+  type Account,
+  type Chain,
+  type PublicClient,
+  type Transport,
+  type WalletClient,
+} from 'viem'
 import {
   ClaimSDK,
+  ClaimCustodialSDK,
   IdentitySDK,
+  IdentityCustodialSDK,
   citizenSdkCapabilities,
   checkGenericDailyStats,
   checkGenericEntitlement,
@@ -15,6 +28,10 @@ import type {
   CitizenClaimWidgetAdapterActions,
   CitizenClaimWidgetAdapterResult,
   CitizenClaimWidgetAdapterState,
+  CitizenClaimWidgetChainClaimResult,
+  CitizenClaimWidgetClientBundle,
+  CitizenClaimWidgetClientFactory,
+  CitizenClaimWidgetCustodialExecution,
   CitizenClaimWidgetEnvironment,
   CitizenClaimWidgetStatus,
 } from './widgetRuntimeContract'
@@ -129,6 +146,8 @@ function humanReadableError(err: unknown): string {
 
 export interface UseCitizenClaimAdapterOptions {
   environment?: CitizenClaimWidgetEnvironment
+  clientFactory?: CitizenClaimWidgetClientFactory
+  claimExecution?: CitizenClaimWidgetCustodialExecution
   /**
    * URL to redirect the user to after face-verification completes.
    * Defaults to the current page URL if running in a browser.
@@ -147,7 +166,8 @@ type CitizenEnvironment = 'production' | 'staging' | 'development'
  * The adapter:
  * 1. Reads wallet state from useWallet() (injected by GoodWidgetProvider)
  * 2. Creates viem public/wallet clients from the EIP1193 provider
- * 3. Instantiates IdentitySDK + ClaimSDK from those clients
+ * 3. Instantiates IdentitySDK + ClaimSDK from those clients, or the custodial
+ *    variants when an explicit multi-chain execution config is provided
  * 4. Manages the CitizenClaimWidgetStatus state machine
  * 5. Exposes typed actions: connect, verify, claim, refresh, switchChain
  *
@@ -162,6 +182,10 @@ export function useCitizenClaimAdapter(
   options: UseCitizenClaimAdapterOptions = {},
 ): CitizenClaimWidgetAdapterResult {
   const { address, chainId, isConnected, provider, connect } = useWallet()
+
+  const clientFactory = options.clientFactory
+  const claimExecution = options.claimExecution
+  const isCustodialExecution = claimExecution?.mode === 'custodial'
 
   // Normalise env string to one of the SDK-declared runtime environments.
   const env = (
@@ -197,10 +221,11 @@ export function useCitizenClaimAdapter(
   }, [])
 
   // ---------------------------------------------------------------------------
-  // Client factory — creates viem clients from the EIP1193 provider.
-  // Returns null when any required wallet state is missing.
+  // Client resolution — custodial clients are supplied by the integrator and
+  // never routed through the active-chain EIP-1193 provider. The factory remains
+  // available for integrations that prefer lazy per-chain client creation.
   // ---------------------------------------------------------------------------
-  const createClientsForChain = useCallback(
+  const createProviderClientsForChain = useCallback(
     (targetChainId: number) => {
       if (!provider || !address) return null
       const chain = CHAIN_CONFIGS[targetChainId]
@@ -217,61 +242,103 @@ export function useCitizenClaimAdapter(
     [provider, address],
   )
 
-  const createClients = useCallback(() => {
-    if (!chainId) return null
-    if (!provider || !address) return null
-    const chain = CHAIN_CONFIGS[chainId]
-    if (!chain) return null
-    // chain may be undefined for unsupported networks; the SDK will throw clearly.
-    const transport = custom(provider as Parameters<typeof custom>[0])
-    const publicClient = createPublicClient({ chain, transport })
-    const walletClient = createWalletClient({
-      account: address as `0x${string}`,
-      chain,
-      transport,
-    })
-    return { publicClient, walletClient }
-  }, [provider, address, chainId])
+  const normalizeClientBundle = useCallback(
+    (bundle: CitizenClaimWidgetClientBundle | null | undefined) => {
+      if (!bundle) return null
+      const publicClient = bundle.publicClient ?? bundle.readClient
+      if (!publicClient) {
+        throw new Error('CitizenClaimWidget: client bundle is missing publicClient')
+      }
+      return {
+        publicClient: publicClient as PublicClient,
+        walletClient: bundle.walletClient as WalletClient<
+          Transport,
+          Chain | undefined,
+          Account | undefined
+        >,
+      }
+    },
+    [],
+  )
+
+  const resolveClientsForChain = useCallback(
+    async (targetChainId: number) => {
+      if (isCustodialExecution) {
+        const configuredClients = claimExecution?.clientsByChain[targetChainId]
+        if (configuredClients) return normalizeClientBundle(configuredClients)
+
+        if (!clientFactory || !provider || !address) {
+          throw new Error(
+            `CitizenClaimWidget: no custodial clients configured for chain ${targetChainId}`,
+          )
+        }
+      }
+
+      if (clientFactory && provider && address) {
+        const factoryClients = await clientFactory({
+          provider,
+          address,
+          chainId: targetChainId,
+        })
+        return normalizeClientBundle(factoryClients)
+      }
+
+      return normalizeClientBundle(createProviderClientsForChain(targetChainId))
+    },
+    [
+      address,
+      claimExecution,
+      clientFactory,
+      createProviderClientsForChain,
+      isCustodialExecution,
+      normalizeClientBundle,
+      provider,
+    ],
+  )
 
   // ---------------------------------------------------------------------------
-  // SDK factory — wraps viem clients in IdentitySDK + ClaimSDK instances.
+  // SDK factory — selects custodial SDKs only for the explicit custodial mode.
   // ---------------------------------------------------------------------------
   const createSdkInstances = useCallback(
-    (clients: ReturnType<typeof createClients>) => {
-      if (!clients || !address) return null
+    (clients: Awaited<ReturnType<typeof resolveClientsForChain>>) => {
+      if (!clients) return null
       const { publicClient, walletClient } = clients
+      const sdkAccount = address ?? walletClient.account?.address
+      const rdu = options.rdu ?? (typeof window !== 'undefined' ? window.location.href : '')
+
+      if (isCustodialExecution) {
+        const identitySDK = new IdentityCustodialSDK({ publicClient, walletClient, env })
+        const claimSDK = new ClaimCustodialSDK({
+          publicClient,
+          walletClient,
+          identitySDK,
+          env,
+          rdu,
+        })
+        return { identitySDK, claimSDK }
+      }
+
+      if (!sdkAccount) return null
       const identitySDK = new IdentitySDK({ publicClient, walletClient, env })
       const claimSDK = new ClaimSDK({
-        account: address as `0x${string}`,
+        account: sdkAccount as `0x${string}`,
         publicClient,
         walletClient,
         identitySDK,
         env,
-        // Return URL used by the GoodID face-verification redirect flow
-        rdu: options.rdu ?? (typeof window !== 'undefined' ? window.location.href : ''),
+        rdu,
       })
       return { identitySDK, claimSDK }
     },
-    [address, env, options.rdu],
+    [address, env, isCustodialExecution, options.rdu, resolveClientsForChain],
   )
 
   const createSdkInstancesForChain = useCallback(
-    (targetChainId: number) => {
-      const clients = createClientsForChain(targetChainId)
-      if (!clients || !address) return null
-      const { publicClient, walletClient } = clients
-      const identitySDK = new IdentitySDK({ publicClient, walletClient, env })
-      const claimSDK = new ClaimSDK({
-        account: address as `0x${string}`,
-        publicClient,
-        walletClient,
-        identitySDK,
-        env,
-        rdu: options.rdu ?? (typeof window !== 'undefined' ? window.location.href : ''),
-      })
-      return { identitySDK, claimSDK }
+    async (targetChainId: number) => {
+      const clients = await resolveClientsForChain(targetChainId)
+      return createSdkInstances(clients)
     },
-    [createClientsForChain, address, env, options.rdu],
+    [createSdkInstances, resolveClientsForChain],
   )
 
   /**
@@ -371,12 +438,7 @@ export function useCitizenClaimAdapter(
     setStatus('loading')
     setError(null)
 
-    const clients = createClients()
-    if (!clients) {
-      setStatus('not_connected')
-      return
-    }
-    const sdk = createSdkInstances(clients)
+    const sdk = await createSdkInstancesForChain(chainId)
     if (!sdk) {
       setStatus('not_connected')
       return
@@ -411,8 +473,7 @@ export function useCitizenClaimAdapter(
     address,
     onSupportedChain,
     chainId,
-    createClients,
-    createSdkInstances,
+    createSdkInstancesForChain,
     loadClaimablesByChain,
     loadDailyStats,
   ])
@@ -429,8 +490,8 @@ export function useCitizenClaimAdapter(
   // ---------------------------------------------------------------------------
   const claimOnChain = useCallback(
     async (targetChainId: number): Promise<unknown> => {
-      if (!provider) throw new Error('No wallet provider available')
-      if (!address) throw new Error('Wallet not connected')
+      if (!isCustodialExecution && !provider) throw new Error('No wallet provider available')
+      if (!address && !isCustodialExecution) throw new Error('Wallet not connected')
 
       if (!isSupportedChain(targetChainId)) {
         throw new Error(`Unsupported chain for citizen-sdk: ${targetChainId}`)
@@ -439,22 +500,73 @@ export function useCitizenClaimAdapter(
       setStatus('claiming')
       setError(null)
 
-      // Ensure the wallet is on the target chain before signing.
-      await (
-        provider as {
-          request: (args: { method: string; params: unknown[] }) => Promise<unknown>
-        }
-      ).request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: `0x${targetChainId.toString(16)}` }],
-      })
+      // A single EIP-1193 provider has one active chain. Custodial clients are
+      // already chain-bound, so switching would introduce a race between claims.
+      if (!isCustodialExecution) {
+        await (
+          provider as {
+            request: (args: { method: string; params: unknown[] }) => Promise<unknown>
+          }
+        ).request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: `0x${targetChainId.toString(16)}` }],
+        })
+      }
 
-      const sdk = createSdkInstancesForChain(targetChainId)
+      const sdk = await createSdkInstancesForChain(targetChainId)
       if (!sdk) throw new Error('Unable to initialize SDK clients for target chain')
 
       return sdk.claimSDK.claim()
     },
-    [provider, address, createSdkInstancesForChain],
+    [provider, address, createSdkInstancesForChain, isCustodialExecution],
+  )
+
+  const claimAll = useCallback(
+    async (targetChainIds: number[]): Promise<CitizenClaimWidgetChainClaimResult[]> => {
+      const chainIdsToClaim = [...new Set(targetChainIds)]
+
+      if (isCustodialExecution) {
+        const settled = await Promise.allSettled(
+          chainIdsToClaim.map(async (targetChainId) => ({
+            chainId: targetChainId,
+            receipt: await claimOnChain(targetChainId),
+          })),
+        )
+
+        return settled.map((result, index) =>
+          result.status === 'fulfilled'
+            ? {
+                chainId: result.value.chainId,
+                status: 'fulfilled' as const,
+                receipt: result.value.receipt,
+              }
+            : {
+                chainId: chainIdsToClaim[index],
+                status: 'rejected' as const,
+                error: result.reason,
+              },
+        )
+      }
+
+      const results: CitizenClaimWidgetChainClaimResult[] = []
+      for (const targetChainId of chainIdsToClaim) {
+        try {
+          results.push({
+            chainId: targetChainId,
+            status: 'fulfilled',
+            receipt: await claimOnChain(targetChainId),
+          })
+        } catch (claimError: unknown) {
+          results.push({
+            chainId: targetChainId,
+            status: 'rejected',
+            error: claimError,
+          })
+        }
+      }
+      return results
+    },
+    [claimOnChain, isCustodialExecution],
   )
 
   const handleClaim = useCallback(async (): Promise<unknown> => {
@@ -481,8 +593,7 @@ export function useCitizenClaimAdapter(
   // Opens in a new tab; the page reloads/redirects back when complete.
   // ---------------------------------------------------------------------------
   const handleVerify = useCallback(async (): Promise<void> => {
-    const clients = createClients()
-    const sdk = createSdkInstances(clients)
+    const sdk = await createSdkInstancesForChain(chainId ?? 0)
     if (!sdk) throw new Error('Wallet not connected or unsupported chain')
 
     const fvLink = await sdk.identitySDK.generateFVLink(
@@ -493,7 +604,7 @@ export function useCitizenClaimAdapter(
     if (typeof window !== 'undefined') {
       window.open(fvLink, '_blank', 'noopener,noreferrer')
     }
-  }, [createClients, createSdkInstances, chainId, options.rdu])
+  }, [createSdkInstancesForChain, chainId, options.rdu])
 
   const handleConnect = useCallback(async (): Promise<void> => {
     setStatus('connecting')
@@ -601,9 +712,18 @@ export function useCitizenClaimAdapter(
       startVerification: handleVerify,
       claim: handleClaim,
       claimOnChain,
+      claimAll,
       switchChain: handleSwitchChain,
     }),
-    [handleConnect, loadClaimStatus, handleVerify, handleClaim, claimOnChain, handleSwitchChain],
+    [
+      handleConnect,
+      loadClaimStatus,
+      handleVerify,
+      handleClaim,
+      claimOnChain,
+      claimAll,
+      handleSwitchChain,
+    ],
   )
 
   return { state, actions }

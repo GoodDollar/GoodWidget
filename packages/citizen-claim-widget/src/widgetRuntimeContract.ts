@@ -1,4 +1,5 @@
 import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
+import type { Account, Chain, PublicClient, Transport, WalletClient } from 'viem'
 
 export type CitizenClaimWidgetEnvironment = 'production' | 'staging' | 'development'
 
@@ -67,6 +68,7 @@ export interface CitizenClaimWidgetAdapterActions {
   startVerification: () => Promise<void>
   claim: () => Promise<unknown>
   claimOnChain: (chainId: number) => Promise<unknown>
+  claimAll: (chainIds: number[]) => Promise<CitizenClaimWidgetChainClaimResult[]>
   switchChain?: (chainId: number) => Promise<void>
 }
 
@@ -81,20 +83,53 @@ export interface CitizenClaimWidgetClientFactoryInput {
   chainId: number
 }
 
+export type CitizenClaimWidgetWalletClient = WalletClient<
+  Transport,
+  Chain | undefined,
+  Account | undefined
+>
+
 export interface CitizenClaimWidgetClientBundle {
-  readClient: unknown
-  walletClient: unknown
+  /** Public client bound to the same chain as `walletClient`. */
+  publicClient?: PublicClient
+  /** @deprecated Use `publicClient`; retained for compatibility with early integrations. */
+  readClient?: PublicClient
+  /** Wallet client with the account/signing capability for this chain. */
+  walletClient: CitizenClaimWidgetWalletClient
 }
 
 export type CitizenClaimWidgetClientFactory = (
   input: CitizenClaimWidgetClientFactoryInput,
 ) => CitizenClaimWidgetClientBundle | Promise<CitizenClaimWidgetClientBundle>
 
+export type CitizenClaimWidgetClientsByChain = Partial<
+  Record<number, CitizenClaimWidgetClientBundle>
+>
+
+/**
+ * Explicit execution mode for wallet-owned custodial claiming.
+ *
+ * The widget uses one client pair per chain, creates the custodial SDK instances,
+ * and submits eligible claims independently in parallel.
+ */
+export interface CitizenClaimWidgetCustodialExecution {
+  mode: 'custodial'
+  clientsByChain: CitizenClaimWidgetClientsByChain
+}
+
+export interface CitizenClaimWidgetChainClaimResult {
+  chainId: number
+  status: 'fulfilled' | 'rejected'
+  receipt?: unknown
+  error?: unknown
+}
+
 export interface CitizenClaimWidgetProps {
   provider?: unknown
   environment?: CitizenClaimWidgetEnvironment
   chainId?: number
   clientFactory?: CitizenClaimWidgetClientFactory
+  claimExecution?: CitizenClaimWidgetCustodialExecution
   onClaimSuccess?: (detail: CitizenClaimWidgetSuccessDetail) => void
   onClaimError?: (detail: CitizenClaimWidgetErrorDetail) => void
   // ---- Theming (optional, passed through to GoodWidgetProvider) ----
