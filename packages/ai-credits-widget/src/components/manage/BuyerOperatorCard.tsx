@@ -13,6 +13,7 @@ interface BuyerOperatorCardProps {
     | 'buyerPrvKey'
     | 'operatorSignature'
     | 'operatorConsented'
+    | 'operatorConsentPending'
     | 'buyers'
     | 'activeBuyerAddress'
   >
@@ -157,13 +158,13 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
     buyerPrvKey,
     operatorSignature,
     operatorConsented,
+    operatorConsentPending,
     buyers,
     activeBuyerAddress,
   } = state
   const { copied: copiedPrivate, copy: copyPrivate } = useCopyFeedback()
   const [isPrivateKeyVisible, setIsPrivateKeyVisible] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
-  const [isSigning, setIsSigning] = useState(false)
   const [showImport, setShowImport] = useState(false)
 
   const buyerCanSign = Boolean(buyerPrvKey || operatorSignature)
@@ -192,7 +193,7 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
             setIsGenerating(true)
             void Promise.resolve(actions.generateBuyerKey()).finally(() => setIsGenerating(false))
           }}
-          disabled={isGenerating}
+          disabled={isGenerating || operatorConsentPending}
         >
           <ButtonText>{isGenerating ? 'Signing…' : 'Sign & Generate'}</ButtonText>
         </Button>
@@ -204,12 +205,11 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
           size="sm"
           {...compactButtonProps}
           onPress={() => {
-            setIsSigning(true)
-            void Promise.resolve(actions.signOperatorConsent()).finally(() => setIsSigning(false))
+            void Promise.resolve(actions.signOperatorConsent())
           }}
-          disabled={operatorConsented || isSigning || !buyerCanSign}
+          disabled={operatorConsented || operatorConsentPending || !buyerCanSign}
         >
-          {isSigning ? (
+          {operatorConsentPending ? (
             <Spinner size="sm" />
           ) : (
             <ButtonText>{operatorConsented ? 'Consented' : 'Sign Consent'}</ButtonText>

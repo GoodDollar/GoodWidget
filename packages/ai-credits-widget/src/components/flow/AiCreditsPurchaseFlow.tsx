@@ -131,6 +131,7 @@ export function AiCreditsPurchaseFlow({
             buyerPrvKey={state.buyerPrvKey ?? null}
             operatorSignature={state.operatorSignature ?? null}
             operatorConsented={state.operatorConsented}
+            operatorConsentPending={state.operatorConsentPending}
             onSign={actions.signOperatorConsent}
           />
         )

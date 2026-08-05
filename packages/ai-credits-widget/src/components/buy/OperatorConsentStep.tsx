@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { Button, ButtonText, Card, Heading, Icon, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
 import { truncateAddress, compactButtonProps } from '../shared/styles'
 
@@ -7,6 +7,7 @@ interface OperatorConsentStepProps {
   buyerPrvKey: string | null
   operatorSignature?: string | null
   operatorConsented: boolean
+  operatorConsentPending?: boolean
   onSign: () => Promise<void>
   embedded?: boolean
 }
@@ -16,11 +17,12 @@ export function OperatorConsentStep({
   buyerPrvKey,
   operatorSignature = null,
   operatorConsented,
+  operatorConsentPending = false,
   onSign,
   embedded = false,
 }: OperatorConsentStepProps) {
-  const [isSigning, setIsSigning] = useState(false)
   const canSign = Boolean(buyerPubKey && (buyerPrvKey || operatorSignature))
+  const isBusy = operatorConsentPending
 
   const Shell = embedded ? YStack : Card
 
@@ -52,16 +54,13 @@ export function OperatorConsentStep({
           size="sm"
           {...compactButtonProps}
           onPress={() => {
-            setIsSigning(true)
-            void onSign().finally(() => {
-              setIsSigning(false)
-            })
+            void onSign()
           }}
-          disabled={!canSign || isSigning}
+          disabled={!canSign || isBusy}
         >
-          {isSigning ? (
+          {isBusy ? (
             <XStack gap="$2" alignItems="center">
-              <ButtonText>Signing…</ButtonText>
+              <ButtonText>Submitting…</ButtonText>
               <Spinner size="sm" />
             </XStack>
           ) : (

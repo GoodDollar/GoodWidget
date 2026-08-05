@@ -36,6 +36,7 @@ function createMockState(
     buyerPrvKey: null,
     operatorSignature: null,
     operatorConsented: false,
+    operatorConsentPending: false,
     operatorAddress: null,
     minDepositUsd: '1.00',
     minStreamUsd: '1.00',

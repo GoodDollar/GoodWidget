@@ -43,6 +43,8 @@ export interface AiCreditsWidgetAdapterState {
   /** Active buyer deep-link operator signature, if present. */
   operatorSignature: string | null
   operatorConsented: boolean
+  /** True while submitting / waiting for on-chain operator consent. */
+  operatorConsentPending: boolean
   operatorAddress: string | null
   minDepositUsd: string | null
   minStreamUsd: string | null

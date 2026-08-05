@@ -101,6 +101,7 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   buyerPrvKey: null,
   operatorSignature: null,
   operatorConsented: false,
+  operatorConsentPending: false,
   operatorAddress: null,
   minDepositUsd: null,
   minStreamUsd: null,
@@ -726,6 +727,7 @@ export function useAiCreditsAdapter({
           withdrawableUsd: null,
           totalGdDepositedG: null,
           monthlyStreamG: null,
+          operatorConsentPending: false,
           error: null,
         })
       })
@@ -874,6 +876,7 @@ export function useAiCreditsAdapter({
           totalGdDepositedG: null,
           monthlyStreamG: null,
           activeTab: 'buy',
+          operatorConsentPending: true,
           error: null,
         })
       })
@@ -903,6 +906,7 @@ export function useAiCreditsAdapter({
             {
               ...buyerSelectionFields(address, buyers, selected),
               operatorConsented: true,
+              operatorConsentPending: false,
               activeTab: 'buy',
               error: null,
             },
@@ -922,6 +926,7 @@ export function useAiCreditsAdapter({
               ),
               activeTab: 'buy',
               status: 'purchase_setup',
+              operatorConsentPending: false,
             },
             true,
           ),
@@ -959,8 +964,16 @@ export function useAiCreditsAdapter({
       return
     }
 
+    if (currentState.operatorConsentPending) return
+
     const ref: AccountRef = { payer: currentState.address, buyer: currentState.buyerPubKey }
     const onNonBuyTab = isNonBuyTab(currentState.activeTab)
+
+    setState((prev) => ({
+      ...prev,
+      operatorConsentPending: true,
+      error: null,
+    }))
 
     try {
       const operatorStatus = await chainClient.getBuyerOperatorStatus(ref)
@@ -979,6 +992,7 @@ export function useAiCreditsAdapter({
           mergeStatePreservingNonBuyTab(prev, {
             ...buyerSelectionFields(currentState.address!, buyers, selected),
             operatorConsented: true,
+            operatorConsentPending: false,
             error: null,
             ...(!onNonBuyTab ? { status: 'purchase_setup' } : {}),
           }),
@@ -1019,6 +1033,7 @@ export function useAiCreditsAdapter({
         mergeStatePreservingNonBuyTab(prev, {
           ...buyerSelectionFields(currentState.address!, buyers, selected),
           operatorConsented: true,
+          operatorConsentPending: false,
           error: null,
           ...(!onNonBuyTab ? { status: 'purchase_setup' } : {}),
         }),
@@ -1026,6 +1041,7 @@ export function useAiCreditsAdapter({
     } catch (err: unknown) {
       setState((prev) => ({
         ...prev,
+        operatorConsentPending: false,
         error: err instanceof Error ? err.message : 'Operator consent signature rejected',
       }))
     }
