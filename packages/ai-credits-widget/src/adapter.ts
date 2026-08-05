@@ -113,6 +113,7 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   activeTab: 'buy',
   buyers: [],
   activeBuyerAddress: null,
+  derivedBuyerAddress: null,
 }
 
 const WALLET_LOADING_STATE: Partial<AiCreditsWidgetAdapterState> = {
@@ -318,6 +319,7 @@ function buyerSelectionFields(
   AiCreditsWidgetAdapterState,
   | 'buyers'
   | 'activeBuyerAddress'
+  | 'derivedBuyerAddress'
   | 'buyerPubKey'
   | 'buyerPrvKey'
   | 'operatorSignature'
@@ -341,6 +343,7 @@ function buyerSelectionFields(
   return {
     buyers,
     activeBuyerAddress: selected,
+    derivedBuyerAddress: session.derivedBuyerAddress,
     buyerPubKey: selected,
     buyerPrvKey: entry?.privateKey ?? null,
     operatorSignature: entry?.operatorSignature ?? null,
@@ -457,6 +460,7 @@ export function useAiCreditsAdapter({
           operatorSignature: sessionPatch.operatorSignature,
           operatorConsented: sessionPatch.operatorConsented,
           activeBuyerAddress: sessionPatch.activeBuyerAddress,
+          derivedBuyerAddress: sessionPatch.derivedBuyerAddress,
           buyers: prev.buyers,
           ...WALLET_LOADING_STATE,
           error: null,
@@ -584,6 +588,7 @@ export function useAiCreditsAdapter({
               gBalance: '0',
               buyers: [],
               activeBuyerAddress: null,
+              derivedBuyerAddress: null,
               buyerPubKey: null,
               buyerPrvKey: null,
               operatorSignature: null,

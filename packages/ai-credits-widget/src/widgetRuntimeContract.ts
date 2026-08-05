@@ -56,6 +56,8 @@ export interface AiCreditsWidgetAdapterState {
   buyers: string[]
   /** Address of the currently selected buyer (matches `buyerPubKey`). */
   activeBuyerAddress: string | null
+  /** Deterministic buyer derived from the payer wallet Sign & Generate path. */
+  derivedBuyerAddress: string | null
 }
 
 export interface AiCreditsWidgetAdapterActions {

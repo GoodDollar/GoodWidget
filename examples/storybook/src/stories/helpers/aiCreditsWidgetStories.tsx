@@ -48,6 +48,7 @@ function createMockState(
     activeTab: 'buy',
     buyers: [],
     activeBuyerAddress: null,
+    derivedBuyerAddress: null,
   }
   return { ...base, ...overrides }
 }
@@ -457,6 +458,7 @@ export function MultiBuyerManageStory() {
         activeTab: 'manage',
         buyers: [BUYER_WALLET.address, BUYER_IMPORTED.address, BUYER_PARTNER.address],
         activeBuyerAddress: BUYER_WALLET.address,
+        derivedBuyerAddress: BUYER_WALLET.address,
       })}
     />
   )
@@ -495,6 +497,7 @@ export function MultiBuyerHistoryStory() {
         activeTab: 'history',
         buyers: [BUYER_WALLET.address, BUYER_IMPORTED.address],
         activeBuyerAddress: BUYER_WALLET.address,
+        derivedBuyerAddress: BUYER_WALLET.address,
       })}
     />
   )
