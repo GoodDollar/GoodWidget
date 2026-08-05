@@ -8,6 +8,14 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
+      "react-native": {
+        "import": "./dist/index.js",
+        "require": "./dist/index.cjs"
+      },
+      "browser": {
+        "import": "./dist/web.js",
+        "require": "./dist/web.cjs"
+      },
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     }
@@ -22,10 +30,14 @@
   "peerDependencies": {
     "react": ">=18.0.0",
     "react-native": ">=0.76.0",
+    "react-native-svg": ">=12",
     "@react-native-clipboard/clipboard": ">=1.14.0"
   },
   "peerDependenciesMeta": {
     "react-native": {
+      "optional": true
+    },
+    "react-native-svg": {
       "optional": true
     },
     "@react-native-clipboard/clipboard": {
