@@ -15,7 +15,10 @@ Create a viem `publicClient` and account-enabled `walletClient` for each support
 chain. The wallet client and public client must use the same chain and account.
 
 ```ts
-import { createPublicClient, createWalletClient, http, type Chain } from 'viem'
+import { createPublicClient, createWalletClient, http, type Account, type Chain } from 'viem'
+
+// Provided by your wallet integration (do not embed private keys in the widget host).
+const account = {} as Account
 
 const makeClients = (chain: Chain, rpcUrl: string) => ({
   publicClient: createPublicClient({
