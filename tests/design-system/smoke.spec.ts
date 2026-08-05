@@ -111,10 +111,20 @@ test('Stepper/Default story renders active-step hierarchy', async ({ page }) => 
   await screenshotStory(page, 'tests/design-system/test-results/story-stepper-default.png')
 })
 
-test('Scorecard/Default story renders all mock-data rows', async ({ page }) => {
+test('Scorecard/Default story renders all 5 mock-data rows in both variants', async ({ page }) => {
+  // Taller than the default viewport so both the bare and card rows fit
+  // without clipping — 10 cards across two rows need more vertical space
+  // than a single-row story.
+  await page.setViewportSize({ width: 1280, height: 900 })
   await gotoStory(page, 'design-system-primitives-scorecard--default')
   const frame = getStoryFrame(page)
   await expect(frame.getByTestId('Scorecard-default')).toBeVisible()
-  await expect(frame.getByTestId('Scorecard-bare')).toBeVisible()
+
+  const rowSlugs = ['total-spent', 'ai-credits', 'active-days', 'unique-wallets', 'daily-flow-rate']
+  for (const slug of rowSlugs) {
+    await expect(frame.getByTestId(`Scorecard-${slug}-bare`)).toBeVisible()
+    await expect(frame.getByTestId(`Scorecard-${slug}-card`)).toBeVisible()
+  }
+
   await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-default.png')
 })

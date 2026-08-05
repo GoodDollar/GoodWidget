@@ -72,16 +72,30 @@ const TREND_DIRECTION_COLOR_TOKEN: Record<ScorecardTrend['direction'], string> =
  * Unwraps a Tamagui theme token to its raw color string. react-native-svg's
  * fill/stroke props aren't part of Tamagui's styling system, so they need
  * the resolved value rather than a "$token" reference.
+ *
+ * Falls back to the theme's base `$color` token if the requested token is
+ * missing, so a bad token renders in a visible (if wrong) color instead of
+ * silently disappearing as black-on-web / transparent-on-native.
  */
-function resolveThemeColor(theme: Record<string, unknown>, token: string): string {
+function resolveThemeColor(theme: ReturnType<typeof useTheme>, token: string): string {
+  const themeRecord = theme as unknown as Record<string, { val?: unknown } | string | undefined>
   const key = token.replace('$', '')
-  const themeValue = theme[key]
+  const themeValue = themeRecord[key]
+  const resolved =
+    themeValue && typeof themeValue === 'object' && 'val' in themeValue
+      ? String(themeValue.val)
+      : typeof themeValue === 'string'
+        ? themeValue
+        : undefined
 
-  if (themeValue && typeof themeValue === 'object' && 'val' in themeValue) {
-    return String((themeValue as { val: unknown }).val)
+  if (resolved) {
+    return resolved
   }
 
-  return typeof themeValue === 'string' ? themeValue : ''
+  console.warn(`Scorecard: theme token "${token}" not found, falling back to "$color"`)
+
+  const fallback = themeRecord.color
+  return fallback && typeof fallback === 'object' && 'val' in fallback ? String(fallback.val) : '#000000'
 }
 
 const ScorecardFrame = createComponent(YStack, {
@@ -152,7 +166,11 @@ const ScorecardTrendText = createComponent(TamaguiText, {
   defaultVariants: { size: 'md' },
 })
 
-/** Up/down/neutral arrow glyph, drawn with react-native-svg for cross-platform rendering. */
+/**
+ * Up/down/neutral arrow glyph, drawn with react-native-svg for cross-platform
+ * rendering. Marked decorative (accessible={false} on native, aria-hidden on
+ * web) since the adjacent trend text already conveys the direction in words.
+ */
 function TrendGlyph({ direction, color, size }: { direction: ScorecardTrend['direction']; color: string; size: number }) {
   const path =
     direction === 'up'
@@ -163,14 +181,14 @@ function TrendGlyph({ direction, color, size }: { direction: ScorecardTrend['dir
 
   if (direction === 'neutral') {
     return (
-      <Svg width={size} height={size} viewBox="0 0 12 12" accessibilityRole="image">
+      <Svg width={size} height={size} viewBox="0 0 12 12" accessible={false} aria-hidden={true}>
         <Path d={path} stroke={color} strokeWidth={1.5} strokeLinecap="round" />
       </Svg>
     )
   }
 
   return (
-    <Svg width={size} height={size} viewBox="0 0 12 12" accessibilityRole="image">
+    <Svg width={size} height={size} viewBox="0 0 12 12" accessible={false} aria-hidden={true}>
       <Path d={path} fill={color} />
     </Svg>
   )
@@ -199,7 +217,9 @@ function ScorecardContent({
   const formattedValue = formatMetricValue(value, format, decimals)
 
   return (
-    <ScorecardFrame data-testid={testID}>
+    // testID (React Native) and data-testid (web/DOM) both set so the same
+    // identifier works with either platform's test tooling.
+    <ScorecardFrame testID={testID} data-testid={testID}>
       <ScorecardLabelText size={size}>{label}</ScorecardLabelText>
       <ScorecardValueRow>
         {prefix ? <ScorecardValueText size={size}>{prefix}</ScorecardValueText> : null}
@@ -210,7 +230,7 @@ function ScorecardContent({
         <ScorecardTrendRow>
           <TrendGlyph
             direction={trend.direction}
-            color={resolveThemeColor(theme as unknown as Record<string, unknown>, TREND_DIRECTION_COLOR_TOKEN[trend.direction])}
+            color={resolveThemeColor(theme, TREND_DIRECTION_COLOR_TOKEN[trend.direction])}
             size={SECONDARY_SIZE_PX[size]}
           />
           <ScorecardTrendText size={size} color={TREND_DIRECTION_COLOR_TOKEN[trend.direction]}>

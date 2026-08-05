@@ -3,8 +3,21 @@
  */
 import React from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
-import { Scorecard, XStack } from '@goodwidget/ui'
+import { Scorecard, XStack, YStack } from '@goodwidget/ui'
+import type { ScorecardProps } from '@goodwidget/ui'
 import { withDefaultPreset } from '../helpers/withDefaultPreset'
+
+/** The 5 mock-data rows from #139, reused to render both the bare and card variants. */
+const MOCK_ROWS: Array<{ slug: string; props: Omit<ScorecardProps, 'variant' | 'testID'> }> = [
+  { slug: 'total-spent', props: { label: 'Total G$ Spent', value: 1900, prefix: 'G$', format: 'compact' } },
+  { slug: 'ai-credits', props: { label: 'AI Credits Used', value: 284.5, prefix: '$', format: 'decimal', decimals: 2 } },
+  { slug: 'active-days', props: { label: 'Active Days', value: 28, format: 'none' } },
+  {
+    slug: 'unique-wallets',
+    props: { label: 'Unique Wallets', value: 47, trend: { value: 15.3, direction: 'up' }, trendLabel: 'vs last 7d' },
+  },
+  { slug: 'daily-flow-rate', props: { label: 'Daily Flow Rate', value: 2450000, prefix: 'G$', suffix: '/day', format: 'compact' } },
+]
 
 const meta: Meta<typeof Scorecard> = {
   title: 'Design System/Primitives/Scorecard',
@@ -38,28 +51,21 @@ const meta: Meta<typeof Scorecard> = {
 export default meta
 type Story = StoryObj<typeof Scorecard>
 
-/** All 5 mock-data rows from #139, each rendered in both variants. */
+/** All 5 mock-data rows from #139, each rendered in both the bare and card variant. */
 export const Default: Story = {
-  args: {
-    label: 'Total G$ Spent',
-    value: 1900,
-    prefix: 'G$',
-    format: 'compact',
-  },
-  render: (args) => (
-    <XStack data-testid="Scorecard-default" flexWrap="wrap" gap="$5">
-      <Scorecard {...args} variant="bare" testID="Scorecard-bare" />
-      <Scorecard label="AI Credits Used" value={284.5} prefix="$" format="decimal" decimals={2} variant="card" />
-      <Scorecard label="Active Days" value={28} format="none" variant="card" />
-      <Scorecard
-        label="Unique Wallets"
-        value={47}
-        trend={{ value: 15.3, direction: 'up' }}
-        trendLabel="vs last 7d"
-        variant="card"
-      />
-      <Scorecard label="Daily Flow Rate" value={2450000} prefix="G$" suffix="/day" format="compact" variant="card" />
-    </XStack>
+  render: () => (
+    <YStack testID="Scorecard-default" data-testid="Scorecard-default" gap="$6">
+      <XStack flexWrap="wrap" gap="$5">
+        {MOCK_ROWS.map(({ slug, props }) => (
+          <Scorecard key={slug} {...props} variant="bare" testID={`Scorecard-${slug}-bare`} />
+        ))}
+      </XStack>
+      <XStack flexWrap="wrap" gap="$5">
+        {MOCK_ROWS.map(({ slug, props }) => (
+          <Scorecard key={slug} {...props} variant="card" testID={`Scorecard-${slug}-card`} />
+        ))}
+      </XStack>
+    </YStack>
   ),
 }
 

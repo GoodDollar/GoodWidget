@@ -5,6 +5,9 @@
 
 export type MetricFormat = 'compact' | 'decimal' | 'none'
 
+/** Non-finite values (NaN, Infinity) have no sensible numeric rendering. */
+const NON_FINITE_FALLBACK = '--'
+
 /** Ordered largest-first so the first matching threshold wins. */
 const COMPACT_THRESHOLDS = [
   { threshold: 1_000_000_000_000, suffix: 'T' },
@@ -21,16 +24,32 @@ function assertNonNegativeInteger(decimals: number): void {
 
 function formatCompact(value: number, decimals: number): string {
   const absValue = Math.abs(value)
-  const match = COMPACT_THRESHOLDS.find(({ threshold }) => absValue >= threshold)
+  let thresholdIndex = COMPACT_THRESHOLDS.findIndex(({ threshold }) => absValue >= threshold)
 
-  if (!match) {
+  if (thresholdIndex === -1) {
     return value.toFixed(decimals)
   }
 
-  return `${(value / match.threshold).toFixed(decimals)}${match.suffix}`
+  // Rounding the scaled value can carry it up to the next unit (e.g. 999_950 → "1000.0K"
+  // instead of "1.0M"). Walk up to the next larger threshold (lower index) until the
+  // rounded value fits under 1000, or there's no larger unit left.
+  while (thresholdIndex > 0) {
+    const scaled = Number((value / COMPACT_THRESHOLDS[thresholdIndex].threshold).toFixed(decimals))
+
+    if (Math.abs(scaled) < 1000) {
+      break
+    }
+
+    thresholdIndex -= 1
+  }
+
+  const { threshold, suffix } = COMPACT_THRESHOLDS[thresholdIndex]
+
+  return `${(value / threshold).toFixed(decimals)}${suffix}`
 }
 
 function formatDecimal(value: number, decimals: number): string {
+  // Intentionally hardcoded to en-US for v1; take a locale param once i18n is in scope.
   return new Intl.NumberFormat('en-US', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
@@ -47,6 +66,10 @@ function formatDecimal(value: number, decimals: number): string {
  * not a runtime state, so it throws rather than silently clamping.
  */
 export function formatMetricValue(value: number, format: MetricFormat = 'compact', decimals?: number): string {
+  if (!Number.isFinite(value)) {
+    return NON_FINITE_FALLBACK
+  }
+
   if (format === 'none') {
     return String(value)
   }
