@@ -21,7 +21,8 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "lint": "eslint src/",
-    "clean": "rm -rf dist .turbo"
+    "clean": "rm -rf dist .turbo",
+    "bump-version": "pnpm version patch"
   },
   "peerDependencies": {
     "react": ">=18.0.0",
