@@ -4,7 +4,6 @@ import {
   BadgeText,
   Button,
   ButtonText,
-  Card,
   Heading,
   Icon,
   Input,
@@ -19,13 +18,18 @@ import type {
   CampaignPointsPagination,
 } from '../hooks/useCampaignLeaderboard'
 import { useCampaignLeaderboard } from '../hooks/useCampaignLeaderboard'
+import {
+  useCampaignUserPoints,
+  type CampaignUserPointsAdapter,
+} from '../hooks/useCampaignUserPoints'
 import type { CampaignPoolDefinition, LeaderboardEntry } from '../widgetRuntimeContract'
 import {
   LEADERBOARD_COLUMN_WIDTHS,
   LEADERBOARD_ROW_MIN_WIDTH,
   LeaderboardRow,
 } from './LeaderboardRow'
-import { compactButtonProps, truncateAddress } from './shared/styles'
+import { compactButtonProps } from './shared/styles'
+import { LeaderboardStatus } from './LeaderboardStatus'
 import { WalletChip } from './shared/WalletChip'
 
 interface LeaderboardViewProps {
@@ -40,6 +44,7 @@ interface LeaderboardViewProps {
   onDisconnect?: () => Promise<void>
   onClose: () => void
   leaderboardRefreshKey: number
+  userPointsAdapter?: CampaignUserPointsAdapter
 }
 
 /**
@@ -82,6 +87,7 @@ export function LeaderboardView({
   onDisconnect,
   onClose,
   leaderboardRefreshKey,
+  userPointsAdapter,
 }: LeaderboardViewProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCampaignTab, setActiveCampaignTab] = useState<string>(pools[0]?.id ?? '')
@@ -105,12 +111,30 @@ export function LeaderboardView({
     leaderboardAdapter,
     leaderboardRefreshKey,
   )
+  const firstPoolUserPoints = useCampaignUserPoints(
+    firstPool?.campaignId ?? 0,
+    address,
+    userPointsAdapter,
+    leaderboardRefreshKey,
+  )
+  const secondPoolUserPoints = useCampaignUserPoints(
+    secondPool?.campaignId ?? 0,
+    address,
+    userPointsAdapter,
+    leaderboardRefreshKey,
+  )
   const resultByPoolId: Record<string, typeof firstPoolResult> = {}
   if (pools[0]) resultByPoolId[pools[0].id] = firstPoolResult
   if (pools[1]) resultByPoolId[pools[1].id] = secondPoolResult
 
   const activePool = pools.find((pool) => pool.id === activeCampaignTab) ?? pools[0]
   const activeResult = activePool ? resultByPoolId[activePool.id] : undefined
+  const activeUserPoints =
+    activePool?.id === firstPool?.id
+      ? firstPoolUserPoints
+      : activePool?.id === secondPool?.id
+        ? secondPoolUserPoints
+        : undefined
   const activePagination = activeResult?.data?.pagination
   const rankedEntries = toLeaderboardEntries(activeResult?.data?.accounts ?? [], activePagination)
 
@@ -185,26 +209,12 @@ export function LeaderboardView({
         onTabChange={setActiveCampaignTab}
       />
 
-      {isConnected && currentUserEntry && (
-        <Card gap="$3">
-          <XStack
-            justifyContent="space-between"
-            alignItems="center"
-            flexWrap="wrap"
-            gap="$2"
-            $sm={{ flexDirection: 'column', alignItems: 'stretch' }}
-          >
-            <XStack gap="$2" alignItems="center">
-              <Text variant="label">Your position</Text>
-              <Text fontWeight="700">#{currentUserEntry.rank}</Text>
-              <Text>{truncateAddress(currentUserEntry.address)}</Text>
-              <Badge type="info">
-                <BadgeText>You</BadgeText>
-              </Badge>
-            </XStack>
-            <Text variant="label">Your points: {currentUserEntry.points.toLocaleString()}</Text>
-          </XStack>
-        </Card>
+      {activeUserPoints && (
+        <LeaderboardStatus
+          address={address}
+          isConnected={isConnected}
+          userPoints={activeUserPoints}
+        />
       )}
 
       <Input

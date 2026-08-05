@@ -29,6 +29,12 @@ export type {
   CampaignPointsSummary,
 } from './hooks/useCampaignLeaderboard'
 
+export type {
+  CampaignUserPoints,
+  CampaignUserPointsAdapter,
+  CampaignUserPointsResult,
+} from './hooks/useCampaignUserPoints'
+
 // Live SUP program response types
 export type { ProgramSupTotals, ProgramSupTotalsResult } from './hooks/useProgramSupTotals'
 

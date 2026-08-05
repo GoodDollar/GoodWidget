@@ -128,6 +128,7 @@ test('SuperfluidCampaignWidget renders connected leaderboard view', async ({ pag
 
   await expect(page.getByText('Leaderboard')).toBeVisible()
   await expect(page.getByText(GOOD_DOLLAR_ACTIONS_TOP_ADDRESS)).toBeVisible()
+  await expect(page.getByTestId('LeaderboardStatus')).toContainText('Total points: 4,820')
   await expect(page.getByText('Airdrop status', { exact: true })).not.toBeVisible()
 
   await page.screenshot({

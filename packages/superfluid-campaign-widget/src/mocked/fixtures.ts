@@ -1,5 +1,6 @@
 import type { AirdropStatusAdapter } from '../hooks/useAirdropStatus'
 import type { CampaignLeaderboardAdapter } from '../hooks/useCampaignLeaderboard'
+import type { CampaignUserPointsAdapter } from '../hooks/useCampaignUserPoints'
 import type { ProgramSupTotalsAdapter } from '../hooks/useProgramSupTotals'
 import { DEFAULT_CAMPAIGN_DEFINITION } from '../campaignDefinition'
 import type { CampaignDefinition, LeaderboardSummaryData } from '../widgetRuntimeContract'
@@ -187,6 +188,34 @@ export function createMockCampaignLeaderboardAdapter(
       }
     }
     return { data: fixture, isLoading: false, error: null }
+  }
+}
+
+/** Connected-wallet balances used by status-card stories without live requests. */
+export function createMockCampaignUserPointsAdapter(
+  scenario: MockLeaderboardScenario,
+): CampaignUserPointsAdapter {
+  return (campaignId, address) => {
+    if (scenario === 'loading') return { data: null, isLoading: true, error: null }
+    if (scenario === 'requestFailed') {
+      return { data: null, isLoading: false, error: 'Campaign points request failed (500)' }
+    }
+
+    const fixture = LEADERBOARD_DATA_FIXTURES[campaignId]
+    const account = fixture?.accounts[0]
+    if (!account || !address || scenario === 'empty') {
+      return {
+        data: account && address ? { account: address, points: 0 } : null,
+        isLoading: false,
+        error: null,
+      }
+    }
+
+    return {
+      data: { account: address, points: account.totalPoints },
+      isLoading: false,
+      error: null,
+    }
   }
 }
 

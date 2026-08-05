@@ -111,6 +111,8 @@ function SuperfluidCampaignRuntime({
   const [embeddedClaimTab, setEmbeddedClaimTab] = useState<EmbeddedClaimTab>(null)
   const [leaderboardRefreshKey, setLeaderboardRefreshKey] = useState(0)
 
+  const campaignData = applyActionLinkOverrides(data ?? DEFAULT_CAMPAIGN_DEFINITION, actionLinks)
+
   const isMockRuntime = dataClient.kind === 'mock'
   const handleAirdropStatusUpdated = useCallback(() => {
     setLeaderboardRefreshKey((current) => current + 1)
@@ -121,8 +123,6 @@ function SuperfluidCampaignRuntime({
     handleAirdropStatusUpdated,
   )
   void airdropStatus
-
-  const campaignData = applyActionLinkOverrides(data ?? DEFAULT_CAMPAIGN_DEFINITION, actionLinks)
 
   if (embeddedClaimTab) {
     return (
@@ -160,6 +160,7 @@ function SuperfluidCampaignRuntime({
         onDisconnect={hasDisconnectOverride ? disconnect : undefined}
         onClose={() => setView('content')}
         leaderboardRefreshKey={leaderboardRefreshKey}
+        userPointsAdapter={isMockRuntime ? dataClient.userPoints : undefined}
       />
     )
   }
