@@ -1,6 +1,6 @@
 {
   "name": "@goodwidget/citizen-claim-widget",
-  "version": "0.2.0-beta",
+  "version": "0.2.0",
   "description": "GoodWidget migration target for the GoodSDKs citizen claim flow",
   "type": "module",
   "main": "./dist/index.cjs",
