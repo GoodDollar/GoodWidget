@@ -110,3 +110,11 @@ test('Stepper/Default story renders active-step hierarchy', async ({ page }) => 
   await expect(frame.getByTestId('Stepper-default')).toBeVisible()
   await screenshotStory(page, 'tests/design-system/test-results/story-stepper-default.png')
 })
+
+test('Scorecard/Default story renders all mock-data rows', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-scorecard--default')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByTestId('Scorecard-default')).toBeVisible()
+  await expect(frame.getByTestId('Scorecard-bare')).toBeVisible()
+  await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-default.png')
+})

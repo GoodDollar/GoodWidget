@@ -36,6 +36,7 @@
     "@tamagui/core": "1.121.0",
     "@tamagui/lucide-icons": "1.121.0",
     "@tamagui/themes": "1.121.0",
+    "react-native-svg": "15.15.5",
     "tamagui": "1.121.0"
   },
   "devDependencies": {

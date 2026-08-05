@@ -95,6 +95,12 @@ export {
 } from './components/Dialog'
 export type { DialogConfig, DialogStatus } from './components/Dialog'
 
+// Analytics
+export { Scorecard } from './components/Scorecard'
+export type { ScorecardProps, ScorecardTrend, ScorecardVariant } from './components/Scorecard'
+export { formatMetricValue } from './utils/formatMetricValue'
+export type { MetricFormat } from './utils/formatMetricValue'
+
 // Web3
 export { AddressDisplay } from './components-test/AddressDisplay'
 export { TokenAmount } from './components/TokenAmount'
