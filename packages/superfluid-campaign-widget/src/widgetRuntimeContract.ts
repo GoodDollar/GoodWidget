@@ -1,5 +1,8 @@
 import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
-import type { CitizenClaimWidgetEnvironment } from '@goodwidget/citizen-claim-widget'
+import type {
+  CitizenClaimWidgetCustodialExecution,
+  CitizenClaimWidgetEnvironment,
+} from '@goodwidget/citizen-claim-widget'
 import type { Address } from 'viem'
 
 // ---------------------------------------------------------------------------
@@ -190,6 +193,8 @@ export interface SuperfluidCampaignWidgetProps {
   actionLinks?: CampaignActionLinkOverrides
   /** Passed through to the embedded CitizenClaimWidget for the Claim CTA. */
   citizenClaimEnvironment?: CitizenClaimWidgetEnvironment
+  /** Optional wallet-owned, chain-specific clients for parallel custodial claims. */
+  citizenClaimExecution?: CitizenClaimWidgetCustodialExecution
   /**
    * View shown on first render. Defaults to 'content'. Lets Storybook fixtures
    * and deep links land directly on the leaderboard without a click.
