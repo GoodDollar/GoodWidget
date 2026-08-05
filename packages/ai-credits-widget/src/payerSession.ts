@@ -20,7 +20,6 @@ export type BuyerStateFields = {
   derivedBuyerAddress: string | null
 }
 
-const MEMORY_SESSIONS = new Map<string, PayerWalletSession>()
 const STORAGE_KEY_PREFIX = 'goodwidget.ai-credits.payerSession.'
 
 function payerSessionKey(address: string): string {
@@ -167,7 +166,6 @@ function parseStoredSession(raw: string): PayerWalletSession | null {
 }
 
 function persistSession(address: string, session: PayerWalletSession): void {
-  MEMORY_SESSIONS.set(payerSessionKey(address), session)
   if (!canUseLocalStorage()) return
   try {
     window.localStorage.setItem(
@@ -180,27 +178,16 @@ function persistSession(address: string, session: PayerWalletSession): void {
 }
 
 export function readPayerSession(address: string | null): PayerWalletSession | null {
-  if (!address) return null
-  const key = payerSessionKey(address)
-  const cached = MEMORY_SESSIONS.get(key)
-  if (cached) return cached
-
-  if (canUseLocalStorage()) {
-    try {
-      const raw = window.localStorage.getItem(`${STORAGE_KEY_PREFIX}${key}`)
-      if (raw) {
-        const parsed = parseStoredSession(raw)
-        if (parsed) {
-          MEMORY_SESSIONS.set(key, parsed)
-          return parsed
-        }
-      }
-    } catch {
-      return null
-    }
+  if (!address || !canUseLocalStorage()) return null
+  try {
+    const raw = window.localStorage.getItem(
+      `${STORAGE_KEY_PREFIX}${payerSessionKey(address)}`,
+    )
+    if (!raw) return null
+    return parseStoredSession(raw)
+  } catch {
+    return null
   }
-
-  return null
 }
 
 export function patchPayerSession(address: string, patch: Partial<PayerWalletSession>): void {
