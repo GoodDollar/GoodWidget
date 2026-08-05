@@ -9,7 +9,6 @@ export type PayerWalletSession = {
   knownBuyers: string[]
   activeBuyerAddress: string | null
   derivedBuyerAddress: string | null
-  rememberPrivateKeysOnDevice: boolean
 }
 
 export type BuyerStateFields = {
@@ -23,7 +22,6 @@ export type BuyerStateFields = {
 
 const MEMORY_SESSIONS = new Map<string, PayerWalletSession>()
 const STORAGE_KEY_PREFIX = 'goodwidget.ai-credits.payerSession.'
-const PRIVATE_KEYS_SESSION_PREFIX = 'goodwidget.ai-credits.privateKeys.'
 
 function payerSessionKey(address: string): string {
   return address.toLowerCase()
@@ -37,10 +35,6 @@ function canUseLocalStorage(): boolean {
   return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
 }
 
-function canUseSessionStorage(): boolean {
-  return typeof window !== 'undefined' && typeof window.sessionStorage !== 'undefined'
-}
-
 function formatBuyerAddress(address: string): string {
   const key = normalizeBuyerAddress(address)
   return key.startsWith('0x') ? `0x${key.slice(2)}` : key
@@ -52,7 +46,6 @@ function emptySession(): PayerWalletSession {
     knownBuyers: [],
     activeBuyerAddress: null,
     derivedBuyerAddress: null,
-    rememberPrivateKeysOnDevice: false,
   }
 }
 
@@ -64,73 +57,6 @@ function isBuyerKeyEntry(value: unknown): value is BuyerKeyEntry {
     (entry.operatorSignature === undefined || typeof entry.operatorSignature === 'string') &&
     (entry.operatorConsented === undefined || typeof entry.operatorConsented === 'boolean')
   )
-}
-
-function extractPrivateKeys(session: PayerWalletSession): Record<string, string> {
-  const keys: Record<string, string> = {}
-  for (const [address, entry] of Object.entries(session.buyerKeys)) {
-    if (entry.privateKey) keys[address] = entry.privateKey
-  }
-  return keys
-}
-
-function stripPrivateKeys(session: PayerWalletSession): PayerWalletSession {
-  const buyerKeys: Record<string, BuyerKeyEntry> = {}
-  for (const [address, entry] of Object.entries(session.buyerKeys)) {
-    buyerKeys[address] = {
-      operatorSignature: entry.operatorSignature,
-      operatorConsented: entry.operatorConsented,
-    }
-  }
-  return { ...session, buyerKeys }
-}
-
-function mergePrivateKeyMap(
-  session: PayerWalletSession,
-  privateKeys: Record<string, string>,
-): PayerWalletSession {
-  if (Object.keys(privateKeys).length === 0) return session
-  const buyerKeys = { ...session.buyerKeys }
-  for (const [address, privateKey] of Object.entries(privateKeys)) {
-    const key = normalizeBuyerAddress(address)
-    buyerKeys[key] = {
-      ...buyerKeys[key],
-      privateKey,
-    }
-  }
-  return { ...session, buyerKeys }
-}
-
-function readPrivateKeysFromSessionStorage(payer: string): Record<string, string> {
-  if (!canUseSessionStorage()) return {}
-  try {
-    const raw = window.sessionStorage.getItem(`${PRIVATE_KEYS_SESSION_PREFIX}${payerSessionKey(payer)}`)
-    if (!raw) return {}
-    const parsed = JSON.parse(raw) as Record<string, unknown>
-    const result: Record<string, string> = {}
-    for (const [address, value] of Object.entries(parsed)) {
-      if (typeof value === 'string' && value) {
-        result[normalizeBuyerAddress(address)] = value
-      }
-    }
-    return result
-  } catch {
-    return {}
-  }
-}
-
-function writePrivateKeysToSessionStorage(payer: string, privateKeys: Record<string, string>): void {
-  if (!canUseSessionStorage()) return
-  try {
-    const key = `${PRIVATE_KEYS_SESSION_PREFIX}${payerSessionKey(payer)}`
-    if (Object.keys(privateKeys).length === 0) {
-      window.sessionStorage.removeItem(key)
-      return
-    }
-    window.sessionStorage.setItem(key, JSON.stringify(privateKeys))
-  } catch {
-    return
-  }
 }
 
 function migrateLegacySession(raw: Record<string, unknown>): PayerWalletSession {
@@ -219,10 +145,6 @@ function migrateLegacySession(raw: Record<string, unknown>): PayerWalletSession 
     }
   }
 
-  if (typeof raw.rememberPrivateKeysOnDevice === 'boolean') {
-    session.rememberPrivateKeysOnDevice = raw.rememberPrivateKeysOnDevice
-  }
-
   if (typeof raw.operatorConsented === 'boolean' && raw.operatorConsented && session.activeBuyerAddress) {
     const active = session.activeBuyerAddress
     session.buyerKeys[active] = {
@@ -246,16 +168,11 @@ function parseStoredSession(raw: string): PayerWalletSession | null {
 
 function persistSession(address: string, session: PayerWalletSession): void {
   MEMORY_SESSIONS.set(payerSessionKey(address), session)
-
-  const privateKeys = extractPrivateKeys(session)
-  writePrivateKeysToSessionStorage(address, privateKeys)
-
   if (!canUseLocalStorage()) return
   try {
-    const forDisk = session.rememberPrivateKeysOnDevice ? session : stripPrivateKeys(session)
     window.localStorage.setItem(
       `${STORAGE_KEY_PREFIX}${payerSessionKey(address)}`,
-      JSON.stringify(forDisk),
+      JSON.stringify(session),
     )
   } catch {
     return
@@ -268,24 +185,22 @@ export function readPayerSession(address: string | null): PayerWalletSession | n
   const cached = MEMORY_SESSIONS.get(key)
   if (cached) return cached
 
-  let session: PayerWalletSession | null = null
   if (canUseLocalStorage()) {
     try {
       const raw = window.localStorage.getItem(`${STORAGE_KEY_PREFIX}${key}`)
       if (raw) {
-        session = parseStoredSession(raw)
+        const parsed = parseStoredSession(raw)
+        if (parsed) {
+          MEMORY_SESSIONS.set(key, parsed)
+          return parsed
+        }
       }
     } catch {
-      session = null
+      return null
     }
   }
 
-  if (!session) return null
-
-  const fromSessionStorage = readPrivateKeysFromSessionStorage(address)
-  session = mergePrivateKeyMap(session, fromSessionStorage)
-  MEMORY_SESSIONS.set(key, session)
-  return session
+  return null
 }
 
 export function patchPayerSession(address: string, patch: Partial<PayerWalletSession>): void {
@@ -310,15 +225,6 @@ export function setBuyerOperatorConsented(
   operatorConsented: boolean,
 ): void {
   upsertBuyerKey(payer, buyerAddress, { operatorConsented }, { setActive: false })
-}
-
-export function setRememberPrivateKeysOnDevice(payer: string, remember: boolean): void {
-  const existing = readPayerSession(payer) ?? emptySession()
-  persistSession(payer, { ...existing, rememberPrivateKeysOnDevice: remember })
-}
-
-export function getRememberPrivateKeysOnDevice(payer: string): boolean {
-  return readPayerSession(payer)?.rememberPrivateKeysOnDevice ?? false
 }
 
 export function upsertBuyerKey(
@@ -454,7 +360,6 @@ export function patchPayerSessionFields(address: string | null): {
   operatorConsented: boolean
   activeBuyerAddress: string | null
   derivedBuyerAddress: string | null
-  rememberPrivateKeysOnDevice: boolean
 } {
   const session = readPayerSession(address)
   if (!session) {
@@ -465,7 +370,6 @@ export function patchPayerSessionFields(address: string | null): {
       operatorConsented: false,
       activeBuyerAddress: null,
       derivedBuyerAddress: null,
-      rememberPrivateKeysOnDevice: false,
     }
   }
 
@@ -479,7 +383,6 @@ export function patchPayerSessionFields(address: string | null): {
     operatorConsented: Boolean(entry?.operatorConsented),
     activeBuyerAddress: active,
     derivedBuyerAddress: session.derivedBuyerAddress,
-    rememberPrivateKeysOnDevice: session.rememberPrivateKeysOnDevice,
   }
 }
 

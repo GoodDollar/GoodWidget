@@ -49,7 +49,6 @@ function createMockState(
     activeTab: 'buy',
     buyers: [],
     derivedBuyerAddress: null,
-    rememberPrivateKeysOnDevice: false,
   }
   return { ...base, ...overrides }
 }
@@ -67,7 +66,6 @@ function createAdapterFactory(
       selectBuyer: async () => {},
       discoverBuyers: () => {},
       importBuyerFromPrivateKey: async () => {},
-      setRememberPrivateKeysOnDevice: () => {},
       applyDeepLinkBuyer: async () => {},
       signOperatorConsent: async () => {},
       syncOperatorConsentFromChain: async () => {},

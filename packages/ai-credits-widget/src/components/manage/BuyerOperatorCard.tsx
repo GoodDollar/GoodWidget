@@ -15,14 +15,12 @@ interface BuyerOperatorCardProps {
     | 'operatorConsented'
     | 'operatorConsentPending'
     | 'buyers'
-    | 'rememberPrivateKeysOnDevice'
   >
   actions: Pick<
     AiCreditsWidgetAdapterActions,
     | 'generateBuyerKey'
     | 'selectBuyer'
     | 'importBuyerFromPrivateKey'
-    | 'setRememberPrivateKeysOnDevice'
     | 'signOperatorConsent'
   >
 }
@@ -93,21 +91,17 @@ function BuyerImportPanel({
   onImportPrivateKey,
   onClose,
 }: {
-  onImportPrivateKey: (
-    key: string,
-    options?: { rememberOnDevice?: boolean },
-  ) => Promise<void>
+  onImportPrivateKey: (key: string) => Promise<void>
   onClose: () => void
 }) {
   const [inputValue, setInputValue] = useState('')
-  const [rememberOnDevice, setRememberOnDevice] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   async function handleSubmit() {
     if (!inputValue.trim()) return
     setIsSubmitting(true)
     try {
-      await onImportPrivateKey(inputValue.trim(), { rememberOnDevice })
+      await onImportPrivateKey(inputValue.trim())
       setInputValue('')
       onClose()
     } finally {
@@ -127,31 +121,6 @@ function BuyerImportPanel({
         placeholder="0x…"
         autoFocus
       />
-      <XStack
-        tag="button"
-        role="checkbox"
-        aria-checked={rememberOnDevice}
-        alignItems="center"
-        gap="$2"
-        cursor="pointer"
-        onPress={() => setRememberOnDevice((prev) => !prev)}
-      >
-        <YStack
-          width={16}
-          height={16}
-          borderRadius="$1"
-          borderWidth={1}
-          borderColor="$borderColor"
-          backgroundColor={rememberOnDevice ? '$primary' : '$backgroundDark'}
-          alignItems="center"
-          justifyContent="center"
-        >
-          {rememberOnDevice ? <Icon name="check" size="xs" color="white" /> : null}
-        </YStack>
-        <Text fontSize="$1" secondary flex={1}>
-          Remember on this device (localStorage). Keys otherwise stay in this tab only.
-        </Text>
-      </XStack>
       <XStack gap="$1">
         <Button
           size="sm"
@@ -186,7 +155,6 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
     operatorConsented,
     operatorConsentPending,
     buyers,
-    rememberPrivateKeysOnDevice,
   } = state
   const { copied: copiedPrivate, copy: copyPrivate } = useCopyFeedback()
   const [isPrivateKeyVisible, setIsPrivateKeyVisible] = useState(false)
@@ -298,37 +266,6 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
                 color={copiedPrivate ? 'success' : 'text'}
               />
             </Button>
-          </XStack>
-          <XStack
-            tag="button"
-            role="checkbox"
-            aria-checked={rememberPrivateKeysOnDevice}
-            alignItems="center"
-            gap="$2"
-            cursor="pointer"
-            onPress={() =>
-              actions.setRememberPrivateKeysOnDevice(!rememberPrivateKeysOnDevice)
-            }
-          >
-            <YStack
-              width={16}
-              height={16}
-              borderRadius="$1"
-              borderWidth={1}
-              borderColor="$borderColor"
-              backgroundColor={rememberPrivateKeysOnDevice ? '$primary' : '$backgroundDark'}
-              alignItems="center"
-              justifyContent="center"
-            >
-              {rememberPrivateKeysOnDevice ? (
-                <Icon name="check" size="xs" color="white" />
-              ) : null}
-            </YStack>
-            <Text fontSize="$1" secondary flex={1}>
-              {rememberPrivateKeysOnDevice
-                ? 'Remembered on this device (localStorage).'
-                : 'Stored in this browser tab only (clears when the tab closes).'}
-            </Text>
           </XStack>
         </YStack>
       )}

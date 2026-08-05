@@ -48,8 +48,6 @@ import {
   upsertBuyerKey,
   setActiveBuyerAddress,
   setBuyerOperatorConsented,
-  setRememberPrivateKeysOnDevice,
-  getRememberPrivateKeysOnDevice,
   mergeBuyerAddressList,
   rememberBuyerAddresses,
   listKnownBuyerAddresses,
@@ -116,7 +114,6 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   activeTab: 'buy',
   buyers: [],
   derivedBuyerAddress: null,
-  rememberPrivateKeysOnDevice: false,
 }
 
 const WALLET_LOADING_STATE: Partial<AiCreditsWidgetAdapterState> = {
@@ -440,7 +437,6 @@ export function useAiCreditsAdapter({
           operatorSignature: sessionPatch.operatorSignature,
           operatorConsented: sessionPatch.operatorConsented,
           derivedBuyerAddress: sessionPatch.derivedBuyerAddress,
-          rememberPrivateKeysOnDevice: sessionPatch.rememberPrivateKeysOnDevice,
           buyers: prev.buyers,
           ...WALLET_LOADING_STATE,
           error: null,
@@ -538,7 +534,6 @@ export function useAiCreditsAdapter({
               {
                 ...patch,
                 buyers: mergeBuyerAddressList(prev.buyers, ...buyers),
-                rememberPrivateKeysOnDevice: getRememberPrivateKeysOnDevice(address!),
                 ...(account ? {} : { activeTab: 'buy' as const }),
               },
               true,
@@ -564,7 +559,6 @@ export function useAiCreditsAdapter({
               ...patch,
               ...accountPatch,
               ...buyerFields,
-              rememberPrivateKeysOnDevice: getRememberPrivateKeysOnDevice(address!),
               operatorConsented:
                 accountPatch.operatorConsented ?? buyerFields.operatorConsented,
               ...(account ? {} : { activeTab: 'buy' as const }),
@@ -587,7 +581,6 @@ export function useAiCreditsAdapter({
               buyerPrvKey: null,
               operatorSignature: null,
               operatorConsented: false,
-              rememberPrivateKeysOnDevice: false,
               status:
                 chainId !== null && chainId !== CELO_CHAIN_ID
                   ? 'unsupported_chain'
@@ -699,7 +692,6 @@ export function useAiCreditsAdapter({
       setState((prev) =>
         mergeStatePreservingNonBuyTab(prev, {
           ...buyerFields,
-          rememberPrivateKeysOnDevice: getRememberPrivateKeysOnDevice(payerAddress),
           error: null,
           ...(!isNonBuyTab(prev.activeTab) ? { status: 'purchase_setup' } : {}),
         }),
@@ -791,7 +783,7 @@ export function useAiCreditsAdapter({
   )
 
   const handleImportBuyerFromPrivateKey = useCallback(
-    async (rawPrivateKey: string, options?: { rememberOnDevice?: boolean }) => {
+    async (rawPrivateKey: string) => {
       if (!address) {
         setState((prev) =>
           withDerivedStatus(prev, { error: 'Connect your wallet before importing a buyer key' }, true),
@@ -815,9 +807,6 @@ export function useAiCreditsAdapter({
       try {
         const privateKey = normalized as `0x${string}`
         const buyerAccount = privateKeyToAccount(privateKey)
-        if (options?.rememberOnDevice) {
-          setRememberPrivateKeysOnDevice(address, true)
-        }
         upsertBuyerKey(address, buyerAccount.address, { privateKey }, { setActive: true })
 
         const buyers = mergeBuyerAddressList(
@@ -828,7 +817,6 @@ export function useAiCreditsAdapter({
         setState((prev) =>
           mergeStatePreservingNonBuyTab(prev, {
             ...buyerFields,
-            rememberPrivateKeysOnDevice: getRememberPrivateKeysOnDevice(address),
             operatorAddress: null,
             totalCreditUsd: null,
             withdrawableUsd: null,
@@ -878,15 +866,6 @@ export function useAiCreditsAdapter({
       }
     },
     [address, backendClient, chainClient],
-  )
-
-  const handleSetRememberPrivateKeysOnDevice = useCallback(
-    (remember: boolean) => {
-      if (!address) return
-      setRememberPrivateKeysOnDevice(address, remember)
-      setState((prev) => ({ ...prev, rememberPrivateKeysOnDevice: remember }))
-    },
-    [address],
   )
 
   const resolveBuyerList = useCallback(
@@ -1705,7 +1684,6 @@ export function useAiCreditsAdapter({
       selectBuyer: handleSelectBuyer,
       discoverBuyers: handleDiscoverBuyers,
       importBuyerFromPrivateKey: handleImportBuyerFromPrivateKey,
-      setRememberPrivateKeysOnDevice: handleSetRememberPrivateKeysOnDevice,
       applyDeepLinkBuyer: handleApplyDeepLinkBuyer,
       signOperatorConsent: handleSignOperatorConsent,
       syncOperatorConsentFromChain: handleSyncOperatorConsentFromChain,
@@ -1726,7 +1704,6 @@ export function useAiCreditsAdapter({
       handleSelectBuyer,
       handleDiscoverBuyers,
       handleImportBuyerFromPrivateKey,
-      handleSetRememberPrivateKeysOnDevice,
       handleApplyDeepLinkBuyer,
       handleSignOperatorConsent,
       handleSyncOperatorConsentFromChain,
