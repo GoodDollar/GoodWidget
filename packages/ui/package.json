@@ -16,8 +16,12 @@
         "import": "./dist/web.js",
         "require": "./dist/web.cjs"
       },
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "node": {
+        "import": "./dist/web.js",
+        "require": "./dist/web.cjs"
+      },
+      "import": "./dist/web.js",
+      "require": "./dist/web.cjs"
     }
   },
   "scripts": {
