@@ -48,8 +48,8 @@ function createMockState(
     error: null,
     activeTab: 'buy',
     buyers: [],
-    activeBuyerAddress: null,
     derivedBuyerAddress: null,
+    rememberPrivateKeysOnDevice: false,
   }
   return { ...base, ...overrides }
 }
@@ -64,9 +64,10 @@ function createAdapterFactory(
       connect: async () => {},
       switchChain: async () => {},
       generateBuyerKey: async () => {},
-      selectBuyer: () => {},
+      selectBuyer: async () => {},
       discoverBuyers: () => {},
       importBuyerFromPrivateKey: async () => {},
+      setRememberPrivateKeysOnDevice: () => {},
       applyDeepLinkBuyer: async () => {},
       signOperatorConsent: async () => {},
       syncOperatorConsentFromChain: async () => {},
@@ -458,7 +459,6 @@ export function MultiBuyerManageStory() {
         gBalance: '42.50',
         activeTab: 'manage',
         buyers: [BUYER_WALLET.address, BUYER_IMPORTED.address, BUYER_PARTNER.address],
-        activeBuyerAddress: BUYER_WALLET.address,
         derivedBuyerAddress: BUYER_WALLET.address,
       })}
     />
@@ -478,7 +478,6 @@ export function DeepLinkBuyerStory() {
         gBalance: '42.50',
         activeTab: 'manage',
         buyers: [BUYER_PARTNER.address],
-        activeBuyerAddress: BUYER_PARTNER.address,
       })}
     />
   )
@@ -497,7 +496,6 @@ export function MultiBuyerHistoryStory() {
         gBalance: '42.50',
         activeTab: 'history',
         buyers: [BUYER_WALLET.address, BUYER_IMPORTED.address],
-        activeBuyerAddress: BUYER_WALLET.address,
         derivedBuyerAddress: BUYER_WALLET.address,
       })}
     />

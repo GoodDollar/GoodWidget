@@ -40,6 +40,10 @@ function paginateGdCredits(
   })
   if (options.source) result = result.filter((entry) => entry.source === options.source)
   if (options.fundingStatus) result = result.filter((entry) => entry.fundingStatus === options.fundingStatus)
+  if (options.buyerAddress) {
+    const buyer = normalizeAddress(options.buyerAddress)
+    result = result.filter((entry) => entry.buyerAddress && normalizeAddress(entry.buyerAddress) === buyer)
+  }
   if (options.from) {
     const fromMs = Date.parse(options.from)
     result = result.filter((entry) => Date.parse(entry.createdAt) >= fromMs)

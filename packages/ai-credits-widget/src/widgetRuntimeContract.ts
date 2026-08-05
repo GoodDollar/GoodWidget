@@ -56,10 +56,10 @@ export interface AiCreditsWidgetAdapterState {
   error: string | null
   activeTab: AiCreditsWidgetTab
   buyers: string[]
-  /** Address of the currently selected buyer (matches `buyerPubKey`). */
-  activeBuyerAddress: string | null
   /** Deterministic buyer derived from the payer wallet Sign & Generate path. */
   derivedBuyerAddress: string | null
+  /** When true, buyer private keys are also written to localStorage. */
+  rememberPrivateKeysOnDevice: boolean
 }
 
 export interface AiCreditsWidgetAdapterActions {
@@ -71,11 +71,16 @@ export interface AiCreditsWidgetAdapterActions {
    */
   generateBuyerKey: () => Promise<void>
   /**
-   * Switches the active buyer. Address should be in `state.buyers`.
+   * Switches the active buyer and reloads that buyer's account view.
+   * Address should be in `state.buyers`.
    */
-  selectBuyer: (address: string) => void
+  selectBuyer: (address: string) => Promise<void>
   discoverBuyers: (addresses: string[]) => void
-  importBuyerFromPrivateKey: (privateKey: string) => Promise<void>
+  importBuyerFromPrivateKey: (
+    privateKey: string,
+    options?: { rememberOnDevice?: boolean },
+  ) => Promise<void>
+  setRememberPrivateKeysOnDevice: (remember: boolean) => void
   /**
    * Applies an NCDI deep-link buyer assignment from URL GET parameters
    * (`buyerAddress` + `operatorSignature`). Selects the buyer immediately,

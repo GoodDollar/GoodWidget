@@ -6,11 +6,11 @@ import type { AiCreditsWidgetEnvironment } from './widgetRuntimeContract'
 
 export const HISTORY_PAGE_SIZE = 10
 export const HISTORY_LOOKBACK_DAYS = 90
+const BUYER_FILTER_FILL_MAX_PAGES = 8
 
 export type CreditHistorySource = GdCreditEntry['source']
 export type CreditHistoryStatusFilter = 'all' | GdCreditEntry['fundingStatus']
 
-/** Special sentinel meaning "show entries for every known buyer". */
 export const BUYER_FILTER_ALL = 'all' as const
 export type BuyerAddressFilter = typeof BUYER_FILTER_ALL | string
 
@@ -59,10 +59,14 @@ function toIsoEndOfDay(dateValue: string): string | undefined {
   return new Date(parsed).toISOString()
 }
 
+function matchesBuyerFilter(entry: GdCreditEntry, filter: BuyerAddressFilter): boolean {
+  if (filter === BUYER_FILTER_ALL) return true
+  return entry.buyerAddress?.toLowerCase() === filter.toLowerCase()
+}
+
 export interface AiCreditsHistoryState {
   selectedSources: Record<CreditHistorySource, boolean>
   statusFilter: CreditHistoryStatusFilter
-  /** Address of the selected buyer to filter by, or `'all'` to show all buyers. */
   buyerAddressFilter: BuyerAddressFilter
   fromDate: string
   toDate: string
@@ -78,7 +82,6 @@ export interface AiCreditsHistoryState {
 export interface AiCreditsHistoryActions {
   setSourceChecked: (source: CreditHistorySource, checked: boolean) => void
   setStatusFilter: (status: CreditHistoryStatusFilter) => void
-  /** Sets the buyer address filter; pass `'all'` to show all buyers. */
   setBuyerAddressFilter: (value: BuyerAddressFilter) => void
   setFromDate: (value: string) => void
   setToDate: (value: string) => void
@@ -121,6 +124,10 @@ export function useAiCreditsHistory(options: {
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  useEffect(() => {
+    setBuyerAddressFilter(defaultBuyerFilter)
+  }, [defaultBuyerFilter])
+
   const activeSources = useMemo(
     () => HISTORY_SOURCE_OPTIONS.map((option) => option.id).filter((id) => selectedSources[id]),
     [selectedSources],
@@ -155,40 +162,54 @@ export function useAiCreditsHistory(options: {
       const client = backendClient ?? createBackendClient(backendUrl)
       const apiSource = activeSources.length === 1 ? activeSources[0] : undefined
       const fundingStatus = statusFilter === 'all' ? undefined : statusFilter
+      const apiBuyerAddress =
+        buyerAddressFilter === BUYER_FILTER_ALL ? undefined : buyerAddressFilter
 
       try {
-        const response = await client.getCreditHistory(address, {
-          limit: HISTORY_PAGE_SIZE,
-          offset: nextOffset,
-          source: apiSource,
-          fundingStatus,
-          from: toIsoStartOfDay(fromDate),
-          to: toIsoEndOfDay(toDate),
-        })
+        const collected: GdCreditEntry[] = []
+        let cursor = nextOffset
+        let apiHasMore = true
+        let pages = 0
 
-        const sourceFiltered =
-          activeSources.length === 1
-            ? response.items
-            : response.items.filter((entry) => selectedSources[entry.source])
+        while (pages < BUYER_FILTER_FILL_MAX_PAGES && collected.length < HISTORY_PAGE_SIZE && apiHasMore) {
+          const response = await client.getCreditHistory(address, {
+            limit: HISTORY_PAGE_SIZE,
+            offset: cursor,
+            source: apiSource,
+            fundingStatus,
+            from: toIsoStartOfDay(fromDate),
+            to: toIsoEndOfDay(toDate),
+            buyerAddress: apiBuyerAddress,
+          })
 
-        const discoveredBuyers = sourceFiltered
-          .map((entry) => entry.buyerAddress)
-          .filter((value): value is string => Boolean(value))
-        if (discoveredBuyers.length > 0) {
-          onBuyersDiscovered?.(discoveredBuyers)
+          const sourceFiltered =
+            activeSources.length === 1
+              ? response.items
+              : response.items.filter((entry) => selectedSources[entry.source])
+
+          const discoveredBuyers = sourceFiltered
+            .map((entry) => entry.buyerAddress)
+            .filter((value): value is string => Boolean(value))
+          if (discoveredBuyers.length > 0) {
+            onBuyersDiscovered?.(discoveredBuyers)
+          }
+
+          const buyerFiltered = sourceFiltered.filter((entry) =>
+            matchesBuyerFilter(entry, buyerAddressFilter),
+          )
+          collected.push(...buyerFiltered)
+
+          apiHasMore = response.hasMore
+          cursor = response.offset + response.limit
+          pages += 1
+
+          if (!apiBuyerAddress) break
+          if (buyerFiltered.length === response.items.length) break
         }
 
-        const buyerFiltered =
-          buyerAddressFilter === BUYER_FILTER_ALL
-            ? sourceFiltered
-            : sourceFiltered.filter(
-                (entry) =>
-                  entry.buyerAddress?.toLowerCase() === buyerAddressFilter.toLowerCase(),
-              )
-
-        setEntries((prev) => (append ? [...prev, ...buyerFiltered] : buyerFiltered))
-        setOffset(nextOffset)
-        setHasMore(response.hasMore)
+        setEntries((prev) => (append ? [...prev, ...collected] : collected))
+        setOffset(cursor)
+        setHasMore(apiHasMore)
       } catch (err: unknown) {
         if (!append) setEntries([])
         setHasMore(false)
@@ -231,7 +252,7 @@ export function useAiCreditsHistory(options: {
   }, [loadHistory])
 
   const loadMore = useCallback(async () => {
-    await loadHistory(offset + HISTORY_PAGE_SIZE, true)
+    await loadHistory(offset, true)
   }, [loadHistory, offset])
 
   return {

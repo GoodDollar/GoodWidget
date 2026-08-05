@@ -295,6 +295,7 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
     if (options.fundingStatus) params.set('fundingStatus', options.fundingStatus)
     if (options.from) params.set('from', options.from)
     if (options.to) params.set('to', options.to)
+    if (options.buyerAddress) params.set('buyerAddress', options.buyerAddress)
 
     const response = await fetch(`${this.accountBase(payer)}/credit-history?${params.toString()}`)
     if (!response.ok) throw new Error(`Credit history request failed: ${response.status}`)

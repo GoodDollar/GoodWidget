@@ -332,7 +332,7 @@ function AiCreditsInner({
   const history = useAiCreditsHistory({
     address: state.address,
     backendUrl,
-    defaultBuyerFilter: state.activeBuyerAddress ?? 'all',
+    defaultBuyerFilter: state.buyerPubKey ?? 'all',
     environment,
     backendClient: adapterOptions?.backendClient,
     onBuyersDiscovered: actions.discoverBuyers,
