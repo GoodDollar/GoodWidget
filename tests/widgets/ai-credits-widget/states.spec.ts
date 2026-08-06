@@ -236,3 +236,76 @@ test('AiCreditsWidget appkit connect wallet opens modal', async ({ page }) => {
     fullPage: true,
   })
 })
+
+// ---------------------------------------------------------------------------
+// Multi-buyer tests
+// ---------------------------------------------------------------------------
+
+const MULTI_BUYER_STORY_IDS = {
+  multiBuyerManage:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--multi-buyer-manage&viewMode=story',
+  deepLinkBuyer:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--deep-link-buyer&viewMode=story',
+  multiBuyerHistory:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--multi-buyer-history&viewMode=story',
+} as const
+
+test('AiCreditsWidget multi-buyer manage: buyer selector is visible', async ({ page }) => {
+  await gotoStory(page, MULTI_BUYER_STORY_IDS.multiBuyerManage)
+  const root = widget(page, 'AiCreditsWidget-multi-buyer-manage')
+  await expect(root).toBeVisible()
+
+  await expect(root.getByText(/0xfc12/i)).toBeVisible()
+  await expect(root.getByText(/0xAbcD|0xabcd/i)).toBeVisible()
+  await expect(root.getByText(/0x1111/i)).toBeVisible()
+  await expect(root.getByRole('button', { name: /Sign & Generate/i })).toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-15-multi-buyer-manage.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget deep-link buyer: Sign Consent enabled via operatorSignature', async ({
+  page,
+}) => {
+  await gotoStory(page, MULTI_BUYER_STORY_IDS.deepLinkBuyer)
+  const root = widget(page, 'AiCreditsWidget-deep-link-buyer')
+  await expect(root).toBeVisible()
+
+  const signConsentButton = root.getByRole('button', { name: /Sign Consent/i })
+  await expect(signConsentButton).toBeEnabled()
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-16-deep-link-buyer.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget multi-buyer history: buyer filter dropdown is visible', async ({ page }) => {
+  await gotoStory(page, MULTI_BUYER_STORY_IDS.multiBuyerHistory)
+  const root = widget(page, 'AiCreditsWidget-multi-buyer-history')
+  await expect(root).toBeVisible()
+
+  await expect(root.getByText(/Buyer: All buyers/i)).toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-17-multi-buyer-history.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget multi-buyer: import buyer key link is visible', async ({ page }) => {
+  await gotoStory(page, MULTI_BUYER_STORY_IDS.multiBuyerManage)
+  const root = widget(page, 'AiCreditsWidget-multi-buyer-manage')
+  await expect(root).toBeVisible()
+
+  await expect(root.getByText(/Import a buyer key/i)).toBeVisible()
+  await expect(root.getByText(/Watch Address/i)).toHaveCount(0)
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-18-import-key-link.png',
+    fullPage: true,
+  })
+})
+

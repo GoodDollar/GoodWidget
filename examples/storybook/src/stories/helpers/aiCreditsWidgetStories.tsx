@@ -34,7 +34,9 @@ function createMockState(
     isGoodIdVerified: false,
     buyerPubKey: null,
     buyerPrvKey: null,
+    operatorSignature: null,
     operatorConsented: false,
+    operatorConsentPending: false,
     operatorAddress: null,
     minDepositUsd: '1.00',
     minStreamUsd: '1.00',
@@ -45,6 +47,8 @@ function createMockState(
     streamBonusPercent: 20,
     error: null,
     activeTab: 'buy',
+    buyers: [],
+    derivedBuyerAddress: null,
   }
   return { ...base, ...overrides }
 }
@@ -59,6 +63,10 @@ function createAdapterFactory(
       connect: async () => {},
       switchChain: async () => {},
       generateBuyerKey: async () => {},
+      selectBuyer: async () => {},
+      discoverBuyers: () => {},
+      importBuyerFromPrivateKey: async () => {},
+      applyDeepLinkBuyer: async () => {},
       signOperatorConsent: async () => {},
       syncOperatorConsentFromChain: async () => {},
       buildQuote: async (depositG, streamG) => ({
@@ -410,5 +418,84 @@ export function InjectedWalletStory() {
         </YStack>
       )}
     </YStack>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Multi-buyer fixture stories
+// ---------------------------------------------------------------------------
+
+const BUYER_WALLET = {
+  address: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a' as const,
+  privateKey: '0x0000000000000000000000000000000000000000000000000000000000000001' as const,
+}
+
+const BUYER_IMPORTED = {
+  address: '0xAbcDef1234567890AbcDef1234567890AbcDef12' as const,
+  privateKey: '0x0000000000000000000000000000000000000000000000000000000000000002' as const,
+}
+
+const BUYER_PARTNER = {
+  address: '0x1111111111111111111111111111111111111111' as const,
+  operatorSignature:
+    '0x1111111111111111111111111111111111111111111111111111111111111111222222222222222222222222222222222222222222222222222222222222222200' as const,
+}
+
+/** Multi-buyer manage: backend address list with one selected buyer that has a local key. */
+export function MultiBuyerManageStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-multi-buyer-manage"
+      adapterFactory={createAdapterFactory('quote_ready', {
+        totalCreditUsd: '110000000',
+        buyerPubKey: BUYER_WALLET.address,
+        buyerPrvKey: BUYER_WALLET.privateKey,
+        operatorConsented: true,
+        operatorAddress: '0x0000000000000000000000000000000000000004',
+        totalGdDepositedG: '50.00',
+        monthlyStreamG: '5.00',
+        gBalance: '42.50',
+        activeTab: 'manage',
+        buyers: [BUYER_WALLET.address, BUYER_IMPORTED.address, BUYER_PARTNER.address],
+        derivedBuyerAddress: BUYER_WALLET.address,
+      })}
+    />
+  )
+}
+
+/** Deep-link partner buyer: consent uses pre-signed operatorSignature (no private key). */
+export function DeepLinkBuyerStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-deep-link-buyer"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        buyerPubKey: BUYER_PARTNER.address,
+        buyerPrvKey: null,
+        operatorSignature: BUYER_PARTNER.operatorSignature,
+        operatorConsented: false,
+        gBalance: '42.50',
+        activeTab: 'manage',
+        buyers: [BUYER_PARTNER.address],
+      })}
+    />
+  )
+}
+
+/** History tab with multi-buyer filter options available. */
+export function MultiBuyerHistoryStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-multi-buyer-history"
+      adapterFactory={createAdapterFactory('quote_ready', {
+        totalCreditUsd: '110000000',
+        buyerPubKey: BUYER_WALLET.address,
+        buyerPrvKey: BUYER_WALLET.privateKey,
+        operatorConsented: true,
+        gBalance: '42.50',
+        activeTab: 'history',
+        buyers: [BUYER_WALLET.address, BUYER_IMPORTED.address],
+        derivedBuyerAddress: BUYER_WALLET.address,
+      })}
+    />
   )
 }

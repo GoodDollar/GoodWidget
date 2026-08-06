@@ -185,6 +185,15 @@ function BuyCreditsPanel({ state, actions, isPending, onPay }: BuyPanelProps) {
   } else {
     content = (
       <>
+        {state.error && (
+          <AiCreditsStatusNotice>
+            <Text color="$error" fontWeight="700">
+              Deep link unavailable
+            </Text>
+            <Text secondary>{state.error}</Text>
+          </AiCreditsStatusNotice>
+        )}
+
         {state.address && (
           <AiCreditsHero
             gBalance={state.gBalance}
@@ -323,8 +332,10 @@ function AiCreditsInner({
   const history = useAiCreditsHistory({
     address: state.address,
     backendUrl,
+    defaultBuyerFilter: state.buyerPubKey ?? 'all',
     environment,
     backendClient: adapterOptions?.backendClient,
+    onBuyersDiscovered: actions.discoverBuyers,
   })
 
   const handlePay = useCallback(
@@ -396,7 +407,11 @@ function AiCreditsInner({
       {state.activeTab === 'manage' ? (
         <ManagePanel state={state} actions={actions} />
       ) : state.activeTab === 'history' ? (
-        <HistoryTab state={history.state} actions={history.actions} />
+        <HistoryTab
+          state={history.state}
+          actions={history.actions}
+          knownBuyers={state.buyers.map((address) => ({ address }))}
+        />
       ) : (
         buyPanel
       )}

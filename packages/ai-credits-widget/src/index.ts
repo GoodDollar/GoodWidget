@@ -14,7 +14,22 @@ export type {
   AiCreditsPaySuccessDetail,
   AiCreditsPayErrorDetail,
   AiCreditsQuote,
+  BuyerKeyEntry,
 } from './widgetRuntimeContract'
+
+export {
+  parseDeepLinkParams,
+  resolveDeepLinkParams,
+  isValidBuyerAddress,
+  isValidOperatorSignature,
+  storeDeepLinkParams,
+  readStoredDeepLinkParams,
+  clearStoredDeepLinkParams,
+  clearDeepLinkArtifacts,
+  deepLinkManualFallbackMessage,
+  DEEP_LINK_MANUAL_FALLBACK_HINT,
+} from './deepLinkParams'
+export type { DeepLinkParams, DeepLinkParseResult } from './deepLinkParams'
 
 export type {
   AiCreditsBackendClient,

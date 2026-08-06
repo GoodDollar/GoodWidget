@@ -17,6 +17,9 @@ import {
   BackendUnavailableStory,
   UnsupportedChainStory,
   AppKitConnectWalletStory,
+  MultiBuyerManageStory,
+  DeepLinkBuyerStory,
+  MultiBuyerHistoryStory,
 } from '../helpers/aiCreditsWidgetStories'
 
 const meta: Meta<typeof AiCreditsWidget> = {
@@ -89,6 +92,21 @@ export const BackendUnavailable: Story = {
 
 export const UnsupportedChain: Story = {
   render: () => <UnsupportedChainStory />,
+}
+
+/** Multi-buyer manage tab: buyer selector and private-key reveal. */
+export const MultiBuyerManage: Story = {
+  render: () => <MultiBuyerManageStory />,
+}
+
+/** Deep-link partner buyer: consent via pre-signed operatorSignature. */
+export const DeepLinkBuyer: Story = {
+  render: () => <DeepLinkBuyerStory />,
+}
+
+/** History tab with buyer filter dropdown. */
+export const MultiBuyerHistory: Story = {
+  render: () => <MultiBuyerHistoryStory />,
 }
 
 export const AppKitConnectWallet: Story = {

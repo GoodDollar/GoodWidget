@@ -135,6 +135,19 @@ export function resolveBuyerAddress(entries: GdCreditEntry[]): string | null {
   return null
 }
 
+export function collectBuyerAddressesFromEntries(entries: GdCreditEntry[]): string[] {
+  const seen = new Set<string>()
+  const result: string[] = []
+  for (const entry of entries) {
+    if (!entry.buyerAddress || !isAddress(entry.buyerAddress)) continue
+    const key = normalizeAddress(entry.buyerAddress)
+    if (seen.has(key)) continue
+    seen.add(key)
+    result.push(key)
+  }
+  return result
+}
+
 function defaultOperatorStatus(payer: string): BuyerOperatorStatus {
   const account = normalizeAddress(payer)
   return {
@@ -491,16 +504,14 @@ export async function buildAccountView(
   options: BuildAccountViewOptions = {},
 ): Promise<AccountView> {
   const normalizedPayer = normalizeAddress(payer)
-  const [credit, outstanding, history] = await Promise.all([
+  const [credit, outstanding] = await Promise.all([
     backend.getAccountCredit(payer),
     backend.getOutstanding(payer),
-    backend.getCreditHistory(payer, { limit: MAX_HISTORY_LIMIT, offset: 0 }),
   ])
-  const sessionBuyer =
+  const buyer =
     options.buyerAddress && isAddress(options.buyerAddress)
       ? normalizeAddress(options.buyerAddress)
       : null
-  const buyer = sessionBuyer ?? resolveBuyerAddress(history.items)
   const [operator, withdrawableUsd] = buyer
     ? await Promise.all([
         chain.getBuyerOperatorStatus({ payer: normalizedPayer, buyer }),
