@@ -186,9 +186,10 @@ export interface SuperfluidCampaignWidgetProps {
    */
   data?: CampaignDefinition
   /**
-   * Replaces the destination of link-based action cards (for example, to add
-   * integration-specific UTM parameters). Built-in campaign URLs remain the
-   * default for every omitted action.
+   * Replaces the destination of link-based action cards (including the
+   * GoodWallet fallback used when the Claim CTA is disabled). Built-in campaign
+   * URLs remain the default for every omitted action. The normal Claim CTA still
+   * opens the embedded CitizenClaimWidget when claiming is enabled.
    */
   actionLinks?: CampaignActionLinkOverrides
   /** Passed through to the embedded CitizenClaimWidget for the Claim CTA. */

@@ -31,6 +31,14 @@ function AppKitSuperfluidCampaignWidget() {
       disconnectOverride={async () => {
         await open({ view: 'Account' })
       }}
+      actionLinks={{
+        'flow-state-vote': 'https://ubi.gd/4fEqvrS',
+        'flow-state-funding': 'https://ubi.gd/4z2tH8y',
+        'gardens-donation': 'https://ubi.gd/4xhk4kv',
+        'gardens-funding': 'https:/ubi.gd/3TABl9O',
+        'invite-users': 'https://ubi.gd/4xhYTyH',
+        'claim-ubi': 'https://ubi.gd/3RNtzJd',
+      }}
     />
   )
 }

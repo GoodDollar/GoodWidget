@@ -61,7 +61,11 @@ function handleActionCta(
   switch (action.ctaKind) {
     case 'claim-widget-claim':
       if (disableClaim) {
-        window.open(`${GOODDOLLAR_PAGE_URL}?tab=claim`, '_blank', 'noopener,noreferrer')
+        window.open(
+          action.href ?? `${GOODDOLLAR_PAGE_URL}?tab=claim`,
+          '_blank',
+          'noopener,noreferrer',
+        )
         return
       }
       openClaimTab('claim')
@@ -93,7 +97,7 @@ function applyActionLinkOverrides(
       ...pool,
       actions: pool.actions.map((action) => {
         const href = actionLinks[action.activity]
-        return href && action.ctaKind !== 'claim-widget-claim' ? { ...action, href } : action
+        return href ? { ...action, href } : action
       }),
     })),
   }
