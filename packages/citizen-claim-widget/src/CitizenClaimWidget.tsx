@@ -376,7 +376,7 @@ function CitizenClaimInner({
 
   return (
     <YStack gap="$5" padding="$4">
-      {status === 'not_whitelisted' && (
+      {status === 'not_whitelisted' && claimablesByChain.length === 0 && (
         <ClaimCard>
           <YStack gap="$4" padding="$6" alignItems="center" width="100%">
             <Heading level={3} textAlign="center">
@@ -399,7 +399,7 @@ function CitizenClaimInner({
       {/* ------------------------------------------------------------------ */}
       {/* Main claim card                                                      */}
       {/* ------------------------------------------------------------------ */}
-      {status !== 'not_whitelisted' && (
+      {(status !== 'not_whitelisted' || claimablesByChain.length > 0) && (
         <ClaimCard>
           <YStack gap="$5" paddingVertical="$6">
             {/* Status content */}
@@ -412,7 +412,7 @@ function CitizenClaimInner({
                 </>
               )}
 
-              {(status === 'eligible' || status === 'claiming') && (
+              {(status === 'eligible' || status === 'claiming' || claimablesByChain.length > 0) && (
                 <>
                   <Text secondary>Ready to claim</Text>
                   {displayAmount && <TokenAmount token="G$" amount={displayAmount} size="xl" />}
@@ -425,7 +425,7 @@ function CitizenClaimInner({
                 </Text>
               )}
 
-              {status === 'already_claimed' && (
+              {status === 'already_claimed' && claimablesByChain.length === 0 && (
                 <>
                   <Text secondary>Just a little longer…</Text>
                   <Text secondary>More G$ coming soon</Text>

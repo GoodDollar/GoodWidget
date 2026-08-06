@@ -58,7 +58,7 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
           pointsLabel: '10 PTS PER INVITE',
           ctaLabel: 'Invite',
           ctaKind: 'external-link',
-          href: 'https://goodwallet.xyz/en/gooddollar',
+          href: 'https://goodwallet.xyz/en/gooddollar?tab=inviteRewards',
         },
         {
           activity: 'flow-state-vote',

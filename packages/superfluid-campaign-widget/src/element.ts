@@ -28,6 +28,7 @@ const SuperfluidCampaignWidgetElementBase = createMiniAppElement(
       actionLinks: 'property',
       citizenClaimEnvironment: 'property',
       citizenClaimExecution: 'property',
+      disableClaim: 'property',
       connectOverride: 'property',
       contentMaxWidth: 'property',
       data: 'property',
@@ -44,6 +45,7 @@ export class SuperfluidCampaignWidgetElement extends SuperfluidCampaignWidgetEle
   declare actionLinks: SuperfluidCampaignWidgetProps['actionLinks']
   declare citizenClaimEnvironment: SuperfluidCampaignWidgetProps['citizenClaimEnvironment']
   declare citizenClaimExecution: SuperfluidCampaignWidgetProps['citizenClaimExecution']
+  declare disableClaim: SuperfluidCampaignWidgetProps['disableClaim']
   declare connectOverride: SuperfluidCampaignWidgetProps['connectOverride']
   declare contentMaxWidth: SuperfluidCampaignWidgetProps['contentMaxWidth']
   declare data: SuperfluidCampaignWidgetProps['data']

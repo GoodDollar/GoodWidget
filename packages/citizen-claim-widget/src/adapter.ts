@@ -14,7 +14,6 @@ import {
 } from 'viem'
 import {
   ClaimSDK,
-  ClaimCustodialSDK,
   IdentitySDK,
   IdentityCustodialSDK,
   citizenSdkCapabilities,
@@ -261,6 +260,28 @@ export function useCitizenClaimAdapter(
     [],
   )
 
+  // Custodial integrations own one public client per chain. Reuse those
+  // clients for entitlement/stat reads as well as claim execution so the
+  // widget does not silently switch back to its fallback RPCs.
+  const getPublicClientForChain = useCallback(
+    (targetChainId: number): PublicClient | null => {
+      if (isCustodialExecution) {
+        const configuredClients = claimExecution?.clientsByChain[targetChainId]
+        return (
+          configuredClients?.publicClient ??
+          configuredClients?.readClient ??
+          null
+        ) as PublicClient | null
+      }
+
+      const chain = CHAIN_CONFIGS[targetChainId]
+      const rpcUrl = chain?.rpcUrls.default.http[0]
+      if (!chain || !rpcUrl) return null
+      return createPublicClient({ chain, transport: http(rpcUrl) })
+    },
+    [claimExecution, isCustodialExecution],
+  )
+
   const resolveClientsForChain = useCallback(
     async (targetChainId: number) => {
       if (isCustodialExecution) {
@@ -297,7 +318,10 @@ export function useCitizenClaimAdapter(
   )
 
   // ---------------------------------------------------------------------------
-  // SDK factory — selects custodial SDKs only for the explicit custodial mode.
+  // SDK factory — uses wallet-owned clients only for the explicit custodial
+  // mode. ClaimSDK's normal write path preserves the validated contract
+  // request returned by simulateContract; ClaimCustodialSDK's custom raw
+  // transaction path is not used here because it can lose `to` and `data`.
   // ---------------------------------------------------------------------------
   const createSdkInstances = useCallback(
     (clients: Awaited<ReturnType<typeof resolveClientsForChain>>) => {
@@ -306,20 +330,10 @@ export function useCitizenClaimAdapter(
       const sdkAccount = address ?? walletClient.account?.address
       const rdu = options.rdu ?? (typeof window !== 'undefined' ? window.location.href : '')
 
-      if (isCustodialExecution) {
-        const identitySDK = new IdentityCustodialSDK({ publicClient, walletClient, env })
-        const claimSDK = new ClaimCustodialSDK({
-          publicClient,
-          walletClient,
-          identitySDK,
-          env,
-          rdu,
-        })
-        return { identitySDK, claimSDK }
-      }
-
       if (!sdkAccount) return null
-      const identitySDK = new IdentitySDK({ publicClient, walletClient, env })
+      const identitySDK = isCustodialExecution
+        ? new IdentityCustodialSDK({ publicClient, walletClient, env })
+        : new IdentitySDK({ publicClient, walletClient, env })
       const claimSDK = new ClaimSDK({
         account: sdkAccount as `0x${string}`,
         publicClient,
@@ -351,15 +365,24 @@ export function useCitizenClaimAdapter(
     await Promise.all(
       SUPPORTED_CHAINS.map(async (supportedChainId) => {
         try {
-          const chain = CHAIN_CONFIGS[supportedChainId]
-          const rpcUrl = chain.rpcUrls.default.http[0]
-          if (!rpcUrl) return
-          const publicClient = createPublicClient({ chain, transport: http(rpcUrl) })
-          const entitlement = await checkGenericEntitlement({
-            publicClient,
-            chainId: supportedChainId,
-            env,
-          })
+          let entitlement: bigint
+          if (isConnected && address) {
+            const sdk = await createSdkInstancesForChain(supportedChainId)
+            if (!sdk) return
+            // The no-argument generic entitlement is the chain pool amount,
+            // not this wallet's entitlement. Use the SDK's account-scoped
+            // check when the wallet is connected so claimAll only targets
+            // chains this account can actually claim on.
+            entitlement = (await sdk.claimSDK.checkEntitlement()).amount
+          } else {
+            const publicClient = getPublicClientForChain(supportedChainId)
+            if (!publicClient) return
+            entitlement = await checkGenericEntitlement({
+              publicClient,
+              chainId: supportedChainId,
+              env,
+            })
+          }
           if (entitlement <= 0n) return
 
           const decimals = CHAIN_DECIMALS[supportedChainId] ?? 18
@@ -376,7 +399,13 @@ export function useCitizenClaimAdapter(
     if (!mountedRef.current) return
     eligible.sort((a, b) => b.chainId - a.chainId)
     setClaimablesByChain(eligible)
-  }, [env])
+  }, [
+    address,
+    createSdkInstancesForChain,
+    env,
+    getPublicClientForChain,
+    isConnected,
+  ])
 
   const loadDailyStats = useCallback(async (): Promise<void> => {
     let maxClaimers = 0
@@ -385,10 +414,8 @@ export function useCitizenClaimAdapter(
     await Promise.all(
       SUPPORTED_CHAINS.map(async (supportedChainId) => {
         try {
-          const chain = CHAIN_CONFIGS[supportedChainId]
-          const rpcUrl = chain.rpcUrls.default.http[0]
-          if (!rpcUrl) return
-          const publicClient = createPublicClient({ chain, transport: http(rpcUrl) })
+          const publicClient = getPublicClientForChain(supportedChainId)
+          if (!publicClient) return
           const stats = await checkGenericDailyStats({
             publicClient,
             chainId: supportedChainId,
@@ -409,27 +436,28 @@ export function useCitizenClaimAdapter(
       dailyNumberOfClaimers: maxClaimers,
       dailyClaimedAmount: totalClaimed,
     })
-  }, [env])
+  }, [env, getPublicClientForChain])
 
   // ---------------------------------------------------------------------------
   // loadClaimStatus — primary refresh action.
   // Calls getWalletClaimStatus() and maps the SDK result to widget status.
   // ---------------------------------------------------------------------------
   const loadClaimStatus = useCallback(async () => {
+    // These are best-effort UI reads. Start them without making the primary
+    // wallet eligibility check wait for every auxiliary RPC response.
+    const auxiliaryReads = Promise.all([
+      loadClaimablesByChain(),
+      loadDailyStats(),
+    ])
+
     if (!isConnected || !address) {
-      await loadClaimablesByChain()
-      await loadDailyStats()
+      await auxiliaryReads
       setStatus('not_connected')
       return
     }
 
-    // Always refresh per-chain claimables for a connected wallet, even if the
-    // currently active chain is unsupported. This keeps the cross-chain
-    // breakdown visible while prompting for network switching.
-    await loadClaimablesByChain()
-    await loadDailyStats()
-
     if (!onSupportedChain) {
+      await auxiliaryReads
       // Wallet connected but on an unsupported chain — surface switch_chain action
       setStatus('not_connected')
       return
@@ -643,8 +671,14 @@ export function useCitizenClaimAdapter(
   // ---------------------------------------------------------------------------
   const primaryAction: CitizenClaimWidgetAdapterState['primaryAction'] = useMemo(() => {
     if (status === 'connecting') return 'connect'
+    // Custodial execution is multi-chain. An account-scoped entitlement on any
+    // configured chain must take precedence over the active chain's status.
+    if (isConnected && address && claimablesByChain.length > 0) return 'claim'
     if (status === 'not_connected') {
-      // Connected but on wrong chain → switch_chain; not connected → connect
+      // Custodial clients are already configured per chain, so they never need
+      // the active wallet chain to be switched. Native wallet integrations keep
+      // the existing switch-chain behavior.
+      if (isCustodialExecution) return 'none'
       return isConnected && !onSupportedChain ? 'switch_chain' : 'connect'
     }
     if (status === 'not_whitelisted') return 'verify'
@@ -654,7 +688,14 @@ export function useCitizenClaimAdapter(
     if (status === 'eligible') return 'claim'
     if (status === 'error') return 'refresh'
     return 'none'
-  }, [status, isConnected, onSupportedChain])
+  }, [
+    status,
+    address,
+    isConnected,
+    onSupportedChain,
+    claimablesByChain,
+    isCustodialExecution,
+  ])
 
   const primaryLabel: string = useMemo(() => {
     switch (primaryAction) {

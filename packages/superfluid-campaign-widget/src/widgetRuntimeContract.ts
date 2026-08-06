@@ -195,6 +195,8 @@ export interface SuperfluidCampaignWidgetProps {
   citizenClaimEnvironment?: CitizenClaimWidgetEnvironment
   /** Optional wallet-owned, chain-specific clients for parallel custodial claims. */
   citizenClaimExecution?: CitizenClaimWidgetCustodialExecution
+  /** Redirect the Claim CTA to GoodWallet instead of embedding CitizenClaimWidget. */
+  disableClaim?: boolean
   /**
    * View shown on first render. Defaults to 'content'. Lets Storybook fixtures
    * and deep links land directly on the leaderboard without a click.

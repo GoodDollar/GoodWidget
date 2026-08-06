@@ -26,6 +26,8 @@ import type {
 /** The claim widget is an in-place view within the Superfluid campaign shell. */
 type EmbeddedClaimTab = 'claim' | null
 
+const GOODDOLLAR_PAGE_URL = 'https://goodwallet.xyz/en/gooddollar'
+
 interface SuperfluidCampaignRuntimeProps {
   data: SuperfluidCampaignWidgetProps['data']
   actionLinks?: CampaignActionLinkOverrides
@@ -33,6 +35,7 @@ interface SuperfluidCampaignRuntimeProps {
   dataClient: SuperfluidCampaignDataClient
   citizenClaimEnvironment: SuperfluidCampaignWidgetProps['citizenClaimEnvironment']
   citizenClaimExecution: SuperfluidCampaignWidgetProps['citizenClaimExecution']
+  disableClaim: boolean
   initialView: SuperfluidCampaignView
   poolAddresses?: SuperfluidCampaignWidgetProps['poolAddresses']
   /** Forwarded to the embedded CitizenClaimWidget so it shares the same provider/config/theme context. */
@@ -53,14 +56,19 @@ interface SuperfluidCampaignRuntimeProps {
 function handleActionCta(
   action: CampaignActionDefinition,
   openClaimTab: (tab: EmbeddedClaimTab) => void,
+  disableClaim: boolean,
 ) {
   switch (action.ctaKind) {
     case 'claim-widget-claim':
+      if (disableClaim) {
+        window.open(`${GOODDOLLAR_PAGE_URL}?tab=claim`, '_blank', 'noopener,noreferrer')
+        return
+      }
       openClaimTab('claim')
       return
     case 'claim-widget-invite':
       window.open(
-        action.href ?? 'https://goodwallet.xyz/en/gooddollar',
+        action.href ?? `${GOODDOLLAR_PAGE_URL}?tab=inviteRewards`,
         '_blank',
         'noopener,noreferrer',
       )
@@ -98,6 +106,7 @@ function SuperfluidCampaignRuntime({
   dataClient,
   citizenClaimEnvironment,
   citizenClaimExecution,
+  disableClaim,
   initialView,
   poolAddresses,
   provider,
@@ -124,7 +133,7 @@ function SuperfluidCampaignRuntime({
   )
   void airdropStatus
 
-  if (embeddedClaimTab) {
+  if (embeddedClaimTab && !disableClaim) {
     return (
       <YStack gap="$5" width="100%" padding="$5" style={{ boxSizing: 'border-box' }}>
         <CampaignHeader
@@ -197,7 +206,9 @@ function SuperfluidCampaignRuntime({
             key={pool.id}
             pool={pool}
             poolAddress={poolAddresses?.[pool.campaignId]}
-            onPressActionCta={(action) => handleActionCta(action, setEmbeddedClaimTab)}
+            onPressActionCta={(action) =>
+              handleActionCta(action, setEmbeddedClaimTab, disableClaim)
+            }
             supTotalsAdapter={isMockRuntime ? dataClient.programSupTotals : undefined}
           />
         ))}
@@ -226,6 +237,7 @@ export function SuperfluidCampaignWidgetWithClient({
   actionLinks,
   citizenClaimEnvironment = 'production',
   citizenClaimExecution,
+  disableClaim = false,
   initialView = 'content',
   poolAddresses,
   dataClient,
@@ -249,6 +261,7 @@ export function SuperfluidCampaignWidgetWithClient({
           dataClient={dataClient}
           citizenClaimEnvironment={citizenClaimEnvironment}
           citizenClaimExecution={citizenClaimExecution}
+          disableClaim={disableClaim}
           initialView={initialView}
           poolAddresses={poolAddresses}
           provider={provider}
