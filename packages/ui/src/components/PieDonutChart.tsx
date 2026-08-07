@@ -244,8 +244,14 @@ function PieDonutCenterContent({
     return null
   }
 
+  // Default to 0 decimals for the center metric specifically: it sits in a
+  // fixed-size hole, and "450K" fits that space far more reliably than
+  // formatMetricValue's own default of 1 decimal ("450.0K"), which was
+  // clipping at the default chart size even after correcting maxWidth above.
   const formattedValue =
-    typeof centerValue === 'number' ? (centerValueFormatter ?? formatMetricValue)(centerValue) : centerValue
+    typeof centerValue === 'number'
+      ? (centerValueFormatter ?? ((value: number) => formatMetricValue(value, 'compact', 0)))(centerValue)
+      : centerValue
 
   return (
     <YStack position="absolute" alignItems="center" justifyContent="center" gap="$1" maxWidth={maxWidth} pointerEvents="none">
@@ -334,7 +340,14 @@ function PieDonutChartContent({
 
   const geometry = computeArcGeometry(width, height, innerRadius)
   const center = geometry.size / 2
-  const centerContentMaxWidth = geometry.ringRadius * 2 * (1 - Math.min(Math.max(innerRadius, 0), MAX_INNER_RADIUS_FRACTION))
+  // Available space for center label/value is the hole, not the ring: hole
+  // radius is the ring's inner edge (ringRadius - strokeWidth / 2), and the
+  // largest square that fits inside a circle of that radius has side
+  // holeRadius * sqrt(2). The previous formula measured off ringRadius (the
+  // stroke's centerline, not the hole) and shrank as innerRadius grew instead
+  // of growing, which is why large center values were clipped to "450...".
+  const holeRadius = geometry.ringRadius - geometry.strokeWidth / 2
+  const centerContentMaxWidth = holeRadius * Math.SQRT2
 
   const resolvedAccessibilityLabel =
     accessibilityLabel ??
