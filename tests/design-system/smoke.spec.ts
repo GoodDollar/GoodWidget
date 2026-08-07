@@ -129,3 +129,33 @@ test('Scorecard/Default story renders all 5 mock-data rows in both variants', as
 
   await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-default.png')
 })
+
+test('PieDonutChart/Default story renders pie and donut, bare and card variants', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 700 })
+  await gotoStory(page, 'design-system-primitives-piedonutchart--default')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByTestId('PieDonutChart-default')).toBeVisible()
+  await expect(frame.getByTestId('PieDonutChart-funding-pie-bare')).toBeVisible()
+  await expect(frame.getByTestId('PieDonutChart-funding-donut-bare')).toBeVisible()
+  await expect(frame.getByTestId('PieDonutChart-funding-donut-card')).toBeVisible()
+  await expect(frame.getByTestId('PieDonutChart-funding-pie-bare').getByText('Education Hubs')).toBeVisible()
+  await screenshotStory(page, 'tests/design-system/test-results/story-piedonutchart-default.png')
+})
+
+test('PieDonutChart/EmptyState story renders grey ring with "No data"', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-piedonutchart--empty-state')
+  const frame = getStoryFrame(page)
+  const chart = frame.getByTestId('PieDonutChart-empty')
+  await expect(chart).toBeVisible()
+  await expect(chart.getByText('No data', { exact: true })).toBeVisible()
+})
+
+test('PieDonutChart/StressTest story renders 120-item aggregation without crashing', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 700 })
+  await gotoStory(page, 'design-system-primitives-piedonutchart--stress-test')
+  const frame = getStoryFrame(page)
+  const chart = frame.getByTestId('PieDonutChart-stress')
+  await expect(chart).toBeVisible()
+  await expect(chart.getByText('Other')).toBeVisible()
+  await screenshotStory(page, 'tests/design-system/test-results/story-piedonutchart-stress.png')
+})
