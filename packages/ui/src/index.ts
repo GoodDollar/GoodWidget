@@ -100,6 +100,7 @@ export { Scorecard } from './components/Scorecard'
 export type { ScorecardProps, ScorecardTrend, ScorecardVariant } from './components/Scorecard'
 export { formatMetricValue } from './utils/formatMetricValue'
 export type { MetricFormat } from './utils/formatMetricValue'
+export { resolveThemeColor } from './utils/resolveThemeColor'
 
 // Web3
 export { AddressDisplay } from './components-test/AddressDisplay'
