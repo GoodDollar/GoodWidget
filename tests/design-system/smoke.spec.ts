@@ -193,3 +193,55 @@ test('BarChart/StressTest story renders 150 categories without crashing', async 
   await expect(chart).toBeVisible()
   await screenshotStory(page, 'tests/design-system/test-results/story-barchart-stress.png')
 })
+
+test('LineAreaChart/Default story renders area fill, reference line, linear and monotone variants', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 700 })
+  await gotoStory(page, 'design-system-primitives-lineareachart--default')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByTestId('LineAreaChart-default')).toBeVisible()
+  await expect(frame.getByTestId('LineAreaChart-daily-linear')).toBeVisible()
+  await expect(frame.getByTestId('LineAreaChart-daily-monotone-card')).toBeVisible()
+  await expect(frame.getByTestId('LineAreaChart-daily-linear').getByText('Target')).toBeVisible()
+  await screenshotStory(page, 'tests/design-system/test-results/story-lineareachart-default.png')
+})
+
+test('LineAreaChart/MultiSeriesSecondaryAxis story renders both series with a legend and right-side axis', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-lineareachart--multi-series-secondary-axis')
+  const frame = getStoryFrame(page)
+  const chart = frame.getByTestId('LineAreaChart-multi-axis')
+  await expect(chart).toBeVisible()
+  await expect(chart.getByText('Claims', { exact: true })).toBeVisible()
+  await expect(chart.getByText('G$ Price', { exact: true })).toBeVisible()
+  await screenshotStory(page, 'tests/design-system/test-results/story-lineareachart-multiaxis.png')
+})
+
+test('LineAreaChart/WithGap story renders both visible-gap and bridged variants', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-lineareachart--with-gap')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByTestId('LineAreaChart-gap-visible')).toBeVisible()
+  await expect(frame.getByTestId('LineAreaChart-gap-bridged')).toBeVisible()
+  await screenshotStory(page, 'tests/design-system/test-results/story-lineareachart-gap.png')
+})
+
+test('LineAreaChart/EmptyState story renders axes with "No data"', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-lineareachart--empty-state')
+  const frame = getStoryFrame(page)
+  const chart = frame.getByTestId('LineAreaChart-empty')
+  await expect(chart).toBeVisible()
+  await expect(chart.getByText('No data', { exact: true })).toBeVisible()
+})
+
+test('LineAreaChart/SinglePoint story renders a single dot', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-lineareachart--single-point')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByTestId('LineAreaChart-single')).toBeVisible()
+})
+
+test('LineAreaChart/StressTest story renders 1095 daily points without crashing', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 700 })
+  await gotoStory(page, 'design-system-primitives-lineareachart--stress-test')
+  const frame = getStoryFrame(page)
+  const chart = frame.getByTestId('LineAreaChart-stress')
+  await expect(chart).toBeVisible()
+  await screenshotStory(page, 'tests/design-system/test-results/story-lineareachart-stress.png')
+})

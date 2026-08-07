@@ -63,5 +63,15 @@ export const Polygon = createPassthroughSvgPrimitive('polygon')
 export const Polyline = createPassthroughSvgPrimitive('polyline')
 export const Ellipse = createPassthroughSvgPrimitive('ellipse')
 
+/**
+ * Defs/LinearGradient/Stop passthroughs — used by LineAreaChart's area-fill
+ * gradients. Plain SVG already understands these tags natively via
+ * React.createElement, so (unlike Circle/G/Text above) no react-native-specific
+ * prop translation is needed.
+ */
+export const Defs = createPassthroughSvgPrimitive('defs')
+export const LinearGradient = createPassthroughSvgPrimitive('linearGradient')
+export const Stop = createPassthroughSvgPrimitive('stop')
+
 export { Svg }
 export default Svg
