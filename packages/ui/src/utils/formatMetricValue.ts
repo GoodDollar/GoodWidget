@@ -47,8 +47,14 @@ function formatCompact(value: number, decimals: number): string {
   }
 
   const { threshold, suffix } = COMPACT_THRESHOLDS[thresholdIndex]
+  const scaledValue = value / threshold
 
-  return `${(value / threshold).toFixed(decimals)}${suffix}`
+  // A compacted value that lands on a whole unit (892_000 -> 892K, not
+  // "892.0K") renders without decimal places regardless of the requested
+  // precision, same rule as the below-threshold branch above.
+  const formattedScaledValue = Number.isInteger(scaledValue) ? String(scaledValue) : scaledValue.toFixed(decimals)
+
+  return `${formattedScaledValue}${suffix}`
 }
 
 function formatDecimal(value: number, decimals: number): string {
