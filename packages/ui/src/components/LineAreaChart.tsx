@@ -15,6 +15,7 @@ import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Stop, Text as SvgText
 import { Text as TamaguiText, useTheme, XStack, YStack } from 'tamagui'
 import { createComponent } from '../createComponent'
 import { Card } from './Card'
+import { CHART_FONT_FAMILY } from '../utils/chartFontFamily'
 import { formatMetricValue } from '../utils/formatMetricValue'
 import { resolveThemeColor } from '../utils/resolveThemeColor'
 
@@ -523,7 +524,7 @@ function LineAreaChartContent({
             <SvgText
               x={resolvedPadding.left + plotWidth / 2}
               y={resolvedPadding.top + plotHeight / 2}
-              fontSize={TICK_LABEL_SIZE_PX}
+              fontSize={TICK_LABEL_SIZE_PX} fontFamily={CHART_FONT_FAMILY}
               fill={axisLabelColor}
               textAnchor="middle"
             >
@@ -556,7 +557,7 @@ function LineAreaChartContent({
 
             <G accessible={false}>
               {primaryScale.ticks.map((tick) => (
-                <SvgText key={tick} x={-8} y={yPixelForValue(tick, primaryScale)} fontSize={TICK_LABEL_SIZE_PX} fill={axisLabelColor} textAnchor="end" alignmentBaseline="middle">
+                <SvgText key={tick} x={-8} y={yPixelForValue(tick, primaryScale)} fontSize={TICK_LABEL_SIZE_PX} fontFamily={CHART_FONT_FAMILY} fill={axisLabelColor} textAnchor="end" alignmentBaseline="middle">
                   {yAxisFormatter(tick)}
                 </SvgText>
               ))}
@@ -566,7 +567,7 @@ function LineAreaChartContent({
                       key={tick}
                       x={plotWidth + 8}
                       y={yPixelForValue(tick, secondaryScale)}
-                      fontSize={TICK_LABEL_SIZE_PX}
+                      fontSize={TICK_LABEL_SIZE_PX} fontFamily={CHART_FONT_FAMILY}
                       fill={secondarySeries?.color ?? axisLabelColor}
                       textAnchor="start"
                       alignmentBaseline="middle"
@@ -586,7 +587,7 @@ function LineAreaChartContent({
                 const labelX = isNearLeftEdge ? 0 : isNearRightEdge ? plotWidth : xPixel
 
                 return (
-                  <SvgText key={String(category)} x={labelX} y={plotHeight + 16} fontSize={TICK_LABEL_SIZE_PX} fill={axisLabelColor} textAnchor={textAnchor}>
+                  <SvgText key={String(category)} x={labelX} y={plotHeight + 16} fontSize={TICK_LABEL_SIZE_PX} fontFamily={CHART_FONT_FAMILY} fill={axisLabelColor} textAnchor={textAnchor}>
                     {truncateLabelToWidth(xAxisFormatter(category), xLabelSlotWidthPx, TICK_LABEL_SIZE_PX)}
                   </SvgText>
                 )
@@ -601,7 +602,7 @@ function LineAreaChartContent({
                   <G key={`${line.value}-${index}`}>
                     <Line x1={0} y1={lineY} x2={plotWidth} y2={lineY} stroke={lineColor} strokeWidth={1} />
                     {line.label ? (
-                      <SvgText x={plotWidth} y={lineY - 4} fontSize={REFERENCE_LABEL_SIZE_PX} fill={lineColor} textAnchor="end">
+                      <SvgText x={plotWidth} y={lineY - 4} fontSize={REFERENCE_LABEL_SIZE_PX} fontFamily={CHART_FONT_FAMILY} fill={lineColor} textAnchor="end">
                         {line.label}
                       </SvgText>
                     ) : null}
@@ -678,7 +679,7 @@ function LineAreaChartContent({
         )}
 
         {xAxisLabel ? (
-          <SvgText x={resolvedPadding.left + plotWidth / 2} y={height - 6} fontSize={AXIS_TITLE_SIZE_PX} fill={axisLabelColor} textAnchor="middle" accessible={false}>
+          <SvgText x={resolvedPadding.left + plotWidth / 2} y={height - 6} fontSize={AXIS_TITLE_SIZE_PX} fontFamily={CHART_FONT_FAMILY} fill={axisLabelColor} textAnchor="middle" accessible={false}>
             {xAxisLabel}
           </SvgText>
         ) : null}
@@ -686,7 +687,7 @@ function LineAreaChartContent({
           <SvgText
             x={12}
             y={resolvedPadding.top + plotHeight / 2}
-            fontSize={AXIS_TITLE_SIZE_PX}
+            fontSize={AXIS_TITLE_SIZE_PX} fontFamily={CHART_FONT_FAMILY}
             fill={axisLabelColor}
             textAnchor="middle"
             rotation={-90}

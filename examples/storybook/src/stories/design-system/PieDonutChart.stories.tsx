@@ -55,7 +55,7 @@ const meta: Meta<typeof PieDonutChart> = {
 export default meta
 type Story = StoryObj<typeof PieDonutChart>
 
-/** Funding breakdown rendered as both a pie and a donut, in bare and card variants. */
+/** Funding breakdown as a donut (spec default: innerRadius=0.6, center metric visible), bare and card variants. */
 export const Default: Story = {
   render: () => (
     <YStack testID="PieDonutChart-default" data-testid="PieDonutChart-default" gap="$6">
@@ -63,13 +63,6 @@ export const Default: Story = {
         <PieDonutChart
           data={funding}
           title="Funding Distribution"
-          innerRadius={0}
-          testID="PieDonutChart-funding-pie-bare"
-        />
-        <PieDonutChart
-          data={funding}
-          title="Funding Distribution"
-          innerRadius={0.6}
           centerLabel="Total"
           centerValue={funding.reduce((sum, item) => sum + item.value, 0)}
           testID="PieDonutChart-funding-donut-bare"
@@ -77,7 +70,6 @@ export const Default: Story = {
         <PieDonutChart
           data={funding}
           title="Funding Distribution"
-          innerRadius={0.6}
           centerLabel="Total"
           centerValue={funding.reduce((sum, item) => sum + item.value, 0)}
           variant="card"
@@ -85,6 +77,13 @@ export const Default: Story = {
         />
       </XStack>
     </YStack>
+  ),
+}
+
+/** Classic filled pie (innerRadius=0) — the non-default mode, no center content since there's no hole to hold it. */
+export const PurePie: Story = {
+  render: () => (
+    <PieDonutChart data={funding} title="Funding Distribution" innerRadius={0} testID="PieDonutChart-funding-pie-bare" />
   ),
 }
 

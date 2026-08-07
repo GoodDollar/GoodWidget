@@ -13,6 +13,7 @@ import Svg, { G, Line, Path, Text as SvgText } from 'react-native-svg'
 import { Text as TamaguiText, useTheme, YStack } from 'tamagui'
 import { createComponent } from '../createComponent'
 import { Card } from './Card'
+import { CHART_FONT_FAMILY } from '../utils/chartFontFamily'
 import { formatMetricValue } from '../utils/formatMetricValue'
 import { resolveThemeColor } from '../utils/resolveThemeColor'
 
@@ -269,7 +270,7 @@ function BarChartContent({
             <SvgText
               x={resolvedPadding.left + plotWidth / 2}
               y={resolvedPadding.top + plotHeight / 2}
-              fontSize={TICK_LABEL_SIZE_PX}
+              fontSize={TICK_LABEL_SIZE_PX} fontFamily={CHART_FONT_FAMILY}
               fill={axisLabelColor}
               textAnchor="middle"
             >
@@ -323,7 +324,7 @@ function BarChartContent({
                     key={tick}
                     x={resolvedPadding.left - 8}
                     y={resolvedPadding.top + plotHeight - tickOffset}
-                    fontSize={TICK_LABEL_SIZE_PX}
+                    fontSize={TICK_LABEL_SIZE_PX} fontFamily={CHART_FONT_FAMILY}
                     fill={axisLabelColor}
                     textAnchor="end"
                     alignmentBaseline="middle"
@@ -335,7 +336,7 @@ function BarChartContent({
                     key={tick}
                     x={resolvedPadding.left + tickOffset}
                     y={resolvedPadding.top + plotHeight + 16}
-                    fontSize={TICK_LABEL_SIZE_PX}
+                    fontSize={TICK_LABEL_SIZE_PX} fontFamily={CHART_FONT_FAMILY}
                     fill={axisLabelColor}
                     textAnchor="middle"
                   >
@@ -368,7 +369,7 @@ function BarChartContent({
                     <SvgText
                       x={slotStart + slotSize / 2}
                       y={resolvedPadding.top + plotHeight + 16}
-                      fontSize={TICK_LABEL_SIZE_PX}
+                      fontSize={TICK_LABEL_SIZE_PX} fontFamily={CHART_FONT_FAMILY}
                       fill={axisLabelColor}
                       textAnchor="middle"
                       accessible={false}
@@ -379,7 +380,7 @@ function BarChartContent({
                       <SvgText
                         x={slotStart + slotSize / 2}
                         y={isPositive ? barY - VALUE_LABEL_GAP_PX : barY + barHeight + VALUE_LABEL_GAP_PX + VALUE_LABEL_SIZE_PX}
-                        fontSize={VALUE_LABEL_SIZE_PX}
+                        fontSize={VALUE_LABEL_SIZE_PX} fontFamily={CHART_FONT_FAMILY}
                         fill={textColor}
                         textAnchor="middle"
                         accessible={false}
@@ -410,7 +411,7 @@ function BarChartContent({
                   <SvgText
                     x={resolvedPadding.left - 8}
                     y={slotStart + slotSize / 2}
-                    fontSize={TICK_LABEL_SIZE_PX}
+                    fontSize={TICK_LABEL_SIZE_PX} fontFamily={CHART_FONT_FAMILY}
                     fill={axisLabelColor}
                     textAnchor="end"
                     alignmentBaseline="middle"
@@ -422,7 +423,7 @@ function BarChartContent({
                     <SvgText
                       x={isPositive ? barX + barWidth + VALUE_LABEL_GAP_PX : barX - VALUE_LABEL_GAP_PX}
                       y={slotStart + slotSize / 2}
-                      fontSize={VALUE_LABEL_SIZE_PX}
+                      fontSize={VALUE_LABEL_SIZE_PX} fontFamily={CHART_FONT_FAMILY}
                       fill={textColor}
                       textAnchor={isPositive ? 'start' : 'end'}
                       alignmentBaseline="middle"
@@ -441,7 +442,7 @@ function BarChartContent({
           <SvgText
             x={resolvedPadding.left + plotWidth / 2}
             y={height - 6}
-            fontSize={AXIS_TITLE_SIZE_PX}
+            fontSize={AXIS_TITLE_SIZE_PX} fontFamily={CHART_FONT_FAMILY}
             fill={axisLabelColor}
             textAnchor="middle"
             accessible={false}
@@ -453,7 +454,7 @@ function BarChartContent({
           <SvgText
             x={12}
             y={resolvedPadding.top + plotHeight / 2}
-            fontSize={AXIS_TITLE_SIZE_PX}
+            fontSize={AXIS_TITLE_SIZE_PX} fontFamily={CHART_FONT_FAMILY}
             fill={axisLabelColor}
             textAnchor="middle"
             rotation={-90}

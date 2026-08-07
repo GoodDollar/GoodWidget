@@ -130,16 +130,24 @@ test('Scorecard/Default story renders all 5 mock-data rows in both variants', as
   await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-default.png')
 })
 
-test('PieDonutChart/Default story renders pie and donut, bare and card variants', async ({ page }) => {
+test('PieDonutChart/Default story renders donut (innerRadius=0.6) with center metric, bare and card variants', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 700 })
   await gotoStory(page, 'design-system-primitives-piedonutchart--default')
   const frame = getStoryFrame(page)
   await expect(frame.getByTestId('PieDonutChart-default')).toBeVisible()
-  await expect(frame.getByTestId('PieDonutChart-funding-pie-bare')).toBeVisible()
   await expect(frame.getByTestId('PieDonutChart-funding-donut-bare')).toBeVisible()
   await expect(frame.getByTestId('PieDonutChart-funding-donut-card')).toBeVisible()
-  await expect(frame.getByTestId('PieDonutChart-funding-pie-bare').getByText('Education Hubs')).toBeVisible()
+  await expect(frame.getByTestId('PieDonutChart-funding-donut-bare').getByText('Total')).toBeVisible()
   await screenshotStory(page, 'tests/design-system/test-results/story-piedonutchart-default.png')
+})
+
+test('PieDonutChart/PurePie story renders innerRadius=0 as a filled pie, no center content', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-piedonutchart--pure-pie')
+  const frame = getStoryFrame(page)
+  const chart = frame.getByTestId('PieDonutChart-funding-pie-bare')
+  await expect(chart).toBeVisible()
+  await expect(chart.getByText('Education Hubs')).toBeVisible()
+  await screenshotStory(page, 'tests/design-system/test-results/story-piedonutchart-purepie.png')
 })
 
 test('PieDonutChart/EmptyState story renders grey ring with "No data"', async ({ page }) => {
