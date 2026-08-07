@@ -159,3 +159,37 @@ test('PieDonutChart/StressTest story renders 120-item aggregation without crashi
   await expect(chart.getByText('Other')).toBeVisible()
   await screenshotStory(page, 'tests/design-system/test-results/story-piedonutchart-stress.png')
 })
+
+test('BarChart/Default story renders vertical bars, bare and card variants', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 700 })
+  await gotoStory(page, 'design-system-primitives-barchart--default')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByTestId('BarChart-default')).toBeVisible()
+  await expect(frame.getByTestId('BarChart-chains-vertical-bare')).toBeVisible()
+  await expect(frame.getByTestId('BarChart-chains-vertical-card')).toBeVisible()
+  await screenshotStory(page, 'tests/design-system/test-results/story-barchart-default.png')
+})
+
+test('BarChart/HorizontalLongLabels story renders swapped axes', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-barchart--horizontal-long-labels')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByTestId('BarChart-houses-horizontal')).toBeVisible()
+  await screenshotStory(page, 'tests/design-system/test-results/story-barchart-horizontal.png')
+})
+
+test('BarChart/EmptyState story renders zero line with "No data"', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-barchart--empty-state')
+  const frame = getStoryFrame(page)
+  const chart = frame.getByTestId('BarChart-empty')
+  await expect(chart).toBeVisible()
+  await expect(chart.getByText('No data', { exact: true })).toBeVisible()
+})
+
+test('BarChart/StressTest story renders 150 categories without crashing', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 700 })
+  await gotoStory(page, 'design-system-primitives-barchart--stress-test')
+  const frame = getStoryFrame(page)
+  const chart = frame.getByTestId('BarChart-stress')
+  await expect(chart).toBeVisible()
+  await screenshotStory(page, 'tests/design-system/test-results/story-barchart-stress.png')
+})

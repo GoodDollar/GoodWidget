@@ -103,6 +103,8 @@ export type { MetricFormat } from './utils/formatMetricValue'
 export { resolveThemeColor } from './utils/resolveThemeColor'
 export { PieDonutChart } from './components/PieDonutChart'
 export type { PieDonutChartProps, PieDonutChartDataItem, PieDonutChartVariant, PieDonutChartSort } from './components/PieDonutChart'
+export { BarChart } from './components/BarChart'
+export type { BarChartProps, BarChartDataItem, BarChartVariant, BarChartLayout, BarChartPadding } from './components/BarChart'
 
 // Web3
 export { AddressDisplay } from './components-test/AddressDisplay'

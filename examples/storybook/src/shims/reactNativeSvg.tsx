@@ -13,6 +13,11 @@ type SvgCircleProps = React.SVGProps<SVGCircleElement> & {
   onPress?: () => void
 }
 
+type SvgTextProps = React.SVGProps<SVGTextElement> & {
+  rotation?: string | number
+  origin?: string
+}
+
 /** Storybook web shim for the react-native-svg primitives used by the donut chart and @tamagui/lucide-icons. */
 function Svg({ accessibilityRole: _accessibilityRole, ...props }: SvgElementProps) {
   return <svg {...props} />
@@ -29,6 +34,14 @@ export function G({ rotation, origin, transform, ...props }: SvgGroupProps) {
 /** Maps react-native-svg onPress to the browser SVG onClick event for stories. */
 export function Circle({ onPress, ...props }: SvgCircleProps) {
   return <circle {...props} onClick={onPress} />
+}
+
+/** Mirrors react-native-svg's Text rotation/origin props with a standard SVG transform; used by BarChart for in-chart axis/tick/value labels. */
+export function Text({ rotation, origin, transform, ...props }: SvgTextProps) {
+  const rotationTransform = rotation ? `rotate(${rotation} ${origin ?? ''})`.trim() : undefined
+  const combinedTransform = [transform, rotationTransform].filter(Boolean).join(' ')
+
+  return <text {...props} transform={combinedTransform || undefined} />
 }
 
 /**
