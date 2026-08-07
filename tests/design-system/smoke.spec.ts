@@ -156,7 +156,7 @@ test('PieDonutChart/EmptyState story renders grey ring with "No data"', async ({
   const chart = frame.getByTestId('PieDonutChart-empty')
   await expect(chart).toBeVisible()
   await expect(chart.getByText('No data', { exact: true })).toBeVisible()
-  await chart.screenshot({ path: 'tests/design-system/test-results/story-piedonutchart-empty.png' })
+  await screenshotStory(page, 'tests/design-system/test-results/story-piedonutchart-empty.png')
 })
 
 test('PieDonutChart/StressTest story renders 120-item aggregation without crashing', async ({ page }) => {
@@ -192,7 +192,7 @@ test('BarChart/EmptyState story renders zero line with "No data"', async ({ page
   const chart = frame.getByTestId('BarChart-empty')
   await expect(chart).toBeVisible()
   await expect(chart.getByText('No data', { exact: true })).toBeVisible()
-  await chart.screenshot({ path: 'tests/design-system/test-results/story-barchart-empty.png' })
+  await screenshotStory(page, 'tests/design-system/test-results/story-barchart-empty.png')
 })
 
 test('BarChart/StressTest story renders 150 categories without crashing', async ({ page }) => {
@@ -220,7 +220,7 @@ test('LineAreaChart/StepInterpolation story renders a stepped curve', async ({ p
   const frame = getStoryFrame(page)
   const chart = frame.getByTestId('LineAreaChart-step')
   await expect(chart).toBeVisible()
-  await chart.screenshot({ path: 'tests/design-system/test-results/story-lineareachart-step.png' })
+  await screenshotStory(page, 'tests/design-system/test-results/story-lineareachart-step.png')
 })
 
 test('LineAreaChart/MultiSeriesSecondaryAxis story renders both series with a legend and right-side axis', async ({ page }) => {
@@ -247,7 +247,7 @@ test('LineAreaChart/EmptyState story renders axes with "No data"', async ({ page
   const chart = frame.getByTestId('LineAreaChart-empty')
   await expect(chart).toBeVisible()
   await expect(chart.getByText('No data', { exact: true })).toBeVisible()
-  await chart.screenshot({ path: 'tests/design-system/test-results/story-lineareachart-empty.png' })
+  await screenshotStory(page, 'tests/design-system/test-results/story-lineareachart-empty.png')
 })
 
 test('LineAreaChart/SinglePoint story renders a single dot', async ({ page }) => {
@@ -255,7 +255,7 @@ test('LineAreaChart/SinglePoint story renders a single dot', async ({ page }) =>
   const frame = getStoryFrame(page)
   const chart = frame.getByTestId('LineAreaChart-single')
   await expect(chart).toBeVisible()
-  await chart.screenshot({ path: 'tests/design-system/test-results/story-lineareachart-single.png' })
+  await screenshotStory(page, 'tests/design-system/test-results/story-lineareachart-single.png')
 })
 
 test('LineAreaChart/StressTest story renders 1095 daily points without crashing', async ({ page }) => {
@@ -268,7 +268,9 @@ test('LineAreaChart/StressTest story renders 1095 daily points without crashing'
 })
 
 test('DataTable/Default story renders wallets with sortable headers, bare and card variants', async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 700 })
+  // Tall enough that the card variant (wrapped below the bare table) renders
+  // within the same full-page iframe capture instead of being cropped out.
+  await page.setViewportSize({ width: 1280, height: 1800 })
   await gotoStory(page, 'design-system-primitives-datatable--default')
   const frame = getStoryFrame(page)
   await expect(frame.getByTestId('DataTable-default')).toBeVisible()
@@ -287,9 +289,6 @@ test('DataTable/Default story renders wallets with sortable headers, bare and ca
   await expect(bare.getByText('▼')).toBeVisible()
 
   await screenshotStory(page, 'tests/design-system/test-results/story-datatable-default.png')
-  // Card variant is wrapped below the bare table at this viewport and falls
-  // outside the iframe screenshot above — captured separately here.
-  await card.screenshot({ path: 'tests/design-system/test-results/story-datatable-card.png' })
 })
 
 test('DataTable/CompactMetrics story renders reduced padding/font metrics summary', async ({ page }) => {
@@ -307,7 +306,7 @@ test('DataTable/EmptyState story renders header with "No data" message', async (
   const table = frame.getByTestId('DataTable-empty')
   await expect(table).toBeVisible()
   await expect(table.getByText('No data', { exact: true })).toBeVisible()
-  await table.screenshot({ path: 'tests/design-system/test-results/story-datatable-empty.png' })
+  await screenshotStory(page, 'tests/design-system/test-results/story-datatable-empty.png')
 })
 
 test('DataTable/NullValuesAndRowPress story renders "--" for null cells and fires onRowPress', async ({ page }) => {
@@ -316,7 +315,7 @@ test('DataTable/NullValuesAndRowPress story renders "--" for null cells and fire
   const table = frame.getByTestId('DataTable-nulls')
   await expect(table).toBeVisible()
   await expect(table.getByText('--', { exact: true })).toBeVisible()
-  await table.screenshot({ path: 'tests/design-system/test-results/story-datatable-nulls.png' })
+  await screenshotStory(page, 'tests/design-system/test-results/story-datatable-nulls.png')
 
   const consoleMessages: string[] = []
   page.on('console', (message) => consoleMessages.push(message.text()))
