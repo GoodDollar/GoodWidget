@@ -253,3 +253,65 @@ test('LineAreaChart/StressTest story renders 1095 daily points without crashing'
   await expect(chart).toBeVisible()
   await screenshotStory(page, 'tests/design-system/test-results/story-lineareachart-stress.png')
 })
+
+test('DataTable/Default story renders wallets with sortable headers, bare and card variants', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 700 })
+  await gotoStory(page, 'design-system-primitives-datatable--default')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByTestId('DataTable-default')).toBeVisible()
+  const bare = frame.getByTestId('DataTable-wallets-bare')
+  const card = frame.getByTestId('DataTable-wallets-card')
+  await expect(bare).toBeVisible()
+  await expect(card).toBeVisible()
+  // formatMetricValue applied to the number column: 1234567 compacts to "1.2M"
+  await expect(bare.getByText('1.2M')).toBeVisible()
+
+  // Sort cycle on the sortable "Volume" header: asc -> desc, arrow indicator appears.
+  const volumeHeader = bare.getByText('Volume', { exact: true })
+  await volumeHeader.click()
+  await expect(bare.getByText('▲')).toBeVisible()
+  await volumeHeader.click()
+  await expect(bare.getByText('▼')).toBeVisible()
+
+  await screenshotStory(page, 'tests/design-system/test-results/story-datatable-default.png')
+})
+
+test('DataTable/CompactMetrics story renders reduced padding/font metrics summary', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-datatable--compact-metrics')
+  const frame = getStoryFrame(page)
+  const table = frame.getByTestId('DataTable-metrics-compact')
+  await expect(table).toBeVisible()
+  await expect(table.getByText('Daily Claims')).toBeVisible()
+  await screenshotStory(page, 'tests/design-system/test-results/story-datatable-compact.png')
+})
+
+test('DataTable/EmptyState story renders header with "No data" message', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-datatable--empty-state')
+  const frame = getStoryFrame(page)
+  const table = frame.getByTestId('DataTable-empty')
+  await expect(table).toBeVisible()
+  await expect(table.getByText('No data', { exact: true })).toBeVisible()
+})
+
+test('DataTable/NullValuesAndRowPress story renders "--" for null cells and fires onRowPress', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-datatable--null-values-and-row-press')
+  const frame = getStoryFrame(page)
+  const table = frame.getByTestId('DataTable-nulls')
+  await expect(table).toBeVisible()
+  await expect(table.getByText('--', { exact: true })).toBeVisible()
+
+  const consoleMessages: string[] = []
+  page.on('console', (message) => consoleMessages.push(message.text()))
+  await table.getByText('0xNULL...').click()
+  await expect.poll(() => consoleMessages.some((text) => text.includes('DataTable row pressed'))).toBe(true)
+})
+
+test('DataTable/StressTest story renders 150 rows with sticky header and scroll without crashing', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 700 })
+  await gotoStory(page, 'design-system-primitives-datatable--stress-test')
+  const frame = getStoryFrame(page)
+  const table = frame.getByTestId('DataTable-stress')
+  await expect(table).toBeVisible()
+  await expect(table.getByText('0x00000000')).toBeVisible()
+  await screenshotStory(page, 'tests/design-system/test-results/story-datatable-stress.png')
+})

@@ -116,6 +116,16 @@ export type {
   LineAreaChartInterpolation,
   LineAreaChartPadding,
 } from './components/LineAreaChart'
+export { DataTable } from './components/DataTable'
+export type {
+  DataTableProps,
+  DataTableColumnDef,
+  DataTableSort,
+  DataTableVariant,
+  DataTableColumnType,
+  DataTableColumnAlign,
+  DataTableSortDirection,
+} from './components/DataTable'
 
 // Web3
 export { AddressDisplay } from './components-test/AddressDisplay'
