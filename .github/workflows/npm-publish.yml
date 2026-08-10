@@ -3,10 +3,12 @@ name: Publish npm packages
 on:
   workflow_dispatch:
 
+concurrency:
+  group: npm-publish-${{ github.ref }}
+
 permissions:
   contents: read
   id-token: write
-
 jobs:
   publish:
     runs-on: ubuntu-latest
