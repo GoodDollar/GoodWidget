@@ -32,7 +32,7 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
   title: 'Superfluid Ecosystem Rewards',
   description:
     'Complete eligible actions across GoodDollar, Flow State, and Gardens to earn SUP rewards.',
-  endsLabel: 'Ends 30 September',
+  endsLabel: 'Ends Nov 3rd',
   pools: [
     {
       id: 'good-dollar-actions',
@@ -84,7 +84,7 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
           title: 'Fund GoodBuilders Season 4',
           source: 'Flow State',
           description: 'Start a stream to the GoodBuilders Season 4 pool.',
-          pointsLabel: '2 PTS PER $1 STREAMED',
+          pointsLabel: '2 PTS PER 1K G$ (≈ $0.1)',
           ctaLabel: 'Fund',
           ctaKind: 'external-link',
           href: 'https://flowstate.network/flow-councils/42220/0x582e3314d4ef56c18930acb10bb64313525e7820',
@@ -95,7 +95,7 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
           title: 'Make a one-time donation',
           source: 'Gardens',
           description: 'Donate to an eligible Community Pool.',
-          pointsLabel: '1 PT PER $1 DONATED',
+          pointsLabel: '1 PT PER 1K G$ (≈ $0.1)',
           ctaLabel: 'Donate',
           ctaKind: 'external-link',
           href: 'https://app.gardens.fund/gardens/42220/0xf42c9ca2b10010142e2bac34ebdddb0b82177684',
@@ -106,7 +106,7 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
           title: 'Stream to a Community Pool',
           source: 'Gardens',
           description: 'Start a stream to an eligible Community Pool.',
-          pointsLabel: '2 PTS PER $1 STREAMED',
+          pointsLabel: '2 PTS PER 1K G$ (≈ $0.1)',
           ctaLabel: 'Fund',
           ctaKind: 'external-link',
           href: 'https://app.gardens.fund/gardens/42220/0xf42c9ca2b10010142e2bac34ebdddb0b82177684',
@@ -127,6 +127,18 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
         'Two separate reward pools: GoodDollar actions, and Ecosystem actions. Your share of each pool depends on how many points you earn compared with everyone else in that pool. Rewards from both pools are then combined.',
     },
     {
+      question: 'How can I get G$?',
+      answer: [
+        [
+          'You can ',
+          { text: 'claim G$ for free', href: 'https://ubi.gd/4bE4Ptz' },
+          ', or get G$ from the ',
+          { text: 'GoodReserve', href: 'https://ubi.gd/45VZE4I' },
+          ' or supported DEXs on Celo.',
+        ],
+      ],
+    },
+    {
       question: 'When does an invite count as successful?',
       answer:
         'An invite counts after the invited user completes three G$ claims. The invite reward is registered when they complete their fourth claim.',
@@ -139,7 +151,7 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
     {
       question: 'How do I start receiving SUP?',
       answer:
-        'First, complete eligible campaign actions to earn points. Then: open the Superfluid Claim App (claim.superfluid.org), connect the same wallet you used for the campaign, set up your Superfluid Reserve, choose a governance delegate, and claim your SUP. This starts your SUP reward stream.',
+        "Complete eligible campaign actions to earn points. Then go to the Superfluid Claim App, connect the same wallet you used for the campaign, and click Claim. You'll create or update your Superfluid Reserve, where your SUP rewards are received. Once confirmed, your SUP reward stream will start.",
     },
     {
       question: 'What happens after I claim?',
@@ -155,6 +167,27 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
       question: 'Where does my SUP go?',
       answer:
         'Your claimed SUP streams into your Superfluid Reserve, manageable at claim.superfluid.org/reserve.',
+    },
+    {
+      question: 'What can I do with my SUP after claiming?',
+      answer: [
+        [
+          'Your SUP rewards are deposited into your Superfluid Reserve. From there, you can choose how to use or access them:',
+        ],
+        {
+          type: 'bullets',
+          items: [
+            [
+              'Stake your SUP to earn additional SUP rewards. Staked SUP can be partially or fully unstaked after a minimum of 30 days from your last staking action.',
+            ],
+            [
+              'Stream your SUP to your wallet over time, with withdrawals available over a period of up to 12 months.',
+            ],
+            ['Withdraw immediately using the Drain option, which applies a Community Charge.'],
+          ],
+        },
+        ['You can manage these options through the Superfluid Claim App.'],
+      ],
     },
     {
       question: 'Can I earn SUP from other campaigns?',
