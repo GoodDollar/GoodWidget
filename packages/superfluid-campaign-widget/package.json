@@ -2,6 +2,14 @@
   "name": "@goodwidget/superfluid-campaign-widget",
   "version": "0.1.5",
   "description": "GoodWidget for the Superfluid Ecosystem Rewards campaign — campaign header, reward pools, public leaderboard, and FAQ",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GoodDollar/GoodWidget.git",
+    "directory": "packages/superfluid-campaign-widget"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
