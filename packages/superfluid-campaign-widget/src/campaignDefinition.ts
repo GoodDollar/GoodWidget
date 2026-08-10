@@ -131,9 +131,9 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
       answer: [
         [
           'You can ',
-          { text: 'claim G$ for free', href: 'http://ubi.gd/4bE4Ptz' },
+          { text: 'claim G$ for free', href: 'https://ubi.gd/4bE4Ptz' },
           ', or get G$ from the ',
-          { text: 'GoodReserve', href: 'http://ubi.gd/45VZE4I' },
+          { text: 'GoodReserve', href: 'https://ubi.gd/45VZE4I' },
           ' or supported DEXs on Celo.',
         ],
       ],
