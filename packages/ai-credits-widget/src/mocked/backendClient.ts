@@ -214,7 +214,7 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
 
   async submitOperatorConsent(
     buyer: string,
-    _body: { nonce: string; signature: string },
+    {}: { nonce: string; signature: string },
   ): Promise<OperatorConsentResponse> {
     await sleep(MOCK_DELAY_MS)
     const normalizedBuyer = normalizeAddress(buyer)
