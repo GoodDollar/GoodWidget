@@ -481,6 +481,27 @@ export function DeepLinkBuyerStory() {
   )
 }
 
+/**
+ * Deep-link partner buyer reaching the buy-flow consent step: a pre-signed
+ * operatorSignature is prefilled but operatorConsented is still false, so the
+ * explicit "Sign Operator Consent" gate must render instead of auto-advancing.
+ */
+export function DeepLinkConsentPendingStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-deep-link-consent-pending"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        buyerPubKey: BUYER_PARTNER.address,
+        buyerPrvKey: null,
+        operatorSignature: BUYER_PARTNER.operatorSignature,
+        operatorConsented: false,
+        activeTab: 'buy',
+        buyers: [BUYER_PARTNER.address],
+      })}
+    />
+  )
+}
+
 /** History tab with multi-buyer filter options available. */
 export function MultiBuyerHistoryStory() {
   return (

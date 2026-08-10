@@ -246,6 +246,8 @@ const MULTI_BUYER_STORY_IDS = {
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--multi-buyer-manage&viewMode=story',
   deepLinkBuyer:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--deep-link-buyer&viewMode=story',
+  deepLinkConsentPending:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--deep-link-consent-pending&viewMode=story',
   multiBuyerHistory:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--multi-buyer-history&viewMode=story',
 } as const
@@ -278,6 +280,38 @@ test('AiCreditsWidget deep-link buyer: Sign Consent enabled via operatorSignatur
 
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-16-deep-link-buyer.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget deep-link consent pending: OperatorConsentStep requires an explicit click', async ({
+  page,
+}) => {
+  await gotoStory(page, MULTI_BUYER_STORY_IDS.deepLinkConsentPending)
+  const root = widget(page, 'AiCreditsWidget-deep-link-consent-pending')
+  await expect(root).toBeVisible()
+
+  // A pre-filled operatorSignature must never auto-advance past consent: the explicit
+  // "Sign Operator Consent" gate has to render before any consent is granted.
+  const openConsentStepButton = root.getByRole('button', { name: 'Sign Operator Consent' })
+  await expect(openConsentStepButton).toBeVisible()
+  await openConsentStepButton.click()
+
+  // The Drawer renders via a Tamagui Sheet portal outside the widget's root DOM
+  // subtree, so its content must be queried at the page level, not scoped to `root`.
+  await expect(
+    page.getByText(/Granting consent gives the operator control of your signer funds/i),
+  ).toBeVisible()
+  await expect(
+    page.getByText(/ineligible for future bonuses and removes any existing bonuses/i),
+  ).toBeVisible()
+  await expect(page.getByText('Operator consent accepted')).not.toBeVisible()
+
+  const signConsentButton = page.getByRole('button', { name: 'Sign Operator Consent' })
+  await expect(signConsentButton).toBeEnabled()
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-19-deep-link-consent-pending.png',
     fullPage: true,
   })
 })

@@ -28,11 +28,12 @@ export function OperatorConsentStep({
 
   return (
     <Shell gap="$3" {...(!embedded ? { backgroundColor: '$backgroundHover' } : {})}>
-      <Heading level={5}>Authorize AntSeed Operator</Heading>
+      <Heading level={5}>Authorize Operator</Heading>
       <Text fontSize="$2" lineHeight="$3">
-        Your buyer key signs an EIP-712 SetOperator message. The backend submits it to
-        AntseedDeposits so the funding vault can act as your operator. No gas is required from
-        you.
+        Granting consent gives the operator control of your signer funds. This is required to
+        prevent fraud in bonus distribution. You can revoke consent at any time, but revoking
+        makes you ineligible for future bonuses and removes any existing bonuses from your
+        account.
       </Text>
 
       {buyerPubKey && (

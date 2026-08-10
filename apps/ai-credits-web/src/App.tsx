@@ -730,10 +730,36 @@ http://localhost:8377/v1/responses`}
   )
 }
 
+// Widget-only view for partner integrations (e.g. AntSeed) that embed the purchase flow
+// directly without the marketing landing page around it.
+function PurchaseOnlyView() {
+  return (
+    <YStack
+      tag="main"
+      width="100%"
+      minHeight="100vh"
+      backgroundColor="$background"
+      justifyContent="center"
+      alignItems="center"
+      padding="$6"
+      data-testid="ai-credits-purchase-only"
+    >
+      <PurchaseFrame />
+    </YStack>
+  )
+}
+
+function readSourceParam(): string | null {
+  if (typeof window === 'undefined') return null
+  return new URLSearchParams(window.location.search).get('source')
+}
+
 export function App() {
+  const isWidgetOnlySource = readSourceParam() === 'antseed'
+
   return (
     <TamaguiProvider config={defaultConfig} defaultTheme="dark">
-      <LandingPage />
+      {isWidgetOnlySource ? <PurchaseOnlyView /> : <LandingPage />}
     </TamaguiProvider>
   )
 }
