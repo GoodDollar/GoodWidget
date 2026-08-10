@@ -2,13 +2,33 @@ name: Publish npm packages
 
 on:
   workflow_dispatch:
+    inputs:
+      package:
+        description: Package to publish
+        required: true
+        type: choice
+        default: '@goodwidget/superfluid-campaign-widget'
+        options:
+          - all
+          - '@goodwidget/ai-credits-widget'
+          - '@goodwidget/citizen-claim-widget'
+          - '@goodwidget/claim-widget-theme-demo'
+          - '@goodwidget/core'
+          - '@goodwidget/embed'
+          - '@goodwidget/goodreserve-widget'
+          - '@goodwidget/governance-widget'
+          - '@goodwidget/staking-migration-widget'
+          - '@goodwidget/streaming-widget'
+          - '@goodwidget/superfluid-campaign-widget'
+          - '@goodwidget/ui'
 
 concurrency:
-  group: npm-publish-${{ github.ref }}
+  group: npm-publish-${{ github.ref }}-${{ inputs.package }}
 
 permissions:
   contents: read
   id-token: write
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -28,6 +48,19 @@ jobs:
           registry-url: https://registry.npmjs.org
           cache: pnpm
 
+      - name: Resolve package filter
+        id: filter
+        run: |
+          if [ "${{ inputs.package }}" = "all" ]; then
+            echo "build=./packages/**" >> "$GITHUB_OUTPUT"
+            echo "publish=./packages/**" >> "$GITHUB_OUTPUT"
+            echo "recursive=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "build=${{ inputs.package }}..." >> "$GITHUB_OUTPUT"
+            echo "publish=${{ inputs.package }}" >> "$GITHUB_OUTPUT"
+            echo "recursive=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Verify npm version (OIDC)
         run: npm --version
 
@@ -35,10 +68,15 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build packages
-        run: pnpm --filter './packages/**' -r run build
+        run: pnpm --filter '${{ steps.filter.outputs.build }}' -r run build
 
       - name: Lint packages
-        run: pnpm --filter './packages/**' -r run lint
+        run: pnpm --filter '${{ steps.filter.outputs.publish }}' -r run lint
 
       - name: Publish packages
-        run: pnpm -r --filter './packages/**' publish --access public --no-git-checks
+        run: |
+          if [ "${{ steps.filter.outputs.recursive }}" = "true" ]; then
+            pnpm -r --filter '${{ steps.filter.outputs.publish }}' publish --access public --no-git-checks
+          else
+            pnpm --filter '${{ steps.filter.outputs.publish }}' publish --access public --no-git-checks
+          fi
