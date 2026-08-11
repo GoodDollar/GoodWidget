@@ -142,9 +142,30 @@ export interface LeaderboardSummaryData {
   lastUpdatedLabel: string
 }
 
+// An answer is either plain text, or an ordered list of blocks — a paragraph
+// (its own sequence of text/link segments) or a bullet list (each bullet is
+// itself a sequence of segments) — so an answer can combine short paragraphs,
+// bullets, and inline external links (e.g. "claim G$ for free") without
+// adopting a full rich-text/markdown format for what is otherwise static FAQ copy.
+export interface FaqAnswerLinkSegment {
+  text: string
+  href: string
+}
+
+export type FaqAnswerSegment = string | FaqAnswerLinkSegment
+
+export type FaqAnswerParagraphBlock = FaqAnswerSegment[]
+
+export interface FaqAnswerBulletListBlock {
+  type: 'bullets'
+  items: FaqAnswerSegment[][]
+}
+
+export type FaqAnswerBlock = FaqAnswerParagraphBlock | FaqAnswerBulletListBlock
+
 export interface FaqItemDefinition {
   question: string
-  answer: string
+  answer: string | FaqAnswerBlock[]
 }
 
 export interface CampaignDefinition {
