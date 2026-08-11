@@ -916,6 +916,10 @@ export function useAiCreditsAdapter({
         return
       }
 
+      // Pre-fill the buyer identity and the pending signature only. Consent must never be
+      // submitted here — it is only ever submitted from handleSignOperatorConsent, in
+      // response to an explicit user click on OperatorConsentStep. A deep-link-supplied
+      // signature is not itself user approval; it just saves the user from re-signing.
       storeDeepLinkParams({
         buyerAddress: trimmedAddress,
         operatorSignature: trimmedSignature,
@@ -939,85 +943,12 @@ export function useAiCreditsAdapter({
           totalGdDepositedG: null,
           monthlyStreamG: null,
           activeTab: 'buy',
-          operatorConsentPending: true,
+          operatorConsentPending: false,
           error: null,
         }),
       )
-
-      const ref: AccountRef = { payer: address, buyer: trimmedAddress }
-
-      try {
-        const operatorStatus = await chainClient.getBuyerOperatorStatus(ref)
-
-        if (!operatorStatus.enabled) {
-          throw new Error('Operator consent is not available for this deep-link buyer')
-        }
-
-        if (!operatorStatus.operatorAccepted) {
-          await backendClient.submitOperatorConsent(ref.buyer, {
-            nonce: operatorStatus.consentNonce,
-            signature: trimmedSignature,
-          })
-          await waitForOperatorConsent(chainClient, ref)
-        }
-
-        setBuyerOperatorConsented(address, trimmedAddress, true)
-        const buyerList = resolveBuyerList(address, trimmedAddress)
-        let accountPatch: Partial<AiCreditsWidgetAdapterState> = {}
-        try {
-          const view = await buildAccountView(address, backendClient, chainClient, {
-            buyerAddress: trimmedAddress,
-          })
-          const enriched = await enrichAccountView(view, chainClient)
-          accountPatch = viewToStatePatch(view, enriched, INITIAL_STATE, {
-            balanceMode: 'always',
-          })
-          if (accountPatch.operatorConsented !== undefined) {
-            setBuyerOperatorConsented(address, trimmedAddress, accountPatch.operatorConsented)
-          }
-        } catch {
-          accountPatch = {}
-        }
-        const nextBuyerFields = buildBuyerStateFields(
-          address,
-          buyerList.buyers,
-          buyerList.selected,
-        )
-        setState((prev) =>
-          withDerivedStatus(
-            prev,
-            {
-              ...accountPatch,
-              ...nextBuyerFields,
-              operatorConsented: true,
-              operatorConsentPending: false,
-              activeTab: 'buy',
-              error: null,
-            },
-            true,
-          ),
-        )
-        clearDeepLinkArtifacts()
-      } catch (err: unknown) {
-        setState((prev) =>
-          withDerivedStatus(
-            prev,
-            {
-              error: deepLinkManualFallbackMessage(
-                err instanceof Error
-                  ? err.message
-                  : 'Could not apply deep-link operator approval.',
-              ),
-              activeTab: 'buy',
-              status: 'purchase_setup',
-              operatorConsentPending: false,
-            },
-            true,
-          ),
-        )
-      }
     },
-    [address, backendClient, chainClient, resolveBuyerList],
+    [address],
   )
 
   const handleSignOperatorConsent = useCallback(async () => {
@@ -1083,6 +1014,7 @@ export function useAiCreditsAdapter({
             ...(!onNonBuyTab ? { status: 'purchase_setup' } : {}),
           }),
         )
+        clearDeepLinkArtifacts()
         return
       }
 
@@ -1126,6 +1058,7 @@ export function useAiCreditsAdapter({
           ...(!onNonBuyTab ? { status: 'purchase_setup' } : {}),
         }),
       )
+      clearDeepLinkArtifacts()
     } catch (err: unknown) {
       setState((prev) => ({
         ...prev,

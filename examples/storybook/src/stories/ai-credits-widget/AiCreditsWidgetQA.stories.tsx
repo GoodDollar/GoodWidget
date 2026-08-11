@@ -19,6 +19,7 @@ import {
   AppKitConnectWalletStory,
   MultiBuyerManageStory,
   DeepLinkBuyerStory,
+  DeepLinkConsentPendingStory,
   MultiBuyerHistoryStory,
 } from '../helpers/aiCreditsWidgetStories'
 
@@ -102,6 +103,11 @@ export const MultiBuyerManage: Story = {
 /** Deep-link partner buyer: consent via pre-signed operatorSignature. */
 export const DeepLinkBuyer: Story = {
   render: () => <DeepLinkBuyerStory />,
+}
+
+/** Deep-link buyer reaching the buy-flow consent gate: signature prefilled, not yet consented. */
+export const DeepLinkConsentPending: Story = {
+  render: () => <DeepLinkConsentPendingStory />,
 }
 
 /** History tab with buyer filter dropdown. */
