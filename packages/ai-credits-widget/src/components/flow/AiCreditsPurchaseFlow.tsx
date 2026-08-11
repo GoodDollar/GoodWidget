@@ -29,7 +29,13 @@ export function AiCreditsPurchaseFlow({
   const [buyerPubKeySaved, setBuyerPubKeySaved] = useState(false)
   const activeStep = getAiCreditsActiveFlowStep(state, buyerPubKeySaved)
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [drawerStep, setDrawerStep] = useState<AiCreditsFlowStep | null>(activeStep)
+  // Starts unset (not `activeStep`): the Drawer stays closed until the user opens it,
+  // and Tamagui's Sheet keeps its Frame mounted (off-screen, not removed) while closed.
+  // Eagerly setting this to the current step would mount that step's interactive content
+  // (e.g. the consent panel's "Sign Operator Consent" button) into the DOM before the
+  // Drawer is ever opened, duplicating the visible trigger button below with an
+  // identically-named, off-screen element.
+  const [drawerStep, setDrawerStep] = useState<AiCreditsFlowStep | null>(null)
   const prevActiveStepRef = useRef<AiCreditsFlowStep | null>(null)
   const goodIdTabPendingRef = useRef(false)
 
@@ -53,11 +59,13 @@ export function AiCreditsPurchaseFlow({
 
     const previousStep = prevActiveStepRef.current
     prevActiveStepRef.current = activeStep
-    setDrawerStep(activeStep)
 
-    if (previousStep == null) {
-      setDrawerOpen(false)
-    } else if (previousStep !== activeStep) {
+    // Only follow the flow into the drawer when it advances past a step the user has
+    // already reached (e.g. buyer_key -> consent). On the very first step of a session
+    // (previousStep is null) we leave drawerStep unset so nothing renders into the
+    // closed Drawer -- the user reveals it explicitly via the trigger button/stepper.
+    if (previousStep != null && previousStep !== activeStep) {
+      setDrawerStep(activeStep)
       setDrawerOpen(true)
     }
   }, [activeStep])

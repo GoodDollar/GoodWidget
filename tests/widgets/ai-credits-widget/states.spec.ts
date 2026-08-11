@@ -67,6 +67,9 @@ test('AiCreditsWidget purchase_setup', async ({ page }) => {
 test('AiCreditsWidget quote_ready', async ({ page }) => {
   await gotoStory(page, STORY_IDS.quoteReady)
   await expect(page.getByTestId('AiCreditsWidget-quote-ready')).toBeVisible()
+  // The pay step's content (and its "Buy AI Credits" submit button) only mounts once the
+  // drawer is opened; open it via the outer trigger before asserting on drawer content.
+  await page.getByRole('button', { name: 'Set Amounts & Pay' }).click()
   await expect(page.getByRole('button', { name: 'Buy AI Credits' })).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-03-quote-ready.png',
