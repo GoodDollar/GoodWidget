@@ -2,6 +2,11 @@
   "name": "@goodwidget/goodreserve-widget",
   "version": "0.1.1",
   "description": "GoodReserve swap widget for GoodWidget",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GoodDollar/GoodWidget.git",
+    "directory": "packages/goodreserve-widget"
+  },
   "files": [
     "dist"
   ],
