@@ -21,6 +21,8 @@ const DESKTOP_WIDGET_MAX_WIDTH = 960
  */
 const APPKIT_DISCONNECT_LABEL = 'Network settings'
 
+const SWITCH_CHAIN_MANUAL_SELECTION_ERROR = 'Select the network in the wallet dialog, then try again.'
+
 function AppKitSuperfluidCampaignWidget() {
   const { open } = useAppKit()
   const { address, status: accountStatus } = useAppKitAccount()
@@ -76,14 +78,20 @@ function AppKitSuperfluidCampaignWidget() {
         // documented recovery path when a target chain has no direct
         // programmatic descriptor here, or when switchNetwork itself fails
         // (e.g. the connected wallet rejects the automatic switch request).
+        // The modal only lets the user attempt the switch themselves — it
+        // never confirms synchronously that one actually happened — so this
+        // throws rather than resolves, otherwise the caller (core's
+        // switchChain, and the claim widget's error handling built on top of
+        // it) would treat an opened modal as an already-finished switch.
         if (!targetNetwork) {
           await open({ view: 'Networks' })
-          return
+          throw new Error(SWITCH_CHAIN_MANUAL_SELECTION_ERROR)
         }
         try {
           await switchNetwork(targetNetwork)
         } catch {
           await open({ view: 'Networks' })
+          throw new Error(SWITCH_CHAIN_MANUAL_SELECTION_ERROR)
         }
       }}
       disconnectLabel={APPKIT_DISCONNECT_LABEL}
