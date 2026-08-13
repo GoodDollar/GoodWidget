@@ -36,6 +36,7 @@ interface SuperfluidCampaignRuntimeProps {
   citizenClaimEnvironment: SuperfluidCampaignWidgetProps['citizenClaimEnvironment']
   citizenClaimExecution: SuperfluidCampaignWidgetProps['citizenClaimExecution']
   disableClaim: boolean
+  disableWalletButton?: SuperfluidCampaignWidgetProps['disableWalletButton']
   initialView: SuperfluidCampaignView
   poolAddresses?: SuperfluidCampaignWidgetProps['poolAddresses']
   /** Forwarded to the embedded CitizenClaimWidget so it shares the same provider/config/theme context. */
@@ -43,6 +44,12 @@ interface SuperfluidCampaignRuntimeProps {
   config?: SuperfluidCampaignWidgetProps['config']
   themeOverrides?: SuperfluidCampaignWidgetProps['themeOverrides']
   defaultTheme?: SuperfluidCampaignWidgetProps['defaultTheme']
+  /** Forwarded to the embedded CitizenClaimWidget's own GoodWidgetProvider. */
+  addressOverride?: SuperfluidCampaignWidgetProps['addressOverride']
+  chainIdOverride?: SuperfluidCampaignWidgetProps['chainIdOverride']
+  connectOverride?: SuperfluidCampaignWidgetProps['connectOverride']
+  switchChainOverride?: SuperfluidCampaignWidgetProps['switchChainOverride']
+  availableChainIdsOverride?: SuperfluidCampaignWidgetProps['availableChainIdsOverride']
   hasDisconnectOverride: boolean
 }
 
@@ -111,15 +118,21 @@ function SuperfluidCampaignRuntime({
   citizenClaimEnvironment,
   citizenClaimExecution,
   disableClaim,
+  disableWalletButton,
   initialView,
   poolAddresses,
   provider,
   config,
   themeOverrides,
   defaultTheme,
+  addressOverride,
+  chainIdOverride,
+  connectOverride,
+  switchChainOverride,
+  availableChainIdsOverride,
   hasDisconnectOverride,
 }: SuperfluidCampaignRuntimeProps) {
-  const { isConnected, connect, disconnect, address } = useWallet()
+  const { isConnected, connect, disconnect, disconnectLabel, disconnectIcon, address } = useWallet()
   const [view, setView] = useState<SuperfluidCampaignView>(initialView)
   const [embeddedClaimTab, setEmbeddedClaimTab] = useState<EmbeddedClaimTab>(null)
   const [leaderboardRefreshKey, setLeaderboardRefreshKey] = useState(0)
@@ -146,13 +159,21 @@ function SuperfluidCampaignRuntime({
           isConnected={isConnected}
           onConnect={connect}
           onDisconnect={hasDisconnectOverride ? disconnect : undefined}
+          disconnectLabel={hasDisconnectOverride ? disconnectLabel : undefined}
+          disconnectIcon={hasDisconnectOverride ? disconnectIcon : undefined}
           onClose={() => setEmbeddedClaimTab(null)}
+          disableWalletButton={disableWalletButton}
         />
         <CitizenClaimWidget
           provider={provider}
           config={config}
           themeOverrides={themeOverrides}
           defaultTheme={defaultTheme}
+          addressOverride={addressOverride}
+          chainIdOverride={chainIdOverride}
+          connectOverride={connectOverride}
+          switchChainOverride={switchChainOverride}
+          availableChainIdsOverride={availableChainIdsOverride}
           environment={citizenClaimEnvironment}
           claimExecution={citizenClaimExecution}
           initialTab={embeddedClaimTab}
@@ -171,9 +192,12 @@ function SuperfluidCampaignRuntime({
         isConnected={isConnected}
         onConnect={connect}
         onDisconnect={hasDisconnectOverride ? disconnect : undefined}
+        disconnectLabel={hasDisconnectOverride ? disconnectLabel : undefined}
+        disconnectIcon={hasDisconnectOverride ? disconnectIcon : undefined}
         onClose={() => setView('content')}
         leaderboardRefreshKey={leaderboardRefreshKey}
         userPointsAdapter={isMockRuntime ? dataClient.userPoints : undefined}
+        disableWalletButton={disableWalletButton}
       />
     )
   }
@@ -188,6 +212,9 @@ function SuperfluidCampaignRuntime({
         isConnected={isConnected}
         onConnect={connect}
         onDisconnect={hasDisconnectOverride ? disconnect : undefined}
+        disconnectLabel={hasDisconnectOverride ? disconnectLabel : undefined}
+        disconnectIcon={hasDisconnectOverride ? disconnectIcon : undefined}
+        disableWalletButton={disableWalletButton}
       />
 
       <LeaderboardSummary
@@ -233,6 +260,12 @@ export function SuperfluidCampaignWidgetWithClient({
   provider,
   connectOverride,
   disconnectOverride,
+  addressOverride,
+  chainIdOverride,
+  switchChainOverride,
+  availableChainIdsOverride,
+  disconnectLabel,
+  disconnectIcon,
   themeOverrides,
   config,
   defaultTheme = 'dark',
@@ -242,6 +275,7 @@ export function SuperfluidCampaignWidgetWithClient({
   citizenClaimEnvironment = 'production',
   citizenClaimExecution,
   disableClaim = false,
+  disableWalletButton,
   initialView = 'content',
   poolAddresses,
   dataClient,
@@ -252,6 +286,12 @@ export function SuperfluidCampaignWidgetWithClient({
       provider={provider as EIP1193Provider | undefined}
       connectOverride={connectOverride}
       disconnectOverride={disconnectOverride}
+      addressOverride={addressOverride}
+      chainIdOverride={chainIdOverride}
+      switchChainOverride={switchChainOverride}
+      availableChainIdsOverride={availableChainIdsOverride}
+      disconnectLabel={disconnectLabel}
+      disconnectIcon={disconnectIcon}
       config={config}
       themeOverrides={themeOverrides}
       defaultTheme={defaultTheme}
@@ -266,12 +306,18 @@ export function SuperfluidCampaignWidgetWithClient({
           citizenClaimEnvironment={citizenClaimEnvironment}
           citizenClaimExecution={citizenClaimExecution}
           disableClaim={disableClaim}
+          disableWalletButton={disableWalletButton}
           initialView={initialView}
           poolAddresses={poolAddresses}
           provider={provider}
           config={config}
           themeOverrides={themeOverrides}
           defaultTheme={defaultTheme}
+          addressOverride={addressOverride}
+          chainIdOverride={chainIdOverride}
+          connectOverride={connectOverride}
+          switchChainOverride={switchChainOverride}
+          availableChainIdsOverride={availableChainIdsOverride}
           hasDisconnectOverride={Boolean(disconnectOverride)}
         />
       </Card>

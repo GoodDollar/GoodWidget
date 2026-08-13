@@ -12,6 +12,7 @@ import {
   XStack,
   YStack,
 } from '@goodwidget/ui'
+import type { IconName } from '@goodwidget/ui'
 import type {
   CampaignLeaderboardAdapter,
   CampaignPointsAccount,
@@ -42,9 +43,15 @@ interface LeaderboardViewProps {
   isConnected: boolean
   onConnect: () => void
   onDisconnect?: () => Promise<void>
+  /** Label for the WalletChip's disconnect action. See WalletChip's own prop for details. */
+  disconnectLabel?: string
+  /** Icon for the WalletChip's disconnect action. See WalletChip's own prop for details. */
+  disconnectIcon?: IconName
   onClose: () => void
   leaderboardRefreshKey: number
   userPointsAdapter?: CampaignUserPointsAdapter
+  /** Disables the connect/wallet-status button. See `SuperfluidCampaignWidgetProps.disableWalletButton`. */
+  disableWalletButton?: boolean
 }
 
 /**
@@ -85,9 +92,12 @@ export function LeaderboardView({
   isConnected,
   onConnect,
   onDisconnect,
+  disconnectLabel,
+  disconnectIcon,
   onClose,
   leaderboardRefreshKey,
   userPointsAdapter,
+  disableWalletButton = false,
 }: LeaderboardViewProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCampaignTab, setActiveCampaignTab] = useState<string>(pools[0]?.id ?? '')
@@ -177,9 +187,20 @@ export function LeaderboardView({
             </Badge>
           </XStack>
           {isConnected ? (
-            <WalletChip address={address} onDisconnect={onDisconnect} />
+            <WalletChip
+              address={address}
+              onDisconnect={onDisconnect}
+              disconnectLabel={disconnectLabel}
+              disconnectIcon={disconnectIcon}
+              disabled={disableWalletButton}
+            />
           ) : (
-            <Button size="sm" {...compactButtonProps} onPress={onConnect}>
+            <Button
+              size="sm"
+              {...compactButtonProps}
+              disabled={disableWalletButton}
+              onPress={onConnect}
+            >
               <ButtonText>Connect wallet</ButtonText>
             </Button>
           )}
