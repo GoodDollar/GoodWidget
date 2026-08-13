@@ -518,13 +518,20 @@ export function useCitizenClaimAdapter(
 
     if (!address) {
       await auxiliaryReads
+      // No wallet address: clear any personalized entitlement left over from a
+      // prior connected session so a disconnected user never sees stale amounts.
+      setAmount(null)
+      setNextClaimTime(null)
       setStatus('not_connected')
       return
     }
 
     if (chainId === null || !isSupportedChain(chainId)) {
       await auxiliaryReads
-      // Address known but the active chain is unsupported/unknown — surface switch_chain action
+      // Address known but the active chain is unsupported/unknown — surface switch_chain action.
+      // Clear personalized entitlement from whatever chain was previously active.
+      setAmount(null)
+      setNextClaimTime(null)
       setStatus('not_connected')
       return
     }
@@ -620,6 +627,28 @@ export function useCitizenClaimAdapter(
       return sdk.claimSDK.claim()
     },
     [address, availableChainIds, createSdkInstancesForChain, isCustodialExecution, provider, switchChain],
+  )
+
+  // ---------------------------------------------------------------------------
+  // handleSwitchChain — the switchChain action exposed to widget UI (the
+  // standalone "switch to a supported chain" prompt, as opposed to the
+  // claim-flow's internal switchChain call inside claimOnChain). Wraps the raw
+  // useWallet() switchChain so a wallet rejection or RPC failure always reaches
+  // the widget as a humanized message in state.error, never as a raw error.
+  // ---------------------------------------------------------------------------
+  const handleSwitchChain = useCallback(
+    async (targetChainId: number): Promise<void> => {
+      setError(null)
+      try {
+        await switchChain(targetChainId)
+      } catch (err: unknown) {
+        if (!mountedRef.current) throw err
+        setStatus('error')
+        setError(humanReadableError(err))
+        throw err
+      }
+    },
+    [switchChain],
   )
 
   const claimAll = useCallback(
@@ -808,9 +837,17 @@ export function useCitizenClaimAdapter(
       claim: handleClaim,
       claimOnChain,
       claimAll,
-      switchChain,
+      switchChain: handleSwitchChain,
     }),
-    [handleConnect, loadClaimStatus, handleVerify, handleClaim, claimOnChain, claimAll, switchChain],
+    [
+      handleConnect,
+      loadClaimStatus,
+      handleVerify,
+      handleClaim,
+      claimOnChain,
+      claimAll,
+      handleSwitchChain,
+    ],
   )
 
   return { state, actions }

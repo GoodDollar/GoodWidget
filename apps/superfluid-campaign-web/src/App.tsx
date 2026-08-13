@@ -23,11 +23,19 @@ const APPKIT_DISCONNECT_LABEL = 'Network settings'
 
 function AppKitSuperfluidCampaignWidget() {
   const { open } = useAppKit()
-  const { address } = useAppKitAccount()
+  const { address, status: accountStatus } = useAppKitAccount()
   const { walletProvider } = useAppKitProvider<EIP1193Provider | undefined>('eip155')
   const { chainId, switchNetwork, approvedCaipNetworkIds } = useAppKitNetwork()
   const addressRef = useRef(address)
   addressRef.current = address
+
+  // AppKit reports `address: undefined` both while it's still restoring a prior
+  // session ('connecting'/'reconnecting'/not yet reported) and once it has
+  // definitively resolved to "no wallet". Only the latter is a real override —
+  // during the unresolved window this stays `undefined` so the core provider's
+  // own EIP-1193 fallback tracking (rather than a premature "disconnected"
+  // override) covers the gap until AppKit reports a final status.
+  const isAccountResolved = accountStatus === 'connected' || accountStatus === 'disconnected'
 
   // AppKit's switchNetwork takes the network descriptor object, not a chain id,
   // so this looks up the descriptor for whichever chain the widget wants to
@@ -57,8 +65,8 @@ function AppKitSuperfluidCampaignWidget() {
       provider={walletProvider}
       defaultTheme="dark"
       contentMaxWidth={DESKTOP_WIDGET_MAX_WIDTH}
-      addressOverride={address ?? null}
-      chainIdOverride={chainId === undefined ? null : Number(chainId)}
+      addressOverride={isAccountResolved ? (address ?? null) : undefined}
+      chainIdOverride={chainId === undefined ? undefined : Number(chainId)}
       availableChainIdsOverride={availableChainIds}
       switchChainOverride={async (targetChainId) => {
         const targetNetwork = appKitNetworksByChainId.get(targetChainId)
