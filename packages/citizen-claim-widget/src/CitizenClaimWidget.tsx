@@ -242,6 +242,10 @@ function CitizenClaimInner({
 
   /** Dispatch the primary action and surface callbacks for claim outcomes. */
   const handlePrimaryAction = useCallback(async () => {
+    // Tracks which chain a 'switch_chain' attempt targeted, so a failure can
+    // name that chain in the catch block below (the switch/case scope it's
+    // set in doesn't otherwise survive into the shared catch).
+    let switchChainTargetId: number | null = null
     try {
       switch (primaryAction) {
         case 'connect':
@@ -351,7 +355,8 @@ function CitizenClaimInner({
           // Prefer switching to a chain the wallet already has a claimable
           // balance on; when none is known yet, fall back to Celo, the
           // first preferred supported chain.
-          await actions.switchChain?.(claimablesByChain[0]?.chainId ?? SupportedChains.CELO)
+          switchChainTargetId = claimablesByChain[0]?.chainId ?? SupportedChains.CELO
+          await actions.switchChain?.(switchChainTargetId)
           break
       }
     } catch (err: unknown) {
@@ -360,6 +365,25 @@ function CitizenClaimInner({
           address: address ?? null,
           chainId: chainId ?? null,
           message: err instanceof Error ? err.message : 'Claim failed',
+        })
+      } else if (primaryAction === 'switch_chain') {
+        // Previously swallowed entirely: a failed switch (unsupported chain
+        // not yet added to the wallet, a raw provider error with no
+        // integrator override to fall back to, etc.) produced no toast and
+        // no onClaimError call, leaving the user with zero feedback that
+        // nothing happened. Log the underlying error for debugging, but
+        // surface a message naming the specific chain rather than the raw
+        // wallet/provider error text.
+        console.error('[CitizenClaimWidget] switchChain failed', err)
+        const targetChainName = switchChainTargetId
+          ? getChainName(switchChainTargetId)
+          : 'the requested chain'
+        const message = `Couldn't switch to ${targetChainName}. Please try again from your wallet.`
+        createToast({ message, status: 'error', duration: 0 })
+        onClaimError?.({
+          address: address ?? null,
+          chainId: switchChainTargetId,
+          message,
         })
       }
     }
