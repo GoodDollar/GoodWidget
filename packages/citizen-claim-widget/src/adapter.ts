@@ -73,7 +73,12 @@ function getChainDisplayName(chainId: number): string {
  * (e.g. naming the specific chain an action cannot run on). humanReadableError
  * passes these through verbatim instead of remapping them to a generic string.
  */
-class CitizenClaimAdapterError extends Error {}
+class CitizenClaimAdapterError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'CitizenClaimAdapterError'
+  }
+}
 
 // ---------------------------------------------------------------------------
 // humanReadableError — converts a raw SDK/viem error into a short, user-friendly
@@ -642,10 +647,13 @@ export function useCitizenClaimAdapter(
       try {
         await switchChain(targetChainId)
       } catch (err: unknown) {
-        if (!mountedRef.current) throw err
+        if (!mountedRef.current) return
+        // This action owns its own error reporting via state.error — unlike
+        // handleClaim's caller, the switch_chain caller has no use for a
+        // rethrown value, so swallow it here rather than let it surface as
+        // an unused rejection.
         setStatus('error')
         setError(humanReadableError(err))
-        throw err
       }
     },
     [switchChain],

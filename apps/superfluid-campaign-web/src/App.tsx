@@ -66,7 +66,7 @@ function AppKitSuperfluidCampaignWidget() {
       defaultTheme="dark"
       contentMaxWidth={DESKTOP_WIDGET_MAX_WIDTH}
       addressOverride={isAccountResolved ? (address ?? null) : undefined}
-      chainIdOverride={chainId === undefined ? undefined : Number(chainId)}
+      chainIdOverride={chainId == null ? undefined : Number(chainId)}
       availableChainIdsOverride={availableChainIds}
       switchChainOverride={async (targetChainId) => {
         const targetNetwork = appKitNetworksByChainId.get(targetChainId)
