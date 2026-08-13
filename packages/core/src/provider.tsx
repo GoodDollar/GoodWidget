@@ -47,6 +47,19 @@ const noopSwitchChain = async () => {
   throw new Error(SWITCH_CHAIN_UNAVAILABLE_ERROR)
 }
 
+/**
+ * EIP-1193's standard user-rejection code (4001), plus ethers v6's
+ * ACTION_REJECTED — both mean the wallet's own switch-chain prompt was
+ * shown and the user explicitly declined it, as opposed to the request
+ * being unsupported or never resolving. Falling back to the integrator's
+ * switch-chain override on a rejection would re-prompt via a second modal
+ * right after the user just said no to the first one.
+ */
+function isUserRejectedSwitchChain(err: unknown): boolean {
+  const code = (err as { code?: number | string } | undefined)?.code
+  return code === 4001 || code === 'ACTION_REJECTED'
+}
+
 export const WalletContext = React.createContext<WalletContextValue>({
   address: null,
   chainId: null,
@@ -205,7 +218,7 @@ export function GoodWidgetProvider({
           })
           return
         } catch (err) {
-          if (!switchChainOverride) throw err
+          if (!switchChainOverride || isUserRejectedSwitchChain(err)) throw err
         }
       }
       if (!switchChainOverride) {

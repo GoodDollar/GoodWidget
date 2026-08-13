@@ -529,12 +529,23 @@ export function useCitizenClaimAdapter(
       return
     }
 
-    if (chainId === null || !isSupportedChain(chainId)) {
+    // Custodial execution submits claims through its own configured per-chain
+    // clients, never the active wallet chain, so it has no dependency on
+    // `chainId` at all — read the personalized status from whichever
+    // configured chain comes first, rather than gating on an "active chain"
+    // that may never resolve to a supported one (or may not exist).
+    const statusChainId = isCustodialExecution
+      ? SUPPORTED_CHAINS.find((supportedChainId) => claimExecution?.clientsByChain[supportedChainId]) ??
+        null
+      : chainId
+
+    if (statusChainId === null || !isSupportedChain(statusChainId)) {
       await auxiliaryReads
-      // Address known but the active chain is unsupported/unknown — a distinct
-      // status from not_connected so the UI can show "switch chain" copy
-      // instead of misleadingly asking an already-connected wallet to connect.
-      // Clear personalized entitlement from whatever chain was previously active.
+      // Address known but no supported chain is available to read personalized
+      // status from — a distinct status from not_connected so the UI can show
+      // "switch chain" copy instead of misleadingly asking an already-connected
+      // wallet to connect. Clear personalized entitlement from whatever chain
+      // was previously active.
       setAmount(null)
       setNextClaimTime(null)
       setStatus('unsupported_chain')
@@ -546,7 +557,7 @@ export function useCitizenClaimAdapter(
 
     // A personalized status read, but still address-only: no connected
     // account or passed-down provider is required, only the address itself.
-    const sdk = createReadOnlySdkForChain(chainId)
+    const sdk = createReadOnlySdkForChain(statusChainId)
     if (!sdk) {
       setStatus('not_connected')
       return
@@ -563,7 +574,7 @@ export function useCitizenClaimAdapter(
       } else if (walletStatus.status === 'can_claim') {
         // User is whitelisted and has unclaimed UBI
         setStatus('eligible')
-        const decimals = CHAIN_DECIMALS[chainId] ?? 18
+        const decimals = CHAIN_DECIMALS[statusChainId] ?? 18
         setAmount(formatUnits(walletStatus.entitlement, decimals))
       } else {
         // User is whitelisted but has already claimed for this period
@@ -576,7 +587,15 @@ export function useCitizenClaimAdapter(
       setStatus('error')
       setError(humanReadableError(err))
     }
-  }, [address, chainId, createReadOnlySdkForChain, loadClaimablesByChain, loadDailyStats])
+  }, [
+    address,
+    chainId,
+    claimExecution,
+    isCustodialExecution,
+    createReadOnlySdkForChain,
+    loadClaimablesByChain,
+    loadDailyStats,
+  ])
 
   // Auto-refresh claim status whenever wallet connection or chain changes
   useEffect(() => {
