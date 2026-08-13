@@ -21,8 +21,9 @@ interface WalletChipProps {
 /**
  * Connected-wallet chip (status dot + truncated address + chevron) shared by
  * CampaignHeader and LeaderboardView so both headers stay identical instead
- * of duplicating the markup. Pressing the chip opens a single-action
- * dropdown, following the same relative/absolute positioning
+ * of duplicating the markup. Pressing the chip opens a single-action menu
+ * (default "Disconnect", customizable via disconnectLabel/disconnectIcon —
+ * see their doc comments), following the same relative/absolute positioning
  * pattern as InfoTooltip in ai-credits-widget rather than pulling in the
  * heavier Drawer/ActionSheet primitives for one menu item.
  */

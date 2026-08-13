@@ -127,6 +127,11 @@ export interface CitizenClaimWidgetChainClaimResult {
 export interface CitizenClaimWidgetProps {
   provider?: unknown
   environment?: CitizenClaimWidgetEnvironment
+  /**
+   * Fallback chain id shown only until the live wallet chain resolves via
+   * `provider`/`chainIdOverride`, or while disconnected. Once a live chain is
+   * known it always takes precedence over this value.
+   */
   chainId?: number
   clientFactory?: CitizenClaimWidgetClientFactory
   claimExecution?: CitizenClaimWidgetCustodialExecution
