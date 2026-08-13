@@ -414,6 +414,16 @@ function CitizenClaimInner({
                 </>
               )}
 
+              {status === 'unsupported_chain' && (
+                <>
+                  <Text secondary>
+                    {chainId
+                      ? `Claiming isn't available on ${getChainName(chainId)}. Switch network to continue.`
+                      : 'Switch to a supported network to claim daily G$'}
+                  </Text>
+                </>
+              )}
+
               {(status === 'eligible' || status === 'claiming' || claimablesByChain.length > 0) && (
                 <>
                   {/*

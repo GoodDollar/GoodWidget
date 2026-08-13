@@ -7,6 +7,8 @@ export type CitizenClaimWidgetStatus =
   | 'loading'
   | 'connecting'
   | 'not_connected'
+  /** Wallet is connected but its active chain isn't one citizen-sdk supports. */
+  | 'unsupported_chain'
   | 'not_whitelisted'
   | 'eligible'
   | 'already_claimed'

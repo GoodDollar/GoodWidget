@@ -193,7 +193,8 @@ type CitizenEnvironment = 'production' | 'staging' | 'development'
  *
  * State transitions (mirrors GoodWalletV2 ClaimView.tsx logic):
  *   not_connected → [connect] → loading
- *   loading → not_whitelisted | eligible | already_claimed | error
+ *   loading → not_whitelisted | eligible | already_claimed | unsupported_chain | error
+ *   unsupported_chain → [switch_chain] → loading
  *   not_whitelisted → [verify] → (external FV flow) → loading after return
  *   eligible → [claim] → claiming → success | error
  *   error → [refresh] → loading
@@ -214,9 +215,6 @@ export function useCitizenClaimAdapter(
       ? options.environment
       : 'production'
   ) as CitizenEnvironment
-
-  // Whether the connected wallet is on a chain supported by citizen-sdk
-  const onSupportedChain = chainId !== null && isSupportedChain(chainId)
 
   const [status, setStatus] = useState<CitizenClaimWidgetStatus>(
     isConnected ? 'loading' : 'not_connected',
@@ -533,11 +531,13 @@ export function useCitizenClaimAdapter(
 
     if (chainId === null || !isSupportedChain(chainId)) {
       await auxiliaryReads
-      // Address known but the active chain is unsupported/unknown — surface switch_chain action.
+      // Address known but the active chain is unsupported/unknown — a distinct
+      // status from not_connected so the UI can show "switch chain" copy
+      // instead of misleadingly asking an already-connected wallet to connect.
       // Clear personalized entitlement from whatever chain was previously active.
       setAmount(null)
       setNextClaimTime(null)
-      setStatus('not_connected')
+      setStatus('unsupported_chain')
       return
     }
 
@@ -765,13 +765,13 @@ export function useCitizenClaimAdapter(
     // Custodial execution is multi-chain. An account-scoped entitlement on any
     // configured chain must take precedence over the active chain's status.
     if (isConnected && address && claimablesByChain.length > 0) return 'claim'
-    if (status === 'not_connected') {
+    if (status === 'unsupported_chain') {
       // Custodial clients are already configured per chain, so they never need
       // the active wallet chain to be switched. Native wallet integrations keep
       // the existing switch-chain behavior.
-      if (isCustodialExecution) return 'none'
-      return isConnected && !onSupportedChain ? 'switch_chain' : 'connect'
+      return isCustodialExecution ? 'none' : 'switch_chain'
     }
+    if (status === 'not_connected') return 'connect'
     if (status === 'not_whitelisted') return 'verify'
     // Keep the claim button mounted while a claim is in-flight so UI copy can
     // switch to "Claiming..." without hiding the action surface.
@@ -783,9 +783,8 @@ export function useCitizenClaimAdapter(
     status,
     address,
     isConnected,
-    onSupportedChain,
-    claimablesByChain,
     isCustodialExecution,
+    claimablesByChain,
   ])
 
   const primaryLabel: string = useMemo(() => {
