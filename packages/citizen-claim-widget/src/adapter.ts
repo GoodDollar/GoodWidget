@@ -180,7 +180,7 @@ type CitizenEnvironment = 'production' | 'staging' | 'development'
 export function useCitizenClaimAdapter(
   options: UseCitizenClaimAdapterOptions = {},
 ): CitizenClaimWidgetAdapterResult {
-  const { address, chainId, isConnected, provider, connect } = useWallet()
+  const { address, chainId, isConnected, provider, connect, switchChain } = useWallet()
 
   const clientFactory = options.clientFactory
   const claimExecution = options.claimExecution
@@ -358,53 +358,84 @@ export function useCitizenClaimAdapter(
   /**
    * Collects claimable UBI amounts for all citizen-sdk supported chains.
    * This mirrors GoodWalletV2's claim breakdown model (eligible amounts per chain).
+   *
+   * A wallet's injected/bridged EIP-1193 provider only ever answers RPC calls
+   * for its own currently-active chain, regardless of the viem Chain
+   * descriptor attached to a client built on top of it — so per-chain reads
+   * cannot each get their own wallet-provider-transported client. Instead,
+   * one SDK instance is created for the active chain, and every other
+   * chain's entitlement is read through that same instance's
+   * checkEntitlement({ chainOverride, publicClient }), passing an RPC-backed
+   * publicClient (never the wallet's own provider) for the non-active chain —
+   * this is the SDK's own supported multi-chain read path.
    */
   const loadClaimablesByChain = useCallback(async (): Promise<void> => {
     const eligible: Array<{ chainId: number; amount: string }> = []
 
-    await Promise.all(
-      SUPPORTED_CHAINS.map(async (supportedChainId) => {
-        try {
-          let entitlement: bigint
-          if (isConnected && address) {
-            const sdk = await createSdkInstancesForChain(supportedChainId)
-            if (!sdk) return
-            // The no-argument generic entitlement is the chain pool amount,
-            // not this wallet's entitlement. Use the SDK's account-scoped
-            // check when the wallet is connected so claimAll only targets
-            // chains this account can actually claim on.
-            entitlement = (await sdk.claimSDK.checkEntitlement()).amount
-          } else {
+    if (isConnected && address && onSupportedChain) {
+      const primarySdk = await createSdkInstancesForChain(chainId as number)
+      if (primarySdk) {
+        await Promise.all(
+          SUPPORTED_CHAINS.map(async (supportedChainId) => {
+            try {
+              const isActiveChain = supportedChainId === chainId
+              const result = await primarySdk.claimSDK.checkEntitlement(
+                isActiveChain
+                  ? undefined
+                  : {
+                      chainOverride: supportedChainId,
+                      publicClient: getPublicClientForChain(supportedChainId) ?? undefined,
+                    },
+              )
+              if (result.amount <= 0n) return
+
+              const decimals = CHAIN_DECIMALS[supportedChainId] ?? 18
+              eligible.push({
+                chainId: supportedChainId,
+                amount: formatUnits(result.amount, decimals),
+              })
+            } catch {
+              // Keep per-chain reads best-effort: one RPC/SDK failure should not block the widget.
+            }
+          }),
+        )
+      }
+    } else if (!isConnected) {
+      await Promise.all(
+        SUPPORTED_CHAINS.map(async (supportedChainId) => {
+          try {
             const publicClient = getPublicClientForChain(supportedChainId)
             if (!publicClient) return
-            entitlement = await checkGenericEntitlement({
+            const entitlement = await checkGenericEntitlement({
               publicClient,
               chainId: supportedChainId,
               env,
             })
-          }
-          if (entitlement <= 0n) return
+            if (entitlement <= 0n) return
 
-          const decimals = CHAIN_DECIMALS[supportedChainId] ?? 18
-          eligible.push({
-            chainId: supportedChainId,
-            amount: formatUnits(entitlement, decimals),
-          })
-        } catch {
-          // Keep per-chain reads best-effort: one RPC/SDK failure should not block the widget.
-        }
-      }),
-    )
+            const decimals = CHAIN_DECIMALS[supportedChainId] ?? 18
+            eligible.push({
+              chainId: supportedChainId,
+              amount: formatUnits(entitlement, decimals),
+            })
+          } catch {
+            // Keep per-chain reads best-effort: one RPC/SDK failure should not block the widget.
+          }
+        }),
+      )
+    }
 
     if (!mountedRef.current) return
     eligible.sort((a, b) => b.chainId - a.chainId)
     setClaimablesByChain(eligible)
   }, [
     address,
+    chainId,
     createSdkInstancesForChain,
     env,
     getPublicClientForChain,
     isConnected,
+    onSupportedChain,
   ])
 
   const loadDailyStats = useCallback(async (): Promise<void> => {
@@ -530,15 +561,11 @@ export function useCitizenClaimAdapter(
 
       // A single EIP-1193 provider has one active chain. Custodial clients are
       // already chain-bound, so switching would introduce a race between claims.
+      // switchChain tries the raw wallet_switchEthereumChain request first and
+      // falls back to the integrator's own switch/network-modal flow (e.g.
+      // AppKit) when the active connector rejects or ignores it.
       if (!isCustodialExecution) {
-        await (
-          provider as {
-            request: (args: { method: string; params: unknown[] }) => Promise<unknown>
-          }
-        ).request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: `0x${targetChainId.toString(16)}` }],
-        })
+        await switchChain(targetChainId)
       }
 
       const sdk = await createSdkInstancesForChain(targetChainId)
@@ -546,7 +573,7 @@ export function useCitizenClaimAdapter(
 
       return sdk.claimSDK.claim()
     },
-    [provider, address, createSdkInstancesForChain, isCustodialExecution],
+    [address, createSdkInstancesForChain, isCustodialExecution, provider, switchChain],
   )
 
   const claimAll = useCallback(
@@ -648,25 +675,6 @@ export function useCitizenClaimAdapter(
   }, [connect, loadClaimStatus])
 
   // ---------------------------------------------------------------------------
-  // handleSwitchChain — requests the wallet to switch to a supported chain.
-  // Uses the EIP-3326 wallet_switchEthereumChain method.
-  // ---------------------------------------------------------------------------
-  const handleSwitchChain = useCallback(
-    async (targetChainId: number): Promise<void> => {
-      if (!provider) throw new Error('No wallet provider available')
-      await (
-        provider as {
-          request: (args: { method: string; params: unknown[] }) => Promise<unknown>
-        }
-      ).request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: `0x${targetChainId.toString(16)}` }],
-      })
-    },
-    [provider],
-  )
-
-  // ---------------------------------------------------------------------------
   // Derived state: primaryAction and primaryLabel
   // ---------------------------------------------------------------------------
   const primaryAction: CitizenClaimWidgetAdapterState['primaryAction'] = useMemo(() => {
@@ -754,17 +762,9 @@ export function useCitizenClaimAdapter(
       claim: handleClaim,
       claimOnChain,
       claimAll,
-      switchChain: handleSwitchChain,
+      switchChain,
     }),
-    [
-      handleConnect,
-      loadClaimStatus,
-      handleVerify,
-      handleClaim,
-      claimOnChain,
-      claimAll,
-      handleSwitchChain,
-    ],
+    [handleConnect, loadClaimStatus, handleVerify, handleClaim, claimOnChain, claimAll, switchChain],
   )
 
   return { state, actions }
