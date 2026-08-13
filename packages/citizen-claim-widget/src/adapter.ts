@@ -570,7 +570,13 @@ export function useCitizenClaimAdapter(
     // account or passed-down provider is required, only the address itself.
     const sdk = createReadOnlySdkForChain(statusChainId)
     if (!sdk) {
-      setStatus('not_connected')
+      // The address is known and statusChainId passed the supported-chain
+      // check above, so a null sdk here means client/RPC setup itself
+      // failed (e.g. a misconfigured chain) rather than no wallet being
+      // connected — 'not_connected' would tell an already-connected user
+      // to do something they've already done.
+      setStatus('error')
+      setError(humanReadableError(new CitizenClaimAdapterError('Unable to load claim status for this chain right now.')))
       return
     }
 

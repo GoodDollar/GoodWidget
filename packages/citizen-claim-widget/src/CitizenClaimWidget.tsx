@@ -348,9 +348,9 @@ function CitizenClaimInner({
           await actions.refresh()
           break
         case 'switch_chain':
-          // The wallet is connected but on a chain citizen-sdk doesn't support at
-          // all, so there is no known claimable chain to target yet — fall back
-          // to Celo, the first preferred supported chain.
+          // Prefer switching to a chain the wallet already has a claimable
+          // balance on; when none is known yet, fall back to Celo, the
+          // first preferred supported chain.
           await actions.switchChain?.(claimablesByChain[0]?.chainId ?? SupportedChains.CELO)
           break
       }
@@ -424,7 +424,8 @@ function CitizenClaimInner({
                 </>
               )}
 
-              {(status === 'eligible' || status === 'claiming' || claimablesByChain.length > 0) && (
+              {status !== 'unsupported_chain' &&
+                (status === 'eligible' || status === 'claiming' || claimablesByChain.length > 0) && (
                 <>
                   {/*
                     Declarative to claim status: an already_claimed wallet with
