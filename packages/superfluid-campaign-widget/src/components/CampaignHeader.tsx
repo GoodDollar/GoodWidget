@@ -71,7 +71,7 @@ export function CampaignHeader({
               address={address}
               onDisconnect={onDisconnect}
               disconnectLabel={disconnectLabel}
-              menuActionIcon={disconnectIcon}
+              disconnectIcon={disconnectIcon}
             />
           ) : (
             <ConnectWalletPrompt onConnect={onConnect} />

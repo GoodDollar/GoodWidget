@@ -65,7 +65,7 @@ const AVAILABLE_ENVIRONMENTS = citizenSdkCapabilities.environments
 
 /** Resolves a supported chain id to its display name, falling back to the raw id. */
 function getChainDisplayName(chainId: number): string {
-  return CHAIN_CONFIGS[chainId]?.name ?? `chain ${chainId}`
+  return CHAIN_CONFIGS[chainId]?.name ?? `Chain ${chainId}`
 }
 
 /**

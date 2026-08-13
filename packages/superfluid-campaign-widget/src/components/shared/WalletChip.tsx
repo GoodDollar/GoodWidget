@@ -15,7 +15,7 @@ interface WalletChipProps {
    */
   disconnectLabel?: string
   /** Icon for the menu action, mirroring `disconnectLabel`. Defaults to 'log-out'. */
-  menuActionIcon?: IconName
+  disconnectIcon?: IconName
 }
 
 /**
@@ -30,7 +30,7 @@ export function WalletChip({
   address,
   onDisconnect,
   disconnectLabel = 'Disconnect',
-  menuActionIcon = 'log-out',
+  disconnectIcon = 'log-out',
 }: WalletChipProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [disconnectMessage, setDisconnectMessage] = useState<string | null>(null)
@@ -96,7 +96,7 @@ export function WalletChip({
                 await onDisconnect()
               }}
             >
-              <Icon name={menuActionIcon} size="xs" color="muted" />
+              <Icon name={disconnectIcon} size="xs" color="muted" />
               <ButtonText>{disconnectLabel}</ButtonText>
             </Button>
             {disconnectMessage && (

@@ -188,7 +188,7 @@ export function LeaderboardView({
               address={address}
               onDisconnect={onDisconnect}
               disconnectLabel={disconnectLabel}
-              menuActionIcon={disconnectIcon}
+              disconnectIcon={disconnectIcon}
             />
           ) : (
             <Button size="sm" {...compactButtonProps} onPress={onConnect}>
