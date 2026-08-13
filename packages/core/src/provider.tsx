@@ -23,6 +23,9 @@ const DEFAULT_CAPABILITIES: HostCapabilities = {
 export interface WalletContextValue extends WalletState {
   connect: () => Promise<void>
   disconnect: () => Promise<void>
+  /** Label for the disconnect action; see `GoodWidgetProviderProps.disconnectLabel`. */
+  disconnectLabel: string
+  switchChain: (chainId: number) => Promise<void>
 }
 
 export type HostContextValue = HostState
@@ -30,6 +33,12 @@ export type HostContextValue = HostState
 export interface GoodWidgetContextValue extends GoodWidgetState {
   connect: () => Promise<void>
   disconnect: () => Promise<void>
+  disconnectLabel: string
+  switchChain: (chainId: number) => Promise<void>
+}
+
+const noopSwitchChain = async () => {
+  throw new Error('No wallet provider available to switch chains')
 }
 
 export const WalletContext = React.createContext<WalletContextValue>({
@@ -39,6 +48,8 @@ export const WalletContext = React.createContext<WalletContextValue>({
   provider: null,
   connect: async () => {},
   disconnect: async () => {},
+  disconnectLabel: 'Disconnect',
+  switchChain: noopSwitchChain,
 })
 
 export const HostContext = React.createContext<HostContextValue>({
@@ -55,12 +66,18 @@ export const GoodWidgetContext = React.createContext<GoodWidgetContextValue>({
   capabilities: DEFAULT_CAPABILITIES,
   connect: async () => {},
   disconnect: async () => {},
+  disconnectLabel: 'Disconnect',
+  switchChain: noopSwitchChain,
 })
 
 export function GoodWidgetProvider({
   provider: explicitProvider,
   connectOverride,
   disconnectOverride,
+  addressOverride,
+  chainIdOverride,
+  switchChainOverride,
+  disconnectLabel = 'Disconnect',
   config: authorConfig,
   themeOverrides,
   defaultTheme = 'dark',
@@ -72,8 +89,8 @@ export function GoodWidgetProvider({
   )
   const [host, setHost] = useState<HostEnvironment>('injected')
   const [capabilities, setCapabilities] = useState<HostCapabilities>(DEFAULT_CAPABILITIES)
-  const [address, setAddress] = useState<string | null>(null)
-  const [chainId, setChainId] = useState<number | null>(null)
+  const [trackedAddress, setTrackedAddress] = useState<string | null>(null)
+  const [trackedChainId, setTrackedChainId] = useState<number | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -88,37 +105,54 @@ export function GoodWidgetProvider({
     }
   }, [explicitProvider])
 
+  // When the integrator supplies a live address/chain id (e.g. from a wallet
+  // connection SDK's own reactive hooks), that becomes the single source of
+  // truth and the raw EIP-1193 event listeners below are skipped entirely —
+  // some connectors (WalletConnect sessions bridged through AppKit in
+  // particular) do not reliably emit accountsChanged/chainChanged, which
+  // otherwise leaves this state stale after a connect/disconnect/switch.
+  const hasAddressOverride = addressOverride !== undefined
+  const hasChainIdOverride = chainIdOverride !== undefined
+
   useEffect(() => {
+    if (hasAddressOverride && hasChainIdOverride) return
     if (!resolvedProvider) return
 
     const handleAccountsChanged = (accounts: string[]) => {
-      setAddress(accounts[0] ?? null)
+      if (!hasAddressOverride) setTrackedAddress(accounts[0] ?? null)
     }
     const handleChainChanged = (newChainId: string) => {
-      setChainId(parseInt(newChainId, 16))
+      if (!hasChainIdOverride) setTrackedChainId(parseInt(newChainId, 16))
     }
 
     resolvedProvider.on('accountsChanged', handleAccountsChanged)
     resolvedProvider.on('chainChanged', handleChainChanged)
 
-    resolvedProvider
-      .request({ method: 'eth_accounts' })
-      .then((accounts) => {
-        const accs = accounts as string[]
-        if (accs.length > 0) setAddress(accs[0])
-      })
-      .catch(() => {})
+    if (!hasAddressOverride) {
+      resolvedProvider
+        .request({ method: 'eth_accounts' })
+        .then((accounts) => {
+          const accs = accounts as string[]
+          if (accs.length > 0) setTrackedAddress(accs[0])
+        })
+        .catch(() => {})
+    }
 
-    resolvedProvider
-      .request({ method: 'eth_chainId' })
-      .then((id) => setChainId(parseInt(id as string, 16)))
-      .catch(() => {})
+    if (!hasChainIdOverride) {
+      resolvedProvider
+        .request({ method: 'eth_chainId' })
+        .then((id) => setTrackedChainId(parseInt(id as string, 16)))
+        .catch(() => {})
+    }
 
     return () => {
       resolvedProvider.removeListener('accountsChanged', handleAccountsChanged)
       resolvedProvider.removeListener('chainChanged', handleChainChanged)
     }
-  }, [resolvedProvider])
+  }, [resolvedProvider, hasAddressOverride, hasChainIdOverride])
+
+  const address = hasAddressOverride ? (addressOverride ?? null) : trackedAddress
+  const chainId = hasChainIdOverride ? (chainIdOverride ?? null) : trackedChainId
 
   const connect = useCallback(async () => {
     if (connectOverride) {
@@ -130,17 +164,43 @@ export function GoodWidgetProvider({
     const accounts = (await resolvedProvider.request({
       method: 'eth_requestAccounts',
     })) as string[]
-    if (accounts.length > 0) {
-      setAddress(accounts[0])
+    if (accounts.length > 0 && !hasAddressOverride) {
+      setTrackedAddress(accounts[0])
     }
-  }, [connectOverride, resolvedProvider])
+  }, [connectOverride, resolvedProvider, hasAddressOverride])
 
   // Wallet session ownership stays with the integrator. Provider/account
-  // updates after the override resolves flow back through the normal EIP-1193
+  // updates after the override resolves flow back through addressOverride/
+  // chainIdOverride when supplied, otherwise through the normal EIP-1193
   // accountsChanged event or a changed provider prop.
   const disconnect = useCallback(async () => {
     await disconnectOverride?.()
   }, [disconnectOverride])
+
+  // Tries the standard EIP-3326 request first; falls back to the
+  // integrator's own switch/network-modal flow (e.g. AppKit) when the
+  // active connector rejects or does not support it — some WalletConnect
+  // sessions never resolve wallet_switchEthereumChain at all.
+  const switchChain = useCallback(
+    async (targetChainId: number) => {
+      if (resolvedProvider) {
+        try {
+          await resolvedProvider.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: `0x${targetChainId.toString(16)}` }],
+          })
+          return
+        } catch (err) {
+          if (!switchChainOverride) throw err
+        }
+      }
+      if (!switchChainOverride) {
+        throw new Error('No wallet provider available to switch chains')
+      }
+      await switchChainOverride(targetChainId)
+    },
+    [resolvedProvider, switchChainOverride],
+  )
 
   const mergedConfig = useMemo(() => {
     const finalConfig = mergeThemeOverrides(authorConfig, themeOverrides)
@@ -155,8 +215,10 @@ export function GoodWidgetProvider({
       provider: resolvedProvider,
       connect,
       disconnect,
+      disconnectLabel,
+      switchChain,
     }),
-    [address, chainId, resolvedProvider, connect, disconnect],
+    [address, chainId, resolvedProvider, connect, disconnect, disconnectLabel, switchChain],
   )
 
   const hostValue = useMemo<HostContextValue>(() => ({ host, capabilities }), [host, capabilities])
