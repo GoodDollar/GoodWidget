@@ -42,6 +42,8 @@ interface LeaderboardViewProps {
   isConnected: boolean
   onConnect: () => void
   onDisconnect?: () => Promise<void>
+  /** Label for the WalletChip's disconnect action. See WalletChip's own prop for details. */
+  disconnectLabel?: string
   onClose: () => void
   leaderboardRefreshKey: number
   userPointsAdapter?: CampaignUserPointsAdapter
@@ -85,6 +87,7 @@ export function LeaderboardView({
   isConnected,
   onConnect,
   onDisconnect,
+  disconnectLabel,
   onClose,
   leaderboardRefreshKey,
   userPointsAdapter,
@@ -177,7 +180,7 @@ export function LeaderboardView({
             </Badge>
           </XStack>
           {isConnected ? (
-            <WalletChip address={address} onDisconnect={onDisconnect} />
+            <WalletChip address={address} onDisconnect={onDisconnect} disconnectLabel={disconnectLabel} />
           ) : (
             <Button size="sm" {...compactButtonProps} onPress={onConnect}>
               <ButtonText>Connect wallet</ButtonText>
