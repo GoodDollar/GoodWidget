@@ -815,15 +815,18 @@ export function useCitizenClaimAdapter(
   // ---------------------------------------------------------------------------
   const primaryAction: CitizenClaimWidgetAdapterState['primaryAction'] = useMemo(() => {
     if (status === 'connecting') return 'connect'
-    // Custodial execution is multi-chain. An account-scoped entitlement on any
-    // configured chain must take precedence over the active chain's status.
+    // A non-custodial claim always executes on the active wallet chain (see
+    // claimOnChain/handleClaim below) — a claimable balance on some other
+    // supported chain is irrelevant until that chain itself is switched to,
+    // so this must be checked before the claimablesByChain precedence below,
+    // or the button would offer "Claim" and immediately fail against the
+    // active unsupported chain.
+    if (status === 'unsupported_chain' && !isCustodialExecution) return 'switch_chain'
+    // Custodial execution is multi-chain and has no "active" wallet chain, so
+    // an account-scoped entitlement on any configured chain takes precedence
+    // over the unsupported_chain status entirely.
     if (isConnected && address && claimablesByChain.length > 0) return 'claim'
-    if (status === 'unsupported_chain') {
-      // Custodial clients are already configured per chain, so they never need
-      // the active wallet chain to be switched. Native wallet integrations keep
-      // the existing switch-chain behavior.
-      return isCustodialExecution ? 'none' : 'switch_chain'
-    }
+    if (status === 'unsupported_chain') return 'none'
     if (status === 'not_connected') return 'connect'
     if (status === 'not_whitelisted') return 'verify'
     // Keep the claim button mounted while a claim is in-flight so UI copy can
