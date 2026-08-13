@@ -5,17 +5,25 @@ import { truncateAddress } from './styles'
 interface WalletChipProps {
   address: string | null
   onDisconnect?: () => Promise<void>
+  /**
+   * Label for the menu action. Defaults to "Disconnect", which only makes
+   * sense when onDisconnect directly ends the wallet session. Integrators
+   * whose onDisconnect instead opens a connection-management modal (e.g.
+   * AppKit's Account view) should pass something like "Network settings" so
+   * the action's label matches what it actually does.
+   */
+  disconnectLabel?: string
 }
 
 /**
  * Connected-wallet chip (status dot + truncated address + chevron) shared by
  * CampaignHeader and LeaderboardView so both headers stay identical instead
  * of duplicating the markup. Pressing the chip opens a single-action
- * "Disconnect" dropdown, following the same relative/absolute positioning
+ * dropdown, following the same relative/absolute positioning
  * pattern as InfoTooltip in ai-credits-widget rather than pulling in the
  * heavier Drawer/ActionSheet primitives for one menu item.
  */
-export function WalletChip({ address, onDisconnect }: WalletChipProps) {
+export function WalletChip({ address, onDisconnect, disconnectLabel = 'Disconnect' }: WalletChipProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [disconnectMessage, setDisconnectMessage] = useState<string | null>(null)
 
@@ -81,7 +89,7 @@ export function WalletChip({ address, onDisconnect }: WalletChipProps) {
               }}
             >
               <Icon name="log-out" size="xs" color="muted" />
-              <ButtonText>Disconnect</ButtonText>
+              <ButtonText>{disconnectLabel}</ButtonText>
             </Button>
             {disconnectMessage && (
               <Text variant="caption" tone="secondary" padding="$2">
