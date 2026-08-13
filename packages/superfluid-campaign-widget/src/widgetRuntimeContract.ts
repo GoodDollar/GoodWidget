@@ -194,6 +194,26 @@ export interface SuperfluidCampaignWidgetProps {
   connectOverride?: () => Promise<void>
   /** Integrator-owned wallet disconnect flow. */
   disconnectOverride?: () => Promise<void>
+  /**
+   * Integrator-owned live address (e.g. from a wallet-connection SDK's own
+   * reactive account hook). See `GoodWidgetProviderProps.addressOverride`.
+   */
+  addressOverride?: string | null
+  /**
+   * Integrator-owned live chain id, mirroring `addressOverride`. See
+   * `GoodWidgetProviderProps.chainIdOverride`.
+   */
+  chainIdOverride?: number | null
+  /**
+   * Integrator-owned chain-switch fallback. See
+   * `GoodWidgetProviderProps.switchChainOverride`.
+   */
+  switchChainOverride?: (chainId: number) => Promise<void>
+  /**
+   * Label for the wallet chip's disconnect action. See
+   * `GoodWidgetProviderProps.disconnectLabel`.
+   */
+  disconnectLabel?: string
   environment?: SuperfluidCampaignWidgetEnvironment
   themeOverrides?: GoodWidgetThemeOverrides
   config?: GoodWidgetConfig
