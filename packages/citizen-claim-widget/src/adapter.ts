@@ -684,12 +684,13 @@ export function useCitizenClaimAdapter(
         await switchChain(targetChainId)
       } catch (err: unknown) {
         if (!mountedRef.current) return
-        // This action owns its own error reporting via state.error — unlike
-        // handleClaim's caller, the switch_chain caller has no use for a
-        // rethrown value, so swallow it here rather than let it surface as
-        // an unused rejection.
+        // Sets state.error so the inline banner shows a humanized message
+        // immediately, then rethrows — mirroring handleClaim above — so the
+        // widget's own catch can also name the specific chain that failed
+        // in a toast/onClaimError, which needs the raw error to reach it.
         setStatus('error')
         setError(humanReadableError(err))
+        throw err
       }
     },
     [switchChain],

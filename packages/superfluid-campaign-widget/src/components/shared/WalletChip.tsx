@@ -106,7 +106,7 @@ export function WalletChip({
               variant="list"
               onPress={async () => {
                 if (!onDisconnect) {
-                  setDisconnectMessage('Disconnect should be done in your wallets session')
+                  setDisconnectMessage("Disconnect should be done in your wallet's session")
                   return
                 }
                 setIsMenuOpen(false)
