@@ -17,6 +17,8 @@ interface CampaignHeaderProps {
   isConnected: boolean
   onConnect: () => void
   onDisconnect?: () => Promise<void>
+  /** Label for the WalletChip's disconnect action. See WalletChip's own prop for details. */
+  disconnectLabel?: string
   /** Present when the campaign shell is showing an in-place child widget. */
   onClose?: () => void
 }
@@ -36,6 +38,7 @@ export function CampaignHeader({
   isConnected,
   onConnect,
   onDisconnect,
+  disconnectLabel,
   onClose,
 }: CampaignHeaderProps) {
   return (
@@ -60,7 +63,7 @@ export function CampaignHeader({
 
         <XStack gap="$2" alignItems="center">
           {isConnected ? (
-            <WalletChip address={address} onDisconnect={onDisconnect} />
+            <WalletChip address={address} onDisconnect={onDisconnect} disconnectLabel={disconnectLabel} />
           ) : (
             <ConnectWalletPrompt onConnect={onConnect} />
           )}
