@@ -3,7 +3,7 @@ import { AppKitProvider } from '@reown/appkit/react'
 import { base, celo, fuse, mainnet, xdc, type AppKitNetwork } from '@reown/appkit/networks'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 
-const DEFAULT_APPKIT_NETWORKS = [mainnet, base, xdc, fuse, celo] as [
+export const DEFAULT_APPKIT_NETWORKS = [mainnet, base, xdc, fuse, celo] as [
   AppKitNetwork,
   ...AppKitNetwork[],
 ]
