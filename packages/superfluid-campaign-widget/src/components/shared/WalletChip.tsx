@@ -63,7 +63,11 @@ export function WalletChip({
         <Icon name="chevron-down" size="xs" color="muted" />
       </XStack>
 
-      {isMenuOpen && (
+      {/* Also gated on !disabled: if disabled flips true while the menu is
+          already open, this stops rendering it (and its disconnect action)
+          immediately, rather than leaving a stale open menu the disabled
+          chip can no longer be pressed to close. */}
+      {isMenuOpen && !disabled && (
         <>
           {/* Invisible full-viewport layer so any outside press closes the menu,
               same dismiss approach as ActionSheet's overlay. Sits below the menu

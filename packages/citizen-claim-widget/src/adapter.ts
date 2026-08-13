@@ -529,6 +529,17 @@ export function useCitizenClaimAdapter(
       return
     }
 
+    if (!isCustodialExecution && chainId === null) {
+      // Wallet is connected but hasn't reported an active chain yet (common
+      // right after connecting) — treat this as still resolving rather than
+      // unsupported, since it's unknown whether the eventual chain will be
+      // supported. The chainId-keyed effect below reruns this once it
+      // resolves, so this never gets stuck.
+      await auxiliaryReads
+      setStatus('loading')
+      return
+    }
+
     // Custodial execution submits claims through its own configured per-chain
     // clients, never the active wallet chain, so it has no dependency on
     // `chainId` at all — read the personalized status from whichever
@@ -541,8 +552,8 @@ export function useCitizenClaimAdapter(
 
     if (statusChainId === null || !isSupportedChain(statusChainId)) {
       await auxiliaryReads
-      // Address known but no supported chain is available to read personalized
-      // status from — a distinct status from not_connected so the UI can show
+      // Chain is known but unsupported (or custodial has no chain configured
+      // at all) — a distinct status from not_connected so the UI can show
       // "switch chain" copy instead of misleadingly asking an already-connected
       // wallet to connect. Clear personalized entitlement from whatever chain
       // was previously active.
