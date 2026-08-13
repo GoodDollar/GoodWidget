@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Button, ButtonText, Icon, Text, XStack, YStack } from '@goodwidget/ui'
 import type { IconName } from '@goodwidget/ui'
 import { truncateAddress } from './styles'
@@ -38,6 +38,13 @@ export function WalletChip({
 }: WalletChipProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [disconnectMessage, setDisconnectMessage] = useState<string | null>(null)
+
+  // Resets the open state itself (not just its render) when disabled turns
+  // true, so re-enabling later starts from closed instead of the menu
+  // silently reappearing from whatever state it was left in.
+  useEffect(() => {
+    if (disabled) setIsMenuOpen(false)
+  }, [disabled])
 
   return (
     <XStack position="relative" alignItems="center" opacity={disabled ? 0.5 : 1}>

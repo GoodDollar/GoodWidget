@@ -57,7 +57,7 @@ const noopSwitchChain = async () => {
  */
 function isUserRejectedSwitchChain(err: unknown): boolean {
   const code = (err as { code?: number | string } | undefined)?.code
-  return code === 4001 || code === 'ACTION_REJECTED'
+  return Number(code) === 4001 || code === 'ACTION_REJECTED'
 }
 
 export const WalletContext = React.createContext<WalletContextValue>({

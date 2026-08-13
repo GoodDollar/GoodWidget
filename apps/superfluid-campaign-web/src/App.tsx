@@ -34,7 +34,9 @@ function AppKitSuperfluidCampaignWidget() {
   // definitively resolved to "no wallet". Only the latter is a real override —
   // during the unresolved window this stays `undefined` so the core provider's
   // own EIP-1193 fallback tracking (rather than a premature "disconnected"
-  // override) covers the gap until AppKit reports a final status.
+  // override) covers the gap until AppKit reports a final status. `chainId`
+  // below is gated on the same flag so it doesn't fall back to a stale
+  // previously-tracked chain once the account is known to be disconnected.
   const isAccountResolved = accountStatus === 'connected' || accountStatus === 'disconnected'
 
   // AppKit's switchNetwork takes the network descriptor object, not a chain id,
@@ -66,7 +68,7 @@ function AppKitSuperfluidCampaignWidget() {
       defaultTheme="dark"
       contentMaxWidth={DESKTOP_WIDGET_MAX_WIDTH}
       addressOverride={isAccountResolved ? (address ?? null) : undefined}
-      chainIdOverride={chainId == null ? undefined : Number(chainId)}
+      chainIdOverride={isAccountResolved ? (chainId == null ? null : Number(chainId)) : undefined}
       availableChainIdsOverride={availableChainIds}
       switchChainOverride={async (targetChainId) => {
         const targetNetwork = appKitNetworksByChainId.get(targetChainId)
