@@ -47,6 +47,7 @@ interface SuperfluidCampaignRuntimeProps {
   addressOverride?: SuperfluidCampaignWidgetProps['addressOverride']
   chainIdOverride?: SuperfluidCampaignWidgetProps['chainIdOverride']
   switchChainOverride?: SuperfluidCampaignWidgetProps['switchChainOverride']
+  availableChainIdsOverride?: SuperfluidCampaignWidgetProps['availableChainIdsOverride']
   hasDisconnectOverride: boolean
 }
 
@@ -124,9 +125,10 @@ function SuperfluidCampaignRuntime({
   addressOverride,
   chainIdOverride,
   switchChainOverride,
+  availableChainIdsOverride,
   hasDisconnectOverride,
 }: SuperfluidCampaignRuntimeProps) {
-  const { isConnected, connect, disconnect, disconnectLabel, address } = useWallet()
+  const { isConnected, connect, disconnect, disconnectLabel, disconnectIcon, address } = useWallet()
   const [view, setView] = useState<SuperfluidCampaignView>(initialView)
   const [embeddedClaimTab, setEmbeddedClaimTab] = useState<EmbeddedClaimTab>(null)
   const [leaderboardRefreshKey, setLeaderboardRefreshKey] = useState(0)
@@ -154,6 +156,7 @@ function SuperfluidCampaignRuntime({
           onConnect={connect}
           onDisconnect={hasDisconnectOverride ? disconnect : undefined}
           disconnectLabel={hasDisconnectOverride ? disconnectLabel : undefined}
+          disconnectIcon={hasDisconnectOverride ? disconnectIcon : undefined}
           onClose={() => setEmbeddedClaimTab(null)}
         />
         <CitizenClaimWidget
@@ -164,6 +167,7 @@ function SuperfluidCampaignRuntime({
           addressOverride={addressOverride}
           chainIdOverride={chainIdOverride}
           switchChainOverride={switchChainOverride}
+          availableChainIdsOverride={availableChainIdsOverride}
           environment={citizenClaimEnvironment}
           claimExecution={citizenClaimExecution}
           initialTab={embeddedClaimTab}
@@ -183,6 +187,7 @@ function SuperfluidCampaignRuntime({
         onConnect={connect}
         onDisconnect={hasDisconnectOverride ? disconnect : undefined}
         disconnectLabel={hasDisconnectOverride ? disconnectLabel : undefined}
+        disconnectIcon={hasDisconnectOverride ? disconnectIcon : undefined}
         onClose={() => setView('content')}
         leaderboardRefreshKey={leaderboardRefreshKey}
         userPointsAdapter={isMockRuntime ? dataClient.userPoints : undefined}
@@ -201,6 +206,7 @@ function SuperfluidCampaignRuntime({
         onConnect={connect}
         onDisconnect={hasDisconnectOverride ? disconnect : undefined}
         disconnectLabel={hasDisconnectOverride ? disconnectLabel : undefined}
+        disconnectIcon={hasDisconnectOverride ? disconnectIcon : undefined}
       />
 
       <LeaderboardSummary
@@ -249,7 +255,9 @@ export function SuperfluidCampaignWidgetWithClient({
   addressOverride,
   chainIdOverride,
   switchChainOverride,
+  availableChainIdsOverride,
   disconnectLabel,
+  disconnectIcon,
   themeOverrides,
   config,
   defaultTheme = 'dark',
@@ -272,7 +280,9 @@ export function SuperfluidCampaignWidgetWithClient({
       addressOverride={addressOverride}
       chainIdOverride={chainIdOverride}
       switchChainOverride={switchChainOverride}
+      availableChainIdsOverride={availableChainIdsOverride}
       disconnectLabel={disconnectLabel}
+      disconnectIcon={disconnectIcon}
       config={config}
       themeOverrides={themeOverrides}
       defaultTheme={defaultTheme}
@@ -296,6 +306,7 @@ export function SuperfluidCampaignWidgetWithClient({
           addressOverride={addressOverride}
           chainIdOverride={chainIdOverride}
           switchChainOverride={switchChainOverride}
+          availableChainIdsOverride={availableChainIdsOverride}
           hasDisconnectOverride={Boolean(disconnectOverride)}
         />
       </Card>

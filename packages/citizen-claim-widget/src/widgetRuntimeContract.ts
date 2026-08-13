@@ -147,6 +147,12 @@ export interface CitizenClaimWidgetProps {
    * `GoodWidgetProviderProps.switchChainOverride`.
    */
   switchChainOverride?: (chainId: number) => Promise<void>
+  /**
+   * Chain ids the passed-down provider can currently execute on. See
+   * `GoodWidgetProviderProps.availableChainIdsOverride`. Claim execution is
+   * scoped to this set; balance/entitlement reads are unaffected.
+   */
+  availableChainIdsOverride?: number[] | null
   // ---- Theming (optional, passed through to GoodWidgetProvider) ----
   /** Token and theme overrides applied at the widget boundary. */
   themeOverrides?: GoodWidgetThemeOverrides

@@ -1,4 +1,4 @@
-import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
+import type { GoodWidgetConfig, GoodWidgetThemeOverrides, IconName } from '@goodwidget/ui'
 import type {
   CitizenClaimWidgetCustodialExecution,
   CitizenClaimWidgetEnvironment,
@@ -210,10 +210,21 @@ export interface SuperfluidCampaignWidgetProps {
    */
   switchChainOverride?: (chainId: number) => Promise<void>
   /**
+   * Chain ids the passed-down provider can currently execute on. See
+   * `GoodWidgetProviderProps.availableChainIdsOverride`. Claim execution is
+   * scoped to this set; balance/entitlement reads are unaffected.
+   */
+  availableChainIdsOverride?: number[] | null
+  /**
    * Label for the wallet chip's disconnect action. See
    * `GoodWidgetProviderProps.disconnectLabel`.
    */
   disconnectLabel?: string
+  /**
+   * Icon for the wallet chip's disconnect action, mirroring `disconnectLabel`.
+   * See `GoodWidgetProviderProps.disconnectIcon`.
+   */
+  disconnectIcon?: IconName
   environment?: SuperfluidCampaignWidgetEnvironment
   themeOverrides?: GoodWidgetThemeOverrides
   config?: GoodWidgetConfig

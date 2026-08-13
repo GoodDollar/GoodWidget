@@ -1,5 +1,6 @@
 import React from 'react'
 import { Badge, BadgeText, Button, ButtonText, Heading, Icon, Text, XStack, YStack } from '@goodwidget/ui'
+import type { IconName } from '@goodwidget/ui'
 import type { CampaignDefinition } from '../widgetRuntimeContract'
 import { ConnectWalletPrompt } from './ConnectWalletPrompt'
 import { compactButtonProps } from './shared/styles'
@@ -19,6 +20,8 @@ interface CampaignHeaderProps {
   onDisconnect?: () => Promise<void>
   /** Label for the WalletChip's disconnect action. See WalletChip's own prop for details. */
   disconnectLabel?: string
+  /** Icon for the WalletChip's disconnect action. See WalletChip's own prop for details. */
+  disconnectIcon?: IconName
   /** Present when the campaign shell is showing an in-place child widget. */
   onClose?: () => void
 }
@@ -39,6 +42,7 @@ export function CampaignHeader({
   onConnect,
   onDisconnect,
   disconnectLabel,
+  disconnectIcon,
   onClose,
 }: CampaignHeaderProps) {
   return (
@@ -63,7 +67,12 @@ export function CampaignHeader({
 
         <XStack gap="$2" alignItems="center">
           {isConnected ? (
-            <WalletChip address={address} onDisconnect={onDisconnect} disconnectLabel={disconnectLabel} />
+            <WalletChip
+              address={address}
+              onDisconnect={onDisconnect}
+              disconnectLabel={disconnectLabel}
+              menuActionIcon={disconnectIcon}
+            />
           ) : (
             <ConnectWalletPrompt onConnect={onConnect} />
           )}

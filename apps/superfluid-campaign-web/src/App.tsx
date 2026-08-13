@@ -25,7 +25,7 @@ function AppKitSuperfluidCampaignWidget() {
   const { open } = useAppKit()
   const { address } = useAppKitAccount()
   const { walletProvider } = useAppKitProvider<EIP1193Provider | undefined>('eip155')
-  const { chainId, switchNetwork } = useAppKitNetwork()
+  const { chainId, switchNetwork, approvedCaipNetworkIds } = useAppKitNetwork()
   const addressRef = useRef(address)
   addressRef.current = address
 
@@ -38,6 +38,20 @@ function AppKitSuperfluidCampaignWidget() {
     [],
   )
 
+  // CAIP network ids are formatted like "eip155:122" — the widget's execute
+  // gating needs plain numeric chain ids. `undefined` (AppKit hasn't reported
+  // approved networks yet) is kept as `null`, meaning "no restriction known"
+  // rather than "nothing is available".
+  const availableChainIds = useMemo(
+    () =>
+      approvedCaipNetworkIds
+        ? approvedCaipNetworkIds
+            .map((caipId) => Number(caipId.split(':')[1]))
+            .filter((id) => Number.isFinite(id))
+        : null,
+    [approvedCaipNetworkIds],
+  )
+
   return (
     <SuperfluidCampaignWidget
       provider={walletProvider}
@@ -45,6 +59,7 @@ function AppKitSuperfluidCampaignWidget() {
       contentMaxWidth={DESKTOP_WIDGET_MAX_WIDTH}
       addressOverride={address ?? null}
       chainIdOverride={chainId === undefined ? null : Number(chainId)}
+      availableChainIdsOverride={availableChainIds}
       switchChainOverride={async (targetChainId) => {
         const targetNetwork = appKitNetworksByChainId.get(targetChainId)
         // Falling through to AppKit's own network-selection modal is the
@@ -62,6 +77,7 @@ function AppKitSuperfluidCampaignWidget() {
         }
       }}
       disconnectLabel={APPKIT_DISCONNECT_LABEL}
+      disconnectIcon="settings"
       connectOverride={async () => {
         await open({ view: 'Connect' })
         if (!addressRef.current) throw new Error('wallet_connect_cancelled')

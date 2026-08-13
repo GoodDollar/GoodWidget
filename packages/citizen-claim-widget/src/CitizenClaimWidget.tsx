@@ -641,6 +641,7 @@ export function CitizenClaimWidget({
   addressOverride,
   chainIdOverride,
   switchChainOverride,
+  availableChainIdsOverride,
 }: CitizenClaimWidgetProps) {
   return (
     <GoodWidgetProvider
@@ -651,6 +652,7 @@ export function CitizenClaimWidget({
       addressOverride={addressOverride}
       chainIdOverride={chainIdOverride}
       switchChainOverride={switchChainOverride}
+      availableChainIdsOverride={availableChainIdsOverride}
     >
       <CitizenClaimShell
         fallbackChainId={chainId}

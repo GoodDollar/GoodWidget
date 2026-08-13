@@ -12,6 +12,7 @@ import {
   XStack,
   YStack,
 } from '@goodwidget/ui'
+import type { IconName } from '@goodwidget/ui'
 import type {
   CampaignLeaderboardAdapter,
   CampaignPointsAccount,
@@ -44,6 +45,8 @@ interface LeaderboardViewProps {
   onDisconnect?: () => Promise<void>
   /** Label for the WalletChip's disconnect action. See WalletChip's own prop for details. */
   disconnectLabel?: string
+  /** Icon for the WalletChip's disconnect action. See WalletChip's own prop for details. */
+  disconnectIcon?: IconName
   onClose: () => void
   leaderboardRefreshKey: number
   userPointsAdapter?: CampaignUserPointsAdapter
@@ -88,6 +91,7 @@ export function LeaderboardView({
   onConnect,
   onDisconnect,
   disconnectLabel,
+  disconnectIcon,
   onClose,
   leaderboardRefreshKey,
   userPointsAdapter,
@@ -180,7 +184,12 @@ export function LeaderboardView({
             </Badge>
           </XStack>
           {isConnected ? (
-            <WalletChip address={address} onDisconnect={onDisconnect} disconnectLabel={disconnectLabel} />
+            <WalletChip
+              address={address}
+              onDisconnect={onDisconnect}
+              disconnectLabel={disconnectLabel}
+              menuActionIcon={disconnectIcon}
+            />
           ) : (
             <Button size="sm" {...compactButtonProps} onPress={onConnect}>
               <ButtonText>Connect wallet</ButtonText>

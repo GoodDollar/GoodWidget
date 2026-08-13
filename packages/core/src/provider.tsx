@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react'
 import { TamaguiProvider } from 'tamagui'
 import { createGoodWidgetConfig, mergeThemeOverrides, YStack, Stack } from '@goodwidget/ui'
+import type { IconName } from '@goodwidget/ui'
 import { detectHost } from './detect'
 import type { EIP1193Provider } from './eip1193'
 import type {
@@ -25,6 +26,8 @@ export interface WalletContextValue extends WalletState {
   disconnect: () => Promise<void>
   /** Label for the disconnect action; see `GoodWidgetProviderProps.disconnectLabel`. */
   disconnectLabel: string
+  /** Icon for the disconnect action; see `GoodWidgetProviderProps.disconnectIcon`. */
+  disconnectIcon: IconName
   switchChain: (chainId: number) => Promise<void>
 }
 
@@ -34,11 +37,14 @@ export interface GoodWidgetContextValue extends GoodWidgetState {
   connect: () => Promise<void>
   disconnect: () => Promise<void>
   disconnectLabel: string
+  disconnectIcon: IconName
   switchChain: (chainId: number) => Promise<void>
 }
 
+const SWITCH_CHAIN_UNAVAILABLE_ERROR = 'No wallet provider available to switch chains'
+
 const noopSwitchChain = async () => {
-  throw new Error('No wallet provider available to switch chains')
+  throw new Error(SWITCH_CHAIN_UNAVAILABLE_ERROR)
 }
 
 export const WalletContext = React.createContext<WalletContextValue>({
@@ -46,9 +52,11 @@ export const WalletContext = React.createContext<WalletContextValue>({
   chainId: null,
   isConnected: false,
   provider: null,
+  availableChainIds: null,
   connect: async () => {},
   disconnect: async () => {},
   disconnectLabel: 'Disconnect',
+  disconnectIcon: 'log-out',
   switchChain: noopSwitchChain,
 })
 
@@ -62,11 +70,13 @@ export const GoodWidgetContext = React.createContext<GoodWidgetContextValue>({
   chainId: null,
   isConnected: false,
   provider: null,
+  availableChainIds: null,
   host: 'injected',
   capabilities: DEFAULT_CAPABILITIES,
   connect: async () => {},
   disconnect: async () => {},
   disconnectLabel: 'Disconnect',
+  disconnectIcon: 'log-out',
   switchChain: noopSwitchChain,
 })
 
@@ -77,7 +87,9 @@ export function GoodWidgetProvider({
   addressOverride,
   chainIdOverride,
   switchChainOverride,
+  availableChainIdsOverride,
   disconnectLabel = 'Disconnect',
+  disconnectIcon = 'log-out',
   config: authorConfig,
   themeOverrides,
   defaultTheme = 'dark',
@@ -105,12 +117,14 @@ export function GoodWidgetProvider({
     }
   }, [explicitProvider])
 
-  // When the integrator supplies a live address/chain id (e.g. from a wallet
-  // connection SDK's own reactive hooks), that becomes the single source of
-  // truth and the raw EIP-1193 event listeners below are skipped entirely —
-  // some connectors (WalletConnect sessions bridged through AppKit in
-  // particular) do not reliably emit accountsChanged/chainChanged, which
-  // otherwise leaves this state stale after a connect/disconnect/switch.
+  // When the integrator supplies both a live address and chain id (e.g. from
+  // a wallet connection SDK's own reactive hooks), those become the single
+  // source of truth and the raw EIP-1193 event listeners below are skipped
+  // entirely. When only one of the two is supplied, the listeners still run
+  // so the other value keeps tracking — some connectors (WalletConnect
+  // sessions bridged through AppKit in particular) do not reliably emit
+  // accountsChanged/chainChanged, which otherwise leaves that value stale
+  // after a connect/disconnect/switch.
   const hasAddressOverride = addressOverride !== undefined
   const hasChainIdOverride = chainIdOverride !== undefined
 
@@ -195,12 +209,14 @@ export function GoodWidgetProvider({
         }
       }
       if (!switchChainOverride) {
-        throw new Error('No wallet provider available to switch chains')
+        throw new Error(SWITCH_CHAIN_UNAVAILABLE_ERROR)
       }
       await switchChainOverride(targetChainId)
     },
     [resolvedProvider, switchChainOverride],
   )
+
+  const availableChainIds = availableChainIdsOverride ?? null
 
   const mergedConfig = useMemo(() => {
     const finalConfig = mergeThemeOverrides(authorConfig, themeOverrides)
@@ -213,12 +229,24 @@ export function GoodWidgetProvider({
       chainId,
       isConnected: address !== null,
       provider: resolvedProvider,
+      availableChainIds,
       connect,
       disconnect,
       disconnectLabel,
+      disconnectIcon,
       switchChain,
     }),
-    [address, chainId, resolvedProvider, connect, disconnect, disconnectLabel, switchChain],
+    [
+      address,
+      chainId,
+      resolvedProvider,
+      availableChainIds,
+      connect,
+      disconnect,
+      disconnectLabel,
+      disconnectIcon,
+      switchChain,
+    ],
   )
 
   const hostValue = useMemo<HostContextValue>(() => ({ host, capabilities }), [host, capabilities])

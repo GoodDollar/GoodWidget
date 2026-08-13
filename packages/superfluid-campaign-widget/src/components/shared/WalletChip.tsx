@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Button, ButtonText, Icon, Text, XStack, YStack } from '@goodwidget/ui'
+import type { IconName } from '@goodwidget/ui'
 import { truncateAddress } from './styles'
 
 interface WalletChipProps {
@@ -13,6 +14,8 @@ interface WalletChipProps {
    * the action's label matches what it actually does.
    */
   disconnectLabel?: string
+  /** Icon for the menu action, mirroring `disconnectLabel`. Defaults to 'log-out'. */
+  menuActionIcon?: IconName
 }
 
 /**
@@ -23,7 +26,12 @@ interface WalletChipProps {
  * pattern as InfoTooltip in ai-credits-widget rather than pulling in the
  * heavier Drawer/ActionSheet primitives for one menu item.
  */
-export function WalletChip({ address, onDisconnect, disconnectLabel = 'Disconnect' }: WalletChipProps) {
+export function WalletChip({
+  address,
+  onDisconnect,
+  disconnectLabel = 'Disconnect',
+  menuActionIcon = 'log-out',
+}: WalletChipProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [disconnectMessage, setDisconnectMessage] = useState<string | null>(null)
 
@@ -88,7 +96,7 @@ export function WalletChip({ address, onDisconnect, disconnectLabel = 'Disconnec
                 await onDisconnect()
               }}
             >
-              <Icon name="log-out" size="xs" color="muted" />
+              <Icon name={menuActionIcon} size="xs" color="muted" />
               <ButtonText>{disconnectLabel}</ButtonText>
             </Button>
             {disconnectMessage && (
