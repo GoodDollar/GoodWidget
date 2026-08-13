@@ -1,10 +1,12 @@
-import React, { useRef } from 'react'
+import React, { useMemo, useRef } from 'react'
 import { SuperfluidCampaignWidget } from '@goodwidget/superfluid-campaign-widget'
 import type { EIP1193Provider } from '@goodwidget/core'
 import {
+  DEFAULT_APPKIT_NETWORKS,
   DefaultAppKitProvider,
   useAppKit,
   useAppKitAccount,
+  useAppKitNetwork,
   useAppKitProvider,
 } from '@goodwidget/embed/appkit-provider'
 import { TamaguiProvider } from '@tamagui/core'
@@ -12,18 +14,54 @@ import { YStack, defaultConfig } from '@goodwidget/ui'
 
 const DESKTOP_WIDGET_MAX_WIDTH = 960
 
+/**
+ * Pressing the disconnect-menu item under AppKit opens AppKit's own Account
+ * view (see disconnectOverride below) rather than ending the session
+ * directly, so the button is labeled to match what it actually does.
+ */
+const APPKIT_DISCONNECT_LABEL = 'Network settings'
+
 function AppKitSuperfluidCampaignWidget() {
   const { open } = useAppKit()
   const { address } = useAppKitAccount()
   const { walletProvider } = useAppKitProvider<EIP1193Provider | undefined>('eip155')
+  const { chainId, switchNetwork } = useAppKitNetwork()
   const addressRef = useRef(address)
   addressRef.current = address
+
+  // AppKit's switchNetwork takes the network descriptor object, not a chain id,
+  // so this looks up the descriptor for whichever chain the widget wants to
+  // switch to. AppKit's own active-network state (chainId here) is always the
+  // source of truth for what's "current" — the widget never tracks it separately.
+  const appKitNetworksByChainId = useMemo(
+    () => new Map(DEFAULT_APPKIT_NETWORKS.map((network) => [Number(network.id), network])),
+    [],
+  )
 
   return (
     <SuperfluidCampaignWidget
       provider={walletProvider}
       defaultTheme="dark"
       contentMaxWidth={DESKTOP_WIDGET_MAX_WIDTH}
+      addressOverride={address ?? null}
+      chainIdOverride={chainId === undefined ? null : Number(chainId)}
+      switchChainOverride={async (targetChainId) => {
+        const targetNetwork = appKitNetworksByChainId.get(targetChainId)
+        // Falling through to AppKit's own network-selection modal is the
+        // documented recovery path when a target chain has no direct
+        // programmatic descriptor here, or when switchNetwork itself fails
+        // (e.g. the connected wallet rejects the automatic switch request).
+        if (!targetNetwork) {
+          await open({ view: 'Networks' })
+          return
+        }
+        try {
+          await switchNetwork(targetNetwork)
+        } catch {
+          await open({ view: 'Networks' })
+        }
+      }}
+      disconnectLabel={APPKIT_DISCONNECT_LABEL}
       connectOverride={async () => {
         await open({ view: 'Connect' })
         if (!addressRef.current) throw new Error('wallet_connect_cancelled')
