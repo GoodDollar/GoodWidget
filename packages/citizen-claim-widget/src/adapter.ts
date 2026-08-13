@@ -63,9 +63,20 @@ const CHAIN_CONFIGS: Record<number, Chain> = {
 const SUPPORTED_CHAINS = citizenSdkCapabilities.chains
 const AVAILABLE_ENVIRONMENTS = citizenSdkCapabilities.environments
 
-/** Resolves a supported chain id to its display name, falling back to the raw id. */
-function getChainDisplayName(chainId: number): string {
-  return CHAIN_CONFIGS[chainId]?.name ?? `Chain ${chainId}`
+// Display names for chains a connected wallet can land on outside the 3
+// citizen-sdk supports (e.g. the other networks this app's own wallet-connect
+// modal offers) — "unsupported chain" messaging only ever needs to name a
+// chain outside CHAIN_CONFIGS, so these are looked up separately from the
+// viem Chain descriptors above.
+const KNOWN_CHAIN_NAMES: Record<number, string> = {
+  ...Object.fromEntries(Object.entries(CHAIN_CONFIGS).map(([id, chain]) => [id, chain.name])),
+  1: 'Ethereum',
+  8453: 'Base',
+}
+
+/** Resolves a chain id to its display name, falling back to the raw id only when truly unknown. */
+export function getChainDisplayName(chainId: number): string {
+  return KNOWN_CHAIN_NAMES[chainId] ?? `Chain ${chainId}`
 }
 
 /**
@@ -650,7 +661,9 @@ export function useCitizenClaimAdapter(
       }
 
       if (!isSupportedChain(targetChainId)) {
-        throw new CitizenClaimAdapterError(`Unsupported chain for citizen-sdk: ${targetChainId}`)
+        throw new CitizenClaimAdapterError(
+          `Unsupported chain for citizen-sdk: ${getChainDisplayName(targetChainId)}`,
+        )
       }
 
       // Execute actions must stay within the chains the passed-down provider
@@ -822,13 +835,19 @@ export function useCitizenClaimAdapter(
     // or the button would offer "Claim" and immediately fail against the
     // active unsupported chain.
     if (status === 'unsupported_chain' && !isCustodialExecution) return 'switch_chain'
+    // Whitelisting is required on the chain getWalletClaimStatus checked
+    // (the active/default chain), and identity is account-scoped rather than
+    // per-chain — a claimable balance surfaced on some other chain must not
+    // offer "Claim" ahead of resolving that, since claimAll would otherwise
+    // attempt (and fail) real claims on every other chain before the wallet
+    // has even completed face verification.
+    if (status === 'not_whitelisted') return 'verify'
     // Custodial execution is multi-chain and has no "active" wallet chain, so
     // an account-scoped entitlement on any configured chain takes precedence
     // over the unsupported_chain status entirely.
     if (isConnected && address && claimablesByChain.length > 0) return 'claim'
     if (status === 'unsupported_chain') return 'none'
     if (status === 'not_connected') return 'connect'
-    if (status === 'not_whitelisted') return 'verify'
     // Keep the claim button mounted while a claim is in-flight so UI copy can
     // switch to "Claiming..." without hiding the action surface.
     if (status === 'claiming') return 'claim'

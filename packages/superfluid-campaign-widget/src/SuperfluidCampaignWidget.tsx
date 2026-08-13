@@ -47,6 +47,7 @@ interface SuperfluidCampaignRuntimeProps {
   /** Forwarded to the embedded CitizenClaimWidget's own GoodWidgetProvider. */
   addressOverride?: SuperfluidCampaignWidgetProps['addressOverride']
   chainIdOverride?: SuperfluidCampaignWidgetProps['chainIdOverride']
+  connectOverride?: SuperfluidCampaignWidgetProps['connectOverride']
   switchChainOverride?: SuperfluidCampaignWidgetProps['switchChainOverride']
   availableChainIdsOverride?: SuperfluidCampaignWidgetProps['availableChainIdsOverride']
   hasDisconnectOverride: boolean
@@ -126,6 +127,7 @@ function SuperfluidCampaignRuntime({
   defaultTheme,
   addressOverride,
   chainIdOverride,
+  connectOverride,
   switchChainOverride,
   availableChainIdsOverride,
   hasDisconnectOverride,
@@ -169,6 +171,7 @@ function SuperfluidCampaignRuntime({
           defaultTheme={defaultTheme}
           addressOverride={addressOverride}
           chainIdOverride={chainIdOverride}
+          connectOverride={connectOverride}
           switchChainOverride={switchChainOverride}
           availableChainIdsOverride={availableChainIdsOverride}
           environment={citizenClaimEnvironment}
@@ -312,6 +315,7 @@ export function SuperfluidCampaignWidgetWithClient({
           defaultTheme={defaultTheme}
           addressOverride={addressOverride}
           chainIdOverride={chainIdOverride}
+          connectOverride={connectOverride}
           switchChainOverride={switchChainOverride}
           availableChainIdsOverride={availableChainIdsOverride}
           hasDisconnectOverride={Boolean(disconnectOverride)}

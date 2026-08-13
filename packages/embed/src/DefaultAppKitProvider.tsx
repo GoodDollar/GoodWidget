@@ -3,7 +3,9 @@ import { AppKitProvider } from '@reown/appkit/react'
 import { base, celo, fuse, mainnet, xdc, type AppKitNetwork } from '@reown/appkit/networks'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 
-export const DEFAULT_APPKIT_NETWORKS = [mainnet, base, xdc, fuse, celo] as [
+// xdc leads the list: AppKit treats the first network as the default chain
+// a freshly connecting wallet lands on.
+export const DEFAULT_APPKIT_NETWORKS = [xdc, mainnet, base, fuse, celo] as [
   AppKitNetwork,
   ...AppKitNetwork[],
 ]

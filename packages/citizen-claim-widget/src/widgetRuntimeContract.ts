@@ -150,6 +150,12 @@ export interface CitizenClaimWidgetProps {
    */
   chainIdOverride?: number | null
   /**
+   * Integrator-owned connect fallback (e.g. opening a wallet-connect modal
+   * instead of requesting the injected provider directly). See
+   * `GoodWidgetProviderProps.connectOverride`.
+   */
+  connectOverride?: () => Promise<void>
+  /**
    * Integrator-owned chain-switch fallback. See
    * `GoodWidgetProviderProps.switchChainOverride`.
    */

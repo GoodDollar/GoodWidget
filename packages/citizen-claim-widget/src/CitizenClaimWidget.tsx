@@ -21,7 +21,7 @@ import {
   WidgetTabs,
 } from '@goodwidget/ui'
 import { SupportedChains } from '@goodsdks/citizen-sdk'
-import { useCitizenClaimAdapter } from './adapter'
+import { getChainDisplayName, useCitizenClaimAdapter } from './adapter'
 import type {
   CitizenClaimWidgetProps,
   CitizenClaimWidgetSuccessDetail,
@@ -143,19 +143,6 @@ const ClaimDailyStatsRow = createComponent(Text, {
   display: 'flex' as const,
 })
 
-function getChainName(chainId: number): string {
-  switch (chainId) {
-    case SupportedChains.FUSE:
-      return 'Fuse'
-    case SupportedChains.CELO:
-      return 'Celo'
-    case SupportedChains.XDC:
-      return 'XDC'
-    default:
-      return `Chain ${chainId}`
-  }
-}
-
 function formatCompactNumber(value: number): string {
   return new Intl.NumberFormat('en-US', {
     style: 'decimal',
@@ -235,7 +222,7 @@ function CitizenClaimInner({
   const chainNameById = useMemo(() => {
     const map = new Map<number, string>()
     for (const entry of claimablesByChain) {
-      map.set(entry.chainId, getChainName(entry.chainId))
+      map.set(entry.chainId, getChainDisplayName(entry.chainId))
     }
     return map
   }, [claimablesByChain])
@@ -257,7 +244,7 @@ function CitizenClaimInner({
         case 'claim': {
           const claimPlan = [...claimablesByChain]
           if (claimPlan.length === 0) {
-            const singleChainName = chainId ? getChainName(chainId) : 'active chain'
+            const singleChainName = chainId ? getChainDisplayName(chainId) : 'active chain'
             const toastId = createToast({
               message: `Claim initiated on ${singleChainName}`,
               status: 'pending',
@@ -296,7 +283,7 @@ function CitizenClaimInner({
           const toastByChain = new Map<number, string>()
           for (const claimEntry of claimPlan) {
             const entryChainName =
-              chainNameById.get(claimEntry.chainId) ?? getChainName(claimEntry.chainId)
+              chainNameById.get(claimEntry.chainId) ?? getChainDisplayName(claimEntry.chainId)
             toastByChain.set(
               claimEntry.chainId,
               createToast({
@@ -311,7 +298,7 @@ function CitizenClaimInner({
 
           for (const claimResult of claimResults) {
             const entryChainName =
-              chainNameById.get(claimResult.chainId) ?? getChainName(claimResult.chainId)
+              chainNameById.get(claimResult.chainId) ?? getChainDisplayName(claimResult.chainId)
             const toastId = toastByChain.get(claimResult.chainId)
             if (!toastId) continue
 
@@ -353,9 +340,9 @@ function CitizenClaimInner({
           break
         case 'switch_chain':
           // Prefer switching to a chain the wallet already has a claimable
-          // balance on; when none is known yet, fall back to Celo, the
-          // first preferred supported chain.
-          switchChainTargetId = claimablesByChain[0]?.chainId ?? SupportedChains.CELO
+          // balance on; when none is known yet, fall back to XDC, the
+          // default supported chain.
+          switchChainTargetId = claimablesByChain[0]?.chainId ?? SupportedChains.XDC
           await actions.switchChain?.(switchChainTargetId)
           break
       }
@@ -376,7 +363,7 @@ function CitizenClaimInner({
         // wallet/provider error text.
         console.error('[CitizenClaimWidget] switchChain failed', err)
         const targetChainName = switchChainTargetId
-          ? getChainName(switchChainTargetId)
+          ? getChainDisplayName(switchChainTargetId)
           : 'the requested chain'
         const message = `Couldn't switch to ${targetChainName}. Please try again from your wallet.`
         createToast({ message, status: 'error', duration: 0 })
@@ -402,7 +389,7 @@ function CitizenClaimInner({
 
   return (
     <YStack gap="$5" padding="$4">
-      {status === 'not_whitelisted' && claimablesByChain.length === 0 && (
+      {status === 'not_whitelisted' && (
         <ClaimCard>
           <YStack gap="$4" padding="$6" alignItems="center" width="100%">
             <Heading level={3} textAlign="center">
@@ -425,7 +412,7 @@ function CitizenClaimInner({
       {/* ------------------------------------------------------------------ */}
       {/* Main claim card                                                      */}
       {/* ------------------------------------------------------------------ */}
-      {(status !== 'not_whitelisted' || claimablesByChain.length > 0) && (
+      {status !== 'not_whitelisted' && (
         <ClaimCard>
           <YStack gap="$5" paddingVertical="$6">
             {/* Status content */}
@@ -442,7 +429,7 @@ function CitizenClaimInner({
                 <>
                   <Text secondary>
                     {chainId
-                      ? `Claiming isn't available on ${getChainName(chainId)}. Switch network to continue.`
+                      ? `Claiming isn't available on ${getChainDisplayName(chainId)}. Switch network to continue.`
                       : 'Switch to a supported network to claim daily G$'}
                   </Text>
                 </>
@@ -459,7 +446,7 @@ function CitizenClaimInner({
                   */}
                   <Text secondary>
                     {status === 'already_claimed' && claimablesByChain.length === 1
-                      ? `G$ Claim is still available on ${getChainName(claimablesByChain[0].chainId)}`
+                      ? `G$ Claim is still available on ${getChainDisplayName(claimablesByChain[0].chainId)}`
                       : status === 'already_claimed' && claimablesByChain.length > 1
                         ? 'G$ Claim is still available on other chains'
                         : 'Ready to claim'}
@@ -494,7 +481,7 @@ function CitizenClaimInner({
                   {claimablesByChain.map((entry, index) => (
                     <ClaimChainItem key={entry.chainId}>
                       <TokenAmount token="G$" amount={entry.amount} size="sm" variant="secondary" />
-                      <Text secondary>{getChainName(entry.chainId)}</Text>
+                      <Text secondary>{getChainDisplayName(entry.chainId)}</Text>
                       {index < claimablesByChain.length - 1 && (
                         <Text variant="caption" secondary>
                           ·
@@ -621,7 +608,7 @@ function CitizenClaimShell({
         ]}
         activeTab={activeTab}
         onTabChange={(tabId: string) => setActiveTab(tabId as CitizenClaimTab)}
-        chainId={chainId ?? fallbackChainId ?? SupportedChains.CELO}
+        chainId={chainId ?? fallbackChainId ?? SupportedChains.XDC}
       />
       {activeTab === 'claim' ? (
         <>
@@ -675,6 +662,7 @@ export function CitizenClaimWidget({
   initialTab,
   addressOverride,
   chainIdOverride,
+  connectOverride,
   switchChainOverride,
   availableChainIdsOverride,
 }: CitizenClaimWidgetProps) {
@@ -686,6 +674,7 @@ export function CitizenClaimWidget({
       defaultTheme={defaultTheme}
       addressOverride={addressOverride}
       chainIdOverride={chainIdOverride}
+      connectOverride={connectOverride}
       switchChainOverride={switchChainOverride}
       availableChainIdsOverride={availableChainIdsOverride}
     >
