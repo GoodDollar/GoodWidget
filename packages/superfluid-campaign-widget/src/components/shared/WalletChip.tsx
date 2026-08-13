@@ -16,6 +16,8 @@ interface WalletChipProps {
   disconnectLabel?: string
   /** Icon for the menu action, mirroring `disconnectLabel`. Defaults to 'log-out'. */
   disconnectIcon?: IconName
+  /** When true, the chip no longer opens its menu and renders at reduced opacity. */
+  disabled?: boolean
 }
 
 /**
@@ -32,12 +34,13 @@ export function WalletChip({
   onDisconnect,
   disconnectLabel = 'Disconnect',
   disconnectIcon = 'log-out',
+  disabled = false,
 }: WalletChipProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [disconnectMessage, setDisconnectMessage] = useState<string | null>(null)
 
   return (
-    <XStack position="relative" alignItems="center">
+    <XStack position="relative" alignItems="center" opacity={disabled ? 0.5 : 1}>
       <XStack
         gap="$2"
         alignItems="center"
@@ -46,12 +49,14 @@ export function WalletChip({
         borderRadius="$full"
         borderWidth={1}
         borderColor="$borderColor"
-        cursor="pointer"
+        cursor={disabled ? 'not-allowed' : 'pointer'}
         onPress={() => {
+          if (disabled) return
           setDisconnectMessage(null)
           setIsMenuOpen((open) => !open)
         }}
         aria-label="Wallet options"
+        aria-disabled={disabled}
       >
         <YStack width={8} height={8} borderRadius="$full" backgroundColor="$success" />
         <Text variant="label">{address ? truncateAddress(address) : ''}</Text>

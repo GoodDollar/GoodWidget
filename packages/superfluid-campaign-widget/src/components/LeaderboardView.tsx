@@ -50,6 +50,8 @@ interface LeaderboardViewProps {
   onClose: () => void
   leaderboardRefreshKey: number
   userPointsAdapter?: CampaignUserPointsAdapter
+  /** Disables the connect/wallet-status button. See `SuperfluidCampaignWidgetProps.disableWalletButton`. */
+  disableWalletButton?: boolean
 }
 
 /**
@@ -95,6 +97,7 @@ export function LeaderboardView({
   onClose,
   leaderboardRefreshKey,
   userPointsAdapter,
+  disableWalletButton = false,
 }: LeaderboardViewProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCampaignTab, setActiveCampaignTab] = useState<string>(pools[0]?.id ?? '')
@@ -189,9 +192,15 @@ export function LeaderboardView({
               onDisconnect={onDisconnect}
               disconnectLabel={disconnectLabel}
               disconnectIcon={disconnectIcon}
+              disabled={disableWalletButton}
             />
           ) : (
-            <Button size="sm" {...compactButtonProps} onPress={onConnect}>
+            <Button
+              size="sm"
+              {...compactButtonProps}
+              disabled={disableWalletButton}
+              onPress={onConnect}
+            >
               <ButtonText>Connect wallet</ButtonText>
             </Button>
           )}

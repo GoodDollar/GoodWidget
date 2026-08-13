@@ -251,6 +251,11 @@ export interface SuperfluidCampaignWidgetProps {
   /** Redirect the Claim CTA to GoodWallet instead of embedding CitizenClaimWidget. */
   disableClaim?: boolean
   /**
+   * Disables the header's connect-wallet CTA and connected-wallet status chip,
+   * e.g. while the host page isn't ready to accept a wallet connection yet.
+   */
+  disableWalletButton?: boolean
+  /**
    * View shown on first render. Defaults to 'content'. Lets Storybook fixtures
    * and deep links land directly on the leaderboard without a click.
    */

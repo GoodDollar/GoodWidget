@@ -24,6 +24,8 @@ interface CampaignHeaderProps {
   disconnectIcon?: IconName
   /** Present when the campaign shell is showing an in-place child widget. */
   onClose?: () => void
+  /** Disables the connect/wallet-status button. See `SuperfluidCampaignWidgetProps.disableWalletButton`. */
+  disableWalletButton?: boolean
 }
 
 /**
@@ -44,6 +46,7 @@ export function CampaignHeader({
   disconnectLabel,
   disconnectIcon,
   onClose,
+  disableWalletButton = false,
 }: CampaignHeaderProps) {
   return (
     <YStack gap="$4" width="100%">
@@ -72,9 +75,10 @@ export function CampaignHeader({
               onDisconnect={onDisconnect}
               disconnectLabel={disconnectLabel}
               disconnectIcon={disconnectIcon}
+              disabled={disableWalletButton}
             />
           ) : (
-            <ConnectWalletPrompt onConnect={onConnect} />
+            <ConnectWalletPrompt onConnect={onConnect} disabled={disableWalletButton} />
           )}
           {onClose && (
             <Button

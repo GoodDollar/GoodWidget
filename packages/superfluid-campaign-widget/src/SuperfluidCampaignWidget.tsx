@@ -36,6 +36,7 @@ interface SuperfluidCampaignRuntimeProps {
   citizenClaimEnvironment: SuperfluidCampaignWidgetProps['citizenClaimEnvironment']
   citizenClaimExecution: SuperfluidCampaignWidgetProps['citizenClaimExecution']
   disableClaim: boolean
+  disableWalletButton?: SuperfluidCampaignWidgetProps['disableWalletButton']
   initialView: SuperfluidCampaignView
   poolAddresses?: SuperfluidCampaignWidgetProps['poolAddresses']
   /** Forwarded to the embedded CitizenClaimWidget so it shares the same provider/config/theme context. */
@@ -116,6 +117,7 @@ function SuperfluidCampaignRuntime({
   citizenClaimEnvironment,
   citizenClaimExecution,
   disableClaim,
+  disableWalletButton,
   initialView,
   poolAddresses,
   provider,
@@ -158,6 +160,7 @@ function SuperfluidCampaignRuntime({
           disconnectLabel={hasDisconnectOverride ? disconnectLabel : undefined}
           disconnectIcon={hasDisconnectOverride ? disconnectIcon : undefined}
           onClose={() => setEmbeddedClaimTab(null)}
+          disableWalletButton={disableWalletButton}
         />
         <CitizenClaimWidget
           provider={provider}
@@ -191,6 +194,7 @@ function SuperfluidCampaignRuntime({
         onClose={() => setView('content')}
         leaderboardRefreshKey={leaderboardRefreshKey}
         userPointsAdapter={isMockRuntime ? dataClient.userPoints : undefined}
+        disableWalletButton={disableWalletButton}
       />
     )
   }
@@ -207,6 +211,7 @@ function SuperfluidCampaignRuntime({
         onDisconnect={hasDisconnectOverride ? disconnect : undefined}
         disconnectLabel={hasDisconnectOverride ? disconnectLabel : undefined}
         disconnectIcon={hasDisconnectOverride ? disconnectIcon : undefined}
+        disableWalletButton={disableWalletButton}
       />
 
       <LeaderboardSummary
@@ -267,6 +272,7 @@ export function SuperfluidCampaignWidgetWithClient({
   citizenClaimEnvironment = 'production',
   citizenClaimExecution,
   disableClaim = false,
+  disableWalletButton,
   initialView = 'content',
   poolAddresses,
   dataClient,
@@ -297,6 +303,7 @@ export function SuperfluidCampaignWidgetWithClient({
           citizenClaimEnvironment={citizenClaimEnvironment}
           citizenClaimExecution={citizenClaimExecution}
           disableClaim={disableClaim}
+          disableWalletButton={disableWalletButton}
           initialView={initialView}
           poolAddresses={poolAddresses}
           provider={provider}
