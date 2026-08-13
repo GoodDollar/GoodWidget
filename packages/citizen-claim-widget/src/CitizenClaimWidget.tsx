@@ -246,7 +246,7 @@ function CitizenClaimInner({
           if (claimPlan.length === 0) {
             const singleChainName = chainId ? getChainDisplayName(chainId) : 'active chain'
             const toastId = createToast({
-              message: `Claim initiated on ${singleChainName}`,
+              message: `Claiming on ${singleChainName} — sign transaction in your wallet`,
               status: 'pending',
               duration: 0,
             })
@@ -287,7 +287,7 @@ function CitizenClaimInner({
             toastByChain.set(
               claimEntry.chainId,
               createToast({
-                message: `Claim initiated on ${entryChainName}`,
+                message: `Claiming on ${entryChainName} — sign transaction in your wallet`,
                 status: 'pending',
                 duration: 0,
               }),
