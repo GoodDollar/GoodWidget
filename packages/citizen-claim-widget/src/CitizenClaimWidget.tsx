@@ -621,7 +621,7 @@ function CitizenClaimShell({
         ]}
         activeTab={activeTab}
         onTabChange={(tabId: string) => setActiveTab(tabId as CitizenClaimTab)}
-        chainId={chainId ?? fallbackChainId ?? 42220}
+        chainId={chainId ?? fallbackChainId ?? SupportedChains.CELO}
       />
       {activeTab === 'claim' ? (
         <>

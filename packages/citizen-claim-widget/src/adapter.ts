@@ -550,13 +550,29 @@ export function useCitizenClaimAdapter(
         null
       : chainId
 
+    if (isCustodialExecution && statusChainId === null) {
+      await auxiliaryReads
+      // Custodial execution has no wallet chain to switch, so a missing
+      // client for every supported chain is an integrator configuration
+      // problem rather than something the "switch network" narrative below
+      // could ever resolve — route it to a plain error instead.
+      setAmount(null)
+      setNextClaimTime(null)
+      setStatus('error')
+      setError(
+        humanReadableError(
+          new CitizenClaimAdapterError('Claim execution is not configured for any supported chain.'),
+        ),
+      )
+      return
+    }
+
     if (statusChainId === null || !isSupportedChain(statusChainId)) {
       await auxiliaryReads
-      // Chain is known but unsupported (or custodial has no chain configured
-      // at all) — a distinct status from not_connected so the UI can show
-      // "switch chain" copy instead of misleadingly asking an already-connected
-      // wallet to connect. Clear personalized entitlement from whatever chain
-      // was previously active.
+      // Chain is known but unsupported — a distinct status from not_connected
+      // so the UI can show "switch chain" copy instead of misleadingly asking
+      // an already-connected wallet to connect. Clear personalized entitlement
+      // from whatever chain was previously active.
       setAmount(null)
       setNextClaimTime(null)
       setStatus('unsupported_chain')

@@ -42,9 +42,34 @@ export interface GoodWidgetContextValue extends GoodWidgetState {
 }
 
 const SWITCH_CHAIN_UNAVAILABLE_ERROR = 'No wallet provider available to switch chains'
+const SWITCH_CHAIN_TIMEOUT_ERROR = 'Timed out waiting for the wallet to respond to the network switch request'
+const SWITCH_CHAIN_REQUEST_TIMEOUT_MS = 10_000
 
 const noopSwitchChain = async () => {
   throw new Error(SWITCH_CHAIN_UNAVAILABLE_ERROR)
+}
+
+/**
+ * Races a promise against a timeout so a request the wallet never settles
+ * (some WalletConnect sessions never resolve or reject
+ * wallet_switchEthereumChain at all) doesn't hang the caller forever — a
+ * timeout is treated the same as any other rejection, so switchChain's
+ * existing override fallback below still applies.
+ */
+function raceWithTimeout<T>(promise: Promise<T>, timeoutMs: number, timeoutMessage: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs)
+    promise.then(
+      (value) => {
+        clearTimeout(timer)
+        resolve(value)
+      },
+      (err) => {
+        clearTimeout(timer)
+        reject(err)
+      },
+    )
+  })
 }
 
 /**
@@ -206,16 +231,21 @@ export function GoodWidgetProvider({
 
   // Tries the standard EIP-3326 request first; falls back to the
   // integrator's own switch/network-modal flow (e.g. AppKit) when the
-  // active connector rejects or does not support it — some WalletConnect
-  // sessions never resolve wallet_switchEthereumChain at all.
+  // active connector rejects, does not support it, or never settles the
+  // request at all (some WalletConnect sessions do this, hence the timeout
+  // race below rather than a bare await).
   const switchChain = useCallback(
     async (targetChainId: number) => {
       if (resolvedProvider) {
         try {
-          await resolvedProvider.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: `0x${targetChainId.toString(16)}` }],
-          })
+          await raceWithTimeout(
+            resolvedProvider.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: `0x${targetChainId.toString(16)}` }],
+            }),
+            SWITCH_CHAIN_REQUEST_TIMEOUT_MS,
+            SWITCH_CHAIN_TIMEOUT_ERROR,
+          )
           return
         } catch (err) {
           if (!switchChainOverride || isUserRejectedSwitchChain(err)) throw err
