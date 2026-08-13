@@ -132,6 +132,21 @@ export interface CitizenClaimWidgetProps {
   claimExecution?: CitizenClaimWidgetCustodialExecution
   onClaimSuccess?: (detail: CitizenClaimWidgetSuccessDetail) => void
   onClaimError?: (detail: CitizenClaimWidgetErrorDetail) => void
+  /**
+   * Integrator-owned live address (e.g. from a wallet-connection SDK's own
+   * reactive account hook). See `GoodWidgetProviderProps.addressOverride`.
+   */
+  addressOverride?: string | null
+  /**
+   * Integrator-owned live chain id, mirroring `addressOverride`. See
+   * `GoodWidgetProviderProps.chainIdOverride`.
+   */
+  chainIdOverride?: number | null
+  /**
+   * Integrator-owned chain-switch fallback. See
+   * `GoodWidgetProviderProps.switchChainOverride`.
+   */
+  switchChainOverride?: (chainId: number) => Promise<void>
   // ---- Theming (optional, passed through to GoodWidgetProvider) ----
   /** Token and theme overrides applied at the widget boundary. */
   themeOverrides?: GoodWidgetThemeOverrides
