@@ -14,6 +14,7 @@ import type { ReserveSwapWidgetAdapterState } from './widgetRuntimeContract'
 import {
   CELO_CHAIN_ID,
   DEFAULT_GD_DECIMALS,
+  EXIT_CONTRIBUTION_PPM_DIVISOR,
   getStableDecimals,
   XDC_CHAIN_ID,
 } from './constants'
@@ -49,6 +50,7 @@ export function balancesForDirection(
 export interface ReserveRefs {
   sdkRef: React.MutableRefObject<GoodReserveSDK | null>
   publicClientRef: React.MutableRefObject<ReturnType<typeof createPublicClient> | null>
+  walletClientRef: React.MutableRefObject<ReturnType<typeof createWalletClient> | null>
   decimalsRef: React.MutableRefObject<{ stable: number; gd: number }>
   balancesRef: React.MutableRefObject<{ stable: string; gd: string }>
   tokenInBalanceRef: React.MutableRefObject<string>
@@ -57,6 +59,12 @@ export interface ReserveRefs {
   previousStatusRef: React.MutableRefObject<ReserveSwapWidgetAdapterState['status']>
   statusRef: React.MutableRefObject<ReserveSwapWidgetAdapterState['status']>
   mountedRef: React.MutableRefObject<boolean>
+  /**
+   * Notice to re-display once the next quote lands. The stale-quote path sets
+   * this so the "review the new amount" message survives the quote_loading →
+   * quote_ready transitions, which otherwise clear `warning`.
+   */
+  quoteRefreshNoticeRef: React.MutableRefObject<string | null>
 }
 
 // Creates all shared refs for the adapter.
@@ -67,6 +75,7 @@ export function useReserveRefs(
 ): ReserveRefs {
   const sdkRef = useRef<GoodReserveSDK | null>(null)
   const publicClientRef = useRef<ReturnType<typeof createPublicClient> | null>(null)
+  const walletClientRef = useRef<ReturnType<typeof createWalletClient> | null>(null)
   const decimalsRef = useRef({ stable: getStableDecimals(null), gd: DEFAULT_GD_DECIMALS })
   const balancesRef = useRef({ stable: '0.00', gd: '0.00' })
   const tokenInBalanceRef = useRef(initialBalance)
@@ -75,11 +84,13 @@ export function useReserveRefs(
   const previousStatusRef = useRef<ReserveSwapWidgetAdapterState['status']>(initialStatus)
   const statusRef = useRef<ReserveSwapWidgetAdapterState['status']>(initialStatus)
   const mountedRef = useRef(true)
+  const quoteRefreshNoticeRef = useRef<string | null>(null)
 
   return useMemo(
     () => ({
       sdkRef,
       publicClientRef,
+      walletClientRef,
       decimalsRef,
       balancesRef,
       tokenInBalanceRef,
@@ -88,6 +99,7 @@ export function useReserveRefs(
       previousStatusRef,
       statusRef,
       mountedRef,
+      quoteRefreshNoticeRef,
     }),
     [],
   )
@@ -169,6 +181,7 @@ export function useReserveBootstrap(
     // re-initializes against the new chain instead of reusing stale clients.
     refs.sdkRef.current = null
     refs.publicClientRef.current = null
+    refs.walletClientRef.current = null
 
     applyStatePatch({ status: 'sdk_initializing', hasProvider: true, error: null })
 
@@ -190,17 +203,23 @@ export function useReserveBootstrap(
 
       refs.sdkRef.current = sdk
       refs.publicClientRef.current = publicClient
+      // Kept so the swap hook can run its own pre-flight approval; see
+      // useReserveSwap's ensureSwapAllowance.
+      refs.walletClientRef.current = walletClient
       refs.decimalsRef.current = {
         // SDK stats are the canonical source; fall back to chain-aware defaults.
         // Celo stable (USDm) = 18, XDC stable (USDC) = 6.
         stable: stats.stableTokenDecimals ?? getStableDecimals(chainId),
         gd: stats.goodDollarDecimals ?? DEFAULT_GD_DECIMALS,
       }
-      // exitContribution follows the GoodSDKs demo convention: / 10_000.
-      // e.g. 5000 → "0.50%". Source: apps/demo-reserve-swap/src/components/ReserveSwap.tsx.
+      // Mento's BancorExchangeProvider stores exitContribution as a uint32
+      // scaled by MAX_WEIGHT = 1e8, so the raw value is a fraction in parts per
+      // hundred-million. Dividing by 1e6 converts it straight to a percentage.
+      // Verified on the live Celo pool: raw 10_000_000 → 10.00% (and the
+      // sibling reserveRatio 40_445_300 → 40.45%, which cross-checks the scale).
       refs.exitContributionRef.current =
         stats.exitContribution != null
-          ? `${(stats.exitContribution / 10_000).toFixed(2)}%`
+          ? `${(stats.exitContribution / EXIT_CONTRIBUTION_PPM_DIVISOR).toFixed(2)}%`
           : '0%'
 
       await refreshBalances()
