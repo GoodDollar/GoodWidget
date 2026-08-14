@@ -21,7 +21,7 @@ import type {
   ReserveSwapWidgetAdapterState,
 } from './widgetRuntimeContract'
 import { CELO_CHAIN_ID, getReserveChainFromId, XDC_CHAIN_ID } from './constants'
-import { sanitizeAmount } from './amount'
+import { amountFontSize, formatTokenAmount, sanitizeAmount } from './amount'
 
 /** Outer swap card. */
 const SwapShell = createComponent(Card, {
@@ -274,9 +274,7 @@ function SwapSuccessView({
   actions: ReserveSwapWidgetAdapterActions
   lastSwapOutput: string
 }) {
-  const formattedOutput = isNaN(Number(lastSwapOutput))
-    ? lastSwapOutput
-    : new Intl.NumberFormat('en-US', { maximumFractionDigits: 6 }).format(Number(lastSwapOutput))
+  const formattedOutput = formatTokenAmount(lastSwapOutput)
 
   return (
     <YStack
@@ -395,6 +393,8 @@ function ConfirmDrawer({
   state: ReserveSwapWidgetAdapterState
   actions: ReserveSwapWidgetAdapterActions
 }) {
+  const minimumReceived = formatTokenAmount(state.quote?.minimumReceived)
+
   return (
     <Drawer open={state.status === 'confirm_dialog'} onClose={actions.closeConfirm} height="full">
       <YStack testID="GoodReserveWidget-confirm-dialog" gap="$4" width="100%">
@@ -427,8 +427,14 @@ function ConfirmDrawer({
           <Text fontSize={14} fontWeight="400" color="$colorSoft">
             Minimum Received
           </Text>
-          <Text fontSize={50} fontWeight="800" color="$textColor">
-            {state.quote?.minimumReceived ?? '0.00'}
+          <Text
+            fontSize={amountFontSize(minimumReceived, 50)}
+            fontWeight="800"
+            color="$textColor"
+            numberOfLines={1}
+            adjustsFontSizeToFit
+          >
+            {minimumReceived}
           </Text>
           <Text fontSize={17} fontWeight="600" color="$textColor">
             {state.tokenOutSymbol}
@@ -442,7 +448,10 @@ function ConfirmDrawer({
             value={`1 ${state.tokenInSymbol} = ${state.quote?.price ?? '0'} ${state.tokenOutSymbol}`}
           />
           <DetailRow label="Max Slippage" value={`${state.slippagePercent}%`} />
-          <DetailRow label="You Pay" value={`${state.inputAmount} ${state.tokenInSymbol}`} />
+          <DetailRow
+            label="You Pay"
+            value={`${formatTokenAmount(state.inputAmount)} ${state.tokenInSymbol}`}
+          />
         </ReserveDetailsTable>
 
         <Separator />
@@ -487,6 +496,11 @@ const MAIN_SWAP_STATUS_CTA: Partial<
     disabled: false,
     loading: false,
     action: 'switchChain',
+  },
+  approval_pending: {
+    label: 'Approving…',
+    disabled: false,
+    loading: true,
   },
   swap_pending: {
     label: 'Swapping…',
@@ -586,7 +600,7 @@ function MainSwapView({
             </Text>
             <XStack gap="$2" alignItems="center">
               <Text fontSize={12} fontWeight="600" color="$secondaryColor">
-                Balance: {state.tokenInBalance}
+                Balance: {formatTokenAmount(state.tokenInBalance)}
               </Text>
               <Text
                 testID="GoodReserveWidget-max"
@@ -619,10 +633,12 @@ function MainSwapView({
               // textAlign is applied via style (DOM-valid) rather than the RN prop,
               // which Tamagui would otherwise emit as an invalid `textalign` attr.
               inputMode="decimal"
+              // The raw value stays unformatted (it feeds parseUnits), so shrink
+              // the type instead when MAX drops a full-precision balance in.
               style={{
                 textAlign: 'right',
                 lineHeight: `${AMOUNT_VALUE_LINE_HEIGHT}px`,
-                fontSize: `${AMOUNT_VALUE_FONT_SIZE}px`,
+                fontSize: `${amountFontSize(state.inputAmount, AMOUNT_VALUE_FONT_SIZE)}px`,
               }}
               value={state.inputAmount}
               placeholder="0.00"
@@ -648,7 +664,7 @@ function MainSwapView({
               Swap to
             </Text>
             <Text fontSize={12} fontWeight="600" color="$secondaryColor">
-              Balance: {state.tokenOutBalance}
+              Balance: {formatTokenAmount(state.tokenOutBalance)}
             </Text>
           </XStack>
           <XStack justifyContent="space-between" alignItems="center" gap="$3">
@@ -670,7 +686,7 @@ function MainSwapView({
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
-                {state.quote?.outputAmount ?? '0.00'}
+                {state.quote ? formatTokenAmount(state.quote.outputAmount) : '0.00'}
               </Text>
             )}
           </XStack>
@@ -690,7 +706,7 @@ function MainSwapView({
             />
             <DetailRow
               label="MINIMUM RECEIVED"
-              value={`${state.quote?.minimumReceived ?? '0.00'} ${state.tokenOutSymbol}`}
+              value={`${formatTokenAmount(state.quote?.minimumReceived)} ${state.tokenOutSymbol}`}
             />
           </YStack>
         </CollapsibleSection>
@@ -747,6 +763,18 @@ function MainSwapView({
             <ButtonText>{primaryCta.label}</ButtonText>
           )}
         </Button>
+
+        {/* Before a hash exists the user is waiting on their wallet, which can
+            look like a hang — say so explicitly. A swap needs two signatures
+            when an approval is required, so name which one is pending. */}
+        {(state.status === 'approval_pending' || state.status === 'swap_pending') &&
+        !state.txHash ? (
+          <Text testID="GoodReserveWidget-sign-hint" fontSize={13} center color="$secondaryColor">
+            {state.status === 'approval_pending'
+              ? `Approve ${state.tokenInSymbol} spending in your wallet to continue.`
+              : 'Confirm the swap in your wallet.'}
+          </Text>
+        ) : null}
 
         {/* Surface the submitted hash immediately during swap_pending so the
             user gets confirmation the tx was broadcast without waiting for receipt.
