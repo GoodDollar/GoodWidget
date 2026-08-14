@@ -13,6 +13,11 @@ export function sanitizeAmount(raw: string): string {
 // a "<0.000001" marker rather than displaying as a misleading "0.00".
 const MIN_DISPLAY_VALUE = 0.000001
 
+// Longest fractional tail kept in the editable amount field. Matches
+// formatTokenAmount's small-value precision so the input and the read-only
+// fields agree on how much detail is worth showing.
+const MAX_INPUT_DECIMALS = 6
+
 // Below this magnitude the fractional part carries real meaning (sub-unit token
 // prices), above it the leading digits dominate and six decimals is just noise.
 const HIGH_PRECISION_THRESHOLD = 1000
@@ -48,9 +53,37 @@ export function formatTokenAmount(value: string | number | null | undefined): st
 }
 
 /**
- * Shrinks the hero amount font so a long raw value (MAX fills the full-precision
- * balance, which can run to 20+ characters on an 18-decimal token) stays inside
- * the amount card instead of overflowing it.
+ * Shortens a raw amount for display inside the editable amount input.
+ *
+ * MAX fills the field from the full-precision balance, which on an 18-decimal
+ * token runs to 20+ characters ("79812.445063704882420442"). This caps the
+ * fraction at six places for display only — the exact value stays in adapter
+ * state and is what reaches parseUnits, so MAX still spends the whole balance.
+ *
+ * Truncates rather than rounds: the displayed value must never exceed the value
+ * it came from, or a user who retypes what they see would ask to spend more than
+ * they hold. No thousands separators either, because the field is editable and
+ * the value has to stay something the user could have typed themselves.
+ */
+export function formatInputAmount(raw: string): string {
+  const dot = raw.indexOf('.')
+  if (dot === -1) return raw
+
+  const truncated = raw.slice(0, dot + 1 + MAX_INPUT_DECIMALS)
+  // "1.500000" → "1.5", "10.000000" → "10". The early return above keeps this
+  // from eating the significant zeros in a whole number like "100".
+  const trimmed = truncated.replace(/\.?0+$/, '')
+
+  // A balance smaller than the display precision truncates away entirely; show
+  // it in full rather than telling the user they hold nothing.
+  if (trimmed === '' || Number(trimmed) === 0) return raw
+  return trimmed
+}
+
+/**
+ * Shrinks the hero amount font so a long raw value (a mid-edit entry, or a
+ * sub-precision balance shown in full) stays inside the amount card instead of
+ * overflowing it.
  */
 export function amountFontSize(text: string, base: number): number {
   if (text.length <= 10) return base

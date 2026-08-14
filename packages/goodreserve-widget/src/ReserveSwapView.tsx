@@ -21,7 +21,7 @@ import type {
   ReserveSwapWidgetAdapterState,
 } from './widgetRuntimeContract'
 import { CELO_CHAIN_ID, getReserveChainFromId, XDC_CHAIN_ID } from './constants'
-import { amountFontSize, formatTokenAmount, sanitizeAmount } from './amount'
+import { amountFontSize, formatInputAmount, formatTokenAmount, sanitizeAmount } from './amount'
 
 /** Outer swap card. */
 const SwapShell = createComponent(Card, {
@@ -134,7 +134,9 @@ const ConfirmToBadge = createComponent(XStack, {
   width: 40,
   height: 40,
   borderRadius: '$full',
-  backgroundColor: '$color',
+  // Was `$color`, which resolves to near-white in the dark theme and rendered
+  // the badge as a blank disc next to the arrow.
+  backgroundColor: '$backgroundSurfaceAlt',
   color: '$textColor',
   alignItems: 'center' as const,
   justifyContent: 'center' as const,
@@ -147,6 +149,12 @@ const NETWORK_LABELS: Record<number, string> = {
 
 const AMOUNT_VALUE_FONT_SIZE = 32
 const AMOUNT_VALUE_LINE_HEIGHT = 36
+
+// Reserve symbols run from two characters ("G$") to four ("USDm", "USDC"); the
+// longer ones step down a size to stay inside the 40px badge circle.
+function badgeSymbolFontSize(symbol: string): number {
+  return symbol.length <= 2 ? 16 : 12
+}
 
 function networkLabel(chainId: number | null): string {
   return chainId !== null && NETWORK_LABELS[chainId] ? NETWORK_LABELS[chainId] : 'Unsupported'
@@ -407,17 +415,18 @@ function ConfirmDrawer({
           </XStack>
         </XStack>
 
-        {/* Token hero: from badge → arrow → to badge */}
+        {/* Token hero: from badge → arrow → to badge. Each side names its own
+            token and follows `direction`, so a G$ → USDm sell reads as one. */}
         <XStack alignItems="center" justifyContent="center" gap="$3">
-          <TokenBadge>
-            <Text fontSize={16} fontWeight="700" color="$textColor">
-              $
+          <TokenBadge testID="GoodReserveWidget-confirm-token-in">
+            <Text fontSize={badgeSymbolFontSize(state.tokenInSymbol)} fontWeight="700" color="$textColor">
+              {state.tokenInSymbol}
             </Text>
           </TokenBadge>
           <Icon name="arrow-right" size="sm" color="primary" />
-          <ConfirmToBadge>
-            <Text fontSize={16} fontWeight="700" color="$textColor">
-              $
+          <ConfirmToBadge testID="GoodReserveWidget-confirm-token-out">
+            <Text fontSize={badgeSymbolFontSize(state.tokenOutSymbol)} fontWeight="700" color="$textColor">
+              {state.tokenOutSymbol}
             </Text>
           </ConfirmToBadge>
         </XStack>
@@ -427,12 +436,14 @@ function ConfirmDrawer({
           <Text fontSize={14} fontWeight="400" color="$colorSoft">
             Minimum Received
           </Text>
+          {/* No adjustsFontSizeToFit here: it is a React Native-only prop that
+              Tamagui passes through to the DOM, where it does no fitting and
+              renders the digits smeared. amountFontSize already sizes the text. */}
           <Text
             fontSize={amountFontSize(minimumReceived, 50)}
             fontWeight="800"
             color="$textColor"
             numberOfLines={1}
-            adjustsFontSizeToFit
           >
             {minimumReceived}
           </Text>
@@ -566,6 +577,14 @@ function MainSwapView({
   const primaryCta = getMainSwapPrimaryCta(state, hasAmount)
   const stableSymbol = state.tokenInSymbol === 'G$' ? state.tokenOutSymbol : state.tokenInSymbol
 
+  // While the field has focus the user sees their own keystrokes untouched;
+  // otherwise it shows the shortened value. `state.inputAmount` stays exact
+  // either way, so MAX still spends the full balance.
+  const [amountFocused, setAmountFocused] = useState(false)
+  const amountFieldValue = amountFocused
+    ? state.inputAmount
+    : formatInputAmount(state.inputAmount)
+
   return (
     <YStack testID="GoodReserveWidget-root" width="100%" alignSelf="center" gap="$3">
       {/* Header sits ABOVE the dark card (Figma): network pill, heading, subtitle. */}
@@ -633,15 +652,19 @@ function MainSwapView({
               // textAlign is applied via style (DOM-valid) rather than the RN prop,
               // which Tamagui would otherwise emit as an invalid `textalign` attr.
               inputMode="decimal"
-              // The raw value stays unformatted (it feeds parseUnits), so shrink
-              // the type instead when MAX drops a full-precision balance in.
+              // Sized from the value actually on screen, which is the shortened
+              // one unless the user is mid-edit.
               style={{
                 textAlign: 'right',
                 lineHeight: `${AMOUNT_VALUE_LINE_HEIGHT}px`,
-                fontSize: `${amountFontSize(state.inputAmount, AMOUNT_VALUE_FONT_SIZE)}px`,
+                fontSize: `${amountFontSize(amountFieldValue, AMOUNT_VALUE_FONT_SIZE)}px`,
               }}
-              value={state.inputAmount}
+              value={amountFieldValue}
               placeholder="0.00"
+              // Focus swaps the field to the exact value so editing never starts
+              // from a truncated number; blur returns it to the short form.
+              onFocus={() => setAmountFocused(true)}
+              onBlur={() => setAmountFocused(false)}
               onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                 actions.setInputAmount(sanitizeAmount(event.target.value))
               }
