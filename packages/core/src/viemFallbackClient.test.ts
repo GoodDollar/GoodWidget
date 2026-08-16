@@ -5,6 +5,8 @@ import { celo } from 'viem/chains'
 
 import { createViemFallbackClient, type ViemFallbackStorage } from './viemFallbackClient.ts'
 
+const chainlistUrl = 'https://chainlist.org/rpcs.json'
+
 function createStorage(initialValue?: string): ViemFallbackStorage {
   let value = initialValue ?? null
 
@@ -105,7 +107,7 @@ test(
     const mockFetch: typeof fetch = async (input, init) => {
       const url = input instanceof Request ? input.url : String(input)
 
-      if (url === 'https://chainlist.org/rpcs.json') {
+      if (url === chainlistUrl) {
         return createChainlistResponse(['https://bad.example', 'https://good.example'])
       }
 
@@ -138,6 +140,7 @@ test(
 
     try {
       const client = createViemFallbackClient(createStorage(), {
+        chainlistRpcsUrl: chainlistUrl,
         fetch: mockFetch,
       })
       const publicClient = await client.createPublicClient({

@@ -304,6 +304,8 @@ function parseChainlistUrl(value: string): URL {
   if (url.protocol !== 'https:') {
     throw new Error('chainlistRpcsUrl must use HTTPS')
   }
+  // Keep the refresh source pinned to Chainlist's canonical host so cached RPC
+  // metadata cannot be replaced by another origin.
   if (url.hostname !== CHAINLIST_HOST) {
     throw new Error(`chainlistRpcsUrl must use ${CHAINLIST_HOST}`)
   }
