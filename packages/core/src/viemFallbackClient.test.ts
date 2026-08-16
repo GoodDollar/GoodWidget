@@ -72,28 +72,22 @@ test(
   },
 )
 
-test('refreshRpcs rejects non-HTTPS and non-Chainlist refresh URLs', { concurrency: false }, async () => {
-  const mockFetch = async () => createChainlistResponse([])
-
-  const insecureClient = createViemFallbackClient(createStorage(), {
-    chainlistRpcsUrl: 'http://chainlist.org/rpcs.json',
-    fetch: mockFetch,
+test('refreshRpcs accepts a custom RPC list URL', { concurrency: false }, async () => {
+  const customUrl = 'http://example.com/rpcs.json'
+  const fetchCalls: string[] = []
+  const client = createViemFallbackClient(createStorage(), {
+    chainlistRpcsUrl: customUrl,
+    fetch: async (input) => {
+      fetchCalls.push(input instanceof Request ? input.url : String(input))
+      return createChainlistResponse(['https://cached.example'])
+    },
   })
 
-  await assert.rejects(
-    () => insecureClient.refreshRpcs(),
-    /chainlistRpcsUrl must use HTTPS/,
-  )
+  await client.ready
 
-  const unexpectedHostClient = createViemFallbackClient(createStorage(), {
-    chainlistRpcsUrl: 'https://example.com/rpcs.json',
-    fetch: mockFetch,
-  })
-
-  await assert.rejects(
-    () => unexpectedHostClient.refreshRpcs(),
-    /chainlistRpcsUrl must use chainlist\.org/,
-  )
+  assert.ok(fetchCalls.length >= 1)
+  assert.ok(fetchCalls.every((url) => url === customUrl))
+  assert.deepEqual(await client.getRpcUrls(createChain([])), ['https://cached.example'])
 })
 
 test(

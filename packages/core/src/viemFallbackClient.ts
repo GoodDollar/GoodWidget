@@ -18,7 +18,6 @@ const DEFAULT_CHAINLIST_RPCS_URL = 'https://chainlist.org/rpcs.json'
 const DEFAULT_CACHE_KEY = 'goodwidget:viem-rpcs'
 const DEFAULT_REFRESH_INTERVAL_MS = 24 * 60 * 60 * 1000
 const DEFAULT_FETCH_TIMEOUT_MS = 10_000
-const CHAINLIST_HOST = 'chainlist.org'
 
 type MaybePromise<T> = T | Promise<T>
 
@@ -93,7 +92,7 @@ export function createViemFallbackClient(
   const refreshRpcs = async (): Promise<void> => {
     if (!fetchImpl) throw new Error('fetch is not available')
 
-    const chainlistUrl = parseChainlistUrl(chainlistRpcsUrl)
+    const chainlistUrl = new URL(chainlistRpcsUrl)
 
     const abortController = new AbortController()
     const timeout = setTimeout(() => abortController.abort(), fetchTimeoutMs)
@@ -297,19 +296,6 @@ function normalizeChainlistPayload(payload: unknown): CachedChainRpcs[] {
       }
     })
     .filter((entry) => Number.isInteger(entry.chainId) && entry.rpcs.length > 0)
-}
-
-function parseChainlistUrl(value: string): URL {
-  const url = new URL(value)
-  if (url.protocol !== 'https:') {
-    throw new Error('chainlistRpcsUrl must use HTTPS')
-  }
-  // Keep the refresh source pinned to Chainlist's canonical host so cached RPC
-  // metadata cannot be replaced by another origin.
-  if (url.hostname !== CHAINLIST_HOST) {
-    throw new Error(`chainlistRpcsUrl must use ${CHAINLIST_HOST}`)
-  }
-  return url
 }
 
 function getCachedRpcUrls(cache: ViemRpcCacheEntry | null, chainId: number): string[] {

@@ -95,4 +95,4 @@ createViemFallbackClient(storage, {
 })
 ```
 
-`chainlistRpcsUrl` is intended for Chainlist's HTTPS RPC JSON endpoint. The helper blocks non-HTTPS URLs and hosts outside the expected Chainlist domain.
+`chainlistRpcsUrl` defaults to Chainlist's RPC JSON endpoint, but can be overridden. Refresh requests still use a timeout and `redirect: 'error'`.
