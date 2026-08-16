@@ -8,6 +8,8 @@ Runtime helpers for GoodWidget providers, host detection, wallet context, and vi
 
 The helper accepts a small key-value storage adapter. On initialization it reads cached RPC metadata from storage. If the cache is missing or older than 1 day, it starts a background refresh from Chainlist. Client creation waits for that first refresh only when no cached RPCs are available for the requested chain.
 
+Caller-provided `fallbackRpcs` are always tried first, then the chain's own default RPC URLs, and finally any cached Chainlist URLs. The generated viem fallback transport enables ranking and a single retry so unhealthy discovered RPCs can be deprioritized during use instead of being trusted purely by cache order.
+
 ```ts
 import { createViemFallbackClient } from '@goodwidget/core/viemFallbackClient'
 import { celo } from 'viem/chains'

@@ -18,6 +18,7 @@ const DEFAULT_CHAINLIST_RPCS_URL = 'https://chainlist.org/rpcs.json'
 const DEFAULT_CACHE_KEY = 'goodwidget:viem-rpcs'
 const DEFAULT_REFRESH_INTERVAL_MS = 24 * 60 * 60 * 1000
 const DEFAULT_FETCH_TIMEOUT_MS = 10_000
+const CHAINLIST_HOST = 'chainlist.org'
 
 type MaybePromise<T> = T | Promise<T>
 
@@ -92,7 +93,7 @@ export function createViemFallbackClient(
   const refreshRpcs = async (): Promise<void> => {
     if (!fetchImpl) throw new Error('fetch is not available')
 
-    const chainlistUrl = new URL(chainlistRpcsUrl)
+    const chainlistUrl = parseChainlistUrl(chainlistRpcsUrl)
 
     const abortController = new AbortController()
     const timeout = setTimeout(() => abortController.abort(), fetchTimeoutMs)
@@ -155,10 +156,12 @@ export function createViemFallbackClient(
       await refreshPromise
     }
 
+    // Prefer integrator-supplied RPCs and chain defaults before discovered Chainlist
+    // endpoints so callers control the primary transport order.
     return sanitizeRpcUrls([
-      ...getCachedRpcUrls(cache, chain.id),
       ...fallbackRpcs,
       ...(chain.rpcUrls.default.http ?? []),
+      ...getCachedRpcUrls(cache, chain.id),
     ])
   }
 
@@ -168,7 +171,12 @@ export function createViemFallbackClient(
   ): Promise<Transport> => {
     const rpcUrls = await getRpcUrls(chain, fallbackRpcs)
     const transports = rpcUrls.length > 0 ? rpcUrls.map((rpcUrl) => http(rpcUrl)) : [http()]
-    return fallback(transports)
+    // Let viem re-rank transports during use so stale cached endpoints do not remain
+    // the preferred RPCs after they start failing or slowing down.
+    return fallback(transports, {
+      rank: true,
+      retryCount: 1,
+    })
   }
 
   return {
@@ -289,6 +297,17 @@ function normalizeChainlistPayload(payload: unknown): CachedChainRpcs[] {
       }
     })
     .filter((entry) => Number.isInteger(entry.chainId) && entry.rpcs.length > 0)
+}
+
+function parseChainlistUrl(value: string): URL {
+  const url = new URL(value)
+  if (url.protocol !== 'https:') {
+    throw new Error('chainlistRpcsUrl must use HTTPS')
+  }
+  if (url.hostname !== CHAINLIST_HOST) {
+    throw new Error(`chainlistRpcsUrl must use ${CHAINLIST_HOST}`)
+  }
+  return url
 }
 
 function getCachedRpcUrls(cache: ViemRpcCacheEntry | null, chainId: number): string[] {

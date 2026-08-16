@@ -26,6 +26,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "lint": "eslint src/",
+    "test": "node --test --experimental-strip-types --test-force-exit src/**/*.test.ts",
     "clean": "rm -rf dist .turbo",
     "bump-version": "pnpm version patch --no-git-tag-version && git add package.json && git commit -m \"chore(release): bump @goodwidget/core to $(node -p 'JSON.parse(require(\"fs\").readFileSync(\"package.json\")).version')\""
   },
