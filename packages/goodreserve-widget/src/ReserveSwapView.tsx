@@ -757,6 +757,8 @@ function MainSwapView({
               testID="GoodReserveWidget-retry"
               variant="secondary"
               fullWidth
+              height={54}
+              borderRadius="$3"
               onPress={actions.refresh}
             >
               <ButtonText>Retry</ButtonText>
