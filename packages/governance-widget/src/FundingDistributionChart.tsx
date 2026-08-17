@@ -133,6 +133,7 @@ function FundingDistributionChartContent({
   totalAmount,
   projects,
   isStreaming = false,
+  stateLabel,
   onProjectPress,
 }: FundingDistributionChartProps) {
   const theme = useTheme()
@@ -145,6 +146,11 @@ function FundingDistributionChartContent({
         {title}
       </Heading>
       <YStack alignItems="center" gap="$4">
+        {stateLabel ? (
+          <Text variant="caption" tone="secondary" center>
+            {stateLabel}
+          </Text>
+        ) : null}
         <FundingDonut
           projects={projects}
           totalAmount={total}

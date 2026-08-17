@@ -30,10 +30,12 @@
     }
   },
   "dependencies": {
+    "@goodsdks/citizen-sdk": "1.2.5",
     "@goodwidget/core": "workspace:*",
     "@goodwidget/ui": "workspace:*",
     "react-native-svg": "15.15.5",
-    "tamagui": "1.121.0"
+    "tamagui": "1.121.0",
+    "viem": "^2.0.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.0",
