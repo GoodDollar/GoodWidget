@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { GoodWidgetProvider, useWallet } from '@goodwidget/core'
 import type { EIP1193Provider } from '@goodwidget/core'
 import {
@@ -599,7 +599,29 @@ function CitizenClaimShell({
   onClaimError,
   initialTab,
 }: CitizenClaimShellProps) {
-  const { chainId } = useWallet()
+  const { chainId, isConnected, switchChain } = useWallet()
+  const autoSwitchAttemptRef = useRef<number | null>(null)
+
+  // Citizen claims and invite rewards are currently XDC-first. Use the shared
+  // wallet switch path so AppKit can handle the network selection while direct
+  // EIP-1193 wallets use wallet_switchEthereumChain.
+  useEffect(() => {
+    if (!isConnected || chainId === null) {
+      autoSwitchAttemptRef.current = null
+      return
+    }
+    if (chainId === SupportedChains.XDC) {
+      autoSwitchAttemptRef.current = null
+      return
+    }
+    if (autoSwitchAttemptRef.current === chainId) return
+
+    autoSwitchAttemptRef.current = chainId
+    void switchChain(SupportedChains.XDC).catch(() => {
+      // Keep the wallet on its current chain; the existing manual switch action remains available.
+    })
+  }, [chainId, isConnected, switchChain])
+
   // Initial tab only — not synced after mount, matching existing internal-state pattern.
   const [activeTab, setActiveTab] = useState<CitizenClaimTab>(initialTab ?? 'claim')
 

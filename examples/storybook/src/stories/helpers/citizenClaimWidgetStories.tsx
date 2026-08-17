@@ -106,7 +106,7 @@ function CitizenClaimWidgetStoryShell({
       provider={provider}
       environment="development"
       data-testid={dataTestId}
-      chainId={activeChainId ?? 42220}
+      chainId={activeChainId ?? 50}
       defaultTheme={defaultTheme}
       themeOverrides={themeOverrides}
     />

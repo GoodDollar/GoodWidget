@@ -173,6 +173,10 @@ test('CitizenClaimWidget Retry button re-triggers the adapter', async ({ page })
 test('CitizenClaimWidget opens the Invite Rewards entry point', async ({ page }) => {
   await gotoStory(page)
 
+  // The custodial EIP-1193 fixture starts on Celo; the widget should request
+  // the XDC switch before exposing the connected flow.
+  await expect(page.getByText('XDC', { exact: true })).toBeVisible()
+
   const inviteTab = page.getByText('Invite Rewards', { exact: true })
   await expect(inviteTab).toBeVisible()
   await inviteTab.click()
