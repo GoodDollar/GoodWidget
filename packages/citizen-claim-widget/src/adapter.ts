@@ -60,35 +60,6 @@ const CHAIN_CONFIGS: Record<number, Chain> = {
   } as Chain,
 }
 
-/**
- * Wraps an EIP-1193 provider so `onTransactionSubmitted` fires the instant a
- * wallet finishes signing and broadcasting a transaction (its
- * `eth_sendTransaction` call resolving), before viem's receipt polling even
- * starts. citizen-sdk's public claim() has no equivalent mid-flight signal,
- * but GoodWidget already owns this provider before handing it to viem's
- * `custom()` transport, so it can observe that moment itself with no SDK
- * change required.
- */
-function wrapProviderWithSubmissionSignal(
-  provider: EIP1193Provider,
-  onTransactionSubmitted: () => void,
-): EIP1193Provider {
-  return new Proxy(provider, {
-    get(target, property, receiver) {
-      if (property === 'request') {
-        return async (args: Parameters<EIP1193Provider['request']>[0]) => {
-          const result = await target.request(args)
-          if (args.method === 'eth_sendTransaction') {
-            onTransactionSubmitted()
-          }
-          return result
-        }
-      }
-      return Reflect.get(target, property, receiver)
-    },
-  })
-}
-
 const SUPPORTED_CHAINS = citizenSdkCapabilities.chains
 const AVAILABLE_ENVIRONMENTS = citizenSdkCapabilities.environments
 
@@ -285,14 +256,11 @@ export function useCitizenClaimAdapter(
   // available for integrations that prefer lazy per-chain client creation.
   // ---------------------------------------------------------------------------
   const createProviderClientsForChain = useCallback(
-    (targetChainId: number, onTransactionSubmitted?: () => void) => {
+    (targetChainId: number) => {
       if (!provider || !address) return null
       const chain = CHAIN_CONFIGS[targetChainId]
       if (!chain) return null
-      const effectiveProvider = onTransactionSubmitted
-        ? wrapProviderWithSubmissionSignal(provider, onTransactionSubmitted)
-        : provider
-      const transport = custom(effectiveProvider as Parameters<typeof custom>[0])
+      const transport = custom(provider as Parameters<typeof custom>[0])
       const publicClient = createPublicClient({ chain, transport })
       const walletClient = createWalletClient({
         account: address as `0x${string}`,
@@ -346,7 +314,7 @@ export function useCitizenClaimAdapter(
   )
 
   const resolveClientsForChain = useCallback(
-    async (targetChainId: number, onTransactionSubmitted?: () => void) => {
+    async (targetChainId: number) => {
       if (isCustodialExecution) {
         const configuredClients = claimExecution?.clientsByChain[targetChainId]
         if (configuredClients) return normalizeClientBundle(configuredClients)
@@ -367,7 +335,7 @@ export function useCitizenClaimAdapter(
         return normalizeClientBundle(factoryClients)
       }
 
-      return normalizeClientBundle(createProviderClientsForChain(targetChainId, onTransactionSubmitted))
+      return normalizeClientBundle(createProviderClientsForChain(targetChainId))
     },
     [
       address,
@@ -411,8 +379,8 @@ export function useCitizenClaimAdapter(
   )
 
   const createSdkInstancesForChain = useCallback(
-    async (targetChainId: number, onTransactionSubmitted?: () => void) => {
-      const clients = await resolveClientsForChain(targetChainId, onTransactionSubmitted)
+    async (targetChainId: number) => {
+      const clients = await resolveClientsForChain(targetChainId)
       return createSdkInstances(clients)
     },
     [createSdkInstances, resolveClientsForChain],
@@ -684,7 +652,7 @@ export function useCitizenClaimAdapter(
   // Transitions: eligible → claiming → success | error
   // ---------------------------------------------------------------------------
   const claimOnChain = useCallback(
-    async (targetChainId: number, onTransactionSubmitted?: () => void): Promise<unknown> => {
+    async (targetChainId: number): Promise<unknown> => {
       if (!isCustodialExecution && !provider) {
         throw new CitizenClaimAdapterError('No wallet provider available')
       }
@@ -719,7 +687,7 @@ export function useCitizenClaimAdapter(
         await switchChain(targetChainId)
       }
 
-      const sdk = await createSdkInstancesForChain(targetChainId, onTransactionSubmitted)
+      const sdk = await createSdkInstancesForChain(targetChainId)
       if (!sdk) {
         throw new CitizenClaimAdapterError(
           `Unable to initialize SDK clients for ${getChainDisplayName(targetChainId)}`,
@@ -760,7 +728,6 @@ export function useCitizenClaimAdapter(
   const claimAll = useCallback(
     async (
       targetChainIds: number[],
-      onTransactionSubmitted?: (chainId: number) => void,
     ): Promise<CitizenClaimWidgetChainClaimResult[]> => {
       const chainIdsToClaim = [...new Set(targetChainIds)]
 
@@ -768,7 +735,7 @@ export function useCitizenClaimAdapter(
         const settled = await Promise.allSettled(
           chainIdsToClaim.map(async (targetChainId) => ({
             chainId: targetChainId,
-            receipt: await claimOnChain(targetChainId, () => onTransactionSubmitted?.(targetChainId)),
+            receipt: await claimOnChain(targetChainId),
           })),
         )
 
@@ -793,7 +760,7 @@ export function useCitizenClaimAdapter(
           results.push({
             chainId: targetChainId,
             status: 'fulfilled',
-            receipt: await claimOnChain(targetChainId, () => onTransactionSubmitted?.(targetChainId)),
+            receipt: await claimOnChain(targetChainId),
           })
         } catch (claimError: unknown) {
           results.push({
@@ -808,14 +775,14 @@ export function useCitizenClaimAdapter(
     [claimOnChain, isCustodialExecution],
   )
 
-  const handleClaim = useCallback(async (onTransactionSubmitted?: () => void): Promise<unknown> => {
+  const handleClaim = useCallback(async (): Promise<unknown> => {
     if (!chainId) throw new Error('No active chain selected')
 
     setStatus('claiming')
     setError(null)
 
     try {
-      const receipt = await claimOnChain(chainId, onTransactionSubmitted)
+      const receipt = await claimOnChain(chainId)
       if (!mountedRef.current) return receipt
       await loadClaimStatus()
       return receipt

@@ -9,7 +9,7 @@ import { Spinner } from '../components-test/Spinner'
 // Multiple toasts can be visible at once; each is identified by a unique id.
 // ---------------------------------------------------------------------------
 
-export type ToastStatus = 'pending' | 'confirming' | 'success' | 'error' | 'info'
+export type ToastStatus = 'pending' | 'success' | 'error' | 'info'
 
 export interface ToastConfig {
   message: string
@@ -83,11 +83,10 @@ export function useToast(): ToastItem[] {
  * Named 'Toast' so Tamagui resolves light_Toast / dark_Toast component themes.
  *
  * Status variant adjusts the border accent color to communicate the toast type:
- *   pending    → primary (blue) — waiting on the wallet to sign
- *   confirming → primaryDark (deeper blue) — signed and broadcast, waiting on-chain
- *   success    → success (green)
- *   error      → error (red)
- *   info       → primary (blue)
+ *   pending → primary (blue) — waiting on the wallet to sign
+ *   success → success (green)
+ *   error   → error (red)
+ *   info    → primary (blue)
  */
 const ToastFrame = createComponent(Stack, {
   name: 'Toast',
@@ -109,7 +108,6 @@ const ToastFrame = createComponent(Stack, {
   variants: {
     status: {
       pending: { borderColor: '$primary' },
-      confirming: { borderColor: '$primaryDark' },
       success: { borderColor: '$success' },
       error: { borderColor: '$error' },
       info: { borderColor: '$primary' },
@@ -163,7 +161,6 @@ function StatusIcon({ status }: { status?: ToastStatus }) {
   if (!status) return null
   switch (status) {
     case 'pending':
-    case 'confirming':
       return <Spinner size="sm" />
     case 'success':
       return <Icon name="check" size="xs" color="success" />

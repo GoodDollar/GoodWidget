@@ -68,16 +68,10 @@ export interface CitizenClaimWidgetAdapterActions {
   connect: () => Promise<void>
   refresh: () => Promise<void>
   startVerification: () => Promise<void>
-  /**
-   * `onTransactionSubmitted` fires once the wallet has signed and broadcast
-   * the transaction, ahead of on-chain confirmation — lets callers move a
-   * "sign in your wallet" toast to a "waiting for confirmation" state.
-   */
-  claim: (onTransactionSubmitted?: () => void) => Promise<unknown>
-  claimOnChain: (chainId: number, onTransactionSubmitted?: () => void) => Promise<unknown>
+  claim: () => Promise<unknown>
+  claimOnChain: (chainId: number) => Promise<unknown>
   claimAll: (
     chainIds: number[],
-    onTransactionSubmitted?: (chainId: number) => void,
   ) => Promise<CitizenClaimWidgetChainClaimResult[]>
   switchChain?: (chainId: number) => Promise<void>
 }
