@@ -37,22 +37,20 @@ export async function registerWithTransferAndCall(params: {
   return hash
 }
 
-export async function restakeWithTransferAndCall(params: {
+export async function unstakeGovernanceMembership(params: {
   publicClient: PublicClient
   walletClient: WalletClient
   account: Address
-  addresses: GovernanceContractAddresses & { houses: Address }
-  stakeAmountWei: bigint
+  housesAddress: Address
   onStage?: (stage: GovernanceTransactionStage, hash?: Hex) => void
 }): Promise<Hex> {
   params.onStage?.('wallet_confirmation')
   const hash = await params.walletClient.writeContract({
     account: params.account,
     chain: CELO_CHAIN,
-    address: params.addresses.gToken,
-    abi: G_TOKEN_ABI,
-    functionName: 'transferAndCall',
-    args: [params.addresses.houses, params.stakeAmountWei, '0x'],
+    address: params.housesAddress,
+    abi: GOODDAO_HOUSES_ABI,
+    functionName: 'unstake',
   })
   params.onStage?.('submitted', hash)
   await waitForSuccessfulReceipt(params.publicClient, hash)

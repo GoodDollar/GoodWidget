@@ -124,7 +124,6 @@ export function OnboardingIdentityCard({
           </AccentRow>
         </YStack>
 
-        {/* ── CTA button ─────────────────────────────────────────── */}
         {isVerified ? (
           <Button
             fullWidth

@@ -37,7 +37,6 @@ export const CELO_CHAIN: Chain = {
 export const GOODDAO_HOUSES_ABI = parseAbi([
   'function minimumStake(uint8 house) view returns (uint256)',
   'function getMember(address account) view returns ((uint8 house, uint8 status, uint256 stakedAmount, uint64 joinedAt, uint64 updatedAt, uint64 unstakedAt, uint256 memberIndex, string name, string socialLinks, string projectWebpage, string missionStatement, string distributionStrategy))',
-  'function getHoaEligibility(address account) view returns ((bool isEligible, uint64 listedAt, uint64 updatedAt, uint64 delistedAt))',
   'function getActiveMembers(uint8 house) view returns (address[])',
   'function getActiveMembers(uint8 house, uint256 startIndex, uint256 endIndex) view returns (address[])',
   'function cycleStartTime() view returns (uint64)',
@@ -51,6 +50,7 @@ export const GOODDAO_HOUSES_ABI = parseAbi([
   'function getFinalizedUnits(uint256 voteId, address recipient) view returns (uint128)',
   'function flowSplitterConfig() view returns (address splitter, uint256 poolId, address poolAddress)',
   'function castVote(address[] recipients, uint256[] allocations)',
+  'function unstake()',
 ])
 
 export const G_TOKEN_ABI = parseAbi([
@@ -91,13 +91,6 @@ export interface GovernanceFlowSplitterConfig {
   splitter: Address
   poolId: bigint
   poolAddress: Address
-}
-
-export interface GovernanceHoaEligibilityRecord {
-  isEligible: boolean
-  listedAt: number | null
-  updatedAt: number | null
-  delistedAt: number | null
 }
 
 export interface GovernanceContractAddresses {
@@ -214,8 +207,10 @@ export function encodeGovernanceRegistrationData(
   )
 }
 
-function timestampFromSeconds(value: bigint): number | null {
-  return value > 0n ? Number(value) * 1000 : null
+export function safeMillisecondsFromSeconds(value: bigint): number | null {
+  if (value <= 0n) return null
+  const milliseconds = Number(value * 1000n)
+  return Number.isSafeInteger(milliseconds) ? milliseconds : null
 }
 
 function tupleValue(rawValue: unknown, index: number, key: string): unknown {
@@ -231,9 +226,9 @@ export function mapMemberRecord(rawMember: readonly unknown[] | Record<string, u
     house: CONTRACT_TO_HOUSE[houseValue] ?? 'citizenship',
     status: CONTRACT_TO_STATUS[statusValue] ?? 'none',
     stakedAmount: BigInt(String(tupleValue(rawMember, 2, 'stakedAmount') ?? 0)),
-    joinedAt: timestampFromSeconds(BigInt(String(tupleValue(rawMember, 3, 'joinedAt') ?? 0))),
-    updatedAt: timestampFromSeconds(BigInt(String(tupleValue(rawMember, 4, 'updatedAt') ?? 0))),
-    unstakedAt: timestampFromSeconds(BigInt(String(tupleValue(rawMember, 5, 'unstakedAt') ?? 0))),
+    joinedAt: safeMillisecondsFromSeconds(BigInt(String(tupleValue(rawMember, 3, 'joinedAt') ?? 0))),
+    updatedAt: safeMillisecondsFromSeconds(BigInt(String(tupleValue(rawMember, 4, 'updatedAt') ?? 0))),
+    unstakedAt: safeMillisecondsFromSeconds(BigInt(String(tupleValue(rawMember, 5, 'unstakedAt') ?? 0))),
     memberIndex: BigInt(String(tupleValue(rawMember, 6, 'memberIndex') ?? 0)),
     name: String(tupleValue(rawMember, 7, 'name') ?? ''),
     socialLinks: String(tupleValue(rawMember, 8, 'socialLinks') ?? ''),
@@ -245,9 +240,9 @@ export function mapMemberRecord(rawMember: readonly unknown[] | Record<string, u
 
 export function mapVoteConfig(rawConfig: readonly unknown[] | Record<string, unknown>): GovernanceVoteConfig {
   return {
-    startTime: timestampFromSeconds(BigInt(String(tupleValue(rawConfig, 0, 'startTime') ?? 0))),
-    endTime: timestampFromSeconds(BigInt(String(tupleValue(rawConfig, 1, 'endTime') ?? 0))),
-    executedAt: timestampFromSeconds(BigInt(String(tupleValue(rawConfig, 2, 'executedAt') ?? 0))),
+    startTime: safeMillisecondsFromSeconds(BigInt(String(tupleValue(rawConfig, 0, 'startTime') ?? 0))),
+    endTime: safeMillisecondsFromSeconds(BigInt(String(tupleValue(rawConfig, 1, 'endTime') ?? 0))),
+    executedAt: safeMillisecondsFromSeconds(BigInt(String(tupleValue(rawConfig, 2, 'executedAt') ?? 0))),
     executed: Boolean(tupleValue(rawConfig, 3, 'executed')),
   }
 }
@@ -257,15 +252,6 @@ export function mapFlowSplitterConfig(rawConfig: readonly unknown[] | Record<str
     splitter: (tupleValue(rawConfig, 0, 'splitter') ?? ZERO_ADDRESS) as Address,
     poolId: BigInt(String(tupleValue(rawConfig, 1, 'poolId') ?? 0)),
     poolAddress: (tupleValue(rawConfig, 2, 'poolAddress') ?? ZERO_ADDRESS) as Address,
-  }
-}
-
-export function mapHoaEligibilityRecord(rawRecord: readonly unknown[] | Record<string, unknown>): GovernanceHoaEligibilityRecord {
-  return {
-    isEligible: Boolean(tupleValue(rawRecord, 0, 'isEligible')),
-    listedAt: timestampFromSeconds(BigInt(String(tupleValue(rawRecord, 1, 'listedAt') ?? 0))),
-    updatedAt: timestampFromSeconds(BigInt(String(tupleValue(rawRecord, 2, 'updatedAt') ?? 0))),
-    delistedAt: timestampFromSeconds(BigInt(String(tupleValue(rawRecord, 3, 'delistedAt') ?? 0))),
   }
 }
 

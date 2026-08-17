@@ -39,6 +39,10 @@ export { DEFAULT_TRANSACTION_STEPS } from './onboarding/constants'
 export { useGovernanceAdapter } from './adapter'
 export type {
   GovernanceDashboardState,
+  GovernanceTransactionKind,
+  GovernanceTransactionState,
+  GovernanceTransactionStatus,
+  GovernanceUnstakeAvailability,
   GovernanceVotingState,
   GovernanceWidgetAdapterActions,
   GovernanceWidgetAdapterFactory,
@@ -55,7 +59,6 @@ export {
   G_TOKEN_CELO_ADDRESS,
   encodeGovernanceRegistrationData,
   mapFlowSplitterConfig,
-  mapHoaEligibilityRecord,
   mapMemberRecord,
   mapVoteConfig,
   resolveGovernanceAddresses,

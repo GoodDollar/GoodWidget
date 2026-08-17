@@ -183,7 +183,6 @@ export function ProfileStepContent({
             )}
           </YStack>
 
-          {/* ── CTA button (Figma: inside card at bottom) ───────────────── */}
           <Button
             fullWidth
             disabled={ctaDisabled}

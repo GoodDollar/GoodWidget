@@ -13,14 +13,14 @@ export const HOUSE_COPY: Record<GovernanceHouse, HouseCopy> = {
     title: 'House of Citizenship',
     summary: 'Represent verified community members and highlight your public governance identity.',
     helper: 'Collect the profile details that describe the member behind the wallet.',
-    label: 'Membership house',
+    label: 'Identity',
     defaultStakeAmount: '100 G$',
   },
   alignment: {
     title: 'House of Alignment',
     summary: 'Coordinate aligned projects and explain how your mission creates value for the network.',
     helper: 'Collect project-facing metadata that can later map to the onchain registration shape.',
-    label: 'Project house',
+    label: 'Protocol security',
     defaultStakeAmount: '250 G$',
   },
 }

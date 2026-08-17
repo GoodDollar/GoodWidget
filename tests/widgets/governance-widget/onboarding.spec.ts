@@ -23,37 +23,44 @@ async function gotoStory(page: Page, storyUrl: string): Promise<void> {
   await page.goto(storyUrl)
   await page.waitForLoadState('domcontentloaded')
   await page.waitForLoadState('networkidle')
+  await page.addStyleTag({
+    content: '*, *::before, *::after { animation: none !important; transition: none !important; caret-color: transparent !important; }',
+  })
+}
+
+async function captureEvidence(page: Page, path: string): Promise<void> {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      await page.screenshot({ path, fullPage: true })
+      return
+    } catch (error: unknown) {
+      if (attempt === 3) throw error
+      await page.waitForTimeout(attempt * 100)
+    }
+  }
 }
 
 test('Governance onboarding interactive flow persists selected house into profile and success steps', async ({
   page,
 }) => {
+  await page.clock.install({ time: new Date('2026-07-19T12:00:00Z') })
   await gotoStory(page, STORY_IDS.custodialInteractiveFlow)
 
   await expect(page.getByText('Welcome', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Proceed to Membership' }).scrollIntoViewIfNeeded()
   await expect(page.getByRole('button', { name: 'Proceed to Membership' })).toBeEnabled()
-  await page.screenshot({
-    path: 'tests/widgets/governance-widget/test-results/gwo-01-welcome-verified.png',
-    fullPage: true,
-  })
+  await captureEvidence(page, 'tests/widgets/governance-widget/test-results/gwo-01-welcome-verified.png')
 
   await page.getByRole('button', { name: 'Proceed to Membership' }).click()
   await expect(page.getByText('Choose your house', { exact: true })).toBeVisible()
-  await page.screenshot({
-    path: 'tests/widgets/governance-widget/test-results/gwo-02-house-selection.png',
-    fullPage: true,
-  })
+  await captureEvidence(page, 'tests/widgets/governance-widget/test-results/gwo-02-house-selection.png')
 
   await page.getByTestId('GovernanceOnboardingWidget-house-alignment').click()
-  await page.getByRole('button', { name: 'Continue to profile' }).scrollIntoViewIfNeeded()
-  await page.getByRole('button', { name: 'Continue to profile' }).click({ force: true })
+  await page.getByRole('button', { name: 'Continue', exact: true }).scrollIntoViewIfNeeded()
+  await page.getByRole('button', { name: 'Continue', exact: true }).click({ force: true })
   await expect(page.getByText('Apply for House of Alignment', { exact: true })).toBeVisible()
   await expect(page.getByText('Mission statement')).toBeVisible()
-  await page.screenshot({
-    path: 'tests/widgets/governance-widget/test-results/gwo-03-profile-alignment.png',
-    fullPage: true,
-  })
+  await captureEvidence(page, 'tests/widgets/governance-widget/test-results/gwo-03-profile-alignment.png')
 
   await page.getByPlaceholder('John Doe or Organization').fill('Solar Commons')
   await page.getByPlaceholder('https://example.com').fill('https://solar.example')
@@ -70,63 +77,45 @@ test('Governance onboarding interactive flow persists selected house into profil
     .scrollIntoViewIfNeeded()
   await page.getByRole('button', { name: 'Create Profile and Stake' }).click({ force: true })
 
-  await expect(page.getByText('Creating profile & staking', { exact: true }).first()).toBeVisible()
+  await expect(page.getByText('Securing your membership', { exact: true }).first()).toBeVisible()
   await expect(page.getByText('Approve governance stake')).toBeVisible()
-  await page.screenshot({
-    path: 'tests/widgets/governance-widget/test-results/gwo-04-stake-progress-active.png',
-    fullPage: true,
-  })
+  await captureEvidence(page, 'tests/widgets/governance-widget/test-results/gwo-04-stake-progress-active.png')
 
-  await page.getByRole('button', { name: 'Continue to success' }).scrollIntoViewIfNeeded()
-  // Wait for all transaction steps to complete (indicated by the progress text reaching 4/4)
+  await page.clock.runFor(1_500)
   await expect(page.getByText('4/4')).toBeVisible({ timeout: 10000 })
+  await page.getByRole('button', { name: 'Continue to success' }).scrollIntoViewIfNeeded()
   await expect(page.getByRole('button', { name: 'Continue to success' })).toBeEnabled()
   await page.getByRole('button', { name: 'Continue to success' }).click({ force: true })
   await expect(page.getByText('Welcome to Governance', { exact: true })).toBeVisible()
-  await page.screenshot({
-    path: 'tests/widgets/governance-widget/test-results/gwo-05-success.png',
-    fullPage: true,
-  })
+  await captureEvidence(page, 'tests/widgets/governance-widget/test-results/gwo-05-success.png')
 })
 
 test('Governance onboarding shows the unverified welcome state', async ({ page }) => {
   await gotoStory(page, STORY_IDS.custodialWelcomeUnverified)
   await expect(page.getByText('Verification required')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Verify with GoodID' })).toBeVisible()
-  await page.screenshot({
-    path: 'tests/widgets/governance-widget/test-results/gwo-06-welcome-unverified.png',
-    fullPage: true,
-  })
+  await captureEvidence(page, 'tests/widgets/governance-widget/test-results/gwo-06-welcome-unverified.png')
 })
 
 test('Governance onboarding shows house selection as a standalone state', async ({ page }) => {
   await gotoStory(page, STORY_IDS.custodialHouseSelection)
   await expect(page.getByText('House of Citizenship')).toBeVisible()
   await expect(page.getByText('House of Alignment')).toBeVisible()
-  await page.screenshot({
-    path: 'tests/widgets/governance-widget/test-results/gwo-07-house-selection-standalone.png',
-    fullPage: true,
-  })
+  await captureEvidence(page, 'tests/widgets/governance-widget/test-results/gwo-07-house-selection-standalone.png')
 })
 
 test('Governance onboarding shows the citizenship profile ready state', async ({ page }) => {
   await gotoStory(page, STORY_IDS.custodialCitizenshipProfileReady)
   await expect(page.getByRole('button', { name: 'Create Profile and Stake' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Create Profile and Stake' })).toBeEnabled()
-  await page.screenshot({
-    path: 'tests/widgets/governance-widget/test-results/gwo-08-profile-citizenship-ready.png',
-    fullPage: true,
-  })
+  await captureEvidence(page, 'tests/widgets/governance-widget/test-results/gwo-08-profile-citizenship-ready.png')
 })
 
 test('Governance onboarding shows the alignment profile validation state', async ({ page }) => {
   await gotoStory(page, STORY_IDS.custodialAlignmentProfileError)
   await expect(page.getByText('Project webpage is required')).toBeVisible()
   await expect(page.getByText('Distribution strategy is required')).toBeVisible()
-  await page.screenshot({
-    path: 'tests/widgets/governance-widget/test-results/gwo-09-profile-alignment-error.png',
-    fullPage: true,
-  })
+  await captureEvidence(page, 'tests/widgets/governance-widget/test-results/gwo-09-profile-alignment-error.png')
 })
 
 test('Governance onboarding shows the failed stake progress state', async ({ page }) => {
@@ -135,20 +124,14 @@ test('Governance onboarding shows the failed stake progress state', async ({ pag
   await expect(
     page.getByText('The previous transaction failed and needs a retry from the wallet.').first(),
   ).toBeVisible()
-  await page.screenshot({
-    path: 'tests/widgets/governance-widget/test-results/gwo-10-stake-progress-failed.png',
-    fullPage: true,
-  })
+  await captureEvidence(page, 'tests/widgets/governance-widget/test-results/gwo-10-stake-progress-failed.png')
 })
 
 test('Governance onboarding shows the standalone success state actions', async ({ page }) => {
   await gotoStory(page, STORY_IDS.custodialSuccess)
   await expect(page.getByRole('button', { name: 'Explore Governance Proposals' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Go to my profile' })).toBeVisible()
-  await page.screenshot({
-    path: 'tests/widgets/governance-widget/test-results/gwo-11-success-standalone.png',
-    fullPage: true,
-  })
+  await captureEvidence(page, 'tests/widgets/governance-widget/test-results/gwo-11-success-standalone.png')
 })
 
 test('Profile field handles rapid typing without losing characters (stale-closure regression)', async ({
@@ -160,8 +143,8 @@ test('Profile field handles rapid typing without losing characters (stale-closur
   await page.getByRole('button', { name: 'Proceed to Membership' }).scrollIntoViewIfNeeded()
   await page.getByRole('button', { name: 'Proceed to Membership' }).click()
   await page.getByTestId('GovernanceOnboardingWidget-house-alignment').click()
-  await page.getByRole('button', { name: 'Continue to profile' }).scrollIntoViewIfNeeded()
-  await page.getByRole('button', { name: 'Continue to profile' }).click({ force: true })
+  await page.getByRole('button', { name: 'Continue', exact: true }).scrollIntoViewIfNeeded()
+  await page.getByRole('button', { name: 'Continue', exact: true }).click({ force: true })
   await expect(page.getByText('Apply for House of Alignment', { exact: true })).toBeVisible()
 
   const nameInput = page.getByPlaceholder('John Doe or Organization')

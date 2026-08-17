@@ -51,10 +51,10 @@ export interface GovernanceOnboardingWidgetProps {
    */
   walletAddress?: string
   initialHouse?: GovernanceHouse
-  disabledHouseOptions?: GovernanceHouse[]
   initialProfileDraft?: GovernanceProfileDraft
   initialFieldErrors?: GovernanceProfileFieldErrors
   stakeAmountLabel?: string
+  stakeAmountLabels?: Record<GovernanceHouse, string>
   transactionSteps?: StepperStepItem[]
   finalActions?: GovernanceOnboardingAction[]
   dataTestId?: string
