@@ -40,11 +40,7 @@ async function gotoStory(page: Page): Promise<void> {
 }
 
 /** Poll the page until any of the given strings appears in the body text. */
-async function waitForText(
-  page: Page,
-  patterns: string[],
-  timeoutMs = 40_000,
-): Promise<string> {
+async function waitForText(page: Page, patterns: string[], timeoutMs = 40_000): Promise<string> {
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
     const text = await page.evaluate(() => document.body.innerText)
@@ -61,9 +57,15 @@ test('CitizenClaimWidget shows loading spinner on mount', async ({ page }) => {
   // Route all RPC calls to hang (never respond, never abort).
   // This keeps the adapter in the `loading` state indefinitely, giving the Storybook
   // bundle time to fully mount even on a cold first run before we screenshot.
-  await page.route('https://forno.celo.org/**', () => { /* hang — never fulfill */ })
-  await page.route('https://rpc.fuse.io/**', () => { /* hang — never fulfill */ })
-  await page.route('https://rpc.ankr.com/**', () => { /* hang — never fulfill */ })
+  await page.route('https://forno.celo.org/**', () => {
+    /* hang — never fulfill */
+  })
+  await page.route('https://rpc.fuse.io/**', () => {
+    /* hang — never fulfill */
+  })
+  await page.route('https://rpc.ankr.com/**', () => {
+    /* hang — never fulfill */
+  })
 
   await gotoStory(page)
 
@@ -165,6 +167,29 @@ test('CitizenClaimWidget Retry button re-triggers the adapter', async ({ page })
   // Either back in loading (no Retry, no Verify) or resolved to not_whitelisted
   // — both are valid depending on timing
   expect(afterClickText).toBeTruthy()
+})
+
+// ─── Invite Rewards tab ──────────────────────────────────────────────────────
+test('CitizenClaimWidget opens the Invite Rewards entry point', async ({ page }) => {
+  await gotoStory(page)
+
+  // The custodial EIP-1193 fixture starts on Celo; the widget should request
+  // the XDC switch before exposing the connected flow.
+  await expect(page.getByText('XDC', { exact: true })).toBeVisible()
+
+  const inviteTab = page.getByText('Invite Rewards', { exact: true })
+  await expect(inviteTab).toBeVisible()
+  await inviteTab.click()
+
+  // "How it works" now opens in a Drawer (see InviteRewardsQA.stories.tsx), so its
+  // trigger button is the reliable, unambiguous target rather than the text itself,
+  // which also appears as the (closed, off-screen) Drawer's own heading.
+  await expect(page.getByRole('button', { name: 'How it works' })).toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/citizen-claim-widget/test-results/ccw-18-invite-tab-entrypoint.png',
+    fullPage: true,
+  })
 })
 
 test('CitizenClaimWidget claimExecution claimAll reports per-chain success and failure', async ({

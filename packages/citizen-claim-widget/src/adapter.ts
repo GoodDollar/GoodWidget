@@ -63,6 +63,30 @@ const CHAIN_CONFIGS: Record<number, Chain> = {
 const SUPPORTED_CHAINS = citizenSdkCapabilities.chains
 const AVAILABLE_ENVIRONMENTS = citizenSdkCapabilities.environments
 
+/**
+ * Creates provider-first viem clients for a supported widget chain.
+ * Invite and claim SDK adapters share this factory so they always sign through
+ * the host's EIP-1193 provider.
+ */
+export function createCitizenWidgetClients(
+  provider: unknown,
+  address: string,
+  targetChainId: number,
+) {
+  const chain = CHAIN_CONFIGS[targetChainId]
+  if (!chain) return null
+
+  const transport = custom(provider as Parameters<typeof custom>[0])
+  const publicClient = createPublicClient({ chain, transport })
+  const walletClient = createWalletClient({
+    account: address as `0x${string}`,
+    chain,
+    transport,
+  })
+
+  return { publicClient, walletClient }
+}
+
 // Display names for chains a connected wallet can land on outside the 3
 // citizen-sdk supports (e.g. the other networks this app's own wallet-connect
 // modal offers) — "unsupported chain" messaging only ever needs to name a
@@ -159,7 +183,10 @@ function humanReadableError(err: unknown): string {
     const reasonMatch = msg.match(/reason:\s*(.+?)(?:\n|$)/)
     if (reasonMatch) {
       // Sanitize: strip control characters and cap length to avoid injection/overflow
-      const reason = reasonMatch[1].replace(/[^\x20-\x7E]/g, '').trim().slice(0, 80)
+      const reason = reasonMatch[1]
+        .replace(/[^\x20-\x7E]/g, '')
+        .trim()
+        .slice(0, 80)
       if (reason) {
         return `Transaction failed: ${reason}`
       }
@@ -258,16 +285,7 @@ export function useCitizenClaimAdapter(
   const createProviderClientsForChain = useCallback(
     (targetChainId: number) => {
       if (!provider || !address) return null
-      const chain = CHAIN_CONFIGS[targetChainId]
-      if (!chain) return null
-      const transport = custom(provider as Parameters<typeof custom>[0])
-      const publicClient = createPublicClient({ chain, transport })
-      const walletClient = createWalletClient({
-        account: address as `0x${string}`,
-        chain,
-        transport,
-      })
-      return { publicClient, walletClient }
+      return createCitizenWidgetClients(provider, address, targetChainId)
     },
     [provider, address],
   )
@@ -298,11 +316,9 @@ export function useCitizenClaimAdapter(
     (targetChainId: number): PublicClient | null => {
       if (isCustodialExecution) {
         const configuredClients = claimExecution?.clientsByChain[targetChainId]
-        return (
-          configuredClients?.publicClient ??
+        return (configuredClients?.publicClient ??
           configuredClients?.readClient ??
-          null
-        ) as PublicClient | null
+          null) as PublicClient | null
       }
 
       const chain = CHAIN_CONFIGS[targetChainId]
@@ -525,10 +541,7 @@ export function useCitizenClaimAdapter(
   const loadClaimStatus = useCallback(async () => {
     // These are best-effort UI reads. Start them without making the primary
     // wallet eligibility check wait for every auxiliary RPC response.
-    const auxiliaryReads = Promise.all([
-      loadClaimablesByChain(),
-      loadDailyStats(),
-    ])
+    const auxiliaryReads = Promise.all([loadClaimablesByChain(), loadDailyStats()])
 
     if (!address) {
       await auxiliaryReads
@@ -557,8 +570,9 @@ export function useCitizenClaimAdapter(
     // configured chain comes first, rather than gating on an "active chain"
     // that may never resolve to a supported one (or may not exist).
     const statusChainId = isCustodialExecution
-      ? SUPPORTED_CHAINS.find((supportedChainId) => claimExecution?.clientsByChain[supportedChainId]) ??
-        null
+      ? (SUPPORTED_CHAINS.find(
+          (supportedChainId) => claimExecution?.clientsByChain[supportedChainId],
+        ) ?? null)
       : chainId
 
     if (isCustodialExecution && statusChainId === null) {
@@ -572,7 +586,9 @@ export function useCitizenClaimAdapter(
       setStatus('error')
       setError(
         humanReadableError(
-          new CitizenClaimAdapterError('Claim execution is not configured for any supported chain.'),
+          new CitizenClaimAdapterError(
+            'Claim execution is not configured for any supported chain.',
+          ),
         ),
       )
       return
@@ -603,7 +619,11 @@ export function useCitizenClaimAdapter(
       // connected — 'not_connected' would tell an already-connected user
       // to do something they've already done.
       setStatus('error')
-      setError(humanReadableError(new CitizenClaimAdapterError('Unable to load claim status for this chain right now.')))
+      setError(
+        humanReadableError(
+          new CitizenClaimAdapterError('Unable to load claim status for this chain right now.'),
+        ),
+      )
       return
     }
 
@@ -669,7 +689,11 @@ export function useCitizenClaimAdapter(
       // Execute actions must stay within the chains the passed-down provider
       // can actually sign for right now. Custodial execution supplies its own
       // pre-configured per-chain clients and is not subject to this restriction.
-      if (!isCustodialExecution && availableChainIds && !availableChainIds.includes(targetChainId)) {
+      if (
+        !isCustodialExecution &&
+        availableChainIds &&
+        !availableChainIds.includes(targetChainId)
+      ) {
         throw new CitizenClaimAdapterError(
           `Claim is not available on ${getChainDisplayName(targetChainId)} for this connection.`,
         )
@@ -696,7 +720,14 @@ export function useCitizenClaimAdapter(
 
       return sdk.claimSDK.claim()
     },
-    [address, availableChainIds, createSdkInstancesForChain, isCustodialExecution, provider, switchChain],
+    [
+      address,
+      availableChainIds,
+      createSdkInstancesForChain,
+      isCustodialExecution,
+      provider,
+      switchChain,
+    ],
   )
 
   // ---------------------------------------------------------------------------
@@ -854,13 +885,7 @@ export function useCitizenClaimAdapter(
     if (status === 'eligible') return 'claim'
     if (status === 'error') return 'refresh'
     return 'none'
-  }, [
-    status,
-    address,
-    isConnected,
-    isCustodialExecution,
-    claimablesByChain,
-  ])
+  }, [status, address, isConnected, isCustodialExecution, claimablesByChain])
 
   const primaryLabel: string = useMemo(() => {
     switch (primaryAction) {

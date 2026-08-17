@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { GoodWidgetProvider, useWallet } from '@goodwidget/core'
 import type { EIP1193Provider } from '@goodwidget/core'
 import {
@@ -22,6 +22,8 @@ import {
 } from '@goodwidget/ui'
 import { SupportedChains } from '@goodsdks/citizen-sdk'
 import { getChainDisplayName, useCitizenClaimAdapter } from './adapter'
+import { ClaimInviteJoinCard, InviteRewards } from './InviteRewards'
+import { InviteRuntimeProvider } from './inviteAdapter'
 import type {
   CitizenClaimWidgetProps,
   CitizenClaimWidgetSuccessDetail,
@@ -436,24 +438,26 @@ function CitizenClaimInner({
               )}
 
               {status !== 'unsupported_chain' &&
-                (status === 'eligible' || status === 'claiming' || claimablesByChain.length > 0) && (
-                <>
-                  {/*
+                (status === 'eligible' ||
+                  status === 'claiming' ||
+                  claimablesByChain.length > 0) && (
+                  <>
+                    {/*
                     Declarative to claim status: an already_claimed wallet with
                     other chains still available must not read as "no claims
                     left" (the "Just a little longer" copy below is reserved for
                     when every chain has actually been claimed for the day).
                   */}
-                  <Text secondary>
-                    {status === 'already_claimed' && claimablesByChain.length === 1
-                      ? `G$ Claim is still available on ${getChainDisplayName(claimablesByChain[0].chainId)}`
-                      : status === 'already_claimed' && claimablesByChain.length > 1
-                        ? 'G$ Claim is still available on other chains'
-                        : 'Ready to claim'}
-                  </Text>
-                  {displayAmount && <TokenAmount token="G$" amount={displayAmount} size="xl" />}
-                </>
-              )}
+                    <Text secondary>
+                      {status === 'already_claimed' && claimablesByChain.length === 1
+                        ? `G$ Claim is still available on ${getChainDisplayName(claimablesByChain[0].chainId)}`
+                        : status === 'already_claimed' && claimablesByChain.length > 1
+                          ? 'G$ Claim is still available on other chains'
+                          : 'Ready to claim'}
+                    </Text>
+                    {displayAmount && <TokenAmount token="G$" amount={displayAmount} size="xl" />}
+                  </>
+                )}
 
               {status === 'success' && (
                 <Text color="$success" fontWeight="700">
@@ -565,6 +569,7 @@ function CitizenClaimInner({
           />
         </ClaimDailyStatsRow>
       </ClaimDailyStats>
+      <ClaimInviteJoinCard />
     </YStack>
   )
 }
@@ -594,40 +599,66 @@ function CitizenClaimShell({
   onClaimError,
   initialTab,
 }: CitizenClaimShellProps) {
-  const { chainId } = useWallet()
+  const { chainId, isConnected, switchChain } = useWallet()
+  const autoSwitchAttemptRef = useRef<number | null>(null)
+
+  // Citizen claims and invite rewards are currently XDC-first. Use the shared
+  // wallet switch path so AppKit can handle the network selection while direct
+  // EIP-1193 wallets use wallet_switchEthereumChain.
+  useEffect(() => {
+    if (!isConnected || chainId === null) {
+      autoSwitchAttemptRef.current = null
+      return
+    }
+    if (chainId === SupportedChains.XDC) {
+      autoSwitchAttemptRef.current = null
+      return
+    }
+    if (autoSwitchAttemptRef.current === chainId) return
+
+    autoSwitchAttemptRef.current = chainId
+    void switchChain(SupportedChains.XDC).catch(() => {
+      // Keep the wallet on its current chain; the existing manual switch action remains available.
+    })
+  }, [chainId, isConnected, switchChain])
+
   // Initial tab only — not synced after mount, matching existing internal-state pattern.
   const [activeTab, setActiveTab] = useState<CitizenClaimTab>(initialTab ?? 'claim')
 
   return (
     <>
-      <WidgetTabs
-        tabs={[
-          { id: 'claim', label: 'Claim' },
-          { id: 'invite-rewards', label: 'Invite Rewards' },
-          { id: 'news-feed', label: 'News' },
-        ]}
-        activeTab={activeTab}
-        onTabChange={(tabId: string) => setActiveTab(tabId as CitizenClaimTab)}
-        chainId={chainId ?? fallbackChainId ?? SupportedChains.XDC}
-      />
-      {activeTab === 'claim' ? (
-        <>
-          <CitizenClaimInner
-            environment={environment}
-            clientFactory={clientFactory}
-            claimExecution={claimExecution}
-            onClaimSuccess={onClaimSuccess}
-            onClaimError={onClaimError}
-          />
-          <ToastContainer />
-        </>
-      ) : (
-        <Card width="100%">
-          <YStack alignItems="center" justifyContent="center" minHeight={320}>
-            <Text variant="body">Widget coming soon</Text>
-          </YStack>
-        </Card>
-      )}
+      <InviteRuntimeProvider environment={environment}>
+        <WidgetTabs
+          tabs={[
+            { id: 'claim', label: 'Claim' },
+            { id: 'invite-rewards', label: 'Invite Rewards' },
+            { id: 'news-feed', label: 'News' },
+          ]}
+          activeTab={activeTab}
+          onTabChange={(tabId: string) => setActiveTab(tabId as CitizenClaimTab)}
+          chainId={chainId ?? fallbackChainId ?? SupportedChains.XDC}
+        />
+        {activeTab === 'claim' ? (
+          <>
+            <CitizenClaimInner
+              environment={environment}
+              clientFactory={clientFactory}
+              claimExecution={claimExecution}
+              onClaimSuccess={onClaimSuccess}
+              onClaimError={onClaimError}
+            />
+            <ToastContainer />
+          </>
+        ) : activeTab === 'invite-rewards' ? (
+          <InviteRewards />
+        ) : (
+          <Card width="100%">
+            <YStack alignItems="center" justifyContent="center" minHeight={320}>
+              <Text variant="body">Widget coming soon</Text>
+            </YStack>
+          </Card>
+        )}
+      </InviteRuntimeProvider>
     </>
   )
 }

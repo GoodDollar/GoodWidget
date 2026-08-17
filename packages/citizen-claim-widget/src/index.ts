@@ -28,5 +28,32 @@ export { createCitizenClaimWidgetCustodialExecution } from './custodial'
 export { useCitizenClaimAdapter } from './adapter'
 export type { UseCitizenClaimAdapterOptions } from './adapter'
 
+// Shared InviteSDK adapter contract and deterministic code helpers.
+export {
+  decodeInviteCode,
+  encodeInviteCode,
+  formatInviteBounty,
+  generateInviteCode,
+  InviteRuntimeContext,
+  InviteRuntimeProvider,
+  loadInviteSnapshot,
+  useInviteAdapter,
+  useInviteRuntime,
+} from './inviteAdapter'
+export type {
+  InviteActions,
+  InviteAdapterResult,
+  InviteSnapshot,
+  InviteSnapshotSdk,
+  InviteState,
+  InviteStatus,
+} from './inviteAdapter'
+
+// Pure invite rules — reused by adapter/component fixtures and tests.
+export { canAttachInviter, getMyInviteCode, hasCollectableInvitees, isInviteeCollectable } from './inviteRules'
+
+// Invite Rewards presentation — exported so QA fixtures can mount it with a mocked runtime.
+export { ClaimInviteJoinCard, InviteRewards } from './InviteRewards'
+
 // Widget component
 export { CitizenClaimWidget } from './CitizenClaimWidget'
