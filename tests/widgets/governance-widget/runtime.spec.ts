@@ -722,6 +722,19 @@ test('vote submission is single-flight and ignores a stale receipt after account
   await expect(page.getByText('Vote confirmed on Celo.')).toHaveCount(0)
 })
 
+test('live mocked-data flow completes citizenship registration end-to-end', async ({ page }) => {
+  // Exercises the self-contained fixture (createInteractiveGovernanceEnvironment) used by the
+  // qa-governancewidget-runtime-fixtures--live-mocked-data-flow story: its window.fetch and
+  // EIP-1193 provider mocks are installed by the story component itself, not by this test, so
+  // this only needs to navigate and drive the UI like a human would.
+  await gotoStory(page, 'qa-governancewidget-runtime-fixtures--live-mocked-data-flow')
+
+  await submitCitizenshipRegistration(page)
+
+  await expect(page.getByTestId('GovernanceWidget-dashboard')).toBeVisible()
+  await expect(page.getByTestId('GovernanceWidget-member-footer')).toContainText('House of Citizenship')
+})
+
 test('real adapter clears account-scoped governance state while a new wallet loads', async ({ page }) => {
   logRuntimeDiagnostics(page)
   await installInjectedProvider(page)
