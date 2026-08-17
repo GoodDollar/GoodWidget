@@ -17,7 +17,7 @@ import {
   updateToast,
 } from '@goodwidget/ui'
 import { useAiCreditsAdapter } from './adapter'
-import { DEPOSIT_BONUS_PERCENT, STREAM_BONUS_PERCENT } from './quoteMath'
+import { useAiCreditsHistory } from './useAiCreditsHistory'
 import {
   AiCreditsHero,
   AiCreditsFlowStepper,
@@ -27,7 +27,7 @@ import {
   CreditsManagementCard,
   BuyerOperatorCard,
   SetupSnippet,
-  UsageLog,
+  HistoryTab,
 } from './components'
 import type {
   AiCreditsWidgetProps,
@@ -35,6 +35,7 @@ import type {
   AiCreditsPaySuccessDetail,
   AiCreditsPayErrorDetail,
   AiCreditsWidgetAdapterFactory,
+  AiCreditsWidgetAdapterOptions,
   AiCreditsWidgetAdapterActions,
   AiCreditsWidgetAdapterState,
   AiCreditsWidgetTab,
@@ -53,6 +54,7 @@ interface AiCreditsInnerProps {
   vaultAddress?: string
   goodIdAddress?: string
   adapterFactory?: AiCreditsWidgetAdapterFactory
+  adapterOptions?: AiCreditsWidgetAdapterOptions
   onPaySuccess?: (detail: AiCreditsPaySuccessDetail) => void
   onPayError?: (detail: AiCreditsPayErrorDetail) => void
 }
@@ -88,12 +90,7 @@ interface BuyPanelProps {
   onPay: (quote: AiCreditsQuote) => void
 }
 
-function BuyCreditsPanel({
-  state,
-  actions,
-  isPending,
-  onPay,
-}: BuyPanelProps) {
+function BuyCreditsPanel({ state, actions, isPending, onPay }: BuyPanelProps) {
   let content: React.ReactNode
 
   if (state.status === 'unsupported_chain') {
@@ -122,13 +119,6 @@ function BuyCreditsPanel({
             Payment Failed
           </Text>
           {state.error && <Text secondary>{state.error}</Text>}
-          <Button
-            onPress={() => {
-              void actions.retry()
-            }}
-          >
-            <ButtonText>Try Again</ButtonText>
-          </Button>
         </AiCreditsStatusNotice>
         <AiCreditsPurchaseFlow
           state={state}
@@ -162,8 +152,6 @@ function BuyCreditsPanel({
         <AiCreditsHero
           gBalance={state.gBalance}
           isGoodIdVerified={state.isGoodIdVerified}
-          depositBonusPercent={DEPOSIT_BONUS_PERCENT}
-          streamBonusPercent={STREAM_BONUS_PERCENT}
         />
         <AiCreditsStatusNotice>
           <Text color="$warning" fontWeight="700">
@@ -197,13 +185,29 @@ function BuyCreditsPanel({
   } else {
     content = (
       <>
+        {state.error && (
+          <AiCreditsStatusNotice>
+            <Text color="$error" fontWeight="700">
+              Deep link unavailable
+            </Text>
+            <Text secondary>{state.error}</Text>
+          </AiCreditsStatusNotice>
+        )}
+
         {state.address && (
           <AiCreditsHero
             gBalance={state.gBalance}
             isGoodIdVerified={state.isGoodIdVerified}
-            depositBonusPercent={DEPOSIT_BONUS_PERCENT}
-            streamBonusPercent={STREAM_BONUS_PERCENT}
           />
+        )}
+
+        {state.error && (
+          <AiCreditsStatusNotice>
+            <Text color="$error" fontWeight="700">
+              Request Failed
+            </Text>
+            <Text secondary>{state.error}</Text>
+          </AiCreditsStatusNotice>
         )}
 
         {state.gBalance !== null && Number.parseFloat(state.gBalance) <= 0 && (
@@ -233,20 +237,16 @@ function BuyCreditsPanel({
 function ManagePanel({
   state,
   actions,
-  backendUrl,
 }: {
   state: AiCreditsWidgetAdapterState
   actions: AiCreditsWidgetAdapterActions
-  backendUrl?: string
 }) {
   const [refreshing, setRefreshing] = React.useState(false)
-  const [usageLogRefreshSignal, setUsageLogRefreshSignal] = React.useState(0)
 
   const handleRefresh = async () => {
     setRefreshing(true)
     try {
       await actions.refresh()
-      setUsageLogRefreshSignal((value) => value + 1)
     } finally {
       setRefreshing(false)
     }
@@ -268,12 +268,6 @@ function ManagePanel({
 
       <SetupSnippet />
 
-      <UsageLog
-        address={state.address}
-        backendUrl={backendUrl}
-        refreshSignal={usageLogRefreshSignal}
-      />
-
       <YStack gap="$2" width="100%" alignItems="center">
         {state.error && (
           <Text color="$error" fontSize="$2" textAlign="center">
@@ -291,11 +285,7 @@ function ManagePanel({
             void handleRefresh()
           }}
         >
-          {refreshing ? (
-            <Spinner size="sm" />
-          ) : (
-            <Icon name="refresh" size="sm" color="muted" />
-          )}
+          {refreshing ? <Spinner size="sm" /> : <Icon name="refresh" size="sm" color="muted" />}
           <ButtonText>{refreshing ? 'Refreshing…' : 'Refresh Balance'}</ButtonText>
         </Button>
       </YStack>
@@ -312,6 +302,7 @@ function AiCreditsInner({
   vaultAddress,
   goodIdAddress,
   adapterFactory,
+  adapterOptions,
   onPaySuccess,
   onPayError,
 }: AiCreditsInnerProps) {
@@ -325,17 +316,27 @@ function AiCreditsInner({
     goodIdAddress: goodIdAddress as `0x${string}` | undefined,
     onPaySuccess,
     onPayError,
+    backendClient: adapterOptions?.backendClient,
+    chainClient: adapterOptions?.chainClient,
+    skipVaultPaymentValidation: adapterOptions?.skipVaultPaymentValidation,
+    prepareSettlement: adapterOptions?.prepareSettlement,
   })
 
   const activeAdapter = useMemo(
-    () =>
-      adapterFactory
-        ? adapterFactory({ environment, backendUrl })
-        : defaultAdapter,
+    () => (adapterFactory ? adapterFactory({ environment, backendUrl }) : defaultAdapter),
     [adapterFactory, environment, backendUrl, defaultAdapter],
   )
 
   const { state, actions } = activeAdapter
+
+  const history = useAiCreditsHistory({
+    address: state.address,
+    backendUrl,
+    defaultBuyerFilter: state.buyerPubKey ?? 'all',
+    environment,
+    backendClient: adapterOptions?.backendClient,
+    onBuyersDiscovered: actions.discoverBuyers,
+  })
 
   const handlePay = useCallback(
     async (quote: AiCreditsQuote) => {
@@ -354,17 +355,16 @@ function AiCreditsInner({
         })
       } catch (err) {
         updateToast(toastId, {
-          message: err instanceof Error ? err.message : (state.error ?? 'Payment failed'),
+          message: err instanceof Error ? err.message : (state.error ?? 'Payment failed. Try again.'),
           status: 'error',
-          duration: 0,
+          duration: 4000,
         })
       }
     },
     [actions, state.error],
   )
 
-  const isPending =
-    state.status === 'payment_pending' || state.status === 'payment_confirmed'
+  const isPending = state.status === 'payment_pending' || state.status === 'payment_confirmed'
 
   const handleTabChange = useCallback(
     (tabId: string) => {
@@ -387,10 +387,7 @@ function AiCreditsInner({
   if (state.status === 'disconnected' || state.status === 'connecting') {
     return (
       <YStack gap="$3" padding="$3" width="100%">
-        <DisconnectedPanel
-          onConnect={actions.connect}
-          connecting={state.status === 'connecting'}
-        />
+        <DisconnectedPanel onConnect={actions.connect} connecting={state.status === 'connecting'} />
       </YStack>
     )
   }
@@ -401,13 +398,20 @@ function AiCreditsInner({
         tabs={[
           { id: 'buy', label: 'Buy Credits' },
           { id: 'manage', label: 'Manage' },
+          { id: 'history', label: 'History' },
         ]}
         activeTab={state.activeTab}
         onTabChange={handleTabChange}
         chainId={state.chainId ?? CELO_CHAIN_ID}
       />
       {state.activeTab === 'manage' ? (
-        <ManagePanel state={state} actions={actions} backendUrl={backendUrl} />
+        <ManagePanel state={state} actions={actions} />
+      ) : state.activeTab === 'history' ? (
+        <HistoryTab
+          state={history.state}
+          actions={history.actions}
+          knownBuyers={state.buyers.map((address) => ({ address }))}
+        />
       ) : (
         buyPanel
       )}
@@ -417,6 +421,7 @@ function AiCreditsInner({
 
 export function AiCreditsWidget({
   provider,
+  connectOverride,
   environment = 'production',
   backendUrl,
   baseRpcUrl,
@@ -430,11 +435,13 @@ export function AiCreditsWidget({
   onPaySuccess,
   onPayError,
   adapterFactory,
+  adapterOptions,
   testId,
 }: AiCreditsWidgetProps) {
   return (
     <GoodWidgetProvider
       provider={provider as EIP1193Provider | undefined}
+      connectOverride={connectOverride}
       config={config}
       themeOverrides={themeOverrides}
       defaultTheme={defaultTheme}
@@ -449,6 +456,7 @@ export function AiCreditsWidget({
           vaultAddress={vaultAddress}
           goodIdAddress={goodIdAddress}
           adapterFactory={adapterFactory}
+          adapterOptions={adapterOptions}
           onPaySuccess={onPaySuccess}
           onPayError={onPayError}
         />

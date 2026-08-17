@@ -76,14 +76,26 @@ export function useGoodReserveAdapter(
   // Sync critical state slices into refs for cross-effect reads.
   useReserveRefSync(refs, state)
 
+  // Forces the quote effect to re-run when nothing it keys on has changed.
+  // Needed by the stale-quote recovery path, which clears the quote but leaves
+  // inputAmount/direction/slippage untouched.
+  const [quoteRefreshNonce, setQuoteRefreshNonce] = useState(0)
+  const requestQuoteRefresh = useCallback(
+    (notice: string | null) => {
+      refs.quoteRefreshNoticeRef.current = notice
+      setQuoteRefreshNonce((n) => n + 1)
+    },
+    [refs],
+  )
+
   // 1. Bootstrap: wallet connection, SDK construction, chain handling.
   const { chainId, provider, chainSupported, connect, readActiveChainId, refreshBalances, bootstrapSdk } =
     useReserveBootstrap(refs, applyStatePatch, mockState)
 
   // 2. Quote pipeline: debounced input → SDK quote → display derivation.
-  useReserveQuote(refs, state, applyStatePatch, mockState)
+  useReserveQuote(refs, state, applyStatePatch, mockState, quoteRefreshNonce)
 
-  // 3. Swap execution: stale-quote guard → buy/sell → success/error.
+  // 3. Swap execution: stale-quote guard → approval → buy/sell → success/error.
   const executeSwap = useReserveSwap(
     refs,
     state,
@@ -91,6 +103,7 @@ export function useGoodReserveAdapter(
     chainSupported,
     readActiveChainId,
     refreshBalances,
+    requestQuoteRefresh,
   )
 
   // 4. UI action adapters — direction, amount, overlay, slippage, refresh.
@@ -123,6 +136,8 @@ export function useGoodReserveAdapter(
         }
       },
       setDirection: (direction: ReserveSwapDirection) => {
+        // Any pending stale-quote notice is about the previous leg — drop it.
+        refs.quoteRefreshNoticeRef.current = null
         const stableSymbol = getStableSymbol(chainId)
         applyStatePatch({
           direction,
@@ -140,9 +155,15 @@ export function useGoodReserveAdapter(
         })
       },
       setInputAmount: (value: string) => {
+        // The user re-entered an amount, so the stale-quote notice no longer applies.
+        refs.quoteRefreshNoticeRef.current = null
         applyStatePatch({ inputAmount: value, status: value ? 'amount_editing' : 'idle' })
       },
       setMaxAmount: () => {
+        refs.quoteRefreshNoticeRef.current = null
+        // Full precision on purpose: rounding here would leave dust behind and
+        // stop MAX from actually spending the whole balance. The view formats
+        // the display separately.
         applyStatePatch({
           inputAmount: state.tokenInBalance,
           status: 'amount_editing',

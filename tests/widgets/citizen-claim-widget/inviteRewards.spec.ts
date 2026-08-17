@@ -49,7 +49,9 @@ test('Invite Rewards flags an unsupported network', async ({ page }) => {
   ).toBeVisible()
 })
 
-test('Invite Rewards shows a hard error with retry when the initial load fails', async ({ page }) => {
+test('Invite Rewards shows a hard error with retry when the initial load fails', async ({
+  page,
+}) => {
   await gotoStory(page, 'error-no-data')
   await expect(page.getByText(/unable to reach the network/i)).toBeVisible()
   await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible()
@@ -84,7 +86,9 @@ test('Invite Rewards offers deferred join before whitelisting or having a person
   // Matches the live goodwallet.xyz flow: the share card shows a whitelist
   // notice (no button), but the join-with-code card is still offered — the
   // caller doesn't need their own code yet to attach a deferred inviter.
-  await expect(page.getByText('You need to be whitelisted and claim to get an invite link.')).toBeVisible()
+  await expect(
+    page.getByText('You need to be whitelisted and claim to get an invite link.'),
+  ).toBeVisible()
   await expect(page.getByText('Use invite code')).toBeVisible()
   await expect(page.getByPlaceholder('Place your invite code here')).toBeVisible()
   await page.screenshot({
@@ -93,10 +97,14 @@ test('Invite Rewards offers deferred join before whitelisting or having a person
   })
 })
 
-test('Invite Rewards shows a more polished hero card before the action sections', async ({ page }) => {
+test('Invite Rewards shows a more polished hero card before the action sections', async ({
+  page,
+}) => {
   await gotoStory(page, 'collectable')
 
-  await expect(page.getByText(/share your code/i)).toBeVisible()
+  await expect(
+    page.getByText('Share your code, invite friends, and get rewarded when they join and claim.'),
+  ).toBeVisible()
   await expect(page.getByText('Use invite code')).toBeVisible()
   await expect(page.getByText('Total rewards earned')).toBeVisible()
 })
@@ -169,7 +177,9 @@ test('Invite Rewards surfaces a collection error inline in the ready view', asyn
 // own Storybook `play` function — that play function auto-runs on iframe mount and is
 // exercised separately by `pnpm test:storybook`. Pointing Playwright at the same story
 // would race two independent action executions against one mock runtime instance.
-test('Deferred-inviter join flow: enter a code, join, and see persistent success', async ({ page }) => {
+test('Deferred-inviter join flow: enter a code, join, and see persistent success', async ({
+  page,
+}) => {
   await gotoStory(page, 'collectable')
   await expect(page.getByText('Use invite code')).toBeVisible()
 

@@ -1,4 +1,5 @@
-import React from 'react'
+import React, { useRef } from 'react'
+import type { EIP1193Provider } from '@goodwidget/core'
 import { YStack } from '@goodwidget/ui'
 import {
   AiCreditsWidget,
@@ -6,6 +7,13 @@ import {
   type AiCreditsWidgetAdapterState,
   type AiCreditsWidgetStatus,
 } from '@goodwidget/ai-credits-widget'
+import { MockAiCreditsWidget } from '@goodwidget/ai-credits-widget/mocked'
+import {
+  DefaultAppKitProvider,
+  useAppKit,
+  useAppKitAccount,
+  useAppKitProvider,
+} from '@goodwidget/embed/appkit-provider'
 import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
 import {
   getInjectedEip1193Provider,
@@ -26,15 +34,21 @@ function createMockState(
     isGoodIdVerified: false,
     buyerPubKey: null,
     buyerPrvKey: null,
+    operatorSignature: null,
     operatorConsented: false,
+    operatorConsentPending: false,
     operatorAddress: null,
     minDepositUsd: '1.00',
     minStreamUsd: '1.00',
     totalGdDepositedG: null,
     monthlyStreamG: null,
     withdrawableUsd: null,
+    depositBonusPercent: 10,
+    streamBonusPercent: 20,
     error: null,
     activeTab: 'buy',
+    buyers: [],
+    derivedBuyerAddress: null,
   }
   return { ...base, ...overrides }
 }
@@ -49,6 +63,10 @@ function createAdapterFactory(
       connect: async () => {},
       switchChain: async () => {},
       generateBuyerKey: async () => {},
+      selectBuyer: async () => {},
+      discoverBuyers: () => {},
+      importBuyerFromPrivateKey: async () => {},
+      applyDeepLinkBuyer: async () => {},
       signOperatorConsent: async () => {},
       syncOperatorConsentFromChain: async () => {},
       buildQuote: async (depositG, streamG) => ({
@@ -77,18 +95,20 @@ function MockStoryShell({
   try {
     const provider = createCustodialEip1193Provider()
     return (
-      <YStack data-testid={dataTestId} style={{ width: 380 }}>
+      <div data-testid={dataTestId} style={{ width: 380 }}>
         <AiCreditsWidget provider={provider} adapterFactory={adapterFactory} />
-      </YStack>
+      </div>
     )
   } catch (error: unknown) {
     return (
-      <YStack data-testid="AiCreditsWidget-custodial-config-error" style={{ width: 380 }} gap="$3">
+      <div data-testid="AiCreditsWidget-custodial-config-error" style={{ width: 380 }}>
         <strong>Custodial fixture not configured</strong>
         <span>
-          {error instanceof Error ? error.message : 'Set a local private key in custodialEip1193.ts'}
+          {error instanceof Error
+            ? error.message
+            : 'Set a local private key in custodialEip1193.ts'}
         </span>
-      </YStack>
+      </div>
     )
   }
 }
@@ -199,6 +219,24 @@ export function ManageTabStory() {
   )
 }
 
+export function HistoryTabStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-history-tab"
+      adapterFactory={createAdapterFactory('quote_ready', {
+        totalCreditUsd: '110000000',
+        buyerPubKey: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a',
+        operatorConsented: true,
+        operatorAddress: '0x0000000000000000000000000000000000000004',
+        totalGdDepositedG: '50.00',
+        monthlyStreamG: '5.00',
+        gBalance: '42.50',
+        activeTab: 'history',
+      })}
+    />
+  )
+}
+
 export function CreditsManagementStory() {
   return <ManageTabStory />
 }
@@ -214,6 +252,19 @@ export function InsufficientGBalanceStory() {
   )
 }
 
+export function BuyTabErrorStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-buy-tab-error"
+      adapterFactory={createAdapterFactory('quote_ready', {
+        buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
+        operatorConsented: true,
+        error: 'Network request failed. Please try again.',
+      })}
+    />
+  )
+}
+
 export function PaymentFailedStory() {
   return (
     <MockStoryShell
@@ -221,7 +272,7 @@ export function PaymentFailedStory() {
       adapterFactory={createAdapterFactory('payment_failed', {
         buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
         operatorConsented: true,
-        error: 'Transaction reverted: insufficient allowance',
+        error: 'Payment failed. Try again.',
       })}
     />
   )
@@ -266,8 +317,61 @@ export function MockBackendStory() {
 
   return (
     <YStack data-testid="AiCreditsWidget-mock-backend" style={{ width: 380 }}>
-      <AiCreditsWidget provider={injectedProvider} />
+      <MockAiCreditsWidget provider={injectedProvider} />
     </YStack>
+  )
+}
+
+/**
+ * Inner component that calls useAppKit() – must be rendered inside DefaultAppKitProvider.
+ * Passes the AppKit open() as connectOverride so Connect Wallet triggers the real modal.
+ */
+function AppKitConnectShell() {
+  const { open } = useAppKit()
+  const { address: appKitAddress } = useAppKitAccount()
+  const { walletProvider } = useAppKitProvider<EIP1193Provider | undefined>('eip155')
+  const appKitAddressRef = useRef(appKitAddress)
+  appKitAddressRef.current = appKitAddress
+
+  return (
+    <div data-testid="AiCreditsWidget-appkit-connect" style={{ width: 380 }}>
+      <AiCreditsWidget
+        provider={walletProvider}
+        connectOverride={async () => {
+          await open({ view: 'Connect' })
+
+          if (!appKitAddressRef.current) {
+            throw new Error('wallet_connect_cancelled')
+          }
+        }}
+      />
+    </div>
+  )
+}
+
+/**
+ * Story that mounts AiCreditsWidget with DefaultAppKitProvider as the wallet provider.
+ * Pressing Connect Wallet triggers the real AppKit modal via the provider-level connect override.
+ * Requires VITE_REOWN_PROJECT_ID to be set in examples/storybook/.env.local.
+ */
+export function AppKitConnectWalletStory() {
+  const projectId = import.meta.env.VITE_REOWN_PROJECT_ID as string | undefined
+
+  if (!projectId) {
+    return (
+      <div data-testid="AiCreditsWidget-appkit-no-config" style={{ width: 380 }}>
+        <strong>AppKit not configured</strong>
+        <span>
+          Set <code>VITE_REOWN_PROJECT_ID</code> in <code>examples/storybook/.env.local</code> to
+          enable AppKit wallet connect.
+        </span>
+      </div>
+    )
+  }
+  return (
+    <DefaultAppKitProvider projectId={projectId}>
+      <AppKitConnectShell />
+    </DefaultAppKitProvider>
   )
 }
 
@@ -276,9 +380,11 @@ export function InjectedWalletStory() {
   const backendUrl = import.meta.env.VITE_AI_CREDITS_BACKEND_URL
   const baseRpcUrl = import.meta.env.VITE_AI_CREDITS_BASE_RPC_URL
   const celoRpcUrl = import.meta.env.VITE_AI_CREDITS_CELO_RPC_URL
-  const fundingVaultAddress = import.meta.env.VITE_AI_CREDITS_FUNDING_VAULT_ADDRESS
-  const vaultAddress = import.meta.env.VITE_AI_CREDITS_VAULT_ADDRESS
-  const goodIdAddress = import.meta.env.VITE_AI_CREDITS_GOODID_ADDRESS
+  const fundingVaultAddress = import.meta.env.VITE_AI_CREDITS_FUNDING_VAULT_ADDRESS as
+    | `0x${string}`
+    | undefined
+  const vaultAddress = import.meta.env.VITE_AI_CREDITS_VAULT_ADDRESS as `0x${string}` | undefined
+  const goodIdAddress = import.meta.env.VITE_AI_CREDITS_GOODID_ADDRESS as `0x${string}` | undefined
 
   if (!isInjectedProviderUsable(injectedProvider)) {
     return (
@@ -306,11 +412,111 @@ export function InjectedWalletStory() {
       {!backendUrl && (
         <YStack marginTop="$3">
           <span>
-            Set `VITE_AI_CREDITS_BACKEND_URL` in `examples/storybook/.env.local` to enable the
-            AI credits backend.
+            Set `VITE_AI_CREDITS_BACKEND_URL` in `examples/storybook/.env.local` to enable the AI
+            credits backend.
           </span>
         </YStack>
       )}
     </YStack>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Multi-buyer fixture stories
+// ---------------------------------------------------------------------------
+
+const BUYER_WALLET = {
+  address: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a' as const,
+  privateKey: '0x0000000000000000000000000000000000000000000000000000000000000001' as const,
+}
+
+const BUYER_IMPORTED = {
+  address: '0xAbcDef1234567890AbcDef1234567890AbcDef12' as const,
+  privateKey: '0x0000000000000000000000000000000000000000000000000000000000000002' as const,
+}
+
+const BUYER_PARTNER = {
+  address: '0x1111111111111111111111111111111111111111' as const,
+  operatorSignature:
+    '0x1111111111111111111111111111111111111111111111111111111111111111222222222222222222222222222222222222222222222222222222222222222200' as const,
+}
+
+/** Multi-buyer manage: backend address list with one selected buyer that has a local key. */
+export function MultiBuyerManageStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-multi-buyer-manage"
+      adapterFactory={createAdapterFactory('quote_ready', {
+        totalCreditUsd: '110000000',
+        buyerPubKey: BUYER_WALLET.address,
+        buyerPrvKey: BUYER_WALLET.privateKey,
+        operatorConsented: true,
+        operatorAddress: '0x0000000000000000000000000000000000000004',
+        totalGdDepositedG: '50.00',
+        monthlyStreamG: '5.00',
+        gBalance: '42.50',
+        activeTab: 'manage',
+        buyers: [BUYER_WALLET.address, BUYER_IMPORTED.address, BUYER_PARTNER.address],
+        derivedBuyerAddress: BUYER_WALLET.address,
+      })}
+    />
+  )
+}
+
+/** Deep-link partner buyer: consent uses pre-signed operatorSignature (no private key). */
+export function DeepLinkBuyerStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-deep-link-buyer"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        buyerPubKey: BUYER_PARTNER.address,
+        buyerPrvKey: null,
+        operatorSignature: BUYER_PARTNER.operatorSignature,
+        operatorConsented: false,
+        gBalance: '42.50',
+        activeTab: 'manage',
+        buyers: [BUYER_PARTNER.address],
+      })}
+    />
+  )
+}
+
+/**
+ * Deep-link partner buyer reaching the buy-flow consent step: a pre-signed
+ * operatorSignature is prefilled but operatorConsented is still false, so the
+ * explicit "Sign Operator Consent" gate must render instead of auto-advancing.
+ */
+export function DeepLinkConsentPendingStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-deep-link-consent-pending"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        buyerPubKey: BUYER_PARTNER.address,
+        buyerPrvKey: null,
+        operatorSignature: BUYER_PARTNER.operatorSignature,
+        operatorConsented: false,
+        activeTab: 'buy',
+        buyers: [BUYER_PARTNER.address],
+      })}
+    />
+  )
+}
+
+/** History tab with multi-buyer filter options available. */
+export function MultiBuyerHistoryStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-multi-buyer-history"
+      adapterFactory={createAdapterFactory('quote_ready', {
+        totalCreditUsd: '110000000',
+        buyerPubKey: BUYER_WALLET.address,
+        buyerPrvKey: BUYER_WALLET.privateKey,
+        operatorConsented: true,
+        gBalance: '42.50',
+        activeTab: 'history',
+        buyers: [BUYER_WALLET.address, BUYER_IMPORTED.address],
+        derivedBuyerAddress: BUYER_WALLET.address,
+      })}
+    />
   )
 }

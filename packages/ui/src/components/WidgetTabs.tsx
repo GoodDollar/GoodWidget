@@ -5,6 +5,7 @@ import { XStack, YStack } from '../components-test/Stacks'
 import { Text } from './Text'
 import { Heading } from './Heading'
 import { Badge, BadgeText } from '../components-test/Badge'
+import { getChainDisplayName } from '../components-test/ChainBadge'
 
 const WidgetTabsFrame = createComponent(XStack, {
   name: 'WidgetTabs',
@@ -52,7 +53,7 @@ export function WidgetTabs({
           <Heading level={4}>GoodDollar</Heading>
           {chainId && (
             <Badge type="info">
-              <BadgeText>Chain {chainId}</BadgeText>
+              <BadgeText>{getChainDisplayName(chainId)}</BadgeText>
             </Badge>
           )}
         </XStack>

@@ -1,29 +1,19 @@
-import { Card, Icon, Spinner, Text, TokenAmount, XStack, YStack } from '@goodwidget/ui'
+import { Card, Spinner, Text, TokenAmount, XStack, YStack } from '@goodwidget/ui'
 import { BonusBadgeFrame } from '../theme/cards'
 
 interface HeroCardProps {
   gBalance: string | null
   isGoodIdVerified: boolean
-  depositBonusPercent: number
-  streamBonusPercent: number
 }
 
-export function AiCreditsHero({
-  gBalance,
-  isGoodIdVerified,
-  depositBonusPercent,
-  streamBonusPercent,
-}: HeroCardProps) {
-  const showBonusBadge =
-    gBalance !== null &&
-    Number.parseFloat(gBalance) > 0 &&
-    isGoodIdVerified &&
-    (depositBonusPercent > 0 || streamBonusPercent > 0)
+export function AiCreditsHero({ gBalance, isGoodIdVerified }: HeroCardProps) {
+  const showVerifiedBadge =
+    gBalance !== null && Number.parseFloat(gBalance) > 0 && isGoodIdVerified
 
   return (
     <Card gap="$4" backgroundColor="$backgroundHover">
-      <XStack justifyContent="space-between" alignItems="flex-start">
-        <YStack gap="$1">
+      <XStack justifyContent="space-between" alignItems="flex-start" gap="$2">
+        <YStack gap="$1" flexShrink={1}>
           <Text variant="label" secondary>
             Your G$ Balance
           </Text>
@@ -34,24 +24,11 @@ export function AiCreditsHero({
           )}
         </YStack>
 
-        {showBonusBadge && (
-          <BonusBadgeFrame backgroundColor="$backgroundPress">
-            <Icon name="info" size="xs" color="primary" />
-            <YStack gap="$0.5" alignItems="flex-end">
-              {depositBonusPercent > 0 && (
-                <Text fontSize="$2" fontWeight="700" color="$primary">
-                  +{depositBonusPercent}% deposit
-                </Text>
-              )}
-              {streamBonusPercent > 0 && (
-                <Text fontSize="$2" fontWeight="700" color="$primary">
-                  +{streamBonusPercent}% stream
-                </Text>
-              )}
-              <Text fontSize="$1" secondary>
-                GoodID bonus
-              </Text>
-            </YStack>
+        {showVerifiedBadge && (
+          <BonusBadgeFrame borderRadius="$2" backgroundColor="$backgroundPress" flexShrink={0}>
+            <Text fontSize="$2" fontWeight="700" color="$primary">
+              GoodID verified
+            </Text>
           </BonusBadgeFrame>
         )}
       </XStack>

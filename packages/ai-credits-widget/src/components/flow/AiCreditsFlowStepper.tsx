@@ -30,8 +30,14 @@ export function AiCreditsFlowStepper({
     if (stepIndex < activeIndex) return 'completed'
 
     if (step === 'pay' && state.status === 'payment_failed') return 'failed'
-    if (step === 'pay' && state.status === 'payment_confirmed') return 'completed'
-    return 'active'
+    if (
+      step === 'pay' &&
+      (state.status === 'payment_pending' || state.status === 'payment_confirmed')
+    ) {
+      return 'active'
+    }
+    if (step === 'consent' && state.operatorConsentPending) return 'active'
+    return 'ready'
   }
 
   const steps: StepperStepItem[] = [
@@ -44,7 +50,9 @@ export function AiCreditsFlowStepper({
     {
       id: 'consent',
       title: 'Operator Consent',
-      description: 'Sign permission for the AntseedBuyerOperator',
+      description: state.operatorConsentPending
+        ? 'Submitting operator consent…'
+        : 'Sign permission for the AntseedBuyerOperator',
       status: getStepStatus('consent'),
     },
     {

@@ -1,4 +1,4 @@
-export type StepperStepStatus = 'pending' | 'active' | 'completed' | 'failed' | 'attention'
+export type StepperStepStatus = 'pending' | 'ready' | 'active' | 'completed' | 'failed' | 'attention'
 
 export type MarkerStyle =
   | { type: 'ring'; border: string; fill?: string }
@@ -18,7 +18,12 @@ export type StepStyle = {
 
 export const MARKER_SIZE = 28
 export const ROW_GAP_PX = 8
-export const FOCUSED_STATUSES = new Set<StepperStepStatus>(['active', 'failed', 'attention'])
+export const FOCUSED_STATUSES = new Set<StepperStepStatus>([
+  'ready',
+  'active',
+  'failed',
+  'attention',
+])
 
 export const STEP_STYLE: Record<StepperStepStatus, StepStyle> = {
   pending: {
@@ -30,6 +35,17 @@ export const STEP_STYLE: Record<StepperStepStatus, StepStyle> = {
     failed: false,
     attention: false,
     marker: { type: 'ring', border: '$borderColor' },
+  },
+  ready: {
+    connector: '$borderColor',
+    label: 'Ready',
+    statusColor: '$primary',
+    titleColor: '$color',
+    borderColor: '$borderColorFocus',
+    active: true,
+    failed: false,
+    attention: false,
+    marker: { type: 'ring', border: '$borderColorFocus', fill: '$backgroundHover' },
   },
   active: {
     connector: '$borderColor',

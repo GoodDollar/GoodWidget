@@ -1,9 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useWallet } from '@goodwidget/core'
-import { createPublicClient, createWalletClient, custom, formatUnits, http, type Chain } from 'viem'
+import {
+  createPublicClient,
+  createWalletClient,
+  custom,
+  formatUnits,
+  http,
+  type Account,
+  type Chain,
+  type PublicClient,
+  type Transport,
+  type WalletClient,
+} from 'viem'
 import {
   ClaimSDK,
   IdentitySDK,
+  IdentityCustodialSDK,
   citizenSdkCapabilities,
   checkGenericDailyStats,
   checkGenericEntitlement,
@@ -15,6 +27,10 @@ import type {
   CitizenClaimWidgetAdapterActions,
   CitizenClaimWidgetAdapterResult,
   CitizenClaimWidgetAdapterState,
+  CitizenClaimWidgetChainClaimResult,
+  CitizenClaimWidgetClientBundle,
+  CitizenClaimWidgetClientFactory,
+  CitizenClaimWidgetCustodialExecution,
   CitizenClaimWidgetEnvironment,
   CitizenClaimWidgetStatus,
 } from './widgetRuntimeContract'
@@ -71,6 +87,34 @@ export function createCitizenWidgetClients(
   return { publicClient, walletClient }
 }
 
+// Display names for chains a connected wallet can land on outside the 3
+// citizen-sdk supports (e.g. the other networks this app's own wallet-connect
+// modal offers) — "unsupported chain" messaging only ever needs to name a
+// chain outside CHAIN_CONFIGS, so these are looked up separately from the
+// viem Chain descriptors above.
+const KNOWN_CHAIN_NAMES: Record<number, string> = {
+  ...Object.fromEntries(Object.entries(CHAIN_CONFIGS).map(([id, chain]) => [id, chain.name])),
+  1: 'Ethereum',
+  8453: 'Base',
+}
+
+/** Resolves a chain id to its display name, falling back to the raw id only when truly unknown. */
+export function getChainDisplayName(chainId: number): string {
+  return KNOWN_CHAIN_NAMES[chainId] ?? `Chain ${chainId}`
+}
+
+/**
+ * Thrown for adapter-level failures whose message is already user-facing
+ * (e.g. naming the specific chain an action cannot run on). humanReadableError
+ * passes these through verbatim instead of remapping them to a generic string.
+ */
+class CitizenClaimAdapterError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'CitizenClaimAdapterError'
+  }
+}
+
 // ---------------------------------------------------------------------------
 // humanReadableError — converts a raw SDK/viem error into a short, user-friendly
 // string. The full technical error is always logged to the console for debugging.
@@ -87,6 +131,10 @@ export function createCitizenWidgetClients(
  */
 function humanReadableError(err: unknown): string {
   console.error('[CitizenClaimWidget]', err)
+
+  if (err instanceof CitizenClaimAdapterError) {
+    return err.message
+  }
 
   if (!(err instanceof Error)) {
     // Log the raw value so non-Error throws are still traceable
@@ -135,7 +183,10 @@ function humanReadableError(err: unknown): string {
     const reasonMatch = msg.match(/reason:\s*(.+?)(?:\n|$)/)
     if (reasonMatch) {
       // Sanitize: strip control characters and cap length to avoid injection/overflow
-      const reason = reasonMatch[1].replace(/[^\x20-\x7E]/g, '').trim().slice(0, 80)
+      const reason = reasonMatch[1]
+        .replace(/[^\x20-\x7E]/g, '')
+        .trim()
+        .slice(0, 80)
       if (reason) {
         return `Transaction failed: ${reason}`
       }
@@ -153,6 +204,8 @@ function humanReadableError(err: unknown): string {
 
 export interface UseCitizenClaimAdapterOptions {
   environment?: CitizenClaimWidgetEnvironment
+  clientFactory?: CitizenClaimWidgetClientFactory
+  claimExecution?: CitizenClaimWidgetCustodialExecution
   /**
    * URL to redirect the user to after face-verification completes.
    * Defaults to the current page URL if running in a browser.
@@ -171,13 +224,15 @@ type CitizenEnvironment = 'production' | 'staging' | 'development'
  * The adapter:
  * 1. Reads wallet state from useWallet() (injected by GoodWidgetProvider)
  * 2. Creates viem public/wallet clients from the EIP1193 provider
- * 3. Instantiates IdentitySDK + ClaimSDK from those clients
+ * 3. Instantiates IdentitySDK + ClaimSDK from those clients, or the custodial
+ *    variants when an explicit multi-chain execution config is provided
  * 4. Manages the CitizenClaimWidgetStatus state machine
  * 5. Exposes typed actions: connect, verify, claim, refresh, switchChain
  *
  * State transitions (mirrors GoodWalletV2 ClaimView.tsx logic):
  *   not_connected → [connect] → loading
- *   loading → not_whitelisted | eligible | already_claimed | error
+ *   loading → not_whitelisted | eligible | already_claimed | unsupported_chain | error
+ *   unsupported_chain → [switch_chain] → loading
  *   not_whitelisted → [verify] → (external FV flow) → loading after return
  *   eligible → [claim] → claiming → success | error
  *   error → [refresh] → loading
@@ -185,7 +240,12 @@ type CitizenEnvironment = 'production' | 'staging' | 'development'
 export function useCitizenClaimAdapter(
   options: UseCitizenClaimAdapterOptions = {},
 ): CitizenClaimWidgetAdapterResult {
-  const { address, chainId, isConnected, provider, connect } = useWallet()
+  const { address, chainId, isConnected, provider, availableChainIds, connect, switchChain } =
+    useWallet()
+
+  const clientFactory = options.clientFactory
+  const claimExecution = options.claimExecution
+  const isCustodialExecution = claimExecution?.mode === 'custodial'
 
   // Normalise env string to one of the SDK-declared runtime environments.
   const env = (
@@ -193,9 +253,6 @@ export function useCitizenClaimAdapter(
       ? options.environment
       : 'production'
   ) as CitizenEnvironment
-
-  // Whether the connected wallet is on a chain supported by citizen-sdk
-  const onSupportedChain = chainId !== null && isSupportedChain(chainId)
 
   const [status, setStatus] = useState<CitizenClaimWidgetStatus>(
     isConnected ? 'loading' : 'not_connected',
@@ -221,10 +278,11 @@ export function useCitizenClaimAdapter(
   }, [])
 
   // ---------------------------------------------------------------------------
-  // Client factory — creates viem clients from the EIP1193 provider.
-  // Returns null when any required wallet state is missing.
+  // Client resolution — custodial clients are supplied by the integrator and
+  // never routed through the active-chain EIP-1193 provider. The factory remains
+  // available for integrations that prefer lazy per-chain client creation.
   // ---------------------------------------------------------------------------
-  const createClientsForChain = useCallback(
+  const createProviderClientsForChain = useCallback(
     (targetChainId: number) => {
       if (!provider || !address) return null
       return createCitizenWidgetClients(provider, address, targetChainId)
@@ -232,89 +290,218 @@ export function useCitizenClaimAdapter(
     [provider, address],
   )
 
-  const createClients = useCallback(() => {
-    if (!chainId) return null
-    if (!provider || !address) return null
-    return createCitizenWidgetClients(provider, address, chainId)
-  }, [provider, address, chainId])
+  const normalizeClientBundle = useCallback(
+    (bundle: CitizenClaimWidgetClientBundle | null | undefined) => {
+      if (!bundle) return null
+      const publicClient = bundle.publicClient ?? bundle.readClient
+      if (!publicClient) {
+        throw new Error('CitizenClaimWidget: client bundle is missing publicClient')
+      }
+      return {
+        publicClient: publicClient as PublicClient,
+        walletClient: bundle.walletClient as WalletClient<
+          Transport,
+          Chain | undefined,
+          Account | undefined
+        >,
+      }
+    },
+    [],
+  )
+
+  // Custodial integrations own one public client per chain. Reuse those
+  // clients for entitlement/stat reads as well as claim execution so the
+  // widget does not silently switch back to its fallback RPCs.
+  const getPublicClientForChain = useCallback(
+    (targetChainId: number): PublicClient | null => {
+      if (isCustodialExecution) {
+        const configuredClients = claimExecution?.clientsByChain[targetChainId]
+        return (configuredClients?.publicClient ??
+          configuredClients?.readClient ??
+          null) as PublicClient | null
+      }
+
+      const chain = CHAIN_CONFIGS[targetChainId]
+      const rpcUrl = chain?.rpcUrls.default.http[0]
+      if (!chain || !rpcUrl) return null
+      return createPublicClient({ chain, transport: http(rpcUrl) })
+    },
+    [claimExecution, isCustodialExecution],
+  )
+
+  const resolveClientsForChain = useCallback(
+    async (targetChainId: number) => {
+      if (isCustodialExecution) {
+        const configuredClients = claimExecution?.clientsByChain[targetChainId]
+        if (configuredClients) return normalizeClientBundle(configuredClients)
+
+        if (!clientFactory || !provider || !address) {
+          throw new Error(
+            `CitizenClaimWidget: no custodial clients configured for chain ${targetChainId}`,
+          )
+        }
+      }
+
+      if (clientFactory && provider && address) {
+        const factoryClients = await clientFactory({
+          provider,
+          address,
+          chainId: targetChainId,
+        })
+        return normalizeClientBundle(factoryClients)
+      }
+
+      return normalizeClientBundle(createProviderClientsForChain(targetChainId))
+    },
+    [
+      address,
+      claimExecution,
+      clientFactory,
+      createProviderClientsForChain,
+      isCustodialExecution,
+      normalizeClientBundle,
+      provider,
+    ],
+  )
 
   // ---------------------------------------------------------------------------
-  // SDK factory — wraps viem clients in IdentitySDK + ClaimSDK instances.
+  // SDK factory — uses wallet-owned clients only for the explicit custodial
+  // mode. ClaimSDK's normal write path preserves the validated contract
+  // request returned by simulateContract; ClaimCustodialSDK's custom raw
+  // transaction path is not used here because it can lose `to` and `data`.
   // ---------------------------------------------------------------------------
   const createSdkInstances = useCallback(
-    (clients: ReturnType<typeof createClients>) => {
-      if (!clients || !address) return null
+    (clients: Awaited<ReturnType<typeof resolveClientsForChain>>) => {
+      if (!clients) return null
       const { publicClient, walletClient } = clients
-      const identitySDK = new IdentitySDK({ publicClient, walletClient, env })
+      const sdkAccount = address ?? walletClient.account?.address
+      const rdu = options.rdu ?? (typeof window !== 'undefined' ? window.location.href : '')
+
+      if (!sdkAccount) return null
+      const identitySDK = isCustodialExecution
+        ? new IdentityCustodialSDK({ publicClient, walletClient, env })
+        : new IdentitySDK({ publicClient, walletClient, env })
       const claimSDK = new ClaimSDK({
-        account: address as `0x${string}`,
+        account: sdkAccount as `0x${string}`,
         publicClient,
         walletClient,
         identitySDK,
         env,
-        // Return URL used by the GoodID face-verification redirect flow
-        rdu: options.rdu ?? (typeof window !== 'undefined' ? window.location.href : ''),
+        rdu,
       })
       return { identitySDK, claimSDK }
     },
-    [address, env, options.rdu],
+    [address, env, isCustodialExecution, options.rdu, resolveClientsForChain],
   )
 
   const createSdkInstancesForChain = useCallback(
-    (targetChainId: number) => {
-      const clients = createClientsForChain(targetChainId)
-      if (!clients || !address) return null
-      const { publicClient, walletClient } = clients
-      const identitySDK = new IdentitySDK({ publicClient, walletClient, env })
-      const claimSDK = new ClaimSDK({
-        account: address as `0x${string}`,
-        publicClient,
-        walletClient,
-        identitySDK,
-        env,
-        rdu: options.rdu ?? (typeof window !== 'undefined' ? window.location.href : ''),
-      })
-      return { identitySDK, claimSDK }
+    async (targetChainId: number) => {
+      const clients = await resolveClientsForChain(targetChainId)
+      return createSdkInstances(clients)
     },
-    [createClientsForChain, address, env, options.rdu],
+    [createSdkInstances, resolveClientsForChain],
+  )
+
+  // ---------------------------------------------------------------------------
+  // Read-only client resolution — balance/entitlement reads never need a
+  // connected account or the passed-down provider, only the address to read
+  // for. Custodial mode reuses its own configured per-chain clients (already
+  // address-scoped); the default path builds an RPC-backed publicClient plus
+  // a signer-less walletClient carrying just `account`, since checkEntitlement/
+  // getWalletClaimStatus only use walletClient.account to identify whose
+  // entitlement to read and never send a transaction through it.
+  // ---------------------------------------------------------------------------
+  const createReadOnlyClientsForChain = useCallback(
+    (targetChainId: number) => {
+      if (!address) return null
+
+      if (isCustodialExecution) {
+        const configuredClients = claimExecution?.clientsByChain[targetChainId]
+        return configuredClients ? normalizeClientBundle(configuredClients) : null
+      }
+
+      const chain = CHAIN_CONFIGS[targetChainId]
+      const rpcUrl = chain?.rpcUrls.default.http[0]
+      if (!chain || !rpcUrl) return null
+
+      const publicClient = createPublicClient({ chain, transport: http(rpcUrl) })
+      const walletClient = createWalletClient({
+        account: address as `0x${string}`,
+        chain,
+        transport: http(rpcUrl),
+      })
+      return { publicClient, walletClient }
+    },
+    [address, claimExecution, isCustodialExecution, normalizeClientBundle],
+  )
+
+  const createReadOnlySdkForChain = useCallback(
+    (targetChainId: number) => createSdkInstances(createReadOnlyClientsForChain(targetChainId)),
+    [createReadOnlyClientsForChain, createSdkInstances],
   )
 
   /**
    * Collects claimable UBI amounts for all citizen-sdk supported chains.
    * This mirrors GoodWalletV2's claim breakdown model (eligible amounts per chain).
+   *
+   * These are personalized reads once an address is known, but they never need
+   * a connected account or the passed-down provider — each supported chain gets
+   * its own independently-scoped, read-only SDK instance (RPC-backed publicClient
+   * + a signer-less walletClient carrying just the address), so no chain's read
+   * depends on any other chain being "active".
    */
   const loadClaimablesByChain = useCallback(async (): Promise<void> => {
     const eligible: Array<{ chainId: number; amount: string }> = []
 
-    await Promise.all(
-      SUPPORTED_CHAINS.map(async (supportedChainId) => {
-        try {
-          const chain = CHAIN_CONFIGS[supportedChainId]
-          const rpcUrl = chain.rpcUrls.default.http[0]
-          if (!rpcUrl) return
-          const publicClient = createPublicClient({ chain, transport: http(rpcUrl) })
-          const entitlement = await checkGenericEntitlement({
-            publicClient,
-            chainId: supportedChainId,
-            env,
-          })
-          if (entitlement <= 0n) return
+    if (address) {
+      await Promise.all(
+        SUPPORTED_CHAINS.map(async (supportedChainId) => {
+          try {
+            const sdk = createReadOnlySdkForChain(supportedChainId)
+            if (!sdk) return
+            const result = await sdk.claimSDK.checkEntitlement()
+            if (result.amount <= 0n) return
 
-          const decimals = CHAIN_DECIMALS[supportedChainId] ?? 18
-          eligible.push({
-            chainId: supportedChainId,
-            amount: formatUnits(entitlement, decimals),
-          })
-        } catch {
-          // Keep per-chain reads best-effort: one RPC/SDK failure should not block the widget.
-        }
-      }),
-    )
+            const decimals = CHAIN_DECIMALS[supportedChainId] ?? 18
+            eligible.push({
+              chainId: supportedChainId,
+              amount: formatUnits(result.amount, decimals),
+            })
+          } catch {
+            // Keep per-chain reads best-effort: one RPC/SDK failure should not block the widget.
+          }
+        }),
+      )
+    } else {
+      // No address at all: fall back to the non-personalized, chain-level entitlement reads.
+      await Promise.all(
+        SUPPORTED_CHAINS.map(async (supportedChainId) => {
+          try {
+            const publicClient = getPublicClientForChain(supportedChainId)
+            if (!publicClient) return
+            const entitlement = await checkGenericEntitlement({
+              publicClient,
+              chainId: supportedChainId,
+              env,
+            })
+            if (entitlement <= 0n) return
+
+            const decimals = CHAIN_DECIMALS[supportedChainId] ?? 18
+            eligible.push({
+              chainId: supportedChainId,
+              amount: formatUnits(entitlement, decimals),
+            })
+          } catch {
+            // Keep per-chain reads best-effort: one RPC/SDK failure should not block the widget.
+          }
+        }),
+      )
+    }
 
     if (!mountedRef.current) return
     eligible.sort((a, b) => b.chainId - a.chainId)
     setClaimablesByChain(eligible)
-  }, [env])
+  }, [address, createReadOnlySdkForChain, env, getPublicClientForChain])
 
   const loadDailyStats = useCallback(async (): Promise<void> => {
     let maxClaimers = 0
@@ -323,10 +510,8 @@ export function useCitizenClaimAdapter(
     await Promise.all(
       SUPPORTED_CHAINS.map(async (supportedChainId) => {
         try {
-          const chain = CHAIN_CONFIGS[supportedChainId]
-          const rpcUrl = chain.rpcUrls.default.http[0]
-          if (!rpcUrl) return
-          const publicClient = createPublicClient({ chain, transport: http(rpcUrl) })
+          const publicClient = getPublicClientForChain(supportedChainId)
+          if (!publicClient) return
           const stats = await checkGenericDailyStats({
             publicClient,
             chainId: supportedChainId,
@@ -347,43 +532,98 @@ export function useCitizenClaimAdapter(
       dailyNumberOfClaimers: maxClaimers,
       dailyClaimedAmount: totalClaimed,
     })
-  }, [env])
+  }, [env, getPublicClientForChain])
 
   // ---------------------------------------------------------------------------
   // loadClaimStatus — primary refresh action.
   // Calls getWalletClaimStatus() and maps the SDK result to widget status.
   // ---------------------------------------------------------------------------
   const loadClaimStatus = useCallback(async () => {
-    if (!isConnected || !address) {
-      await loadClaimablesByChain()
-      await loadDailyStats()
+    // These are best-effort UI reads. Start them without making the primary
+    // wallet eligibility check wait for every auxiliary RPC response.
+    const auxiliaryReads = Promise.all([loadClaimablesByChain(), loadDailyStats()])
+
+    if (!address) {
+      await auxiliaryReads
+      // No wallet address: clear any personalized entitlement left over from a
+      // prior connected session so a disconnected user never sees stale amounts.
+      setAmount(null)
+      setNextClaimTime(null)
       setStatus('not_connected')
       return
     }
 
-    // Always refresh per-chain claimables for a connected wallet, even if the
-    // currently active chain is unsupported. This keeps the cross-chain
-    // breakdown visible while prompting for network switching.
-    await loadClaimablesByChain()
-    await loadDailyStats()
+    if (!isCustodialExecution && chainId === null) {
+      // Wallet is connected but hasn't reported an active chain yet (common
+      // right after connecting) — treat this as still resolving rather than
+      // unsupported, since it's unknown whether the eventual chain will be
+      // supported. The chainId-keyed effect below reruns this once it
+      // resolves, so this never gets stuck.
+      await auxiliaryReads
+      setStatus('loading')
+      return
+    }
 
-    if (!onSupportedChain) {
-      // Wallet connected but on an unsupported chain — surface switch_chain action
-      setStatus('not_connected')
+    // Custodial execution submits claims through its own configured per-chain
+    // clients, never the active wallet chain, so it has no dependency on
+    // `chainId` at all — read the personalized status from whichever
+    // configured chain comes first, rather than gating on an "active chain"
+    // that may never resolve to a supported one (or may not exist).
+    const statusChainId = isCustodialExecution
+      ? (SUPPORTED_CHAINS.find(
+          (supportedChainId) => claimExecution?.clientsByChain[supportedChainId],
+        ) ?? null)
+      : chainId
+
+    if (isCustodialExecution && statusChainId === null) {
+      await auxiliaryReads
+      // Custodial execution has no wallet chain to switch, so a missing
+      // client for every supported chain is an integrator configuration
+      // problem rather than something the "switch network" narrative below
+      // could ever resolve — route it to a plain error instead.
+      setAmount(null)
+      setNextClaimTime(null)
+      setStatus('error')
+      setError(
+        humanReadableError(
+          new CitizenClaimAdapterError(
+            'Claim execution is not configured for any supported chain.',
+          ),
+        ),
+      )
+      return
+    }
+
+    if (statusChainId === null || !isSupportedChain(statusChainId)) {
+      await auxiliaryReads
+      // Chain is known but unsupported — a distinct status from not_connected
+      // so the UI can show "switch chain" copy instead of misleadingly asking
+      // an already-connected wallet to connect. Clear personalized entitlement
+      // from whatever chain was previously active.
+      setAmount(null)
+      setNextClaimTime(null)
+      setStatus('unsupported_chain')
       return
     }
 
     setStatus('loading')
     setError(null)
 
-    const clients = createClients()
-    if (!clients) {
-      setStatus('not_connected')
-      return
-    }
-    const sdk = createSdkInstances(clients)
+    // A personalized status read, but still address-only: no connected
+    // account or passed-down provider is required, only the address itself.
+    const sdk = createReadOnlySdkForChain(statusChainId)
     if (!sdk) {
-      setStatus('not_connected')
+      // The address is known and statusChainId passed the supported-chain
+      // check above, so a null sdk here means client/RPC setup itself
+      // failed (e.g. a misconfigured chain) rather than no wallet being
+      // connected — 'not_connected' would tell an already-connected user
+      // to do something they've already done.
+      setStatus('error')
+      setError(
+        humanReadableError(
+          new CitizenClaimAdapterError('Unable to load claim status for this chain right now.'),
+        ),
+      )
       return
     }
 
@@ -398,7 +638,7 @@ export function useCitizenClaimAdapter(
       } else if (walletStatus.status === 'can_claim') {
         // User is whitelisted and has unclaimed UBI
         setStatus('eligible')
-        const decimals = CHAIN_DECIMALS[chainId as SupportedChains] ?? 18
+        const decimals = CHAIN_DECIMALS[statusChainId] ?? 18
         setAmount(formatUnits(walletStatus.entitlement, decimals))
       } else {
         // User is whitelisted but has already claimed for this period
@@ -412,12 +652,11 @@ export function useCitizenClaimAdapter(
       setError(humanReadableError(err))
     }
   }, [
-    isConnected,
     address,
-    onSupportedChain,
     chainId,
-    createClients,
-    createSdkInstances,
+    claimExecution,
+    isCustodialExecution,
+    createReadOnlySdkForChain,
     loadClaimablesByChain,
     loadDailyStats,
   ])
@@ -434,32 +673,135 @@ export function useCitizenClaimAdapter(
   // ---------------------------------------------------------------------------
   const claimOnChain = useCallback(
     async (targetChainId: number): Promise<unknown> => {
-      if (!provider) throw new Error('No wallet provider available')
-      if (!address) throw new Error('Wallet not connected')
+      if (!isCustodialExecution && !provider) {
+        throw new CitizenClaimAdapterError('No wallet provider available')
+      }
+      if (!address && !isCustodialExecution) {
+        throw new CitizenClaimAdapterError('Wallet not connected')
+      }
 
       if (!isSupportedChain(targetChainId)) {
-        throw new Error(`Unsupported chain for citizen-sdk: ${targetChainId}`)
+        throw new CitizenClaimAdapterError(
+          `Unsupported chain for citizen-sdk: ${getChainDisplayName(targetChainId)}`,
+        )
+      }
+
+      // Execute actions must stay within the chains the passed-down provider
+      // can actually sign for right now. Custodial execution supplies its own
+      // pre-configured per-chain clients and is not subject to this restriction.
+      if (
+        !isCustodialExecution &&
+        availableChainIds &&
+        !availableChainIds.includes(targetChainId)
+      ) {
+        throw new CitizenClaimAdapterError(
+          `Claim is not available on ${getChainDisplayName(targetChainId)} for this connection.`,
+        )
       }
 
       setStatus('claiming')
       setError(null)
 
-      // Ensure the wallet is on the target chain before signing.
-      await (
-        provider as {
-          request: (args: { method: string; params: unknown[] }) => Promise<unknown>
-        }
-      ).request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: `0x${targetChainId.toString(16)}` }],
-      })
+      // A single EIP-1193 provider has one active chain. Custodial clients are
+      // already chain-bound, so switching would introduce a race between claims.
+      // switchChain tries the raw wallet_switchEthereumChain request first and
+      // falls back to the integrator's own switch/network-modal flow (e.g.
+      // AppKit) when the active connector rejects or ignores it.
+      if (!isCustodialExecution) {
+        await switchChain(targetChainId)
+      }
 
-      const sdk = createSdkInstancesForChain(targetChainId)
-      if (!sdk) throw new Error('Unable to initialize SDK clients for target chain')
+      const sdk = await createSdkInstancesForChain(targetChainId)
+      if (!sdk) {
+        throw new CitizenClaimAdapterError(
+          `Unable to initialize SDK clients for ${getChainDisplayName(targetChainId)}`,
+        )
+      }
 
       return sdk.claimSDK.claim()
     },
-    [provider, address, createSdkInstancesForChain],
+    [
+      address,
+      availableChainIds,
+      createSdkInstancesForChain,
+      isCustodialExecution,
+      provider,
+      switchChain,
+    ],
+  )
+
+  // ---------------------------------------------------------------------------
+  // handleSwitchChain — the switchChain action exposed to widget UI (the
+  // standalone "switch to a supported chain" prompt, as opposed to the
+  // claim-flow's internal switchChain call inside claimOnChain). Wraps the raw
+  // useWallet() switchChain so a wallet rejection or RPC failure always reaches
+  // the widget as a humanized message in state.error, never as a raw error.
+  // ---------------------------------------------------------------------------
+  const handleSwitchChain = useCallback(
+    async (targetChainId: number): Promise<void> => {
+      setError(null)
+      try {
+        await switchChain(targetChainId)
+      } catch (err: unknown) {
+        if (!mountedRef.current) return
+        // Sets state.error so the inline banner shows a humanized message
+        // immediately, then rethrows — mirroring handleClaim above — so the
+        // widget's own catch can also name the specific chain that failed
+        // in a toast/onClaimError, which needs the raw error to reach it.
+        setStatus('error')
+        setError(humanReadableError(err))
+        throw err
+      }
+    },
+    [switchChain],
+  )
+
+  const claimAll = useCallback(
+    async (targetChainIds: number[]): Promise<CitizenClaimWidgetChainClaimResult[]> => {
+      const chainIdsToClaim = [...new Set(targetChainIds)]
+
+      if (isCustodialExecution) {
+        const settled = await Promise.allSettled(
+          chainIdsToClaim.map(async (targetChainId) => ({
+            chainId: targetChainId,
+            receipt: await claimOnChain(targetChainId),
+          })),
+        )
+
+        return settled.map((result, index) =>
+          result.status === 'fulfilled'
+            ? {
+                chainId: result.value.chainId,
+                status: 'fulfilled' as const,
+                receipt: result.value.receipt,
+              }
+            : {
+                chainId: chainIdsToClaim[index],
+                status: 'rejected' as const,
+                error: result.reason,
+              },
+        )
+      }
+
+      const results: CitizenClaimWidgetChainClaimResult[] = []
+      for (const targetChainId of chainIdsToClaim) {
+        try {
+          results.push({
+            chainId: targetChainId,
+            status: 'fulfilled',
+            receipt: await claimOnChain(targetChainId),
+          })
+        } catch (claimError: unknown) {
+          results.push({
+            chainId: targetChainId,
+            status: 'rejected',
+            error: claimError,
+          })
+        }
+      }
+      return results
+    },
+    [claimOnChain, isCustodialExecution],
   )
 
   const handleClaim = useCallback(async (): Promise<unknown> => {
@@ -486,8 +828,7 @@ export function useCitizenClaimAdapter(
   // Opens in a new tab; the page reloads/redirects back when complete.
   // ---------------------------------------------------------------------------
   const handleVerify = useCallback(async (): Promise<void> => {
-    const clients = createClients()
-    const sdk = createSdkInstances(clients)
+    const sdk = await createSdkInstancesForChain(chainId ?? 0)
     if (!sdk) throw new Error('Wallet not connected or unsupported chain')
 
     const fvLink = await sdk.identitySDK.generateFVLink(
@@ -498,7 +839,7 @@ export function useCitizenClaimAdapter(
     if (typeof window !== 'undefined') {
       window.open(fvLink, '_blank', 'noopener,noreferrer')
     }
-  }, [createClients, createSdkInstances, chainId, options.rdu])
+  }, [createSdkInstancesForChain, chainId, options.rdu])
 
   const handleConnect = useCallback(async (): Promise<void> => {
     setStatus('connecting')
@@ -514,41 +855,37 @@ export function useCitizenClaimAdapter(
   }, [connect, loadClaimStatus])
 
   // ---------------------------------------------------------------------------
-  // handleSwitchChain — requests the wallet to switch to a supported chain.
-  // Uses the EIP-3326 wallet_switchEthereumChain method.
-  // ---------------------------------------------------------------------------
-  const handleSwitchChain = useCallback(
-    async (targetChainId: number): Promise<void> => {
-      if (!provider) throw new Error('No wallet provider available')
-      await (
-        provider as {
-          request: (args: { method: string; params: unknown[] }) => Promise<unknown>
-        }
-      ).request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: `0x${targetChainId.toString(16)}` }],
-      })
-    },
-    [provider],
-  )
-
-  // ---------------------------------------------------------------------------
   // Derived state: primaryAction and primaryLabel
   // ---------------------------------------------------------------------------
   const primaryAction: CitizenClaimWidgetAdapterState['primaryAction'] = useMemo(() => {
     if (status === 'connecting') return 'connect'
-    if (status === 'not_connected') {
-      // Connected but on wrong chain → switch_chain; not connected → connect
-      return isConnected && !onSupportedChain ? 'switch_chain' : 'connect'
-    }
+    // A non-custodial claim always executes on the active wallet chain (see
+    // claimOnChain/handleClaim below) — a claimable balance on some other
+    // supported chain is irrelevant until that chain itself is switched to,
+    // so this must be checked before the claimablesByChain precedence below,
+    // or the button would offer "Claim" and immediately fail against the
+    // active unsupported chain.
+    if (status === 'unsupported_chain' && !isCustodialExecution) return 'switch_chain'
+    // Whitelisting is required on the chain getWalletClaimStatus checked
+    // (the active/default chain), and identity is account-scoped rather than
+    // per-chain — a claimable balance surfaced on some other chain must not
+    // offer "Claim" ahead of resolving that, since claimAll would otherwise
+    // attempt (and fail) real claims on every other chain before the wallet
+    // has even completed face verification.
     if (status === 'not_whitelisted') return 'verify'
+    // Custodial execution is multi-chain and has no "active" wallet chain, so
+    // an account-scoped entitlement on any configured chain takes precedence
+    // over the unsupported_chain status entirely.
+    if (isConnected && address && claimablesByChain.length > 0) return 'claim'
+    if (status === 'unsupported_chain') return 'none'
+    if (status === 'not_connected') return 'connect'
     // Keep the claim button mounted while a claim is in-flight so UI copy can
     // switch to "Claiming..." without hiding the action surface.
     if (status === 'claiming') return 'claim'
     if (status === 'eligible') return 'claim'
     if (status === 'error') return 'refresh'
     return 'none'
-  }, [status, isConnected, onSupportedChain])
+  }, [status, address, isConnected, isCustodialExecution, claimablesByChain])
 
   const primaryLabel: string = useMemo(() => {
     switch (primaryAction) {
@@ -606,9 +943,18 @@ export function useCitizenClaimAdapter(
       startVerification: handleVerify,
       claim: handleClaim,
       claimOnChain,
+      claimAll,
       switchChain: handleSwitchChain,
     }),
-    [handleConnect, loadClaimStatus, handleVerify, handleClaim, claimOnChain, handleSwitchChain],
+    [
+      handleConnect,
+      loadClaimStatus,
+      handleVerify,
+      handleClaim,
+      claimOnChain,
+      claimAll,
+      handleSwitchChain,
+    ],
   )
 
   return { state, actions }

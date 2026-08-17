@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+const reactNativeSvgShim = new URL('./src/reactNativeSvgWeb.tsx', import.meta.url).pathname
+
 export default defineConfig({
   plugins: [react()],
   define: {
@@ -11,6 +13,8 @@ export default defineConfig({
   resolve: {
     alias: {
       'react-native': 'react-native-web',
+      // This app imports @tamagui/lucide-icons directly, outside the widget package.
+      'react-native-svg': reactNativeSvgShim,
     },
   },
   optimizeDeps: {

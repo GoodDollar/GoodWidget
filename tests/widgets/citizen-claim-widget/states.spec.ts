@@ -30,6 +30,8 @@ import { test, expect, Page } from '@playwright/test'
 
 const STORY_URL =
   '/iframe.html?id=qa-citizenclaimwidget-runtime-fixtures--custodial-local-fixture&viewMode=story'
+const CLAIM_ALL_CONTRACT_STORY_URL =
+  '/iframe.html?id=qa-citizenclaimwidget-runtime-fixtures--custodial-execution-claim-all-contract&viewMode=story'
 
 /** Navigate directly to the story iframe (bypasses Storybook shell for speed). */
 async function gotoStory(page: Page): Promise<void> {
@@ -38,11 +40,7 @@ async function gotoStory(page: Page): Promise<void> {
 }
 
 /** Poll the page until any of the given strings appears in the body text. */
-async function waitForText(
-  page: Page,
-  patterns: string[],
-  timeoutMs = 40_000,
-): Promise<string> {
+async function waitForText(page: Page, patterns: string[], timeoutMs = 40_000): Promise<string> {
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
     const text = await page.evaluate(() => document.body.innerText)
@@ -59,9 +57,15 @@ test('CitizenClaimWidget shows loading spinner on mount', async ({ page }) => {
   // Route all RPC calls to hang (never respond, never abort).
   // This keeps the adapter in the `loading` state indefinitely, giving the Storybook
   // bundle time to fully mount even on a cold first run before we screenshot.
-  await page.route('https://forno.celo.org/**', () => { /* hang — never fulfill */ })
-  await page.route('https://rpc.fuse.io/**', () => { /* hang — never fulfill */ })
-  await page.route('https://rpc.ankr.com/**', () => { /* hang — never fulfill */ })
+  await page.route('https://forno.celo.org/**', () => {
+    /* hang — never fulfill */
+  })
+  await page.route('https://rpc.fuse.io/**', () => {
+    /* hang — never fulfill */
+  })
+  await page.route('https://rpc.ankr.com/**', () => {
+    /* hang — never fulfill */
+  })
 
   await gotoStory(page)
 
@@ -179,7 +183,40 @@ test('CitizenClaimWidget opens the Invite Rewards entry point', async ({ page })
   await expect(page.getByRole('button', { name: 'How it works' })).toBeVisible()
 
   await page.screenshot({
-    path: 'tests/widgets/citizen-claim-widget/test-results/ccw-05-invite-rewards.png',
+    path: 'tests/widgets/citizen-claim-widget/test-results/ccw-18-invite-tab-entrypoint.png',
+    fullPage: true,
+  })
+})
+
+test('CitizenClaimWidget claimExecution claimAll reports per-chain success and failure', async ({
+  page,
+}) => {
+  await page.goto(CLAIM_ALL_CONTRACT_STORY_URL)
+  await page.waitForLoadState('domcontentloaded')
+
+  const runButton = page.getByRole('button', { name: 'Run claimAll' })
+  await expect(runButton).toBeVisible()
+  await runButton.click()
+
+  const celoResult = page.getByTestId('CitizenClaimWidget-custodial-claim-all-42220')
+  const fuseResult = page.getByTestId('CitizenClaimWidget-custodial-claim-all-122')
+  const duration = page.getByTestId('CitizenClaimWidget-custodial-claim-all-duration')
+
+  await expect(celoResult).toHaveText('chain 42220: fulfilled - ok', { timeout: 20_000 })
+  await expect(fuseResult).toContainText('chain 122: rejected', { timeout: 20_000 })
+  await expect(fuseResult).toContainText('Simulated Fuse claim failure', { timeout: 20_000 })
+  await expect(duration).toContainText('duration:', { timeout: 20_000 })
+
+  const measuredDurationText = await duration.textContent()
+  expect(measuredDurationText).toBeTruthy()
+  const durationMatch = measuredDurationText?.match(/[\d.]+/)
+  expect(durationMatch).toBeTruthy()
+  const measuredDuration = Number(durationMatch?.[0])
+  expect(Number.isFinite(measuredDuration)).toBe(true)
+  expect(measuredDuration).toBeLessThan(6_500)
+
+  await page.screenshot({
+    path: 'tests/widgets/citizen-claim-widget/test-results/ccw-05-custodial-claim-all-contract.png',
     fullPage: true,
   })
 })
