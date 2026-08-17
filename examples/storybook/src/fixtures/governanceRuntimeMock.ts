@@ -31,11 +31,15 @@ export const MOCK_GOOD_ID = '0x5555555555555555555555555555555555555555' as Addr
 export const MOCK_CITIZEN = '0x6666666666666666666666666666666666666666' as Address
 export const MOCK_ALIGNMENT = '0x7777777777777777777777777777777777777777' as Address
 export const MOCK_POOL = '0x8888888888888888888888888888888888888888' as Address
+export const MOCK_G_TOKEN = '0x9999999999999999999999999999999999999999' as Address
 
 export interface MockGovernanceReadOptions {
   memberStatus?: 0 | 1 | 2 | 3 | 4
   memberStatusByAccount?: Record<string, 0 | 1 | 2 | 3 | 4>
   memberHouseByAccount?: Record<string, 0 | 1>
+  // Keyed by voter address, lowercased. Lets an interactive session reflect a
+  // just-submitted vote without needing a real per-voteId ledger.
+  hasVotedByVoter?: Record<string, boolean>
 }
 
 export function encodeMockGovernanceRead(
@@ -148,12 +152,14 @@ export function encodeMockGovernanceRead(
         functionName: 'getVoteRecipients',
         result: [MOCK_ALIGNMENT],
       })
-    case 'getHasVoted':
+    case 'getHasVoted': {
+      const voter = String(decoded.args[1]).toLowerCase()
       return encodeFunctionResult({
         abi: HOUSES_READ_ABI,
         functionName: 'getHasVoted',
-        result: false,
+        result: options.hasVotedByVoter?.[voter] ?? false,
       })
+    }
     case 'getFinalizedUnits':
       return encodeFunctionResult({
         abi: HOUSES_READ_ABI,
@@ -167,6 +173,9 @@ export function encodeMockGovernanceRead(
         result: [MOCK_HOUSES, 1n, MOCK_POOL],
       })
     default:
-      throw new Error(`Unexpected houses read: ${decoded.functionName}`)
+      // Every HOUSES_READ_ABI function is handled above, so this branch is unreachable at
+      // the type level (decoded narrows to `never`) but kept as a runtime guard against a
+      // future ABI addition that isn't wired into this mock yet.
+      throw new Error(`Unexpected houses read call data: ${data}`)
   }
 }

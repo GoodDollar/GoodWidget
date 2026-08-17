@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Button, ButtonText, Card, Heading, Icon, Input, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
 import { AlignmentVotingProposalCard } from './AlignmentVotingProposalCard'
 import { BalanceCard } from './BalanceCard'
@@ -290,6 +290,19 @@ function RevokedState({ state }: { state: GovernanceWidgetAdapterState }) {
   )
 }
 
+function GovernanceSignupBanner({ onResume }: { onResume: () => void }) {
+  return (
+    <Card outlined data-testid="GovernanceWidget-signup-banner">
+      <XStack alignItems="center" justifyContent="space-between" gap="$3" flexWrap="wrap">
+        <Text tone="secondary">Sign up and stake to participate in GoodDAO</Text>
+        <Button variant="secondary" onPress={onResume}>
+          <ButtonText>Sign Up</ButtonText>
+        </Button>
+      </XStack>
+    </Card>
+  )
+}
+
 function MemberFooter({ state }: { state: GovernanceWidgetAdapterState }) {
   if (!state.member || !isActiveStatus(state.status)) return null
 
@@ -408,12 +421,21 @@ function GovernanceWidgetView({
   testId?: string
 }) {
   const { state, actions } = adapter
+  // Skip is a view-only choice, not membership state: it never touches the
+  // contract, so a reload or a wallet reconnect (address change) drops back
+  // to onboarding rather than silently remembering the skip.
+  const [isOnboardingSkipped, setIsOnboardingSkipped] = useState(false)
+  useEffect(() => {
+    setIsOnboardingSkipped(false)
+  }, [state.address])
+
   const shouldShowDashboard =
     state.status === 'disconnected' ||
     state.status === 'loading' ||
     state.status === 'unsupported_chain' ||
     state.status === 'friendly_error' ||
-    isActiveStatus(state.status)
+    isActiveStatus(state.status) ||
+    (state.status === 'onboarding_required' && isOnboardingSkipped)
 
   return (
     <YStack gap="$4" width="100%" data-testid={testId ?? 'GovernanceWidget'}>
@@ -428,7 +450,10 @@ function GovernanceWidgetView({
         </Card>
       ) : null}
       {state.status === 'vote_detail' ? <GovernanceVoteDetail state={state} actions={actions} /> : null}
-      {state.status === 'onboarding_required' ? (
+      {state.status === 'onboarding_required' && isOnboardingSkipped ? (
+        <GovernanceSignupBanner onResume={() => setIsOnboardingSkipped(false)} />
+      ) : null}
+      {state.status === 'onboarding_required' && !isOnboardingSkipped ? (
         <YStack gap="$4">
           {state.lifecycleNotice ? (
             <Card data-testid="GovernanceWidget-lifecycle-notice">
@@ -456,6 +481,13 @@ function GovernanceWidgetView({
               void actions.register(profileDraft)
             }}
           />
+          <Button
+            variant="secondary"
+            data-testid="GovernanceWidget-skip-onboarding"
+            onPress={() => setIsOnboardingSkipped(true)}
+          >
+            <ButtonText>Skip for now</ButtonText>
+          </Button>
         </YStack>
       ) : null}
       {state.status === 'pending_alignment' ? <PendingAlignmentState state={state} /> : null}
