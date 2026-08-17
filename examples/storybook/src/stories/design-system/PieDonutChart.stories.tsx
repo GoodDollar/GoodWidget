@@ -55,7 +55,9 @@ const meta: Meta<typeof PieDonutChart> = {
 export default meta
 type Story = StoryObj<typeof PieDonutChart>
 
-/** Funding breakdown as a donut (spec default: innerRadius=0.6, center metric visible), bare and card variants. */
+/** Funding breakdown as a donut (spec default: innerRadius=0.6, center metric visible), bare and card variants.
+ * Fixed reference story — the Controls panel is inert here; use "Controllable" below to
+ * drive props live. */
 export const Default: Story = {
   render: () => (
     <YStack testID="PieDonutChart-default" data-testid="PieDonutChart-default" gap="$6">
@@ -111,5 +113,10 @@ export const Controllable: Story = {
     title: 'Funding Distribution',
     innerRadius: 0.6,
     variant: 'card',
+    maxSlices: 7,
+    sort: 'descending',
+    showLegend: true,
+    showPercentages: true,
   },
+  render: (args) => <PieDonutChart {...args} testID="PieDonutChart-controllable" />,
 }

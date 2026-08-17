@@ -54,7 +54,9 @@ const meta: Meta<typeof BarChart> = {
 export default meta
 type Story = StoryObj<typeof BarChart>
 
-/** Claims-by-chain rendered vertical (bare + card) and horizontal, with value labels. */
+/** Claims-by-chain rendered vertical (bare + card) and horizontal, with value labels.
+ * Fixed reference story — the Controls panel is inert here; use "Controllable" below to
+ * drive props live. */
 export const Default: Story = {
   render: () => (
     <YStack testID="BarChart-default" data-testid="BarChart-default" gap="$6">
@@ -115,5 +117,10 @@ export const Controllable: Story = {
     title: 'Claims by Chain',
     width: 320,
     variant: 'card',
+    layout: 'vertical',
+    showGrid: true,
+    showValueLabels: false,
+    barCornerRadius: 0,
   },
+  render: (args) => <BarChart {...args} testID="BarChart-controllable" />,
 }

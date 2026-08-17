@@ -79,7 +79,9 @@ const meta: Meta<typeof DataTable> = {
 export default meta
 type Story = StoryObj<typeof DataTable>
 
-/** Top wallets, sortable columns, bare and card variants. */
+/** Top wallets, sortable columns, bare and card variants.
+ * Fixed reference story — the Controls panel is inert here; use "Controllable" below to
+ * drive props live. */
 export const Default: Story = {
   render: () => (
     <YStack testID="DataTable-default" data-testid="DataTable-default" gap="$6">
@@ -131,5 +133,9 @@ export const Controllable: Story = {
     columns: walletColumns,
     title: 'Top Wallets',
     variant: 'card',
+    striped: true,
+    compact: false,
+    stickyHeader: true,
   },
+  render: (args) => <DataTable {...args} testID="DataTable-controllable" />,
 }

@@ -51,7 +51,9 @@ const meta: Meta<typeof Scorecard> = {
 export default meta
 type Story = StoryObj<typeof Scorecard>
 
-/** All 5 mock-data rows from #139, each rendered in both the bare and card variant. */
+/** All 5 mock-data rows from #139, each rendered in both the bare and card variant.
+ * Fixed reference story — the Controls panel is inert here; use "Controllable" below to
+ * drive props live. */
 export const Default: Story = {
   render: () => (
     <YStack testID="Scorecard-default" data-testid="Scorecard-default" gap="$6">
@@ -75,8 +77,11 @@ export const Controllable: Story = {
     label: 'Total G$ Spent',
     value: 1900,
     prefix: 'G$',
+    suffix: '',
     format: 'compact',
+    decimals: 1,
     variant: 'card',
     size: 'md',
   },
+  render: (args) => <Scorecard {...args} testID="Scorecard-controllable" />,
 }

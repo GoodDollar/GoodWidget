@@ -81,7 +81,9 @@ const meta: Meta<typeof LineAreaChart> = {
 export default meta
 type Story = StoryObj<typeof LineAreaChart>
 
-/** Daily claims with area fill and a target reference line, shown across linear/monotone/step interpolation and the card variant. */
+/** Daily claims with area fill and a target reference line, shown across linear/monotone/step interpolation and the card variant.
+ * Fixed reference story — the Controls panel is inert here; use "Controllable" below to
+ * drive props live. */
 export const Default: Story = {
   render: () => (
     <YStack testID="LineAreaChart-default" data-testid="LineAreaChart-default" gap="$6">
@@ -161,5 +163,10 @@ export const Controllable: Story = {
     showArea: true,
     width: 420,
     variant: 'card',
+    type: 'linear',
+    showDots: 'auto',
+    showGrid: true,
+    connectNulls: false,
   },
+  render: (args) => <LineAreaChart {...args} testID="LineAreaChart-controllable" />,
 }
