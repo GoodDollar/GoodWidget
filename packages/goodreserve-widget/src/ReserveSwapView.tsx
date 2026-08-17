@@ -443,7 +443,8 @@ function ConfirmDrawer({
               Tamagui passes through to the DOM, where it does no fitting and
               renders the digits smeared. amountFontSize already sizes the text. */}
           <Text
-            fontSize={amountFontSize(minimumReceived, 50)}
+            fontSize={amountFontSize(minimumReceived, AMOUNT_VALUE_FONT_SIZE)}
+            lineHeight={AMOUNT_VALUE_LINE_HEIGHT}
             fontWeight="800"
             color="$textColor"
             numberOfLines={1}
