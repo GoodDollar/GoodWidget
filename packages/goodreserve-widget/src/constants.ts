@@ -26,3 +26,13 @@ export const QUOTE_TTL_MS = 60_000
 
 // Default slippage persisted in widget-local state.
 export const DEFAULT_SLIPPAGE_PERCENT = 0.1
+
+// Shown when a quote expires between opening the confirm drawer and pressing
+// Confirm. The widget re-quotes automatically; this explains the bounce back.
+export const QUOTE_REFRESHED_NOTICE =
+  'Quote refreshed — review the new amount before confirming.'
+
+// Mento's BancorExchangeProvider scales the uint32 `exitContribution` and
+// `reserveRatio` pool fields by MAX_WEIGHT = 1e8. Dividing the raw value by 1e6
+// yields a percentage (raw 10_000_000 → 10.00%).
+export const EXIT_CONTRIBUTION_PPM_DIVISOR = 1_000_000

@@ -5,18 +5,18 @@ import { monospaceSingleLineStyle, compactButtonProps } from '../shared/styles'
 import { useCopyFeedback } from '../shared/useCopyFeedback'
 
 interface BuyerKeyPanelProps {
-  buyerKey: string | null
-  buyerKeyPrivate: string | null
-  buyerKeyConfirmed: boolean
+  buyerPubKey: string | null
+  buyerPrvKey: string | null
+  buyerPubKeySaved: boolean
   onGenerate: () => void | Promise<void>
   onConfirm: () => void
   embedded?: boolean
 }
 
 export function BuyerKeyPanel({
-  buyerKey,
-  buyerKeyPrivate,
-  buyerKeyConfirmed,
+  buyerPubKey,
+  buyerPrvKey,
+  buyerPubKeySaved,
   onGenerate,
   onConfirm,
   embedded = false,
@@ -46,11 +46,16 @@ export function BuyerKeyPanel({
       </Text>
 
       <YStack gap="$3">
-        <Button size="sm" {...compactButtonProps} onPress={handleGenerate} disabled={isGenerating}>
+        <Button
+          size="sm"
+          {...compactButtonProps}
+          onPress={handleGenerate}
+          disabled={isGenerating || Boolean(buyerPrvKey)}
+        >
           <ButtonText>{isGenerating ? 'Waiting for signature…' : 'Sign & Generate Key'}</ButtonText>
         </Button>
 
-        {buyerKey && (
+        {buyerPubKey && (
           <YStack gap="$2">
             <Text variant="label" secondary>
               Address (registered on-chain)
@@ -63,9 +68,9 @@ export function BuyerKeyPanel({
               alignItems="center"
             >
               <Text fontSize="$2" style={monospaceSingleLineStyle} flex={1} numberOfLines={1}>
-                {buyerKey}
+                {buyerPubKey}
               </Text>
-              <Button size="sm" variant="ghost" iconSize="sm" onPress={() => void copyAddress(buyerKey)}>
+              <Button size="sm" variant="ghost" iconSize="sm" onPress={() => void copyAddress(buyerPubKey)}>
                 <Icon
                   name={copiedAddress ? 'check' : 'copy'}
                   size="xs"
@@ -74,7 +79,7 @@ export function BuyerKeyPanel({
               </Button>
             </XStack>
 
-            {buyerKeyPrivate && (
+            {buyerPrvKey && (
               <>
                 <XStack justifyContent="space-between" alignItems="center">
                   <Text variant="label" secondary>
@@ -105,14 +110,14 @@ export function BuyerKeyPanel({
                 >
                   <Text fontSize="$2" style={monospaceSingleLineStyle} flex={1} numberOfLines={1}>
                     {isPrivateKeyVisible
-                      ? buyerKeyPrivate
-                      : '•'.repeat(Math.min(48, buyerKeyPrivate.length))}
+                      ? buyerPrvKey
+                      : '•'.repeat(Math.min(48, buyerPrvKey.length))}
                   </Text>
                   <Button
                     size="sm"
                     variant="ghost"
                     iconSize="sm"
-                    onPress={() => void copyPrivate(buyerKeyPrivate)}
+                    onPress={() => void copyPrivate(buyerPrvKey)}
                   >
                     <Icon
                       name={copiedPrivate ? 'check' : 'copy'}
@@ -124,13 +129,13 @@ export function BuyerKeyPanel({
               </>
             )}
 
-            {!buyerKeyConfirmed && (
+            {buyerPrvKey && !buyerPubKeySaved && (
               <Button size="sm" {...compactButtonProps} onPress={onConfirm}>
                 <ButtonText>I've Saved My Private Key</ButtonText>
               </Button>
             )}
 
-            {buyerKeyConfirmed && (
+            {buyerPubKeySaved && (
               <XStack gap="$2" alignItems="center">
                 <Icon name="check" size="sm" color="success" />
                 <Text color="$success" fontSize="$2">

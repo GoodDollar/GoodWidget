@@ -4,7 +4,6 @@ export type { AiCreditsIntegration } from './integration'
 export type {
   AiCreditsWidgetStatus,
   AiCreditsWidgetTab,
-  AiCreditsWidgetPrimaryAction,
   AiCreditsWidgetAdapterState,
   AiCreditsWidgetAdapterActions,
   AiCreditsWidgetAdapterResult,
@@ -15,8 +14,22 @@ export type {
   AiCreditsPaySuccessDetail,
   AiCreditsPayErrorDetail,
   AiCreditsQuote,
-  AiCreditsUsageEntry,
+  BuyerKeyEntry,
 } from './widgetRuntimeContract'
+
+export {
+  parseDeepLinkParams,
+  resolveDeepLinkParams,
+  isValidBuyerAddress,
+  isValidOperatorSignature,
+  storeDeepLinkParams,
+  readStoredDeepLinkParams,
+  clearStoredDeepLinkParams,
+  clearDeepLinkArtifacts,
+  deepLinkManualFallbackMessage,
+  DEEP_LINK_MANUAL_FALLBACK_HINT,
+} from './deepLinkParams'
+export type { DeepLinkParams, DeepLinkParseResult } from './deepLinkParams'
 
 export type {
   AiCreditsBackendClient,
@@ -24,17 +37,19 @@ export type {
   AccountStatusResponse,
   AccountView,
   AccountEnrichment,
+  DiscountConfig,
   GdCreditEntry,
 } from './backendClient'
 export {
-  MockAiCreditsBackendClient,
   ProductionAiCreditsBackendClient,
+  UnavailableAiCreditsBackendClient,
   createBackendClient,
   buildAccountView,
   enrichAccountView,
-  balanceFromProfile,
-  creditsBalanceFromStatus,
+  totalCreditUsdFromProfile,
+  totalCreditUsdFromStatus,
   usdToCredits,
+  DEFAULT_DISCOUNT_CONFIG,
 } from './backendClient'
 export type { BuyerOperatorStatus, Eip712SigningPayload } from './operatorConsent'
 export type { AiCreditsChainClient } from './chainClient'

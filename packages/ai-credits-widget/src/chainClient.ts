@@ -10,7 +10,7 @@ import type { AiCreditsQuote } from './widgetRuntimeContract'
 import type { BuyerOperatorStatus, OperatorConsentPayloadResponse } from './operatorConsent'
 import { ANTSEED_DEPOSITS_BASE_ADDRESS, buildSetOperatorPayload } from './operatorConsent'
 import type { AccountRef } from './backendTypes'
-import { buildQuoteFromGdAmounts, buildQuoteFromPrincipalUsd, gToWei, vaultUsd18ToMicro } from './quoteMath'
+import { buildQuoteAmounts } from './quoteMath'
 
 export const BASE_CHAIN_ID = 8453
 export const DEFAULT_BASE_RPC_URL = 'https://mainnet.base.org'
@@ -61,12 +61,6 @@ function normalizeAddress(address: string): string {
   return address.toLowerCase()
 }
 
-const mockOperatorAcceptedBuyers = new Set<string>()
-
-export function markMockOperatorConsent(buyer: string): void {
-  mockOperatorAcceptedBuyers.add(normalizeAddress(buyer))
-}
-
 export type AiCreditsChainClientOptions = {
   baseRpcUrl?: string
   fundingVaultAddress?: Address
@@ -79,11 +73,7 @@ export type AiCreditsChainClientOptions = {
 export interface AiCreditsChainClient {
   fetchGdUsdPerToken(): Promise<number>
   isGoodIdVerified(account: string): Promise<boolean>
-  buildQuote(
-    depositG: string,
-    streamG: string,
-    isGoodIdVerified: boolean,
-  ): Promise<AiCreditsQuote>
+  buildQuote(depositG: string, streamG: string): Promise<AiCreditsQuote>
   getBuyerOperatorStatus(ref: AccountRef): Promise<BuyerOperatorStatus>
   buildOperatorConsentPayload(
     ref: AccountRef,
@@ -141,41 +131,8 @@ export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
     return Number(usd18) / 1e18
   }
 
-  async buildQuote(
-    depositG: string,
-    streamG: string,
-    isGoodIdVerified: boolean,
-  ): Promise<AiCreditsQuote> {
-    const depositWei = gToWei(depositG)
-    const streamWei = gToWei(streamG)
-
-    if (this.celoClient && this.celoVaultAddress) {
-      const [depositPrincipalUsd, streamPrincipalUsd] = await Promise.all([
-        this.readGdUsdMicro(depositWei),
-        this.readGdUsdMicro(streamWei),
-      ])
-      return buildQuoteFromPrincipalUsd(
-        depositG,
-        streamG,
-        depositPrincipalUsd,
-        streamPrincipalUsd,
-        isGoodIdVerified,
-      )
-    }
-
-    const gdUsdPerToken = await this.fetchGdUsdPerToken()
-    return buildQuoteFromGdAmounts(depositG, streamG, gdUsdPerToken, isGoodIdVerified)
-  }
-
-  private async readGdUsdMicro(gdAmountWei: bigint): Promise<bigint> {
-    if (gdAmountWei <= 0n) return 0n
-    const usd18 = await this.celoClient!.readContract({
-      address: this.celoVaultAddress!,
-      abi: CELO_VAULT_ABI,
-      functionName: 'gdUsdPerToken',
-      args: [gdAmountWei],
-    })
-    return vaultUsd18ToMicro(usd18)
+  async buildQuote(depositG: string, streamG: string): Promise<AiCreditsQuote> {
+    return buildQuoteAmounts(depositG, streamG)
   }
 
   async getBuyerOperatorStatus(ref: AccountRef): Promise<BuyerOperatorStatus> {
@@ -278,89 +235,9 @@ export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
   }
 }
 
-export class MockAiCreditsChainClient implements AiCreditsChainClient {
-  private operatorAccepted: boolean
-  private readonly gdUsdPerToken: number
-  private readonly goodIdVerified: boolean
-
-  constructor(
-    options: { operatorAccepted?: boolean; gdUsdPerToken?: number; goodIdVerified?: boolean } = {},
-  ) {
-    this.operatorAccepted = options.operatorAccepted ?? false
-    this.gdUsdPerToken = options.gdUsdPerToken ?? 0.0015
-    this.goodIdVerified = options.goodIdVerified ?? false
-  }
-
-  async isGoodIdVerified(_account: string): Promise<boolean> {
-    return this.goodIdVerified
-  }
-
-  async fetchGdUsdPerToken(): Promise<number> {
-    return this.gdUsdPerToken
-  }
-
-  async buildQuote(
-    depositG: string,
-    streamG: string,
-    isGoodIdVerified: boolean,
-  ): Promise<AiCreditsQuote> {
-    return buildQuoteFromGdAmounts(depositG, streamG, this.gdUsdPerToken, isGoodIdVerified)
-  }
-
-  async getBuyerOperatorStatus(ref: AccountRef): Promise<BuyerOperatorStatus> {
-    const payer = normalizeAddress(ref.payer)
-    const buyer = normalizeAddress(ref.buyer)
-    const operatorAddress = '0x0000000000000000000000000000000000000004'
-    const operatorAccepted = this.operatorAccepted || mockOperatorAcceptedBuyers.has(buyer)
-    return {
-      enabled: true,
-      account: payer,
-      buyerAddress: buyer,
-      operatorAddress,
-      currentOperator: operatorAccepted ? operatorAddress : '0x0000000000000000000000000000000000000000',
-      operatorAccepted,
-      consentNonce: '0',
-    }
-  }
-
-  async buildOperatorConsentPayload(
-    ref: AccountRef,
-    operatorStatus?: BuyerOperatorStatus,
-  ): Promise<OperatorConsentPayloadResponse> {
-    const status = operatorStatus ?? (await this.getBuyerOperatorStatus(ref))
-    if (!status.enabled || !status.operatorAddress) {
-      return {
-        enabled: false,
-        account: normalizeAddress(ref.payer),
-        buyerAddress: normalizeAddress(ref.buyer),
-      }
-    }
-    return {
-      enabled: true,
-      account: normalizeAddress(ref.payer),
-      buyerAddress: normalizeAddress(ref.buyer),
-      typedData: buildSetOperatorPayload(
-        BASE_CHAIN_ID,
-        ANTSEED_DEPOSITS_BASE_ADDRESS,
-        status.operatorAddress,
-        BigInt(status.consentNonce),
-        { name: 'AntseedDeposits', version: '1' },
-      ),
-    }
-  }
-
-  async getWithdrawableUsd(_buyer: string): Promise<string> {
-    return '0'
-  }
-}
-
 export function createChainClient(
-  backendUrl: string | undefined,
   options: AiCreditsChainClientOptions = {},
 ): AiCreditsChainClient {
-  if (!backendUrl) {
-    return new MockAiCreditsChainClient()
-  }
   return new ProductionAiCreditsChainClient({
     ...options,
     celoGoodIdAddress: options.celoGoodIdAddress ?? CELO_GOODID_ADDRESS,

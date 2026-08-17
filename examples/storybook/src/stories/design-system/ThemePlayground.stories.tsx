@@ -15,6 +15,7 @@ import type { Meta, StoryObj } from '@storybook/react'
 import { ClaimWidget } from '@goodwidget/claim-widget-theme-demo'
 import { Card, Heading, Text, Alert, YStack } from '@goodwidget/ui'
 import { createMockEip1193Provider } from '../../fixtures/mockEip1193'
+import { withDefaultPreset } from '../helpers/withDefaultPreset'
 
 const mockProvider = createMockEip1193Provider()
 
@@ -22,6 +23,7 @@ const meta: Meta = {
   title: 'Design System/Theming/Override Playground',
   tags: ['autodocs', 'integrator', 'showcase'],
   parameters: { layout: 'padded' },
+  decorators: [withDefaultPreset],
 }
 export default meta
 type Story = StoryObj
@@ -60,8 +62,8 @@ export const TokenOverride: Story = {
       />
       <Card>
         <Heading level={5}>How it works</Heading>
-      <Text variant="caption">
-        {`<ClaimWidget
+        <Text variant="caption">
+          {`<ClaimWidget
   config={{
     tokens: {
       color: { primary: '#4F7DFF', primaryDark: '#2E5DE8', primaryLight: '#7FA4FF' }
@@ -106,11 +108,11 @@ export const ComponentThemeOverride: Story = {
       />
       <Card>
         <Heading level={5}>How it works</Heading>
-      <Text variant="caption">
-        {`<ClaimWidget
+        <Text variant="caption">
+          {`<ClaimWidget
   config={{
     themes: {
-      dark_ClaimActionGlow: { primary: '#12cb31', primaryLight: '#9A4DFF' },
+      dark_ClaimActionGlow: { backgroundColor: '#12cb31', primaryLight: '#9A4DFF' },
       dark_ClaimActionRing: { primary: '#ff3333', primaryLight: '#9A4DFF' },
       dark_ClaimActionInner: { backgroundDark: 'orange' },
     }
@@ -123,7 +125,7 @@ export const ComponentThemeOverride: Story = {
         defaultTheme="dark"
         config={{
           themes: {
-            dark_ClaimActionGlow: { primary: '#12cb31', primaryLight: '#9A4DFF' },
+            dark_ClaimActionGlow: { backgroundColor: '#12cb31', primaryLight: '#9A4DFF' },
             dark_ClaimActionRing: { primary: '#ff3333', primaryLight: '#9A4DFF' },
             dark_ClaimActionInner: { backgroundDark: 'orange', backgroundDarkHover: 'red' },
             dark_TokenAmountText: { color: 'red', secondaryColor: '#3fbdf2' },
@@ -151,8 +153,8 @@ export const HostOverrideCobalt: Story = {
       />
       <Card>
         <Heading level={5}>How it works</Heading>
-      <Text variant="caption">
-        {`<ClaimWidget
+        <Text variant="caption">
+          {`<ClaimWidget
   themeOverrides={{
     tokens: { color: { primary: '#2E5DE8', ... } },
     themes: {
@@ -172,7 +174,7 @@ export const HostOverrideCobalt: Story = {
           },
           themes: {
             dark_ClaimCard: { borderColor: '#2E5DE8', shadowColor: 'rgba(46,93,232,0.7)' },
-            dark_ClaimActionGlow: { primary: '#4F7DFF', primaryLight: '#9DB4FF' },
+            dark_ClaimActionGlow: { backgroundColor: '#4F7DFF', primaryLight: '#9DB4FF' },
             dark_ClaimActionRing: { primary: '#2E5DE8', primaryLight: '#6E8DFF' },
             dark_ClaimActionInner: { backgroundDark: '#0E1A3A', backgroundDarkHover: '#172B60' },
             dark_TokenAmountText: { color: '#BBD0FF', secondaryColor: '#7FA2FF' },
@@ -203,7 +205,7 @@ export const HostOverrideTeal: Story = {
           },
           themes: {
             dark_ClaimCard: { borderColor: '#00A884', shadowColor: 'rgba(0,168,132,0.65)' },
-            dark_ClaimActionGlow: { primary: '#33C9AA', primaryLight: '#78E0CB' },
+            dark_ClaimActionGlow: { backgroundColor: '#33C9AA', primaryLight: '#78E0CB' },
             dark_ClaimActionRing: { primary: '#00A884', primaryLight: '#33C9AA' },
             dark_ClaimActionInner: { backgroundDark: '#062A23', backgroundDarkHover: '#0B3B31' },
             dark_TokenAmountText: { color: '#BFF5E7', secondaryColor: '#66D5BB' },

@@ -1,5 +1,14 @@
 import React, { useState } from 'react'
-import { Anchor, Button, Card, Icon, Text, XStack, YStack, copyTextToClipboard } from '@goodwidget/ui'
+import {
+  Anchor,
+  Button,
+  Card,
+  Icon,
+  Text,
+  XStack,
+  YStack,
+  copyTextToClipboard,
+} from '@goodwidget/ui'
 
 const ANTSEED_API_DOCS_URL = 'https://antseed.com/docs/guides/using-the-api'
 
@@ -11,16 +20,25 @@ const setupSnippetLineStyle: React.CSSProperties = {
   overflowWrap: 'anywhere',
 }
 
-interface SetupSnippetProps {
-  snippet: string
+function buildSetupSnippet(): string {
+  return [
+    'npm install -g @antseed/cli',
+    '',
+    'export ANTSEED_IDENTITY_HEX=<buyer-private-key-hex>',
+    '',
+    'antseed buyer start',
+    'antseed network browse',
+    'antseed buyer connection set --peer <peer-id>',
+  ].join('\n')
 }
 
-export function SetupSnippet({ snippet }: SetupSnippetProps) {
+export function SetupSnippet() {
   const [expanded, setExpanded] = useState(false)
   const [copied, setCopied] = useState(false)
+
+  const snippet = buildSetupSnippet()
   const copyText = snippet.replace(/\n\n+/g, '\n').trim()
   const lines = snippet.trim().split('\n')
-
   async function handleCopy() {
     const copied = await copyTextToClipboard(copyText)
     if (!copied) return
@@ -50,7 +68,13 @@ export function SetupSnippet({ snippet }: SetupSnippetProps) {
 
       {expanded && (
         <YStack gap="$2">
-          <YStack backgroundColor="$backgroundMuted" borderRadius="$2" padding="$3" width="100%" gap="$1">
+          <YStack
+            backgroundColor="$backgroundMuted"
+            borderRadius="$2"
+            padding="$3"
+            width="100%"
+            gap="$1"
+          >
             {lines.map((line, index) => (
               <Text key={index} color="$text" style={setupSnippetLineStyle}>
                 {line.length > 0 ? line : ' '}
@@ -58,14 +82,14 @@ export function SetupSnippet({ snippet }: SetupSnippetProps) {
             ))}
           </YStack>
           <Text fontSize="$1" secondary>
-            Setup guide:{' '}
+            To connect AI tools to the AntSeed AI provider, see the{' '}
             <Anchor href={ANTSEED_API_DOCS_URL} target="_blank">
-              antseed.com/docs
+              AntSeed API guide
             </Anchor>
+            .
           </Text>
         </YStack>
       )}
     </Card>
   )
 }
-

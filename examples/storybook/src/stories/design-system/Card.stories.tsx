@@ -7,17 +7,26 @@
 import React from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { Card, Heading, Text, Button, ButtonText, YStack } from '@goodwidget/ui'
+import { withDefaultPreset } from '../helpers/withDefaultPreset'
 
 const meta: Meta<typeof Card> = {
   title: 'Design System/Primitives/Card',
   component: Card,
   tags: ['autodocs', 'showcase'],
   parameters: { layout: 'padded' },
+  decorators: [withDefaultPreset],
+  argTypes: {
+    elevated: { control: 'boolean', description: 'Applies the elevated shadow variant' },
+    outlined: { control: 'boolean', description: 'Applies the outlined border variant' },
+    backgroundColor: { control: 'color', description: 'Inline background color override' },
+    borderColor: { control: 'color', description: 'Inline border color override' },
+  },
 }
 export default meta
 type Story = StoryObj<typeof Card>
 
-/** Default Card using base theme values. */
+/** Default Card using base theme values. Fixed reference story — the Controls panel is
+ * inert here; use "Controllable" below to drive props live. */
 export const Default: Story = {
   render: () => (
     <Card data-testid="Card-default" style={{ width: 320 }}>
@@ -56,6 +65,20 @@ export const InlineStyled: Story = {
         Inline-styled Card
       </Heading>
       <Text color="#B0B0D0">Per-instance styling via inline props (highest specificity).</Text>
+    </Card>
+  ),
+}
+
+/** Controllable instance — edit args in the Controls panel. */
+export const Controllable: Story = {
+  args: {
+    elevated: true,
+    outlined: false,
+  },
+  render: (args) => (
+    <Card data-testid="Card-controllable" style={{ width: 320 }} {...args}>
+      <Heading level={5}>Controllable Card</Heading>
+      <Text>Use the Controls panel to toggle variants and colors.</Text>
     </Card>
   ),
 }

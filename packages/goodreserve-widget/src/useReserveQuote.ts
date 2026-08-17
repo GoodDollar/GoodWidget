@@ -20,6 +20,11 @@ export function useReserveQuote(
   state: ReserveSwapWidgetAdapterState,
   applyStatePatch: (patch: Partial<ReserveSwapWidgetAdapterState>) => void,
   mockState: Partial<ReserveSwapWidgetAdapterState> | undefined,
+  /**
+   * Bumped by the adapter to force a re-quote when no user-facing input changed
+   * — currently only the stale-quote recovery path in useReserveSwap.
+   */
+  quoteRefreshNonce: number,
 ): void {
   useEffect(() => {
     if (mockState || !refs.sdkRef.current) return
@@ -32,7 +37,8 @@ export function useReserveQuote(
       if (
         current === 'swap_success' ||
         current === 'swap_error' ||
-        current === 'swap_pending'
+        current === 'swap_pending' ||
+        current === 'approval_pending'
       ) {
         return
       }
@@ -69,6 +75,7 @@ export function useReserveQuote(
           balanceBigInt = 0n
         }
         if (input > balanceBigInt) {
+          refs.quoteRefreshNoticeRef.current = null
           applyStatePatch({
             status: 'insufficient_balance',
             warning: 'Input exceeds your available token balance.',
@@ -78,7 +85,13 @@ export function useReserveQuote(
           return
         }
 
-        applyStatePatch({ status: 'quote_loading', warning: null, error: null })
+        // Carry any pending stale-quote notice through the refetch instead of
+        // blanking it, so the user still sees why they were bounced back.
+        applyStatePatch({
+          status: 'quote_loading',
+          warning: refs.quoteRefreshNoticeRef.current,
+          error: null,
+        })
         const stableToken = refs.sdkRef.current!.getStableTokenAddress()
         const output =
           state.direction === 'buy'
@@ -110,12 +123,15 @@ export function useReserveQuote(
             exitContributionPercent: refs.exitContributionRef.current,
           },
           quoteExpiresAt: Date.now() + QUOTE_TTL_MS,
+          warning: refs.quoteRefreshNoticeRef.current,
           error: null,
         })
       } catch (err: unknown) {
+        refs.quoteRefreshNoticeRef.current = null
         applyStatePatch({
           status: 'quote_error',
           quote: null,
+          warning: null,
           error: mapReserveError(err, 'Failed to fetch reserve quote.'),
         })
       }
@@ -124,5 +140,13 @@ export function useReserveQuote(
     return () => clearTimeout(timeoutId)
     // Note: tokenInBalance is intentionally read via ref (not a dep) so a
     // post-swap/direction-toggle balance update does not restart the debounce.
-  }, [applyStatePatch, mockState, refs, state.direction, state.inputAmount, state.slippagePercent])
+  }, [
+    applyStatePatch,
+    mockState,
+    quoteRefreshNonce,
+    refs,
+    state.direction,
+    state.inputAmount,
+    state.slippagePercent,
+  ])
 }

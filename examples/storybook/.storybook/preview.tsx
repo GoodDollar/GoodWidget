@@ -1,8 +1,4 @@
-/**
- * Storybook global preview — wraps every story in GoodWidgetProvider with the
- * light base theme, so Tamagui tokens and themes resolve correctly for all stories.
- */
-import React from 'react'
+/** Storybook global preview. Runtime providers are declared by each story when needed. */
 import type { Preview } from '@storybook/react'
 
 const preview: Preview = {
@@ -10,6 +6,7 @@ const preview: Preview = {
     layout: 'centered',
     controls: {
       expanded: true,
+      disableSaveFromUI: true,
     },
     options: {
       storySort: {
@@ -26,13 +23,6 @@ const preview: Preview = {
       source: { type: 'dynamic' },
     },
   },
-  decorators: [
-    (Story) => {
-      const story = <Story />
-
-      return <>{story}</>
-    },
-  ],
 }
 
 export default preview

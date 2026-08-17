@@ -1,17 +1,26 @@
 import type { Meta, StoryObj } from '@storybook/react'
+import { expect, userEvent, waitFor, within } from '@storybook/test'
 import { AiCreditsWidget } from '@goodwidget/ai-credits-widget'
 import {
   DisconnectedStory,
+  ConnectingStory,
   PurchaseSetupStory,
   QuoteReadyStory,
   QuoteReadyGoodIdStory,
   PaymentPendingStory,
   PaymentConfirmedStory,
   CreditsManagementStory,
+  HistoryTabStory,
   InsufficientGBalanceStory,
+  BuyTabErrorStory,
   PaymentFailedStory,
   BackendUnavailableStory,
   UnsupportedChainStory,
+  AppKitConnectWalletStory,
+  MultiBuyerManageStory,
+  DeepLinkBuyerStory,
+  DeepLinkConsentPendingStory,
+  MultiBuyerHistoryStory,
 } from '../helpers/aiCreditsWidgetStories'
 
 const meta: Meta<typeof AiCreditsWidget> = {
@@ -32,6 +41,10 @@ type Story = StoryObj<typeof meta>
 
 export const Disconnected: Story = {
   render: () => <DisconnectedStory />,
+}
+
+export const Connecting: Story = {
+  render: () => <ConnectingStory />,
 }
 
 export const PurchaseSetup: Story = {
@@ -58,8 +71,16 @@ export const CreditsManagement: Story = {
   render: () => <CreditsManagementStory />,
 }
 
+export const HistoryTab: Story = {
+  render: () => <HistoryTabStory />,
+}
+
 export const InsufficientGBalance: Story = {
   render: () => <InsufficientGBalanceStory />,
+}
+
+export const BuyTabError: Story = {
+  render: () => <BuyTabErrorStory />,
 }
 
 export const PaymentFailed: Story = {
@@ -72,4 +93,48 @@ export const BackendUnavailable: Story = {
 
 export const UnsupportedChain: Story = {
   render: () => <UnsupportedChainStory />,
+}
+
+/** Multi-buyer manage tab: buyer selector and private-key reveal. */
+export const MultiBuyerManage: Story = {
+  render: () => <MultiBuyerManageStory />,
+}
+
+/** Deep-link partner buyer: consent via pre-signed operatorSignature. */
+export const DeepLinkBuyer: Story = {
+  render: () => <DeepLinkBuyerStory />,
+}
+
+/** Deep-link buyer reaching the buy-flow consent gate: signature prefilled, not yet consented. */
+export const DeepLinkConsentPending: Story = {
+  render: () => <DeepLinkConsentPendingStory />,
+}
+
+/** History tab with buyer filter dropdown. */
+export const MultiBuyerHistory: Story = {
+  render: () => <MultiBuyerHistoryStory />,
+}
+
+export const AppKitConnectWallet: Story = {
+  render: () => <AppKitConnectWalletStory />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    const noConfigFallback = canvas.queryByTestId('AiCreditsWidget-appkit-no-config')
+    if (noConfigFallback) {
+      await expect(noConfigFallback).toBeVisible()
+      return
+    }
+
+    const connectRoot = await canvas.findByTestId('AiCreditsWidget-appkit-connect')
+    const openModal = document.body.querySelector('w3m-modal.open')
+    if (!openModal) {
+      const connectButton = within(connectRoot).getByRole('button', { name: /connect wallet/i })
+      await userEvent.click(connectButton)
+    }
+
+    await waitFor(() => {
+      expect(document.body.querySelector('w3m-modal.open')).toBeTruthy()
+    })
+  },
 }

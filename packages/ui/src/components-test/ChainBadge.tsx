@@ -16,13 +16,18 @@ const ChainBadgeFrame = createComponent(Stack, {
 const CHAIN_NAMES: Record<number, string> = {
   1: 'Ethereum',
   10: 'Optimism',
+  50: 'XDC',
+  122: 'Fuse',
+  137: 'Polygon',
+  480: 'World Chain',
+  8453: 'Base',
   42161: 'Arbitrum',
   42220: 'Celo',
   44787: 'Celo Alfajores',
-  137: 'Polygon',
-  8453: 'Base',
-  480: 'World Chain',
-  122: 'Fuse',
+}
+
+export function getChainDisplayName(chainId: number): string {
+  return CHAIN_NAMES[chainId] ?? `Chain ${chainId}`
 }
 
 interface ChainBadgeProps {
@@ -31,7 +36,7 @@ interface ChainBadgeProps {
 }
 
 export function ChainBadge({ chainId, name }: ChainBadgeProps) {
-  const chainName = name ?? CHAIN_NAMES[chainId] ?? `Chain ${chainId}`
+  const chainName = name ?? getChainDisplayName(chainId)
 
   return (
     <ChainBadgeFrame>

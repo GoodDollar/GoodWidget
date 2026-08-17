@@ -1,0 +1,65 @@
+{
+  "name": "@goodwidget/superfluid-campaign-widget",
+  "version": "0.1.5",
+  "description": "GoodWidget for the Superfluid Ecosystem Rewards campaign — campaign header, reward pools, public leaderboard, and FAQ",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GoodDollar/GoodWidget.git",
+    "directory": "packages/superfluid-campaign-widget"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./element": {
+      "types": "./dist/element.d.ts",
+      "import": "./dist/element.js",
+      "require": "./dist/element.cjs"
+    },
+    "./register": {
+      "types": "./dist/register.d.ts",
+      "import": "./dist/register.js",
+      "require": "./dist/register.cjs"
+    },
+    "./mocked": {
+      "types": "./dist/mocked/index.d.ts",
+      "import": "./dist/mocked/index.js",
+      "require": "./dist/mocked/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint src/",
+    "clean": "rm -rf dist .turbo",
+    "bump-version": "pnpm version patch --no-git-tag-version && git add package.json && git commit -m \"chore(release): bump @goodwidget/superfluid-campaign-widget to $(node -p 'JSON.parse(require(\"fs\").readFileSync(\"package.json\")).version')\""
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "dependencies": {
+    "@goodwidget/citizen-claim-widget": "workspace:*",
+    "@goodwidget/core": "workspace:*",
+    "@goodwidget/embed": "workspace:*",
+    "@goodwidget/ui": "workspace:*",
+    "viem": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "tsup": "^8.4.0",
+    "typescript": "^5.7.0"
+  }
+}

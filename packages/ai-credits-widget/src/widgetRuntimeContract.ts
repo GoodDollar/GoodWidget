@@ -1,10 +1,14 @@
 import type { Address } from 'viem'
 import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
+import type { AccountRef } from './backendTypes'
+import type { AiCreditsBackendClient } from './backendClient'
+import type { AiCreditsChainClient } from './chainClient'
 
 export type AiCreditsWidgetEnvironment = 'production' | 'staging' | 'development'
 
 export type AiCreditsWidgetStatus =
   | 'disconnected'
+  | 'connecting'
   | 'purchase_setup'
   | 'quote_ready'
   | 'payment_pending'
@@ -14,85 +18,80 @@ export type AiCreditsWidgetStatus =
   | 'backend_unavailable'
   | 'unsupported_chain'
 
-export type AiCreditsWidgetTab = 'buy' | 'manage'
-
-export type AiCreditsWidgetPrimaryAction =
-  | 'connect'
-  | 'switch_chain'
-  | 'generate_key'
-  | 'sign_consent'
-  | 'pay'
-  | 'retry'
-  | 'refresh'
-  | 'none'
+export type AiCreditsWidgetTab = 'buy' | 'manage' | 'history'
 
 export interface AiCreditsQuote {
   depositAmountG: string
   streamAmountG: string
-  depositAmountUsd: string
-  streamAmountUsd: string
-  bonusPercent: number
-  totalCredits: string
 }
 
-export interface AiCreditsUsageEntry {
-  sessionId: string
-  timestamp: string
-  creditsUsed: number
-  model: string
-  kind?: 'funding' | 'usage'
-  fundingStatus?: 'pending' | 'funded' | 'failed'
-}
+/** Re-export for consumers that don't want to import from payerSession directly. */
+export type { BuyerKeyEntry } from './payerSession'
 
 export interface AiCreditsWidgetAdapterState {
   status: AiCreditsWidgetStatus
   address: string | null
   chainId: number | null
   gBalance: string | null
-  aiCreditsBalance: string | null
+  gdUsdPerToken: number | null
+  totalCreditUsd: string | null
   isGoodIdVerified: boolean
-  buyerKey: string | null
-  buyerKeyPrivate: string | null
-  buyerKeyConfirmed: boolean
-  operatorConsentSigned: boolean
+  /** Active buyer public address. */
+  buyerPubKey: string | null
+  /** Active buyer private key from the local per-payer key map. */
+  buyerPrvKey: string | null
+  /** Active buyer deep-link operator signature, if present. */
+  operatorSignature: string | null
+  operatorConsented: boolean
+  /** True while submitting / waiting for on-chain operator consent. */
+  operatorConsentPending: boolean
   operatorAddress: string | null
-  apiKey: string | null
-  depositAmount: string
-  streamAmount: string
-  minDepositG: string | null
-  minStreamG: string | null
-  bonusPercent: number
-  quote: AiCreditsQuote | null
-  setupSnippet: string
-  usageLog: AiCreditsUsageEntry[]
+  minDepositUsd: string | null
+  minStreamUsd: string | null
   totalGdDepositedG: string | null
   monthlyStreamG: string | null
-  monthlyStreamCredits: string | null
   withdrawableUsd: string | null
-  channelId: string
-  withdrawAmount: string
+  depositBonusPercent: number
+  streamBonusPercent: number
   error: string | null
-  primaryAction: AiCreditsWidgetPrimaryAction
-  primaryLabel: string
   activeTab: AiCreditsWidgetTab
+  buyers: string[]
+  /** Deterministic buyer derived from the payer wallet Sign & Generate path. */
+  derivedBuyerAddress: string | null
 }
 
 export interface AiCreditsWidgetAdapterActions {
   connect: () => Promise<void>
   switchChain: () => Promise<void>
+  /**
+   * Creates or restores the single deterministic buyer for this payer wallet.
+   * If a derived key already exists locally, selects that buyer without re-signing.
+   */
   generateBuyerKey: () => Promise<void>
-  confirmBuyerKey: () => void
+  /**
+   * Switches the active buyer and reloads that buyer's account view.
+   * Address should be in `state.buyers`.
+   */
+  selectBuyer: (address: string) => Promise<void>
+  discoverBuyers: (addresses: string[]) => void
+  importBuyerFromPrivateKey: (privateKey: string) => Promise<void>
+  /**
+   * Applies an NCDI deep-link buyer assignment from URL GET parameters
+   * (`buyerAddress` + `operatorSignature`). Selects the buyer immediately,
+   * submits the pre-signed operator approval token, and starts the buy flow.
+   * Never accepts a buyer private key.
+   */
+  applyDeepLinkBuyer: (address: string, operatorSignature: string) => Promise<void>
   signOperatorConsent: () => Promise<void>
-  setDepositAmount: (amount: string) => void
-  setStreamAmount: (amount: string) => void
-  setChannelId: (channelId: string) => void
-  setWithdrawAmount: (amount: string) => void
-  pay: () => Promise<void>
+  syncOperatorConsentFromChain: () => Promise<void>
+  buildQuote: (depositG: string, streamG: string) => Promise<AiCreditsQuote>
+  pay: (quote: AiCreditsQuote) => Promise<void>
   refresh: () => Promise<void>
+  verifyGoodId: () => Promise<boolean>
   startPurchase: () => void
   setActiveTab: (tab: AiCreditsWidgetTab) => void
-  closeChannel: () => Promise<void>
-  withdrawCredits: () => Promise<void>
+  closeChannel: (channelId: string) => Promise<void>
+  withdrawCredits: (amount: string) => Promise<void>
   retry: () => Promise<void>
 }
 
@@ -110,12 +109,19 @@ export type AiCreditsWidgetAdapterFactory = (
   input: AiCreditsWidgetAdapterFactoryInput,
 ) => AiCreditsWidgetAdapterResult
 
+export interface AiCreditsWidgetAdapterOptions {
+  backendClient?: AiCreditsBackendClient
+  chainClient?: AiCreditsChainClient
+  skipVaultPaymentValidation?: boolean
+  prepareSettlement?: (ref: AccountRef, creditUsd: bigint) => void
+}
+
 export interface AiCreditsPaySuccessDetail {
   address: string
   chainId: number
   transactionHash: string
-  buyerKey: string
-  creditsReceived: string
+  buyerPubKey: string
+  creditUsdMicro: string
 }
 
 export interface AiCreditsPayErrorDetail {
@@ -126,6 +132,7 @@ export interface AiCreditsPayErrorDetail {
 
 export interface AiCreditsWidgetProps {
   provider?: unknown
+  connectOverride?: () => Promise<void>
   environment?: AiCreditsWidgetEnvironment
   backendUrl?: string
   baseRpcUrl?: string
@@ -139,5 +146,7 @@ export interface AiCreditsWidgetProps {
   onPaySuccess?: (detail: AiCreditsPaySuccessDetail) => void
   onPayError?: (detail: AiCreditsPayErrorDetail) => void
   adapterFactory?: AiCreditsWidgetAdapterFactory
+  adapterOptions?: AiCreditsWidgetAdapterOptions
   testId?: string
 }
+

@@ -1,46 +1,51 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { Button, ButtonText, Card, Heading, Icon, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
 import { truncateAddress, compactButtonProps } from '../shared/styles'
 
 interface OperatorConsentStepProps {
-  buyerKey: string | null
-  buyerKeyPrivate: string | null
-  operatorConsentSigned: boolean
+  buyerPubKey: string | null
+  buyerPrvKey: string | null
+  operatorSignature?: string | null
+  operatorConsented: boolean
+  operatorConsentPending?: boolean
   onSign: () => Promise<void>
   embedded?: boolean
 }
 
 export function OperatorConsentStep({
-  buyerKey,
-  buyerKeyPrivate,
-  operatorConsentSigned,
+  buyerPubKey,
+  buyerPrvKey,
+  operatorSignature = null,
+  operatorConsented,
+  operatorConsentPending = false,
   onSign,
   embedded = false,
 }: OperatorConsentStepProps) {
-  const [isSigning, setIsSigning] = useState(false)
-  const canSign = Boolean(buyerKey && buyerKeyPrivate)
+  const canSign = Boolean(buyerPubKey && (buyerPrvKey || operatorSignature))
+  const isBusy = operatorConsentPending
 
   const Shell = embedded ? YStack : Card
 
   return (
     <Shell gap="$3" {...(!embedded ? { backgroundColor: '$backgroundHover' } : {})}>
-      <Heading level={5}>Authorize AntSeed Operator</Heading>
+      <Heading level={5}>Authorize Operator</Heading>
       <Text fontSize="$2" lineHeight="$3">
-        Your buyer key signs an EIP-712 SetOperator message. The backend submits it to
-        AntseedDeposits so the funding vault can act as your operator. No gas is required from
-        you.
+        Granting consent gives the operator control of your signer funds. This is required to
+        prevent fraud in bonus distribution. You can revoke consent at any time, but revoking
+        makes you ineligible for future bonuses and removes any existing bonuses from your
+        account.
       </Text>
 
-      {buyerKey && (
+      {buyerPubKey && (
         <Text fontSize="$2" lineHeight="$2">
           Buyer address:{' '}
           <Text fontFamily="$mono" fontSize="$2">
-            {truncateAddress(buyerKey)}
+            {truncateAddress(buyerPubKey)}
           </Text>
         </Text>
       )}
 
-      {operatorConsentSigned ? (
+      {operatorConsented ? (
         <XStack gap="$2" alignItems="center">
           <Icon name="check" size="sm" color="success" />
           <Text color="$success">Operator consent accepted — ready to pay</Text>
@@ -50,16 +55,13 @@ export function OperatorConsentStep({
           size="sm"
           {...compactButtonProps}
           onPress={() => {
-            setIsSigning(true)
-            void onSign().finally(() => {
-              setIsSigning(false)
-            })
+            void onSign()
           }}
-          disabled={!canSign || isSigning}
+          disabled={!canSign || isBusy}
         >
-          {isSigning ? (
+          {isBusy ? (
             <XStack gap="$2" alignItems="center">
-              <ButtonText>Signing…</ButtonText>
+              <ButtonText>Submitting…</ButtonText>
               <Spinner size="sm" />
             </XStack>
           ) : (

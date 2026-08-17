@@ -8,26 +8,25 @@ export type AccountRef = {
 export type UserCreditProfile = {
   account: string
   rootAccount: string
+  createdAt: string
+  updatedAt: string
+  totalGdDepositedWei: string
   totalPrincipalUsd: string
   totalBonusUsd: string
-  totalOutstandingFundingUsd?: string
-  buyer?: string
-  createdAt?: string
-  updatedAt?: string
-  totalGdDepositedWei?: string
-  totalGDStreamedWei?: string
-  streamFlowRateWeiPerSecond?: string
+  totalGDStreamedWei: string
+  totalOutstandingFundingUsd: string
+  streamFlowRateWeiPerSecond: string
   lastStreamCreditAt?: string
 }
 
 export type GdCreditEntry = {
   id: string
-  account?: string
-  rootAccount?: string
+  account: string
+  rootAccount: string
   source: 'deposit' | 'streamUpdate' | 'streamRequest' | 'streamCron'
-  gdAmountWei?: string
-  principalUsd?: string
-  bonusUsd?: string
+  gdAmountWei: string
+  principalUsd: string
+  bonusUsd: string
   totalCreditUsd: string
   fundingStatus: 'pending' | 'funded' | 'failed'
   fundingTxHash?: string
@@ -35,14 +34,31 @@ export type GdCreditEntry = {
   txHash?: string
   logIndex?: number
   createdAt: string
-  streamUpdateMonth?: string
+  streamUpdateMonth: string
   buyerAddress?: string
 }
 
 export type AccountCreditResponse = {
   account: string
   profile: UserCreditProfile
-  gdCredits: GdCreditEntry[]
+}
+
+export type CreditHistoryResponse = {
+  account: string
+  items: GdCreditEntry[]
+  total: number
+  limit: number
+  offset: number
+  hasMore: boolean
+}
+
+export type CreditHistoryQuery = {
+  limit?: number
+  offset?: number
+  source?: GdCreditEntry['source']
+  fundingStatus?: GdCreditEntry['fundingStatus']
+  from?: string
+  to?: string
 }
 
 export type AccountView = {
@@ -70,5 +86,18 @@ export type CeloEventsRecordResponse = {
 }
 
 export type SettlementResult = {
-  credits: string
+  totalCreditUsd: string
+}
+
+export type DiscountConfig = {
+  depositBonusPercent: number
+  streamBonusPercent: number
+}
+
+export type BackendConfigValuesResponse = {
+  ok?: boolean
+  config?: {
+    REGULAR_BONUS_BPS?: string | number
+    STREAMING_BONUS_BPS?: string | number
+  }
 }

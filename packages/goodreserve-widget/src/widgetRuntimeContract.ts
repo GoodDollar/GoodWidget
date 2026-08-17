@@ -14,6 +14,8 @@ export type ReserveSwapWidgetStatus =
   | 'insufficient_balance'
   | 'slippage_selection'
   | 'confirm_dialog'
+  /** ERC20 approval transaction awaiting signature / confirmation. */
+  | 'approval_pending'
   | 'swap_pending'
   | 'swap_success'
   | 'swap_error'

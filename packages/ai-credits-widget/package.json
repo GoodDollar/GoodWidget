@@ -1,11 +1,19 @@
 {
   "name": "@goodwidget/ai-credits-widget",
-  "version": "0.1.0",
+  "version": "0.1.5",
   "description": "GoodWidget for buying AI coding credits with G$ on Celo",
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "sideEffects": [
+    "./dist/register.js",
+    "./dist/register.cjs"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -21,19 +29,26 @@
       "types": "./dist/register.d.ts",
       "import": "./dist/register.js",
       "require": "./dist/register.cjs"
+    },
+    "./mocked": {
+      "types": "./dist/mocked/index.d.ts",
+      "import": "./dist/mocked/index.js",
+      "require": "./dist/mocked/index.cjs"
     }
   },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
     "lint": "eslint src/",
-    "clean": "rm -rf dist .turbo"
+    "clean": "rm -rf dist .turbo",
+    "bump-version": "pnpm version patch --no-git-tag-version && git add package.json && git commit -m \"chore(release): bump @goodwidget/ai-credits-widget to $(node -p 'JSON.parse(require(\"fs\").readFileSync(\"package.json\")).version')\""
   },
   "peerDependencies": {
     "react": ">=18.0.0",
     "react-dom": ">=18.0.0"
   },
   "dependencies": {
+    "@goodsdks/citizen-sdk": "1.2.7",
     "@goodwidget/core": "workspace:*",
     "@goodwidget/embed": "workspace:*",
     "@goodwidget/ui": "workspace:*",

@@ -1,18 +1,21 @@
-import type { AiCreditsUsageEntry } from './widgetRuntimeContract'
 import type {
   AccountCreditResponse,
   AccountRef,
   AccountView,
+  BackendConfigValuesResponse,
   CeloEventsRecordResponse,
+  DiscountConfig,
+  CreditHistoryQuery,
+  CreditHistoryResponse,
   GdCreditEntry,
   SettlementResult,
   TransactionsResponse,
   UserCreditProfile,
 } from './backendTypes'
-import { markMockOperatorConsent, type AiCreditsChainClient } from './chainClient'
+import type { BuyerOperatorStatus } from './operatorConsent'
+import type { AiCreditsChainClient } from './chainClient'
 import {
   flowRateWeiToMonthlyG,
-  usdToCredits,
   weiToG,
 } from './quoteMath'
 import { isAddress } from 'viem'
@@ -21,6 +24,9 @@ export type {
   AccountRef,
   AccountCreditResponse,
   AccountView,
+  DiscountConfig,
+  CreditHistoryQuery,
+  CreditHistoryResponse,
   GdCreditEntry,
   TransactionsResponse,
   CeloEventsRecordResponse,
@@ -112,23 +118,16 @@ async function parseBridgeResponse(
   return body.bridge
 }
 
-function filterGdCredits(
-  entries: GdCreditEntry[],
-  options: { status?: 'pending' | 'funded' | 'failed'; limit?: number } = {},
-): GdCreditEntry[] {
-  let result = [...entries]
-  if (options.status) {
-    result = result.filter((entry) => entry.fundingStatus === options.status)
-  }
-  const limit = options.limit ?? 20
-  return result.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit)
+const DEFAULT_HISTORY_LIMIT = 20
+const MAX_HISTORY_LIMIT = 100
+
+function clampHistoryLimit(limit: number | undefined): number {
+  if (limit === undefined) return DEFAULT_HISTORY_LIMIT
+  return Math.min(Math.max(1, Math.floor(limit)), MAX_HISTORY_LIMIT)
 }
 
-export function resolveBuyerAddress(credit: AccountCreditResponse): string | null {
-  if (credit.profile.buyer && isAddress(credit.profile.buyer)) {
-    return normalizeAddress(credit.profile.buyer)
-  }
-  for (const entry of credit.gdCredits ?? []) {
+export function resolveBuyerAddress(entries: GdCreditEntry[]): string | null {
+  for (const entry of entries) {
     if (entry.buyerAddress && isAddress(entry.buyerAddress)) {
       return normalizeAddress(entry.buyerAddress)
     }
@@ -136,28 +135,54 @@ export function resolveBuyerAddress(credit: AccountCreditResponse): string | nul
   return null
 }
 
-export function balanceFromProfile(
+export function collectBuyerAddressesFromEntries(entries: GdCreditEntry[]): string[] {
+  const seen = new Set<string>()
+  const result: string[] = []
+  for (const entry of entries) {
+    if (!entry.buyerAddress || !isAddress(entry.buyerAddress)) continue
+    const key = normalizeAddress(entry.buyerAddress)
+    if (seen.has(key)) continue
+    seen.add(key)
+    result.push(key)
+  }
+  return result
+}
+
+function defaultOperatorStatus(payer: string): BuyerOperatorStatus {
+  const account = normalizeAddress(payer)
+  return {
+    enabled: false,
+    account,
+    buyerAddress: account,
+    currentOperator: '0x0000000000000000000000000000000000000000',
+    operatorAccepted: false,
+    consentNonce: '0',
+  }
+}
+
+export function totalCreditUsdFromProfile(
   profile: Pick<UserCreditProfile, 'totalPrincipalUsd' | 'totalBonusUsd'>,
 ): string {
   const principal = BigInt(profile.totalPrincipalUsd || '0')
   const bonus = BigInt(profile.totalBonusUsd || '0')
-  return usdToCredits((principal + bonus).toString())
+  return (principal + bonus).toString()
 }
 
-export function creditsBalanceFromStatus(status: {
+export function totalCreditUsdFromStatus(status: {
   profile: Pick<UserCreditProfile, 'totalPrincipalUsd' | 'totalBonusUsd'>
 }): string {
-  return balanceFromProfile(status.profile)
+  return totalCreditUsdFromProfile(status.profile)
 }
 
 export type AccountEnrichment = {
-  balance: string
+  totalCreditUsd: string
   goodIdVerified: boolean
-  bonusPercent: number
-  buyer: string | null
   totalGdDepositedG: string
   monthlyStreamG: string
-  monthlyStreamCredits: string | null
+}
+
+export type BuildAccountViewOptions = {
+  buyerAddress?: string | null
 }
 
 export async function enrichAccountView(
@@ -165,58 +190,26 @@ export async function enrichAccountView(
   chain: AiCreditsChainClient,
 ): Promise<AccountEnrichment> {
   const { profile } = view
-  const goodIdVerified = await chain.isGoodIdVerified(profile.account)
-  const monthlyStreamG = flowRateWeiToMonthlyG(profile.streamFlowRateWeiPerSecond ?? '0')
-  let monthlyStreamCredits: string | null = null
-  if (Number.parseFloat(monthlyStreamG) > 0) {
-    monthlyStreamCredits = (await chain.buildQuote('0', monthlyStreamG, goodIdVerified)).totalCredits
-  }
-  const depositedWei = BigInt(profile.totalGdDepositedWei ?? '0')
-  const buyer = view.buyer
+  const goodIdVerified = await chain.isGoodIdVerified(view.account)
+  const monthlyStreamG = flowRateWeiToMonthlyG(profile.streamFlowRateWeiPerSecond)
+  const depositedWei = BigInt(profile.totalGdDepositedWei)
   return {
-    balance: balanceFromProfile(profile),
+    totalCreditUsd: totalCreditUsdFromProfile(profile),
     goodIdVerified,
-    bonusPercent: goodIdVerified
-      ? Number.parseFloat(monthlyStreamG) > 0
-        ? 20
-        : 10
-      : 0,
-    buyer,
     totalGdDepositedG: depositedWei > 0n ? weiToG(depositedWei) : '0.00',
     monthlyStreamG,
-    monthlyStreamCredits,
   }
-}
-
-function sourceLabel(source: GdCreditEntry['source']): string {
-  if (source === 'deposit') return 'G$ deposit'
-  return 'G$ stream'
-}
-
-export function gdCreditsToUsageEntries(entries: GdCreditEntry[]): AiCreditsUsageEntry[] {
-  return [...entries]
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    .map((entry) => ({
-      sessionId: entry.id,
-      timestamp: entry.createdAt,
-      creditsUsed: Number.parseFloat(usdToCredits(entry.totalCreditUsd)),
-      model:
-        entry.fundingStatus === 'failed'
-          ? `${sourceLabel(entry.source)} (failed)`
-          : sourceLabel(entry.source),
-      kind: 'funding' as const,
-      fundingStatus: entry.fundingStatus,
-    }))
 }
 
 export interface AiCreditsBackendClient {
+  getDiscountConfig(): Promise<DiscountConfig>
   getAccountCredit(payer: string): Promise<AccountCreditResponse>
+  getCreditHistory(payer: string, options?: CreditHistoryQuery): Promise<CreditHistoryResponse>
   getOutstanding(payer: string): Promise<{ outstandingFundingUsd: string; count: number }>
   getTransactions(
     payer: string,
     options?: { status?: 'pending' | 'funded' | 'failed'; limit?: number; cursor?: string },
   ): Promise<TransactionsResponse>
-  getUsageLog(payer: string): Promise<AiCreditsUsageEntry[]>
   notifyPayment(txHash: string): Promise<CeloEventsRecordResponse>
   waitForSettlement(
     ref: AccountRef,
@@ -236,167 +229,32 @@ export interface AiCreditsBackendClient {
   ): Promise<OperatorConsentResponse>
 }
 
-const MOCK_DELAY_MS = 600
+const BPS_PER_PERCENT = 100
 
-export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
-  private activeRef: AccountRef | null = null
-  private lastCreditUsd = 0n
+export const DEFAULT_DISCOUNT_CONFIG: DiscountConfig = {
+  depositBonusPercent: 10,
+  streamBonusPercent: 20,
+}
 
-  private readonly accountStates = new Map<
-    string,
-    {
-      principalUsd: bigint
-      bonusUsd: bigint
-      transactions: GdCreditEntry[]
-      buyer: string | null
-      rootAccount: string
-    }
-  >()
+function bpsToPercent(bps: unknown, fallbackPercent: number): number {
+  const raw = typeof bps === 'number' ? bps : typeof bps === 'string' ? Number(bps) : NaN
+  if (!Number.isFinite(raw) || raw < 0) return fallbackPercent
+  return Math.trunc(raw / BPS_PER_PERCENT)
+}
 
-  private getState(payer: string) {
-    const key = normalizeAddress(payer)
-    if (!this.accountStates.has(key)) {
-      this.accountStates.set(key, {
-        principalUsd: 0n,
-        bonusUsd: 0n,
-        transactions: [],
-        buyer: null,
-        rootAccount: key,
-      })
-    }
-    return this.accountStates.get(key)!
-  }
-
-  private buildProfile(payer: string): UserCreditProfile {
-    const state = this.getState(payer)
-    const outstanding = state.transactions
-      .filter((entry) => entry.fundingStatus === 'pending' || entry.fundingStatus === 'failed')
-      .reduce((sum, entry) => sum + BigInt(entry.totalCreditUsd || '0'), 0n)
-    return {
-      account: normalizeAddress(payer),
-      rootAccount: state.rootAccount,
-      totalPrincipalUsd: state.principalUsd.toString(),
-      totalBonusUsd: state.bonusUsd.toString(),
-      totalOutstandingFundingUsd: outstanding.toString(),
-      buyer: state.buyer ?? undefined,
-      totalGdDepositedWei: '0',
-      streamFlowRateWeiPerSecond: '0',
-    }
-  }
-
-  async getAccountCredit(payer: string): Promise<AccountCreditResponse> {
-    await sleep(MOCK_DELAY_MS)
-    const profile = this.buildProfile(payer)
-    return {
-      account: profile.account,
-      profile,
-      gdCredits: this.getState(payer).transactions,
-    }
-  }
-
-  async getOutstanding(payer: string): Promise<{ outstandingFundingUsd: string; count: number }> {
-    await sleep(MOCK_DELAY_MS)
-    const state = this.getState(payer)
-    const pending = state.transactions.filter(
-      (entry) => entry.fundingStatus === 'pending' || entry.fundingStatus === 'failed',
-    )
-    const outstanding = pending.reduce(
-      (sum, entry) => sum + BigInt(entry.totalCreditUsd || '0'),
-      0n,
-    )
-    return { outstandingFundingUsd: outstanding.toString(), count: pending.length }
-  }
-
-  async getTransactions(
-    payer: string,
-    options: { status?: 'pending' | 'funded' | 'failed'; limit?: number; cursor?: string } = {},
-  ): Promise<TransactionsResponse> {
-    await sleep(MOCK_DELAY_MS)
-    let transactions = [...this.getState(payer).transactions]
-    if (options.status) {
-      transactions = transactions.filter((entry) => entry.fundingStatus === options.status)
-    }
-    const limit = options.limit ?? 20
-    const page = transactions.slice(0, limit)
-    return { account: normalizeAddress(payer), transactions: page }
-  }
-
-  async getUsageLog(payer: string): Promise<AiCreditsUsageEntry[]> {
-    const credit = await this.getAccountCredit(payer)
-    return gdCreditsToUsageEntries(filterGdCredits(credit.gdCredits ?? [], { limit: 20 }))
-  }
-
-  prepareSettlement(ref: AccountRef, creditUsd: bigint): void {
-    this.activeRef = { payer: normalizeAddress(ref.payer), buyer: normalizeAddress(ref.buyer) }
-    this.lastCreditUsd = creditUsd
-  }
-
-  async notifyPayment(txHash: string): Promise<CeloEventsRecordResponse> {
-    await sleep(MOCK_DELAY_MS)
-    const ref = this.activeRef
-    if (!ref) return { txHash, events: [] }
-
-    const totalUsd = this.lastCreditUsd
-    const entry: GdCreditEntry = {
-      id: `${txHash}:0`,
-      source: 'deposit',
-      totalCreditUsd: totalUsd.toString(),
-      principalUsd: totalUsd.toString(),
-      bonusUsd: '0',
-      fundingStatus: 'pending',
-      txHash,
-      logIndex: 0,
-      createdAt: new Date().toISOString(),
-      buyerAddress: ref.buyer,
-    }
-
-    const state = this.getState(ref.payer)
-    if (!state.transactions.find((item) => item.id === entry.id)) {
-      state.transactions.unshift(entry)
-    }
-    return { txHash, events: [entry] }
-  }
-
-  async waitForSettlement(
-    ref: AccountRef,
-    _options: { txHashes?: string[]; previousBalance?: string } = {},
-  ): Promise<SettlementResult> {
-    await sleep(MOCK_DELAY_MS)
-    const state = this.getState(ref.payer)
-    for (const entry of state.transactions) {
-      if (entry.fundingStatus !== 'pending') continue
-      entry.fundingStatus = 'funded'
-      state.principalUsd += BigInt(entry.principalUsd ?? '0')
-      state.bonusUsd += BigInt(entry.bonusUsd ?? '0')
-    }
-    return { credits: balanceFromProfile(this.buildProfile(ref.payer)) }
-  }
-
-  async closeChannel(
-    channelId: string,
-    _body: ChannelOperationRequest = {},
-  ): Promise<ChannelOperationResponse> {
-    await sleep(MOCK_DELAY_MS)
-    return { channelId, action: 'close', bridge: { enabled: true, txHash: '0xmock' } }
-  }
-
-  async withdrawCredits(
-    _buyer: string,
-    body: WithdrawPrincipalRequest,
-  ): Promise<WithdrawPrincipalResponse> {
-    await sleep(MOCK_DELAY_MS)
-    return {
-      account: _buyer,
-      amountUsd: body.amount,
-      bridge: { enabled: true, txHash: '0xmock' },
-    }
-  }
-
-  async submitOperatorConsent(buyer: string, _body: OperatorConsentRequest): Promise<OperatorConsentResponse> {
-    await sleep(MOCK_DELAY_MS)
-    const normalizedBuyer = normalizeAddress(buyer)
-    markMockOperatorConsent(normalizedBuyer)
-    return { buyer: normalizedBuyer, bridge: { enabled: true, txHash: '0xmock' } }
+function discountConfigFromConfigValues(
+  response: BackendConfigValuesResponse | null | undefined,
+): DiscountConfig {
+  const config = response?.config
+  return {
+    depositBonusPercent: bpsToPercent(
+      config?.REGULAR_BONUS_BPS,
+      DEFAULT_DISCOUNT_CONFIG.depositBonusPercent,
+    ),
+    streamBonusPercent: bpsToPercent(
+      config?.STREAMING_BONUS_BPS,
+      DEFAULT_DISCOUNT_CONFIG.streamBonusPercent,
+    ),
   }
 }
 
@@ -407,14 +265,40 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
     this.backendUrl = backendUrl.replace(/\/$/, '')
   }
 
+  async getDiscountConfig(): Promise<DiscountConfig> {
+    const response = await fetch(`${this.backendUrl}/config/values`)
+    if (!response.ok) throw new Error(`Config values request failed: ${response.status}`)
+    const payload = (await response.json()) as BackendConfigValuesResponse
+    return discountConfigFromConfigValues(payload)
+  }
+
   private accountBase(payer: string): string {
     return `${this.backendUrl}/v1/accounts/${encodeURIComponent(normalizeAddress(payer))}`
   }
 
   async getAccountCredit(payer: string): Promise<AccountCreditResponse> {
-    const response = await fetch(`${this.accountBase(payer)}/credit`)
-    if (!response.ok) throw new Error(`Account credit request failed: ${response.status}`)
+    const response = await fetch(`${this.accountBase(payer)}/profile`)
+    if (!response.ok) throw new Error(`Account profile request failed: ${response.status}`)
     return response.json() as Promise<AccountCreditResponse>
+  }
+
+  async getCreditHistory(
+    payer: string,
+    options: CreditHistoryQuery = {},
+  ): Promise<CreditHistoryResponse> {
+    const params = new URLSearchParams()
+    const limit = clampHistoryLimit(options.limit)
+    const offset = Math.max(0, Math.floor(options.offset ?? 0))
+    params.set('limit', String(limit))
+    params.set('offset', String(offset))
+    if (options.source) params.set('source', options.source)
+    if (options.fundingStatus) params.set('fundingStatus', options.fundingStatus)
+    if (options.from) params.set('from', options.from)
+    if (options.to) params.set('to', options.to)
+
+    const response = await fetch(`${this.accountBase(payer)}/credit-history?${params.toString()}`)
+    if (!response.ok) throw new Error(`Credit history request failed: ${response.status}`)
+    return response.json() as Promise<CreditHistoryResponse>
   }
 
   async getOutstanding(payer: string): Promise<{ outstandingFundingUsd: string; count: number }> {
@@ -434,14 +318,17 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
     payer: string,
     options: { status?: 'pending' | 'funded' | 'failed'; limit?: number; cursor?: string } = {},
   ): Promise<TransactionsResponse> {
-    const credit = await this.getAccountCredit(payer)
-    const transactions = filterGdCredits(credit.gdCredits ?? [], options)
-    return { account: normalizeAddress(payer), transactions }
+    const history = await this.getCreditHistory(payer, {
+      fundingStatus: options.status,
+      limit: options.limit,
+      offset: options.cursor ? Number(options.cursor) || 0 : 0,
+    })
+    return { account: history.account, transactions: history.items }
   }
 
-  async getUsageLog(payer: string): Promise<AiCreditsUsageEntry[]> {
-    const credit = await this.getAccountCredit(payer)
-    return gdCreditsToUsageEntries(filterGdCredits(credit.gdCredits ?? [], { limit: 20 }))
+  async getUsageLog(payer: string): Promise<GdCreditEntry[]> {
+    const history = await this.getCreditHistory(payer, { limit: DEFAULT_HISTORY_LIMIT, offset: 0 })
+    return history.items
   }
 
   async notifyPayment(txHash: string): Promise<CeloEventsRecordResponse> {
@@ -458,15 +345,17 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
     ref: AccountRef,
     options: { txHashes?: string[]; previousBalance?: string } = {},
   ): Promise<SettlementResult> {
-    const baseline = options.previousBalance ? Number.parseFloat(options.previousBalance) : 0
     const txHashes = new Set((options.txHashes ?? []).map((hash) => hash.toLowerCase()))
 
     for (let attempt = 0; attempt < BRIDGE_POLL_MAX_ATTEMPTS; attempt++) {
       if (attempt > 0) await sleep(BRIDGE_POLL_INTERVAL_MS)
 
       if (txHashes.size > 0) {
-        const credit = await this.getAccountCredit(ref.payer)
-        const matching = (credit.gdCredits ?? []).filter(
+        const history = await this.getCreditHistory(ref.payer, {
+          limit: MAX_HISTORY_LIMIT,
+          offset: 0,
+        })
+        const matching = history.items.filter(
           (entry) => entry.txHash && txHashes.has(entry.txHash.toLowerCase()),
         )
         const failed = matching.find((entry) => entry.fundingStatus === 'failed')
@@ -475,15 +364,16 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
         }
         if (matching.length > 0 && matching.every((entry) => entry.fundingStatus === 'funded')) {
           const credit = await this.getAccountCredit(ref.payer)
-          return { credits: balanceFromProfile(credit.profile) }
+          return { totalCreditUsd: totalCreditUsdFromProfile(credit.profile) }
         }
         if (matching.some((entry) => entry.fundingStatus === 'pending')) continue
       }
 
       const credit = await this.getAccountCredit(ref.payer)
-      const balance = Number.parseFloat(balanceFromProfile(credit.profile))
-      if (balance > baseline + 0.0001) {
-        return { credits: balanceFromProfile(credit.profile) }
+      const balanceMicro = BigInt(totalCreditUsdFromProfile(credit.profile))
+      const baselineMicro = BigInt(options.previousBalance || '0')
+      if (balanceMicro > baselineMicro) {
+        return { totalCreditUsd: balanceMicro.toString() }
       }
     }
 
@@ -526,16 +416,70 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
     const response = await fetch(`${this.accountBase(buyer)}/operator-consent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        nonce: body.nonce,
+        signature: body.signature,
+      }),
     })
     const payload = await readBridgeResponseBody<OperatorConsentResponse>(response, 'Operator consent')
-    return { buyer: normalizeAddress(payload.buyer ?? buyer), bridge: payload.bridge }
+    return {
+      buyer: normalizeAddress(payload.buyer ?? buyer),
+      bridge: payload.bridge,
+    }
   }
 }
 
-export function createBackendClient(backendUrl: string | undefined): AiCreditsBackendClient {
+export class UnavailableAiCreditsBackendClient implements AiCreditsBackendClient {
+  private unavailable(): never {
+    throw new Error('AI Credits backend is not configured')
+  }
+
+  async getDiscountConfig() {
+    return this.unavailable()
+  }
+
+  async getAccountCredit() {
+    return this.unavailable()
+  }
+
+  async getCreditHistory() {
+    return this.unavailable()
+  }
+
+  async getOutstanding() {
+    return this.unavailable()
+  }
+
+  async getTransactions() {
+    return this.unavailable()
+  }
+
+  async notifyPayment() {
+    return this.unavailable()
+  }
+
+  async waitForSettlement() {
+    return this.unavailable()
+  }
+
+  async closeChannel() {
+    return this.unavailable()
+  }
+
+  async withdrawCredits() {
+    return this.unavailable()
+  }
+
+  async submitOperatorConsent() {
+    return this.unavailable()
+  }
+}
+
+export function createBackendClient(
+  backendUrl: string | undefined,
+): AiCreditsBackendClient {
   if (!backendUrl) {
-    return new MockAiCreditsBackendClient()
+    return new UnavailableAiCreditsBackendClient()
   }
   return new ProductionAiCreditsBackendClient(backendUrl)
 }
@@ -557,19 +501,26 @@ export async function buildAccountView(
   payer: string,
   backend: AiCreditsBackendClient,
   chain: AiCreditsChainClient,
+  options: BuildAccountViewOptions = {},
 ): Promise<AccountView> {
+  const normalizedPayer = normalizeAddress(payer)
   const [credit, outstanding] = await Promise.all([
     backend.getAccountCredit(payer),
     backend.getOutstanding(payer),
   ])
-  const buyer = resolveBuyerAddress(credit) ?? normalizeAddress(payer)
-  const [operator, withdrawableUsd] = await Promise.all([
-    chain.getBuyerOperatorStatus({ payer: normalizeAddress(payer), buyer }),
-    chain.getWithdrawableUsd(buyer),
-  ])
+  const buyer =
+    options.buyerAddress && isAddress(options.buyerAddress)
+      ? normalizeAddress(options.buyerAddress)
+      : null
+  const [operator, withdrawableUsd] = buyer
+    ? await Promise.all([
+        chain.getBuyerOperatorStatus({ payer: normalizedPayer, buyer }),
+        chain.getWithdrawableUsd(buyer),
+      ])
+    : [defaultOperatorStatus(normalizedPayer), '0']
   return {
-    account: normalizeAddress(payer),
-    buyer: resolveBuyerAddress(credit),
+    account: normalizedPayer,
+    buyer,
     profile: credit.profile,
     operator,
     withdrawableUsd,

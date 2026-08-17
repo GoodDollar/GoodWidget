@@ -1,6 +1,10 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Button, ButtonText, Drawer, ScrollArea, YStack } from '@goodwidget/ui'
-import type { AiCreditsWidgetAdapterActions, AiCreditsWidgetAdapterState } from '../../widgetRuntimeContract'
+import type {
+  AiCreditsQuote,
+  AiCreditsWidgetAdapterActions,
+  AiCreditsWidgetAdapterState,
+} from '../../widgetRuntimeContract'
 import { AmountPicker } from '../buy/AmountPicker'
 import { BuyerKeyPanel } from '../buy/BuyerKeyPanel'
 import { OperatorConsentStep } from '../buy/OperatorConsentStep'
@@ -12,32 +16,87 @@ import { compactButtonProps } from '../shared/styles'
 interface AiCreditsPurchaseFlowProps {
   state: AiCreditsWidgetAdapterState
   actions: AiCreditsWidgetAdapterActions
-  canPay: boolean
-  payDisabledMessage: string | null
   isPending: boolean
-  onPay: () => void
+  onPay: (quote: AiCreditsQuote) => void
 }
 
 export function AiCreditsPurchaseFlow({
   state,
   actions,
-  canPay,
-  payDisabledMessage,
   isPending,
   onPay,
 }: AiCreditsPurchaseFlowProps) {
-  const activeStep = getAiCreditsActiveFlowStep(state)
-  const [drawerOpen, setDrawerOpen] = useState(true)
-  const [drawerStep, setDrawerStep] = useState<AiCreditsFlowStep | null>(activeStep)
+  const [buyerPubKeySaved, setBuyerPubKeySaved] = useState(false)
+  const activeStep = getAiCreditsActiveFlowStep(state, buyerPubKeySaved)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  // Starts unset (not `activeStep`): the Drawer stays closed until the user opens it,
+  // and Tamagui's Sheet keeps its Frame mounted (off-screen, not removed) while closed.
+  // Eagerly setting this to the current step would mount that step's interactive content
+  // (e.g. the consent panel's "Sign Operator Consent" button) into the DOM before the
+  // Drawer is ever opened, duplicating the visible trigger button below with an
+  // identically-named, off-screen element.
+  const [drawerStep, setDrawerStep] = useState<AiCreditsFlowStep | null>(null)
+  const prevActiveStepRef = useRef<AiCreditsFlowStep | null>(null)
+  const goodIdTabPendingRef = useRef(false)
+
+  useEffect(() => {
+    setBuyerPubKeySaved(false)
+  }, [state.buyerPubKey])
+
+  useEffect(() => {
+    if (activeStep !== 'consent' || state.operatorConsented) return
+    if (!state.address || !state.buyerPubKey) return
+    void actions.syncOperatorConsentFromChain()
+  }, [activeStep, state.operatorConsented, state.address, state.buyerPubKey, actions])
 
   useEffect(() => {
     if (!activeStep) {
       setDrawerOpen(false)
+      setDrawerStep(null)
+      prevActiveStepRef.current = null
       return
     }
-    setDrawerStep(activeStep)
-    setDrawerOpen(true)
+
+    const previousStep = prevActiveStepRef.current
+    prevActiveStepRef.current = activeStep
+
+    // Only follow the flow into the drawer when it advances past a step the user has
+    // already reached (e.g. buyer_key -> consent). On the very first step of a session
+    // (previousStep is null) we leave drawerStep unset so nothing renders into the
+    // closed Drawer -- the user reveals it explicitly via the trigger button/stepper.
+    if (previousStep != null && previousStep !== activeStep) {
+      setDrawerStep(activeStep)
+      setDrawerOpen(true)
+    }
   }, [activeStep])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const onFocus = () => {
+      if (!goodIdTabPendingRef.current) return
+      goodIdTabPendingRef.current = false
+      if (activeStep === 'pay') {
+        setDrawerStep('pay')
+        setDrawerOpen(true)
+      }
+    }
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [activeStep])
+
+  const handleVerifyGoodId = useCallback(async () => {
+    try {
+      const started = await actions.verifyGoodId()
+      if (started) {
+        goodIdTabPendingRef.current = true
+      }
+    } finally {
+      if (activeStep === 'pay') {
+        setDrawerStep('pay')
+        setDrawerOpen(true)
+      }
+    }
+  }, [actions, activeStep])
 
   const openDrawer = useCallback(
     (step: AiCreditsFlowStep) => {
@@ -55,7 +114,7 @@ export function AiCreditsPurchaseFlow({
     [openDrawer],
   )
 
-  const actionLabel = getActiveFlowStepActionLabel(state, activeStep)
+  const actionLabel = getActiveFlowStepActionLabel(state, activeStep, buyerPubKeySaved)
 
   function renderDrawerContent(step: AiCreditsFlowStep | null) {
     if (!step) return null
@@ -65,20 +124,22 @@ export function AiCreditsPurchaseFlow({
         return (
           <BuyerKeyPanel
             embedded
-            buyerKey={state.buyerKey}
-            buyerKeyPrivate={state.buyerKeyPrivate ?? null}
-            buyerKeyConfirmed={state.buyerKeyConfirmed}
+            buyerPubKey={state.buyerPubKey}
+            buyerPrvKey={state.buyerPrvKey ?? null}
+            buyerPubKeySaved={buyerPubKeySaved}
             onGenerate={actions.generateBuyerKey}
-            onConfirm={actions.confirmBuyerKey}
+            onConfirm={() => setBuyerPubKeySaved(true)}
           />
         )
       case 'consent':
         return (
           <OperatorConsentStep
             embedded
-            buyerKey={state.buyerKey}
-            buyerKeyPrivate={state.buyerKeyPrivate ?? null}
-            operatorConsentSigned={state.operatorConsentSigned}
+            buyerPubKey={state.buyerPubKey}
+            buyerPrvKey={state.buyerPrvKey ?? null}
+            operatorSignature={state.operatorSignature ?? null}
+            operatorConsented={state.operatorConsented}
+            operatorConsentPending={state.operatorConsentPending}
             onSign={actions.signOperatorConsent}
           />
         )
@@ -86,20 +147,19 @@ export function AiCreditsPurchaseFlow({
         return (
           <AmountPicker
             embedded
-            depositAmount={state.depositAmount}
-            streamAmount={state.streamAmount}
+            status={state.status}
             gBalance={state.gBalance}
-            minDepositG={state.minDepositG}
-            minStreamG={state.minStreamG}
-            quote={state.quote}
+            minDepositUsd={state.minDepositUsd}
+            minStreamUsd={state.minStreamUsd}
+            monthlyStreamG={state.monthlyStreamG}
+            gdUsdPerToken={state.gdUsdPerToken}
             isGoodIdVerified={state.isGoodIdVerified}
-            bonusPercent={state.bonusPercent}
-            canPay={canPay}
-            payDisabledMessage={payDisabledMessage}
+            depositBonusPercent={state.depositBonusPercent}
+            streamBonusPercent={state.streamBonusPercent}
             isPayPending={isPending}
-            onDepositChange={actions.setDepositAmount}
-            onStreamChange={actions.setStreamAmount}
+            buildQuote={actions.buildQuote}
             onPay={onPay}
+            onVerifyGoodId={handleVerifyGoodId}
           />
         )
       default:
@@ -109,7 +169,11 @@ export function AiCreditsPurchaseFlow({
 
   return (
     <>
-      <AiCreditsFlowStepper state={state} onStepPress={handleStepPress} />
+      <AiCreditsFlowStepper
+        state={state}
+        buyerPubKeySaved={buyerPubKeySaved}
+        onStepPress={handleStepPress}
+      />
       {!drawerOpen && actionLabel && activeStep && (
         <Button
           fullWidth
@@ -138,4 +202,3 @@ export function AiCreditsPurchaseFlow({
     </>
   )
 }
-

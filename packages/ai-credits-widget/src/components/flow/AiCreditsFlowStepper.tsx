@@ -8,14 +8,16 @@ const STEP_ORDER: AiCreditsFlowStep[] = ['buyer_key', 'consent', 'pay']
 
 interface AiCreditsFlowStepperProps {
   state: AiCreditsWidgetAdapterState
+  buyerPubKeySaved: boolean
   onStepPress?: (stepId: string) => void
 }
 
-/**
- * Wraps the Stepper component with widget-specific steps for the purchase flow.
- */
-export function AiCreditsFlowStepper({ state, onStepPress }: AiCreditsFlowStepperProps) {
-  const activeStep = mapStatusToActiveStep(state)
+export function AiCreditsFlowStepper({
+  state,
+  buyerPubKeySaved,
+  onStepPress,
+}: AiCreditsFlowStepperProps) {
+  const activeStep = mapStatusToActiveStep(state, buyerPubKeySaved)
 
   function getStepStatus(step: AiCreditsFlowStep): StepperStepItem['status'] {
     const stepIndex = STEP_ORDER.indexOf(step)
@@ -28,8 +30,14 @@ export function AiCreditsFlowStepper({ state, onStepPress }: AiCreditsFlowSteppe
     if (stepIndex < activeIndex) return 'completed'
 
     if (step === 'pay' && state.status === 'payment_failed') return 'failed'
-    if (step === 'pay' && state.status === 'payment_confirmed') return 'completed'
-    return 'active'
+    if (
+      step === 'pay' &&
+      (state.status === 'payment_pending' || state.status === 'payment_confirmed')
+    ) {
+      return 'active'
+    }
+    if (step === 'consent' && state.operatorConsentPending) return 'active'
+    return 'ready'
   }
 
   const steps: StepperStepItem[] = [
@@ -42,7 +50,9 @@ export function AiCreditsFlowStepper({ state, onStepPress }: AiCreditsFlowSteppe
     {
       id: 'consent',
       title: 'Operator Consent',
-      description: 'Sign permission for the AntseedBuyerOperator',
+      description: state.operatorConsentPending
+        ? 'Submitting operator consent…'
+        : 'Sign permission for the AntseedBuyerOperator',
       status: getStepStatus('consent'),
     },
     {
@@ -79,4 +89,3 @@ export function AiCreditsFlowStepper({ state, onStepPress }: AiCreditsFlowSteppe
     />
   )
 }
-
