@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { AddressDisplay, GlowCard, Icon, Text, XStack, YStack, copyTextToClipboard } from '@goodwidget/ui'
+import { AddressDisplay, Button, GlowCard, Icon, Text, XStack, YStack, copyTextToClipboard } from '@goodwidget/ui'
 
 interface PrimaryIdentityCardProps {
   walletAddress: string | null
@@ -36,7 +36,7 @@ export function PrimaryIdentityCard({ walletAddress }: PrimaryIdentityCardProps)
           width={40}
           height={40}
           borderRadius="$2"
-          backgroundColor="rgba(0, 174, 255, 0.15)"
+          backgroundColor="$infoMuted"
           alignItems="center"
           justifyContent="center"
           flexShrink={0}
@@ -56,15 +56,16 @@ export function PrimaryIdentityCard({ walletAddress }: PrimaryIdentityCardProps)
           </Text>
           <AddressDisplay address={walletAddress} size="sm" copyable={false} />
         </YStack>
-        <YStack
+        <Button
+          size="sm"
+          variant="ghost"
+          iconSize="md"
           onPress={handleCopy}
-          cursor="pointer"
-          padding="$1"
-          hoverStyle={{ opacity: 0.7 }}
+          aria-label={copied ? 'Address copied' : 'Copy address'}
           flexShrink={0}
         >
           <Icon name={copied ? 'check' : 'copy'} size="md" color={copied ? 'success' : 'muted'} />
-        </YStack>
+        </Button>
       </XStack>
     </GlowCard>
   )

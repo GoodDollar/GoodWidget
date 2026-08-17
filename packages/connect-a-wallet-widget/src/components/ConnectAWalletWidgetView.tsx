@@ -2,6 +2,7 @@ import React from 'react'
 import {
   AddressDisplay,
   Alert,
+  Button,
   ButtonText,
   Card,
   Heading,
@@ -155,7 +156,12 @@ export function ConnectAWalletWidgetView({
 
       {state.status === 'ready' && state.secondaryAddress && (
         <>
-          <Heading level={6} marginBottom="$1" fontSize="$1">Connect or Disconnect Address</Heading>
+          <XStack alignItems="center" justifyContent="space-between" marginBottom="$1">
+            <Heading level={6} fontSize="$1">Connect or Disconnect Address</Heading>
+            <Button variant="text" size="sm" onPress={actions.changeSecondaryAddress}>
+              <ButtonText fontSize="$1" color="$primary">Change address</ButtonText>
+            </Button>
+          </XStack>
           <XStack
             backgroundColor="$backgroundHover"
             padding="$3"

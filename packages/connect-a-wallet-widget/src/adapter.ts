@@ -221,6 +221,16 @@ export function useConnectAWalletAdapter(
     setSecondaryAddressInputState(value)
   }, [])
 
+  // Lets the user re-open the address form from the 'ready' state to check a
+  // different address, since there's otherwise no way back to it once a
+  // secondary address has been validated.
+  const changeSecondaryAddress = useCallback(() => {
+    setSecondaryAddress(null)
+    setSecondaryAddressInputState('')
+    setError(null)
+    setStatus('connected_no_input')
+  }, [])
+
   const handleConnectWallet = useCallback(async (): Promise<void> => {
     setIsConnectingWallet(true)
     try {
@@ -402,10 +412,18 @@ export function useConnectAWalletAdapter(
       connectWallet: handleConnectWallet,
       setSecondaryAddressInput,
       checkSecondaryAddress,
+      changeSecondaryAddress,
       connectChain,
       disconnectChain,
     }),
-    [handleConnectWallet, setSecondaryAddressInput, checkSecondaryAddress, connectChain, disconnectChain],
+    [
+      handleConnectWallet,
+      setSecondaryAddressInput,
+      checkSecondaryAddress,
+      changeSecondaryAddress,
+      connectChain,
+      disconnectChain,
+    ],
   )
 
   return { state, actions }

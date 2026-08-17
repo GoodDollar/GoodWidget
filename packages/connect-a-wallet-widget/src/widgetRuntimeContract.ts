@@ -63,6 +63,8 @@ export interface ConnectAWalletWidgetAdapterActions {
   setSecondaryAddressInput: (value: string) => void
   /** Validates the current input and loads per-chain statuses for it. */
   checkSecondaryAddress: () => Promise<void>
+  /** Clears the checked secondary address and returns to the input form. */
+  changeSecondaryAddress: () => void
   /** Links the secondary address on one chain. Resolves once the tx is mined. */
   connectChain: (chainId: ConnectAWalletChainId) => Promise<void>
   /** Unlinks the secondary address on one chain. Resolves once the tx is mined. */
