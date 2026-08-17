@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useWallet, type EIP1193Provider } from '@goodwidget/core'
+import { useWallet } from '@goodwidget/core'
 import {
   createPublicClient,
   createWalletClient,
@@ -58,35 +58,6 @@ const CHAIN_CONFIGS: Record<number, Chain> = {
     nativeCurrency: { name: 'XDC', symbol: 'XDC', decimals: 18 },
     rpcUrls: { default: { http: ['https://rpc.ankr.com/xdc'] } },
   } as Chain,
-}
-
-/**
- * Wraps an EIP-1193 provider so `onTransactionSubmitted` fires the instant a
- * wallet finishes signing and broadcasting a transaction (its
- * `eth_sendTransaction` call resolving), before viem's receipt polling even
- * starts. citizen-sdk's public claim() has no equivalent mid-flight signal,
- * but GoodWidget already owns this provider before handing it to viem's
- * `custom()` transport, so it can observe that moment itself with no SDK
- * change required.
- */
-function wrapProviderWithSubmissionSignal(
-  provider: EIP1193Provider,
-  onTransactionSubmitted: () => void,
-): EIP1193Provider {
-  return new Proxy(provider, {
-    get(target, property, receiver) {
-      if (property === 'request') {
-        return async (args: Parameters<EIP1193Provider['request']>[0]) => {
-          const result = await target.request(args)
-          if (args.method === 'eth_sendTransaction') {
-            onTransactionSubmitted()
-          }
-          return result
-        }
-      }
-      return Reflect.get(target, property, receiver)
-    },
-  })
 }
 
 const SUPPORTED_CHAINS = citizenSdkCapabilities.chains
@@ -285,14 +256,11 @@ export function useCitizenClaimAdapter(
   // available for integrations that prefer lazy per-chain client creation.
   // ---------------------------------------------------------------------------
   const createProviderClientsForChain = useCallback(
-    (targetChainId: number, onTransactionSubmitted?: () => void) => {
+    (targetChainId: number) => {
       if (!provider || !address) return null
       const chain = CHAIN_CONFIGS[targetChainId]
       if (!chain) return null
-      const effectiveProvider = onTransactionSubmitted
-        ? wrapProviderWithSubmissionSignal(provider, onTransactionSubmitted)
-        : provider
-      const transport = custom(effectiveProvider as Parameters<typeof custom>[0])
+      const transport = custom(provider as Parameters<typeof custom>[0])
       const publicClient = createPublicClient({ chain, transport })
       const walletClient = createWalletClient({
         account: address as `0x${string}`,
@@ -346,7 +314,7 @@ export function useCitizenClaimAdapter(
   )
 
   const resolveClientsForChain = useCallback(
-    async (targetChainId: number, onTransactionSubmitted?: () => void) => {
+    async (targetChainId: number) => {
       if (isCustodialExecution) {
         const configuredClients = claimExecution?.clientsByChain[targetChainId]
         if (configuredClients) return normalizeClientBundle(configuredClients)
@@ -367,7 +335,7 @@ export function useCitizenClaimAdapter(
         return normalizeClientBundle(factoryClients)
       }
 
-      return normalizeClientBundle(createProviderClientsForChain(targetChainId, onTransactionSubmitted))
+      return normalizeClientBundle(createProviderClientsForChain(targetChainId))
     },
     [
       address,
@@ -411,8 +379,8 @@ export function useCitizenClaimAdapter(
   )
 
   const createSdkInstancesForChain = useCallback(
-    async (targetChainId: number, onTransactionSubmitted?: () => void) => {
-      const clients = await resolveClientsForChain(targetChainId, onTransactionSubmitted)
+    async (targetChainId: number) => {
+      const clients = await resolveClientsForChain(targetChainId)
       return createSdkInstances(clients)
     },
     [createSdkInstances, resolveClientsForChain],
@@ -719,14 +687,21 @@ export function useCitizenClaimAdapter(
         await switchChain(targetChainId)
       }
 
-      const sdk = await createSdkInstancesForChain(targetChainId, onTransactionSubmitted)
+      const sdk = await createSdkInstancesForChain(targetChainId)
       if (!sdk) {
         throw new CitizenClaimAdapterError(
           `Unable to initialize SDK clients for ${getChainDisplayName(targetChainId)}`,
         )
       }
 
-      return sdk.claimSDK.claim()
+      // Pass onTransactionSubmitted as the second argument to claim() so it fires
+      // immediately after the wallet signs and the tx hash is returned, before the
+      // receipt is awaited. The citizen-sdk ClaimSDK.submitAndWait already accepts
+      // an onHash callback; claim() will be updated to thread it through in
+      // GoodDollar/GoodSDKs (see companion PR). Until that SDK release lands,
+      // the cast below prevents a compile error.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (sdk.claimSDK as any).claim(undefined, onTransactionSubmitted)
     },
     [address, availableChainIds, createSdkInstancesForChain, isCustodialExecution, provider, switchChain],
   )
