@@ -64,6 +64,7 @@ export interface ReserveSwapWidgetAdapterActions {
   openConfirm: () => void
   closeConfirm: () => void
   executeSwap: () => Promise<void>
+  refreshBalances: () => Promise<void>
   refresh: () => Promise<void>
 }
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Anchor,
   Button,
@@ -340,7 +340,10 @@ function SwapSuccessView({
           fullWidth
           height={54}
           borderRadius="$full"
-          onPress={() => actions.setDirection('buy')}
+          onPress={async () => {
+            await actions.refreshBalances()
+            actions.setDirection('buy')
+          }}
         >
           <ButtonText>Do another swap</ButtonText>
         </Button>
@@ -573,6 +576,10 @@ function MainSwapView({
   network: string
   switchTarget: number
 }) {
+  useEffect(() => {
+    void actions.refreshBalances()
+  }, [actions.refreshBalances])
+
   const hasAmount = Boolean(state.inputAmount) && Number(state.inputAmount) > 0
   const primaryCta = getMainSwapPrimaryCta(state, hasAmount)
   const stableSymbol = state.tokenInSymbol === 'G$' ? state.tokenOutSymbol : state.tokenInSymbol
