@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { ButtonText, Icon, Spinner, Stack, Text, XStack, YStack } from '@goodwidget/ui'
 import type { ConnectAWalletChainLinkState } from '../widgetRuntimeContract'
 import { chainLinkRowPresentation } from './format'
@@ -18,7 +18,6 @@ interface ChainLinkRowProps {
 export function ChainLinkRow({ row, onConnect, onDisconnect }: ChainLinkRowProps) {
   const { actionLabel, isBusy, isDisabled } = chainLinkRowPresentation(row.status)
   const handlePress = actionLabel === 'Connect' ? onConnect : onDisconnect
-  const [disconnectHovered, setDisconnectHovered] = useState(false)
 
   // Map status to dot color and display text
   let dotColor = '$placeholderColor'
@@ -91,16 +90,14 @@ export function ChainLinkRow({ row, onConnect, onDisconnect }: ChainLinkRowProps
           disabled={isDisabled}
           variant="outline"
           borderColor="$error"
-          backgroundColor={disconnectHovered ? '$error' : 'transparent'}
+          hoverStyle={{ backgroundColor: '$error' }}
           paddingHorizontal="$2.5"
           paddingVertical="$1.5"
           flexShrink={0}
-          onMouseEnter={() => setDisconnectHovered(true)}
-          onMouseLeave={() => setDisconnectHovered(false)}
         >
           <XStack alignItems="center" gap="$1">
-            <Icon name="unlink" size="xs" color={disconnectHovered ? 'white' : 'error'} />
-            <ButtonText fontSize="$1" color={disconnectHovered ? '$white' : '$error'}>Disconnect</ButtonText>
+            <Icon name="unlink" size="xs" color="error" />
+            <ButtonText fontSize="$1" color="$error">Disconnect</ButtonText>
           </XStack>
         </ActionButton>
       ) : (

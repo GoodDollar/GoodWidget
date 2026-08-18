@@ -157,7 +157,7 @@ export function ConnectAWalletWidgetView({
       {state.status === 'ready' && state.secondaryAddress && (
         <>
           <XStack alignItems="center" justifyContent="space-between" marginBottom="$1">
-            <Heading level={6} fontSize="$1">Connect or Disconnect Address</Heading>
+            <Heading level={6} fontSize="$1">Linked address</Heading>
             <Button variant="text" size="sm" onPress={actions.changeSecondaryAddress}>
               <ButtonText fontSize="$1" color="$primary">Change address</ButtonText>
             </Button>

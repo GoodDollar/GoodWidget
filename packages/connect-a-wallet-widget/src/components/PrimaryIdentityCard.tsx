@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { AddressDisplay, Button, GlowCard, Icon, Text, XStack, YStack, copyTextToClipboard } from '@goodwidget/ui'
 
 interface PrimaryIdentityCardProps {
@@ -12,6 +12,9 @@ interface PrimaryIdentityCardProps {
  */
 export function PrimaryIdentityCard({ walletAddress }: PrimaryIdentityCardProps) {
   const [copied, setCopied] = useState(false)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>()
+
+  useEffect(() => () => clearTimeout(timeoutRef.current), [])
 
   if (!walletAddress) {
     return null
@@ -21,7 +24,7 @@ export function PrimaryIdentityCard({ walletAddress }: PrimaryIdentityCardProps)
     const success = await copyTextToClipboard(walletAddress)
     if (success) {
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      timeoutRef.current = setTimeout(() => setCopied(false), 2000)
     }
   }
 

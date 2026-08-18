@@ -16,16 +16,6 @@ export const EmptyStateCard = createComponent(Card, {
   gap: '$3',
 })
 
-export const ChainRowCard = createComponent(Card, {
-  name: 'ChainRowCard',
-  padding: '$3',
-  flexDirection: 'row' as const,
-  alignItems: 'center' as const,
-  justifyContent: 'space-between' as const,
-  flexWrap: 'wrap' as const,
-  gap: '$2',
-})
-
 export const AddressFormCard = createComponent(Card, {
   name: 'AddressFormCard',
   padding: '$4',
