@@ -63,6 +63,7 @@ function createAdapter(
     connectWallet: async () => {},
     setSecondaryAddressInput: () => {},
     checkSecondaryAddress: async () => {},
+    changeSecondaryAddress: () => {},
     connectChain: async () => {},
     disconnectChain: async () => {},
     ...actionOverrides,
