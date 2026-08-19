@@ -136,6 +136,7 @@ export function ConnectingStory() {
         address: '0x329377cbeeF39f01b0Ea04B80465c9eB47D3ED1',
         chainId: 42220,
         gBalance: null,
+        activeTab: 'setup',
       })}
     />
   )

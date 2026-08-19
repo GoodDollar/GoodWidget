@@ -45,25 +45,24 @@ test('AiCreditsWidget disconnected', async ({ page }) => {
   await gotoStory(page, STORY_IDS.disconnected)
   const root = page.getByTestId('AiCreditsWidget-disconnected')
   await expect(root).toBeVisible()
-  // Inline connect banner is shown instead of a full-screen blocking panel
-  await expect(root.getByText('Connect your wallet')).toBeVisible()
+  await expect(root.getByText('Connect your wallet to get started')).toBeVisible()
   await expect(root.getByRole('button', { name: 'Connect Wallet' })).toBeVisible()
-  // Main tab navigation is visible even before connecting
   await expect(root.getByText('Setup')).toBeVisible()
   await expect(root.getByText('Buy Credits')).toBeVisible()
+  await root.getByText('Buy Credits').click()
+  await expect(root.getByText('Connect your wallet to get started')).toBeVisible()
+  await expect(root.getByText('Purchase Flow')).not.toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-01-disconnected.png',
     fullPage: true,
   })
 })
 
-test('AiCreditsWidget connecting — inline banner shows', async ({ page }) => {
+test('AiCreditsWidget connecting — Setup tab connect prompt shows', async ({ page }) => {
   await gotoStory(page, STORY_IDS.connecting)
   const root = page.getByTestId('AiCreditsWidget-connecting')
   await expect(root).toBeVisible()
-  // Inline connect banner visible with spinner text while connecting
   await expect(root.getByText('Connecting...')).toBeVisible()
-  // Setup tab still visible in background shell
   await expect(root.getByText('Setup')).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-12-connecting.png',

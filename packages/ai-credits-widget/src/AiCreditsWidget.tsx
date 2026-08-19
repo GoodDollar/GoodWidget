@@ -46,6 +46,14 @@ import { compactButtonProps } from './components/shared/styles'
 
 const CELO_CHAIN_ID = 42220
 
+function needsWalletConnection(state: AiCreditsWidgetAdapterState): boolean {
+  return (
+    !state.address ||
+    state.status === 'disconnected' ||
+    state.status === 'connecting'
+  )
+}
+
 interface AiCreditsInnerProps {
   environment?: AiCreditsWidgetEnvironment
   backendUrl?: string
@@ -60,12 +68,7 @@ interface AiCreditsInnerProps {
   onPayError?: (detail: AiCreditsPayErrorDetail) => void
 }
 
-/**
- * Inline connect-wallet prompt shown at the top of the widget shell when the
- * user is disconnected or in the middle of connecting. It replaces the old
- * full-screen blocking panel so users can still see the product before connecting.
- */
-function InlineConnectBanner({
+function SetupConnectPrompt({
   onConnect,
   connecting,
 }: {
@@ -73,24 +76,19 @@ function InlineConnectBanner({
   connecting: boolean
 }) {
   return (
-    <Card>
-      <XStack gap="$3" alignItems="center" paddingVertical="$3" paddingHorizontal="$4">
-        <YStack flex={1} gap="$1">
-          <Text fontWeight="700">Connect your wallet</Text>
-          <Text secondary fontSize="$2">
-            Connect to buy AI credits and manage your account.
-          </Text>
-        </YStack>
-        <CircularActionButton
-          label={connecting ? 'Connecting...' : 'Connect Wallet'}
-          pending={connecting}
-          disabled={connecting}
-          onPress={() => {
-            void onConnect()
-          }}
-        />
-      </XStack>
-    </Card>
+    <YStack gap="$5" alignItems="center" paddingVertical="$6" width="100%">
+      <Text secondary center>
+        Connect your wallet to get started
+      </Text>
+      <CircularActionButton
+        label={connecting ? 'Connecting...' : 'Connect Wallet'}
+        pending={connecting}
+        disabled={connecting}
+        onPress={() => {
+          void onConnect()
+        }}
+      />
+    </YStack>
   )
 }
 
@@ -116,12 +114,19 @@ const SETUP_ONBOARDING_STEPS: Array<{ number: number; title: string; description
   },
 ]
 
-/**
- * Onboarding step shell for the Setup tab.
- * Covers: 1. Download AntSeed  2. Signer Key  3. Authorize Wallet
- * Detailed step interactions live in their own future sub-slices.
- */
-function SetupTabPanel() {
+function SetupTabPanel({
+  needsWallet,
+  connecting,
+  onConnect,
+}: {
+  needsWallet: boolean
+  connecting: boolean
+  onConnect: () => Promise<void>
+}) {
+  if (needsWallet) {
+    return <SetupConnectPrompt onConnect={onConnect} connecting={connecting} />
+  }
+
   return (
     <YStack gap="$4" width="100%">
       <Heading level={5} secondary>
@@ -447,8 +452,7 @@ function AiCreditsInner({
     [actions],
   )
 
-  const isDisconnected =
-    state.status === 'disconnected' || state.status === 'connecting'
+  const walletRequired = needsWalletConnection(state)
 
   const buyPanel = (
     <BuyCreditsPanel
@@ -463,15 +467,6 @@ function AiCreditsInner({
 
   return (
     <YStack gap="$3" padding="$3" width="100%">
-      {/* Inline connect banner — visible only when wallet is not yet connected */}
-      {isDisconnected && (
-        <InlineConnectBanner
-          onConnect={actions.connect}
-          connecting={state.status === 'connecting'}
-        />
-      )}
-
-      {/* Main tab navigation — always rendered so users can explore before connecting */}
       <WidgetTabs
         tabs={[
           { id: 'setup', label: 'Setup' },
@@ -479,13 +474,18 @@ function AiCreditsInner({
           { id: 'manage', label: 'Manage' },
           { id: 'history', label: 'History' },
         ]}
-        activeTab={state.activeTab}
+        activeTab={walletRequired ? 'setup' : state.activeTab}
         onTabChange={handleTabChange}
+        isTabDisabled={(tabId) => walletRequired && tabId !== 'setup'}
         chainId={state.chainId ?? CELO_CHAIN_ID}
       />
 
-      {state.activeTab === 'setup' ? (
-        <SetupTabPanel />
+      {state.activeTab === 'setup' || walletRequired ? (
+        <SetupTabPanel
+          needsWallet={walletRequired}
+          connecting={state.status === 'connecting'}
+          onConnect={actions.connect}
+        />
       ) : state.activeTab === 'manage' ? (
         <ManagePanel state={state} actions={actions} />
       ) : state.activeTab === 'history' ? (

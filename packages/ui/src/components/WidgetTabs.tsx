@@ -35,6 +35,7 @@ interface WidgetTabsProps {
   activeTab: string
   withConnectionStatus?: boolean
   onTabChange: (tabId: string) => void
+  isTabDisabled?: (tabId: string) => boolean
   renderLabel?: (tab: WidgetTab, isActive: boolean) => ReactNode
 }
 
@@ -44,6 +45,7 @@ export function WidgetTabs({
   activeTab,
   withConnectionStatus = true,
   onTabChange,
+  isTabDisabled,
   renderLabel,
 }: WidgetTabsProps) {
   return (
@@ -61,12 +63,14 @@ export function WidgetTabs({
       <WidgetTabsFrame>
         {tabs.map((tab) => {
           const isActive = tab.id === activeTab
+          const disabled = isTabDisabled?.(tab.id) ?? false
           return (
             <WidgetTabItem
               key={tab.id}
               borderColor={isActive ? '$borderColorFocus' : '$backgroundTransparent'}
-              onPress={() => onTabChange(tab.id)}
-              cursor="pointer"
+              onPress={disabled ? undefined : () => onTabChange(tab.id)}
+              cursor={disabled ? 'not-allowed' : 'pointer'}
+              opacity={disabled ? 0.4 : 1}
             >
               {renderLabel ? (
                 renderLabel(tab, isActive)
