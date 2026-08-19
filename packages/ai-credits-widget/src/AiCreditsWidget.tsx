@@ -95,35 +95,39 @@ function InlineConnectBanner({
 }
 
 /**
+ * Static onboarding steps for the Setup tab.
+ * Defined outside the component to avoid recreating the array on every render.
+ */
+const SETUP_ONBOARDING_STEPS: Array<{ number: number; title: string; description: string }> = [
+  {
+    number: 1,
+    title: 'Download AntSeed',
+    description: 'Install the AntSeed application to manage your AI credits signer key.',
+  },
+  {
+    number: 2,
+    title: 'Signer Key',
+    description: 'Generate or import a signer key that AntSeed will use to authorize requests.',
+  },
+  {
+    number: 3,
+    title: 'Authorize Wallet',
+    description: 'Link your wallet to the signer key so it can be topped up with AI credits.',
+  },
+]
+
+/**
  * Onboarding step shell for the Setup tab.
  * Covers: 1. Download AntSeed  2. Signer Key  3. Authorize Wallet
  * Detailed step interactions live in their own future sub-slices.
  */
 function SetupTabPanel() {
-  const steps: Array<{ number: number; title: string; description: string }> = [
-    {
-      number: 1,
-      title: 'Download AntSeed',
-      description: 'Install the AntSeed application to manage your AI credits signer key.',
-    },
-    {
-      number: 2,
-      title: 'Signer Key',
-      description: 'Generate or import a signer key that AntSeed will use to authorize requests.',
-    },
-    {
-      number: 3,
-      title: 'Authorize Wallet',
-      description: 'Link your wallet to the signer key so it can be topped up with AI credits.',
-    },
-  ]
-
   return (
     <YStack gap="$4" width="100%">
       <Heading level={5} secondary>
         Onboarding
       </Heading>
-      {steps.map((step) => (
+      {SETUP_ONBOARDING_STEPS.map((step) => (
         <Card key={step.number}>
           <XStack gap="$3" alignItems="flex-start" padding="$3">
             {/* Step number badge */}

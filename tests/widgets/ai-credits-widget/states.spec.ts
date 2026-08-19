@@ -88,7 +88,8 @@ test('AiCreditsWidget Setup tab — onboarding steps visible', async ({ page }) 
   })
 })
 
-test('AiCreditsWidget purchase_setup', async ({ page }) => {  await gotoStory(page, STORY_IDS.purchaseSetup)
+test('AiCreditsWidget purchase_setup', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.purchaseSetup)
   const root = widget(page, 'AiCreditsWidget-purchase-setup')
   await expect(root).toBeVisible()
   await expect(root.getByText('You need G$ before you can buy AI credits.')).toBeVisible()
