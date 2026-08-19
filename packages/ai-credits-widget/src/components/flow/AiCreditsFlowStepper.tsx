@@ -43,16 +43,16 @@ export function AiCreditsFlowStepper({
   const steps: StepperStepItem[] = [
     {
       id: 'buyer_key',
-      title: 'Buyer Key',
-      description: 'Generate or provide your AI credits buyer key',
+      title: 'Signer key',
+      description: 'Generate or provide your AntSeed signer key',
       status: getStepStatus('buyer_key'),
     },
     {
       id: 'consent',
-      title: 'Operator Consent',
+      title: 'Authorize wallet',
       description: state.operatorConsentPending
-        ? 'Submitting operator consent…'
-        : 'Sign permission for the AntseedBuyerOperator',
+        ? 'Submitting wallet authorization…'
+        : 'Sign revocable wallet approval for AntSeed',
       status: getStepStatus('consent'),
     },
     {

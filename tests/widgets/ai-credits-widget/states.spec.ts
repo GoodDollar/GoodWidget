@@ -271,14 +271,14 @@ test('AiCreditsWidget multi-buyer manage: buyer selector is visible', async ({ p
   })
 })
 
-test('AiCreditsWidget deep-link buyer: Sign Consent enabled via operatorSignature', async ({
+test('AiCreditsWidget deep-link buyer: Authorize wallet enabled via operatorSignature', async ({
   page,
 }) => {
   await gotoStory(page, MULTI_BUYER_STORY_IDS.deepLinkBuyer)
   const root = widget(page, 'AiCreditsWidget-deep-link-buyer')
   await expect(root).toBeVisible()
 
-  const signConsentButton = root.getByRole('button', { name: /Sign Consent/i })
+  const signConsentButton = root.getByRole('button', { name: /Authorize Wallet/i })
   await expect(signConsentButton).toBeEnabled()
 
   await page.screenshot({
@@ -295,8 +295,8 @@ test('AiCreditsWidget deep-link consent pending: OperatorConsentStep requires an
   await expect(root).toBeVisible()
 
   // A pre-filled operatorSignature must never auto-advance past consent: the explicit
-  // "Sign Operator Consent" gate has to render before any consent is granted.
-  const openConsentStepButton = root.getByRole('button', { name: 'Sign Operator Consent' })
+  // "Authorize Wallet" gate has to render before any consent is granted.
+  const openConsentStepButton = root.getByRole('button', { name: 'Authorize Wallet' })
   await expect(openConsentStepButton).toBeVisible()
   await openConsentStepButton.click()
 
@@ -308,9 +308,9 @@ test('AiCreditsWidget deep-link consent pending: OperatorConsentStep requires an
   await expect(
     page.getByText(/ineligible for future bonuses and removes any existing bonuses/i),
   ).toBeVisible()
-  await expect(page.getByText('Operator consent accepted')).not.toBeVisible()
+  await expect(page.getByText('Wallet authorized')).not.toBeVisible()
 
-  const signConsentButton = page.getByRole('button', { name: 'Sign Operator Consent' })
+  const signConsentButton = page.getByRole('button', { name: 'Authorize Wallet' })
   await expect(signConsentButton).toBeEnabled()
 
   await page.screenshot({
@@ -345,4 +345,3 @@ test('AiCreditsWidget multi-buyer: import buyer key link is visible', async ({ p
     fullPage: true,
   })
 })
-

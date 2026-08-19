@@ -6,7 +6,7 @@ const FAQ_ITEMS = [
     id: 'what-are-credits',
     question: 'What are AI credits?',
     answer:
-      'AI credits pay for AntSeed-compatible coding tools. ' +
+      'AI credits pay for AntSeed-compatible AI chat and coding tools. ' +
       'GoodDollar only supports purchasing AntSeed AI credits. ' +
       'You buy them with G$ on Celo; AI credits (USD) settle on Base and appear in your Manage tab balance.',
   },
@@ -14,7 +14,7 @@ const FAQ_ITEMS = [
     id: 'how-to-buy',
     question: 'How do I buy credits?',
     answer:
-      'Complete the Buy Credits steps: generate a buyer key, sign operator consent, ' +
+      'Complete the Buy Credits steps: generate a signer key, authorize wallet access, ' +
       'then enter a one-time G$ deposit and/or a monthly G$ stream and confirm one Celo transaction ' +
       '(approve, deposit, and stream changes are batched when needed).',
   },
@@ -45,15 +45,15 @@ const FAQ_ITEMS = [
   },
   {
     id: 'buyer-key',
-    question: 'What is the buyer key?',
+    question: 'What is the signer key?',
     answer:
       'Your payer wallet pays G$ on Celo. ' +
-      'The buyer key is a separate key derived from a payer signature; it manages your AI credits on Base. ' +
-      'Save the buyer private key from this session for AI API setup and Manage actions like withdraw.',
+      'The signer key is a separate key derived from a payer signature; it manages your AI credits on Base. ' +
+      'Save the signer private key from this session for AI API setup and Manage actions like withdraw.',
   },
   {
-    id: 'operator-consent',
-    question: 'Why do I authorize the Gooddollar operator?',
+    id: 'authorize-wallet',
+    question: 'Why do I authorize the GoodDollar operator?',
     answer:
       'Payer is the wallet that pays G$ on Celo. ' +
       'Buyer is a separate key derived from a payer signature; it owns your AI credit account on Base.\n\n' +

@@ -39,10 +39,10 @@ export function BuyerKeyPanel({
 
   return (
     <Shell gap="$3">
-      <Heading level={5}>Buyer Key</Heading>
+      <Heading level={5}>Signer key</Heading>
       <Text>
-        Sign a message with your payer wallet to derive a deterministic AntSeed buyer key. Save the
-        private key — you will need it to authenticate from your developer tools.
+        Sign a message with your payer wallet to derive a deterministic AntSeed signer key. Save the
+        private key — you will need it to authenticate from your AI chat and coding tools.
       </Text>
 
       <YStack gap="$3">

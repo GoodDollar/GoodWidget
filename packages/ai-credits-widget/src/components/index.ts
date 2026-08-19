@@ -8,8 +8,15 @@ export { CreditsManagementCard } from './manage/CreditsManagementCard'
 export { BuyerOperatorCard } from './manage/BuyerOperatorCard'
 export { SetupSnippet } from './manage/SetupSnippet'
 export { HistoryTab } from './history/HistoryTab'
+export {
+  AiCreditsRedesignTabs,
+  AiCreditsSetupStatePanel,
+  SignerKeyModal,
+  AuthorizeWalletModal,
+  ConnectTabPanel,
+} from './redesign/AiCreditsRedesignStates'
+export type { AiCreditsRedesignTabId, SignerKeyModalStep } from './redesign/AiCreditsRedesignStates'
 export type { AiCreditsFlowStep } from './flow/types'
 export { getAiCreditsActiveFlowStep } from './flow/purchaseFlowUtils'
 export { AiCreditsFlowStepper } from './flow/AiCreditsFlowStepper'
 export { AiCreditsPurchaseFlow } from './flow/AiCreditsPurchaseFlow'
-

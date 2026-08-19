@@ -59,3 +59,11 @@ export { useAiCreditsAdapter } from './adapter'
 export type { UseAiCreditsAdapterOptions } from './adapter'
 
 export { AiCreditsWidget } from './AiCreditsWidget'
+export {
+  AiCreditsRedesignTabs,
+  AiCreditsSetupStatePanel,
+  SignerKeyModal,
+  AuthorizeWalletModal,
+  ConnectTabPanel,
+} from './components'
+export type { AiCreditsRedesignTabId, SignerKeyModalStep } from './components'

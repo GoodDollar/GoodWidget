@@ -43,11 +43,11 @@ export function getActiveFlowStepActionLabel(
   switch (step) {
     case 'buyer_key':
       if (!state.buyerPubKey) return 'Sign & Generate Key'
-      if (!buyerPubKeySaved) return "Continue Buyer Key"
-      return 'View Buyer Key'
+      if (!buyerPubKeySaved) return 'Continue Signer Key'
+      return 'View Signer Key'
     case 'consent':
-      if (state.operatorConsentPending) return 'Submitting Consent…'
-      return state.operatorConsented ? 'View Operator Consent' : 'Sign Operator Consent'
+      if (state.operatorConsentPending) return 'Submitting Authorization…'
+      return state.operatorConsented ? 'View Wallet Authorization' : 'Authorize Wallet'
     case 'pay':
       return 'Set Amounts & Pay'
     default:

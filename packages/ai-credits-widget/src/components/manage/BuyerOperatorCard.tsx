@@ -206,7 +206,7 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
           {operatorConsentPending ? (
             <Spinner size="sm" />
           ) : (
-            <ButtonText>{operatorConsented ? 'Consented' : 'Sign Consent'}</ButtonText>
+            <ButtonText>{operatorConsented ? 'Authorized' : 'Authorize Wallet'}</ButtonText>
           )}
         </Button>
       </XStack>
