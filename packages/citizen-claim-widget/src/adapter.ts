@@ -652,7 +652,10 @@ export function useCitizenClaimAdapter(
   // Transitions: eligible → claiming → success | error
   // ---------------------------------------------------------------------------
   const claimOnChain = useCallback(
-    async (targetChainId: number, onTransactionSubmitted?: () => void): Promise<unknown> => {
+    async (
+      targetChainId: number,
+      onTransactionSubmitted?: (chainId: number) => void,
+    ): Promise<unknown> => {
       if (!isCustodialExecution && !provider) {
         throw new CitizenClaimAdapterError('No wallet provider available')
       }
@@ -701,7 +704,7 @@ export function useCitizenClaimAdapter(
       // GoodDollar/GoodSDKs (see companion PR). Until that SDK release lands,
       // the cast below prevents a compile error.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (sdk.claimSDK as any).claim(undefined, onTransactionSubmitted)
+      return (sdk.claimSDK as any).claim(undefined, () => onTransactionSubmitted?.(targetChainId))
     },
     [address, availableChainIds, createSdkInstancesForChain, isCustodialExecution, provider, switchChain],
   )
@@ -783,24 +786,27 @@ export function useCitizenClaimAdapter(
     [claimOnChain, isCustodialExecution],
   )
 
-  const handleClaim = useCallback(async (onTransactionSubmitted?: () => void): Promise<unknown> => {
-    if (!chainId) throw new Error('No active chain selected')
+  const handleClaim = useCallback(
+    async (onTransactionSubmitted?: (chainId: number) => void): Promise<unknown> => {
+      if (!chainId) throw new Error('No active chain selected')
 
-    setStatus('claiming')
-    setError(null)
+      setStatus('claiming')
+      setError(null)
 
-    try {
-      const receipt = await claimOnChain(chainId, onTransactionSubmitted)
-      if (!mountedRef.current) return receipt
-      await loadClaimStatus()
-      return receipt
-    } catch (err: unknown) {
-      if (!mountedRef.current) throw err
-      setStatus('error')
-      setError(humanReadableError(err))
-      throw err
-    }
-  }, [chainId, claimOnChain, loadClaimStatus])
+      try {
+        const receipt = await claimOnChain(chainId, onTransactionSubmitted)
+        if (!mountedRef.current) return receipt
+        await loadClaimStatus()
+        return receipt
+      } catch (err: unknown) {
+        if (!mountedRef.current) throw err
+        setStatus('error')
+        setError(humanReadableError(err))
+        throw err
+      }
+    },
+    [chainId, claimOnChain, loadClaimStatus],
+  )
 
   // ---------------------------------------------------------------------------
   // handleVerify — initiates the GoodID face-verification flow.

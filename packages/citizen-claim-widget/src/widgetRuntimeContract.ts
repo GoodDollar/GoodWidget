@@ -73,8 +73,11 @@ export interface CitizenClaimWidgetAdapterActions {
    * the transaction, ahead of on-chain confirmation — lets callers move a
    * "sign in your wallet" toast to a "waiting for confirmation" state.
    */
-  claim: (onTransactionSubmitted?: () => void) => Promise<unknown>
-  claimOnChain: (chainId: number, onTransactionSubmitted?: () => void) => Promise<unknown>
+  claim: (onTransactionSubmitted?: (chainId: number) => void) => Promise<unknown>
+  claimOnChain: (
+    chainId: number,
+    onTransactionSubmitted?: (chainId: number) => void,
+  ) => Promise<unknown>
   claimAll: (
     chainIds: number[],
     onTransactionSubmitted?: (chainId: number) => void,
