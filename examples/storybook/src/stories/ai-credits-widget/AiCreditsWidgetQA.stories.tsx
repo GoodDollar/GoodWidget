@@ -116,7 +116,6 @@ export const MultiBuyerHistory: Story = {
   render: () => <MultiBuyerHistoryStory />,
 }
 
-/** Setup tab: onboarding step shell (Download AntSeed, Signer Key, Authorize Wallet). */
 export const SetupTab: Story = {
   render: () => <SetupTabStory />,
 }

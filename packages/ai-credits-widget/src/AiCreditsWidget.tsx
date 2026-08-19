@@ -17,7 +17,7 @@ import {
   createToast,
   updateToast,
 } from '@goodwidget/ui'
-import { useAiCreditsAdapter } from './adapter'
+import { needsWalletConnection, useAiCreditsAdapter } from './adapter'
 import { useAiCreditsHistory } from './useAiCreditsHistory'
 import {
   AiCreditsHero,
@@ -45,14 +45,6 @@ import type {
 import { compactButtonProps } from './components/shared/styles'
 
 const CELO_CHAIN_ID = 42220
-
-function needsWalletConnection(state: AiCreditsWidgetAdapterState): boolean {
-  return (
-    !state.address ||
-    state.status === 'disconnected' ||
-    state.status === 'connecting'
-  )
-}
 
 interface AiCreditsInnerProps {
   environment?: AiCreditsWidgetEnvironment
@@ -92,10 +84,6 @@ function SetupConnectPrompt({
   )
 }
 
-/**
- * Static onboarding steps for the Setup tab.
- * Defined outside the component to avoid recreating the array on every render.
- */
 const SETUP_ONBOARDING_STEPS: Array<{ number: number; title: string; description: string }> = [
   {
     number: 1,
@@ -115,16 +103,19 @@ const SETUP_ONBOARDING_STEPS: Array<{ number: number; title: string; description
 ]
 
 function SetupTabPanel({
-  needsWallet,
-  connecting,
+  state,
   onConnect,
 }: {
-  needsWallet: boolean
-  connecting: boolean
+  state: AiCreditsWidgetAdapterState
   onConnect: () => Promise<void>
 }) {
-  if (needsWallet) {
-    return <SetupConnectPrompt onConnect={onConnect} connecting={connecting} />
+  if (needsWalletConnection(state)) {
+    return (
+      <SetupConnectPrompt
+        onConnect={onConnect}
+        connecting={state.status === 'connecting'}
+      />
+    )
   }
 
   return (
@@ -135,7 +126,6 @@ function SetupTabPanel({
       {SETUP_ONBOARDING_STEPS.map((step) => (
         <Card key={step.number}>
           <XStack gap="$3" alignItems="flex-start" padding="$3">
-            {/* Step number badge */}
             <YStack
               width={28}
               height={28}
@@ -480,12 +470,8 @@ function AiCreditsInner({
         chainId={state.chainId ?? CELO_CHAIN_ID}
       />
 
-      {state.activeTab === 'setup' || walletRequired ? (
-        <SetupTabPanel
-          needsWallet={walletRequired}
-          connecting={state.status === 'connecting'}
-          onConnect={actions.connect}
-        />
+      {walletRequired || state.activeTab === 'setup' ? (
+        <SetupTabPanel state={state} onConnect={actions.connect} />
       ) : state.activeTab === 'manage' ? (
         <ManagePanel state={state} actions={actions} />
       ) : state.activeTab === 'history' ? (

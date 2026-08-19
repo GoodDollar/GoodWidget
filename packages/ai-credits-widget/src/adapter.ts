@@ -179,16 +179,12 @@ function isNonBuyTab(tab: AiCreditsWidgetTab): boolean {
   return tab === 'setup' || tab === 'manage' || tab === 'history'
 }
 
-function needsWalletConnection(state: AiCreditsWidgetAdapterState): boolean {
+export function needsWalletConnection(state: AiCreditsWidgetAdapterState): boolean {
   return (
     !state.address ||
     state.status === 'disconnected' ||
     state.status === 'connecting'
   )
-}
-
-function isWalletConnected(state: AiCreditsWidgetAdapterState): boolean {
-  return !needsWalletConnection(state)
 }
 
 function resolveDefaultActiveTab(
@@ -212,6 +208,10 @@ function resolveActiveTab(
 
   if (overrides.totalCreditUsd !== undefined && overrides.totalCreditUsd !== null) {
     return resolveDefaultActiveTab(payerAddress, overrides.totalCreditUsd)
+  }
+
+  if (overrides.address !== undefined && overrides.address !== prev.address) {
+    return resolveDefaultActiveTab(payerAddress, totalCreditUsd)
   }
 
   return prev.activeTab ?? resolveDefaultActiveTab(payerAddress, totalCreditUsd)
@@ -307,7 +307,7 @@ function mergeStatePreservingNonBuyTab(
   }
   const activeTab = isNonBuyTab(nextTab) ? nextTab : prev.activeTab
   const status = deriveStatus({
-    isConnected: isWalletConnected(prev),
+    isConnected: !needsWalletConnection(prev),
     chainId: overrides.chainId ?? prev.chainId,
     gBalance: overrides.gBalance ?? prev.gBalance,
     buyerPubKey: overrides.buyerPubKey ?? prev.buyerPubKey,
@@ -559,9 +559,6 @@ export function useAiCreditsAdapter({
               {
                 ...patch,
                 buyers: mergeBuyerAddressList(prev.buyers, ...buyers),
-                ...(account
-                  ? {}
-                  : { activeTab: resolveDefaultActiveTab(address!, null) }),
               },
               true,
             ),
@@ -588,9 +585,6 @@ export function useAiCreditsAdapter({
               ...buyerFields,
               operatorConsented:
                 accountPatch.operatorConsented ?? buyerFields.operatorConsented,
-              ...(account
-                ? {}
-                : { activeTab: resolveDefaultActiveTab(address!, null) }),
             },
             true,
           ),

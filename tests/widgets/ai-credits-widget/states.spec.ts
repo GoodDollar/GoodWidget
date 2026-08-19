@@ -74,11 +74,9 @@ test('AiCreditsWidget Setup tab — onboarding steps visible', async ({ page }) 
   await gotoStory(page, STORY_IDS.setupTab)
   const root = page.getByTestId('AiCreditsWidget-setup-tab')
   await expect(root).toBeVisible()
-  // All three onboarding steps must be present
   await expect(root.getByText('Download AntSeed')).toBeVisible()
   await expect(root.getByText('Signer Key')).toBeVisible()
   await expect(root.getByText('Authorize Wallet')).toBeVisible()
-  // Tab bar shows both Setup and Buy Credits as separate tabs
   await expect(root.getByText('Setup')).toBeVisible()
   await expect(root.getByText('Buy Credits')).toBeVisible()
   await page.screenshot({
@@ -145,7 +143,6 @@ test('AiCreditsWidget payment_confirmed', async ({ page }) => {
 test('AiCreditsWidget manage tab', async ({ page }) => {
   await gotoStory(page, STORY_IDS.creditsManagement)
   await expect(page.getByTestId('AiCreditsWidget-manage-tab')).toBeVisible()
-  // All four tabs should be visible in the navigation bar
   await expect(page.getByText('Setup')).toBeVisible()
   await expect(page.getByText('Buy Credits')).toBeVisible()
   await expect(page.getByText('Manage')).toBeVisible()
