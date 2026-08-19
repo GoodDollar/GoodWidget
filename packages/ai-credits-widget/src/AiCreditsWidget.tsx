@@ -6,6 +6,7 @@ import {
   ButtonText,
   Card,
   CircularActionButton,
+  Heading,
   Icon,
   Text,
   ToastContainer,
@@ -59,7 +60,12 @@ interface AiCreditsInnerProps {
   onPayError?: (detail: AiCreditsPayErrorDetail) => void
 }
 
-function DisconnectedPanel({
+/**
+ * Inline connect-wallet prompt shown at the top of the widget shell when the
+ * user is disconnected or in the middle of connecting. It replaces the old
+ * full-screen blocking panel so users can still see the product before connecting.
+ */
+function InlineConnectBanner({
   onConnect,
   connecting,
 }: {
@@ -68,8 +74,13 @@ function DisconnectedPanel({
 }) {
   return (
     <Card>
-      <YStack gap="$5" paddingVertical="$6" alignItems="center">
-        <Text secondary>Connect your wallet to buy AI credits</Text>
+      <XStack gap="$3" alignItems="center" paddingVertical="$3" paddingHorizontal="$4">
+        <YStack flex={1} gap="$1">
+          <Text fontWeight="700">Connect your wallet</Text>
+          <Text secondary fontSize="$2">
+            Connect to buy AI credits and manage your account.
+          </Text>
+        </YStack>
         <CircularActionButton
           label={connecting ? 'Connecting...' : 'Connect Wallet'}
           pending={connecting}
@@ -78,8 +89,67 @@ function DisconnectedPanel({
             void onConnect()
           }}
         />
-      </YStack>
+      </XStack>
     </Card>
+  )
+}
+
+/**
+ * Onboarding step shell for the Setup tab.
+ * Covers: 1. Download AntSeed  2. Signer Key  3. Authorize Wallet
+ * Detailed step interactions live in their own future sub-slices.
+ */
+function SetupTabPanel() {
+  const steps: Array<{ number: number; title: string; description: string }> = [
+    {
+      number: 1,
+      title: 'Download AntSeed',
+      description: 'Install the AntSeed application to manage your AI credits signer key.',
+    },
+    {
+      number: 2,
+      title: 'Signer Key',
+      description: 'Generate or import a signer key that AntSeed will use to authorize requests.',
+    },
+    {
+      number: 3,
+      title: 'Authorize Wallet',
+      description: 'Link your wallet to the signer key so it can be topped up with AI credits.',
+    },
+  ]
+
+  return (
+    <YStack gap="$4" width="100%">
+      <Heading level={5} secondary>
+        Onboarding
+      </Heading>
+      {steps.map((step) => (
+        <Card key={step.number}>
+          <XStack gap="$3" alignItems="flex-start" padding="$3">
+            {/* Step number badge */}
+            <YStack
+              width={28}
+              height={28}
+              borderRadius={14}
+              backgroundColor="$primary"
+              alignItems="center"
+              justifyContent="center"
+              flexShrink={0}
+            >
+              <Text fontWeight="700" fontSize="$2" color="$onPrimary">
+                {step.number}
+              </Text>
+            </YStack>
+            <YStack flex={1} gap="$1">
+              <Text fontWeight="700">{step.title}</Text>
+              <Text secondary fontSize="$2">
+                {step.description}
+              </Text>
+            </YStack>
+          </XStack>
+        </Card>
+      ))}
+    </YStack>
   )
 }
 
@@ -373,6 +443,9 @@ function AiCreditsInner({
     [actions],
   )
 
+  const isDisconnected =
+    state.status === 'disconnected' || state.status === 'connecting'
+
   const buyPanel = (
     <BuyCreditsPanel
       state={state}
@@ -384,18 +457,20 @@ function AiCreditsInner({
     />
   )
 
-  if (state.status === 'disconnected' || state.status === 'connecting') {
-    return (
-      <YStack gap="$3" padding="$3" width="100%">
-        <DisconnectedPanel onConnect={actions.connect} connecting={state.status === 'connecting'} />
-      </YStack>
-    )
-  }
-
   return (
     <YStack gap="$3" padding="$3" width="100%">
+      {/* Inline connect banner — visible only when wallet is not yet connected */}
+      {isDisconnected && (
+        <InlineConnectBanner
+          onConnect={actions.connect}
+          connecting={state.status === 'connecting'}
+        />
+      )}
+
+      {/* Main tab navigation — always rendered so users can explore before connecting */}
       <WidgetTabs
         tabs={[
+          { id: 'setup', label: 'Setup' },
           { id: 'buy', label: 'Buy Credits' },
           { id: 'manage', label: 'Manage' },
           { id: 'history', label: 'History' },
@@ -404,7 +479,10 @@ function AiCreditsInner({
         onTabChange={handleTabChange}
         chainId={state.chainId ?? CELO_CHAIN_ID}
       />
-      {state.activeTab === 'manage' ? (
+
+      {state.activeTab === 'setup' ? (
+        <SetupTabPanel />
+      ) : state.activeTab === 'manage' ? (
         <ManagePanel state={state} actions={actions} />
       ) : state.activeTab === 'history' ? (
         <HistoryTab

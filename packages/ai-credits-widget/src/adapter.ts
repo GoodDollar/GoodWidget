@@ -176,7 +176,8 @@ function selectPreferredBuyer(
 }
 
 function isNonBuyTab(tab: AiCreditsWidgetTab): boolean {
-  return tab === 'manage' || tab === 'history'
+  // 'setup', 'manage', and 'history' do not drive the buy-flow status machine
+  return tab === 'setup' || tab === 'manage' || tab === 'history'
 }
 
 function resolveActiveTab(

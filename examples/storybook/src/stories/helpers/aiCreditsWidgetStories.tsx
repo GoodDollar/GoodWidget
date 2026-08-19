@@ -121,6 +121,8 @@ export function DisconnectedStory() {
         address: null,
         chainId: null,
         gBalance: null,
+        // Default to Setup tab so the onboarding shell is immediately visible
+        activeTab: 'setup',
       })}
     />
   )
@@ -232,6 +234,22 @@ export function HistoryTabStory() {
         monthlyStreamG: '5.00',
         gBalance: '42.50',
         activeTab: 'history',
+      })}
+    />
+  )
+}
+
+/**
+ * Shows the new Setup tab with the onboarding step shell
+ * (Download AntSeed, Signer Key, Authorize Wallet).
+ */
+export function SetupTabStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-setup-tab"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        gBalance: '42.50',
+        activeTab: 'setup',
       })}
     />
   )

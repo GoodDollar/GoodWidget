@@ -16,6 +16,8 @@ const STORY_IDS = {
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--credits-management&viewMode=story',
   historyTab:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--history-tab&viewMode=story',
+  setupTab:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--setup-tab&viewMode=story',
   insufficientBalance:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--insufficient-g-balance&viewMode=story',
   buyTabError:
@@ -41,18 +43,52 @@ function widget(page: Page, testId: string) {
 
 test('AiCreditsWidget disconnected', async ({ page }) => {
   await gotoStory(page, STORY_IDS.disconnected)
-  await expect(page.getByTestId('AiCreditsWidget-disconnected')).toBeVisible()
-  await expect(page.getByText('Connect your wallet to buy AI credits')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Connect Wallet' })).toBeVisible()
-  await expect(page.getByText('Purchase Flow')).not.toBeVisible()
+  const root = page.getByTestId('AiCreditsWidget-disconnected')
+  await expect(root).toBeVisible()
+  // Inline connect banner is shown instead of a full-screen blocking panel
+  await expect(root.getByText('Connect your wallet')).toBeVisible()
+  await expect(root.getByRole('button', { name: 'Connect Wallet' })).toBeVisible()
+  // Main tab navigation is visible even before connecting
+  await expect(root.getByText('Setup')).toBeVisible()
+  await expect(root.getByText('Buy Credits')).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-01-disconnected.png',
     fullPage: true,
   })
 })
 
-test('AiCreditsWidget purchase_setup', async ({ page }) => {
-  await gotoStory(page, STORY_IDS.purchaseSetup)
+test('AiCreditsWidget connecting — inline banner shows', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.connecting)
+  const root = page.getByTestId('AiCreditsWidget-connecting')
+  await expect(root).toBeVisible()
+  // Inline connect banner visible with spinner text while connecting
+  await expect(root.getByText('Connecting...')).toBeVisible()
+  // Setup tab still visible in background shell
+  await expect(root.getByText('Setup')).toBeVisible()
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-12-connecting.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget Setup tab — onboarding steps visible', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.setupTab)
+  const root = page.getByTestId('AiCreditsWidget-setup-tab')
+  await expect(root).toBeVisible()
+  // All three onboarding steps must be present
+  await expect(root.getByText('Download AntSeed')).toBeVisible()
+  await expect(root.getByText('Signer Key')).toBeVisible()
+  await expect(root.getByText('Authorize Wallet')).toBeVisible()
+  // Tab bar shows both Setup and Buy Credits as separate tabs
+  await expect(root.getByText('Setup')).toBeVisible()
+  await expect(root.getByText('Buy Credits')).toBeVisible()
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-20-setup-tab.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget purchase_setup', async ({ page }) => {  await gotoStory(page, STORY_IDS.purchaseSetup)
   const root = widget(page, 'AiCreditsWidget-purchase-setup')
   await expect(root).toBeVisible()
   await expect(root.getByText('You need G$ before you can buy AI credits.')).toBeVisible()
@@ -109,6 +145,8 @@ test('AiCreditsWidget payment_confirmed', async ({ page }) => {
 test('AiCreditsWidget manage tab', async ({ page }) => {
   await gotoStory(page, STORY_IDS.creditsManagement)
   await expect(page.getByTestId('AiCreditsWidget-manage-tab')).toBeVisible()
+  // All four tabs should be visible in the navigation bar
+  await expect(page.getByText('Setup')).toBeVisible()
   await expect(page.getByText('Buy Credits')).toBeVisible()
   await expect(page.getByText('Manage')).toBeVisible()
   await expect(page.getByText('History')).toBeVisible()
@@ -187,16 +225,6 @@ test('AiCreditsWidget unsupported_chain', async ({ page }) => {
   await expect(page.getByTestId('AiCreditsWidget-unsupported-chain')).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-11-unsupported-chain.png',
-    fullPage: true,
-  })
-})
-
-test('AiCreditsWidget connecting', async ({ page }) => {
-  await gotoStory(page, STORY_IDS.connecting)
-  await expect(page.getByTestId('AiCreditsWidget-connecting')).toBeVisible()
-  await expect(page.getByText('Connecting...')).toBeVisible()
-  await page.screenshot({
-    path: 'tests/widgets/ai-credits-widget/test-results/acw-12-connecting.png',
     fullPage: true,
   })
 })
