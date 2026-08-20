@@ -80,9 +80,14 @@ test('AiCreditsWidget Setup tab — onboarding steps visible', async ({ page }) 
   await gotoStory(page, STORY_IDS.setupTab)
   const root = page.getByTestId('AiCreditsWidget-setup-tab')
   await expect(root).toBeVisible()
+  const downloadLink = root.getByRole('link', { name: 'Download AntSeed VPR/Desktop' })
   await expect(root.getByText('Download AntSeed', { exact: true })).toBeVisible()
   await expect(root.getByText('Signer Key', { exact: true })).toBeVisible()
   await expect(root.getByText('Authorize Wallet', { exact: true })).toBeVisible()
+  await expect(downloadLink).toHaveAttribute(
+    'href',
+    'https://github.com/AntSeed/antseed/releases/latest',
+  )
   await expect(root.getByText('Setup', { exact: true })).toBeVisible()
   await expect(root.getByText('Buy Credits', { exact: true })).toBeVisible()
   await page.screenshot({
