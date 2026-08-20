@@ -85,21 +85,38 @@ function createAdapterFactory(
   })
 }
 
+const DISCONNECTED_EIP1193_PROVIDER: EIP1193Provider = {
+  request: async ({ method }) => {
+    if (method === 'eth_accounts' || method === 'eth_requestAccounts') return []
+    if (method === 'eth_chainId') return '0xa4ec'
+    throw new Error(`Unsupported method: ${method}`)
+  },
+  on: () => {},
+  removeListener: () => {},
+}
+
 function MockStoryShell({
   adapterFactory,
   dataTestId,
+  provider,
 }: {
   adapterFactory: AiCreditsWidgetAdapterFactory
   dataTestId: string
+  provider?: EIP1193Provider
 }) {
-  try {
-    const provider = createCustodialEip1193Provider()
-    return (
-      <div data-testid={dataTestId} style={{ width: 380 }}>
-        <AiCreditsWidget provider={provider} adapterFactory={adapterFactory} />
-      </div>
-    )
-  } catch (error: unknown) {
+  const resolvedProviderRef = useRef<EIP1193Provider | null>(provider ?? null)
+  const configErrorRef = useRef<unknown>(null)
+
+  if (!resolvedProviderRef.current && !configErrorRef.current) {
+    try {
+      resolvedProviderRef.current = provider ?? createCustodialEip1193Provider()
+    } catch (error: unknown) {
+      configErrorRef.current = error
+    }
+  }
+
+  if (configErrorRef.current) {
+    const error = configErrorRef.current
     return (
       <div data-testid="AiCreditsWidget-custodial-config-error" style={{ width: 380 }}>
         <strong>Custodial fixture not configured</strong>
@@ -111,17 +128,30 @@ function MockStoryShell({
       </div>
     )
   }
+
+  return (
+    <div data-testid={dataTestId} style={{ width: 380 }}>
+      <AiCreditsWidget
+        provider={resolvedProviderRef.current!}
+        adapterFactory={adapterFactory}
+      />
+    </div>
+  )
 }
+
+const DISCONNECTED_ADAPTER_FACTORY = createAdapterFactory('disconnected', {
+  address: null,
+  chainId: null,
+  gBalance: null,
+  activeTab: 'setup',
+})
 
 export function DisconnectedStory() {
   return (
     <MockStoryShell
       dataTestId="AiCreditsWidget-disconnected"
-      adapterFactory={createAdapterFactory('disconnected', {
-        address: null,
-        chainId: null,
-        gBalance: null,
-      })}
+      provider={DISCONNECTED_EIP1193_PROVIDER}
+      adapterFactory={DISCONNECTED_ADAPTER_FACTORY}
     />
   )
 }
@@ -134,6 +164,7 @@ export function ConnectingStory() {
         address: '0x329377cbeeF39f01b0Ea04B80465c9eB47D3ED1',
         chainId: 42220,
         gBalance: null,
+        activeTab: 'setup',
       })}
     />
   )
@@ -232,6 +263,18 @@ export function HistoryTabStory() {
         monthlyStreamG: '5.00',
         gBalance: '42.50',
         activeTab: 'history',
+      })}
+    />
+  )
+}
+
+export function SetupTabStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-setup-tab"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        gBalance: '42.50',
+        activeTab: 'setup',
       })}
     />
   )

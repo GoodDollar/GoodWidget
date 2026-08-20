@@ -111,7 +111,7 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   depositBonusPercent: DEFAULT_DISCOUNT_CONFIG.depositBonusPercent,
   streamBonusPercent: DEFAULT_DISCOUNT_CONFIG.streamBonusPercent,
   error: null,
-  activeTab: 'buy',
+  activeTab: 'setup',
   buyers: [],
   derivedBuyerAddress: null,
 }
@@ -176,7 +176,24 @@ function selectPreferredBuyer(
 }
 
 function isNonBuyTab(tab: AiCreditsWidgetTab): boolean {
-  return tab === 'manage' || tab === 'history'
+  return tab === 'setup' || tab === 'manage' || tab === 'history'
+}
+
+export function needsWalletConnection(state: AiCreditsWidgetAdapterState): boolean {
+  return (
+    !state.address ||
+    state.status === 'disconnected' ||
+    state.status === 'connecting'
+  )
+}
+
+function resolveDefaultActiveTab(
+  payerAddress: string | null,
+  totalCreditUsd: string | null,
+): AiCreditsWidgetTab {
+  if (hasCreditBalance(totalCreditUsd)) return 'manage'
+  if (payerAddress && listKnownBuyerAddresses(payerAddress).length > 0) return 'buy'
+  return 'setup'
 }
 
 function resolveActiveTab(
@@ -185,11 +202,19 @@ function resolveActiveTab(
 ): AiCreditsWidgetTab {
   if (overrides.activeTab !== undefined) return overrides.activeTab
 
+  const payerAddress = overrides.address !== undefined ? overrides.address : prev.address
+  const totalCreditUsd =
+    overrides.totalCreditUsd !== undefined ? overrides.totalCreditUsd : prev.totalCreditUsd
+
   if (overrides.totalCreditUsd !== undefined && overrides.totalCreditUsd !== null) {
-    return hasCreditBalance(overrides.totalCreditUsd) ? 'manage' : 'buy'
+    return resolveDefaultActiveTab(payerAddress, overrides.totalCreditUsd)
   }
 
-  return prev.activeTab ?? 'buy'
+  if (overrides.address !== undefined && overrides.address !== prev.address) {
+    return resolveDefaultActiveTab(payerAddress, totalCreditUsd)
+  }
+
+  return prev.activeTab ?? resolveDefaultActiveTab(payerAddress, totalCreditUsd)
 }
 
 function hasCreditBalance(totalCreditUsd: string | null): boolean {
@@ -282,7 +307,7 @@ function mergeStatePreservingNonBuyTab(
   }
   const activeTab = isNonBuyTab(nextTab) ? nextTab : prev.activeTab
   const status = deriveStatus({
-    isConnected: true,
+    isConnected: !needsWalletConnection(prev),
     chainId: overrides.chainId ?? prev.chainId,
     gBalance: overrides.gBalance ?? prev.gBalance,
     buyerPubKey: overrides.buyerPubKey ?? prev.buyerPubKey,
@@ -402,7 +427,11 @@ export function useAiCreditsAdapter({
 
   useEffect(() => {
     if (!isConnected || !address) {
-      setState((prev) => (prev.status === 'connecting' ? prev : { ...INITIAL_STATE }))
+      setState((prev) => {
+        if (prev.status === 'connecting') return prev
+        if (!prev.address && prev.status === 'disconnected' && prev.error === null) return prev
+        return { ...INITIAL_STATE }
+      })
       return
     }
     if (configurationError) {
@@ -534,7 +563,6 @@ export function useAiCreditsAdapter({
               {
                 ...patch,
                 buyers: mergeBuyerAddressList(prev.buyers, ...buyers),
-                ...(account ? {} : { activeTab: 'buy' as const }),
               },
               true,
             ),
@@ -561,7 +589,6 @@ export function useAiCreditsAdapter({
               ...buyerFields,
               operatorConsented:
                 accountPatch.operatorConsented ?? buyerFields.operatorConsented,
-              ...(account ? {} : { activeTab: 'buy' as const }),
             },
             true,
           ),
@@ -1543,13 +1570,18 @@ export function useAiCreditsAdapter({
   }, [configurationError, handleRefresh])
 
   const handleSetActiveTab = useCallback((tab: AiCreditsWidgetTab) => {
-    if (tab === 'buy') {
-      setState((prev) =>
-        withDerivedStatus(prev, { activeTab: 'buy', status: 'purchase_setup', error: null }, true),
-      )
-      return
-    }
-    setState((prev) => mergeStatePreservingNonBuyTab(prev, { activeTab: tab, error: null }))
+    setState((prev) => {
+      if (needsWalletConnection(prev)) {
+        if (tab === 'setup') {
+          return mergeStatePreservingNonBuyTab(prev, { activeTab: 'setup', error: null })
+        }
+        return prev
+      }
+      if (tab === 'buy') {
+        return withDerivedStatus(prev, { activeTab: 'buy', status: 'purchase_setup', error: null }, true)
+      }
+      return mergeStatePreservingNonBuyTab(prev, { activeTab: tab, error: null })
+    })
   }, [])
 
   const handleStartPurchase = useCallback(() => {

@@ -6,6 +6,7 @@ import {
   ButtonText,
   Card,
   CircularActionButton,
+  Heading,
   Icon,
   Text,
   ToastContainer,
@@ -16,7 +17,7 @@ import {
   createToast,
   updateToast,
 } from '@goodwidget/ui'
-import { useAiCreditsAdapter } from './adapter'
+import { needsWalletConnection, useAiCreditsAdapter } from './adapter'
 import { useAiCreditsHistory } from './useAiCreditsHistory'
 import {
   AiCreditsHero,
@@ -59,7 +60,7 @@ interface AiCreditsInnerProps {
   onPayError?: (detail: AiCreditsPayErrorDetail) => void
 }
 
-function DisconnectedPanel({
+function SetupConnectPrompt({
   onConnect,
   connecting,
 }: {
@@ -67,19 +68,87 @@ function DisconnectedPanel({
   connecting: boolean
 }) {
   return (
-    <Card>
-      <YStack gap="$5" paddingVertical="$6" alignItems="center">
-        <Text secondary>Connect your wallet to buy AI credits</Text>
-        <CircularActionButton
-          label={connecting ? 'Connecting...' : 'Connect Wallet'}
-          pending={connecting}
-          disabled={connecting}
-          onPress={() => {
-            void onConnect()
-          }}
-        />
-      </YStack>
-    </Card>
+    <YStack gap="$5" alignItems="center" paddingVertical="$6" width="100%">
+      <Text secondary center>
+        Connect your wallet to get started
+      </Text>
+      <CircularActionButton
+        label={connecting ? 'Connecting...' : 'Connect Wallet'}
+        pending={connecting}
+        disabled={connecting}
+        onPress={() => {
+          void onConnect()
+        }}
+      />
+    </YStack>
+  )
+}
+
+const SETUP_ONBOARDING_STEPS: Array<{ number: number; title: string; description: string }> = [
+  {
+    number: 1,
+    title: 'Download AntSeed',
+    description: 'Install the AntSeed application to manage your AI credits signer key.',
+  },
+  {
+    number: 2,
+    title: 'Signer Key',
+    description: 'Generate or import a signer key that AntSeed will use to authorize requests.',
+  },
+  {
+    number: 3,
+    title: 'Authorize Wallet',
+    description: 'Link your wallet to the signer key so it can be topped up with AI credits.',
+  },
+]
+
+function SetupTabPanel({
+  state,
+  onConnect,
+}: {
+  state: AiCreditsWidgetAdapterState
+  onConnect: () => Promise<void>
+}) {
+  if (needsWalletConnection(state)) {
+    return (
+      <SetupConnectPrompt
+        onConnect={onConnect}
+        connecting={state.status === 'connecting'}
+      />
+    )
+  }
+
+  return (
+    <YStack gap="$4" width="100%">
+      <Heading level={5} secondary>
+        Onboarding
+      </Heading>
+      {SETUP_ONBOARDING_STEPS.map((step) => (
+        <Card key={step.number}>
+          <XStack gap="$3" alignItems="flex-start" padding="$3">
+            <YStack
+              width={28}
+              height={28}
+              borderRadius={14}
+              backgroundColor="$primary"
+              alignItems="center"
+              justifyContent="center"
+              flexShrink={0}
+            >
+              <Text fontWeight="700" fontSize="$2" color="$onPrimary">
+                {step.number}
+              </Text>
+            </YStack>
+            <YStack flex={1} gap="$1">
+              <Text fontWeight="700">{step.title}</Text>
+              <Text secondary fontSize="$2">
+                {step.description}
+              </Text>
+            </YStack>
+          </XStack>
+        </Card>
+      ))}
+    </YStack>
   )
 }
 
@@ -322,12 +391,18 @@ function AiCreditsInner({
     prepareSettlement: adapterOptions?.prepareSettlement,
   })
 
-  const activeAdapter = useMemo(
-    () => (adapterFactory ? adapterFactory({ environment, backendUrl }) : defaultAdapter),
-    [adapterFactory, environment, backendUrl, defaultAdapter],
+  const factoryAdapter = useMemo(
+    () => (adapterFactory ? adapterFactory({ environment, backendUrl }) : null),
+    [adapterFactory, environment, backendUrl],
   )
+  const activeAdapter = factoryAdapter ?? defaultAdapter
 
   const { state, actions } = activeAdapter
+  const onBuyersDiscoveredRef = React.useRef(actions.discoverBuyers)
+  onBuyersDiscoveredRef.current = actions.discoverBuyers
+  const onBuyersDiscovered = useCallback((addresses: string[]) => {
+    onBuyersDiscoveredRef.current(addresses)
+  }, [])
 
   const history = useAiCreditsHistory({
     address: state.address,
@@ -335,7 +410,7 @@ function AiCreditsInner({
     defaultBuyerFilter: state.buyerPubKey ?? 'all',
     environment,
     backendClient: adapterOptions?.backendClient,
-    onBuyersDiscovered: actions.discoverBuyers,
+    onBuyersDiscovered,
   })
 
   const handlePay = useCallback(
@@ -373,6 +448,8 @@ function AiCreditsInner({
     [actions],
   )
 
+  const walletRequired = needsWalletConnection(state)
+
   const buyPanel = (
     <BuyCreditsPanel
       state={state}
@@ -384,27 +461,24 @@ function AiCreditsInner({
     />
   )
 
-  if (state.status === 'disconnected' || state.status === 'connecting') {
-    return (
-      <YStack gap="$3" padding="$3" width="100%">
-        <DisconnectedPanel onConnect={actions.connect} connecting={state.status === 'connecting'} />
-      </YStack>
-    )
-  }
-
   return (
     <YStack gap="$3" padding="$3" width="100%">
       <WidgetTabs
         tabs={[
+          { id: 'setup', label: 'Setup' },
           { id: 'buy', label: 'Buy Credits' },
           { id: 'manage', label: 'Manage' },
           { id: 'history', label: 'History' },
         ]}
-        activeTab={state.activeTab}
+        activeTab={walletRequired ? 'setup' : state.activeTab}
         onTabChange={handleTabChange}
+        isTabDisabled={(tabId) => walletRequired && tabId !== 'setup'}
         chainId={state.chainId ?? CELO_CHAIN_ID}
       />
-      {state.activeTab === 'manage' ? (
+
+      {walletRequired || state.activeTab === 'setup' ? (
+        <SetupTabPanel state={state} onConnect={actions.connect} />
+      ) : state.activeTab === 'manage' ? (
         <ManagePanel state={state} actions={actions} />
       ) : state.activeTab === 'history' ? (
         <HistoryTab
