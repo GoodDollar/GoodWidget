@@ -33,6 +33,11 @@ export type InviteStatus =
   | 'collecting'
   | 'error'
 
+export interface InviteMinimums {
+  minimumDays: number
+  minimumClaims: number
+}
+
 export interface InviteState {
   status: InviteStatus
   address: Address | null
@@ -44,6 +49,8 @@ export interface InviteState {
   collectableInvitees: Address[]
   eligibility: Record<string, BountyEligibilityDetails>
   selfEligibility: BountyEligibilityDetails | null
+  /** Global minimumDays/minimumClaims thresholds, read from InvitesV2 via InviteSDK.getMinimums(). */
+  minimums: InviteMinimums | null
   error: string | null
   success: string | null
 }
@@ -79,6 +86,7 @@ const initialInviteState: InviteState = {
   collectableInvitees: [],
   eligibility: {},
   selfEligibility: null,
+  minimums: null,
   error: null,
   success: null,
 }
@@ -130,6 +138,7 @@ export interface InviteSnapshotSdk {
   getPendingInvitees: InviteSDK['getPendingInvitees']
   getCollectableInvitees: InviteSDK['getCollectableInvitees']
   checkEligibilityDetails: InviteSDK['checkEligibilityDetails']
+  getMinimums: InviteSDK['getMinimums']
 }
 
 export interface InviteSnapshot {
@@ -140,6 +149,7 @@ export interface InviteSnapshot {
   collectableInvitees: Address[]
   eligibility: Record<string, BountyEligibilityDetails>
   selfEligibility: BountyEligibilityDetails | null
+  minimums: InviteMinimums
 }
 
 /**
@@ -152,13 +162,15 @@ export async function loadInviteSnapshot(
   address: Address,
 ): Promise<InviteSnapshot> {
   const user = await sdk.getUser(address)
-  const [level, invitees, pendingInvitees, collectableInvitees, selfEligibility] = await Promise.all([
-    sdk.getLevel(Number(user.level)),
-    sdk.getInvitees(address),
-    sdk.getPendingInvitees(address),
-    sdk.getCollectableInvitees(address),
-    sdk.checkEligibilityDetails(address),
-  ])
+  const [level, invitees, pendingInvitees, collectableInvitees, selfEligibility, minimums] =
+    await Promise.all([
+      sdk.getLevel(Number(user.level)),
+      sdk.getInvitees(address),
+      sdk.getPendingInvitees(address),
+      sdk.getCollectableInvitees(address),
+      sdk.checkEligibilityDetails(address),
+      sdk.getMinimums(),
+    ])
   const eligibilityEntries = await Promise.all(
     pendingInvitees.map(async (invitee) => {
       const { details } = await sdk.checkEligibilityDetails(invitee)
@@ -174,6 +186,7 @@ export async function loadInviteSnapshot(
     collectableInvitees,
     eligibility: Object.fromEntries(eligibilityEntries),
     selfEligibility: selfEligibility.details,
+    minimums,
   }
 }
 
