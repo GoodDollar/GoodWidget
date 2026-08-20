@@ -503,3 +503,52 @@ test('AiCreditsWidget guidance card: switching tabs clears help view', async ({ 
     fullPage: true,
   })
 })
+
+// ---------------------------------------------------------------------------
+// Download AntSeed step tests
+// ---------------------------------------------------------------------------
+
+const DOWNLOAD_ANTSEED_STORY_ID =
+  '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--download-ant-seed-step&viewMode=story'
+
+test('AiCreditsWidget Setup — Download AntSeed step is first and shows Start link', async ({
+  page,
+}) => {
+  await gotoStory(page, DOWNLOAD_ANTSEED_STORY_ID)
+  const root = page.getByTestId('AiCreditsWidget-download-antseed-step')
+  await expect(root).toBeVisible()
+
+  // Verify step ordering
+  await expect(root.getByText('Download AntSeed', { exact: true })).toBeVisible()
+  await expect(root.getByText('Signer Key', { exact: true })).toBeVisible()
+  await expect(root.getByText('Authorize Wallet', { exact: true })).toBeVisible()
+
+  // Verify the "Start ›" download link is present and points to the AntSeed download page
+  const downloadLink = root.getByTestId('download-antseed-link')
+  await expect(downloadLink).toBeVisible()
+  await expect(downloadLink).toHaveAttribute('href', 'https://antseed.com/download')
+  await expect(downloadLink).toHaveAttribute('target', '_blank')
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-25-download-antseed-step.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget Setup — Download AntSeed step is shown on Setup tab', async ({ page }) => {
+  await gotoStory(page, DOWNLOAD_ANTSEED_STORY_ID)
+  const root = page.getByTestId('AiCreditsWidget-download-antseed-step')
+  await expect(root).toBeVisible()
+
+  // Setup tab should be active
+  await expect(root.getByText('Setup', { exact: true })).toBeVisible()
+
+  // Buy and other tabs present but separate from the Setup flow
+  await expect(root.getByText('Buy Credits', { exact: true })).toBeVisible()
+  await expect(root.getByText('Manage', { exact: true })).toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-26-download-antseed-tabs.png',
+    fullPage: true,
+  })
+})

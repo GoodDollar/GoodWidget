@@ -25,6 +25,7 @@ import {
   GuidanceCardDefaultStory,
   GuidanceCardHowToUseStory,
   GuidanceCardFaqStory,
+  DownloadAntSeedStepStory,
 } from '../helpers/aiCreditsWidgetStories'
 
 const meta: Meta<typeof AiCreditsWidget> = {
@@ -174,4 +175,9 @@ export const GuidanceCardFaq: Story = {
     await userEvent.click(faqButton)
     await expect(within(root).getByText(/back to buying/i)).toBeVisible()
   },
+}
+
+/** Setup tab — Download AntSeed step with active "Start ›" link and locked subsequent steps. */
+export const DownloadAntSeedStep: Story = {
+  render: () => <DownloadAntSeedStepStory />,
 }

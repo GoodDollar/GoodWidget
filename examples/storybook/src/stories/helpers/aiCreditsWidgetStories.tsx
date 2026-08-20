@@ -602,3 +602,19 @@ export function GuidanceCardFaqStory() {
     />
   )
 }
+
+/**
+ * Setup tab with wallet connected — shows Download AntSeed as the first
+ * actionable step with "Start ›" link, Signer Key and Authorize Wallet locked.
+ */
+export function DownloadAntSeedStepStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-download-antseed-step"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        gBalance: '54570',
+        activeTab: 'setup',
+      })}
+    />
+  )
+}

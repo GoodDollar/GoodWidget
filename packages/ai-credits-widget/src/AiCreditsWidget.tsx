@@ -32,6 +32,7 @@ import {
   SetupGuidanceCard,
   HowToUseView,
   SetupFaqView,
+  DownloadAntSeedStep,
 } from './components'
 import type {
   AiCreditsWidgetProps,
@@ -87,23 +88,6 @@ function SetupConnectPrompt({
   )
 }
 
-const SETUP_ONBOARDING_STEPS: Array<{ number: number; title: string; description: string }> = [
-  {
-    number: 1,
-    title: 'Download AntSeed',
-    description: 'Install the AntSeed application to manage your AI credits signer key.',
-  },
-  {
-    number: 2,
-    title: 'Signer Key',
-    description: 'Generate or import a signer key that AntSeed will use to authorize requests.',
-  },
-  {
-    number: 3,
-    title: 'Authorize Wallet',
-    description: 'Link your wallet to the signer key so it can be topped up with AI credits.',
-  },
-]
 
 function SetupTabPanel({
   state,
@@ -126,31 +110,7 @@ function SetupTabPanel({
       <Heading level={5} secondary>
         Onboarding
       </Heading>
-      {SETUP_ONBOARDING_STEPS.map((step) => (
-        <Card key={step.number}>
-          <XStack gap="$3" alignItems="flex-start" padding="$3">
-            <YStack
-              width={28}
-              height={28}
-              borderRadius={14}
-              backgroundColor="$primary"
-              alignItems="center"
-              justifyContent="center"
-              flexShrink={0}
-            >
-              <Text fontWeight="700" fontSize="$2" color="$onPrimary">
-                {step.number}
-              </Text>
-            </YStack>
-            <YStack flex={1} gap="$1">
-              <Text fontWeight="700">{step.title}</Text>
-              <Text secondary fontSize="$2">
-                {step.description}
-              </Text>
-            </YStack>
-          </XStack>
-        </Card>
-      ))}
+      <DownloadAntSeedStep />
     </YStack>
   )
 }
