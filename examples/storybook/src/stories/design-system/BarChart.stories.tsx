@@ -29,6 +29,18 @@ const stress = Array.from({ length: 150 }, (_, i) => ({
   value: Math.floor(Math.random() * 100000),
 }))
 
+/** Generates `count` synthetic categories for the tiered stress stories below (10/100/1000). */
+function buildCategoryStressData(count: number): Array<{ category: string; value: number }> {
+  return Array.from({ length: count }, (_, i) => ({
+    category: `Wallet ${String(i + 1).padStart(4, '0')}`,
+    value: Math.floor(Math.random() * 100000),
+  }))
+}
+
+const stress10 = buildCategoryStressData(10)
+const stress100 = buildCategoryStressData(100)
+const stress1000 = buildCategoryStressData(1000)
+
 const meta: Meta<typeof BarChart> = {
   title: 'Design System/Primitives/BarChart',
   component: BarChart,
@@ -108,6 +120,31 @@ export const SinglePoint: Story = {
 /** 150 categories, maxSlices has no equivalent here — exercises sub-pixel bar clipping and label-truncation safety. */
 export const StressTest: Story = {
   render: () => <BarChart data={stress} title="Wallet Activity" width={800} showGrid={false} testID="BarChart-stress" />,
+}
+
+/**
+ * Tiered category-count stress stories (10/100/1000), per QA follow-up on #148.
+ * Degradation strategy (see computeLabelSkipFactor in BarChart.tsx): bars are
+ * NEVER thinned or aggregated — every category always renders its own real
+ * bar, since dropping bars would misrepresent the data. Only category-axis
+ * LABELS thin adaptively (every Nth label shown, spaced to the widest real
+ * label's width) as category count outgrows the available plot width — this
+ * is the same problem LineAreaChart already solves for its x-axis, applied
+ * here to BarChart's category axis. Value labels separately auto-hide below
+ * MIN_BAR_LENGTH_FOR_VALUE_LABEL_PX regardless of category count.
+ */
+export const Stress10Categories: Story = {
+  render: () => <BarChart data={stress10} title="Wallet Activity (10 categories)" width={800} showGrid={false} testID="BarChart-stress-10" />,
+}
+
+/** 100 categories — label-skip factor kicks in; roughly every other/every-few-Nth label shows. */
+export const Stress100Categories: Story = {
+  render: () => <BarChart data={stress100} title="Wallet Activity (100 categories)" width={800} showGrid={false} testID="BarChart-stress-100" />,
+}
+
+/** 1000 categories — bars render as a dense honest field; category labels thin to a small readable set instead of converging to empty strings. */
+export const Stress1000Categories: Story = {
+  render: () => <BarChart data={stress1000} title="Wallet Activity (1000 categories)" width={800} showGrid={false} testID="BarChart-stress-1000" />,
 }
 
 /** No `width` prop — exercises the default `'100%'` responsive path against the

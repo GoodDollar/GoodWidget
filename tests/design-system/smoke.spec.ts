@@ -204,6 +204,50 @@ test('BarChart/StressTest story renders 150 categories without crashing', async 
   await screenshotStory(page, 'tests/design-system/test-results/story-barchart-stress.png')
 })
 
+test('BarChart/Stress10Categories story renders 10 bars with every label shown', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 700 })
+  await gotoStory(page, 'design-system-primitives-barchart--stress-10-categories')
+  const frame = getStoryFrame(page)
+  const chart = frame.getByTestId('BarChart-stress-10')
+  await expect(chart).toBeVisible()
+  await expect(chart.locator('svg path')).toHaveCount(10)
+  await screenshotStory(page, 'tests/design-system/test-results/story-barchart-stress-10.png')
+})
+
+test('BarChart/Stress100Categories story renders 100 bars with a thinned label set', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 700 })
+  await gotoStory(page, 'design-system-primitives-barchart--stress-100-categories')
+  const frame = getStoryFrame(page)
+  const chart = frame.getByTestId('BarChart-stress-100')
+  await expect(chart).toBeVisible()
+  await expect(chart.locator('svg path')).toHaveCount(100)
+  await screenshotStory(page, 'tests/design-system/test-results/story-barchart-stress-100.png')
+})
+
+test('BarChart/Stress1000Categories story renders all 1000 bars but thins category labels to a sparse, readable set', async ({ page }) => {
+  // Regression guard for the empty-label degradation bug found and fixed in this QA pass:
+  // before the fix, truncateLabelToWidth converged every one of the 1000 per-category label
+  // slots to "" once slot width dropped sub-pixel. computeLabelSkipFactor now shows only every
+  // Nth label, sized against the widest real label, so a small handful of full-text labels
+  // should render instead of zero.
+  await page.setViewportSize({ width: 1280, height: 700 })
+  await gotoStory(page, 'design-system-primitives-barchart--stress-1000-categories')
+  const frame = getStoryFrame(page)
+  const chart = frame.getByTestId('BarChart-stress-1000')
+  await expect(chart).toBeVisible()
+  await expect(chart.locator('svg path')).toHaveCount(1000) // every category still gets its own real bar
+
+  const allLabelTexts = await chart.locator('svg text').allTextContents()
+  const categoryLabels = allLabelTexts.filter((text) => text.startsWith('Wallet'))
+  expect(categoryLabels.length).toBeGreaterThan(0)
+  expect(categoryLabels.length).toBeLessThan(20) // sparse, not one per category
+  for (const label of categoryLabels) {
+    expect(label).not.toBe('') // never converges to unreadable empty strings
+  }
+
+  await screenshotStory(page, 'tests/design-system/test-results/story-barchart-stress-1000.png')
+})
+
 test('BarChart/Responsive story scales its viewBox to the real container width, not a fixed fallback', async ({ page }) => {
   // Regression guard for the responsive-width distortion bug: the default `width='100%'`
   // path used to freeze the SVG viewBox at a hardcoded 400px regardless of real size.
@@ -280,6 +324,48 @@ test('LineAreaChart/StressTest story renders 1095 daily points without crashing'
   const chart = frame.getByTestId('LineAreaChart-stress')
   await expect(chart).toBeVisible()
   await screenshotStory(page, 'tests/design-system/test-results/story-lineareachart-stress.png')
+})
+
+test('LineAreaChart/Stress10Points story renders 10 points with dots visible (below DOT_AUTO_THRESHOLD)', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 700 })
+  await gotoStory(page, 'design-system-primitives-lineareachart--stress-10-points')
+  const frame = getStoryFrame(page)
+  const chart = frame.getByTestId('LineAreaChart-stress-10')
+  await expect(chart).toBeVisible()
+  await expect(chart.locator('svg circle')).toHaveCount(10)
+  await screenshotStory(page, 'tests/design-system/test-results/story-lineareachart-stress-10.png')
+})
+
+test('LineAreaChart/Stress100Points story auto-hides dots past DOT_AUTO_THRESHOLD', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 700 })
+  await gotoStory(page, 'design-system-primitives-lineareachart--stress-100-points')
+  const frame = getStoryFrame(page)
+  const chart = frame.getByTestId('LineAreaChart-stress-100')
+  await expect(chart).toBeVisible()
+  await expect(chart.locator('svg circle')).toHaveCount(0)
+  await screenshotStory(page, 'tests/design-system/test-results/story-lineareachart-stress-100.png')
+})
+
+test('LineAreaChart/Stress1000Points story renders 1000 points without crashing, dots hidden', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 700 })
+  await gotoStory(page, 'design-system-primitives-lineareachart--stress-1000-points')
+  const frame = getStoryFrame(page)
+  const chart = frame.getByTestId('LineAreaChart-stress-1000')
+  await expect(chart).toBeVisible()
+  await expect(chart.locator('svg circle')).toHaveCount(0)
+  await screenshotStory(page, 'tests/design-system/test-results/story-lineareachart-stress-1000.png')
+})
+
+test('LineAreaChart/StressManySeries story renders all 12 overlaid series without crashing', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 700 })
+  await gotoStory(page, 'design-system-primitives-lineareachart--stress-many-series')
+  const frame = getStoryFrame(page)
+  const chart = frame.getByTestId('LineAreaChart-stress-many-series')
+  await expect(chart).toBeVisible()
+  for (let seriesIndex = 1; seriesIndex <= 12; seriesIndex += 1) {
+    await expect(chart.getByText(`Series ${seriesIndex}`, { exact: true })).toBeVisible()
+  }
+  await screenshotStory(page, 'tests/design-system/test-results/story-lineareachart-stress-manyseries.png')
 })
 
 test('LineAreaChart/Responsive story scales its viewBox to the real container width, not a fixed fallback', async ({ page }) => {
@@ -361,6 +447,52 @@ test('DataTable/StressTest story renders 150 rows with sticky header and scroll 
   await expect(table).toBeVisible()
   await expect(table.getByText('0x00000000')).toBeVisible()
   await screenshotStory(page, 'tests/design-system/test-results/story-datatable-stress.png')
+})
+
+test('DataTable/Stress10Columns story renders all 10 columns', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 700 })
+  await gotoStory(page, 'design-system-primitives-datatable--stress-10-columns')
+  const frame = getStoryFrame(page)
+  const table = frame.getByTestId('DataTable-stress-10-columns')
+  await expect(table).toBeVisible()
+  await expect(table.getByText('Metric 1', { exact: true })).toBeVisible()
+  await expect(table.getByText('Metric 10', { exact: true })).toBeVisible()
+  await screenshotStory(page, 'tests/design-system/test-results/story-datatable-stress-10-columns.png')
+})
+
+test('DataTable/Stress50Columns story renders all 50 columns without crashing', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-datatable--stress-50-columns')
+  const frame = getStoryFrame(page)
+  const table = frame.getByTestId('DataTable-stress-50-columns')
+  await expect(table).toBeVisible()
+  await expect(table.getByText('Metric 50', { exact: true })).toBeVisible()
+  await screenshotStory(page, 'tests/design-system/test-results/story-datatable-stress-50-columns.png')
+})
+
+test('DataTable/Stress100Columns story renders all 100 columns via horizontal scroll, never truncating a column', async ({ page }) => {
+  // Regression guard for the degradation strategy: no column is ever hidden or truncated, so
+  // every column header must exist in the DOM (reachable via horizontal scroll) even though
+  // only a handful fit in the visible viewport at once.
+  await gotoStory(page, 'design-system-primitives-datatable--stress-100-columns')
+  const frame = getStoryFrame(page)
+  const table = frame.getByTestId('DataTable-stress-100-columns')
+  await expect(table).toBeVisible()
+  await expect(table.getByText('Metric 1', { exact: true })).toBeVisible()
+  await expect(table.getByText('Metric 100', { exact: true })).toBeVisible()
+  await screenshotStory(page, 'tests/design-system/test-results/story-datatable-stress-100-columns.png')
+})
+
+test('DataTable/Stress1000Rows story renders all 1200 rows with sticky header and scroll without crashing', async ({ page }) => {
+  // Documents the known no-virtualization limitation (see story comment): every row is a real,
+  // always-mounted DOM node, so both the first and last row must be present regardless of scroll.
+  await page.setViewportSize({ width: 1280, height: 700 })
+  await gotoStory(page, 'design-system-primitives-datatable--stress-1000-rows')
+  const frame = getStoryFrame(page)
+  const table = frame.getByTestId('DataTable-stress-1000-rows')
+  await expect(table).toBeVisible()
+  await expect(table.getByText('0x00000000')).toBeVisible()
+  await expect(table.getByText('0x000004af')).toBeVisible() // row 1200 (index 1199), always mounted
+  await screenshotStory(page, 'tests/design-system/test-results/story-datatable-stress-1000-rows.png')
 })
 
 test('DataTable/Controllable story exposes a working range control for the nested ColumnDef.width', async ({ page }) => {

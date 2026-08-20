@@ -93,6 +93,11 @@ const MIN_BAR_LENGTH_FOR_VALUE_LABEL_PX = 20
 const VALUE_LABEL_GAP_PX = 4
 const BAR_FILL_FRACTION = 0.7
 
+/** Gap between adjacent category labels so wide labels never touch (mirrors LineAreaChart's X_LABEL_GAP_PX). */
+const CATEGORY_LABEL_GAP_PX = 8
+/** Floor width/height budget per category label when no real label is wide enough to raise it — mirrors LineAreaChart's X_LABEL_APPROX_WIDTH_PX. */
+const CATEGORY_LABEL_APPROX_SIZE_PX = 56
+
 interface BarChartItem {
   category: string
   value: number
@@ -156,6 +161,34 @@ function truncateLabelToWidth(label: string, maxWidthPx: number, fontSizePx: num
   if (label.length <= maxChars) return label
   if (maxChars === 1) return label.slice(0, 1)
   return `${label.slice(0, maxChars - 1)}…`
+}
+
+/** Same character-width estimate truncateLabelToWidth uses, exposed standalone to size a label-skip budget against real label text (mirrors LineAreaChart's estimateTextWidthPx). */
+function estimateTextWidthPx(text: string, fontSizePx: number): number {
+  return text.length * fontSizePx * 0.6
+}
+
+/**
+ * Degradation strategy for category-axis crowding (this is the fix item #3 QA
+ * flagged as missing): at low category counts every label renders in full via
+ * truncateLabelToWidth above. As category count grows, per-category slot size
+ * shrinks toward (and past) sub-pixel, so truncation alone converges every
+ * label to an unreadable "" rather than a legible chart. Instead of rendering
+ * hundreds of empty labels, thin them adaptively — show only every Nth
+ * category's label, spaced widely enough for the widest real label in the
+ * dataset to fit without collision (mirrors LineAreaChart's
+ * computeLabelSkipFactor, which solves the identical x-axis crowding problem).
+ *
+ * Bars themselves are deliberately NOT thinned or aggregated at any category
+ * count: each bar is one real data point, and dropping/merging bars would
+ * silently misrepresent the data the chart exists to show. Only the label
+ * layer degrades; at extreme counts (e.g. 1000 categories) bars render as a
+ * dense but honest visual field with sparse, readable axis labels.
+ */
+function computeLabelSkipFactor(categoryCount: number, availableSizePx: number, labelSlotSizePx: number): number {
+  if (categoryCount <= 1) return 1
+  const maxLabels = Math.max(1, Math.floor(availableSizePx / labelSlotSizePx))
+  return Math.max(1, Math.ceil(categoryCount / maxLabels))
 }
 
 type RoundedEdge = 'top' | 'bottom' | 'right' | 'left'
@@ -266,6 +299,18 @@ function BarChartContent({
 
   // Zero baseline position within the plot rect, in each layout's value-axis direction.
   const zeroOffset = valueToPixel(0, isVertical ? plotHeight : plotWidth)
+
+  // Vertical layout stacks labels side by side, so the crowding budget is the widest real
+  // label's *width*. Horizontal layout stacks labels top to bottom instead, one per row, so
+  // the budget is a single line's *height* (a label's width is already bounded by the fixed
+  // left-padding column regardless of category count, so width can't be the constraint there).
+  const widestCategoryLabelWidthPx = items.reduce<number>(
+    (widest, item) => Math.max(widest, estimateTextWidthPx(item.category, tickLabelSizePx)),
+    CATEGORY_LABEL_APPROX_SIZE_PX,
+  )
+  const categoryLabelSlotBudgetPx = isVertical ? widestCategoryLabelWidthPx + CATEGORY_LABEL_GAP_PX : tickLabelSizePx + CATEGORY_LABEL_GAP_PX
+  const categoryLabelSkipFactor = computeLabelSkipFactor(items.length, isVertical ? plotWidth : plotHeight, categoryLabelSlotBudgetPx)
+  const categoryLabelSlotSizePx = slotSize * categoryLabelSkipFactor
 
   return (
     <BarChartFrame
@@ -387,7 +432,8 @@ function BarChartContent({
                 const baselineY = resolvedPadding.top + plotHeight - zeroOffset
                 const barY = isPositive ? baselineY - barLength : baselineY
                 const barHeight = Math.abs(barLength)
-                const categoryLabel = truncateLabelToWidth(item.category, barThickness, tickLabelSizePx)
+                const showCategoryLabel = index % categoryLabelSkipFactor === 0
+                const categoryLabel = showCategoryLabel ? truncateLabelToWidth(item.category, categoryLabelSlotSizePx, tickLabelSizePx) : ''
 
                 return (
                   <G key={`${item.category}-${index}`}>
@@ -397,16 +443,18 @@ function BarChartContent({
                       accessible={false}
                       onPress={onBarPress ? () => onBarPress(item, index) : undefined}
                     />
-                    <SvgText
-                      x={slotStart + slotSize / 2}
-                      y={resolvedPadding.top + plotHeight + 16}
-                      fontSize={tickLabelSizePx} fontFamily={CHART_FONT_FAMILY}
-                      fill={axisLabelColor}
-                      textAnchor="middle"
-                      accessible={false}
-                    >
-                      {categoryLabel}
-                    </SvgText>
+                    {showCategoryLabel ? (
+                      <SvgText
+                        x={slotStart + slotSize / 2}
+                        y={resolvedPadding.top + plotHeight + 16}
+                        fontSize={tickLabelSizePx} fontFamily={CHART_FONT_FAMILY}
+                        fill={axisLabelColor}
+                        textAnchor="middle"
+                        accessible={false}
+                      >
+                        {categoryLabel}
+                      </SvgText>
+                    ) : null}
                     {showValueLabels && barHeight >= MIN_BAR_LENGTH_FOR_VALUE_LABEL_PX ? (
                       <SvgText
                         x={slotStart + slotSize / 2}
@@ -429,7 +477,8 @@ function BarChartContent({
               const barX = isPositive ? baselineX : baselineX - Math.abs(barLength)
               const barWidth = Math.abs(barLength)
               const categoryLabelMaxWidth = resolvedPadding.left - 12
-              const categoryLabel = truncateLabelToWidth(item.category, categoryLabelMaxWidth, tickLabelSizePx)
+              const showCategoryLabel = index % categoryLabelSkipFactor === 0
+              const categoryLabel = showCategoryLabel ? truncateLabelToWidth(item.category, categoryLabelMaxWidth, tickLabelSizePx) : ''
 
               return (
                 <G key={`${item.category}-${index}`}>
@@ -439,17 +488,19 @@ function BarChartContent({
                     accessible={false}
                     onPress={onBarPress ? () => onBarPress(item, index) : undefined}
                   />
-                  <SvgText
-                    x={resolvedPadding.left - 8}
-                    y={slotStart + slotSize / 2}
-                    fontSize={tickLabelSizePx} fontFamily={CHART_FONT_FAMILY}
-                    fill={axisLabelColor}
-                    textAnchor="end"
-                    alignmentBaseline="middle"
-                    accessible={false}
-                  >
-                    {categoryLabel}
-                  </SvgText>
+                  {showCategoryLabel ? (
+                    <SvgText
+                      x={resolvedPadding.left - 8}
+                      y={slotStart + slotSize / 2}
+                      fontSize={tickLabelSizePx} fontFamily={CHART_FONT_FAMILY}
+                      fill={axisLabelColor}
+                      textAnchor="end"
+                      alignmentBaseline="middle"
+                      accessible={false}
+                    >
+                      {categoryLabel}
+                    </SvgText>
+                  ) : null}
                   {showValueLabels && barWidth >= MIN_BAR_LENGTH_FOR_VALUE_LABEL_PX ? (
                     <SvgText
                       x={isPositive ? barX + barWidth + VALUE_LABEL_GAP_PX : barX - VALUE_LABEL_GAP_PX}

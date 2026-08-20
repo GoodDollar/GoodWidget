@@ -55,6 +55,33 @@ const stress = Array.from({ length: 1095 }, (_, i) => {
   }
 })
 
+/** Generates `count` synthetic daily points for the tiered point-count stress stories below (10/100/1000). */
+function buildPointStressData(count: number): Array<{ x: string; y: number }> {
+  return Array.from({ length: count }, (_, i) => {
+    const date = new Date(2024, 0, 1)
+    date.setDate(date.getDate() + i)
+    return {
+      x: date.toISOString().slice(0, 10),
+      y: 10000 + Math.floor(Math.random() * 5000) + i * 10,
+    }
+  })
+}
+
+const stress10 = buildPointStressData(10)
+const stress100 = buildPointStressData(100)
+const stress1000 = buildPointStressData(1000)
+
+/** 12 series x 30 points each — exercises multi-series overlay at a series count well past the 5-color theme palette. */
+const multiSeriesStress = Array.from({ length: 12 }, (_, seriesIndex) =>
+  Array.from({ length: 30 }, (_, pointIndex) => ({
+    x: `Day ${pointIndex + 1}`,
+    y: 1000 * (seriesIndex + 1) + Math.floor(Math.random() * 500) + pointIndex * 20,
+    series: `series-${seriesIndex + 1}`,
+  })),
+).flat()
+
+const multiSeriesStressDefs = Array.from({ length: 12 }, (_, i) => ({ key: `series-${i + 1}`, label: `Series ${i + 1}` }))
+
 const meta: Meta<typeof LineAreaChart> = {
   title: 'Design System/Primitives/LineAreaChart',
   component: LineAreaChart,
@@ -153,6 +180,56 @@ export const SinglePoint: Story = {
 /** 1095 daily points (3 years) — dots auto-hide, x-labels thin adaptively, path must not hang the browser. */
 export const StressTest: Story = {
   render: () => <LineAreaChart data={stress} title="3-Year Reserve Balance" showArea width={800} testID="LineAreaChart-stress" />,
+}
+
+/**
+ * Tiered point-count stress stories (10/100; 1000+ is `StressTest` above, at
+ * 1095 points), per QA follow-up on #148. Degradation strategy is already
+ * implemented and verified real (not just claimed) by reading the source:
+ * `resolveShowDotsForSeries` hides per-point dots once a series crosses
+ * DOT_AUTO_THRESHOLD (20) valid points — a dense line reads better without a
+ * dot per pixel. `computeLabelSkipFactor` thins x-axis labels adaptively,
+ * sized against the widest actually-formatted label so labels never collide
+ * regardless of point count.
+ */
+export const Stress10Points: Story = {
+  render: () => <LineAreaChart data={stress10} title="Reserve Balance (10 points)" showArea width={800} testID="LineAreaChart-stress-10" />,
+}
+
+/** 100 points — past DOT_AUTO_THRESHOLD (20), so dots auto-hide; x-label skip factor kicks in. */
+export const Stress100Points: Story = {
+  render: () => <LineAreaChart data={stress100} title="Reserve Balance (100 points)" showArea width={800} testID="LineAreaChart-stress-100" />,
+}
+
+/** 1000 points — the top of the requested 10/100/1000 tier (distinct from the pre-existing
+ * 1095-point `StressTest` above, which exercises 3-year real-calendar density specifically). */
+export const Stress1000Points: Story = {
+  render: () => <LineAreaChart data={stress1000} title="Reserve Balance (1000 points)" showArea width={800} testID="LineAreaChart-stress-1000" />,
+}
+
+/**
+ * 12 concurrent series, 30 points each — the multi-series-at-scale tier of the
+ * stress requirement. Degradation strategy: series color is assigned via
+ * `colors[index % colors.length]` against a 5-color theme palette
+ * (CHART_COLOR_KEYS), so beyond 5 series colors intentionally repeat — this is
+ * a known, accepted constraint of using theme-native colors rather than an
+ * unbounded synthetic palette, not an oversight. Callers needing more than 5
+ * visually-distinct series should additionally pass a distinct
+ * `strokeDasharray` per series (already supported on `LineAreaChartSeriesDef`)
+ * so repeated-color series remain distinguishable by line pattern; this story
+ * intentionally leaves dasharrays unset to make the color-repeat boundary
+ * visible for QA review rather than papering over it.
+ */
+export const StressManySeries: Story = {
+  render: () => (
+    <LineAreaChart
+      data={multiSeriesStress}
+      series={multiSeriesStressDefs}
+      title="12-Series Overlay"
+      width={800}
+      testID="LineAreaChart-stress-many-series"
+    />
+  ),
 }
 
 /** No `width` prop — exercises the default `'100%'` responsive path against the
