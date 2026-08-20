@@ -12,14 +12,21 @@ const WITHDRAW_PRINCIPAL_TYPES = {
     { name: 'buyer', type: 'address' },
     { name: 'amount', type: 'uint256' },
     { name: 'recipient', type: 'address' },
-    { name: 'timestamp', type: 'uint256' },
+    { name: 'nonce', type: 'uint256' },
   ],
 } as const
 
 const REQUEST_CLOSE_TYPES = {
   RequestClose: [
     { name: 'channelId', type: 'bytes32' },
-    { name: 'timestamp', type: 'uint256' },
+    { name: 'nonce', type: 'uint256' },
+  ],
+} as const
+
+const REVOKE_OPERATOR_TYPES = {
+  RevokeOperator: [
+    { name: 'buyer', type: 'address' },
+    { name: 'nonce', type: 'uint256' },
   ],
 } as const
 
@@ -35,7 +42,7 @@ export async function signWithdrawPrincipal(params: {
   buyer: Address
   amountMicro: bigint
   recipient: Address
-  timestamp: number
+  nonce: bigint
 }): Promise<Hex> {
   const account = privateKeyToAccount(params.buyerPrivateKey)
   return account.signTypedData({
@@ -51,7 +58,7 @@ export async function signWithdrawPrincipal(params: {
       buyer: params.buyer,
       amount: params.amountMicro,
       recipient: params.recipient,
-      timestamp: BigInt(params.timestamp),
+      nonce: params.nonce,
     },
   })
 }
@@ -60,7 +67,7 @@ export async function signRequestClose(params: {
   buyerPrivateKey: Hex
   fundingVaultAddress: Address
   channelId: Hex
-  timestamp: number
+  nonce: bigint
 }): Promise<Hex> {
   const account = privateKeyToAccount(params.buyerPrivateKey)
   return account.signTypedData({
@@ -74,7 +81,30 @@ export async function signRequestClose(params: {
     primaryType: 'RequestClose',
     message: {
       channelId: params.channelId,
-      timestamp: BigInt(params.timestamp),
+      nonce: params.nonce,
+    },
+  })
+}
+
+export async function signRevokeOperator(params: {
+  buyerPrivateKey: Hex
+  fundingVaultAddress: Address
+  buyer: Address
+  nonce: bigint
+}): Promise<Hex> {
+  const account = privateKeyToAccount(params.buyerPrivateKey)
+  return account.signTypedData({
+    domain: {
+      name: ANTSEED_BUYER_OPERATOR_DOMAIN.name,
+      version: ANTSEED_BUYER_OPERATOR_DOMAIN.version,
+      chainId: BASE_CHAIN_ID,
+      verifyingContract: params.fundingVaultAddress,
+    },
+    types: REVOKE_OPERATOR_TYPES,
+    primaryType: 'RevokeOperator',
+    message: {
+      buyer: params.buyer,
+      nonce: params.nonce,
     },
   })
 }

@@ -1,5 +1,18 @@
 import React, { useState } from 'react'
-import { Button, ButtonText, Card, Heading, Icon, Input, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
+import {
+  Button,
+  ButtonText,
+  Card,
+  Heading,
+  Icon,
+  Input,
+  Spinner,
+  Text,
+  XStack,
+  YStack,
+  closeDialog,
+  createDialog,
+} from '@goodwidget/ui'
 import type { AiCreditsWidgetAdapterActions, AiCreditsWidgetAdapterState } from '../../widgetRuntimeContract'
 import { AddressView } from '../shared/AddressView'
 import { monospaceSingleLineStyle, compactButtonProps } from '../shared/styles'
@@ -22,6 +35,7 @@ interface BuyerOperatorCardProps {
     | 'selectBuyer'
     | 'importBuyerFromPrivateKey'
     | 'signOperatorConsent'
+    | 'revokeOperatorConsent'
   >
 }
 
@@ -163,6 +177,25 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
 
   const buyerCanSign = Boolean(buyerPrvKey || operatorSignature)
 
+  const handleOpenRevokeDialog = () => {
+    createDialog({
+      title: 'Revoke Operator?',
+      body:
+        "Revoking removes the operator's ability to act on your behalf. Any bonus balance will be deducted, and any active stream bonuses will stop.",
+      acceptLabel: 'Revoke Operator',
+      rejectLabel: 'Cancel',
+      showClose: true,
+      onAccept: async () => {
+        try {
+          await actions.revokeOperatorConsent()
+        } finally {
+          closeDialog()
+        }
+      },
+      onReject: () => {},
+    })
+  }
+
   return (
     <Card gap="$2">
       <Heading level={6}>Buyer &amp; Operator</Heading>
@@ -210,6 +243,20 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
           )}
         </Button>
       </XStack>
+
+      {operatorConsented && (
+        <Button
+          size="sm"
+          variant="outline"
+          borderColor="$error"
+          alignSelf="flex-start"
+          {...compactButtonProps}
+          disabled={operatorConsentPending}
+          onPress={handleOpenRevokeDialog}
+        >
+          <ButtonText color="$error">Revoke Operator</ButtonText>
+        </Button>
+      )}
 
       {showImport ? (
         <BuyerImportPanel
