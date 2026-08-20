@@ -11,6 +11,7 @@ import {
   PaymentConfirmedStory,
   CreditsManagementStory,
   HistoryTabStory,
+  SetupTabStory,
   InsufficientGBalanceStory,
   BuyTabErrorStory,
   PaymentFailedStory,
@@ -116,6 +117,10 @@ export const DeepLinkConsentPending: Story = {
 /** History tab with buyer filter dropdown. */
 export const MultiBuyerHistory: Story = {
   render: () => <MultiBuyerHistoryStory />,
+}
+
+export const SetupTab: Story = {
+  render: () => <SetupTabStory />,
 }
 
 export const AppKitConnectWallet: Story = {
