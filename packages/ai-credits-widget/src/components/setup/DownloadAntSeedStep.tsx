@@ -34,7 +34,7 @@ export function DownloadAntSeedStep() {
           </YStack>
 
           <YStack flex={1} gap="$1">
-            <Text fontWeight="700">Download Antseed</Text>
+            <Text fontWeight="700">Download AntSeed</Text>
             <Text secondary fontSize="$2">
               The app that runs your credits locally — required once
             </Text>

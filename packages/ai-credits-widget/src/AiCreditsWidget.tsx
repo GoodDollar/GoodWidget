@@ -101,6 +101,9 @@ const LOCKED_SETUP_STEPS: Array<{ number: number; title: string; description: st
   },
 ]
 
+/** Opacity applied to locked setup step cards to signal they are not yet accessible. */
+const LOCKED_STEP_OPACITY = 0.55
+
 /**
  * A single locked step card.
  * Displays the step number, title, description, and a lock indicator.
@@ -116,7 +119,7 @@ function LockedSetupStepCard({
   description: string
 }) {
   return (
-    <Card opacity={0.55}>
+    <Card opacity={LOCKED_STEP_OPACITY}>
       <XStack gap="$3" alignItems="center" padding="$3" justifyContent="space-between">
         <XStack gap="$3" alignItems="flex-start" flex={1}>
           <YStack

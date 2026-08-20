@@ -82,7 +82,7 @@ test('AiCreditsWidget Setup tab — onboarding steps visible', async ({ page }) 
   await gotoStory(page, STORY_IDS.setupTab)
   const root = page.getByTestId('AiCreditsWidget-setup-tab')
   await expect(root).toBeVisible()
-  await expect(root.getByText('Download Antseed', { exact: true })).toBeVisible()
+  await expect(root.getByText('Download AntSeed', { exact: true })).toBeVisible()
   await expect(root.getByText('Signer key', { exact: true })).toBeVisible()
   await expect(root.getByText('Authorize wallet', { exact: true })).toBeVisible()
   await expect(root.getByText('Setup', { exact: true })).toBeVisible()
@@ -512,7 +512,7 @@ test('AiCreditsWidget Download AntSeed step — step is first in Setup', async (
   await expect(root).toBeVisible()
 
   // Download AntSeed is the first step and shows the "Start" action.
-  await expect(root.getByText('Download Antseed', { exact: true })).toBeVisible()
+  await expect(root.getByText('Download AntSeed', { exact: true })).toBeVisible()
   await expect(root.getByText(/required once/i)).toBeVisible()
   await expect(root.getByRole('button', { name: /start/i })).toBeVisible()
 
@@ -521,8 +521,8 @@ test('AiCreditsWidget Download AntSeed step — step is first in Setup', async (
   await expect(root.getByText('Authorize wallet', { exact: true })).toBeVisible()
 
   // Step ordering: Download AntSeed (1) → Signer key (2) → Authorize wallet (3).
-  const stepTitles = await root.locator('text=/Download Antseed|Signer key|Authorize wallet/').allTextContents()
-  expect(stepTitles[0]).toContain('Download Antseed')
+  const stepTitles = await root.locator('text=/Download AntSeed|Signer key|Authorize wallet/').allTextContents()
+  expect(stepTitles[0]).toContain('Download AntSeed')
   expect(stepTitles[1]).toContain('Signer key')
   expect(stepTitles[2]).toContain('Authorize wallet')
 
