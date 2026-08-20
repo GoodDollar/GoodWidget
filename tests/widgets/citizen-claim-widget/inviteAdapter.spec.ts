@@ -48,6 +48,10 @@ function createFakeSdk(overrides: Partial<InviteWriteSdk> = {}): InviteWriteSdk 
     getPendingInvitees: async () => [invitee, collectableInvitee],
     getCollectableInvitees: async () => [collectableInvitee],
     checkEligibilityDetails: async () => ({ eligible: true, details: eligibility }),
+    getMinimums: async () => ({
+      minimumClaims: eligibility.minimumClaims,
+      minimumDays: eligibility.minimumDays,
+    }),
     resolveCode: async () => zeroAddress,
     join: async () => '0xjoin' as `0x${string}`,
     collectAllBounties: async () => [],
@@ -64,6 +68,7 @@ test('loadInviteSnapshot distinguishes pending from collectable invitees', async
   expect(snapshot.collectableInvitees).toEqual([collectableInvitee])
   expect(isInviteeCollectable(invitee, snapshot.collectableInvitees)).toBe(false)
   expect(isInviteeCollectable(collectableInvitee, snapshot.collectableInvitees)).toBe(true)
+  expect(snapshot.minimums).toEqual({ minimumClaims: 5, minimumDays: 3 })
 })
 
 test('performJoin reuses the caller original code when attaching a deferred inviter', async () => {
