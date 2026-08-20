@@ -13,7 +13,12 @@ import {
 } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { buildBuyerKeyMessage, deriveBuyerPrivateKeyFromSignature } from './buyerKeyDerivation'
-import { normalizeChannelId, signRequestClose, signWithdrawPrincipal } from './buyerSignatures'
+import {
+  normalizeChannelId,
+  signRequestClose,
+  signRevokeOperator,
+  signWithdrawPrincipal,
+} from './buyerSignatures'
 import {
   totalCreditUsdFromProfile,
   buildAccountView,
@@ -1093,6 +1098,102 @@ export function useAiCreditsAdapter({
     }
   }, [state, chainClient])
 
+  const handleRevokeOperatorConsent = useCallback(async () => {
+    const currentState = state
+    if (!currentState.address || !currentState.buyerPubKey || !currentState.operatorConsented) {
+      return
+    }
+
+    if (!currentState.buyerPrvKey) {
+      setState((prev) => ({
+        ...prev,
+        error:
+          'Sign with your payer wallet in Buyer & Operator below to generate the buyer private key before revoking operator consent',
+      }))
+      return
+    }
+
+    if (!fundingVaultAddress) {
+      setState((prev) => ({
+        ...prev,
+        error: 'Funding vault address is not configured',
+      }))
+      return
+    }
+
+    if (currentState.operatorConsentPending) return
+
+    const ref: AccountRef = { payer: currentState.address, buyer: currentState.buyerPubKey }
+    const onNonBuyTab = isNonBuyTab(currentState.activeTab)
+
+    setState((prev) => ({
+      ...prev,
+      operatorConsentPending: true,
+      error: null,
+    }))
+
+    try {
+      const operatorStatus = await chainClient.getBuyerOperatorStatus(ref)
+
+      if (!operatorStatus.enabled) {
+        throw new Error('Operator consent is not available')
+      }
+
+      if (!operatorStatus.operatorAccepted) {
+        setBuyerOperatorConsented(currentState.address, currentState.buyerPubKey, false)
+        const buyerList = resolveBuyerList(currentState.address, currentState.buyerPubKey)
+        const buyerFields = buildBuyerStateFields(
+          currentState.address,
+          buyerList.buyers,
+          buyerList.selected,
+        )
+        setState((prev) =>
+          mergeStatePreservingNonBuyTab(prev, {
+            ...buyerFields,
+            operatorConsented: false,
+            operatorConsentPending: false,
+            error: null,
+            ...(!onNonBuyTab ? { status: 'purchase_setup' } : {}),
+          }),
+        )
+        return
+      }
+
+      const nonce = String(operatorStatus.consentNonce)
+      const signature = await signRevokeOperator({
+        buyerPrivateKey: currentState.buyerPrvKey as `0x${string}`,
+        fundingVaultAddress,
+        buyer: currentState.buyerPubKey as Address,
+        nonce: BigInt(nonce),
+      })
+
+      await backendClient.revokeOperatorConsent(ref.buyer, { nonce, signature })
+
+      setBuyerOperatorConsented(currentState.address, currentState.buyerPubKey, false)
+      const buyerList = resolveBuyerList(currentState.address, currentState.buyerPubKey)
+      const buyerFields = buildBuyerStateFields(
+        currentState.address,
+        buyerList.buyers,
+        buyerList.selected,
+      )
+      setState((prev) =>
+        mergeStatePreservingNonBuyTab(prev, {
+          ...buyerFields,
+          operatorConsented: false,
+          operatorConsentPending: false,
+          error: null,
+          ...(!onNonBuyTab ? { status: 'purchase_setup' } : {}),
+        }),
+      )
+    } catch (err: unknown) {
+      setState((prev) => ({
+        ...prev,
+        operatorConsentPending: false,
+        error: err instanceof Error ? err.message : 'Operator revoke failed',
+      }))
+    }
+  }, [state, backendClient, chainClient, fundingVaultAddress, resolveBuyerList])
+
   const handleBuildQuote = useCallback(
     async (depositG: string, streamG: string): Promise<AiCreditsQuote> => {
       const quote = await chainClient.buildQuote(depositG, streamG)
@@ -1619,6 +1720,7 @@ export function useAiCreditsAdapter({
       importBuyerFromPrivateKey: handleImportBuyerFromPrivateKey,
       applyDeepLinkBuyer: handleApplyDeepLinkBuyer,
       signOperatorConsent: handleSignOperatorConsent,
+      revokeOperatorConsent: handleRevokeOperatorConsent,
       syncOperatorConsentFromChain: handleSyncOperatorConsentFromChain,
       buildQuote: handleBuildQuote,
       pay: handlePay,
@@ -1639,6 +1741,7 @@ export function useAiCreditsAdapter({
       handleImportBuyerFromPrivateKey,
       handleApplyDeepLinkBuyer,
       handleSignOperatorConsent,
+      handleRevokeOperatorConsent,
       handleSyncOperatorConsentFromChain,
       handleBuildQuote,
       handlePay,

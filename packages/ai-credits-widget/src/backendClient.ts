@@ -88,6 +88,13 @@ export type OperatorConsentResponse = {
   bridge: BridgeResponse
 }
 
+export type OperatorRevokeRequest = {
+  nonce: string
+  signature: string
+}
+
+export type OperatorRevokeResponse = OperatorConsentResponse
+
 async function readBridgeResponseBody<T extends { bridge?: BridgeResponse }>(
   response: Response,
   actionLabel: string,
@@ -227,6 +234,10 @@ export interface AiCreditsBackendClient {
     buyer: string,
     body: OperatorConsentRequest,
   ): Promise<OperatorConsentResponse>
+  revokeOperatorConsent(
+    buyer: string,
+    body: OperatorRevokeRequest,
+  ): Promise<OperatorRevokeResponse>
 }
 
 const BPS_PER_PERCENT = 100
@@ -427,6 +438,25 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
       bridge: payload.bridge,
     }
   }
+
+  async revokeOperatorConsent(
+    buyer: string,
+    body: OperatorRevokeRequest,
+  ): Promise<OperatorRevokeResponse> {
+    const response = await fetch(`${this.accountBase(buyer)}/operator-revoke`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nonce: body.nonce,
+        signature: body.signature,
+      }),
+    })
+    const payload = await readBridgeResponseBody<OperatorRevokeResponse>(response, 'Operator revoke')
+    return {
+      buyer: normalizeAddress(payload.buyer ?? buyer),
+      bridge: payload.bridge,
+    }
+  }
 }
 
 export class UnavailableAiCreditsBackendClient implements AiCreditsBackendClient {
@@ -471,6 +501,10 @@ export class UnavailableAiCreditsBackendClient implements AiCreditsBackendClient
   }
 
   async submitOperatorConsent() {
+    return this.unavailable()
+  }
+
+  async revokeOperatorConsent() {
     return this.unavailable()
   }
 }

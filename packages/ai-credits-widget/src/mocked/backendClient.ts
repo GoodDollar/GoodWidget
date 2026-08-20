@@ -8,6 +8,7 @@ import type {
   DiscountConfig,
   GdCreditEntry,
   OperatorConsentResponse,
+  OperatorRevokeResponse,
   SettlementResult,
   TransactionsResponse,
   UserCreditProfile,
@@ -221,6 +222,17 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     markMockOperatorConsent(normalizedBuyer)
     return {
       buyer: normalizedBuyer,
+      bridge: { enabled: true, txHash: '0xmock' },
+    }
+  }
+
+  async revokeOperatorConsent(
+    buyer: string,
+    {}: { nonce: string; signature: string },
+  ): Promise<OperatorRevokeResponse> {
+    await sleep(MOCK_DELAY_MS)
+    return {
+      buyer: normalizeAddress(buyer),
       bridge: { enabled: true, txHash: '0xmock' },
     }
   }

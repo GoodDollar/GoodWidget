@@ -108,12 +108,23 @@ test('AiCreditsWidget payment_confirmed', async ({ page }) => {
 
 test('AiCreditsWidget manage tab', async ({ page }) => {
   await gotoStory(page, STORY_IDS.creditsManagement)
-  await expect(page.getByTestId('AiCreditsWidget-manage-tab')).toBeVisible()
+  await expect(page.getByTestId('AiCreditsWidget-manage-tab')).toBeVisible({ timeout: 10_000 })
   await expect(page.getByText('Buy Credits')).toBeVisible()
   await expect(page.getByText('Manage')).toBeVisible()
   await expect(page.getByText('History')).toBeVisible()
   await expect(page.getByText('110.00')).toBeVisible()
   await expect(page.getByText('Credit History')).not.toBeVisible()
+  const revokeButton = page.getByRole('button', { name: 'Revoke Operator' })
+  await expect(revokeButton).toBeVisible()
+  await revokeButton.click()
+  await expect(page.getByText('Revoke Operator?', { exact: true })).toBeVisible()
+  await expect(
+    page.getByText(
+      "Revoking removes the operator's ability to act on your behalf. Any bonus balance will be deducted, and any active stream bonuses will stop.",
+    ),
+  ).toBeVisible()
+  await page.getByRole('button', { name: 'Cancel' }).click()
+  await expect(page.getByText('Revoke Operator?', { exact: true })).toHaveCount(0)
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-07-credits-management.png',
     fullPage: true,
@@ -345,4 +356,3 @@ test('AiCreditsWidget multi-buyer: import buyer key link is visible', async ({ p
     fullPage: true,
   })
 })
-

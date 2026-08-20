@@ -68,6 +68,7 @@ function createAdapterFactory(
       importBuyerFromPrivateKey: async () => {},
       applyDeepLinkBuyer: async () => {},
       signOperatorConsent: async () => {},
+      revokeOperatorConsent: async () => {},
       syncOperatorConsentFromChain: async () => {},
       buildQuote: async (depositG, streamG) => ({
         depositAmountG: depositG,

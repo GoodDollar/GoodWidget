@@ -23,6 +23,13 @@ const REQUEST_CLOSE_TYPES = {
   ],
 } as const
 
+const REVOKE_OPERATOR_TYPES = {
+  RevokeOperator: [
+    { name: 'buyer', type: 'address' },
+    { name: 'nonce', type: 'uint256' },
+  ],
+} as const
+
 export function normalizeChannelId(channelId: string): Hex | null {
   const trimmed = channelId.trim()
   if (!/^0x[0-9a-fA-F]{64}$/.test(trimmed)) return null
@@ -75,6 +82,29 @@ export async function signRequestClose(params: {
     message: {
       channelId: params.channelId,
       timestamp: BigInt(params.timestamp),
+    },
+  })
+}
+
+export async function signRevokeOperator(params: {
+  buyerPrivateKey: Hex
+  fundingVaultAddress: Address
+  buyer: Address
+  nonce: bigint
+}): Promise<Hex> {
+  const account = privateKeyToAccount(params.buyerPrivateKey)
+  return account.signTypedData({
+    domain: {
+      name: ANTSEED_BUYER_OPERATOR_DOMAIN.name,
+      version: ANTSEED_BUYER_OPERATOR_DOMAIN.version,
+      chainId: BASE_CHAIN_ID,
+      verifyingContract: params.fundingVaultAddress,
+    },
+    types: REVOKE_OPERATOR_TYPES,
+    primaryType: 'RevokeOperator',
+    message: {
+      buyer: params.buyer,
+      nonce: params.nonce,
     },
   })
 }
