@@ -18,6 +18,8 @@ const STORY_IDS = {
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--history-tab&viewMode=story',
   setupTab:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--setup-tab&viewMode=story',
+  downloadAntSeedStep:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--download-ant-seed-step&viewMode=story',
   insufficientBalance:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--insufficient-g-balance&viewMode=story',
   buyTabError:
@@ -80,9 +82,9 @@ test('AiCreditsWidget Setup tab — onboarding steps visible', async ({ page }) 
   await gotoStory(page, STORY_IDS.setupTab)
   const root = page.getByTestId('AiCreditsWidget-setup-tab')
   await expect(root).toBeVisible()
-  await expect(root.getByText('Download AntSeed', { exact: true })).toBeVisible()
-  await expect(root.getByText('Signer Key', { exact: true })).toBeVisible()
-  await expect(root.getByText('Authorize Wallet', { exact: true })).toBeVisible()
+  await expect(root.getByText('Download Antseed', { exact: true })).toBeVisible()
+  await expect(root.getByText('Signer key', { exact: true })).toBeVisible()
+  await expect(root.getByText('Authorize wallet', { exact: true })).toBeVisible()
   await expect(root.getByText('Setup', { exact: true })).toBeVisible()
   await expect(root.getByText('Buy Credits', { exact: true })).toBeVisible()
   await page.screenshot({
@@ -500,6 +502,49 @@ test('AiCreditsWidget guidance card: switching tabs clears help view', async ({ 
 
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-24-guidance-tab-switch.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget Download AntSeed step — step is first in Setup', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.downloadAntSeedStep)
+  const root = page.getByTestId('AiCreditsWidget-download-antseed-step')
+  await expect(root).toBeVisible()
+
+  // Download AntSeed is the first step and shows the "Start" action.
+  await expect(root.getByText('Download Antseed', { exact: true })).toBeVisible()
+  await expect(root.getByText(/required once/i)).toBeVisible()
+  await expect(root.getByRole('button', { name: /start/i })).toBeVisible()
+
+  // Signer key and Authorize wallet appear as locked subsequent steps.
+  await expect(root.getByText('Signer key', { exact: true })).toBeVisible()
+  await expect(root.getByText('Authorize wallet', { exact: true })).toBeVisible()
+
+  // Step ordering: Download AntSeed (1) → Signer key (2) → Authorize wallet (3).
+  const stepTitles = await root.locator('text=/Download Antseed|Signer key|Authorize wallet/').allTextContents()
+  expect(stepTitles[0]).toContain('Download Antseed')
+  expect(stepTitles[1]).toContain('Signer key')
+  expect(stepTitles[2]).toContain('Authorize wallet')
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-25-download-antseed-step.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget Download AntSeed step — "Start" link targets AntSeed download URL', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.downloadAntSeedStep)
+  const root = page.getByTestId('AiCreditsWidget-download-antseed-step')
+  await expect(root).toBeVisible()
+
+  // The Start button should be wrapped in an anchor pointing to the AntSeed download page.
+  const startLink = root.locator('a[href*="antseed.com"]').first()
+  await expect(startLink).toBeVisible()
+  const href = await startLink.getAttribute('href')
+  expect(href).toContain('antseed.com')
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-26-download-antseed-link.png',
     fullPage: true,
   })
 })

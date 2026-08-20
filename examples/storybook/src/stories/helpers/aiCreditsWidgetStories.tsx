@@ -280,6 +280,23 @@ export function SetupTabStory() {
   )
 }
 
+/**
+ * Dedicated story for the Download AntSeed step.
+ * Shows Setup tab with wallet connected (G$ balance visible) and Download
+ * AntSeed as the first active step, followed by two locked steps.
+ */
+export function DownloadAntSeedStepStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-download-antseed-step"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        gBalance: '54570',
+        activeTab: 'setup',
+      })}
+    />
+  )
+}
+
 export function CreditsManagementStory() {
   return <ManageTabStory />
 }

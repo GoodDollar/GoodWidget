@@ -12,6 +12,7 @@ import {
   CreditsManagementStory,
   HistoryTabStory,
   SetupTabStory,
+  DownloadAntSeedStepStory,
   InsufficientGBalanceStory,
   BuyTabErrorStory,
   PaymentFailedStory,
@@ -121,6 +122,11 @@ export const MultiBuyerHistory: Story = {
 
 export const SetupTab: Story = {
   render: () => <SetupTabStory />,
+}
+
+/** Download AntSeed step: first actionable step in Setup. */
+export const DownloadAntSeedStep: Story = {
+  render: () => <DownloadAntSeedStepStory />,
 }
 
 export const AppKitConnectWallet: Story = {

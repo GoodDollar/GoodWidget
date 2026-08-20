@@ -6,7 +6,6 @@ import {
   ButtonText,
   Card,
   CircularActionButton,
-  Heading,
   Icon,
   Text,
   ToastContainer,
@@ -32,6 +31,7 @@ import {
   SetupGuidanceCard,
   HowToUseView,
   SetupFaqView,
+  DownloadAntSeedStep,
 } from './components'
 import type {
   AiCreditsWidgetProps,
@@ -87,23 +87,68 @@ function SetupConnectPrompt({
   )
 }
 
-const SETUP_ONBOARDING_STEPS: Array<{ number: number; title: string; description: string }> = [
-  {
-    number: 1,
-    title: 'Download AntSeed',
-    description: 'Install the AntSeed application to manage your AI credits signer key.',
-  },
+/** Locked step rows for Signer Key (step 2) and Authorize Wallet (step 3). */
+const LOCKED_SETUP_STEPS: Array<{ number: number; title: string; description: string }> = [
   {
     number: 2,
-    title: 'Signer Key',
-    description: 'Generate or import a signer key that AntSeed will use to authorize requests.',
+    title: 'Signer key',
+    description: 'Generate or import — separate from your wallet',
   },
   {
     number: 3,
-    title: 'Authorize Wallet',
-    description: 'Link your wallet to the signer key so it can be topped up with AI credits.',
+    title: 'Authorize wallet',
+    description: 'One-time approval — scoped to credits only',
   },
 ]
+
+/**
+ * A single locked step card.
+ * Displays the step number, title, description, and a lock indicator.
+ * Locked steps become available after the preceding step is completed.
+ */
+function LockedSetupStepCard({
+  number,
+  title,
+  description,
+}: {
+  number: number
+  title: string
+  description: string
+}) {
+  return (
+    <Card opacity={0.55}>
+      <XStack gap="$3" alignItems="center" padding="$3" justifyContent="space-between">
+        <XStack gap="$3" alignItems="flex-start" flex={1}>
+          <YStack
+            width={28}
+            height={28}
+            borderRadius={14}
+            backgroundColor="$backgroundHover"
+            alignItems="center"
+            justifyContent="center"
+            flexShrink={0}
+          >
+            <Text fontWeight="700" fontSize="$2" secondary>
+              {number}
+            </Text>
+          </YStack>
+
+          <YStack flex={1} gap="$1">
+            <Text fontWeight="700">{title}</Text>
+            <Text secondary fontSize="$2">
+              {description}
+            </Text>
+          </YStack>
+        </XStack>
+
+        {/* Lock icon signals that this step is not yet accessible. */}
+        <Text fontSize="$4" flexShrink={0}>
+          🔒
+        </Text>
+      </XStack>
+    </Card>
+  )
+}
 
 function SetupTabPanel({
   state,
@@ -123,34 +168,35 @@ function SetupTabPanel({
 
   return (
     <YStack gap="$4" width="100%">
-      <Heading level={5} secondary>
-        Onboarding
-      </Heading>
-      {SETUP_ONBOARDING_STEPS.map((step) => (
-        <Card key={step.number}>
-          <XStack gap="$3" alignItems="flex-start" padding="$3">
-            <YStack
-              width={28}
-              height={28}
-              borderRadius={14}
-              backgroundColor="$primary"
-              alignItems="center"
-              justifyContent="center"
-              flexShrink={0}
-            >
-              <Text fontWeight="700" fontSize="$2" color="$onPrimary">
-                {step.number}
-              </Text>
-            </YStack>
-            <YStack flex={1} gap="$1">
-              <Text fontWeight="700">{step.title}</Text>
-              <Text secondary fontSize="$2">
-                {step.description}
-              </Text>
-            </YStack>
-          </XStack>
-        </Card>
+      {/* G$ balance card */}
+      <AiCreditsHero gBalance={state.gBalance} isGoodIdVerified={state.isGoodIdVerified ?? false} />
+
+      {/* Setup stepper description */}
+      <Text secondary fontSize="$2">
+        One-time setup, in order — each step unlocks the next:
+      </Text>
+
+      {/* Step 1: Download AntSeed — first active step with external download link */}
+      <DownloadAntSeedStep />
+
+      {/* Steps 2 & 3 — locked until step 1 is complete */}
+      {LOCKED_SETUP_STEPS.map((step) => (
+        <LockedSetupStepCard
+          key={step.number}
+          number={step.number}
+          title={step.title}
+          description={step.description}
+        />
       ))}
+
+      {/* Footer shown once all steps are completed */}
+      <Card backgroundColor="$backgroundHover">
+        <XStack padding="$3" alignItems="center" justifyContent="center">
+          <Text secondary fontSize="$2" center>
+            Setup complete ✓ — heading to Manage…
+          </Text>
+        </XStack>
+      </Card>
     </YStack>
   )
 }
