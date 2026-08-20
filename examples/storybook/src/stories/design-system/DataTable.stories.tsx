@@ -79,6 +79,18 @@ const meta: Meta<typeof DataTable> = {
 export default meta
 type Story = StoryObj<typeof DataTable>
 
+/**
+ * `ColumnDef.width` lives nested inside the `columns` array, one level too
+ * deep for Storybook's docgen to auto-infer a usable control for — arrays of
+ * objects render as an inert JSON blob in the Controls panel, not an editable
+ * field. `addressColumnWidthPx` is a story-only arg (not a real DataTable
+ * prop) that bridges a top-level, genuinely interactive range control to the
+ * "Address" column's `width`, rebuilding `columns` with it on every render.
+ */
+type ControllableArgs = React.ComponentProps<typeof DataTable> & { addressColumnWidthPx: number }
+type ControllableStory = StoryObj<React.ComponentType<ControllableArgs>>
+
+
 /** Top wallets, sortable columns, bare and card variants.
  * Fixed reference story — the Controls panel is inert here; use "Controllable" below to
  * drive props live. */
@@ -126,8 +138,9 @@ export const StressTest: Story = {
   ),
 }
 
-/** Controllable instance — edit args in the Controls panel. */
-export const Controllable: Story = {
+/** Controllable instance — edit args in the Controls panel. `addressColumnWidthPx`
+ * is the only way to reach `ColumnDef.width` interactively (see the comment above). */
+export const Controllable: ControllableStory = {
   args: {
     data: wallets,
     columns: walletColumns,
@@ -136,6 +149,18 @@ export const Controllable: Story = {
     striped: true,
     compact: false,
     stickyHeader: true,
+    addressColumnWidthPx: 160,
   },
-  render: (args) => <DataTable {...args} testID="DataTable-controllable" />,
+  argTypes: {
+    addressColumnWidthPx: {
+      control: { type: 'range', min: 60, max: 400, step: 10 },
+      description: 'Live-adjusts the "Address" column\'s width (ColumnDef.width) — the real prop is nested inside `columns` and has no control of its own.',
+    },
+  },
+  render: ({ addressColumnWidthPx, columns, ...args }) => {
+    const columnsWithControlledWidth = columns.map((column) =>
+      column.key === 'address' ? { ...column, width: addressColumnWidthPx } : column,
+    )
+    return <DataTable {...args} columns={columnsWithControlledWidth} testID="DataTable-controllable" />
+  },
 }

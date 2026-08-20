@@ -362,3 +362,32 @@ test('DataTable/StressTest story renders 150 rows with sticky header and scroll 
   await expect(table.getByText('0x00000000')).toBeVisible()
   await screenshotStory(page, 'tests/design-system/test-results/story-datatable-stress.png')
 })
+
+test('DataTable/Controllable story exposes a working range control for the nested ColumnDef.width', async ({ page }) => {
+  // Regression guard: `columns[].width` sits one level too deep for Storybook's docgen to
+  // auto-infer a control for, so the story bridges it via a top-level `addressColumnWidthPx`
+  // range arg. This asserts that control is a real, live-wired <input type="range">, not an
+  // inert JSON blob — dragging it must resize the "Address" column in the rendered table.
+  await gotoStory(page, 'design-system-primitives-datatable--controllable')
+  const frame = getStoryFrame(page)
+  const table = frame.getByTestId('DataTable-controllable')
+  await expect(table).toBeVisible()
+
+  const addressColumnCell = table.getByText('Address', { exact: true }).locator('..')
+  await expect(addressColumnCell).toHaveJSProperty('offsetWidth', 160)
+
+  // The Controls panel lives in the top-level Storybook document, not the story iframe.
+  const widthControl = page.locator('#control-addressColumnWidthPx')
+  await expect(widthControl).toHaveAttribute('type', 'range')
+  await expect(widthControl).toHaveValue('160')
+
+  await widthControl.evaluate((input: HTMLInputElement) => {
+    const nativeValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!
+    nativeValueSetter.call(input, '350')
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+    input.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+
+  await expect(addressColumnCell).toHaveJSProperty('offsetWidth', 350)
+  await screenshotStory(page, 'tests/design-system/test-results/story-datatable-controllable-width.png')
+})
