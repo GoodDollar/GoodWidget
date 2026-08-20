@@ -378,3 +378,128 @@ test('AiCreditsWidget multi-buyer: import buyer key link is visible', async ({ p
   })
 })
 
+
+// ---------------------------------------------------------------------------
+// Setup guidance card tests
+// ---------------------------------------------------------------------------
+
+const GUIDANCE_STORY_IDS = {
+  guidanceCardDefault:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--guidance-card-default&viewMode=story',
+  guidanceCardHowToUse:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--guidance-card-how-to-use&viewMode=story',
+  guidanceCardFaq:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--guidance-card-faq&viewMode=story',
+} as const
+
+test('AiCreditsWidget guidance card: renders above tab navigation', async ({ page }) => {
+  await gotoStory(page, GUIDANCE_STORY_IDS.guidanceCardDefault)
+  const root = widget(page, 'AiCreditsWidget-guidance-card')
+  await expect(root).toBeVisible()
+
+  // Guidance card content is visible
+  await expect(root.getByText("WHAT'S INVOLVED:")).toBeVisible()
+  await expect(root.getByText(/Get G\$/)).toBeVisible()
+  await expect(root.getByText(/Download Antseed/)).toBeVisible()
+
+  // All three action buttons are present
+  await expect(root.getByRole('button', { name: /how to use/i })).toBeVisible()
+  await expect(root.getByRole('button', { name: /faqs/i })).toBeVisible()
+  await expect(root.getByText(/Antseed site/i)).toBeVisible()
+
+  // Tab navigation is also visible (card is above it)
+  await expect(root.getByText('Buy Credits')).toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-20-guidance-card-default.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget guidance card: How to use opens in-widget guide', async ({ page }) => {
+  await gotoStory(page, GUIDANCE_STORY_IDS.guidanceCardHowToUse)
+  const root = widget(page, 'AiCreditsWidget-guidance-how-to-use')
+  await expect(root).toBeVisible()
+
+  // Click How to use button
+  await root.getByRole('button', { name: /how to use/i }).click()
+
+  // Guide content appears inside the buy tab area
+  await expect(root.getByText(/back to buying/i)).toBeVisible()
+  await expect(root.getByText(/Getting started with AI credits/)).toBeVisible()
+  await expect(root.getByText(/QUICK SUMMARY/)).toBeVisible()
+  await expect(root.getByText(/connect your wallet/i)).toBeVisible()
+
+  // Tab navigation remains visible (content rendered inside tab, not as a new tab)
+  await expect(root.getByText('Buy Credits')).toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-21-guidance-how-to-use.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget guidance card: Back to buying returns to purchase flow', async ({ page }) => {
+  await gotoStory(page, GUIDANCE_STORY_IDS.guidanceCardHowToUse)
+  const root = widget(page, 'AiCreditsWidget-guidance-how-to-use')
+  await expect(root).toBeVisible()
+
+  // Open how-to-use view
+  await root.getByRole('button', { name: /how to use/i }).click()
+  await expect(root.getByText(/back to buying/i)).toBeVisible()
+
+  // Navigate back
+  await root.getByRole('button', { name: /back to buying/i }).click()
+
+  // Purchase flow is restored
+  await expect(root.getByText(/back to buying/i)).not.toBeVisible()
+  await expect(root.getByText('Buy Credits')).toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-22-guidance-back-to-buying.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget guidance card: FAQs opens in-widget FAQ', async ({ page }) => {
+  await gotoStory(page, GUIDANCE_STORY_IDS.guidanceCardFaq)
+  const root = widget(page, 'AiCreditsWidget-guidance-faq')
+  await expect(root).toBeVisible()
+
+  // Click FAQs button
+  await root.getByRole('button', { name: /faqs/i }).click()
+
+  // FAQ content appears inside the buy tab area
+  await expect(root.getByText(/back to buying/i)).toBeVisible()
+  await expect(root.getByText(/I only claim UBI with GoodWallet/i)).toBeVisible()
+  await expect(root.getByText(/Deposit or stream/i)).toBeVisible()
+
+  // Tab navigation remains visible
+  await expect(root.getByText('Buy Credits')).toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-23-guidance-faq.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget guidance card: switching tabs clears help view', async ({ page }) => {
+  await gotoStory(page, GUIDANCE_STORY_IDS.guidanceCardHowToUse)
+  const root = widget(page, 'AiCreditsWidget-guidance-how-to-use')
+  await expect(root).toBeVisible()
+
+  // Open how-to-use
+  await root.getByRole('button', { name: /how to use/i }).click()
+  await expect(root.getByText(/back to buying/i)).toBeVisible()
+
+  // Switch to Manage tab
+  await root.getByRole('button', { name: /manage/i }).click()
+
+  // How-to-use view is gone
+  await expect(root.getByText(/back to buying/i)).not.toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-24-guidance-tab-switch.png',
+    fullPage: true,
+  })
+})

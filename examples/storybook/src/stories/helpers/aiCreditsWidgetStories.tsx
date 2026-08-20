@@ -563,3 +563,42 @@ export function MultiBuyerHistoryStory() {
     />
   )
 }
+
+/** Buy tab with the guidance card visible (default state). */
+export function GuidanceCardDefaultStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-guidance-card"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        gBalance: '42.50',
+        activeTab: 'buy',
+      })}
+    />
+  )
+}
+
+/** Buy tab with the How to use help view open. */
+export function GuidanceCardHowToUseStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-guidance-how-to-use"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        gBalance: '42.50',
+        activeTab: 'buy',
+      })}
+    />
+  )
+}
+
+/** Buy tab with the FAQ help view open. */
+export function GuidanceCardFaqStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-guidance-faq"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        gBalance: '42.50',
+        activeTab: 'buy',
+      })}
+    />
+  )
+}
