@@ -427,7 +427,11 @@ export function useAiCreditsAdapter({
 
   useEffect(() => {
     if (!isConnected || !address) {
-      setState((prev) => (prev.status === 'connecting' ? prev : { ...INITIAL_STATE }))
+      setState((prev) => {
+        if (prev.status === 'connecting') return prev
+        if (!prev.address && prev.status === 'disconnected' && prev.error === null) return prev
+        return { ...INITIAL_STATE }
+      })
       return
     }
     if (configurationError) {

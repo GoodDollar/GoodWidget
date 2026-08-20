@@ -391,12 +391,18 @@ function AiCreditsInner({
     prepareSettlement: adapterOptions?.prepareSettlement,
   })
 
-  const activeAdapter = useMemo(
-    () => (adapterFactory ? adapterFactory({ environment, backendUrl }) : defaultAdapter),
-    [adapterFactory, environment, backendUrl, defaultAdapter],
+  const factoryAdapter = useMemo(
+    () => (adapterFactory ? adapterFactory({ environment, backendUrl }) : null),
+    [adapterFactory, environment, backendUrl],
   )
+  const activeAdapter = factoryAdapter ?? defaultAdapter
 
   const { state, actions } = activeAdapter
+  const onBuyersDiscoveredRef = React.useRef(actions.discoverBuyers)
+  onBuyersDiscoveredRef.current = actions.discoverBuyers
+  const onBuyersDiscovered = useCallback((addresses: string[]) => {
+    onBuyersDiscoveredRef.current(addresses)
+  }, [])
 
   const history = useAiCreditsHistory({
     address: state.address,
@@ -404,7 +410,7 @@ function AiCreditsInner({
     defaultBuyerFilter: state.buyerPubKey ?? 'all',
     environment,
     backendClient: adapterOptions?.backendClient,
-    onBuyersDiscovered: actions.discoverBuyers,
+    onBuyersDiscovered,
   })
 
   const handlePay = useCallback(

@@ -136,12 +136,12 @@ export function useAiCreditsHistory(options: {
   const loadHistory = useCallback(
     async (nextOffset: number, append: boolean) => {
       if (!address) {
-        setEntries([])
-        setOffset(0)
-        setHasMore(false)
-        setError(null)
-        setLoading(false)
-        setLoadingMore(false)
+        setEntries((prev) => (prev.length === 0 ? prev : []))
+        setOffset((prev) => (prev === 0 ? prev : 0))
+        setHasMore((prev) => (prev ? false : prev))
+        setError((prev) => (prev === null ? prev : null))
+        setLoading((prev) => (prev ? false : prev))
+        setLoadingMore((prev) => (prev ? false : prev))
         return
       }
 

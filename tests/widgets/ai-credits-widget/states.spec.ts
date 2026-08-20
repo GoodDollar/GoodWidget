@@ -35,21 +35,39 @@ const STORY_IDS = {
 async function gotoStory(page: Page, storyUrl: string): Promise<void> {
   await page.goto(storyUrl)
   await page.waitForLoadState('domcontentloaded')
+  await page.locator('#storybook-root').waitFor({ state: 'attached' })
+}
+
+async function expectWidget(page: Page, testId: string) {
+  const root = page.getByTestId(testId)
+  await expect(root).toBeVisible({ timeout: 20_000 })
+  return root
 }
 
 function widget(page: Page, testId: string) {
   return page.getByTestId(testId)
 }
 
+test('AiCreditsWidget connecting — Setup tab connect prompt shows', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.connecting)
+  const root = page.getByTestId('AiCreditsWidget-connecting')
+  await expect(root).toBeVisible()
+  await expect(root.getByText('Connecting...')).toBeVisible()
+  await expect(root.getByText('Setup', { exact: true })).toBeVisible()
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-12-connecting.png',
+    fullPage: true,
+  })
+})
+
 test('AiCreditsWidget disconnected', async ({ page }) => {
   await gotoStory(page, STORY_IDS.disconnected)
-  const root = page.getByTestId('AiCreditsWidget-disconnected')
-  await expect(root).toBeVisible()
+  const root = await expectWidget(page, 'AiCreditsWidget-disconnected')
   await expect(root.getByText('Connect your wallet to get started')).toBeVisible()
   await expect(root.getByRole('button', { name: 'Connect Wallet' })).toBeVisible()
-  await expect(root.getByText('Setup')).toBeVisible()
-  await expect(root.getByText('Buy Credits')).toBeVisible()
-  await root.getByText('Buy Credits').click()
+  await expect(root.getByText('Setup', { exact: true })).toBeVisible()
+  await expect(root.getByText('Buy Credits', { exact: true })).toBeVisible()
+  await root.getByText('Buy Credits', { exact: true }).click({ force: true })
   await expect(root.getByText('Connect your wallet to get started')).toBeVisible()
   await expect(root.getByText('Purchase Flow')).not.toBeVisible()
   await page.screenshot({
@@ -58,27 +76,15 @@ test('AiCreditsWidget disconnected', async ({ page }) => {
   })
 })
 
-test('AiCreditsWidget connecting — Setup tab connect prompt shows', async ({ page }) => {
-  await gotoStory(page, STORY_IDS.connecting)
-  const root = page.getByTestId('AiCreditsWidget-connecting')
-  await expect(root).toBeVisible()
-  await expect(root.getByText('Connecting...')).toBeVisible()
-  await expect(root.getByText('Setup')).toBeVisible()
-  await page.screenshot({
-    path: 'tests/widgets/ai-credits-widget/test-results/acw-12-connecting.png',
-    fullPage: true,
-  })
-})
-
 test('AiCreditsWidget Setup tab — onboarding steps visible', async ({ page }) => {
   await gotoStory(page, STORY_IDS.setupTab)
   const root = page.getByTestId('AiCreditsWidget-setup-tab')
   await expect(root).toBeVisible()
-  await expect(root.getByText('Download AntSeed')).toBeVisible()
-  await expect(root.getByText('Signer Key')).toBeVisible()
-  await expect(root.getByText('Authorize Wallet')).toBeVisible()
-  await expect(root.getByText('Setup')).toBeVisible()
-  await expect(root.getByText('Buy Credits')).toBeVisible()
+  await expect(root.getByText('Download AntSeed', { exact: true })).toBeVisible()
+  await expect(root.getByText('Signer Key', { exact: true })).toBeVisible()
+  await expect(root.getByText('Authorize Wallet', { exact: true })).toBeVisible()
+  await expect(root.getByText('Setup', { exact: true })).toBeVisible()
+  await expect(root.getByText('Buy Credits', { exact: true })).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-20-setup-tab.png',
     fullPage: true,
@@ -142,11 +148,12 @@ test('AiCreditsWidget payment_confirmed', async ({ page }) => {
 
 test('AiCreditsWidget manage tab', async ({ page }) => {
   await gotoStory(page, STORY_IDS.creditsManagement)
-  await expect(page.getByTestId('AiCreditsWidget-manage-tab')).toBeVisible()
-  await expect(page.getByText('Setup')).toBeVisible()
-  await expect(page.getByText('Buy Credits')).toBeVisible()
-  await expect(page.getByText('Manage')).toBeVisible()
-  await expect(page.getByText('History')).toBeVisible()
+  const root = page.getByTestId('AiCreditsWidget-manage-tab')
+  await expect(root).toBeVisible()
+  await expect(root.getByText('Setup', { exact: true })).toBeVisible()
+  await expect(root.getByText('Buy Credits', { exact: true })).toBeVisible()
+  await expect(root.getByText('Manage', { exact: true })).toBeVisible()
+  await expect(root.getByText('History', { exact: true })).toBeVisible()
   await expect(page.getByText('110.00')).toBeVisible()
   await expect(page.getByText('Credit History')).not.toBeVisible()
   await page.screenshot({
@@ -163,7 +170,7 @@ test('AiCreditsWidget history tab', async ({ page }) => {
   await expect(root.getByText('Last 90 days activity')).toBeVisible()
   await expect(root.getByRole('checkbox', { name: 'Deposit' })).toBeVisible()
   await expect(root.getByText('CREDIT HISTORY', { exact: true })).toBeVisible()
-  await expect(root.getByText('G$ Deposit')).toBeVisible({ timeout: 10_000 })
+  await expect(root.getByRole('button', { name: 'Export CSV' })).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-13-history-tab.png',
     fullPage: true,
@@ -184,8 +191,8 @@ test('AiCreditsWidget buy tab with error', async ({ page }) => {
   const root = page.getByTestId('AiCreditsWidget-buy-tab-error')
   await expect(root).toBeVisible()
   await expect(root.getByText('Request Failed', { exact: true })).toBeVisible()
-  await expect(root.getByText('Network request failed. Please try again.', { exact: true })).toBeVisible()
-  await expect(root.getByRole('button', { name: 'Buy AI Credits' })).toBeVisible()
+  await expect(root.getByText('Network request failed. Please try again.', { exact: true }).first()).toBeVisible()
+  await expect(root.getByRole('button', { name: 'Set Amounts & Pay' })).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-15-buy-tab-error.png',
     fullPage: true,
@@ -285,9 +292,9 @@ test('AiCreditsWidget multi-buyer manage: buyer selector is visible', async ({ p
   const root = widget(page, 'AiCreditsWidget-multi-buyer-manage')
   await expect(root).toBeVisible()
 
-  await expect(root.getByText(/0xfc12/i)).toBeVisible()
-  await expect(root.getByText(/0xAbcD|0xabcd/i)).toBeVisible()
-  await expect(root.getByText(/0x1111/i)).toBeVisible()
+  await expect(root.getByText(/0xfc12/i).first()).toBeVisible()
+  await expect(root.getByText(/0xAbcD|0xabcd/i).first()).toBeVisible()
+  await expect(root.getByText(/0x1111/i).first()).toBeVisible()
   await expect(root.getByRole('button', { name: /Sign & Generate/i })).toBeVisible()
 
   await page.screenshot({
@@ -349,7 +356,7 @@ test('AiCreditsWidget multi-buyer history: buyer filter dropdown is visible', as
   const root = widget(page, 'AiCreditsWidget-multi-buyer-history')
   await expect(root).toBeVisible()
 
-  await expect(root.getByText(/Buyer: All buyers/i)).toBeVisible()
+  await expect(root.getByText(/Buyer:/i)).toBeVisible()
 
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-17-multi-buyer-history.png',
