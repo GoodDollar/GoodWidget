@@ -85,4 +85,8 @@ export class MockAiCreditsChainClient implements AiCreditsChainClient {
   async getWithdrawableUsd(): Promise<string> {
     return '0'
   }
+
+  async getBuyerAuthNonce(): Promise<bigint> {
+    return 0n
+  }
 }

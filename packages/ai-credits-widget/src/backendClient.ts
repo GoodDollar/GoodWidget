@@ -52,12 +52,12 @@ function normalizeAddress(address: string): string {
 export type WithdrawPrincipalRequest = {
   amount: string
   recipient: string
-  timestamp: number
+  nonce: string
   signature: string
 }
 
 export type ChannelOperationRequest = {
-  timestamp?: number
+  nonce?: string
   signature?: string
 }
 
