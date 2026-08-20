@@ -155,6 +155,18 @@ export const StressTest: Story = {
   render: () => <LineAreaChart data={stress} title="3-Year Reserve Balance" showArea width={800} testID="LineAreaChart-stress" />,
 }
 
+/** No `width` prop — exercises the default `'100%'` responsive path against the
+ * real rendered container width, instead of a numeric literal. This is the case
+ * that was previously frozen at a hardcoded 400px viewBox regardless of the
+ * container's actual size, silently distorting the chart (see #146 QA). */
+export const Responsive: Story = {
+  render: () => (
+    <YStack width="100%" testID="LineAreaChart-responsive" data-testid="LineAreaChart-responsive">
+      <LineAreaChart data={daily} title="Daily UBI Claims (responsive)" showArea testID="LineAreaChart-responsive-chart" />
+    </YStack>
+  ),
+}
+
 /** Controllable instance — edit args in the Controls panel. */
 export const Controllable: Story = {
   args: {

@@ -16,6 +16,8 @@ import { Card } from './Card'
 import { CHART_FONT_FAMILY } from '../utils/chartFontFamily'
 import { formatMetricValue } from '../utils/formatMetricValue'
 import { resolveThemeColor } from '../utils/resolveThemeColor'
+import { computeChartScaleRatio, scaleEdgeInsets, scalePx } from '../utils/chartResponsiveScale'
+import { useMeasuredWidth } from '../hooks/useMeasuredWidth'
 
 export type BarChartVariant = 'bare' | 'card'
 export type BarChartLayout = 'vertical' | 'horizontal'
@@ -56,25 +58,29 @@ export interface BarChartProps {
  * all analytics components breathe identically. Scorecard's own constants
  * are private (not exported) and out of this task's scope to modify, so
  * these are re-declared locally, mirroring PieDonutChart's precedent.
+ *
+ * These are *base* sizes tuned for a chart rendered at REFERENCE_WIDTH_PX —
+ * BarChartContent scales them by the chart's actual measured width (see
+ * chartResponsiveScale.ts) rather than using them as fixed pixel values, so
+ * layout holds up from phone-width widgets to 4K embeds.
  */
 const CHART_BASE_SIZE_PX = 24
 const GOLDEN_RATIO = 1.618
 const MIN_FONT_SIZE_PX = 12
 const clampFontSize = (px: number): number => Math.max(px, MIN_FONT_SIZE_PX)
 
-const TITLE_SIZE_PX = clampFontSize(CHART_BASE_SIZE_PX)
-const AXIS_TITLE_SIZE_PX = clampFontSize(CHART_BASE_SIZE_PX / GOLDEN_RATIO)
-const TICK_LABEL_SIZE_PX = clampFontSize(CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2)
-const VALUE_LABEL_SIZE_PX = clampFontSize(CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2)
+const TITLE_BASE_SIZE_PX = CHART_BASE_SIZE_PX
+const AXIS_TITLE_BASE_SIZE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
+const TICK_LABEL_BASE_SIZE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2
+const VALUE_LABEL_BASE_SIZE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2
 
-const TITLE_TO_CHART_GAP_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
+const TITLE_TO_CHART_GAP_BASE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
 const CARD_PADDING_PX = CHART_BASE_SIZE_PX
 
 const DEFAULT_PADDING: BarChartPadding = { top: 16, right: 16, bottom: 40, left: 48 }
-/** Reference viewBox width used when `width` is a percentage/string — the Svg's own
- * `width` prop stays the raw string so it stretches to fill its container, while this
- * fixed coordinate space keeps bar/tick geometry math well-defined without needing a
- * cross-platform layout measurement API. */
+/** Reference width both the base sizes above and DEFAULT_PADDING were tuned against.
+ * Also the fallback viewBox width used for the single frame before a responsive
+ * (string `width`) chart's first real layout measurement arrives. */
 const REFERENCE_WIDTH_PX = 400
 
 const DESIRED_TICK_COUNT = 5
@@ -189,13 +195,16 @@ const BarChartTitleText = createComponent(TamaguiText, {
   fontFamily: '$body',
   fontWeight: '700',
   color: '$color',
-  fontSize: TITLE_SIZE_PX,
+  fontSize: TITLE_BASE_SIZE_PX,
   textAlign: 'center',
-  marginBottom: TITLE_TO_CHART_GAP_PX,
+  marginBottom: TITLE_TO_CHART_GAP_BASE_PX,
 })
 
-function mergePadding(padding: Partial<BarChartPadding> | undefined): BarChartPadding {
-  return { ...DEFAULT_PADDING, ...padding }
+/** Scales DEFAULT_PADDING to the chart's actual size, then layers an explicit
+ * per-instance `padding` override on top unscaled — an override is the caller
+ * opting out of the default for that edge, not a value we should re-scale. */
+function mergePadding(padding: Partial<BarChartPadding> | undefined, scaleRatio: number): BarChartPadding {
+  return { ...scaleEdgeInsets(DEFAULT_PADDING, scaleRatio), ...padding }
 }
 
 function BarChartContent({
@@ -224,8 +233,21 @@ function BarChartContent({
   const items = filterValidItems(data)
   const isEmpty = items.length === 0
 
-  const viewBoxWidth = typeof width === 'number' ? width : REFERENCE_WIDTH_PX
-  const resolvedPadding = mergePadding(padding)
+  // A string `width` (e.g. the default "100%") only tells the SVG element itself how
+  // to stretch — it carries no pixel value we can lay bars out against, so that case
+  // needs the frame's real rendered width measured via onLayout instead.
+  const isResponsiveWidth = typeof width !== 'number'
+  const { measuredWidthPx, onLayout } = useMeasuredWidth(REFERENCE_WIDTH_PX)
+  const viewBoxWidth = isResponsiveWidth ? measuredWidthPx : width
+
+  const scaleRatio = computeChartScaleRatio(viewBoxWidth, REFERENCE_WIDTH_PX)
+  const titleSizePx = clampFontSize(scalePx(TITLE_BASE_SIZE_PX, scaleRatio))
+  const titleToChartGapPx = scalePx(TITLE_TO_CHART_GAP_BASE_PX, scaleRatio)
+  const axisTitleSizePx = clampFontSize(scalePx(AXIS_TITLE_BASE_SIZE_PX, scaleRatio))
+  const tickLabelSizePx = clampFontSize(scalePx(TICK_LABEL_BASE_SIZE_PX, scaleRatio))
+  const valueLabelSizePx = clampFontSize(scalePx(VALUE_LABEL_BASE_SIZE_PX, scaleRatio))
+
+  const resolvedPadding = mergePadding(padding, scaleRatio)
   const plotWidth = viewBoxWidth - resolvedPadding.left - resolvedPadding.right
   const plotHeight = height - resolvedPadding.top - resolvedPadding.bottom
 
@@ -246,8 +268,17 @@ function BarChartContent({
   const zeroOffset = valueToPixel(0, isVertical ? plotHeight : plotWidth)
 
   return (
-    <BarChartFrame testID={testID} data-testid={testID}>
-      {title ? <BarChartTitleText>{title}</BarChartTitleText> : null}
+    <BarChartFrame
+      testID={testID}
+      data-testid={testID}
+      width={isResponsiveWidth ? '100%' : undefined}
+      onLayout={onLayout}
+    >
+      {title ? (
+        <BarChartTitleText fontSize={titleSizePx} marginBottom={titleToChartGapPx}>
+          {title}
+        </BarChartTitleText>
+      ) : null}
       <Svg
         width={width}
         height={height}
@@ -270,7 +301,7 @@ function BarChartContent({
             <SvgText
               x={resolvedPadding.left + plotWidth / 2}
               y={resolvedPadding.top + plotHeight / 2}
-              fontSize={TICK_LABEL_SIZE_PX} fontFamily={CHART_FONT_FAMILY}
+              fontSize={tickLabelSizePx} fontFamily={CHART_FONT_FAMILY}
               fill={axisLabelColor}
               textAnchor="middle"
             >
@@ -324,7 +355,7 @@ function BarChartContent({
                     key={tick}
                     x={resolvedPadding.left - 8}
                     y={resolvedPadding.top + plotHeight - tickOffset}
-                    fontSize={TICK_LABEL_SIZE_PX} fontFamily={CHART_FONT_FAMILY}
+                    fontSize={tickLabelSizePx} fontFamily={CHART_FONT_FAMILY}
                     fill={axisLabelColor}
                     textAnchor="end"
                     alignmentBaseline="middle"
@@ -336,7 +367,7 @@ function BarChartContent({
                     key={tick}
                     x={resolvedPadding.left + tickOffset}
                     y={resolvedPadding.top + plotHeight + 16}
-                    fontSize={TICK_LABEL_SIZE_PX} fontFamily={CHART_FONT_FAMILY}
+                    fontSize={tickLabelSizePx} fontFamily={CHART_FONT_FAMILY}
                     fill={axisLabelColor}
                     textAnchor="middle"
                   >
@@ -356,7 +387,7 @@ function BarChartContent({
                 const baselineY = resolvedPadding.top + plotHeight - zeroOffset
                 const barY = isPositive ? baselineY - barLength : baselineY
                 const barHeight = Math.abs(barLength)
-                const categoryLabel = truncateLabelToWidth(item.category, barThickness, TICK_LABEL_SIZE_PX)
+                const categoryLabel = truncateLabelToWidth(item.category, barThickness, tickLabelSizePx)
 
                 return (
                   <G key={`${item.category}-${index}`}>
@@ -369,7 +400,7 @@ function BarChartContent({
                     <SvgText
                       x={slotStart + slotSize / 2}
                       y={resolvedPadding.top + plotHeight + 16}
-                      fontSize={TICK_LABEL_SIZE_PX} fontFamily={CHART_FONT_FAMILY}
+                      fontSize={tickLabelSizePx} fontFamily={CHART_FONT_FAMILY}
                       fill={axisLabelColor}
                       textAnchor="middle"
                       accessible={false}
@@ -379,8 +410,8 @@ function BarChartContent({
                     {showValueLabels && barHeight >= MIN_BAR_LENGTH_FOR_VALUE_LABEL_PX ? (
                       <SvgText
                         x={slotStart + slotSize / 2}
-                        y={isPositive ? barY - VALUE_LABEL_GAP_PX : barY + barHeight + VALUE_LABEL_GAP_PX + VALUE_LABEL_SIZE_PX}
-                        fontSize={VALUE_LABEL_SIZE_PX} fontFamily={CHART_FONT_FAMILY}
+                        y={isPositive ? barY - VALUE_LABEL_GAP_PX : barY + barHeight + VALUE_LABEL_GAP_PX + valueLabelSizePx}
+                        fontSize={valueLabelSizePx} fontFamily={CHART_FONT_FAMILY}
                         fill={textColor}
                         textAnchor="middle"
                         accessible={false}
@@ -398,7 +429,7 @@ function BarChartContent({
               const barX = isPositive ? baselineX : baselineX - Math.abs(barLength)
               const barWidth = Math.abs(barLength)
               const categoryLabelMaxWidth = resolvedPadding.left - 12
-              const categoryLabel = truncateLabelToWidth(item.category, categoryLabelMaxWidth, TICK_LABEL_SIZE_PX)
+              const categoryLabel = truncateLabelToWidth(item.category, categoryLabelMaxWidth, tickLabelSizePx)
 
               return (
                 <G key={`${item.category}-${index}`}>
@@ -411,7 +442,7 @@ function BarChartContent({
                   <SvgText
                     x={resolvedPadding.left - 8}
                     y={slotStart + slotSize / 2}
-                    fontSize={TICK_LABEL_SIZE_PX} fontFamily={CHART_FONT_FAMILY}
+                    fontSize={tickLabelSizePx} fontFamily={CHART_FONT_FAMILY}
                     fill={axisLabelColor}
                     textAnchor="end"
                     alignmentBaseline="middle"
@@ -423,7 +454,7 @@ function BarChartContent({
                     <SvgText
                       x={isPositive ? barX + barWidth + VALUE_LABEL_GAP_PX : barX - VALUE_LABEL_GAP_PX}
                       y={slotStart + slotSize / 2}
-                      fontSize={VALUE_LABEL_SIZE_PX} fontFamily={CHART_FONT_FAMILY}
+                      fontSize={valueLabelSizePx} fontFamily={CHART_FONT_FAMILY}
                       fill={textColor}
                       textAnchor={isPositive ? 'start' : 'end'}
                       alignmentBaseline="middle"
@@ -442,7 +473,7 @@ function BarChartContent({
           <SvgText
             x={resolvedPadding.left + plotWidth / 2}
             y={height - 6}
-            fontSize={AXIS_TITLE_SIZE_PX} fontFamily={CHART_FONT_FAMILY}
+            fontSize={axisTitleSizePx} fontFamily={CHART_FONT_FAMILY}
             fill={axisLabelColor}
             textAnchor="middle"
             accessible={false}
@@ -454,7 +485,7 @@ function BarChartContent({
           <SvgText
             x={12}
             y={resolvedPadding.top + plotHeight / 2}
-            fontSize={AXIS_TITLE_SIZE_PX} fontFamily={CHART_FONT_FAMILY}
+            fontSize={axisTitleSizePx} fontFamily={CHART_FONT_FAMILY}
             fill={axisLabelColor}
             textAnchor="middle"
             rotation={-90}

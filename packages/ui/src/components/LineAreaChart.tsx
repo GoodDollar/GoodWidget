@@ -18,6 +18,8 @@ import { Card } from './Card'
 import { CHART_FONT_FAMILY } from '../utils/chartFontFamily'
 import { formatMetricValue } from '../utils/formatMetricValue'
 import { resolveThemeColor } from '../utils/resolveThemeColor'
+import { computeChartScaleRatio, scaleEdgeInsets, scalePx } from '../utils/chartResponsiveScale'
+import { useMeasuredWidth } from '../hooks/useMeasuredWidth'
 
 export type LineAreaChartVariant = 'bare' | 'card'
 export type LineAreaChartInterpolation = 'linear' | 'monotone' | 'step'
@@ -87,20 +89,25 @@ export interface LineAreaChartProps {
  * are private (not exported) and out of this task's scope to modify, so
  * these are re-declared locally rather than imported (same as PieDonutChart
  * and BarChart before it).
+ *
+ * These are *base* sizes tuned for a chart rendered at REFERENCE_WIDTH_PX —
+ * LineAreaChartContent scales them by the chart's actual measured width (see
+ * chartResponsiveScale.ts) rather than using them as fixed pixel values, so
+ * layout holds up from phone-width widgets to 4K embeds.
  */
 const CHART_BASE_SIZE_PX = 24
 const GOLDEN_RATIO = 1.618
 const MIN_FONT_SIZE_PX = 12
 const clampFontSize = (px: number): number => Math.max(px, MIN_FONT_SIZE_PX)
 
-const TITLE_SIZE_PX = clampFontSize(CHART_BASE_SIZE_PX)
-const AXIS_TITLE_SIZE_PX = clampFontSize(CHART_BASE_SIZE_PX / GOLDEN_RATIO)
-const TICK_LABEL_SIZE_PX = clampFontSize(CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2)
-const REFERENCE_LABEL_SIZE_PX = clampFontSize(CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2)
-const LEGEND_LABEL_SIZE_PX = clampFontSize(CHART_BASE_SIZE_PX / GOLDEN_RATIO)
+const TITLE_BASE_SIZE_PX = CHART_BASE_SIZE_PX
+const AXIS_TITLE_BASE_SIZE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
+const TICK_LABEL_BASE_SIZE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2
+const REFERENCE_LABEL_BASE_SIZE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2
+const LEGEND_LABEL_BASE_SIZE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
 
-const TITLE_TO_CHART_GAP_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
-const CHART_TO_LEGEND_GAP_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
+const TITLE_TO_CHART_GAP_BASE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
+const CHART_TO_LEGEND_GAP_BASE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
 const CARD_PADDING_PX = CHART_BASE_SIZE_PX
 
 /** Multi-category palette, resolved to raw colors via useTheme() at render time. */
@@ -108,7 +115,10 @@ const CHART_COLOR_KEYS = ['primary', 'success', 'warning', 'colorDim', 'error'] 
 
 const DEFAULT_PADDING: LineAreaChartPadding = { top: 16, right: 16, bottom: 40, left: 48 }
 // Mirrors DEFAULT_PADDING.left — secondary-axis tick labels need the same room on the right that primary labels get on the left.
-const SECONDARY_AXIS_RIGHT_PADDING_PX = 48
+const SECONDARY_AXIS_RIGHT_PADDING_BASE_PX = 48
+/** Reference width both the base sizes above and DEFAULT_PADDING were tuned against.
+ * Also the fallback viewBox width used for the single frame before a responsive
+ * (string `width`) chart's first real layout measurement arrives. */
 const REFERENCE_WIDTH_PX = 400
 
 const DESIRED_TICK_COUNT = 5
@@ -375,8 +385,13 @@ function computeLabelSkipFactor(categoryCount: number, plotWidth: number, labelS
   return Math.max(1, Math.ceil(categoryCount / maxLabels))
 }
 
-function mergePadding(padding: Partial<LineAreaChartPadding> | undefined, hasSecondaryAxis: boolean): LineAreaChartPadding {
-  const defaults = hasSecondaryAxis ? { ...DEFAULT_PADDING, right: SECONDARY_AXIS_RIGHT_PADDING_PX } : DEFAULT_PADDING
+/** Scales DEFAULT_PADDING (and the secondary-axis right-padding override) to the
+ * chart's actual size, then layers an explicit per-instance `padding` override on
+ * top unscaled — an override is the caller opting out of the default for that
+ * edge, not a value we should re-scale. */
+function mergePadding(padding: Partial<LineAreaChartPadding> | undefined, hasSecondaryAxis: boolean, scaleRatio: number): LineAreaChartPadding {
+  const scaledDefaults = scaleEdgeInsets(DEFAULT_PADDING, scaleRatio)
+  const defaults = hasSecondaryAxis ? { ...scaledDefaults, right: scalePx(SECONDARY_AXIS_RIGHT_PADDING_BASE_PX, scaleRatio) } : scaledDefaults
   return { ...defaults, ...padding }
 }
 
@@ -390,16 +405,16 @@ const LineAreaTitleText = createComponent(TamaguiText, {
   fontFamily: '$body',
   fontWeight: '700',
   color: '$color',
-  fontSize: TITLE_SIZE_PX,
+  fontSize: TITLE_BASE_SIZE_PX,
   textAlign: 'center',
-  marginBottom: TITLE_TO_CHART_GAP_PX,
+  marginBottom: TITLE_TO_CHART_GAP_BASE_PX,
 })
 
 const LineAreaLegendLabelText = createComponent(TamaguiText, {
   name: 'LineAreaChartLegendLabelText',
   fontFamily: '$body',
   color: '$color',
-  fontSize: LEGEND_LABEL_SIZE_PX,
+  fontSize: LEGEND_LABEL_BASE_SIZE_PX,
 })
 
 const LineAreaSwatch = createComponent(YStack, {
@@ -409,13 +424,13 @@ const LineAreaSwatch = createComponent(YStack, {
   borderRadius: '$full',
 })
 
-function LineAreaLegend({ seriesList }: { seriesList: ResolvedSeries[] }) {
+function LineAreaLegend({ seriesList, legendLabelSizePx }: { seriesList: ResolvedSeries[]; legendLabelSizePx: number }) {
   return (
     <XStack gap="$4" flexWrap="wrap" justifyContent="center">
       {seriesList.map((series) => (
         <XStack key={series.key} alignItems="center" gap="$2">
           <LineAreaSwatch backgroundColor={series.color} />
-          <LineAreaLegendLabelText>{series.label}</LineAreaLegendLabelText>
+          <LineAreaLegendLabelText fontSize={legendLabelSizePx}>{series.label}</LineAreaLegendLabelText>
         </XStack>
       ))}
     </XStack>
@@ -466,8 +481,23 @@ function LineAreaChartContent({
   const primaryScale = computeNiceAxisScale(primaryValues.length > 0 ? primaryValues : referenceLines.map((line) => line.value), yAxisDomain)
   const secondaryScale = secondaryValues.length > 0 ? computeNiceAxisScale(secondaryValues) : null
 
-  const viewBoxWidth = typeof width === 'number' ? width : REFERENCE_WIDTH_PX
-  const resolvedPadding = mergePadding(padding, secondaryScale !== null)
+  // A string `width` (e.g. the default "100%") only tells the SVG element itself how
+  // to stretch — it carries no pixel value we can lay points out against, so that case
+  // needs the frame's real rendered width measured via onLayout instead.
+  const isResponsiveWidth = typeof width !== 'number'
+  const { measuredWidthPx, onLayout } = useMeasuredWidth(REFERENCE_WIDTH_PX)
+  const viewBoxWidth = isResponsiveWidth ? measuredWidthPx : width
+
+  const scaleRatio = computeChartScaleRatio(viewBoxWidth, REFERENCE_WIDTH_PX)
+  const titleSizePx = clampFontSize(scalePx(TITLE_BASE_SIZE_PX, scaleRatio))
+  const titleToChartGapPx = scalePx(TITLE_TO_CHART_GAP_BASE_PX, scaleRatio)
+  const chartToLegendGapPx = scalePx(CHART_TO_LEGEND_GAP_BASE_PX, scaleRatio)
+  const axisTitleSizePx = clampFontSize(scalePx(AXIS_TITLE_BASE_SIZE_PX, scaleRatio))
+  const tickLabelSizePx = clampFontSize(scalePx(TICK_LABEL_BASE_SIZE_PX, scaleRatio))
+  const referenceLabelSizePx = clampFontSize(scalePx(REFERENCE_LABEL_BASE_SIZE_PX, scaleRatio))
+  const legendLabelSizePx = clampFontSize(scalePx(LEGEND_LABEL_BASE_SIZE_PX, scaleRatio))
+
+  const resolvedPadding = mergePadding(padding, secondaryScale !== null, scaleRatio)
   const plotWidth = viewBoxWidth - resolvedPadding.left - resolvedPadding.right
   const plotHeight = height - resolvedPadding.top - resolvedPadding.bottom
 
@@ -484,15 +514,19 @@ function LineAreaChartContent({
 
   // Base the skip factor on the widest *formatted* label actually in use (e.g. full ISO dates), not a fixed short-label guess.
   const widestXLabelWidthPx = xCategories.reduce<number>(
-    (widest, category) => Math.max(widest, estimateTextWidthPx(xAxisFormatter(category), TICK_LABEL_SIZE_PX)),
+    (widest, category) => Math.max(widest, estimateTextWidthPx(xAxisFormatter(category), tickLabelSizePx)),
     X_LABEL_APPROX_WIDTH_PX,
   )
   const labelSkipFactor = computeLabelSkipFactor(categoryCount, plotWidth, widestXLabelWidthPx + X_LABEL_GAP_PX)
   const xLabelSlotWidthPx = (plotWidth / Math.max(1, categoryCount - 1)) * labelSkipFactor
 
   return (
-    <LineAreaFrame testID={testID} data-testid={testID}>
-      {title ? <LineAreaTitleText>{title}</LineAreaTitleText> : null}
+    <LineAreaFrame testID={testID} data-testid={testID} width={isResponsiveWidth ? '100%' : undefined} onLayout={onLayout}>
+      {title ? (
+        <LineAreaTitleText fontSize={titleSizePx} marginBottom={titleToChartGapPx}>
+          {title}
+        </LineAreaTitleText>
+      ) : null}
       <Svg
         width={width}
         height={height}
@@ -524,7 +558,7 @@ function LineAreaChartContent({
             <SvgText
               x={resolvedPadding.left + plotWidth / 2}
               y={resolvedPadding.top + plotHeight / 2}
-              fontSize={TICK_LABEL_SIZE_PX} fontFamily={CHART_FONT_FAMILY}
+              fontSize={tickLabelSizePx} fontFamily={CHART_FONT_FAMILY}
               fill={axisLabelColor}
               textAnchor="middle"
             >
@@ -557,7 +591,7 @@ function LineAreaChartContent({
 
             <G accessible={false}>
               {primaryScale.ticks.map((tick) => (
-                <SvgText key={tick} x={-8} y={yPixelForValue(tick, primaryScale)} fontSize={TICK_LABEL_SIZE_PX} fontFamily={CHART_FONT_FAMILY} fill={axisLabelColor} textAnchor="end" alignmentBaseline="middle">
+                <SvgText key={tick} x={-8} y={yPixelForValue(tick, primaryScale)} fontSize={tickLabelSizePx} fontFamily={CHART_FONT_FAMILY} fill={axisLabelColor} textAnchor="end" alignmentBaseline="middle">
                   {yAxisFormatter(tick)}
                 </SvgText>
               ))}
@@ -567,7 +601,7 @@ function LineAreaChartContent({
                       key={tick}
                       x={plotWidth + 8}
                       y={yPixelForValue(tick, secondaryScale)}
-                      fontSize={TICK_LABEL_SIZE_PX} fontFamily={CHART_FONT_FAMILY}
+                      fontSize={tickLabelSizePx} fontFamily={CHART_FONT_FAMILY}
                       fill={secondarySeries?.color ?? axisLabelColor}
                       textAnchor="start"
                       alignmentBaseline="middle"
@@ -587,8 +621,8 @@ function LineAreaChartContent({
                 const labelX = isNearLeftEdge ? 0 : isNearRightEdge ? plotWidth : xPixel
 
                 return (
-                  <SvgText key={String(category)} x={labelX} y={plotHeight + 16} fontSize={TICK_LABEL_SIZE_PX} fontFamily={CHART_FONT_FAMILY} fill={axisLabelColor} textAnchor={textAnchor}>
-                    {truncateLabelToWidth(xAxisFormatter(category), xLabelSlotWidthPx, TICK_LABEL_SIZE_PX)}
+                  <SvgText key={String(category)} x={labelX} y={plotHeight + 16} fontSize={tickLabelSizePx} fontFamily={CHART_FONT_FAMILY} fill={axisLabelColor} textAnchor={textAnchor}>
+                    {truncateLabelToWidth(xAxisFormatter(category), xLabelSlotWidthPx, tickLabelSizePx)}
                   </SvgText>
                 )
               })}
@@ -602,7 +636,7 @@ function LineAreaChartContent({
                   <G key={`${line.value}-${index}`}>
                     <Line x1={0} y1={lineY} x2={plotWidth} y2={lineY} stroke={lineColor} strokeWidth={1} />
                     {line.label ? (
-                      <SvgText x={plotWidth} y={lineY - 4} fontSize={REFERENCE_LABEL_SIZE_PX} fontFamily={CHART_FONT_FAMILY} fill={lineColor} textAnchor="end">
+                      <SvgText x={plotWidth} y={lineY - 4} fontSize={referenceLabelSizePx} fontFamily={CHART_FONT_FAMILY} fill={lineColor} textAnchor="end">
                         {line.label}
                       </SvgText>
                     ) : null}
@@ -679,7 +713,7 @@ function LineAreaChartContent({
         )}
 
         {xAxisLabel ? (
-          <SvgText x={resolvedPadding.left + plotWidth / 2} y={height - 6} fontSize={AXIS_TITLE_SIZE_PX} fontFamily={CHART_FONT_FAMILY} fill={axisLabelColor} textAnchor="middle" accessible={false}>
+          <SvgText x={resolvedPadding.left + plotWidth / 2} y={height - 6} fontSize={axisTitleSizePx} fontFamily={CHART_FONT_FAMILY} fill={axisLabelColor} textAnchor="middle" accessible={false}>
             {xAxisLabel}
           </SvgText>
         ) : null}
@@ -687,7 +721,7 @@ function LineAreaChartContent({
           <SvgText
             x={12}
             y={resolvedPadding.top + plotHeight / 2}
-            fontSize={AXIS_TITLE_SIZE_PX} fontFamily={CHART_FONT_FAMILY}
+            fontSize={axisTitleSizePx} fontFamily={CHART_FONT_FAMILY}
             fill={axisLabelColor}
             textAnchor="middle"
             rotation={-90}
@@ -699,8 +733,8 @@ function LineAreaChartContent({
         ) : null}
       </Svg>
       {resolvedSeriesList.length > 1 && !isEmpty ? (
-        <YStack marginTop={CHART_TO_LEGEND_GAP_PX} width="100%">
-          <LineAreaLegend seriesList={resolvedSeriesList} />
+        <YStack marginTop={chartToLegendGapPx} width="100%">
+          <LineAreaLegend seriesList={resolvedSeriesList} legendLabelSizePx={legendLabelSizePx} />
         </YStack>
       ) : null}
     </LineAreaFrame>

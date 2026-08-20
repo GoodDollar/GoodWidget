@@ -204,6 +204,21 @@ test('BarChart/StressTest story renders 150 categories without crashing', async 
   await screenshotStory(page, 'tests/design-system/test-results/story-barchart-stress.png')
 })
 
+test('BarChart/Responsive story scales its viewBox to the real container width, not a fixed fallback', async ({ page }) => {
+  // Regression guard for the responsive-width distortion bug: the default `width='100%'`
+  // path used to freeze the SVG viewBox at a hardcoded 400px regardless of real size.
+  await page.setViewportSize({ width: 1280, height: 700 })
+  await gotoStory(page, 'design-system-primitives-barchart--responsive')
+  const frame = getStoryFrame(page)
+  const chart = frame.getByTestId('BarChart-responsive-chart')
+  await expect(chart).toBeVisible()
+  const svg = chart.locator('svg').first()
+  const viewBoxWidth = Number((await svg.getAttribute('viewBox'))?.split(' ')[2])
+  const renderedWidth = (await svg.boundingBox())?.width ?? 0
+  expect(Math.abs(viewBoxWidth - renderedWidth)).toBeLessThan(2)
+  await screenshotStory(page, 'tests/design-system/test-results/story-barchart-responsive.png')
+})
+
 test('LineAreaChart/Default story renders area fill, reference line, linear and monotone variants', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 700 })
   await gotoStory(page, 'design-system-primitives-lineareachart--default')
@@ -265,6 +280,21 @@ test('LineAreaChart/StressTest story renders 1095 daily points without crashing'
   const chart = frame.getByTestId('LineAreaChart-stress')
   await expect(chart).toBeVisible()
   await screenshotStory(page, 'tests/design-system/test-results/story-lineareachart-stress.png')
+})
+
+test('LineAreaChart/Responsive story scales its viewBox to the real container width, not a fixed fallback', async ({ page }) => {
+  // Regression guard for the responsive-width distortion bug: the default `width='100%'`
+  // path used to freeze the SVG viewBox at a hardcoded 400px regardless of real size.
+  await page.setViewportSize({ width: 1280, height: 700 })
+  await gotoStory(page, 'design-system-primitives-lineareachart--responsive')
+  const frame = getStoryFrame(page)
+  const chart = frame.getByTestId('LineAreaChart-responsive-chart')
+  await expect(chart).toBeVisible()
+  const svg = chart.locator('svg').first()
+  const viewBoxWidth = Number((await svg.getAttribute('viewBox'))?.split(' ')[2])
+  const renderedWidth = (await svg.boundingBox())?.width ?? 0
+  expect(Math.abs(viewBoxWidth - renderedWidth)).toBeLessThan(2)
+  await screenshotStory(page, 'tests/design-system/test-results/story-lineareachart-responsive.png')
 })
 
 test('DataTable/Default story renders wallets with sortable headers, bare and card variants', async ({ page }) => {
