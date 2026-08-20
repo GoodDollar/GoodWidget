@@ -1,0 +1,69 @@
+name: Playwright Demo Tests
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/playwright-demo-tests.yml'
+      - 'examples/storybook/**'
+      - 'packages/**'
+      - 'playwright.config.ts'
+      - 'tests/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/playwright-demo-tests.yml'
+      - 'examples/storybook/**'
+      - 'packages/**'
+      - 'playwright.config.ts'
+      - 'tests/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+
+permissions:
+  contents: read
+
+jobs:
+  playwright-demo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm run build
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install chromium --with-deps
+
+      - name: Run Playwright demo tests
+        run: pnpm test:demo
+
+      - name: Upload Playwright artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-demo-artifacts
+          path: |
+            playwright-report
+            test-results
