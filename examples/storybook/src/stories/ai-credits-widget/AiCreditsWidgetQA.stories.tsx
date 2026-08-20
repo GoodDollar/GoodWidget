@@ -121,6 +121,16 @@ export const MultiBuyerHistory: Story = {
 
 export const SetupTab: Story = {
   render: () => <SetupTabStory />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const root = canvas.getByTestId('AiCreditsWidget-setup-tab')
+    const downloadLink = within(root).getByRole('link', { name: /download antseed vpr\/desktop/i })
+
+    await expect(downloadLink).toHaveAttribute(
+      'href',
+      'https://github.com/AntSeed/antseed/releases/latest',
+    )
+  },
 }
 
 export const AppKitConnectWallet: Story = {
