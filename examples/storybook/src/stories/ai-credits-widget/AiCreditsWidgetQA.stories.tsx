@@ -21,6 +21,9 @@ import {
   DeepLinkBuyerStory,
   DeepLinkConsentPendingStory,
   MultiBuyerHistoryStory,
+  GuidanceCardDefaultStory,
+  GuidanceCardHowToUseStory,
+  GuidanceCardFaqStory,
 } from '../helpers/aiCreditsWidgetStories'
 
 const meta: Meta<typeof AiCreditsWidget> = {
@@ -136,5 +139,34 @@ export const AppKitConnectWallet: Story = {
     await waitFor(() => {
       expect(document.body.querySelector('w3m-modal.open')).toBeTruthy()
     })
+  },
+}
+
+/** Guidance card default state above the buy tab. */
+export const GuidanceCardDefault: Story = {
+  render: () => <GuidanceCardDefaultStory />,
+}
+
+/** Guidance card with How to use view open in buy tab content area. */
+export const GuidanceCardHowToUse: Story = {
+  render: () => <GuidanceCardHowToUseStory />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const root = canvas.getByTestId('AiCreditsWidget-guidance-how-to-use')
+    const howToUseButton = within(root).getByRole('button', { name: /how to use/i })
+    await userEvent.click(howToUseButton)
+    await expect(within(root).getByText(/back to buying/i)).toBeVisible()
+  },
+}
+
+/** Guidance card with FAQ view open in buy tab content area. */
+export const GuidanceCardFaq: Story = {
+  render: () => <GuidanceCardFaqStory />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const root = canvas.getByTestId('AiCreditsWidget-guidance-faq')
+    const faqButton = within(root).getByRole('button', { name: /faqs/i })
+    await userEvent.click(faqButton)
+    await expect(within(root).getByText(/back to buying/i)).toBeVisible()
   },
 }

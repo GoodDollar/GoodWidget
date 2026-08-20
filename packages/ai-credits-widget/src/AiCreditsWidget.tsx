@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { GoodWidgetProvider } from '@goodwidget/core'
 import type { EIP1193Provider } from '@goodwidget/core'
 import {
@@ -28,6 +28,9 @@ import {
   BuyerOperatorCard,
   SetupSnippet,
   HistoryTab,
+  SetupGuidanceCard,
+  HowToUseView,
+  SetupFaqView,
 } from './components'
 import type {
   AiCreditsWidgetProps,
@@ -364,16 +367,41 @@ function AiCreditsInner({
     [actions, state.error],
   )
 
+  const [helpView, setHelpView] = useState<'how-to-use' | 'faq' | null>(null)
+
   const isPending = state.status === 'payment_pending' || state.status === 'payment_confirmed'
 
   const handleTabChange = useCallback(
     (tabId: string) => {
+      // Clear the help view when switching away from the buy tab.
+      if (tabId !== 'buy') {
+        setHelpView(null)
+      }
       actions.setActiveTab(tabId as AiCreditsWidgetTab)
     },
     [actions],
   )
 
-  const buyPanel = (
+  /** Activates a help view and ensures the buy tab is selected. */
+  const handleHelpViewOpen = useCallback(
+    (view: 'how-to-use' | 'faq') => {
+      actions.setActiveTab('buy')
+      setHelpView(view)
+    },
+    [actions],
+  )
+
+  /** Returns from the help view back to the normal buy content. */
+  const handleHelpViewClose = useCallback(() => {
+    setHelpView(null)
+  }, [])
+
+  /** Buy tab content: shows a help view when one is active, otherwise the purchase flow. */
+  const buyPanel = helpView === 'how-to-use' ? (
+    <HowToUseView onBack={handleHelpViewClose} />
+  ) : helpView === 'faq' ? (
+    <SetupFaqView onBack={handleHelpViewClose} />
+  ) : (
     <BuyCreditsPanel
       state={state}
       actions={actions}
@@ -394,6 +422,12 @@ function AiCreditsInner({
 
   return (
     <YStack gap="$3" padding="$3" width="100%">
+      {/* Guidance card is always rendered above the tab navigation when connected. */}
+      <SetupGuidanceCard
+        activeHelpView={helpView}
+        onHowToUse={() => { handleHelpViewOpen('how-to-use') }}
+        onFaq={() => { handleHelpViewOpen('faq') }}
+      />
       <WidgetTabs
         tabs={[
           { id: 'buy', label: 'Buy Credits' },
