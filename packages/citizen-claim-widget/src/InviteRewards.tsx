@@ -20,11 +20,15 @@ import { decodeInviteCode, formatInviteBounty, useInviteRuntime } from './invite
 import { canAttachInviter, hasCollectableInvitees, isInviteeCollectable } from './inviteRules'
 
 /**
- * "How it works" — mirrors GoodWallet's InviteView, which opens the explainer
- * in a Drawer from an inline info-icon link rather than showing it inline.
+ * "How it works" — mirrors GoodWallet's InviteView steps. Copy is hardcoded here
+ * (English-only, kept simple for now); minimumDays/minimumClaims are the only
+ * parts that must stay accurate, so those come from InvitesV2 via
+ * `state.minimums` (InviteSDK.getMinimums()) rather than being hardcoded too.
  */
 function HowItWorksDrawer() {
+  const { state } = useInviteRuntime()
   const [open, setOpen] = useState(false)
+  const { minimums } = state
 
   return (
     <>
@@ -37,12 +41,16 @@ function HowItWorksDrawer() {
       <Drawer open={open} onClose={() => setOpen(false)}>
         <YStack gap="$4">
           <Heading level={3}>How it works</Heading>
-          <Text secondary>1. Share your code.</Text>
-          <Text secondary>2. Your friend joins and claims.</Text>
+          <Text secondary>1. Share your personal invite link with your friends.</Text>
           <Text secondary>
-            3. After identity, claim-day, and minimum-claim requirements are met, collect your
-            reward.
+            2. Make sure they sign up and complete{' '}
+            {minimums ? minimums.minimumClaims : 'the required number of'} claims.
           </Text>
+          <Text secondary>
+            3. After {minimums ? minimums.minimumDays : 'the required number of'} days, the
+            invite reward becomes available for them to claim.
+          </Text>
+          <Text secondary>4. When they claim it, both of you receive the reward.</Text>
           <Button fullWidth onPress={() => setOpen(false)}>
             <ButtonText>Close</ButtonText>
           </Button>
