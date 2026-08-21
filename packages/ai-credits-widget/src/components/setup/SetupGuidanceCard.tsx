@@ -1,5 +1,6 @@
 import React from 'react'
 import { Anchor, Button, ButtonText, Icon, Separator, Text, XStack, YStack } from '@goodwidget/ui'
+import { SetupBonusHighlight } from './SetupBonusHighlight'
 
 /** URL for the AntSeed website, opened in a new browser tab. */
 const ANTSEED_SITE_URL = 'https://antseed.com'
@@ -11,6 +12,12 @@ interface SetupGuidanceCardProps {
   onFaq: () => void
   /** Which help view is currently active, used to highlight the active button. */
   activeHelpView: 'how-to-use' | 'faq' | null
+  /** Bonus applied to one-time deposits, in percent. */
+  depositBonusPercent: number
+  /** Bonus applied to monthly streams, in percent. */
+  streamBonusPercent: number
+  /** Whether the connected wallet is GoodID verified. */
+  isGoodIdVerified: boolean
 }
 
 /**
@@ -20,11 +27,29 @@ interface SetupGuidanceCardProps {
  *   - AntSeed site (external link)
  *   - FAQs (in-widget FAQ)
  */
-export function SetupGuidanceCard({ onHowToUse, onFaq, activeHelpView }: SetupGuidanceCardProps) {
+export function SetupGuidanceCard({
+  onHowToUse,
+  onFaq,
+  activeHelpView,
+  depositBonusPercent,
+  streamBonusPercent,
+  isGoodIdVerified,
+}: SetupGuidanceCardProps) {
   return (
     // Rendered flush on the widget background — no card surface, so it reads as
     // part of the header rather than a separate panel.
     <YStack gap="$3" paddingHorizontal="$1">
+      {/* Tagline */}
+      <Text fontSize="$3" secondary lineHeight="$4">
+        Buy AI credits with G$ for Claude Code, Codex, chat &amp; other AI tools.
+      </Text>
+
+      <SetupBonusHighlight
+        depositBonusPercent={depositBonusPercent}
+        streamBonusPercent={streamBonusPercent}
+        isGoodIdVerified={isGoodIdVerified}
+      />
+
       {/* WHAT'S INVOLVED section */}
       <YStack gap="$1">
         <Text variant="label" secondary fontSize="$1" fontWeight="700" letterSpacing={1}>

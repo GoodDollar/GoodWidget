@@ -460,6 +460,9 @@ function AiCreditsInner({
         activeHelpView={helpView}
         onHowToUse={() => { handleHelpViewOpen('how-to-use') }}
         onFaq={() => { handleHelpViewOpen('faq') }}
+        depositBonusPercent={state.depositBonusPercent}
+        streamBonusPercent={state.streamBonusPercent}
+        isGoodIdVerified={state.isGoodIdVerified}
       />
       <WidgetTabs
         tabs={[
