@@ -411,8 +411,7 @@ function AiCreditsInner({
 
   const handleTabChange = useCallback(
     (tabId: string) => {
-      // Clear the help view when switching away from the buy tab.
-      if (tabId !== 'buy') {
+      if (tabId !== 'setup') {
         setHelpView(null)
       }
       actions.setActiveTab(tabId as AiCreditsWidgetTab)
@@ -422,35 +421,26 @@ function AiCreditsInner({
 
   const walletRequired = needsWalletConnection(state)
 
-  /** Activates a help view and ensures the buy tab is selected. */
   const handleHelpViewOpen = useCallback(
     (view: 'how-to-use' | 'faq') => {
-      actions.setActiveTab('buy')
+      actions.setActiveTab('setup')
       setHelpView(view)
     },
     [actions],
   )
 
-  /** Returns from the help view back to the normal buy content. */
   const handleHelpViewClose = useCallback(() => {
     setHelpView(null)
   }, [])
 
-  /** Buy tab content: shows a help view when one is active, otherwise the purchase flow. */
-  const buyPanel = helpView === 'how-to-use' ? (
-    <HowToUseView onBack={handleHelpViewClose} />
-  ) : helpView === 'faq' ? (
-    <SetupFaqView onBack={handleHelpViewClose} />
-  ) : (
-    <BuyCreditsPanel
-      state={state}
-      actions={actions}
-      isPending={isPending}
-      onPay={(quote) => {
-        void handlePay(quote)
-      }}
-    />
-  )
+  const setupPanel =
+    helpView === 'how-to-use' ? (
+      <HowToUseView onBack={handleHelpViewClose} />
+    ) : helpView === 'faq' ? (
+      <SetupFaqView onBack={handleHelpViewClose} />
+    ) : (
+      <SetupTabPanel state={state} onConnect={actions.connect} />
+    )
 
   return (
     <YStack gap="$3" padding="$3" width="100%">
@@ -479,7 +469,7 @@ function AiCreditsInner({
       />
 
       {walletRequired || state.activeTab === 'setup' ? (
-        <SetupTabPanel state={state} onConnect={actions.connect} />
+        setupPanel
       ) : state.activeTab === 'manage' ? (
         <ManagePanel state={state} actions={actions} />
       ) : state.activeTab === 'history' ? (
@@ -489,7 +479,14 @@ function AiCreditsInner({
           knownBuyers={state.buyers.map((address) => ({ address }))}
         />
       ) : (
-        buyPanel
+        <BuyCreditsPanel
+          state={state}
+          actions={actions}
+          isPending={isPending}
+          onPay={(quote) => {
+            void handlePay(quote)
+          }}
+        />
       )}
     </YStack>
   )
