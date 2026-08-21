@@ -49,7 +49,7 @@ const FAQ_ITEMS = [
     answer:
       'Your payer wallet pays G$ on Celo. ' +
       'The signer key is a separate key derived from a payer signature; it manages your AI credits on Base. ' +
-      'Save the buyer private key from this session for AI API setup and Manage actions like withdraw.',
+      'Save the signer private key from this session for AI API setup and Manage actions like withdraw.',
   },
   {
     id: 'operator-consent',
