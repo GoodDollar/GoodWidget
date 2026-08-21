@@ -1,5 +1,15 @@
 import React from 'react'
-import { Button, ButtonText, Card, Heading, Icon, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
+import {
+  Button,
+  ButtonText,
+  Card,
+  Heading,
+  Icon,
+  Spinner,
+  Text,
+  XStack,
+  YStack,
+} from '@goodwidget/ui'
 import { truncateAddress, compactButtonProps } from '../shared/styles'
 
 interface OperatorConsentStepProps {
@@ -30,11 +40,11 @@ export function OperatorConsentStep({
     <Shell gap="$3" {...(!embedded ? { backgroundColor: '$backgroundHover' } : {})}>
       <Heading level={5}>Authorize Wallet</Heading>
       <Text fontSize="$2" lineHeight="$3">
-         GoodDollar needs this one-time authorization to fund and manage your AI credits on Base
-         after you pay with G$ on Celo. It lets the GoodDollar operator move funds in your
-         separate AI credits account, but never gives access to your payer wallet or G$.
-         Granting this permission means trusting GoodDollar with that scoped Base role; you can
-         revoke it later through the account controls.
+        GoodDollar needs this one-time authorization to fund and manage your AI credits on Base
+        after you pay with G$ on Celo. It lets the GoodDollar operator move funds in your separate
+        AI credits account, but never gives access to your payer wallet or G$. Granting this
+        permission means trusting GoodDollar with that scoped Base role; you can revoke it later
+        through the account controls.
       </Text>
 
       {buyerPubKey && (

@@ -522,7 +522,7 @@ test('AiCreditsWidget Setup — Download AntSeed step is first and shows Start l
 
   await expect(root.getByText('Download Antseed', { exact: true })).toBeVisible()
   await expect(root.getByText('Signer key', { exact: true })).toBeVisible()
-  await expect(root.getByText('Authorize wallet', { exact: true })).toBeVisible()
+  await expect(root.getByText('Authorize Wallet', { exact: true })).toBeVisible()
   await expect(root.getByText('Ready', { exact: true })).toBeVisible()
   await expect(root.getByText('Pending').first()).toBeVisible()
 

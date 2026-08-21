@@ -197,7 +197,9 @@ export const SignerKeyGenerated: Story = {
         /GoodDollar needs this one-time authorization to fund and manage your AI credits/i,
       ),
     ).toBeVisible()
-    await expect(within(document.body).getByRole('button', { name: 'Authorize Wallet' })).toBeEnabled()
+    await expect(
+      within(document.body).getByRole('button', { name: 'Authorize Wallet' }),
+    ).toBeEnabled()
   },
 }
 
