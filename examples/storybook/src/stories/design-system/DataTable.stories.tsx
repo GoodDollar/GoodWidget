@@ -175,20 +175,29 @@ export const StressTest: Story = {
  * trigger horizontal scroll instead of squeezing every column unreadably
  * thin. This holds up fine through 100 columns since it's DOM breadth, not a
  * layout algorithm that degrades with count.
+ *
+ * These three set the `stretchWrapper` parameter (read by `withDefaultPreset`):
+ * the default preset's wrapper shrinks to fit its own content under
+ * `GoodWidgetProvider`'s centered layout, so DataTable's own scroll
+ * container never receives a real width to overflow against. See
+ * `withDefaultPreset`'s doc comment for the full mechanism.
  */
 export const Stress10Columns: Story = {
+  parameters: { stretchWrapper: true },
   render: () => (
     <DataTable data={manyColumns10.rows} columns={manyColumns10.columns} title="10 Columns" testID="DataTable-stress-10-columns" />
   ),
 }
 
 export const Stress50Columns: Story = {
+  parameters: { stretchWrapper: true },
   render: () => (
     <DataTable data={manyColumns50.rows} columns={manyColumns50.columns} title="50 Columns" testID="DataTable-stress-50-columns" />
   ),
 }
 
 export const Stress100Columns: Story = {
+  parameters: { stretchWrapper: true },
   render: () => (
     <DataTable data={manyColumns100.rows} columns={manyColumns100.columns} title="100 Columns" testID="DataTable-stress-100-columns" />
   ),

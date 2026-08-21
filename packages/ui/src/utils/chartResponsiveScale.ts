@@ -36,3 +36,34 @@ export function scaleEdgeInsets<T extends EdgeInsets>(insets: T, scaleRatio: num
     left: scalePx(insets.left, scaleRatio),
   }
 }
+
+/**
+ * Same character-count width estimate BarChart/LineAreaChart already use for
+ * their axis labels (`estimateTextWidthPx`/`truncateLabelToWidth`) — no
+ * canvas `measureText` here, since these charts render through
+ * react-native-svg and need to work without a DOM canvas.
+ */
+const APPROX_CHAR_WIDTH_RATIO = 0.6
+
+/**
+ * `computeChartScaleRatio` scales a chart's title font size up for wide
+ * embeds, but only clamps against a fixed ratio ceiling — it has no way to
+ * know how long a given title string is, so a long title at a large scale
+ * ratio can render wider than the chart itself. This shrinks (never grows)
+ * `candidateFontSizePx` until the title's estimated width fits within
+ * `maxWidthPx`, floored at `minFontSizePx` so it never becomes illegible.
+ */
+export function computeShrinkToFitFontSizePx(
+  text: string,
+  candidateFontSizePx: number,
+  maxWidthPx: number,
+  minFontSizePx: number,
+): number {
+  if (text.length === 0 || maxWidthPx <= 0) return candidateFontSizePx
+
+  const estimatedWidthPx = text.length * candidateFontSizePx * APPROX_CHAR_WIDTH_RATIO
+  if (estimatedWidthPx <= maxWidthPx) return candidateFontSizePx
+
+  const fittedFontSizePx = maxWidthPx / (text.length * APPROX_CHAR_WIDTH_RATIO)
+  return Math.max(minFontSizePx, fittedFontSizePx)
+}

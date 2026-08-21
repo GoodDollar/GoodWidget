@@ -177,8 +177,13 @@ export const SinglePoint: Story = {
   render: () => <LineAreaChart data={single} title="Today's Claims" width={320} testID="LineAreaChart-single" />,
 }
 
-/** 1095 daily points (3 years) — dots auto-hide, x-labels thin adaptively, path must not hang the browser. */
+/** 1095 daily points (3 years) — dots auto-hide, x-labels thin adaptively, path must not hang the browser.
+ * Pre-existing wide-embed case (width={800}, wider than the 480px default widget frame): sets
+ * `contentMaxWidthPx` for the same reason as `Stress10Points`/`Stress100Points`/`Stress1000Points`/
+ * `StressManySeries` below — see their shared doc comment for the full mechanism. This story predated
+ * those and was missed in the original #148 QA follow-up pass; fixed here for consistency (PR #148 review). */
 export const StressTest: Story = {
+  parameters: { contentMaxWidthPx: 900 },
   render: () => <LineAreaChart data={stress} title="3-Year Reserve Balance" showArea width={800} testID="LineAreaChart-stress" />,
 }
 
@@ -191,19 +196,29 @@ export const StressTest: Story = {
  * dot per pixel. `computeLabelSkipFactor` thins x-axis labels adaptively,
  * sized against the widest actually-formatted label so labels never collide
  * regardless of point count.
+ *
+ * These, and `StressManySeries` below, set the `contentMaxWidthPx` parameter
+ * (read by `withDefaultPreset`): they render at an explicit `width={800}`
+ * (a deliberate wide-embed case, wider than the default 480px widget frame),
+ * so the outer frame needs a wider `contentMaxWidth` to avoid clipping the
+ * chart/legend. Title text itself shrinks-to-fit via `LineAreaChart.tsx`'s
+ * own sizing logic; this parameter only addresses the outer-frame width.
  */
 export const Stress10Points: Story = {
+  parameters: { contentMaxWidthPx: 900 },
   render: () => <LineAreaChart data={stress10} title="Reserve Balance (10 points)" showArea width={800} testID="LineAreaChart-stress-10" />,
 }
 
 /** 100 points — past DOT_AUTO_THRESHOLD (20), so dots auto-hide; x-label skip factor kicks in. */
 export const Stress100Points: Story = {
+  parameters: { contentMaxWidthPx: 900 },
   render: () => <LineAreaChart data={stress100} title="Reserve Balance (100 points)" showArea width={800} testID="LineAreaChart-stress-100" />,
 }
 
 /** 1000 points — the top of the requested 10/100/1000 tier (distinct from the pre-existing
  * 1095-point `StressTest` above, which exercises 3-year real-calendar density specifically). */
 export const Stress1000Points: Story = {
+  parameters: { contentMaxWidthPx: 900 },
   render: () => <LineAreaChart data={stress1000} title="Reserve Balance (1000 points)" showArea width={800} testID="LineAreaChart-stress-1000" />,
 }
 
@@ -221,6 +236,7 @@ export const Stress1000Points: Story = {
  * visible for QA review rather than papering over it.
  */
 export const StressManySeries: Story = {
+  parameters: { contentMaxWidthPx: 900 },
   render: () => (
     <LineAreaChart
       data={multiSeriesStress}

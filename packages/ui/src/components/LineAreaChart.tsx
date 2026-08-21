@@ -18,7 +18,7 @@ import { Card } from './Card'
 import { CHART_FONT_FAMILY } from '../utils/chartFontFamily'
 import { formatMetricValue } from '../utils/formatMetricValue'
 import { resolveThemeColor } from '../utils/resolveThemeColor'
-import { computeChartScaleRatio, scaleEdgeInsets, scalePx } from '../utils/chartResponsiveScale'
+import { computeChartScaleRatio, computeShrinkToFitFontSizePx, scaleEdgeInsets, scalePx } from '../utils/chartResponsiveScale'
 import { useMeasuredWidth } from '../hooks/useMeasuredWidth'
 
 export type LineAreaChartVariant = 'bare' | 'card'
@@ -490,6 +490,12 @@ function LineAreaChartContent({
 
   const scaleRatio = computeChartScaleRatio(viewBoxWidth, REFERENCE_WIDTH_PX)
   const titleSizePx = clampFontSize(scalePx(TITLE_BASE_SIZE_PX, scaleRatio))
+  // The title renders as a sibling of the SVG inside the chart frame, at the frame's
+  // full width (viewBoxWidth) — not just the inner plot area — so a long title at a
+  // scaled-up font size can otherwise widen past the frame regardless of plot layout.
+  const fittedTitleSizePx = title
+    ? computeShrinkToFitFontSizePx(title, titleSizePx, viewBoxWidth, MIN_FONT_SIZE_PX)
+    : titleSizePx
   const titleToChartGapPx = scalePx(TITLE_TO_CHART_GAP_BASE_PX, scaleRatio)
   const chartToLegendGapPx = scalePx(CHART_TO_LEGEND_GAP_BASE_PX, scaleRatio)
   const axisTitleSizePx = clampFontSize(scalePx(AXIS_TITLE_BASE_SIZE_PX, scaleRatio))
@@ -523,7 +529,7 @@ function LineAreaChartContent({
   return (
     <LineAreaFrame testID={testID} data-testid={testID} width={isResponsiveWidth ? '100%' : undefined} onLayout={onLayout}>
       {title ? (
-        <LineAreaTitleText fontSize={titleSizePx} marginBottom={titleToChartGapPx}>
+        <LineAreaTitleText fontSize={fittedTitleSizePx} marginBottom={titleToChartGapPx}>
           {title}
         </LineAreaTitleText>
       ) : null}

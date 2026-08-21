@@ -117,8 +117,13 @@ export const SinglePoint: Story = {
   render: () => <BarChart data={single} title="Total Claims" width={320} testID="BarChart-single" />,
 }
 
-/** 150 categories, maxSlices has no equivalent here — exercises sub-pixel bar clipping and label-truncation safety. */
+/** 150 categories, maxSlices has no equivalent here — exercises sub-pixel bar clipping and label-truncation safety.
+ * Pre-existing wide-embed case (width={800}, wider than the 480px default widget frame): sets
+ * `contentMaxWidthPx` for the same reason as `Stress10Categories`/`Stress100Categories`/`Stress1000Categories`
+ * below — see their shared doc comment for the full mechanism. This story predated those and was missed in
+ * the original #148 QA follow-up pass; fixed here for consistency (PR #148 review). */
 export const StressTest: Story = {
+  parameters: { contentMaxWidthPx: 900 },
   render: () => <BarChart data={stress} title="Wallet Activity" width={800} showGrid={false} testID="BarChart-stress" />,
 }
 
@@ -132,18 +137,28 @@ export const StressTest: Story = {
  * is the same problem LineAreaChart already solves for its x-axis, applied
  * here to BarChart's category axis. Value labels separately auto-hide below
  * MIN_BAR_LENGTH_FOR_VALUE_LABEL_PX regardless of category count.
+ *
+ * These three set the `contentMaxWidthPx` parameter (read by
+ * `withDefaultPreset`): they render at an explicit `width={800}` (a
+ * deliberate wide-embed case, wider than the default 480px widget frame),
+ * so the outer frame needs a wider `contentMaxWidth` to avoid clipping the
+ * chart. Title text itself shrinks-to-fit via `BarChart.tsx`'s own sizing
+ * logic; this parameter only addresses the outer-frame width.
  */
 export const Stress10Categories: Story = {
+  parameters: { contentMaxWidthPx: 900 },
   render: () => <BarChart data={stress10} title="Wallet Activity (10 categories)" width={800} showGrid={false} testID="BarChart-stress-10" />,
 }
 
 /** 100 categories — label-skip factor kicks in; roughly every other/every-few-Nth label shows. */
 export const Stress100Categories: Story = {
+  parameters: { contentMaxWidthPx: 900 },
   render: () => <BarChart data={stress100} title="Wallet Activity (100 categories)" width={800} showGrid={false} testID="BarChart-stress-100" />,
 }
 
 /** 1000 categories — bars render as a dense honest field; category labels thin to a small readable set instead of converging to empty strings. */
 export const Stress1000Categories: Story = {
+  parameters: { contentMaxWidthPx: 900 },
   render: () => <BarChart data={stress1000} title="Wallet Activity (1000 categories)" width={800} showGrid={false} testID="BarChart-stress-1000" />,
 }
 
