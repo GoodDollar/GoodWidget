@@ -221,6 +221,28 @@ function buildBarPath(x: number, y: number, width: number, height: number, radiu
 const BarChartFrame = createComponent(YStack, {
   name: 'BarChart',
   alignItems: 'center',
+  width: '100%',
+  // Without this, a flex ancestor with alignItems:"center" (e.g. GoodWidgetProvider's
+  // content Stack) lets this frame shrink-wrap to its own content's intrinsic width
+  // instead of being bound by the actual space it's given.
+  alignSelf: 'stretch',
+})
+
+/**
+ * An explicit pixel `width` (e.g. a wide-embed stress test) is intentionally
+ * not responsive, so when the host container is narrower than that width the
+ * SVG can't reflow or shrink without becoming illegible — this scrolls it
+ * horizontally instead of relying on an ancestor to clip it, mirroring
+ * DataTable's own DataTableScrollContainer for the same wide-content case.
+ */
+const BarChartScrollContainer = createComponent(YStack, {
+  name: 'BarChartScrollContainer',
+  width: '100%',
+  // Same shrink-wrap issue as BarChartFrame above: without this, this container
+  // grows to match the SVG's own width instead of being clamped by BarChartFrame,
+  // which silently defeats overflow:"auto" (nothing is left to scroll within).
+  alignSelf: 'stretch',
+  overflow: 'auto' as const,
 })
 
 const BarChartTitleText = createComponent(TamaguiText, {
@@ -330,144 +352,192 @@ function BarChartContent({
           {title}
         </BarChartTitleText>
       ) : null}
-      <Svg
-        width={width}
-        height={height}
-        viewBox={`0 0 ${viewBoxWidth} ${height}`}
-        preserveAspectRatio="none"
-        accessibilityRole="image"
-        aria-label={resolvedAccessibilityLabel}
-      >
-        {isEmpty ? (
-          <G accessible={false}>
-            <Line
-              x1={resolvedPadding.left}
-              y1={resolvedPadding.top + plotHeight}
-              x2={resolvedPadding.left + plotWidth}
-              y2={resolvedPadding.top + plotHeight}
-              stroke={gridColor}
-              strokeOpacity={0.3}
-              strokeWidth={1}
-            />
-            <SvgText
-              x={resolvedPadding.left + plotWidth / 2}
-              y={resolvedPadding.top + plotHeight / 2}
-              fontSize={tickLabelSizePx} fontFamily={CHART_FONT_FAMILY}
-              fill={axisLabelColor}
-              textAnchor="middle"
-            >
-              No data
-            </SvgText>
-          </G>
-        ) : (
-          <>
-            {showGrid ? (
+      <BarChartScrollContainer>
+        <Svg
+          width={width}
+          height={height}
+          viewBox={`0 0 ${viewBoxWidth} ${height}`}
+          preserveAspectRatio="none"
+          accessibilityRole="image"
+          aria-label={resolvedAccessibilityLabel}
+        >
+          {isEmpty ? (
+            <G accessible={false}>
+              <Line
+                x1={resolvedPadding.left}
+                y1={resolvedPadding.top + plotHeight}
+                x2={resolvedPadding.left + plotWidth}
+                y2={resolvedPadding.top + plotHeight}
+                stroke={gridColor}
+                strokeOpacity={0.3}
+                strokeWidth={1}
+              />
+              <SvgText
+                x={resolvedPadding.left + plotWidth / 2}
+                y={resolvedPadding.top + plotHeight / 2}
+                fontSize={tickLabelSizePx} fontFamily={CHART_FONT_FAMILY}
+                fill={axisLabelColor}
+                textAnchor="middle"
+              >
+                No data
+              </SvgText>
+            </G>
+          ) : (
+            <>
+              {showGrid ? (
+                <G accessible={false}>
+                  {scale.ticks.map((tick) => {
+                    const tickOffset = valueToPixel(tick, isVertical ? plotHeight : plotWidth)
+                    const isZeroTick = tick === 0
+  
+                    return isVertical ? (
+                      <Line
+                        key={tick}
+                        x1={resolvedPadding.left}
+                        y1={resolvedPadding.top + plotHeight - tickOffset}
+                        x2={resolvedPadding.left + plotWidth}
+                        y2={resolvedPadding.top + plotHeight - tickOffset}
+                        stroke={gridColor}
+                        strokeOpacity={isZeroTick ? 0.3 : 0.1}
+                        strokeWidth={isZeroTick ? 1 : 0.5}
+                        strokeDasharray={isZeroTick ? undefined : '3 3'}
+                      />
+                    ) : (
+                      <Line
+                        key={tick}
+                        x1={resolvedPadding.left + tickOffset}
+                        y1={resolvedPadding.top}
+                        x2={resolvedPadding.left + tickOffset}
+                        y2={resolvedPadding.top + plotHeight}
+                        stroke={gridColor}
+                        strokeOpacity={isZeroTick ? 0.3 : 0.1}
+                        strokeWidth={isZeroTick ? 1 : 0.5}
+                        strokeDasharray={isZeroTick ? undefined : '3 3'}
+                      />
+                    )
+                  })}
+                </G>
+              ) : null}
+  
               <G accessible={false}>
                 {scale.ticks.map((tick) => {
                   const tickOffset = valueToPixel(tick, isVertical ? plotHeight : plotWidth)
-                  const isZeroTick = tick === 0
-
+                  const formattedTick = valueFormatter(tick)
+  
                   return isVertical ? (
-                    <Line
+                    <SvgText
                       key={tick}
-                      x1={resolvedPadding.left}
-                      y1={resolvedPadding.top + plotHeight - tickOffset}
-                      x2={resolvedPadding.left + plotWidth}
-                      y2={resolvedPadding.top + plotHeight - tickOffset}
-                      stroke={gridColor}
-                      strokeOpacity={isZeroTick ? 0.3 : 0.1}
-                      strokeWidth={isZeroTick ? 1 : 0.5}
-                      strokeDasharray={isZeroTick ? undefined : '3 3'}
-                    />
+                      x={resolvedPadding.left - 8}
+                      y={resolvedPadding.top + plotHeight - tickOffset}
+                      fontSize={tickLabelSizePx} fontFamily={CHART_FONT_FAMILY}
+                      fill={axisLabelColor}
+                      textAnchor="end"
+                      alignmentBaseline="middle"
+                    >
+                      {formattedTick}
+                    </SvgText>
                   ) : (
-                    <Line
+                    <SvgText
                       key={tick}
-                      x1={resolvedPadding.left + tickOffset}
-                      y1={resolvedPadding.top}
-                      x2={resolvedPadding.left + tickOffset}
-                      y2={resolvedPadding.top + plotHeight}
-                      stroke={gridColor}
-                      strokeOpacity={isZeroTick ? 0.3 : 0.1}
-                      strokeWidth={isZeroTick ? 1 : 0.5}
-                      strokeDasharray={isZeroTick ? undefined : '3 3'}
-                    />
+                      x={resolvedPadding.left + tickOffset}
+                      y={resolvedPadding.top + plotHeight + 16}
+                      fontSize={tickLabelSizePx} fontFamily={CHART_FONT_FAMILY}
+                      fill={axisLabelColor}
+                      textAnchor="middle"
+                    >
+                      {formattedTick}
+                    </SvgText>
                   )
                 })}
               </G>
-            ) : null}
-
-            <G accessible={false}>
-              {scale.ticks.map((tick) => {
-                const tickOffset = valueToPixel(tick, isVertical ? plotHeight : plotWidth)
-                const formattedTick = valueFormatter(tick)
-
-                return isVertical ? (
-                  <SvgText
-                    key={tick}
-                    x={resolvedPadding.left - 8}
-                    y={resolvedPadding.top + plotHeight - tickOffset}
-                    fontSize={tickLabelSizePx} fontFamily={CHART_FONT_FAMILY}
-                    fill={axisLabelColor}
-                    textAnchor="end"
-                    alignmentBaseline="middle"
-                  >
-                    {formattedTick}
-                  </SvgText>
-                ) : (
-                  <SvgText
-                    key={tick}
-                    x={resolvedPadding.left + tickOffset}
-                    y={resolvedPadding.top + plotHeight + 16}
-                    fontSize={tickLabelSizePx} fontFamily={CHART_FONT_FAMILY}
-                    fill={axisLabelColor}
-                    textAnchor="middle"
-                  >
-                    {formattedTick}
-                  </SvgText>
-                )
-              })}
-            </G>
-
-            {items.map((item, index) => {
-              const barLength = valueToPixel(item.value, isVertical ? plotHeight : plotWidth) - zeroOffset
-              const isPositive = item.value >= 0
-
-              if (isVertical) {
-                const slotStart = resolvedPadding.left + index * slotSize
-                const barX = slotStart + (slotSize - barThickness) / 2
-                const baselineY = resolvedPadding.top + plotHeight - zeroOffset
-                const barY = isPositive ? baselineY - barLength : baselineY
-                const barHeight = Math.abs(barLength)
+  
+              {items.map((item, index) => {
+                const barLength = valueToPixel(item.value, isVertical ? plotHeight : plotWidth) - zeroOffset
+                const isPositive = item.value >= 0
+  
+                if (isVertical) {
+                  const slotStart = resolvedPadding.left + index * slotSize
+                  const barX = slotStart + (slotSize - barThickness) / 2
+                  const baselineY = resolvedPadding.top + plotHeight - zeroOffset
+                  const barY = isPositive ? baselineY - barLength : baselineY
+                  const barHeight = Math.abs(barLength)
+                  const showCategoryLabel = index % categoryLabelSkipFactor === 0
+                  const categoryLabel = showCategoryLabel ? truncateLabelToWidth(item.category, categoryLabelSlotSizePx, tickLabelSizePx) : ''
+  
+                  return (
+                    <G key={`${item.category}-${index}`}>
+                      <Path
+                        d={buildBarPath(barX, barY, barThickness, barHeight, barCornerRadius, isPositive ? 'top' : 'bottom')}
+                        fill={barColor}
+                        accessible={false}
+                        onPress={onBarPress ? () => onBarPress(item, index) : undefined}
+                      />
+                      {showCategoryLabel ? (
+                        <SvgText
+                          x={slotStart + slotSize / 2}
+                          y={resolvedPadding.top + plotHeight + 16}
+                          fontSize={tickLabelSizePx} fontFamily={CHART_FONT_FAMILY}
+                          fill={axisLabelColor}
+                          textAnchor="middle"
+                          accessible={false}
+                        >
+                          {categoryLabel}
+                        </SvgText>
+                      ) : null}
+                      {showValueLabels && barHeight >= MIN_BAR_LENGTH_FOR_VALUE_LABEL_PX ? (
+                        <SvgText
+                          x={slotStart + slotSize / 2}
+                          y={isPositive ? barY - VALUE_LABEL_GAP_PX : barY + barHeight + VALUE_LABEL_GAP_PX + valueLabelSizePx}
+                          fontSize={valueLabelSizePx} fontFamily={CHART_FONT_FAMILY}
+                          fill={textColor}
+                          textAnchor="middle"
+                          accessible={false}
+                        >
+                          {valueFormatter(item.value)}
+                        </SvgText>
+                      ) : null}
+                    </G>
+                  )
+                }
+  
+                const slotStart = resolvedPadding.top + index * slotSize
+                const barY = slotStart + (slotSize - barThickness) / 2
+                const baselineX = resolvedPadding.left + zeroOffset
+                const barX = isPositive ? baselineX : baselineX - Math.abs(barLength)
+                const barWidth = Math.abs(barLength)
+                const categoryLabelMaxWidth = resolvedPadding.left - 12
                 const showCategoryLabel = index % categoryLabelSkipFactor === 0
-                const categoryLabel = showCategoryLabel ? truncateLabelToWidth(item.category, categoryLabelSlotSizePx, tickLabelSizePx) : ''
-
+                const categoryLabel = showCategoryLabel ? truncateLabelToWidth(item.category, categoryLabelMaxWidth, tickLabelSizePx) : ''
+  
                 return (
                   <G key={`${item.category}-${index}`}>
                     <Path
-                      d={buildBarPath(barX, barY, barThickness, barHeight, barCornerRadius, isPositive ? 'top' : 'bottom')}
+                      d={buildBarPath(barX, barY, barWidth, barThickness, barCornerRadius, isPositive ? 'right' : 'left')}
                       fill={barColor}
                       accessible={false}
                       onPress={onBarPress ? () => onBarPress(item, index) : undefined}
                     />
                     {showCategoryLabel ? (
                       <SvgText
-                        x={slotStart + slotSize / 2}
-                        y={resolvedPadding.top + plotHeight + 16}
+                        x={resolvedPadding.left - 8}
+                        y={slotStart + slotSize / 2}
                         fontSize={tickLabelSizePx} fontFamily={CHART_FONT_FAMILY}
                         fill={axisLabelColor}
-                        textAnchor="middle"
+                        textAnchor="end"
+                        alignmentBaseline="middle"
                         accessible={false}
                       >
                         {categoryLabel}
                       </SvgText>
                     ) : null}
-                    {showValueLabels && barHeight >= MIN_BAR_LENGTH_FOR_VALUE_LABEL_PX ? (
+                    {showValueLabels && barWidth >= MIN_BAR_LENGTH_FOR_VALUE_LABEL_PX ? (
                       <SvgText
-                        x={slotStart + slotSize / 2}
-                        y={isPositive ? barY - VALUE_LABEL_GAP_PX : barY + barHeight + VALUE_LABEL_GAP_PX + valueLabelSizePx}
+                        x={isPositive ? barX + barWidth + VALUE_LABEL_GAP_PX : barX - VALUE_LABEL_GAP_PX}
+                        y={slotStart + slotSize / 2}
                         fontSize={valueLabelSizePx} fontFamily={CHART_FONT_FAMILY}
                         fill={textColor}
-                        textAnchor="middle"
+                        textAnchor={isPositive ? 'start' : 'end'}
+                        alignmentBaseline="middle"
                         accessible={false}
                       >
                         {valueFormatter(item.value)}
@@ -475,92 +545,49 @@ function BarChartContent({
                     ) : null}
                   </G>
                 )
-              }
-
-              const slotStart = resolvedPadding.top + index * slotSize
-              const barY = slotStart + (slotSize - barThickness) / 2
-              const baselineX = resolvedPadding.left + zeroOffset
-              const barX = isPositive ? baselineX : baselineX - Math.abs(barLength)
-              const barWidth = Math.abs(barLength)
-              const categoryLabelMaxWidth = resolvedPadding.left - 12
-              const showCategoryLabel = index % categoryLabelSkipFactor === 0
-              const categoryLabel = showCategoryLabel ? truncateLabelToWidth(item.category, categoryLabelMaxWidth, tickLabelSizePx) : ''
-
-              return (
-                <G key={`${item.category}-${index}`}>
-                  <Path
-                    d={buildBarPath(barX, barY, barWidth, barThickness, barCornerRadius, isPositive ? 'right' : 'left')}
-                    fill={barColor}
-                    accessible={false}
-                    onPress={onBarPress ? () => onBarPress(item, index) : undefined}
-                  />
-                  {showCategoryLabel ? (
-                    <SvgText
-                      x={resolvedPadding.left - 8}
-                      y={slotStart + slotSize / 2}
-                      fontSize={tickLabelSizePx} fontFamily={CHART_FONT_FAMILY}
-                      fill={axisLabelColor}
-                      textAnchor="end"
-                      alignmentBaseline="middle"
-                      accessible={false}
-                    >
-                      {categoryLabel}
-                    </SvgText>
-                  ) : null}
-                  {showValueLabels && barWidth >= MIN_BAR_LENGTH_FOR_VALUE_LABEL_PX ? (
-                    <SvgText
-                      x={isPositive ? barX + barWidth + VALUE_LABEL_GAP_PX : barX - VALUE_LABEL_GAP_PX}
-                      y={slotStart + slotSize / 2}
-                      fontSize={valueLabelSizePx} fontFamily={CHART_FONT_FAMILY}
-                      fill={textColor}
-                      textAnchor={isPositive ? 'start' : 'end'}
-                      alignmentBaseline="middle"
-                      accessible={false}
-                    >
-                      {valueFormatter(item.value)}
-                    </SvgText>
-                  ) : null}
-                </G>
-              )
-            })}
-          </>
-        )}
-
-        {xAxisLabel ? (
-          <SvgText
-            x={resolvedPadding.left + plotWidth / 2}
-            y={height - 6}
-            fontSize={axisTitleSizePx} fontFamily={CHART_FONT_FAMILY}
-            fill={axisLabelColor}
-            textAnchor="middle"
-            accessible={false}
-          >
-            {xAxisLabel}
-          </SvgText>
-        ) : null}
-        {yAxisLabel ? (
-          <SvgText
-            x={12}
-            y={resolvedPadding.top + plotHeight / 2}
-            fontSize={axisTitleSizePx} fontFamily={CHART_FONT_FAMILY}
-            fill={axisLabelColor}
-            textAnchor="middle"
-            rotation={-90}
-            origin={`12, ${resolvedPadding.top + plotHeight / 2}`}
-            accessible={false}
-          >
-            {yAxisLabel}
-          </SvgText>
-        ) : null}
-      </Svg>
+              })}
+            </>
+          )}
+  
+          {xAxisLabel ? (
+            <SvgText
+              x={resolvedPadding.left + plotWidth / 2}
+              y={height - 6}
+              fontSize={axisTitleSizePx} fontFamily={CHART_FONT_FAMILY}
+              fill={axisLabelColor}
+              textAnchor="middle"
+              accessible={false}
+            >
+              {xAxisLabel}
+            </SvgText>
+          ) : null}
+          {yAxisLabel ? (
+            <SvgText
+              x={12}
+              y={resolvedPadding.top + plotHeight / 2}
+              fontSize={axisTitleSizePx} fontFamily={CHART_FONT_FAMILY}
+              fill={axisLabelColor}
+              textAnchor="middle"
+              rotation={-90}
+              origin={`12, ${resolvedPadding.top + plotHeight / 2}`}
+              accessible={false}
+            >
+              {yAxisLabel}
+            </SvgText>
+          ) : null}
+        </Svg>
+      </BarChartScrollContainer>
     </BarChartFrame>
   )
 }
 
 export function BarChart({ variant = 'bare', ...contentProps }: BarChartProps) {
   if (variant === 'card') {
+    // width + alignSelf override Card's parent's alignItems:"center", which otherwise
+    // lets Card shrink-wrap to BarChartContent's own (possibly very wide, fixed-px)
+    // intrinsic width instead of being bound by the actual host container.
     return (
-      <Card alignItems="center" padding={CARD_PADDING_PX}>
+      <Card alignItems="center" alignSelf="stretch" width="100%" padding={CARD_PADDING_PX}>
         <BarChartContent {...contentProps} />
       </Card>
     )
