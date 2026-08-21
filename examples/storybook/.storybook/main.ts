@@ -5,10 +5,7 @@
  * - Addons: essentials (controls, docs, actions) + interactions (play functions)
  * - viteFinal: mirrors the react-native-web + Tamagui settings from examples/react-web
  */
-import { fileURLToPath } from 'node:url'
 import type { StorybookConfig } from '@storybook/react-vite'
-
-const reactNativeSvgShim = fileURLToPath(new URL('../src/shims/reactNativeSvg.tsx', import.meta.url))
 
 const config: StorybookConfig = {
   stories: ['../src/**/*.mdx', '../src/**/*.stories.@(ts|tsx)'],
@@ -38,7 +35,6 @@ const config: StorybookConfig = {
       alias: {
         ...(config.resolve?.alias as Record<string, string> | undefined),
         'react-native': 'react-native-web',
-        'react-native-svg': reactNativeSvgShim,
       },
     }
     config.optimizeDeps = {
