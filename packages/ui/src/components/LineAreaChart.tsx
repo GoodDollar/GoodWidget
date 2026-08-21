@@ -577,7 +577,7 @@ function LineAreaChartContent({
               </LinearGradient>
             ))}
           </Defs>
-  
+
           {isEmpty ? (
             <G accessible={false}>
               <Line
@@ -621,7 +621,7 @@ function LineAreaChartContent({
                   })}
                 </G>
               ) : null}
-  
+
               <G accessible={false}>
                 {primaryScale.ticks.map((tick) => (
                   <SvgText key={tick} x={-8} y={yPixelForValue(tick, primaryScale)} fontSize={tickLabelSizePx} fontFamily={CHART_FONT_FAMILY} fill={axisLabelColor} textAnchor="end" alignmentBaseline="middle">
@@ -652,7 +652,7 @@ function LineAreaChartContent({
                   const isNearRightEdge = xPixel > plotWidth - labelHalfWidthPx
                   const textAnchor = isNearLeftEdge ? 'start' : isNearRightEdge ? 'end' : 'middle'
                   const labelX = isNearLeftEdge ? 0 : isNearRightEdge ? plotWidth : xPixel
-  
+
                   return (
                     <SvgText key={String(category)} x={labelX} y={plotHeight + 16} fontSize={tickLabelSizePx} fontFamily={CHART_FONT_FAMILY} fill={axisLabelColor} textAnchor={textAnchor}>
                       {truncateLabelToWidth(xAxisFormatter(category), xLabelSlotWidthPx, tickLabelSizePx)}
@@ -660,7 +660,7 @@ function LineAreaChartContent({
                   )
                 })}
               </G>
-  
+
               <G accessible={false}>
                 {referenceLines.map((line, index) => {
                   const lineY = yPixelForValue(line.value, primaryScale)
@@ -677,7 +677,7 @@ function LineAreaChartContent({
                   )
                 })}
               </G>
-  
+
               {resolvedSeriesList.map((seriesItem) => {
                 const scale = seriesItem === secondarySeries && secondaryScale ? secondaryScale : primaryScale
                 const pixelPoints: PixelPoint[] = seriesItem.points.map((point, index) => ({
@@ -687,7 +687,7 @@ function LineAreaChartContent({
                 const runs = buildRuns(pixelPoints, connectNulls)
                 const validPointCount = pixelPoints.filter((point) => point.y !== null).length
                 const showSeriesDots = resolveShowDotsForSeries(showDots, validPointCount)
-  
+
                 return (
                   <G key={seriesItem.key}>
                     {showArea
@@ -744,7 +744,7 @@ function LineAreaChartContent({
               })}
             </G>
           )}
-  
+
           {xAxisLabel ? (
             <SvgText x={resolvedPadding.left + plotWidth / 2} y={height - 6} fontSize={axisTitleSizePx} fontFamily={CHART_FONT_FAMILY} fill={axisLabelColor} textAnchor="middle" accessible={false}>
               {xAxisLabel}

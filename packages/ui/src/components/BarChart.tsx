@@ -394,7 +394,7 @@ function BarChartContent({
                   {scale.ticks.map((tick) => {
                     const tickOffset = valueToPixel(tick, isVertical ? plotHeight : plotWidth)
                     const isZeroTick = tick === 0
-  
+
                     return isVertical ? (
                       <Line
                         key={tick}
@@ -421,12 +421,12 @@ function BarChartContent({
                   })}
                 </G>
               ) : null}
-  
+
               <G accessible={false}>
                 {scale.ticks.map((tick) => {
                   const tickOffset = valueToPixel(tick, isVertical ? plotHeight : plotWidth)
                   const formattedTick = valueFormatter(tick)
-  
+
                   return isVertical ? (
                     <SvgText
                       key={tick}
@@ -453,11 +453,11 @@ function BarChartContent({
                   )
                 })}
               </G>
-  
+
               {items.map((item, index) => {
                 const barLength = valueToPixel(item.value, isVertical ? plotHeight : plotWidth) - zeroOffset
                 const isPositive = item.value >= 0
-  
+
                 if (isVertical) {
                   const slotStart = resolvedPadding.left + index * slotSize
                   const barX = slotStart + (slotSize - barThickness) / 2
@@ -466,7 +466,7 @@ function BarChartContent({
                   const barHeight = Math.abs(barLength)
                   const showCategoryLabel = index % categoryLabelSkipFactor === 0
                   const categoryLabel = showCategoryLabel ? truncateLabelToWidth(item.category, categoryLabelSlotSizePx, tickLabelSizePx) : ''
-  
+
                   return (
                     <G key={`${item.category}-${index}`}>
                       <Path
@@ -502,7 +502,7 @@ function BarChartContent({
                     </G>
                   )
                 }
-  
+
                 const slotStart = resolvedPadding.top + index * slotSize
                 const barY = slotStart + (slotSize - barThickness) / 2
                 const baselineX = resolvedPadding.left + zeroOffset
@@ -511,7 +511,7 @@ function BarChartContent({
                 const categoryLabelMaxWidth = resolvedPadding.left - 12
                 const showCategoryLabel = index % categoryLabelSkipFactor === 0
                 const categoryLabel = showCategoryLabel ? truncateLabelToWidth(item.category, categoryLabelMaxWidth, tickLabelSizePx) : ''
-  
+
                 return (
                   <G key={`${item.category}-${index}`}>
                     <Path
@@ -551,7 +551,7 @@ function BarChartContent({
               })}
             </>
           )}
-  
+
           {xAxisLabel ? (
             <SvgText
               x={resolvedPadding.left + plotWidth / 2}
