@@ -113,18 +113,19 @@ export function SetupGuidanceCard({
 
       <Separator />
 
-      {/* Action buttons */}
+      {/* Action buttons — compact, rectangular; widths follow label length. */}
       <XStack gap="$2" flexWrap="wrap">
         {/* How to use */}
         <Button
-          flex={1}
+          flexGrow={1}
+          flexBasis="auto"
           size="sm"
           variant={activeHelpView === 'how-to-use' ? 'default' : 'outline'}
           onPress={onHowToUse}
-          gap="$2"
+          borderRadius="$3"
+          paddingHorizontal="$2"
           minWidth={0}
         >
-          <Icon name="play" size="xs" color={activeHelpView === 'how-to-use' ? 'primary' : 'muted'} />
           <ButtonText numberOfLines={1}>How to use</ButtonText>
         </Button>
 
@@ -132,27 +133,33 @@ export function SetupGuidanceCard({
         <Anchor
           href={ANTSEED_SITE_URL}
           target="_blank"
-          style={{ flex: 1, textDecorationLine: 'none', minWidth: 0 }}
+          style={{ flexGrow: 1, flexBasis: 'auto', textDecorationLine: 'none', minWidth: 0 }}
         >
-          <Button flex={1} size="sm" variant="outline" gap="$2" width="100%">
-            <Icon name="external-link" size="xs" color="muted" />
+          <Button
+            size="sm"
+            variant="outline"
+            width="100%"
+            borderRadius="$3"
+            paddingHorizontal="$2"
+            gap="$1"
+          >
             <ButtonText numberOfLines={1}>Antseed site</ButtonText>
+            {/* Signals that this leaves the widget for a new browser tab. */}
+            <Icon name="external-link" size="xs" color="muted" />
           </Button>
         </Anchor>
 
         {/* FAQs */}
         <Button
-          flex={1}
+          flexGrow={1}
+          flexBasis="auto"
           size="sm"
           variant={activeHelpView === 'faq' ? 'default' : 'outline'}
           onPress={onFaq}
-          gap="$2"
+          borderRadius="$3"
+          paddingHorizontal="$2"
           minWidth={0}
         >
-          {/* Red question mark matches the design reference for the FAQs button accent. */}
-          <Text fontSize="$2" color="$error">
-            ?
-          </Text>
           <ButtonText numberOfLines={1}>FAQs</ButtonText>
         </Button>
       </XStack>
