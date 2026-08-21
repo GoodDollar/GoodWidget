@@ -2,10 +2,13 @@ import React, { useCallback, useMemo, useState } from 'react'
 import { GoodWidgetProvider } from '@goodwidget/core'
 import type { EIP1193Provider } from '@goodwidget/core'
 import {
+  Badge,
+  BadgeText,
   Button,
   ButtonText,
   Card,
   CircularActionButton,
+  getChainDisplayName,
   Heading,
   Icon,
   Text,
@@ -32,6 +35,7 @@ import {
   SetupGuidanceCard,
   HowToUseView,
   SetupFaqView,
+  DownloadAntSeedStep,
 } from './components'
 import type {
   AiCreditsWidgetProps,
@@ -87,23 +91,6 @@ function SetupConnectPrompt({
   )
 }
 
-const SETUP_ONBOARDING_STEPS: Array<{ number: number; title: string; description: string }> = [
-  {
-    number: 1,
-    title: 'Download AntSeed',
-    description: 'Install the AntSeed application to manage your AI credits signer key.',
-  },
-  {
-    number: 2,
-    title: 'Signer Key',
-    description: 'Generate or import a signer key that AntSeed will use to authorize requests.',
-  },
-  {
-    number: 3,
-    title: 'Authorize Wallet',
-    description: 'Link your wallet to the signer key so it can be topped up with AI credits.',
-  },
-]
 
 function SetupTabPanel({
   state,
@@ -123,34 +110,14 @@ function SetupTabPanel({
 
   return (
     <YStack gap="$4" width="100%">
-      <Heading level={5} secondary>
-        Onboarding
-      </Heading>
-      {SETUP_ONBOARDING_STEPS.map((step) => (
-        <Card key={step.number}>
-          <XStack gap="$3" alignItems="flex-start" padding="$3">
-            <YStack
-              width={28}
-              height={28}
-              borderRadius={14}
-              backgroundColor="$primary"
-              alignItems="center"
-              justifyContent="center"
-              flexShrink={0}
-            >
-              <Text fontWeight="700" fontSize="$2" color="$onPrimary">
-                {step.number}
-              </Text>
-            </YStack>
-            <YStack flex={1} gap="$1">
-              <Text fontWeight="700">{step.title}</Text>
-              <Text secondary fontSize="$2">
-                {step.description}
-              </Text>
-            </YStack>
-          </XStack>
-        </Card>
-      ))}
+      <AiCreditsHero
+        gBalance={state.gBalance}
+        isGoodIdVerified={state.isGoodIdVerified}
+      />
+      <Text secondary fontSize="$2">
+        One-time setup, in order — each step unlocks the next:
+      </Text>
+      <DownloadAntSeedStep />
     </YStack>
   )
 }
@@ -448,8 +415,7 @@ function AiCreditsInner({
 
   const handleTabChange = useCallback(
     (tabId: string) => {
-      // Clear the help view when switching away from the buy tab.
-      if (tabId !== 'buy') {
+      if (tabId !== 'setup') {
         setHelpView(null)
       }
       actions.setActiveTab(tabId as AiCreditsWidgetTab)
@@ -459,39 +425,35 @@ function AiCreditsInner({
 
   const walletRequired = needsWalletConnection(state)
 
-  /** Activates a help view and ensures the buy tab is selected. */
   const handleHelpViewOpen = useCallback(
     (view: 'how-to-use' | 'faq') => {
-      actions.setActiveTab('buy')
+      actions.setActiveTab('setup')
       setHelpView(view)
     },
     [actions],
   )
 
-  /** Returns from the help view back to the normal buy content. */
   const handleHelpViewClose = useCallback(() => {
     setHelpView(null)
   }, [])
 
-  /** Buy tab content: shows a help view when one is active, otherwise the purchase flow. */
-  const buyPanel = helpView === 'how-to-use' ? (
-    <HowToUseView onBack={handleHelpViewClose} />
-  ) : helpView === 'faq' ? (
-    <SetupFaqView onBack={handleHelpViewClose} />
-  ) : (
-    <BuyCreditsPanel
-      state={state}
-      actions={actions}
-      isPending={isPending}
-      onPay={(quote) => {
-        void handlePay(quote)
-      }}
-    />
-  )
+  const setupPanel =
+    helpView === 'how-to-use' ? (
+      <HowToUseView onBack={handleHelpViewClose} />
+    ) : helpView === 'faq' ? (
+      <SetupFaqView onBack={handleHelpViewClose} />
+    ) : (
+      <SetupTabPanel state={state} onConnect={actions.connect} />
+    )
 
   return (
     <YStack gap="$3" padding="$3" width="100%">
-      {/* Guidance card is always rendered above the tab navigation when connected. */}
+      <XStack justifyContent="space-between" alignItems="center" paddingHorizontal="$1">
+        <Heading level={4}>GoodDollar</Heading>
+        <Badge type="info">
+          <BadgeText>{getChainDisplayName(state.chainId ?? CELO_CHAIN_ID)}</BadgeText>
+        </Badge>
+      </XStack>
       <SetupGuidanceCard
         activeHelpView={helpView}
         onHowToUse={() => { handleHelpViewOpen('how-to-use') }}
@@ -507,11 +469,11 @@ function AiCreditsInner({
         activeTab={walletRequired ? 'setup' : state.activeTab}
         onTabChange={handleTabChange}
         isTabDisabled={(tabId) => walletRequired && tabId !== 'setup'}
-        chainId={state.chainId ?? CELO_CHAIN_ID}
+        withConnectionStatus={false}
       />
 
       {walletRequired || state.activeTab === 'setup' ? (
-        <SetupTabPanel state={state} onConnect={actions.connect} />
+        setupPanel
       ) : state.activeTab === 'manage' ? (
         <ManagePanel state={state} actions={actions} />
       ) : state.activeTab === 'history' ? (
@@ -521,7 +483,14 @@ function AiCreditsInner({
           knownBuyers={state.buyers.map((address) => ({ address }))}
         />
       ) : (
-        buyPanel
+        <BuyCreditsPanel
+          state={state}
+          actions={actions}
+          isPending={isPending}
+          onPay={(quote) => {
+            void handlePay(quote)
+          }}
+        />
       )}
     </YStack>
   )
