@@ -1,4 +1,4 @@
-name: Deploy AI Credits Analytics Web
+name: Deploy GoodData Web
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
     branches:
       - main
     paths:
-      - 'apps/ai-credits-analytics-web/**'
+      - 'apps/gooddata-analytics-web/**'
       - 'packages/ui/**'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
@@ -15,35 +15,37 @@ on:
     branches:
       - main
     paths:
-      - 'apps/ai-credits-analytics-web/**'
+      - 'apps/gooddata-analytics-web/**'
       - 'packages/ui/**'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
 
 concurrency:
-  group: deploy-ai-credits-analytics-web-${{ github.event.pull_request.number || github.ref }}
+  group: deploy-gooddata-web-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_AI_CREDITS_ANALYTICS_WEB_PROJECT_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_GOODDATA_ANALYTICS_WEB_PROJECT_ID }}
 
 jobs:
   # Fork PRs wait on the `external` environment, where maintainers configure
   # required reviewers. Internal PRs continue directly to their preview.
-  authorize-preview-ai-credits-analytics-web:
+  authorize-preview:
+    name: authorize-gooddata-web-preview
     if: github.event_name == 'pull_request_target'
     runs-on: ubuntu-latest
     environment: ${{ github.event.pull_request.head.repo.full_name != github.repository && 'external' || 'internal' }}
     steps:
       - run: true
 
-  preview-ai-credits-analytics-web:
+  preview:
+    name: gooddata-web-preview
     if: github.event_name == 'pull_request_target'
-    needs: authorize-preview-ai-credits-analytics-web
+    needs: authorize-preview
     runs-on: ubuntu-latest
     environment:
-      name: preview-ai-credits-analytics-web
+      name: preview
       url: ${{ steps.deploy.outputs.url }}
     steps:
       - name: Checkout pull request head
@@ -78,11 +80,12 @@ jobs:
           url="$(pnpm exec vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})"
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
-  production-ai-credits-analytics-web:
+  production:
+    name: gooddata-web-production
     if: github.event_name != 'pull_request_target'
     runs-on: ubuntu-latest
     environment:
-      name: production-ai-credits-analytics-web
+      name: production
       url: ${{ steps.deploy.outputs.url }}
     steps:
       - name: Checkout

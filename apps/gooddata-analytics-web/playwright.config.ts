@@ -27,10 +27,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm --filter @goodwidget/ai-credits-analytics-web dev --host 127.0.0.1',
+    command: 'pnpm --filter @goodwidget/gooddata-analytics-web dev --host 127.0.0.1',
     url: 'http://127.0.0.1:3003',
     reuseExistingServer: true,
     timeout: 120_000,
   },
-  outputDir: '../../test-results/ai-credits-analytics-web',
+  outputDir: '../../test-results/gooddata-analytics-web',
 })

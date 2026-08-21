@@ -18,7 +18,7 @@
     "test:demo": "playwright test",
     "test:ai-credits-web": "playwright test --config apps/ai-credits-web/playwright.config.ts",
     "test:superfluid-campaign-web": "playwright test --config apps/superfluid-campaign-web/playwright.config.ts",
-    "test:ai-credits-analytics-web": "playwright test --config apps/ai-credits-analytics-web/playwright.config.ts"
+    "test:gooddata-analytics-web": "playwright test --config apps/gooddata-analytics-web/playwright.config.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.44.0",
