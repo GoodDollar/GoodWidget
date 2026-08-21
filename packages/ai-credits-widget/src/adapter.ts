@@ -849,6 +849,7 @@ export function useAiCreditsAdapter({
           mergeStatePreservingNonBuyTab(prev, {
             ...buyerFields,
             operatorAddress: null,
+            currentOperator: null,
             totalCreditUsd: null,
             withdrawableUsd: null,
             totalGdDepositedG: null,
@@ -969,6 +970,7 @@ export function useAiCreditsAdapter({
         mergeStatePreservingNonBuyTab(prev, {
           ...buyerFields,
           operatorAddress: null,
+          currentOperator: null,
           totalCreditUsd: null,
           withdrawableUsd: null,
           totalGdDepositedG: null,

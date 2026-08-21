@@ -4,7 +4,6 @@ import {
   BadgeText,
   Button,
   ButtonText,
-  Card,
   Heading,
   Input,
   Text,
@@ -16,7 +15,6 @@ import type {
   AiCreditsWidgetAdapterState,
 } from '../../widgetRuntimeContract'
 import { BuyerKeyPanel } from '../buy/BuyerKeyPanel'
-import { AiCreditsStatusNotice } from '../theme/cards'
 import { compactButtonProps } from '../shared/styles'
 
 interface SignerKeyPanelProps {
@@ -33,30 +31,14 @@ export function SignerKeyPanel({ state, actions }: SignerKeyPanelProps) {
   const [keyConfirmed, setKeyConfirmed] = useState(false)
 
   const currentOperator = state.currentOperator?.toLowerCase()
+  const expectedOperator = state.operatorAddress?.toLowerCase()
+  // Only meaningful once the operator status of the active signer has loaded:
+  // an unknown expected operator must never read as "a different operator".
   const hasDifferentOperator =
-    Boolean(state.currentOperator) &&
+    Boolean(currentOperator) &&
     currentOperator !== ZERO_OPERATOR &&
-    currentOperator !== state.operatorAddress?.toLowerCase()
-
-  if (hasDifferentOperator && choice === 'import') {
-    return (
-      <Card gap="$3">
-        <Heading level={5}>Signer Key</Heading>
-        <AiCreditsStatusNotice>
-          <Text color="$error" fontWeight="700">
-            Signer key cannot be used
-          </Text>
-          <Text secondary>
-            This signer already has another operator configured. Choose Generate or Import to
-            continue with a different signer key.
-          </Text>
-        </AiCreditsStatusNotice>
-        <Button size="sm" {...compactButtonProps} onPress={() => setChoice(null)}>
-          <ButtonText>Back to Generate / Import</ButtonText>
-        </Button>
-      </Card>
-    )
-  }
+    Boolean(expectedOperator) &&
+    currentOperator !== expectedOperator
 
   if (choice === 'generate') {
     return (
@@ -77,8 +59,13 @@ export function SignerKeyPanel({ state, actions }: SignerKeyPanelProps) {
   }
 
   if (choice === 'import') {
+    // The operator check belongs to the signer that was just imported, so it is
+    // only evaluated once the import settled and its operator status refreshed.
+    const importedSigner = Boolean(state.buyerPrvKey && state.buyerPubKey) && !isImporting
+    const importedSignerBlocked = importedSigner && hasDifferentOperator
+
     return (
-      <Card gap="$3">
+      <YStack gap="$3">
         <Button variant="ghost" alignSelf="flex-start" onPress={() => setChoice(null)}>
           <ButtonText>Back to Generate / Import</ButtonText>
         </Button>
@@ -92,7 +79,6 @@ export function SignerKeyPanel({ state, actions }: SignerKeyPanelProps) {
           value={privateKey}
           onChangeText={setPrivateKey}
           placeholder="0x…"
-          secureTextEntry
           autoCapitalize="none"
         />
         {state.error && <Text color="$error">{state.error}</Text>}
@@ -109,7 +95,17 @@ export function SignerKeyPanel({ state, actions }: SignerKeyPanelProps) {
         >
           <ButtonText>{isImporting ? 'Checking signer…' : 'Import Signer Key'}</ButtonText>
         </Button>
-        {state.buyerPrvKey && state.buyerPubKey && (
+        {importedSignerBlocked ? (
+          <YStack gap="$2">
+            <Text color="$error" fontWeight="700">
+              Signer key cannot be used
+            </Text>
+            <Text secondary>
+              The imported signer key already has another operator configured. Paste a different
+              signer key, or go back and generate a new one.
+            </Text>
+          </YStack>
+        ) : importedSigner ? (
           <YStack gap="$2">
             <Text color="$success" fontWeight="700">
               Signer imported
@@ -117,13 +113,13 @@ export function SignerKeyPanel({ state, actions }: SignerKeyPanelProps) {
             <Text secondary>
               {state.operatorConsented
                 ? 'GoodDollar is already configured as the operator.'
-                : currentOperator === ZERO_OPERATOR || !currentOperator
+                : currentOperator === ZERO_OPERATOR
                   ? 'No operator is configured yet. Continue to authorize GoodDollar.'
                   : 'The configured operator is being checked.'}
             </Text>
           </YStack>
-        )}
-      </Card>
+        ) : null}
+      </YStack>
     )
   }
 
