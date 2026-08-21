@@ -123,7 +123,7 @@ export const SinglePoint: Story = {
  * below — see their shared doc comment for the full mechanism. This story predated those and was missed in
  * the original #148 QA follow-up pass; fixed here for consistency (PR #148 review). */
 export const StressTest: Story = {
-  parameters: { contentMaxWidthPx: 900 },
+  parameters: { contentMaxWidthPx: 900, stretchWrapper: true },
   render: () => <BarChart data={stress} title="Wallet Activity" width={800} showGrid={false} testID="BarChart-stress" />,
 }
 
@@ -146,19 +146,19 @@ export const StressTest: Story = {
  * logic; this parameter only addresses the outer-frame width.
  */
 export const Stress10Categories: Story = {
-  parameters: { contentMaxWidthPx: 900 },
+  parameters: { contentMaxWidthPx: 900, stretchWrapper: true },
   render: () => <BarChart data={stress10} title="Wallet Activity (10 categories)" width={800} showGrid={false} testID="BarChart-stress-10" />,
 }
 
 /** 100 categories — label-skip factor kicks in; roughly every other/every-few-Nth label shows. */
 export const Stress100Categories: Story = {
-  parameters: { contentMaxWidthPx: 900 },
+  parameters: { contentMaxWidthPx: 900, stretchWrapper: true },
   render: () => <BarChart data={stress100} title="Wallet Activity (100 categories)" width={800} showGrid={false} testID="BarChart-stress-100" />,
 }
 
 /** 1000 categories — bars render as a dense honest field; category labels thin to a small readable set instead of converging to empty strings. */
 export const Stress1000Categories: Story = {
-  parameters: { contentMaxWidthPx: 900 },
+  parameters: { contentMaxWidthPx: 900, stretchWrapper: true },
   render: () => <BarChart data={stress1000} title="Wallet Activity (1000 categories)" width={800} showGrid={false} testID="BarChart-stress-1000" />,
 }
 
