@@ -814,12 +814,12 @@ export function useAiCreditsAdapter({
   )
 
   const handleImportBuyerFromPrivateKey = useCallback(
-    async (rawPrivateKey: string) => {
+    async (rawPrivateKey: string): Promise<string | null> => {
       if (!address) {
         setState((prev) =>
           withDerivedStatus(prev, { error: 'Connect your wallet before importing a signer key' }, true),
         )
-        return
+        return null
       }
 
       const trimmed = rawPrivateKey.trim()
@@ -832,7 +832,7 @@ export function useAiCreditsAdapter({
             true,
           ),
         )
-        return
+        return null
       }
 
       try {
@@ -889,12 +889,15 @@ export function useAiCreditsAdapter({
             }),
           )
         } catch {
-          return
+          return buyerAccount.address
         }
+
+        return buyerAccount.address
       } catch {
         setState((prev) =>
           withDerivedStatus(prev, { error: 'Could not derive an account from the provided private key' }, true),
         )
+        return null
       }
     },
     [address, backendClient, chainClient],

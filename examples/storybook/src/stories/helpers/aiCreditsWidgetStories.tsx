@@ -66,7 +66,7 @@ function createAdapterFactory(
       generateBuyerKey: async () => {},
       selectBuyer: async () => {},
       discoverBuyers: () => {},
-      importBuyerFromPrivateKey: async () => {},
+      importBuyerFromPrivateKey: async () => overrides.buyerPubKey ?? null,
       applyDeepLinkBuyer: async () => {},
       signOperatorConsent: async () => {},
       syncOperatorConsentFromChain: async () => {},

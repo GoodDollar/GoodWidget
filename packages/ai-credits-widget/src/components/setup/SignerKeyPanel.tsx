@@ -15,7 +15,7 @@ import type {
   AiCreditsWidgetAdapterState,
 } from '../../widgetRuntimeContract'
 import { BuyerKeyPanel } from '../buy/BuyerKeyPanel'
-import { compactButtonProps } from '../shared/styles'
+import { compactButtonProps, truncateAddress } from '../shared/styles'
 
 interface SignerKeyPanelProps {
   state: AiCreditsWidgetAdapterState
@@ -29,6 +29,14 @@ export function SignerKeyPanel({ state, actions }: SignerKeyPanelProps) {
   const [privateKey, setPrivateKey] = useState('')
   const [isImporting, setIsImporting] = useState(false)
   const [keyConfirmed, setKeyConfirmed] = useState(false)
+  // Address returned by an import performed in this panel — the status block
+  // reports on that import only, never on a signer that was already active.
+  const [importedAddress, setImportedAddress] = useState<string | null>(null)
+
+  const leaveChoice = () => {
+    setChoice(null)
+    setImportedAddress(null)
+  }
 
   const currentOperator = state.currentOperator?.toLowerCase()
   const expectedOperator = state.operatorAddress?.toLowerCase()
@@ -43,7 +51,7 @@ export function SignerKeyPanel({ state, actions }: SignerKeyPanelProps) {
   if (choice === 'generate') {
     return (
       <YStack gap="$3">
-        <Button variant="ghost" alignSelf="flex-start" onPress={() => setChoice(null)}>
+        <Button variant="ghost" alignSelf="flex-start" onPress={leaveChoice}>
           <ButtonText>Back to Generate / Import</ButtonText>
         </Button>
         <BuyerKeyPanel
@@ -61,12 +69,15 @@ export function SignerKeyPanel({ state, actions }: SignerKeyPanelProps) {
   if (choice === 'import') {
     // The operator check belongs to the signer that was just imported, so it is
     // only evaluated once the import settled and its operator status refreshed.
-    const importedSigner = Boolean(state.buyerPrvKey && state.buyerPubKey) && !isImporting
+    const importedSigner =
+      !isImporting &&
+      Boolean(importedAddress) &&
+      state.buyerPubKey?.toLowerCase() === importedAddress?.toLowerCase()
     const importedSignerBlocked = importedSigner && hasDifferentOperator
 
     return (
       <YStack gap="$3">
-        <Button variant="ghost" alignSelf="flex-start" onPress={() => setChoice(null)}>
+        <Button variant="ghost" alignSelf="flex-start" onPress={leaveChoice}>
           <ButtonText>Back to Generate / Import</ButtonText>
         </Button>
         <Heading level={5}>Import Signer Key</Heading>
@@ -88,9 +99,12 @@ export function SignerKeyPanel({ state, actions }: SignerKeyPanelProps) {
           disabled={!privateKey.trim() || isImporting}
           onPress={() => {
             setIsImporting(true)
-            void actions.importBuyerFromPrivateKey(privateKey.trim()).finally(() => {
-              setIsImporting(false)
-            })
+            setImportedAddress(null)
+            void actions
+              .importBuyerFromPrivateKey(privateKey.trim())
+              .then((buyerAddress) => setImportedAddress(buyerAddress))
+              .catch(() => setImportedAddress(null))
+              .finally(() => setIsImporting(false))
           }}
         >
           <ButtonText>{isImporting ? 'Checking signer…' : 'Import Signer Key'}</ButtonText>
@@ -109,6 +123,9 @@ export function SignerKeyPanel({ state, actions }: SignerKeyPanelProps) {
           <YStack gap="$2">
             <Text color="$success" fontWeight="700">
               Signer imported
+            </Text>
+            <Text secondary>
+              {truncateAddress(state.buyerPubKey ?? '')} is now your active signer.
             </Text>
             <Text secondary>
               {state.operatorConsented
