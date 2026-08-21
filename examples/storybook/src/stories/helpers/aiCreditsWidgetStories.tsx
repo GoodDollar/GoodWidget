@@ -34,7 +34,9 @@ function createMockState(
     isGoodIdVerified: false,
     buyerPubKey: null,
     buyerPrvKey: null,
+    operatorSignature: null,
     operatorConsented: false,
+    operatorConsentPending: false,
     operatorAddress: null,
     minDepositUsd: '1.00',
     minStreamUsd: '1.00',
@@ -45,6 +47,8 @@ function createMockState(
     streamBonusPercent: 20,
     error: null,
     activeTab: 'buy',
+    buyers: [],
+    derivedBuyerAddress: null,
   }
   return { ...base, ...overrides }
 }
@@ -59,6 +63,10 @@ function createAdapterFactory(
       connect: async () => {},
       switchChain: async () => {},
       generateBuyerKey: async () => {},
+      selectBuyer: async () => {},
+      discoverBuyers: () => {},
+      importBuyerFromPrivateKey: async () => {},
+      applyDeepLinkBuyer: async () => {},
       signOperatorConsent: async () => {},
       syncOperatorConsentFromChain: async () => {},
       buildQuote: async (depositG, streamG) => ({
@@ -77,21 +85,38 @@ function createAdapterFactory(
   })
 }
 
+const DISCONNECTED_EIP1193_PROVIDER: EIP1193Provider = {
+  request: async ({ method }) => {
+    if (method === 'eth_accounts' || method === 'eth_requestAccounts') return []
+    if (method === 'eth_chainId') return '0xa4ec'
+    throw new Error(`Unsupported method: ${method}`)
+  },
+  on: () => {},
+  removeListener: () => {},
+}
+
 function MockStoryShell({
   adapterFactory,
   dataTestId,
+  provider,
 }: {
   adapterFactory: AiCreditsWidgetAdapterFactory
   dataTestId: string
+  provider?: EIP1193Provider
 }) {
-  try {
-    const provider = createCustodialEip1193Provider()
-    return (
-      <div data-testid={dataTestId} style={{ width: 380 }}>
-        <AiCreditsWidget provider={provider} adapterFactory={adapterFactory} />
-      </div>
-    )
-  } catch (error: unknown) {
+  const resolvedProviderRef = useRef<EIP1193Provider | null>(provider ?? null)
+  const configErrorRef = useRef<unknown>(null)
+
+  if (!resolvedProviderRef.current && !configErrorRef.current) {
+    try {
+      resolvedProviderRef.current = provider ?? createCustodialEip1193Provider()
+    } catch (error: unknown) {
+      configErrorRef.current = error
+    }
+  }
+
+  if (configErrorRef.current) {
+    const error = configErrorRef.current
     return (
       <div data-testid="AiCreditsWidget-custodial-config-error" style={{ width: 380 }}>
         <strong>Custodial fixture not configured</strong>
@@ -103,17 +128,30 @@ function MockStoryShell({
       </div>
     )
   }
+
+  return (
+    <div data-testid={dataTestId} style={{ width: 380 }}>
+      <AiCreditsWidget
+        provider={resolvedProviderRef.current!}
+        adapterFactory={adapterFactory}
+      />
+    </div>
+  )
 }
+
+const DISCONNECTED_ADAPTER_FACTORY = createAdapterFactory('disconnected', {
+  address: null,
+  chainId: null,
+  gBalance: null,
+  activeTab: 'setup',
+})
 
 export function DisconnectedStory() {
   return (
     <MockStoryShell
       dataTestId="AiCreditsWidget-disconnected"
-      adapterFactory={createAdapterFactory('disconnected', {
-        address: null,
-        chainId: null,
-        gBalance: null,
-      })}
+      provider={DISCONNECTED_EIP1193_PROVIDER}
+      adapterFactory={DISCONNECTED_ADAPTER_FACTORY}
     />
   )
 }
@@ -126,6 +164,7 @@ export function ConnectingStory() {
         address: '0x329377cbeeF39f01b0Ea04B80465c9eB47D3ED1',
         chainId: 42220,
         gBalance: null,
+        activeTab: 'setup',
       })}
     />
   )
@@ -224,6 +263,18 @@ export function HistoryTabStory() {
         monthlyStreamG: '5.00',
         gBalance: '42.50',
         activeTab: 'history',
+      })}
+    />
+  )
+}
+
+export function SetupTabStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-setup-tab"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        gBalance: '42.50',
+        activeTab: 'setup',
       })}
     />
   )
@@ -410,5 +461,144 @@ export function InjectedWalletStory() {
         </YStack>
       )}
     </YStack>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Multi-buyer fixture stories
+// ---------------------------------------------------------------------------
+
+const BUYER_WALLET = {
+  address: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a' as const,
+  privateKey: '0x0000000000000000000000000000000000000000000000000000000000000001' as const,
+}
+
+const BUYER_IMPORTED = {
+  address: '0xAbcDef1234567890AbcDef1234567890AbcDef12' as const,
+  privateKey: '0x0000000000000000000000000000000000000000000000000000000000000002' as const,
+}
+
+const BUYER_PARTNER = {
+  address: '0x1111111111111111111111111111111111111111' as const,
+  operatorSignature:
+    '0x1111111111111111111111111111111111111111111111111111111111111111222222222222222222222222222222222222222222222222222222222222222200' as const,
+}
+
+/** Multi-buyer manage: backend address list with one selected buyer that has a local key. */
+export function MultiBuyerManageStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-multi-buyer-manage"
+      adapterFactory={createAdapterFactory('quote_ready', {
+        totalCreditUsd: '110000000',
+        buyerPubKey: BUYER_WALLET.address,
+        buyerPrvKey: BUYER_WALLET.privateKey,
+        operatorConsented: true,
+        operatorAddress: '0x0000000000000000000000000000000000000004',
+        totalGdDepositedG: '50.00',
+        monthlyStreamG: '5.00',
+        gBalance: '42.50',
+        activeTab: 'manage',
+        buyers: [BUYER_WALLET.address, BUYER_IMPORTED.address, BUYER_PARTNER.address],
+        derivedBuyerAddress: BUYER_WALLET.address,
+      })}
+    />
+  )
+}
+
+/** Deep-link partner buyer: consent uses pre-signed operatorSignature (no private key). */
+export function DeepLinkBuyerStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-deep-link-buyer"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        buyerPubKey: BUYER_PARTNER.address,
+        buyerPrvKey: null,
+        operatorSignature: BUYER_PARTNER.operatorSignature,
+        operatorConsented: false,
+        gBalance: '42.50',
+        activeTab: 'manage',
+        buyers: [BUYER_PARTNER.address],
+      })}
+    />
+  )
+}
+
+/**
+ * Deep-link partner buyer reaching the buy-flow consent step: a pre-signed
+ * operatorSignature is prefilled but operatorConsented is still false, so the
+ * explicit "Sign Operator Consent" gate must render instead of auto-advancing.
+ */
+export function DeepLinkConsentPendingStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-deep-link-consent-pending"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        buyerPubKey: BUYER_PARTNER.address,
+        buyerPrvKey: null,
+        operatorSignature: BUYER_PARTNER.operatorSignature,
+        operatorConsented: false,
+        activeTab: 'buy',
+        buyers: [BUYER_PARTNER.address],
+      })}
+    />
+  )
+}
+
+/** History tab with multi-buyer filter options available. */
+export function MultiBuyerHistoryStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-multi-buyer-history"
+      adapterFactory={createAdapterFactory('quote_ready', {
+        totalCreditUsd: '110000000',
+        buyerPubKey: BUYER_WALLET.address,
+        buyerPrvKey: BUYER_WALLET.privateKey,
+        operatorConsented: true,
+        gBalance: '42.50',
+        activeTab: 'history',
+        buyers: [BUYER_WALLET.address, BUYER_IMPORTED.address],
+        derivedBuyerAddress: BUYER_WALLET.address,
+      })}
+    />
+  )
+}
+
+/** Buy tab with the guidance card visible (default state). */
+export function GuidanceCardDefaultStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-guidance-card"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        gBalance: '42.50',
+        activeTab: 'buy',
+      })}
+    />
+  )
+}
+
+/** Buy tab with the How to use help view open. */
+export function GuidanceCardHowToUseStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-guidance-how-to-use"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        gBalance: '42.50',
+        activeTab: 'buy',
+      })}
+    />
+  )
+}
+
+/** Buy tab with the FAQ help view open. */
+export function GuidanceCardFaqStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-guidance-faq"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        gBalance: '42.50',
+        activeTab: 'buy',
+      })}
+    />
   )
 }

@@ -181,8 +181,9 @@ export function AmountPicker({
     [depositAmount, streamAmount, monthlyStreamG, minDepositUsd, minStreamUsd, quote, gdUsdPerToken, gBalance],
   )
   const minsLoaded = minStreamUsd !== null
+  const canRetryAfterFailure = status === 'quote_ready' || status === 'payment_failed'
   const canPay =
-    status === 'quote_ready' &&
+    canRetryAfterFailure &&
     minsLoaded &&
     paymentValidation.hasPaymentAction &&
     paymentValidation.vaultMinimumsMet &&

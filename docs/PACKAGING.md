@@ -249,6 +249,22 @@ entry points and module systems.
 > **Important**: Always put `"types"` before `"import"` and `"require"` in each
 > export condition. TypeScript resolves them in order.
 
+### Shared UI web/native resolution
+
+`@goodwidget/ui` publishes both native and browser builds from the same package.
+Browser-aware bundlers select `dist/web.*` through the `browser` export condition;
+React Native bundlers select the native build through the `react-native` condition.
+The browser build bundles the Lucide icon modules with GoodWidget's DOM SVG shim,
+so consumers of GoodWidget widgets do not need to add a `react-native-svg` alias.
+
+That shim is shared by the core UI package and any widget package that has a
+direct SVG implementation; it belongs in the package's browser build, not in
+Storybook, example-app, or consumer configuration.
+
+Widget packages should continue importing UI components from `@goodwidget/ui`.
+Packages or applications that import `@tamagui/lucide-icons` or
+`react-native-svg` directly still own those platform-specific dependencies.
+
 ---
 
 ## Step 5 — Build & publish

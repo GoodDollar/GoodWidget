@@ -1,13 +1,19 @@
 import type { AiCreditsWidgetAdapterState } from '../../widgetRuntimeContract'
 import type { AiCreditsFlowStep } from './types'
 
+function isSelectedDerivedBuyer(state: AiCreditsWidgetAdapterState): boolean {
+  if (!state.buyerPubKey || !state.derivedBuyerAddress) return false
+  return state.buyerPubKey.toLowerCase() === state.derivedBuyerAddress.toLowerCase()
+}
+
 export function mapStatusToActiveStep(
   state: AiCreditsWidgetAdapterState,
   buyerPubKeySaved: boolean,
 ): AiCreditsFlowStep | null {
   if (state.operatorConsented) return 'pay'
-  if (!state.buyerPubKey || !state.buyerPrvKey) return 'buyer_key'
-  if (!buyerPubKeySaved) return 'buyer_key'
+  if (!state.buyerPubKey) return 'buyer_key'
+  if (!state.buyerPrvKey && !state.operatorSignature) return 'buyer_key'
+  if (isSelectedDerivedBuyer(state) && state.buyerPrvKey && !buyerPubKeySaved) return 'buyer_key'
   if (!state.operatorConsented) return 'consent'
   if (
     state.status === 'purchase_setup' ||
@@ -40,6 +46,7 @@ export function getActiveFlowStepActionLabel(
       if (!buyerPubKeySaved) return "Continue Buyer Key"
       return 'View Buyer Key'
     case 'consent':
+      if (state.operatorConsentPending) return 'Submitting Consent…'
       return state.operatorConsented ? 'View Operator Consent' : 'Sign Operator Consent'
     case 'pay':
       return 'Set Amounts & Pay'

@@ -12,6 +12,13 @@ export const LEADERBOARD_COLUMN_WIDTHS = {
   actions: 160,
 } as const
 
+/**
+ * Keeps the four columns at their declared widths. The widget's outer padding
+ * can make the available content width smaller than this, so the parent table
+ * scrolls horizontally instead of allowing points or badges to overlap.
+ */
+export const LEADERBOARD_ROW_MIN_WIDTH = 480
+
 interface LeaderboardRowProps {
   entry: LeaderboardEntry
   /** Drives the highlighted/bordered treatment for the connected user's own row. */
@@ -39,11 +46,18 @@ export function LeaderboardRow({ entry, isCurrentUser = false, activities }: Lea
       borderColor={isCurrentUser ? '$primary' : '$borderColor'}
       borderWidth={isCurrentUser ? 2 : 1}
       backgroundColor={isCurrentUser ? '$backgroundHover' : '$background'}
+      minWidth={LEADERBOARD_ROW_MIN_WIDTH}
     >
-      <Text variant="label" width={LEADERBOARD_COLUMN_WIDTHS.rank}>
+      <Text variant="label" width={LEADERBOARD_COLUMN_WIDTHS.rank} flexShrink={0}>
         {entry.rank}
       </Text>
-      <XStack gap="$2" alignItems="center" width={LEADERBOARD_COLUMN_WIDTHS.address}>
+      <XStack
+        gap="$2"
+        alignItems="center"
+        flexWrap={isCurrentUser ? 'wrap' : undefined}
+        width={LEADERBOARD_COLUMN_WIDTHS.address}
+        flexShrink={0}
+      >
         <Anchor href={`https://explorer.superfluid.org/base-mainnet/accounts/${entry.address}`}>
           {addressLabel}
         </Anchor>
@@ -54,13 +68,17 @@ export function LeaderboardRow({ entry, isCurrentUser = false, activities }: Lea
         )}
       </XStack>
 
-      <YStack width={LEADERBOARD_COLUMN_WIDTHS.points}>
+      <YStack width={LEADERBOARD_COLUMN_WIDTHS.points} flexShrink={0}>
         <Text fontWeight="600">{entry.points.toLocaleString()} pts</Text>
       </YStack>
 
       {/* Only the selected pool's configured actions are rendered. */}
       {entry.completedActivities && (
-        <XStack width={LEADERBOARD_COLUMN_WIDTHS.actions} $md={{ flexWrap: 'wrap' }}>
+        <XStack
+          width={LEADERBOARD_COLUMN_WIDTHS.actions}
+          flexShrink={0}
+          $md={{ flexWrap: 'wrap' }}
+        >
           <ActivityIcons completedActivities={entry.completedActivities} activities={activities} />
         </XStack>
       )}

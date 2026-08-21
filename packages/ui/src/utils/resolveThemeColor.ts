@@ -8,7 +8,7 @@
  * consumer (PieDonutChart) needed the same logic, mirroring how
  * formatMetricValue was already shared rather than duplicated.
  */
-import type { useTheme } from 'tamagui'
+import { useTheme } from 'tamagui'
 
 /**
  * Falls back to the theme's base `$color` token if the requested token is

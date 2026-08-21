@@ -106,7 +106,10 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     const key = normalizeAddress(payer)
     if (!this.accountStates.has(key)) {
       this.accountStates.set(key, {
-        principalUsd: 0n, bonusUsd: 0n, transactions: createDemoHistory(key), rootAccount: key,
+        principalUsd: 0n,
+        bonusUsd: 0n,
+        transactions: createDemoHistory(key),
+        rootAccount: key,
       })
     }
     return this.accountStates.get(key)!
@@ -124,10 +127,16 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
       .filter((entry) => entry.fundingStatus === 'pending' || entry.fundingStatus === 'failed')
       .reduce((sum, entry) => sum + BigInt(entry.totalCreditUsd), 0n)
     return {
-      account: normalizeAddress(payer), rootAccount: state.rootAccount, createdAt: now, updatedAt: now,
-      totalGdDepositedWei: '0', totalPrincipalUsd: state.principalUsd.toString(),
-      totalBonusUsd: state.bonusUsd.toString(), totalGDStreamedWei: '0',
-      totalOutstandingFundingUsd: outstanding.toString(), streamFlowRateWeiPerSecond: '0',
+      account: normalizeAddress(payer),
+      rootAccount: state.rootAccount,
+      createdAt: now,
+      updatedAt: now,
+      totalGdDepositedWei: '0',
+      totalPrincipalUsd: state.principalUsd.toString(),
+      totalBonusUsd: state.bonusUsd.toString(),
+      totalGDStreamedWei: '0',
+      totalOutstandingFundingUsd: outstanding.toString(),
+      streamFlowRateWeiPerSecond: '0',
     }
   }
 
@@ -203,10 +212,16 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     return { account: buyer, amountUsd: body.amount, bridge: { enabled: true, txHash: '0xmock' } }
   }
 
-  async submitOperatorConsent(buyer: string): Promise<OperatorConsentResponse> {
+  async submitOperatorConsent(
+    buyer: string,
+    {}: { nonce: string; signature: string },
+  ): Promise<OperatorConsentResponse> {
     await sleep(MOCK_DELAY_MS)
     const normalizedBuyer = normalizeAddress(buyer)
     markMockOperatorConsent(normalizedBuyer)
-    return { buyer: normalizedBuyer, bridge: { enabled: true, txHash: '0xmock' } }
+    return {
+      buyer: normalizedBuyer,
+      bridge: { enabled: true, txHash: '0xmock' },
+    }
   }
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import { GoodWidgetProvider, useWallet } from '@goodwidget/core'
 import type { EIP1193Provider } from '@goodwidget/core'
 import { CitizenClaimWidget } from '@goodwidget/citizen-claim-widget'
@@ -8,6 +8,7 @@ import { FaqAccordion } from './components/FaqAccordion'
 import { LeaderboardSummary } from './components/LeaderboardSummary'
 import { LeaderboardView } from './components/LeaderboardView'
 import { RewardPoolSection } from './components/RewardPoolSection'
+import { useAirdropStatus } from './hooks/useAirdropStatus'
 import { DEFAULT_CAMPAIGN_DEFINITION } from './campaignDefinition'
 import {
   PRODUCTION_SUPERFLUID_CAMPAIGN_DATA_CLIENT,
@@ -25,12 +26,17 @@ import type {
 /** The claim widget is an in-place view within the Superfluid campaign shell. */
 type EmbeddedClaimTab = 'claim' | null
 
+const GOODDOLLAR_PAGE_URL = 'https://goodwallet.xyz/en/gooddollar'
+
 interface SuperfluidCampaignRuntimeProps {
   data: SuperfluidCampaignWidgetProps['data']
   actionLinks?: CampaignActionLinkOverrides
   leaderboardSummary?: LeaderboardSummaryData
   dataClient: SuperfluidCampaignDataClient
   citizenClaimEnvironment: SuperfluidCampaignWidgetProps['citizenClaimEnvironment']
+  citizenClaimExecution: SuperfluidCampaignWidgetProps['citizenClaimExecution']
+  disableClaim: boolean
+  disableWalletButton?: SuperfluidCampaignWidgetProps['disableWalletButton']
   initialView: SuperfluidCampaignView
   poolAddresses?: SuperfluidCampaignWidgetProps['poolAddresses']
   /** Forwarded to the embedded CitizenClaimWidget so it shares the same provider/config/theme context. */
@@ -38,6 +44,12 @@ interface SuperfluidCampaignRuntimeProps {
   config?: SuperfluidCampaignWidgetProps['config']
   themeOverrides?: SuperfluidCampaignWidgetProps['themeOverrides']
   defaultTheme?: SuperfluidCampaignWidgetProps['defaultTheme']
+  /** Forwarded to the embedded CitizenClaimWidget's own GoodWidgetProvider. */
+  addressOverride?: SuperfluidCampaignWidgetProps['addressOverride']
+  chainIdOverride?: SuperfluidCampaignWidgetProps['chainIdOverride']
+  connectOverride?: SuperfluidCampaignWidgetProps['connectOverride']
+  switchChainOverride?: SuperfluidCampaignWidgetProps['switchChainOverride']
+  availableChainIdsOverride?: SuperfluidCampaignWidgetProps['availableChainIdsOverride']
   hasDisconnectOverride: boolean
 }
 
@@ -51,14 +63,23 @@ interface SuperfluidCampaignRuntimeProps {
 function handleActionCta(
   action: CampaignActionDefinition,
   openClaimTab: (tab: EmbeddedClaimTab) => void,
+  disableClaim: boolean,
 ) {
   switch (action.ctaKind) {
     case 'claim-widget-claim':
+      if (disableClaim) {
+        window.open(
+          action.href ?? `${GOODDOLLAR_PAGE_URL}?tab=claim`,
+          '_blank',
+          'noopener,noreferrer',
+        )
+        return
+      }
       openClaimTab('claim')
       return
     case 'claim-widget-invite':
       window.open(
-        action.href ?? 'https://goodwallet.xyz/en/gooddollar',
+        action.href ?? `${GOODDOLLAR_PAGE_URL}?tab=inviteRewards`,
         '_blank',
         'noopener,noreferrer',
       )
@@ -83,7 +104,7 @@ function applyActionLinkOverrides(
       ...pool,
       actions: pool.actions.map((action) => {
         const href = actionLinks[action.activity]
-        return href && action.ctaKind !== 'claim-widget-claim' ? { ...action, href } : action
+        return href ? { ...action, href } : action
       }),
     })),
   }
@@ -95,23 +116,41 @@ function SuperfluidCampaignRuntime({
   leaderboardSummary,
   dataClient,
   citizenClaimEnvironment,
+  citizenClaimExecution,
+  disableClaim,
+  disableWalletButton,
   initialView,
   poolAddresses,
   provider,
   config,
   themeOverrides,
   defaultTheme,
+  addressOverride,
+  chainIdOverride,
+  connectOverride,
+  switchChainOverride,
+  availableChainIdsOverride,
   hasDisconnectOverride,
 }: SuperfluidCampaignRuntimeProps) {
-  const { isConnected, connect, disconnect, address } = useWallet()
+  const { isConnected, connect, disconnect, disconnectLabel, disconnectIcon, address } = useWallet()
   const [view, setView] = useState<SuperfluidCampaignView>(initialView)
   const [embeddedClaimTab, setEmbeddedClaimTab] = useState<EmbeddedClaimTab>(null)
-
-  const isMockRuntime = dataClient.kind === 'mock'
+  const [leaderboardRefreshKey, setLeaderboardRefreshKey] = useState(0)
 
   const campaignData = applyActionLinkOverrides(data ?? DEFAULT_CAMPAIGN_DEFINITION, actionLinks)
 
-  if (embeddedClaimTab) {
+  const isMockRuntime = dataClient.kind === 'mock'
+  const handleAirdropStatusUpdated = useCallback(() => {
+    setLeaderboardRefreshKey((current) => current + 1)
+  }, [])
+  const airdropStatus = useAirdropStatus(
+    address,
+    isMockRuntime ? dataClient.airdropStatus : undefined,
+    handleAirdropStatusUpdated,
+  )
+  void airdropStatus
+
+  if (embeddedClaimTab && !disableClaim) {
     return (
       <YStack gap="$5" width="100%" padding="$5" style={{ boxSizing: 'border-box' }}>
         <CampaignHeader
@@ -120,14 +159,23 @@ function SuperfluidCampaignRuntime({
           isConnected={isConnected}
           onConnect={connect}
           onDisconnect={hasDisconnectOverride ? disconnect : undefined}
+          disconnectLabel={hasDisconnectOverride ? disconnectLabel : undefined}
+          disconnectIcon={hasDisconnectOverride ? disconnectIcon : undefined}
           onClose={() => setEmbeddedClaimTab(null)}
+          disableWalletButton={disableWalletButton}
         />
         <CitizenClaimWidget
           provider={provider}
           config={config}
           themeOverrides={themeOverrides}
           defaultTheme={defaultTheme}
+          addressOverride={addressOverride}
+          chainIdOverride={chainIdOverride}
+          connectOverride={connectOverride}
+          switchChainOverride={switchChainOverride}
+          availableChainIdsOverride={availableChainIdsOverride}
           environment={citizenClaimEnvironment}
+          claimExecution={citizenClaimExecution}
           initialTab={embeddedClaimTab}
         />
       </YStack>
@@ -144,7 +192,12 @@ function SuperfluidCampaignRuntime({
         isConnected={isConnected}
         onConnect={connect}
         onDisconnect={hasDisconnectOverride ? disconnect : undefined}
+        disconnectLabel={hasDisconnectOverride ? disconnectLabel : undefined}
+        disconnectIcon={hasDisconnectOverride ? disconnectIcon : undefined}
         onClose={() => setView('content')}
+        leaderboardRefreshKey={leaderboardRefreshKey}
+        userPointsAdapter={isMockRuntime ? dataClient.userPoints : undefined}
+        disableWalletButton={disableWalletButton}
       />
     )
   }
@@ -159,6 +212,9 @@ function SuperfluidCampaignRuntime({
         isConnected={isConnected}
         onConnect={connect}
         onDisconnect={hasDisconnectOverride ? disconnect : undefined}
+        disconnectLabel={hasDisconnectOverride ? disconnectLabel : undefined}
+        disconnectIcon={hasDisconnectOverride ? disconnectIcon : undefined}
+        disableWalletButton={disableWalletButton}
       />
 
       <LeaderboardSummary
@@ -181,7 +237,9 @@ function SuperfluidCampaignRuntime({
             key={pool.id}
             pool={pool}
             poolAddress={poolAddresses?.[pool.campaignId]}
-            onPressActionCta={(action) => handleActionCta(action, setEmbeddedClaimTab)}
+            onPressActionCta={(action) =>
+              handleActionCta(action, setEmbeddedClaimTab, disableClaim)
+            }
             supTotalsAdapter={isMockRuntime ? dataClient.programSupTotals : undefined}
           />
         ))}
@@ -202,6 +260,12 @@ export function SuperfluidCampaignWidgetWithClient({
   provider,
   connectOverride,
   disconnectOverride,
+  addressOverride,
+  chainIdOverride,
+  switchChainOverride,
+  availableChainIdsOverride,
+  disconnectLabel,
+  disconnectIcon,
   themeOverrides,
   config,
   defaultTheme = 'dark',
@@ -209,6 +273,9 @@ export function SuperfluidCampaignWidgetWithClient({
   data,
   actionLinks,
   citizenClaimEnvironment = 'production',
+  citizenClaimExecution,
+  disableClaim = false,
+  disableWalletButton,
   initialView = 'content',
   poolAddresses,
   dataClient,
@@ -219,6 +286,12 @@ export function SuperfluidCampaignWidgetWithClient({
       provider={provider as EIP1193Provider | undefined}
       connectOverride={connectOverride}
       disconnectOverride={disconnectOverride}
+      addressOverride={addressOverride}
+      chainIdOverride={chainIdOverride}
+      switchChainOverride={switchChainOverride}
+      availableChainIdsOverride={availableChainIdsOverride}
+      disconnectLabel={disconnectLabel}
+      disconnectIcon={disconnectIcon}
       config={config}
       themeOverrides={themeOverrides}
       defaultTheme={defaultTheme}
@@ -231,12 +304,20 @@ export function SuperfluidCampaignWidgetWithClient({
           leaderboardSummary={leaderboardSummary}
           dataClient={dataClient}
           citizenClaimEnvironment={citizenClaimEnvironment}
+          citizenClaimExecution={citizenClaimExecution}
+          disableClaim={disableClaim}
+          disableWalletButton={disableWalletButton}
           initialView={initialView}
           poolAddresses={poolAddresses}
           provider={provider}
           config={config}
           themeOverrides={themeOverrides}
           defaultTheme={defaultTheme}
+          addressOverride={addressOverride}
+          chainIdOverride={chainIdOverride}
+          connectOverride={connectOverride}
+          switchChainOverride={switchChainOverride}
+          availableChainIdsOverride={availableChainIdsOverride}
           hasDisconnectOverride={Boolean(disconnectOverride)}
         />
       </Card>

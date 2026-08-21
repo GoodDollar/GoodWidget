@@ -18,6 +18,8 @@ import { Card } from './Card'
 import { CHART_FONT_FAMILY } from '../utils/chartFontFamily'
 import { formatMetricValue } from '../utils/formatMetricValue'
 import { resolveThemeColor } from '../utils/resolveThemeColor'
+import { computeChartScaleRatio, computeShrinkToFitFontSizePx, scaleEdgeInsets, scalePx } from '../utils/chartResponsiveScale'
+import { useMeasuredWidth } from '../hooks/useMeasuredWidth'
 
 export type LineAreaChartVariant = 'bare' | 'card'
 export type LineAreaChartInterpolation = 'linear' | 'monotone' | 'step'
@@ -87,20 +89,25 @@ export interface LineAreaChartProps {
  * are private (not exported) and out of this task's scope to modify, so
  * these are re-declared locally rather than imported (same as PieDonutChart
  * and BarChart before it).
+ *
+ * These are *base* sizes tuned for a chart rendered at REFERENCE_WIDTH_PX —
+ * LineAreaChartContent scales them by the chart's actual measured width (see
+ * chartResponsiveScale.ts) rather than using them as fixed pixel values, so
+ * layout holds up from phone-width widgets to 4K embeds.
  */
 const CHART_BASE_SIZE_PX = 24
 const GOLDEN_RATIO = 1.618
 const MIN_FONT_SIZE_PX = 12
 const clampFontSize = (px: number): number => Math.max(px, MIN_FONT_SIZE_PX)
 
-const TITLE_SIZE_PX = clampFontSize(CHART_BASE_SIZE_PX)
-const AXIS_TITLE_SIZE_PX = clampFontSize(CHART_BASE_SIZE_PX / GOLDEN_RATIO)
-const TICK_LABEL_SIZE_PX = clampFontSize(CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2)
-const REFERENCE_LABEL_SIZE_PX = clampFontSize(CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2)
-const LEGEND_LABEL_SIZE_PX = clampFontSize(CHART_BASE_SIZE_PX / GOLDEN_RATIO)
+const TITLE_BASE_SIZE_PX = CHART_BASE_SIZE_PX
+const AXIS_TITLE_BASE_SIZE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
+const TICK_LABEL_BASE_SIZE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2
+const REFERENCE_LABEL_BASE_SIZE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2
+const LEGEND_LABEL_BASE_SIZE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
 
-const TITLE_TO_CHART_GAP_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
-const CHART_TO_LEGEND_GAP_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
+const TITLE_TO_CHART_GAP_BASE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
+const CHART_TO_LEGEND_GAP_BASE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
 const CARD_PADDING_PX = CHART_BASE_SIZE_PX
 
 /** Multi-category palette, resolved to raw colors via useTheme() at render time. */
@@ -108,7 +115,10 @@ const CHART_COLOR_KEYS = ['primary', 'success', 'warning', 'colorDim', 'error'] 
 
 const DEFAULT_PADDING: LineAreaChartPadding = { top: 16, right: 16, bottom: 40, left: 48 }
 // Mirrors DEFAULT_PADDING.left — secondary-axis tick labels need the same room on the right that primary labels get on the left.
-const SECONDARY_AXIS_RIGHT_PADDING_PX = 48
+const SECONDARY_AXIS_RIGHT_PADDING_BASE_PX = 48
+/** Reference width both the base sizes above and DEFAULT_PADDING were tuned against.
+ * Also the fallback viewBox width used for the single frame before a responsive
+ * (string `width`) chart's first real layout measurement arrives. */
 const REFERENCE_WIDTH_PX = 400
 
 const DESIRED_TICK_COUNT = 5
@@ -121,6 +131,11 @@ const DOT_AUTO_THRESHOLD = 20
 /** Invisible larger hit-target so pressable dots still meet the 44pt touch-target baseline. */
 const DOT_TOUCH_TARGET_RADIUS_PX = 22
 const LEGEND_SWATCH_SIZE_PX = 10
+/** Grid lines need enough contrast to be useful without competing with the series. */
+const GRID_LINE_OPACITY = 0.22
+const GRID_ZERO_LINE_OPACITY = 0.48
+const GRID_LINE_WIDTH_PX = 1
+const GRID_ZERO_LINE_WIDTH_PX = 1.25
 /** Floor width budget per x-axis label — actual formatted labels (e.g. full ISO dates) can need more, see estimateTextWidthPx. */
 const X_LABEL_APPROX_WIDTH_PX = 56
 /** Gap between adjacent x-axis labels so wide formatted labels never touch. */
@@ -375,14 +390,41 @@ function computeLabelSkipFactor(categoryCount: number, plotWidth: number, labelS
   return Math.max(1, Math.ceil(categoryCount / maxLabels))
 }
 
-function mergePadding(padding: Partial<LineAreaChartPadding> | undefined, hasSecondaryAxis: boolean): LineAreaChartPadding {
-  const defaults = hasSecondaryAxis ? { ...DEFAULT_PADDING, right: SECONDARY_AXIS_RIGHT_PADDING_PX } : DEFAULT_PADDING
+/** Scales DEFAULT_PADDING (and the secondary-axis right-padding override) to the
+ * chart's actual size, then layers an explicit per-instance `padding` override on
+ * top unscaled — an override is the caller opting out of the default for that
+ * edge, not a value we should re-scale. */
+function mergePadding(padding: Partial<LineAreaChartPadding> | undefined, hasSecondaryAxis: boolean, scaleRatio: number): LineAreaChartPadding {
+  const scaledDefaults = scaleEdgeInsets(DEFAULT_PADDING, scaleRatio)
+  const defaults = hasSecondaryAxis ? { ...scaledDefaults, right: scalePx(SECONDARY_AXIS_RIGHT_PADDING_BASE_PX, scaleRatio) } : scaledDefaults
   return { ...defaults, ...padding }
 }
 
 const LineAreaFrame = createComponent(YStack, {
   name: 'LineAreaChart',
   alignItems: 'center',
+  width: '100%',
+  // Without this, a flex ancestor with alignItems:"center" (e.g. GoodWidgetProvider's
+  // content Stack) lets this frame shrink-wrap to its own content's intrinsic width
+  // instead of being bound by the actual space it's given.
+  alignSelf: 'stretch',
+})
+
+/**
+ * An explicit pixel `width` (e.g. a wide-embed stress test) is intentionally
+ * not responsive, so when the host container is narrower than that width the
+ * chart can't reflow or shrink without becoming illegible — this scrolls it
+ * horizontally instead of relying on an ancestor to clip it, mirroring
+ * DataTable's own DataTableScrollContainer for the same wide-content case.
+ */
+const LineAreaScrollContainer = createComponent(YStack, {
+  name: 'LineAreaChartScrollContainer',
+  width: '100%',
+  // Same shrink-wrap issue as LineAreaFrame above: without this, this container
+  // grows to match the chart's own width instead of being clamped by LineAreaFrame,
+  // which silently defeats overflow:"auto" (nothing is left to scroll within).
+  alignSelf: 'stretch',
+  overflow: 'auto' as const,
 })
 
 const LineAreaTitleText = createComponent(TamaguiText, {
@@ -390,16 +432,16 @@ const LineAreaTitleText = createComponent(TamaguiText, {
   fontFamily: '$body',
   fontWeight: '700',
   color: '$color',
-  fontSize: TITLE_SIZE_PX,
+  fontSize: TITLE_BASE_SIZE_PX,
   textAlign: 'center',
-  marginBottom: TITLE_TO_CHART_GAP_PX,
+  marginBottom: TITLE_TO_CHART_GAP_BASE_PX,
 })
 
 const LineAreaLegendLabelText = createComponent(TamaguiText, {
   name: 'LineAreaChartLegendLabelText',
   fontFamily: '$body',
   color: '$color',
-  fontSize: LEGEND_LABEL_SIZE_PX,
+  fontSize: LEGEND_LABEL_BASE_SIZE_PX,
 })
 
 const LineAreaSwatch = createComponent(YStack, {
@@ -409,13 +451,13 @@ const LineAreaSwatch = createComponent(YStack, {
   borderRadius: '$full',
 })
 
-function LineAreaLegend({ seriesList }: { seriesList: ResolvedSeries[] }) {
+function LineAreaLegend({ seriesList, legendLabelSizePx }: { seriesList: ResolvedSeries[]; legendLabelSizePx: number }) {
   return (
     <XStack gap="$4" flexWrap="wrap" justifyContent="center">
       {seriesList.map((series) => (
         <XStack key={series.key} alignItems="center" gap="$2">
           <LineAreaSwatch backgroundColor={series.color} />
-          <LineAreaLegendLabelText>{series.label}</LineAreaLegendLabelText>
+          <LineAreaLegendLabelText fontSize={legendLabelSizePx}>{series.label}</LineAreaLegendLabelText>
         </XStack>
       ))}
     </XStack>
@@ -450,7 +492,7 @@ function LineAreaChartContent({
   const theme = useTheme()
   const gradientIdPrefix = useId()
   const colors = CHART_COLOR_KEYS.map((key) => resolveThemeColor(theme, key))
-  const gridColor = resolveThemeColor(theme, 'borderColor')
+  const gridColor = resolveThemeColor(theme, 'colorDim')
   const axisLabelColor = resolveThemeColor(theme, 'placeholderColor')
 
   const isEmpty = data.length === 0
@@ -466,8 +508,29 @@ function LineAreaChartContent({
   const primaryScale = computeNiceAxisScale(primaryValues.length > 0 ? primaryValues : referenceLines.map((line) => line.value), yAxisDomain)
   const secondaryScale = secondaryValues.length > 0 ? computeNiceAxisScale(secondaryValues) : null
 
-  const viewBoxWidth = typeof width === 'number' ? width : REFERENCE_WIDTH_PX
-  const resolvedPadding = mergePadding(padding, secondaryScale !== null)
+  // A string `width` (e.g. the default "100%") only tells the SVG element itself how
+  // to stretch — it carries no pixel value we can lay points out against, so that case
+  // needs the frame's real rendered width measured via onLayout instead.
+  const isResponsiveWidth = typeof width !== 'number'
+  const { measuredWidthPx, onLayout } = useMeasuredWidth(REFERENCE_WIDTH_PX)
+  const viewBoxWidth = isResponsiveWidth ? measuredWidthPx : width
+
+  const scaleRatio = computeChartScaleRatio(viewBoxWidth, REFERENCE_WIDTH_PX)
+  const titleSizePx = clampFontSize(scalePx(TITLE_BASE_SIZE_PX, scaleRatio))
+  // The title renders as a sibling of the SVG inside the chart frame, at the frame's
+  // full width (viewBoxWidth) — not just the inner plot area — so a long title at a
+  // scaled-up font size can otherwise widen past the frame regardless of plot layout.
+  const fittedTitleSizePx = title
+    ? computeShrinkToFitFontSizePx(title, titleSizePx, viewBoxWidth, MIN_FONT_SIZE_PX)
+    : titleSizePx
+  const titleToChartGapPx = scalePx(TITLE_TO_CHART_GAP_BASE_PX, scaleRatio)
+  const chartToLegendGapPx = scalePx(CHART_TO_LEGEND_GAP_BASE_PX, scaleRatio)
+  const axisTitleSizePx = clampFontSize(scalePx(AXIS_TITLE_BASE_SIZE_PX, scaleRatio))
+  const tickLabelSizePx = clampFontSize(scalePx(TICK_LABEL_BASE_SIZE_PX, scaleRatio))
+  const referenceLabelSizePx = clampFontSize(scalePx(REFERENCE_LABEL_BASE_SIZE_PX, scaleRatio))
+  const legendLabelSizePx = clampFontSize(scalePx(LEGEND_LABEL_BASE_SIZE_PX, scaleRatio))
+
+  const resolvedPadding = mergePadding(padding, secondaryScale !== null, scaleRatio)
   const plotWidth = viewBoxWidth - resolvedPadding.left - resolvedPadding.right
   const plotHeight = height - resolvedPadding.top - resolvedPadding.bottom
 
@@ -484,223 +547,228 @@ function LineAreaChartContent({
 
   // Base the skip factor on the widest *formatted* label actually in use (e.g. full ISO dates), not a fixed short-label guess.
   const widestXLabelWidthPx = xCategories.reduce<number>(
-    (widest, category) => Math.max(widest, estimateTextWidthPx(xAxisFormatter(category), TICK_LABEL_SIZE_PX)),
+    (widest, category) => Math.max(widest, estimateTextWidthPx(xAxisFormatter(category), tickLabelSizePx)),
     X_LABEL_APPROX_WIDTH_PX,
   )
   const labelSkipFactor = computeLabelSkipFactor(categoryCount, plotWidth, widestXLabelWidthPx + X_LABEL_GAP_PX)
   const xLabelSlotWidthPx = (plotWidth / Math.max(1, categoryCount - 1)) * labelSkipFactor
 
   return (
-    <LineAreaFrame testID={testID} data-testid={testID}>
-      {title ? <LineAreaTitleText>{title}</LineAreaTitleText> : null}
-      <Svg
-        width={width}
-        height={height}
-        viewBox={`0 0 ${viewBoxWidth} ${height}`}
-        preserveAspectRatio="none"
-        accessibilityRole="image"
-        aria-label={resolvedAccessibilityLabel}
-      >
-        <Defs>
-          {resolvedSeriesList.map((seriesItem) => (
-            <LinearGradient key={seriesItem.key} id={`${gradientIdPrefix}-${seriesItem.key}`} x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor={seriesItem.color} stopOpacity={0.3} />
-              <Stop offset="1" stopColor={seriesItem.color} stopOpacity={0.05} />
-            </LinearGradient>
-          ))}
-        </Defs>
+    <LineAreaFrame testID={testID} data-testid={testID} width={isResponsiveWidth ? '100%' : undefined} onLayout={onLayout}>
+      {title ? (
+        <LineAreaTitleText fontSize={fittedTitleSizePx} marginBottom={titleToChartGapPx}>
+          {title}
+        </LineAreaTitleText>
+      ) : null}
+      <LineAreaScrollContainer>
+        <Svg
+          width={width}
+          height={height}
+          viewBox={`0 0 ${viewBoxWidth} ${height}`}
+          preserveAspectRatio="none"
+          accessibilityRole="image"
+          aria-label={resolvedAccessibilityLabel}
+        >
+          <Defs>
+            {resolvedSeriesList.map((seriesItem) => (
+              <LinearGradient key={seriesItem.key} id={`${gradientIdPrefix}-${seriesItem.key}`} x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0" stopColor={seriesItem.color} stopOpacity={0.3} />
+                <Stop offset="1" stopColor={seriesItem.color} stopOpacity={0.05} />
+              </LinearGradient>
+            ))}
+          </Defs>
 
-        {isEmpty ? (
-          <G accessible={false}>
-            <Line
-              x1={resolvedPadding.left}
-              y1={resolvedPadding.top + plotHeight}
-              x2={resolvedPadding.left + plotWidth}
-              y2={resolvedPadding.top + plotHeight}
-              stroke={gridColor}
-              strokeOpacity={0.3}
-              strokeWidth={1}
-            />
-            <SvgText
-              x={resolvedPadding.left + plotWidth / 2}
-              y={resolvedPadding.top + plotHeight / 2}
-              fontSize={TICK_LABEL_SIZE_PX} fontFamily={CHART_FONT_FAMILY}
-              fill={axisLabelColor}
-              textAnchor="middle"
-            >
-              No data
-            </SvgText>
-          </G>
-        ) : (
-          <G transform={`translate(${resolvedPadding.left}, ${resolvedPadding.top})`}>
-            {showGrid ? (
+          {isEmpty ? (
+            <G accessible={false}>
+              <Line
+                x1={resolvedPadding.left}
+                y1={resolvedPadding.top + plotHeight}
+                x2={resolvedPadding.left + plotWidth}
+                y2={resolvedPadding.top + plotHeight}
+                stroke={gridColor}
+                strokeOpacity={0.3}
+                strokeWidth={1}
+              />
+              <SvgText
+                x={resolvedPadding.left + plotWidth / 2}
+                y={resolvedPadding.top + plotHeight / 2}
+                fontSize={tickLabelSizePx} fontFamily={CHART_FONT_FAMILY}
+                fill={axisLabelColor}
+                textAnchor="middle"
+              >
+                No data
+              </SvgText>
+            </G>
+          ) : (
+            <G transform={`translate(${resolvedPadding.left}, ${resolvedPadding.top})`}>
+              {showGrid ? (
+                <G accessible={false}>
+                  {primaryScale.ticks.map((tick) => {
+                    const tickY = yPixelForValue(tick, primaryScale)
+                    const isZeroTick = tick === 0
+                    return (
+                      <Line
+                        key={tick}
+                        x1={0}
+                        y1={tickY}
+                        x2={plotWidth}
+                        y2={tickY}
+                        stroke={gridColor}
+                        strokeOpacity={isZeroTick ? GRID_ZERO_LINE_OPACITY : GRID_LINE_OPACITY}
+                        strokeWidth={isZeroTick ? GRID_ZERO_LINE_WIDTH_PX : GRID_LINE_WIDTH_PX}
+                      />
+                    )
+                  })}
+                </G>
+              ) : null}
+
               <G accessible={false}>
-                {primaryScale.ticks.map((tick) => {
-                  const tickY = yPixelForValue(tick, primaryScale)
-                  const isZeroTick = tick === 0
+                {primaryScale.ticks.map((tick) => (
+                  <SvgText key={tick} x={-8} y={yPixelForValue(tick, primaryScale)} fontSize={tickLabelSizePx} fontFamily={CHART_FONT_FAMILY} fill={axisLabelColor} textAnchor="end" alignmentBaseline="middle">
+                    {yAxisFormatter(tick)}
+                  </SvgText>
+                ))}
+                {secondaryScale
+                  ? secondaryScale.ticks.map((tick) => (
+                      <SvgText
+                        key={tick}
+                        x={plotWidth + 8}
+                        y={yPixelForValue(tick, secondaryScale)}
+                        fontSize={tickLabelSizePx} fontFamily={CHART_FONT_FAMILY}
+                        fill={secondarySeries?.color ?? axisLabelColor}
+                        textAnchor="start"
+                        alignmentBaseline="middle"
+                      >
+                        {(secondaryYAxis?.formatter ?? formatMetricValue)(tick)}
+                      </SvgText>
+                    ))
+                  : null}
+                {xCategories.map((category, index) => {
+                  if (index % labelSkipFactor !== 0) return null
+                  // Clamp the first/last labels' anchor so a wide label centered at the plot edge can't overhang past the SVG boundary.
+                  const labelHalfWidthPx = widestXLabelWidthPx / 2
+                  const xPixel = xPixelForIndex(index)
+                  const isNearLeftEdge = xPixel < labelHalfWidthPx
+                  const isNearRightEdge = xPixel > plotWidth - labelHalfWidthPx
+                  const textAnchor = isNearLeftEdge ? 'start' : isNearRightEdge ? 'end' : 'middle'
+                  const labelX = isNearLeftEdge ? 0 : isNearRightEdge ? plotWidth : xPixel
+
                   return (
-                    <Line
-                      key={tick}
-                      x1={0}
-                      y1={tickY}
-                      x2={plotWidth}
-                      y2={tickY}
-                      stroke={gridColor}
-                      strokeOpacity={isZeroTick ? 0.3 : 0.1}
-                      strokeWidth={isZeroTick ? 1 : 0.5}
-                      strokeDasharray={isZeroTick ? undefined : '3 3'}
-                    />
+                    <SvgText key={String(category)} x={labelX} y={plotHeight + 16} fontSize={tickLabelSizePx} fontFamily={CHART_FONT_FAMILY} fill={axisLabelColor} textAnchor={textAnchor}>
+                      {truncateLabelToWidth(xAxisFormatter(category), xLabelSlotWidthPx, tickLabelSizePx)}
+                    </SvgText>
                   )
                 })}
               </G>
-            ) : null}
 
-            <G accessible={false}>
-              {primaryScale.ticks.map((tick) => (
-                <SvgText key={tick} x={-8} y={yPixelForValue(tick, primaryScale)} fontSize={TICK_LABEL_SIZE_PX} fontFamily={CHART_FONT_FAMILY} fill={axisLabelColor} textAnchor="end" alignmentBaseline="middle">
-                  {yAxisFormatter(tick)}
-                </SvgText>
-              ))}
-              {secondaryScale
-                ? secondaryScale.ticks.map((tick) => (
-                    <SvgText
-                      key={tick}
-                      x={plotWidth + 8}
-                      y={yPixelForValue(tick, secondaryScale)}
-                      fontSize={TICK_LABEL_SIZE_PX} fontFamily={CHART_FONT_FAMILY}
-                      fill={secondarySeries?.color ?? axisLabelColor}
-                      textAnchor="start"
-                      alignmentBaseline="middle"
-                    >
-                      {(secondaryYAxis?.formatter ?? formatMetricValue)(tick)}
-                    </SvgText>
-                  ))
-                : null}
-              {xCategories.map((category, index) => {
-                if (index % labelSkipFactor !== 0) return null
-                // Clamp the first/last labels' anchor so a wide label centered at the plot edge can't overhang past the SVG boundary.
-                const labelHalfWidthPx = widestXLabelWidthPx / 2
-                const xPixel = xPixelForIndex(index)
-                const isNearLeftEdge = xPixel < labelHalfWidthPx
-                const isNearRightEdge = xPixel > plotWidth - labelHalfWidthPx
-                const textAnchor = isNearLeftEdge ? 'start' : isNearRightEdge ? 'end' : 'middle'
-                const labelX = isNearLeftEdge ? 0 : isNearRightEdge ? plotWidth : xPixel
+              <G accessible={false}>
+                {referenceLines.map((line, index) => {
+                  const lineY = yPixelForValue(line.value, primaryScale)
+                  const lineColor = line.color ?? resolveThemeColor(theme, 'colorDim')
+                  return (
+                    <G key={`${line.value}-${index}`}>
+                      <Line x1={0} y1={lineY} x2={plotWidth} y2={lineY} stroke={lineColor} strokeWidth={1} />
+                      {line.label ? (
+                        <SvgText x={plotWidth} y={lineY - 4} fontSize={referenceLabelSizePx} fontFamily={CHART_FONT_FAMILY} fill={lineColor} textAnchor="end">
+                          {line.label}
+                        </SvgText>
+                      ) : null}
+                    </G>
+                  )
+                })}
+              </G>
+
+              {resolvedSeriesList.map((seriesItem) => {
+                const scale = seriesItem === secondarySeries && secondaryScale ? secondaryScale : primaryScale
+                const pixelPoints: PixelPoint[] = seriesItem.points.map((point, index) => ({
+                  x: xPixelForIndex(index),
+                  y: isValidY(point.y) ? yPixelForValue(point.y, scale) : null,
+                }))
+                const runs = buildRuns(pixelPoints, connectNulls)
+                const validPointCount = pixelPoints.filter((point) => point.y !== null).length
+                const showSeriesDots = resolveShowDotsForSeries(showDots, validPointCount)
 
                 return (
-                  <SvgText key={String(category)} x={labelX} y={plotHeight + 16} fontSize={TICK_LABEL_SIZE_PX} fontFamily={CHART_FONT_FAMILY} fill={axisLabelColor} textAnchor={textAnchor}>
-                    {truncateLabelToWidth(xAxisFormatter(category), xLabelSlotWidthPx, TICK_LABEL_SIZE_PX)}
-                  </SvgText>
-                )
-              })}
-            </G>
-
-            <G accessible={false}>
-              {referenceLines.map((line, index) => {
-                const lineY = yPixelForValue(line.value, primaryScale)
-                const lineColor = line.color ?? resolveThemeColor(theme, 'colorDim')
-                return (
-                  <G key={`${line.value}-${index}`}>
-                    <Line x1={0} y1={lineY} x2={plotWidth} y2={lineY} stroke={lineColor} strokeWidth={1} />
-                    {line.label ? (
-                      <SvgText x={plotWidth} y={lineY - 4} fontSize={REFERENCE_LABEL_SIZE_PX} fontFamily={CHART_FONT_FAMILY} fill={lineColor} textAnchor="end">
-                        {line.label}
-                      </SvgText>
-                    ) : null}
+                  <G key={seriesItem.key}>
+                    {showArea
+                      ? runs.map((run, runIndex) => {
+                          const areaPath = buildAreaPath(run, type, plotHeight)
+                          return areaPath ? (
+                            <Path
+                              key={runIndex}
+                              d={areaPath}
+                              fill={`url(#${gradientIdPrefix}-${seriesItem.key})`}
+                              fillOpacity={areaOpacity}
+                              accessible={false}
+                            />
+                          ) : null
+                        })
+                      : null}
+                    {runs.map((run, runIndex) => {
+                      const linePath = buildPath(run, type)
+                      return linePath ? (
+                        <Path
+                          key={runIndex}
+                          d={linePath}
+                          stroke={seriesItem.color}
+                          strokeWidth={strokeWidth}
+                          strokeDasharray={seriesItem.strokeDasharray}
+                          fill="none"
+                          accessible={false}
+                        />
+                      ) : null
+                    })}
+                    {showSeriesDots
+                      ? seriesItem.points.map((point, index) => {
+                          const pixel = pixelPoints[index]
+                          if (pixel.y === null) return null
+                          return (
+                            <G key={String(point.x)}>
+                              {onPointPress ? (
+                                <Circle
+                                  cx={pixel.x}
+                                  cy={pixel.y}
+                                  r={DOT_TOUCH_TARGET_RADIUS_PX}
+                                  fill={seriesItem.color}
+                                  fillOpacity={0}
+                                  onPress={() => onPointPress(point, seriesItem.key)}
+                                />
+                              ) : null}
+                              <Circle cx={pixel.x} cy={pixel.y} r={DOT_RADIUS_PX} fill={seriesItem.color} accessible={false} />
+                            </G>
+                          )
+                        })
+                      : null}
                   </G>
                 )
               })}
             </G>
+          )}
 
-            {resolvedSeriesList.map((seriesItem) => {
-              const scale = seriesItem === secondarySeries && secondaryScale ? secondaryScale : primaryScale
-              const pixelPoints: PixelPoint[] = seriesItem.points.map((point, index) => ({
-                x: xPixelForIndex(index),
-                y: isValidY(point.y) ? yPixelForValue(point.y, scale) : null,
-              }))
-              const runs = buildRuns(pixelPoints, connectNulls)
-              const validPointCount = pixelPoints.filter((point) => point.y !== null).length
-              const showSeriesDots = resolveShowDotsForSeries(showDots, validPointCount)
-
-              return (
-                <G key={seriesItem.key}>
-                  {showArea
-                    ? runs.map((run, runIndex) => {
-                        const areaPath = buildAreaPath(run, type, plotHeight)
-                        return areaPath ? (
-                          <Path
-                            key={runIndex}
-                            d={areaPath}
-                            fill={`url(#${gradientIdPrefix}-${seriesItem.key})`}
-                            fillOpacity={areaOpacity / 0.15}
-                            accessible={false}
-                          />
-                        ) : null
-                      })
-                    : null}
-                  {runs.map((run, runIndex) => {
-                    const linePath = buildPath(run, type)
-                    return linePath ? (
-                      <Path
-                        key={runIndex}
-                        d={linePath}
-                        stroke={seriesItem.color}
-                        strokeWidth={strokeWidth}
-                        strokeDasharray={seriesItem.strokeDasharray}
-                        fill="none"
-                        accessible={false}
-                      />
-                    ) : null
-                  })}
-                  {showSeriesDots
-                    ? seriesItem.points.map((point, index) => {
-                        const pixel = pixelPoints[index]
-                        if (pixel.y === null) return null
-                        return (
-                          <G key={String(point.x)}>
-                            {onPointPress ? (
-                              <Circle
-                                cx={pixel.x}
-                                cy={pixel.y}
-                                r={DOT_TOUCH_TARGET_RADIUS_PX}
-                                fill={seriesItem.color}
-                                fillOpacity={0}
-                                onPress={() => onPointPress(point, seriesItem.key)}
-                              />
-                            ) : null}
-                            <Circle cx={pixel.x} cy={pixel.y} r={DOT_RADIUS_PX} fill={seriesItem.color} accessible={false} />
-                          </G>
-                        )
-                      })
-                    : null}
-                </G>
-              )
-            })}
-          </G>
-        )}
-
-        {xAxisLabel ? (
-          <SvgText x={resolvedPadding.left + plotWidth / 2} y={height - 6} fontSize={AXIS_TITLE_SIZE_PX} fontFamily={CHART_FONT_FAMILY} fill={axisLabelColor} textAnchor="middle" accessible={false}>
-            {xAxisLabel}
-          </SvgText>
-        ) : null}
-        {yAxisLabel ? (
-          <SvgText
-            x={12}
-            y={resolvedPadding.top + plotHeight / 2}
-            fontSize={AXIS_TITLE_SIZE_PX} fontFamily={CHART_FONT_FAMILY}
-            fill={axisLabelColor}
-            textAnchor="middle"
-            rotation={-90}
-            origin={`12, ${resolvedPadding.top + plotHeight / 2}`}
-            accessible={false}
-          >
-            {yAxisLabel}
-          </SvgText>
-        ) : null}
-      </Svg>
+          {xAxisLabel ? (
+            <SvgText x={resolvedPadding.left + plotWidth / 2} y={height - 6} fontSize={axisTitleSizePx} fontFamily={CHART_FONT_FAMILY} fill={axisLabelColor} textAnchor="middle" accessible={false}>
+              {xAxisLabel}
+            </SvgText>
+          ) : null}
+          {yAxisLabel ? (
+            <SvgText
+              x={12}
+              y={resolvedPadding.top + plotHeight / 2}
+              fontSize={axisTitleSizePx} fontFamily={CHART_FONT_FAMILY}
+              fill={axisLabelColor}
+              textAnchor="middle"
+              rotation={-90}
+              origin={`12, ${resolvedPadding.top + plotHeight / 2}`}
+              accessible={false}
+            >
+              {yAxisLabel}
+            </SvgText>
+          ) : null}
+        </Svg>
+      </LineAreaScrollContainer>
       {resolvedSeriesList.length > 1 && !isEmpty ? (
-        <YStack marginTop={CHART_TO_LEGEND_GAP_PX} width="100%">
-          <LineAreaLegend seriesList={resolvedSeriesList} />
+        <YStack marginTop={chartToLegendGapPx} width="100%">
+          <LineAreaLegend seriesList={resolvedSeriesList} legendLabelSizePx={legendLabelSizePx} />
         </YStack>
       ) : null}
     </LineAreaFrame>
@@ -709,8 +777,11 @@ function LineAreaChartContent({
 
 export function LineAreaChart({ variant = 'bare', ...contentProps }: LineAreaChartProps) {
   if (variant === 'card') {
+    // width + alignSelf override Card's parent's alignItems:"center", which otherwise
+    // lets Card shrink-wrap to LineAreaChartContent's own (possibly very wide, fixed-px)
+    // intrinsic width instead of being bound by the actual host container.
     return (
-      <Card alignItems="center" padding={CARD_PADDING_PX}>
+      <Card alignItems="center" alignSelf="stretch" width="100%" padding={CARD_PADDING_PX}>
         <LineAreaChartContent {...contentProps} />
       </Card>
     )

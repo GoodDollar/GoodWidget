@@ -36,6 +36,7 @@ export function AiCreditsFlowStepper({
     ) {
       return 'active'
     }
+    if (step === 'consent' && state.operatorConsentPending) return 'active'
     return 'ready'
   }
 
@@ -49,7 +50,9 @@ export function AiCreditsFlowStepper({
     {
       id: 'consent',
       title: 'Operator Consent',
-      description: 'Sign permission for the AntseedBuyerOperator',
+      description: state.operatorConsentPending
+        ? 'Submitting operator consent…'
+        : 'Sign permission for the AntseedBuyerOperator',
       status: getStepStatus('consent'),
     },
     {

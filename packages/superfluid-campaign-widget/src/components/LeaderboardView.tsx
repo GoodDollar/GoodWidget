@@ -4,7 +4,6 @@ import {
   BadgeText,
   Button,
   ButtonText,
-  Card,
   Heading,
   Icon,
   Input,
@@ -13,15 +12,25 @@ import {
   XStack,
   YStack,
 } from '@goodwidget/ui'
+import type { IconName } from '@goodwidget/ui'
 import type {
   CampaignLeaderboardAdapter,
   CampaignPointsAccount,
   CampaignPointsPagination,
 } from '../hooks/useCampaignLeaderboard'
 import { useCampaignLeaderboard } from '../hooks/useCampaignLeaderboard'
+import {
+  useCampaignUserPoints,
+  type CampaignUserPointsAdapter,
+} from '../hooks/useCampaignUserPoints'
 import type { CampaignPoolDefinition, LeaderboardEntry } from '../widgetRuntimeContract'
-import { LEADERBOARD_COLUMN_WIDTHS, LeaderboardRow } from './LeaderboardRow'
-import { compactButtonProps, truncateAddress } from './shared/styles'
+import {
+  LEADERBOARD_COLUMN_WIDTHS,
+  LEADERBOARD_ROW_MIN_WIDTH,
+  LeaderboardRow,
+} from './LeaderboardRow'
+import { compactButtonProps } from './shared/styles'
+import { LeaderboardStatus } from './LeaderboardStatus'
 import { WalletChip } from './shared/WalletChip'
 
 interface LeaderboardViewProps {
@@ -34,7 +43,15 @@ interface LeaderboardViewProps {
   isConnected: boolean
   onConnect: () => void
   onDisconnect?: () => Promise<void>
+  /** Label for the WalletChip's disconnect action. See WalletChip's own prop for details. */
+  disconnectLabel?: string
+  /** Icon for the WalletChip's disconnect action. See WalletChip's own prop for details. */
+  disconnectIcon?: IconName
   onClose: () => void
+  leaderboardRefreshKey: number
+  userPointsAdapter?: CampaignUserPointsAdapter
+  /** Disables the connect/wallet-status button. See `SuperfluidCampaignWidgetProps.disableWalletButton`. */
+  disableWalletButton?: boolean
 }
 
 /**
@@ -75,7 +92,12 @@ export function LeaderboardView({
   isConnected,
   onConnect,
   onDisconnect,
+  disconnectLabel,
+  disconnectIcon,
   onClose,
+  leaderboardRefreshKey,
+  userPointsAdapter,
+  disableWalletButton = false,
 }: LeaderboardViewProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCampaignTab, setActiveCampaignTab] = useState<string>(pools[0]?.id ?? '')
@@ -89,6 +111,7 @@ export function LeaderboardView({
     firstPool ? (pageByPoolId[firstPool.id] ?? 1) : 1,
     Boolean(firstPool && activeCampaignTab === firstPool.id),
     leaderboardAdapter,
+    leaderboardRefreshKey,
   )
   const secondPoolResult = useCampaignLeaderboard(
     secondPool?.campaignId ?? 0,
@@ -96,6 +119,19 @@ export function LeaderboardView({
     secondPool ? (pageByPoolId[secondPool.id] ?? 1) : 1,
     Boolean(secondPool && activeCampaignTab === secondPool.id),
     leaderboardAdapter,
+    leaderboardRefreshKey,
+  )
+  const firstPoolUserPoints = useCampaignUserPoints(
+    firstPool?.campaignId ?? 0,
+    address,
+    userPointsAdapter,
+    leaderboardRefreshKey,
+  )
+  const secondPoolUserPoints = useCampaignUserPoints(
+    secondPool?.campaignId ?? 0,
+    address,
+    userPointsAdapter,
+    leaderboardRefreshKey,
   )
   const resultByPoolId: Record<string, typeof firstPoolResult> = {}
   if (pools[0]) resultByPoolId[pools[0].id] = firstPoolResult
@@ -103,6 +139,12 @@ export function LeaderboardView({
 
   const activePool = pools.find((pool) => pool.id === activeCampaignTab) ?? pools[0]
   const activeResult = activePool ? resultByPoolId[activePool.id] : undefined
+  const activeUserPoints =
+    activePool?.id === firstPool?.id
+      ? firstPoolUserPoints
+      : activePool?.id === secondPool?.id
+        ? secondPoolUserPoints
+        : undefined
   const activePagination = activeResult?.data?.pagination
   const rankedEntries = toLeaderboardEntries(activeResult?.data?.accounts ?? [], activePagination)
 
@@ -145,9 +187,20 @@ export function LeaderboardView({
             </Badge>
           </XStack>
           {isConnected ? (
-            <WalletChip address={address} onDisconnect={onDisconnect} />
+            <WalletChip
+              address={address}
+              onDisconnect={onDisconnect}
+              disconnectLabel={disconnectLabel}
+              disconnectIcon={disconnectIcon}
+              disabled={disableWalletButton}
+            />
           ) : (
-            <Button size="sm" {...compactButtonProps} onPress={onConnect}>
+            <Button
+              size="sm"
+              {...compactButtonProps}
+              disabled={disableWalletButton}
+              onPress={onConnect}
+            >
               <ButtonText>Connect wallet</ButtonText>
             </Button>
           )}
@@ -177,26 +230,12 @@ export function LeaderboardView({
         onTabChange={setActiveCampaignTab}
       />
 
-      {isConnected && currentUserEntry && (
-        <Card gap="$3">
-          <XStack
-            justifyContent="space-between"
-            alignItems="center"
-            flexWrap="wrap"
-            gap="$2"
-            $sm={{ flexDirection: 'column', alignItems: 'stretch' }}
-          >
-            <XStack gap="$2" alignItems="center">
-              <Text variant="label">Your position</Text>
-              <Text fontWeight="700">#{currentUserEntry.rank}</Text>
-              <Text>{truncateAddress(currentUserEntry.address)}</Text>
-              <Badge type="info">
-                <BadgeText>You</BadgeText>
-              </Badge>
-            </XStack>
-            <Text variant="label">Your points: {currentUserEntry.points.toLocaleString()}</Text>
-          </XStack>
-        </Card>
+      {activeUserPoints && (
+        <LeaderboardStatus
+          address={address}
+          isConnected={isConnected}
+          userPoints={activeUserPoints}
+        />
       )}
 
       <Input
@@ -218,10 +257,10 @@ export function LeaderboardView({
 
       {!activeResult?.isLoading && !activeResult?.error && (
         <YStack data-testid="Leaderboard-table-scroll" width="100%" style={{ overflowX: 'auto' }}>
-          {/* The minimum table width is only active below $sm (480px). Header
-              and rows share this one scroll container, so their columns stay
-              aligned while the complete table remains available horizontally. */}
-          <YStack gap="$2" width="100%" minWidth={0} $sm={{ minWidth: 480 }}>
+          {/* Header and rows share this one scroll container. The fixed minimum
+              width keeps every column aligned, including when the widget's
+              padded content area is narrower than the table. */}
+          <YStack gap="$2" width="100%" minWidth={LEADERBOARD_ROW_MIN_WIDTH}>
             <XStack alignItems="center" gap="$3" padding="$3">
               <Text variant="label" width={LEADERBOARD_COLUMN_WIDTHS.rank}>
                 Rank

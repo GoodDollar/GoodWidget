@@ -287,26 +287,43 @@ function PieDonutLegend({
 }) {
   return (
     <YStack gap={LEGEND_ROW_GAP_PX} width="100%">
-      {segments.map((segment, index) => (
-        <XStack
-          key={`${segment.label}-${index}`}
-          alignItems="center"
-          gap="$2"
-          minHeight={onSegmentPress ? LEGEND_ROW_MIN_HEIGHT_PX : undefined}
-          cursor={onSegmentPress ? 'pointer' : undefined}
-          onPress={onSegmentPress ? () => onSegmentPress({ label: segment.label, value: segment.value }, index) : undefined}
-          role={onSegmentPress ? 'button' : undefined}
-          aria-label={onSegmentPress ? `View ${segment.label} detail` : undefined}
-        >
-          <PieDonutSwatch backgroundColor={segment.color} />
-          <PieDonutLegendLabelText numberOfLines={1} ellipsizeMode="tail">
-            {segment.label}
-          </PieDonutLegendLabelText>
-          {showPercentages ? (
-            <PieDonutLegendPercentText>{formatSegmentPercentage(segment.value, totalValue)}</PieDonutLegendPercentText>
-          ) : null}
-        </XStack>
-      ))}
+      {segments.map((segment, index) => {
+        // Legend rows are non-native `<div>`s under XStack on web, so `role="button"`
+        // alone doesn't make them keyboard-activatable — tabIndex opts them into the
+        // tab order, and the key handler mirrors native <button> Enter/Space activation.
+        const activateSegment = () => onSegmentPress?.({ label: segment.label, value: segment.value, color: segment.color }, index)
+        return (
+          <XStack
+            key={`${segment.label}-${index}`}
+            alignItems="center"
+            gap="$2"
+            minHeight={onSegmentPress ? LEGEND_ROW_MIN_HEIGHT_PX : undefined}
+            cursor={onSegmentPress ? 'pointer' : undefined}
+            onPress={onSegmentPress ? activateSegment : undefined}
+            role={onSegmentPress ? 'button' : undefined}
+            tabIndex={onSegmentPress ? 0 : undefined}
+            onKeyDown={
+              onSegmentPress
+                ? (e: React.KeyboardEvent) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      activateSegment()
+                    }
+                  }
+                : undefined
+            }
+            aria-label={onSegmentPress ? `View ${segment.label} detail` : undefined}
+          >
+            <PieDonutSwatch backgroundColor={segment.color} />
+            <PieDonutLegendLabelText numberOfLines={1} ellipsizeMode="tail">
+              {segment.label}
+            </PieDonutLegendLabelText>
+            {showPercentages ? (
+              <PieDonutLegendPercentText>{formatSegmentPercentage(segment.value, totalValue)}</PieDonutLegendPercentText>
+            ) : null}
+          </XStack>
+        )
+      })}
     </YStack>
   )
 }
@@ -397,7 +414,7 @@ function PieDonutChartContent({
                     strokeLinecap="butt"
                     fill="transparent"
                     accessible={false}
-                    onPress={onSegmentPress ? () => onSegmentPress({ label: segment.label, value: segment.value }, index) : undefined}
+                    onPress={onSegmentPress ? () => onSegmentPress({ label: segment.label, value: segment.value, color: segment.color }, index) : undefined}
                   />
                 )
               })

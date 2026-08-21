@@ -118,7 +118,7 @@ export function getPayDisabledMessage(params: {
   if (params.validation.streamBelowMin && params.minStreamUsd) {
     return `Monthly stream must be at least ${formatMinUsdDisplay(params.minStreamUsd)}.`
   }
-  if (params.status !== 'quote_ready') {
+  if (params.status !== 'quote_ready' && params.status !== 'payment_failed') {
     return 'Enter a deposit or change the monthly stream amount to continue.'
   }
   return 'Adjust the amounts to continue.'

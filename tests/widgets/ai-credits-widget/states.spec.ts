@@ -16,6 +16,8 @@ const STORY_IDS = {
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--credits-management&viewMode=story',
   historyTab:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--history-tab&viewMode=story',
+  setupTab:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--setup-tab&viewMode=story',
   insufficientBalance:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--insufficient-g-balance&viewMode=story',
   buyTabError:
@@ -33,20 +35,58 @@ const STORY_IDS = {
 async function gotoStory(page: Page, storyUrl: string): Promise<void> {
   await page.goto(storyUrl)
   await page.waitForLoadState('domcontentloaded')
+  await page.locator('#storybook-root').waitFor({ state: 'attached' })
+}
+
+async function expectWidget(page: Page, testId: string) {
+  const root = page.getByTestId(testId)
+  await expect(root).toBeVisible({ timeout: 20_000 })
+  return root
 }
 
 function widget(page: Page, testId: string) {
   return page.getByTestId(testId)
 }
 
+test('AiCreditsWidget connecting — Setup tab connect prompt shows', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.connecting)
+  const root = page.getByTestId('AiCreditsWidget-connecting')
+  await expect(root).toBeVisible()
+  await expect(root.getByText('Connecting...')).toBeVisible()
+  await expect(root.getByText('Setup', { exact: true })).toBeVisible()
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-12-connecting.png',
+    fullPage: true,
+  })
+})
+
 test('AiCreditsWidget disconnected', async ({ page }) => {
   await gotoStory(page, STORY_IDS.disconnected)
-  await expect(page.getByTestId('AiCreditsWidget-disconnected')).toBeVisible()
-  await expect(page.getByText('Connect your wallet to buy AI credits')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Connect Wallet' })).toBeVisible()
-  await expect(page.getByText('Purchase Flow')).not.toBeVisible()
+  const root = await expectWidget(page, 'AiCreditsWidget-disconnected')
+  await expect(root.getByText('Connect your wallet to get started')).toBeVisible()
+  await expect(root.getByRole('button', { name: 'Connect Wallet' })).toBeVisible()
+  await expect(root.getByText('Setup', { exact: true })).toBeVisible()
+  await expect(root.getByText('Buy Credits', { exact: true })).toBeVisible()
+  await root.getByText('Buy Credits', { exact: true }).click({ force: true })
+  await expect(root.getByText('Connect your wallet to get started')).toBeVisible()
+  await expect(root.getByText('Purchase Flow')).not.toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-01-disconnected.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget Setup tab — onboarding steps visible', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.setupTab)
+  const root = page.getByTestId('AiCreditsWidget-setup-tab')
+  await expect(root).toBeVisible()
+  await expect(root.getByText('Download AntSeed', { exact: true })).toBeVisible()
+  await expect(root.getByText('Signer Key', { exact: true })).toBeVisible()
+  await expect(root.getByText('Authorize Wallet', { exact: true })).toBeVisible()
+  await expect(root.getByText('Setup', { exact: true })).toBeVisible()
+  await expect(root.getByText('Buy Credits', { exact: true })).toBeVisible()
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-20-setup-tab.png',
     fullPage: true,
   })
 })
@@ -67,6 +107,9 @@ test('AiCreditsWidget purchase_setup', async ({ page }) => {
 test('AiCreditsWidget quote_ready', async ({ page }) => {
   await gotoStory(page, STORY_IDS.quoteReady)
   await expect(page.getByTestId('AiCreditsWidget-quote-ready')).toBeVisible()
+  // The pay step's content (and its "Buy AI Credits" submit button) only mounts once the
+  // drawer is opened; open it via the outer trigger before asserting on drawer content.
+  await page.getByRole('button', { name: 'Set Amounts & Pay' }).click()
   await expect(page.getByRole('button', { name: 'Buy AI Credits' })).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-03-quote-ready.png',
@@ -105,10 +148,12 @@ test('AiCreditsWidget payment_confirmed', async ({ page }) => {
 
 test('AiCreditsWidget manage tab', async ({ page }) => {
   await gotoStory(page, STORY_IDS.creditsManagement)
-  await expect(page.getByTestId('AiCreditsWidget-manage-tab')).toBeVisible()
-  await expect(page.getByText('Buy Credits')).toBeVisible()
-  await expect(page.getByText('Manage')).toBeVisible()
-  await expect(page.getByText('History')).toBeVisible()
+  const root = page.getByTestId('AiCreditsWidget-manage-tab')
+  await expect(root).toBeVisible()
+  await expect(root.getByText('Setup', { exact: true })).toBeVisible()
+  await expect(root.getByText('Buy Credits', { exact: true })).toBeVisible()
+  await expect(root.getByText('Manage', { exact: true })).toBeVisible()
+  await expect(root.getByText('History', { exact: true })).toBeVisible()
   await expect(page.getByText('110.00')).toBeVisible()
   await expect(page.getByText('Credit History')).not.toBeVisible()
   await page.screenshot({
@@ -125,7 +170,7 @@ test('AiCreditsWidget history tab', async ({ page }) => {
   await expect(root.getByText('Last 90 days activity')).toBeVisible()
   await expect(root.getByRole('checkbox', { name: 'Deposit' })).toBeVisible()
   await expect(root.getByText('CREDIT HISTORY', { exact: true })).toBeVisible()
-  await expect(root.getByText('G$ Deposit')).toBeVisible({ timeout: 10_000 })
+  await expect(root.getByRole('button', { name: 'Export CSV' })).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-13-history-tab.png',
     fullPage: true,
@@ -146,8 +191,8 @@ test('AiCreditsWidget buy tab with error', async ({ page }) => {
   const root = page.getByTestId('AiCreditsWidget-buy-tab-error')
   await expect(root).toBeVisible()
   await expect(root.getByText('Request Failed', { exact: true })).toBeVisible()
-  await expect(root.getByText('Network request failed. Please try again.', { exact: true })).toBeVisible()
-  await expect(root.getByRole('button', { name: 'Buy AI Credits' })).toBeVisible()
+  await expect(root.getByText('Network request failed. Please try again.', { exact: true }).first()).toBeVisible()
+  await expect(root.getByRole('button', { name: 'Set Amounts & Pay' })).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-15-buy-tab-error.png',
     fullPage: true,
@@ -188,16 +233,6 @@ test('AiCreditsWidget unsupported_chain', async ({ page }) => {
   })
 })
 
-test('AiCreditsWidget connecting', async ({ page }) => {
-  await gotoStory(page, STORY_IDS.connecting)
-  await expect(page.getByTestId('AiCreditsWidget-connecting')).toBeVisible()
-  await expect(page.getByText('Connecting...')).toBeVisible()
-  await page.screenshot({
-    path: 'tests/widgets/ai-credits-widget/test-results/acw-12-connecting.png',
-    fullPage: true,
-  })
-})
-
 test('AiCreditsWidget appkit connect wallet opens modal', async ({ page }) => {
   test.setTimeout(60_000)
   await gotoStory(page, STORY_IDS.appKitConnectWallet)
@@ -233,6 +268,238 @@ test('AiCreditsWidget appkit connect wallet opens modal', async ({ page }) => {
 
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-14-appkit-connect-modal-open.png',
+    fullPage: true,
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Multi-buyer tests
+// ---------------------------------------------------------------------------
+
+const MULTI_BUYER_STORY_IDS = {
+  multiBuyerManage:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--multi-buyer-manage&viewMode=story',
+  deepLinkBuyer:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--deep-link-buyer&viewMode=story',
+  deepLinkConsentPending:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--deep-link-consent-pending&viewMode=story',
+  multiBuyerHistory:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--multi-buyer-history&viewMode=story',
+} as const
+
+test('AiCreditsWidget multi-buyer manage: buyer selector is visible', async ({ page }) => {
+  await gotoStory(page, MULTI_BUYER_STORY_IDS.multiBuyerManage)
+  const root = widget(page, 'AiCreditsWidget-multi-buyer-manage')
+  await expect(root).toBeVisible()
+
+  await expect(root.getByText(/0xfc12/i).first()).toBeVisible()
+  await expect(root.getByText(/0xAbcD|0xabcd/i).first()).toBeVisible()
+  await expect(root.getByText(/0x1111/i).first()).toBeVisible()
+  await expect(root.getByRole('button', { name: /Sign & Generate/i })).toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-15-multi-buyer-manage.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget deep-link buyer: Sign Consent enabled via operatorSignature', async ({
+  page,
+}) => {
+  await gotoStory(page, MULTI_BUYER_STORY_IDS.deepLinkBuyer)
+  const root = widget(page, 'AiCreditsWidget-deep-link-buyer')
+  await expect(root).toBeVisible()
+
+  const signConsentButton = root.getByRole('button', { name: /Sign Consent/i })
+  await expect(signConsentButton).toBeEnabled()
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-16-deep-link-buyer.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget deep-link consent pending: OperatorConsentStep requires an explicit click', async ({
+  page,
+}) => {
+  await gotoStory(page, MULTI_BUYER_STORY_IDS.deepLinkConsentPending)
+  const root = widget(page, 'AiCreditsWidget-deep-link-consent-pending')
+  await expect(root).toBeVisible()
+
+  // A pre-filled operatorSignature must never auto-advance past consent: the explicit
+  // "Sign Operator Consent" gate has to render before any consent is granted.
+  const openConsentStepButton = root.getByRole('button', { name: 'Sign Operator Consent' })
+  await expect(openConsentStepButton).toBeVisible()
+  await openConsentStepButton.click()
+
+  // The Drawer renders via a Tamagui Sheet portal outside the widget's root DOM
+  // subtree, so its content must be queried at the page level, not scoped to `root`.
+  await expect(
+    page.getByText(/Granting consent gives the operator control of your signer funds/i),
+  ).toBeVisible()
+  await expect(
+    page.getByText(/ineligible for future bonuses and removes any existing bonuses/i),
+  ).toBeVisible()
+  await expect(page.getByText('Operator consent accepted')).not.toBeVisible()
+
+  const signConsentButton = page.getByRole('button', { name: 'Sign Operator Consent' })
+  await expect(signConsentButton).toBeEnabled()
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-19-deep-link-consent-pending.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget multi-buyer history: buyer filter dropdown is visible', async ({ page }) => {
+  await gotoStory(page, MULTI_BUYER_STORY_IDS.multiBuyerHistory)
+  const root = widget(page, 'AiCreditsWidget-multi-buyer-history')
+  await expect(root).toBeVisible()
+
+  await expect(root.getByText(/Buyer:/i)).toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-17-multi-buyer-history.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget multi-buyer: import buyer key link is visible', async ({ page }) => {
+  await gotoStory(page, MULTI_BUYER_STORY_IDS.multiBuyerManage)
+  const root = widget(page, 'AiCreditsWidget-multi-buyer-manage')
+  await expect(root).toBeVisible()
+
+  await expect(root.getByText(/Import a buyer key/i)).toBeVisible()
+  await expect(root.getByText(/Watch Address/i)).toHaveCount(0)
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-18-import-key-link.png',
+    fullPage: true,
+  })
+})
+
+
+// ---------------------------------------------------------------------------
+// Setup guidance card tests
+// ---------------------------------------------------------------------------
+
+const GUIDANCE_STORY_IDS = {
+  guidanceCardDefault:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--guidance-card-default&viewMode=story',
+  guidanceCardHowToUse:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--guidance-card-how-to-use&viewMode=story',
+  guidanceCardFaq:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--guidance-card-faq&viewMode=story',
+} as const
+
+test('AiCreditsWidget guidance card: renders above tab navigation', async ({ page }) => {
+  await gotoStory(page, GUIDANCE_STORY_IDS.guidanceCardDefault)
+  const root = widget(page, 'AiCreditsWidget-guidance-card')
+  await expect(root).toBeVisible()
+
+  // Guidance card content is visible
+  await expect(root.getByText("WHAT'S INVOLVED:")).toBeVisible()
+  await expect(root.getByText(/Get G\$/)).toBeVisible()
+  await expect(root.getByText(/Download Antseed/)).toBeVisible()
+
+  // All three action buttons are present
+  await expect(root.getByRole('button', { name: /how to use/i })).toBeVisible()
+  await expect(root.getByRole('button', { name: /faqs/i })).toBeVisible()
+  await expect(root.getByText(/Antseed site/i)).toBeVisible()
+
+  // Tab navigation is also visible (card is above it)
+  await expect(root.getByText('Buy Credits')).toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-20-guidance-card-default.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget guidance card: How to use opens in-widget guide', async ({ page }) => {
+  await gotoStory(page, GUIDANCE_STORY_IDS.guidanceCardHowToUse)
+  const root = widget(page, 'AiCreditsWidget-guidance-how-to-use')
+  await expect(root).toBeVisible()
+
+  // Click How to use button
+  await root.getByRole('button', { name: /how to use/i }).click()
+
+  // Guide content appears inside the buy tab area
+  await expect(root.getByText(/back to buying/i)).toBeVisible()
+  await expect(root.getByText(/Getting started with AI credits/)).toBeVisible()
+  await expect(root.getByText(/QUICK SUMMARY/)).toBeVisible()
+  await expect(root.getByText(/connect your wallet/i)).toBeVisible()
+
+  // Tab navigation remains visible (content rendered inside tab, not as a new tab)
+  await expect(root.getByText('Buy Credits')).toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-21-guidance-how-to-use.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget guidance card: Back to buying returns to purchase flow', async ({ page }) => {
+  await gotoStory(page, GUIDANCE_STORY_IDS.guidanceCardHowToUse)
+  const root = widget(page, 'AiCreditsWidget-guidance-how-to-use')
+  await expect(root).toBeVisible()
+
+  // Open how-to-use view
+  await root.getByRole('button', { name: /how to use/i }).click()
+  await expect(root.getByText(/back to buying/i)).toBeVisible()
+
+  // Navigate back
+  await root.getByRole('button', { name: /back to buying/i }).click()
+
+  // Purchase flow is restored
+  await expect(root.getByText(/back to buying/i)).not.toBeVisible()
+  await expect(root.getByText('Buy Credits')).toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-22-guidance-back-to-buying.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget guidance card: FAQs opens in-widget FAQ', async ({ page }) => {
+  await gotoStory(page, GUIDANCE_STORY_IDS.guidanceCardFaq)
+  const root = widget(page, 'AiCreditsWidget-guidance-faq')
+  await expect(root).toBeVisible()
+
+  // Click FAQs button
+  await root.getByRole('button', { name: /faqs/i }).click()
+
+  // FAQ content appears inside the buy tab area
+  await expect(root.getByText(/back to buying/i)).toBeVisible()
+  await expect(root.getByText(/I only claim UBI with GoodWallet/i)).toBeVisible()
+  await expect(root.getByText(/Deposit or stream/i)).toBeVisible()
+
+  // Tab navigation remains visible
+  await expect(root.getByText('Buy Credits')).toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-23-guidance-faq.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget guidance card: switching tabs clears help view', async ({ page }) => {
+  await gotoStory(page, GUIDANCE_STORY_IDS.guidanceCardHowToUse)
+  const root = widget(page, 'AiCreditsWidget-guidance-how-to-use')
+  await expect(root).toBeVisible()
+
+  // Open how-to-use
+  await root.getByRole('button', { name: /how to use/i }).click()
+  await expect(root.getByText(/back to buying/i)).toBeVisible()
+
+  // Switch to Manage tab
+  await root.getByRole('button', { name: /manage/i }).click()
+
+  // How-to-use view is gone
+  await expect(root.getByText(/back to buying/i)).not.toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-24-guidance-tab-switch.png',
     fullPage: true,
   })
 })

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Anchor,
   Button,
@@ -21,7 +21,7 @@ import type {
   ReserveSwapWidgetAdapterState,
 } from './widgetRuntimeContract'
 import { CELO_CHAIN_ID, getReserveChainFromId, XDC_CHAIN_ID } from './constants'
-import { sanitizeAmount } from './amount'
+import { amountFontSize, formatInputAmount, formatTokenAmount, sanitizeAmount } from './amount'
 
 /** Outer swap card. */
 const SwapShell = createComponent(Card, {
@@ -134,7 +134,9 @@ const ConfirmToBadge = createComponent(XStack, {
   width: 40,
   height: 40,
   borderRadius: '$full',
-  backgroundColor: '$color',
+  // Was `$color`, which resolves to near-white in the dark theme and rendered
+  // the badge as a blank disc next to the arrow.
+  backgroundColor: '$backgroundSurfaceAlt',
   color: '$textColor',
   alignItems: 'center' as const,
   justifyContent: 'center' as const,
@@ -147,6 +149,12 @@ const NETWORK_LABELS: Record<number, string> = {
 
 const AMOUNT_VALUE_FONT_SIZE = 32
 const AMOUNT_VALUE_LINE_HEIGHT = 36
+
+// Reserve symbols run from two characters ("G$") to four ("USDm", "USDC"); the
+// longer ones step down a size to stay inside the 40px badge circle.
+function badgeSymbolFontSize(symbol: string): number {
+  return symbol.length <= 2 ? 16 : 12
+}
 
 function networkLabel(chainId: number | null): string {
   return chainId !== null && NETWORK_LABELS[chainId] ? NETWORK_LABELS[chainId] : 'Unsupported'
@@ -274,9 +282,7 @@ function SwapSuccessView({
   actions: ReserveSwapWidgetAdapterActions
   lastSwapOutput: string
 }) {
-  const formattedOutput = isNaN(Number(lastSwapOutput))
-    ? lastSwapOutput
-    : new Intl.NumberFormat('en-US', { maximumFractionDigits: 6 }).format(Number(lastSwapOutput))
+  const formattedOutput = formatTokenAmount(lastSwapOutput)
 
   return (
     <YStack
@@ -334,7 +340,10 @@ function SwapSuccessView({
           fullWidth
           height={54}
           borderRadius="$full"
-          onPress={() => actions.setDirection('buy')}
+          onPress={async () => {
+            await actions.refreshBalances()
+            actions.setDirection('buy')
+          }}
         >
           <ButtonText>Do another swap</ButtonText>
         </Button>
@@ -395,6 +404,8 @@ function ConfirmDrawer({
   state: ReserveSwapWidgetAdapterState
   actions: ReserveSwapWidgetAdapterActions
 }) {
+  const minimumReceived = formatTokenAmount(state.quote?.minimumReceived)
+
   return (
     <Drawer open={state.status === 'confirm_dialog'} onClose={actions.closeConfirm} height="full">
       <YStack testID="GoodReserveWidget-confirm-dialog" gap="$4" width="100%">
@@ -407,17 +418,18 @@ function ConfirmDrawer({
           </XStack>
         </XStack>
 
-        {/* Token hero: from badge → arrow → to badge */}
+        {/* Token hero: from badge → arrow → to badge. Each side names its own
+            token and follows `direction`, so a G$ → USDm sell reads as one. */}
         <XStack alignItems="center" justifyContent="center" gap="$3">
-          <TokenBadge>
-            <Text fontSize={16} fontWeight="700" color="$textColor">
-              $
+          <TokenBadge testID="GoodReserveWidget-confirm-token-in">
+            <Text fontSize={badgeSymbolFontSize(state.tokenInSymbol)} fontWeight="700" color="$textColor">
+              {state.tokenInSymbol}
             </Text>
           </TokenBadge>
           <Icon name="arrow-right" size="sm" color="primary" />
-          <ConfirmToBadge>
-            <Text fontSize={16} fontWeight="700" color="$textColor">
-              $
+          <ConfirmToBadge testID="GoodReserveWidget-confirm-token-out">
+            <Text fontSize={badgeSymbolFontSize(state.tokenOutSymbol)} fontWeight="700" color="$textColor">
+              {state.tokenOutSymbol}
             </Text>
           </ConfirmToBadge>
         </XStack>
@@ -427,8 +439,17 @@ function ConfirmDrawer({
           <Text fontSize={14} fontWeight="400" color="$colorSoft">
             Minimum Received
           </Text>
-          <Text fontSize={50} fontWeight="800" color="$textColor">
-            {state.quote?.minimumReceived ?? '0.00'}
+          {/* No adjustsFontSizeToFit here: it is a React Native-only prop that
+              Tamagui passes through to the DOM, where it does no fitting and
+              renders the digits smeared. amountFontSize already sizes the text. */}
+          <Text
+            fontSize={amountFontSize(minimumReceived, AMOUNT_VALUE_FONT_SIZE)}
+            lineHeight={AMOUNT_VALUE_LINE_HEIGHT}
+            fontWeight="800"
+            color="$textColor"
+            numberOfLines={1}
+          >
+            {minimumReceived}
           </Text>
           <Text fontSize={17} fontWeight="600" color="$textColor">
             {state.tokenOutSymbol}
@@ -442,7 +463,10 @@ function ConfirmDrawer({
             value={`1 ${state.tokenInSymbol} = ${state.quote?.price ?? '0'} ${state.tokenOutSymbol}`}
           />
           <DetailRow label="Max Slippage" value={`${state.slippagePercent}%`} />
-          <DetailRow label="You Pay" value={`${state.inputAmount} ${state.tokenInSymbol}`} />
+          <DetailRow
+            label="You Pay"
+            value={`${formatTokenAmount(state.inputAmount)} ${state.tokenInSymbol}`}
+          />
         </ReserveDetailsTable>
 
         <Separator />
@@ -487,6 +511,11 @@ const MAIN_SWAP_STATUS_CTA: Partial<
     disabled: false,
     loading: false,
     action: 'switchChain',
+  },
+  approval_pending: {
+    label: 'Approving…',
+    disabled: false,
+    loading: true,
   },
   swap_pending: {
     label: 'Swapping…',
@@ -548,9 +577,21 @@ function MainSwapView({
   network: string
   switchTarget: number
 }) {
+  useEffect(() => {
+    void actions.refreshBalances()
+  }, [actions.refreshBalances])
+
   const hasAmount = Boolean(state.inputAmount) && Number(state.inputAmount) > 0
   const primaryCta = getMainSwapPrimaryCta(state, hasAmount)
   const stableSymbol = state.tokenInSymbol === 'G$' ? state.tokenOutSymbol : state.tokenInSymbol
+
+  // While the field has focus the user sees their own keystrokes untouched;
+  // otherwise it shows the shortened value. `state.inputAmount` stays exact
+  // either way, so MAX still spends the full balance.
+  const [amountFocused, setAmountFocused] = useState(false)
+  const amountFieldValue = amountFocused
+    ? state.inputAmount
+    : formatInputAmount(state.inputAmount)
 
   return (
     <YStack testID="GoodReserveWidget-root" width="100%" alignSelf="center" gap="$3">
@@ -586,7 +627,7 @@ function MainSwapView({
             </Text>
             <XStack gap="$2" alignItems="center">
               <Text fontSize={12} fontWeight="600" color="$secondaryColor">
-                Balance: {state.tokenInBalance}
+                Balance: {formatTokenAmount(state.tokenInBalance)}
               </Text>
               <Text
                 testID="GoodReserveWidget-max"
@@ -619,13 +660,19 @@ function MainSwapView({
               // textAlign is applied via style (DOM-valid) rather than the RN prop,
               // which Tamagui would otherwise emit as an invalid `textalign` attr.
               inputMode="decimal"
+              // Sized from the value actually on screen, which is the shortened
+              // one unless the user is mid-edit.
               style={{
                 textAlign: 'right',
                 lineHeight: `${AMOUNT_VALUE_LINE_HEIGHT}px`,
-                fontSize: `${AMOUNT_VALUE_FONT_SIZE}px`,
+                fontSize: `${amountFontSize(amountFieldValue, AMOUNT_VALUE_FONT_SIZE)}px`,
               }}
-              value={state.inputAmount}
+              value={amountFieldValue}
               placeholder="0.00"
+              // Focus swaps the field to the exact value so editing never starts
+              // from a truncated number; blur returns it to the short form.
+              onFocus={() => setAmountFocused(true)}
+              onBlur={() => setAmountFocused(false)}
               onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                 actions.setInputAmount(sanitizeAmount(event.target.value))
               }
@@ -648,7 +695,7 @@ function MainSwapView({
               Swap to
             </Text>
             <Text fontSize={12} fontWeight="600" color="$secondaryColor">
-              Balance: {state.tokenOutBalance}
+              Balance: {formatTokenAmount(state.tokenOutBalance)}
             </Text>
           </XStack>
           <XStack justifyContent="space-between" alignItems="center" gap="$3">
@@ -670,7 +717,7 @@ function MainSwapView({
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
-                {state.quote?.outputAmount ?? '0.00'}
+                {state.quote ? formatTokenAmount(state.quote.outputAmount) : '0.00'}
               </Text>
             )}
           </XStack>
@@ -690,7 +737,7 @@ function MainSwapView({
             />
             <DetailRow
               label="MINIMUM RECEIVED"
-              value={`${state.quote?.minimumReceived ?? '0.00'} ${state.tokenOutSymbol}`}
+              value={`${formatTokenAmount(state.quote?.minimumReceived)} ${state.tokenOutSymbol}`}
             />
           </YStack>
         </CollapsibleSection>
@@ -710,6 +757,8 @@ function MainSwapView({
               testID="GoodReserveWidget-retry"
               variant="secondary"
               fullWidth
+              height={54}
+              borderRadius="$3"
               onPress={actions.refresh}
             >
               <ButtonText>Retry</ButtonText>
@@ -747,6 +796,18 @@ function MainSwapView({
             <ButtonText>{primaryCta.label}</ButtonText>
           )}
         </Button>
+
+        {/* Before a hash exists the user is waiting on their wallet, which can
+            look like a hang — say so explicitly. A swap needs two signatures
+            when an approval is required, so name which one is pending. */}
+        {(state.status === 'approval_pending' || state.status === 'swap_pending') &&
+        !state.txHash ? (
+          <Text testID="GoodReserveWidget-sign-hint" fontSize={13} center color="$secondaryColor">
+            {state.status === 'approval_pending'
+              ? `Approve ${state.tokenInSymbol} spending in your wallet to continue.`
+              : 'Confirm the swap in your wallet.'}
+          </Text>
+        ) : null}
 
         {/* Surface the submitted hash immediately during swap_pending so the
             user gets confirmation the tx was broadcast without waiting for receipt.

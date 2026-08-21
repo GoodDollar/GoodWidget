@@ -15,6 +15,7 @@ import { createComponent } from '../createComponent'
 import { Card } from './Card'
 import { formatMetricValue } from '../utils/formatMetricValue'
 import type { MetricFormat } from '../utils/formatMetricValue'
+import { resolveThemeColor } from '../utils/resolveThemeColor'
 
 export type ScorecardVariant = 'bare' | 'card'
 export type ScorecardSize = 'sm' | 'md' | 'lg'
@@ -80,36 +81,6 @@ const TREND_DIRECTION_COLOR_TOKEN: Record<ScorecardTrend['direction'], string> =
   up: '$success',
   down: '$error',
   neutral: '$colorDim',
-}
-
-/**
- * Unwraps a Tamagui theme token to its raw color string. react-native-svg's
- * fill/stroke props aren't part of Tamagui's styling system, so they need
- * the resolved value rather than a "$token" reference.
- *
- * Falls back to the theme's base `$color` token if the requested token is
- * missing, so a bad token renders in a visible (if wrong) color instead of
- * silently disappearing as black-on-web / transparent-on-native.
- */
-function resolveThemeColor(theme: ReturnType<typeof useTheme>, token: string): string {
-  const themeRecord = theme as unknown as Record<string, { val?: unknown } | string | undefined>
-  const key = token.replace('$', '')
-  const themeValue = themeRecord[key]
-  const resolved =
-    themeValue && typeof themeValue === 'object' && 'val' in themeValue
-      ? String(themeValue.val)
-      : typeof themeValue === 'string'
-        ? themeValue
-        : undefined
-
-  if (resolved) {
-    return resolved
-  }
-
-  console.warn(`Scorecard: theme token "${token}" not found, falling back to "$color"`)
-
-  const fallback = themeRecord.color
-  return fallback && typeof fallback === 'object' && 'val' in fallback ? String(fallback.val) : '#000000'
 }
 
 const ScorecardFrame = createComponent(YStack, {

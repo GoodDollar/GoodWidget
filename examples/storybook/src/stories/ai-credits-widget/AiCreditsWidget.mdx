@@ -40,7 +40,8 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
     description="Buy-flow status describes purchase progress and errors. The Manage tab (activeTab) is separate — use it when the wallet has credits or after a successful purchase."
   >
     <DocsGrid>
-      <DocsCard title="S1 – Disconnected">No wallet connected; tabs and purchase stepper hidden; circular Connect Wallet button.</DocsCard>
+      <DocsCard title="S1 – Disconnected">Setup tab with connect CTA; Buy Credits, Manage, and History tabs visible but disabled until a wallet connects.</DocsCard>
+      <DocsCard title="S1b – Setup tab">Connected wallet — static onboarding shell for Download AntSeed, Signer Key, and Authorize Wallet (step interactions are follow-up work).</DocsCard>
       <DocsCard title="S2 – Purchase Setup">Buy tab — stepper with a CTA to open the active step in a bottom drawer.</DocsCard>
       <DocsCard title="S3 – Quote Ready">Buy tab — pay step available via drawer CTA; ready to confirm Celo transaction.</DocsCard>
       <DocsCard title="S4 – Payment Pending">Buy tab — Celo tx submitted.</DocsCard>
@@ -56,9 +57,10 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
 
   <DocsSection
     title="Widget navigation"
-    description="When a wallet is connected, Buy Credits, Manage, and History appear as tabs at the top (with the GoodDollar header and chain badge). Switch tabs anytime — including during payment pending or failed states."
+    description="Setup, Buy Credits, Manage, and History appear as tabs (with the GoodDollar header and chain badge). Before a wallet connects, only Setup is active. After connecting, switch tabs anytime — including during payment pending or failed states."
   >
     <DocsGrid>
+      <DocsCard title="Setup">Onboarding entry point — connect wallet when disconnected; onboarding step shell when connected.</DocsCard>
       <DocsCard title="Buy Credits">Stepper for buyer key, consent, and pay — tap a step or CTA to open it in a drawer.</DocsCard>
       <DocsCard title="Manage">Credits balance, stream info, close/withdraw, and API setup.</DocsCard>
       <DocsCard title="History">Paginated credit history with source, status, and date filters.</DocsCard>

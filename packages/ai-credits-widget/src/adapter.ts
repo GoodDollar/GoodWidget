@@ -17,6 +17,7 @@ import { normalizeChannelId, signRequestClose, signWithdrawPrincipal } from './b
 import {
   totalCreditUsdFromProfile,
   buildAccountView,
+  collectBuyerAddressesFromEntries,
   createBackendClient,
   DEFAULT_DISCOUNT_CONFIG,
   enrichAccountView,
@@ -32,10 +33,25 @@ import {
 import type { AiCreditsChainClient } from './chainClient'
 import { signOperatorConsentFromTypedData } from './operatorConsent'
 import {
-  addressesMatch,
+  clearDeepLinkArtifacts,
+  deepLinkManualFallbackMessage,
+  isValidBuyerAddress,
+  isValidOperatorSignature,
+  resolveDeepLinkParams,
+  storeDeepLinkParams,
+  type DeepLinkParams,
+} from './deepLinkParams'
+import {
+  buildBuyerStateFields,
   patchPayerSessionFields,
-  patchPayerSession,
   readPayerSession,
+  upsertBuyerKey,
+  setActiveBuyerAddress,
+  setBuyerOperatorConsented,
+  mergeBuyerAddressList,
+  rememberBuyerAddresses,
+  listKnownBuyerAddresses,
+  getBuyerKeyEntry,
 } from './payerSession'
 import { executeCeloPayment, G_TOKEN_CELO_ADDRESS, isStreamAmountChanged } from './celoPayment'
 import { startGoodIdVerification, isUserRejectedWalletRequest } from './goodIdVerification'
@@ -83,7 +99,9 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   isGoodIdVerified: false,
   buyerPubKey: null,
   buyerPrvKey: null,
+  operatorSignature: null,
   operatorConsented: false,
+  operatorConsentPending: false,
   operatorAddress: null,
   minDepositUsd: null,
   minStreamUsd: null,
@@ -93,7 +111,9 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   depositBonusPercent: DEFAULT_DISCOUNT_CONFIG.depositBonusPercent,
   streamBonusPercent: DEFAULT_DISCOUNT_CONFIG.streamBonusPercent,
   error: null,
-  activeTab: 'buy',
+  activeTab: 'setup',
+  buyers: [],
+  derivedBuyerAddress: null,
 }
 
 const WALLET_LOADING_STATE: Partial<AiCreditsWidgetAdapterState> = {
@@ -109,8 +129,71 @@ const WALLET_LOADING_STATE: Partial<AiCreditsWidgetAdapterState> = {
   operatorAddress: null,
 }
 
+const BUYER_HISTORY_LOOKUP_LIMIT = 100
+
+function resolveLocalBuyers(
+  payer: string,
+  preferredBuyer?: string | null,
+  ...extras: Array<string | null | undefined>
+): { buyers: string[]; selected: string | null } {
+  const buyers = rememberBuyerAddresses(payer, [
+    preferredBuyer,
+    ...listKnownBuyerAddresses(payer),
+    ...extras,
+  ])
+  return { buyers, selected: selectPreferredBuyer(buyers, preferredBuyer) }
+}
+
+async function discoverBuyersFromHistory(
+  payer: string,
+  backend: AiCreditsBackendClient,
+  ...extras: Array<string | null | undefined>
+): Promise<string[]> {
+  let historyBuyers: string[] = []
+  try {
+    const history = await backend.getCreditHistory(payer, {
+      limit: BUYER_HISTORY_LOOKUP_LIMIT,
+      offset: 0,
+    })
+    historyBuyers = collectBuyerAddressesFromEntries(history.items)
+  } catch {
+    historyBuyers = []
+  }
+  return rememberBuyerAddresses(payer, [...historyBuyers, ...extras])
+}
+
+function selectPreferredBuyer(
+  buyers: string[],
+  preferredBuyer?: string | null,
+): string | null {
+  if (
+    preferredBuyer &&
+    buyers.some((item) => item.toLowerCase() === preferredBuyer.toLowerCase())
+  ) {
+    return preferredBuyer
+  }
+  return buyers[0] ?? preferredBuyer ?? null
+}
+
 function isNonBuyTab(tab: AiCreditsWidgetTab): boolean {
-  return tab === 'manage' || tab === 'history'
+  return tab === 'setup' || tab === 'manage' || tab === 'history'
+}
+
+export function needsWalletConnection(state: AiCreditsWidgetAdapterState): boolean {
+  return (
+    !state.address ||
+    state.status === 'disconnected' ||
+    state.status === 'connecting'
+  )
+}
+
+function resolveDefaultActiveTab(
+  payerAddress: string | null,
+  totalCreditUsd: string | null,
+): AiCreditsWidgetTab {
+  if (hasCreditBalance(totalCreditUsd)) return 'manage'
+  if (payerAddress && listKnownBuyerAddresses(payerAddress).length > 0) return 'buy'
+  return 'setup'
 }
 
 function resolveActiveTab(
@@ -119,11 +202,19 @@ function resolveActiveTab(
 ): AiCreditsWidgetTab {
   if (overrides.activeTab !== undefined) return overrides.activeTab
 
+  const payerAddress = overrides.address !== undefined ? overrides.address : prev.address
+  const totalCreditUsd =
+    overrides.totalCreditUsd !== undefined ? overrides.totalCreditUsd : prev.totalCreditUsd
+
   if (overrides.totalCreditUsd !== undefined && overrides.totalCreditUsd !== null) {
-    return hasCreditBalance(overrides.totalCreditUsd) ? 'manage' : 'buy'
+    return resolveDefaultActiveTab(payerAddress, overrides.totalCreditUsd)
   }
 
-  return prev.activeTab ?? 'buy'
+  if (overrides.address !== undefined && overrides.address !== prev.address) {
+    return resolveDefaultActiveTab(payerAddress, totalCreditUsd)
+  }
+
+  return prev.activeTab ?? resolveDefaultActiveTab(payerAddress, totalCreditUsd)
 }
 
 function hasCreditBalance(totalCreditUsd: string | null): boolean {
@@ -216,7 +307,7 @@ function mergeStatePreservingNonBuyTab(
   }
   const activeTab = isNonBuyTab(nextTab) ? nextTab : prev.activeTab
   const status = deriveStatus({
-    isConnected: true,
+    isConnected: !needsWalletConnection(prev),
     chainId: overrides.chainId ?? prev.chainId,
     gBalance: overrides.gBalance ?? prev.gBalance,
     buyerPubKey: overrides.buyerPubKey ?? prev.buyerPubKey,
@@ -255,42 +346,16 @@ function viewToStatePatch(
     withdrawableUsd: view.withdrawableUsd,
     totalGdDepositedG: enriched.totalGdDepositedG,
     monthlyStreamG: enriched.monthlyStreamG,
-    ...(view.buyer ? { buyerPubKey: view.buyer } : {}),
   }
 }
 
-function mergeSessionFields(
-  prev: AiCreditsWidgetAdapterState,
-  sessionPatch: ReturnType<typeof patchPayerSessionFields>,
-  accountPatch: Partial<AiCreditsWidgetAdapterState>,
-  accountSwitched: boolean,
-): Partial<Pick<AiCreditsWidgetAdapterState, 'buyerPubKey' | 'buyerPrvKey' | 'operatorConsented'>> {
-  const buyerPubKey =
-    sessionPatch.buyerPubKey ??
-    accountPatch.buyerPubKey ??
-    (accountSwitched ? null : prev.buyerPubKey)
-  const buyerPrvKey = sessionPatch.buyerPrvKey ?? (accountSwitched ? null : prev.buyerPrvKey)
-  const operatorConsented = accountSwitched
-    ? (sessionPatch.operatorConsented ?? accountPatch.operatorConsented ?? false)
-    : (accountPatch.operatorConsented ?? sessionPatch.operatorConsented ?? prev.operatorConsented)
-
-  return {
-    buyerPubKey,
-    buyerPrvKey,
-    operatorConsented,
-  }
-}
-
-function syncOperatorConsentSession(address: string, operatorConsented: boolean | undefined): void {
-  if (operatorConsented === undefined) return
-  patchPayerSession(address, { operatorConsented })
-}
-
-function syncBuyerPubKeySession(address: string, buyerPubKey: string | null | undefined): void {
-  if (!buyerPubKey) return
-  const existing = readPayerSession(address)
-  if (existing?.buyerPubKey) return
-  patchPayerSession(address, { buyerPubKey })
+function activateBuyerSelection(
+  payer: string,
+  buyers: string[],
+  selectedAddress: string | null,
+) {
+  setActiveBuyerAddress(payer, selectedAddress)
+  return buildBuyerStateFields(payer, buyers, selectedAddress)
 }
 
 export interface UseAiCreditsAdapterOptions {
@@ -336,6 +401,9 @@ export function useAiCreditsAdapter({
   const providerRef = useRef<EIP1193Provider | null>(null)
   providerRef.current = provider as EIP1193Provider | null
   const goodIdVerifyPendingRef = useRef(false)
+  const pendingDeepLinkRef = useRef<DeepLinkParams | null>(null)
+  const deepLinkParseDoneRef = useRef(false)
+  const deepLinkApplyInFlightRef = useRef(false)
 
   const celoVault = vaultAddress ?? CELO_GD_ANTSEED_VAULT_FALLBACK
 
@@ -359,7 +427,11 @@ export function useAiCreditsAdapter({
 
   useEffect(() => {
     if (!isConnected || !address) {
-      setState((prev) => (prev.status === 'connecting' ? prev : { ...INITIAL_STATE }))
+      setState((prev) => {
+        if (prev.status === 'connecting') return prev
+        if (!prev.address && prev.status === 'disconnected' && prev.error === null) return prev
+        return { ...INITIAL_STATE }
+      })
       return
     }
     if (configurationError) {
@@ -384,14 +456,17 @@ export function useAiCreditsAdapter({
       ) {
         return prev
       }
-      const accountSwitched = !addressesMatch(prev.address, address)
-      const buyerFields = mergeSessionFields(prev, sessionPatch, {}, accountSwitched)
       return withDerivedStatus(
         prev,
         {
           address,
           chainId,
-          ...buyerFields,
+          buyerPubKey: sessionPatch.buyerPubKey,
+          buyerPrvKey: sessionPatch.buyerPrvKey,
+          operatorSignature: sessionPatch.operatorSignature,
+          operatorConsented: sessionPatch.operatorConsented,
+          derivedBuyerAddress: sessionPatch.derivedBuyerAddress,
+          buyers: prev.buyers,
           ...WALLET_LOADING_STATE,
           error: null,
           status: 'connecting',
@@ -416,14 +491,21 @@ export function useAiCreditsAdapter({
         }),
       ])
 
-      const accountPromise = buildAccountView(address!, backendClient, chainClient, {
-        buyerAddress: sessionPatch.buyerPubKey ?? null,
-      })
-        .then(async (view) => ({
-          view,
-          enriched: await enrichAccountView(view, chainClient),
-        }))
-        .catch(() => null)
+      const pendingDeepLink = pendingDeepLinkRef.current
+      const sessionBuyer = patchPayerSessionFields(address!).buyerPubKey
+      const preferredBuyer = pendingDeepLink?.buyerAddress ?? sessionBuyer ?? null
+
+      const accountPromise =
+        pendingDeepLink || deepLinkApplyInFlightRef.current
+          ? Promise.resolve(null)
+          : buildAccountView(address!, backendClient, chainClient, {
+              buyerAddress: preferredBuyer,
+            })
+              .then(async (view) => ({
+                view,
+                enriched: await enrichAccountView(view, chainClient),
+              }))
+              .catch(() => null)
 
       const minimumsPromise =
         skipVaultPaymentValidation
@@ -435,15 +517,29 @@ export function useAiCreditsAdapter({
 
       const gdUsdPerTokenPromise = chainClient.fetchGdUsdPerToken().catch(() => null)
       const discountConfigPromise = backendClient.getDiscountConfig().catch(() => null)
+      const buyersPromise = pendingDeepLink
+        ? Promise.resolve(
+            rememberBuyerAddresses(address!, [
+              preferredBuyer,
+              ...listKnownBuyerAddresses(address!),
+            ]),
+          )
+        : discoverBuyersFromHistory(
+            address!,
+            backendClient,
+            preferredBuyer,
+            ...listKnownBuyerAddresses(address!),
+          )
 
       try {
-        const [[rawBalance, decimals], account, minimums, gdUsdPerToken, discountConfig] =
+        const [[rawBalance, decimals], account, minimums, gdUsdPerToken, discountConfig, buyers] =
           await Promise.all([
             balancePromise,
             accountPromise,
             minimumsPromise,
             gdUsdPerTokenPromise,
             discountConfigPromise,
+            buyersPromise,
           ])
         if (cancelled) return
 
@@ -460,43 +556,58 @@ export function useAiCreditsAdapter({
             discountConfig?.streamBonusPercent ?? DEFAULT_DISCOUNT_CONFIG.streamBonusPercent,
         }
 
-        setState((prev) => {
-          const accountSwitched = !addressesMatch(prev.address, address)
-          const accountPatch = account
-            ? viewToStatePatch(account.view, account.enriched, prev, {
-                balanceMode: 'always',
-              })
-            : {}
-          const buyerFields = mergeSessionFields(prev, sessionPatch, accountPatch, accountSwitched)
-          if (address && accountPatch.operatorConsented !== undefined) {
-            syncOperatorConsentSession(address, accountPatch.operatorConsented)
-          }
-          if (address && account?.view.buyer) {
-            syncBuyerPubKeySession(address, account.view.buyer)
-          }
-          return withDerivedStatus(
+        if (pendingDeepLink || deepLinkApplyInFlightRef.current) {
+          setState((prev) =>
+            withDerivedStatus(
+              prev,
+              {
+                ...patch,
+                buyers: mergeBuyerAddressList(prev.buyers, ...buyers),
+              },
+              true,
+            ),
+          )
+          return
+        }
+
+        const selectedBuyer = selectPreferredBuyer(buyers, preferredBuyer)
+        const accountPatch = account
+          ? viewToStatePatch(account.view, account.enriched, INITIAL_STATE, {
+              balanceMode: 'always',
+            })
+          : {}
+        if (selectedBuyer && accountPatch.operatorConsented !== undefined) {
+          setBuyerOperatorConsented(address!, selectedBuyer, accountPatch.operatorConsented)
+        }
+        const buyerFields = activateBuyerSelection(address!, buyers, selectedBuyer)
+        setState((prev) =>
+          withDerivedStatus(
             prev,
             {
               ...patch,
               ...accountPatch,
               ...buyerFields,
-              ...(account ? {} : { activeTab: 'buy' as const }),
+              operatorConsented:
+                accountPatch.operatorConsented ?? buyerFields.operatorConsented,
             },
             true,
-          )
-        })
+          ),
+        )
       } catch {
         if (cancelled) return
         setState((prev) => {
-          const accountSwitched = !addressesMatch(prev.address, address)
-          const buyerFields = mergeSessionFields(prev, sessionPatch, {}, accountSwitched)
           return withDerivedStatus(
             prev,
             {
               address,
               chainId,
               gBalance: '0',
-              ...buyerFields,
+              buyers: [],
+              derivedBuyerAddress: null,
+              buyerPubKey: null,
+              buyerPrvKey: null,
+              operatorSignature: null,
+              operatorConsented: false,
               status:
                 chainId !== null && chainId !== CELO_CHAIN_ID
                   ? 'unsupported_chain'
@@ -542,6 +653,10 @@ export function useAiCreditsAdapter({
     })
   }, [])
 
+  /**
+   * Creates or restores the single deterministic wallet buyer.
+   * If that buyer already exists with a private key, it is selected instead of re-derived.
+   */
   const handleGenerateBuyerKey = useCallback(async () => {
     if (!address || !providerRef.current) {
       setState((prev) =>
@@ -554,8 +669,28 @@ export function useAiCreditsAdapter({
       return
     }
 
+    const payerAddress = address as Address
+    const session = readPayerSession(payerAddress)
+    const derivedAddress = session?.derivedBuyerAddress ?? null
+    const existingKey = derivedAddress ? getBuyerKeyEntry(payerAddress, derivedAddress) : null
+
+    if (derivedAddress && existingKey?.privateKey) {
+      const buyers = mergeBuyerAddressList(
+        listKnownBuyerAddresses(payerAddress),
+        derivedAddress,
+      )
+      const buyerFields = activateBuyerSelection(payerAddress, buyers, derivedAddress)
+      setState((prev) =>
+        mergeStatePreservingNonBuyTab(prev, {
+          ...buyerFields,
+          error: null,
+          ...(!isNonBuyTab(prev.activeTab) ? { status: 'purchase_setup' } : {}),
+        }),
+      )
+      return
+    }
+
     try {
-      const payerAddress = address as Address
       const message = buildBuyerKeyMessage(payerAddress)
       const walletClient = createWalletClient({
         account: payerAddress,
@@ -567,17 +702,23 @@ export function useAiCreditsAdapter({
         message,
       })
       const privateKey = deriveBuyerPrivateKeyFromSignature(signature)
-      const account = privateKeyToAccount(privateKey)
+      const buyerAccount = privateKeyToAccount(privateKey)
 
-      patchPayerSession(payerAddress, {
-        buyerPubKey: account.address,
-        buyerPrvKey: privateKey,
-      })
+      upsertBuyerKey(
+        payerAddress,
+        buyerAccount.address,
+        { privateKey },
+        { setActive: true, setDerived: true },
+      )
 
+      const buyers = mergeBuyerAddressList(
+        listKnownBuyerAddresses(payerAddress),
+        buyerAccount.address,
+      )
+      const buyerFields = buildBuyerStateFields(payerAddress, buyers, buyerAccount.address)
       setState((prev) =>
         mergeStatePreservingNonBuyTab(prev, {
-          buyerPubKey: account.address,
-          buyerPrvKey: privateKey,
+          ...buyerFields,
           error: null,
           ...(!isNonBuyTab(prev.activeTab) ? { status: 'purchase_setup' } : {}),
         }),
@@ -595,9 +736,266 @@ export function useAiCreditsAdapter({
     }
   }, [address])
 
+  const handleSelectBuyer = useCallback(
+    async (buyerAddress: string) => {
+      if (!address) return
+      const known = listKnownBuyerAddresses(address)
+      if (!known.some((item) => item.toLowerCase() === buyerAddress.toLowerCase())) {
+        return
+      }
+
+      const buyers = mergeBuyerAddressList(known, buyerAddress)
+      const buyerFields = activateBuyerSelection(address, buyers, buyerAddress)
+      setState((prev) =>
+        mergeStatePreservingNonBuyTab(prev, {
+          ...buyerFields,
+          operatorAddress: null,
+          totalCreditUsd: null,
+          withdrawableUsd: null,
+          totalGdDepositedG: null,
+          monthlyStreamG: null,
+          operatorConsentPending: false,
+          error: null,
+        }),
+      )
+
+      try {
+        const view = await buildAccountView(address, backendClient, chainClient, {
+          buyerAddress,
+        })
+        const enriched = await enrichAccountView(view, chainClient)
+        const accountPatch = viewToStatePatch(view, enriched, INITIAL_STATE, {
+          balanceMode: 'always',
+        })
+        if (accountPatch.operatorConsented !== undefined) {
+          setBuyerOperatorConsented(address, buyerAddress, accountPatch.operatorConsented)
+        }
+        const nextBuyerFields = buildBuyerStateFields(address, buyers, buyerAddress)
+        setState((prev) =>
+          mergeStatePreservingNonBuyTab(prev, {
+            ...accountPatch,
+            ...nextBuyerFields,
+            operatorConsented:
+              accountPatch.operatorConsented ?? nextBuyerFields.operatorConsented,
+            error: null,
+          }),
+        )
+      } catch (err: unknown) {
+        setState((prev) =>
+          mergeStatePreservingNonBuyTab(prev, {
+            error: err instanceof Error ? err.message : 'Could not load buyer account',
+          }),
+        )
+      }
+    },
+    [address, backendClient, chainClient],
+  )
+
+  const handleDiscoverBuyers = useCallback(
+    (addresses: string[]) => {
+      if (!address || addresses.length === 0) return
+      const buyers = rememberBuyerAddresses(address, addresses)
+      setState((prev) => {
+        const sameLength = buyers.length === prev.buyers.length
+        const unchanged =
+          sameLength &&
+          buyers.every(
+            (item, index) => item.toLowerCase() === prev.buyers[index]?.toLowerCase(),
+          )
+        if (unchanged) return prev
+        return { ...prev, buyers }
+      })
+    },
+    [address],
+  )
+
+  const handleImportBuyerFromPrivateKey = useCallback(
+    async (rawPrivateKey: string) => {
+      if (!address) {
+        setState((prev) =>
+          withDerivedStatus(prev, { error: 'Connect your wallet before importing a buyer key' }, true),
+        )
+        return
+      }
+
+      const trimmed = rawPrivateKey.trim()
+      const normalized = trimmed.startsWith('0x') ? trimmed : `0x${trimmed}`
+      if (!/^0x[0-9a-fA-F]{64}$/.test(normalized)) {
+        setState((prev) =>
+          withDerivedStatus(
+            prev,
+            { error: 'Invalid private key format — expected 0x followed by 64 hex characters' },
+            true,
+          ),
+        )
+        return
+      }
+
+      try {
+        const privateKey = normalized as `0x${string}`
+        const buyerAccount = privateKeyToAccount(privateKey)
+        upsertBuyerKey(address, buyerAccount.address, { privateKey }, { setActive: true })
+
+        const buyers = mergeBuyerAddressList(
+          listKnownBuyerAddresses(address),
+          buyerAccount.address,
+        )
+        const buyerFields = buildBuyerStateFields(address, buyers, buyerAccount.address)
+        setState((prev) =>
+          mergeStatePreservingNonBuyTab(prev, {
+            ...buyerFields,
+            operatorAddress: null,
+            totalCreditUsd: null,
+            withdrawableUsd: null,
+            totalGdDepositedG: null,
+            monthlyStreamG: null,
+            error: null,
+            ...(!isNonBuyTab(prev.activeTab) ? { status: 'purchase_setup' } : {}),
+          }),
+        )
+
+        try {
+          const view = await buildAccountView(address, backendClient, chainClient, {
+            buyerAddress: buyerAccount.address,
+          })
+          const enriched = await enrichAccountView(view, chainClient)
+          const accountPatch = viewToStatePatch(view, enriched, INITIAL_STATE, {
+            balanceMode: 'always',
+          })
+          if (accountPatch.operatorConsented !== undefined) {
+            setBuyerOperatorConsented(
+              address,
+              buyerAccount.address,
+              accountPatch.operatorConsented,
+            )
+          }
+          const nextBuyerFields = buildBuyerStateFields(
+            address,
+            buyers,
+            buyerAccount.address,
+          )
+          setState((prev) =>
+            mergeStatePreservingNonBuyTab(prev, {
+              ...accountPatch,
+              ...nextBuyerFields,
+              operatorConsented:
+                accountPatch.operatorConsented ?? nextBuyerFields.operatorConsented,
+              error: null,
+            }),
+          )
+        } catch {
+          return
+        }
+      } catch {
+        setState((prev) =>
+          withDerivedStatus(prev, { error: 'Could not derive an account from the provided private key' }, true),
+        )
+      }
+    },
+    [address, backendClient, chainClient],
+  )
+
+  const resolveBuyerList = useCallback(
+    (payer: string, preferredBuyer?: string | null) => resolveLocalBuyers(payer, preferredBuyer),
+    [],
+  )
+
+  /**
+   * Registers a buyer from an NCDI deep link and submits the pre-signed
+   * operator-approval token. Never stores a buyer private key from the URL.
+   */
+  const handleApplyDeepLinkBuyer = useCallback(
+    async (buyerAddress: string, operatorSignature: string) => {
+      if (!address) {
+        return
+      }
+
+      const trimmedAddress = buyerAddress.trim()
+      const trimmedSignature = operatorSignature.trim()
+
+      if (!isValidBuyerAddress(trimmedAddress)) {
+        setState((prev) =>
+          withDerivedStatus(
+            prev,
+            {
+              error: deepLinkManualFallbackMessage('Deep-link buyerAddress is invalid.'),
+              activeTab: 'buy',
+              status: 'purchase_setup',
+            },
+            true,
+          ),
+        )
+        return
+      }
+
+      if (!isValidOperatorSignature(trimmedSignature)) {
+        setState((prev) =>
+          withDerivedStatus(
+            prev,
+            {
+              error: deepLinkManualFallbackMessage('Deep-link operatorSignature is invalid.'),
+              activeTab: 'buy',
+              status: 'purchase_setup',
+            },
+            true,
+          ),
+        )
+        return
+      }
+
+      // Pre-fill the buyer identity and the pending signature only. Consent must never be
+      // submitted here — it is only ever submitted from handleSignOperatorConsent, in
+      // response to an explicit user click on OperatorConsentStep. A deep-link-supplied
+      // signature is not itself user approval; it just saves the user from re-signing.
+      storeDeepLinkParams({
+        buyerAddress: trimmedAddress,
+        operatorSignature: trimmedSignature,
+      })
+
+      upsertBuyerKey(
+        address,
+        trimmedAddress,
+        { operatorSignature: trimmedSignature },
+        { setActive: true },
+      )
+
+      const buyers = mergeBuyerAddressList(listKnownBuyerAddresses(address), trimmedAddress)
+      const buyerFields = buildBuyerStateFields(address, buyers, trimmedAddress)
+      setState((prev) =>
+        mergeStatePreservingNonBuyTab(prev, {
+          ...buyerFields,
+          operatorAddress: null,
+          totalCreditUsd: null,
+          withdrawableUsd: null,
+          totalGdDepositedG: null,
+          monthlyStreamG: null,
+          activeTab: 'buy',
+          operatorConsentPending: false,
+          error: null,
+        }),
+      )
+    },
+    [address],
+  )
+
   const handleSignOperatorConsent = useCallback(async () => {
     const currentState = state
-    if (!currentState.address || !currentState.buyerPubKey || !currentState.buyerPrvKey) {
+    if (!currentState.address || !currentState.buyerPubKey) {
+      setState((prev) =>
+        withDerivedStatus(
+          prev,
+          { error: 'Select a buyer before signing operator consent' },
+          true,
+        ),
+      )
+      return
+    }
+
+    const keyEntry = getBuyerKeyEntry(currentState.address, currentState.buyerPubKey)
+    const storedOperatorSignature =
+      currentState.operatorSignature ?? keyEntry?.operatorSignature ?? null
+
+    if (!currentState.buyerPrvKey && !storedOperatorSignature) {
       setState((prev) =>
         withDerivedStatus(
           prev,
@@ -608,8 +1006,16 @@ export function useAiCreditsAdapter({
       return
     }
 
+    if (currentState.operatorConsentPending) return
+
     const ref: AccountRef = { payer: currentState.address, buyer: currentState.buyerPubKey }
     const onNonBuyTab = isNonBuyTab(currentState.activeTab)
+
+    setState((prev) => ({
+      ...prev,
+      operatorConsentPending: true,
+      error: null,
+    }))
 
     try {
       const operatorStatus = await chainClient.getBuyerOperatorStatus(ref)
@@ -619,27 +1025,43 @@ export function useAiCreditsAdapter({
       }
 
       if (operatorStatus.operatorAccepted) {
-        patchPayerSession(currentState.address, { operatorConsented: true })
+        setBuyerOperatorConsented(currentState.address, currentState.buyerPubKey, true)
+        const buyerList = resolveBuyerList(currentState.address, currentState.buyerPubKey)
+        const buyerFields = buildBuyerStateFields(
+          currentState.address,
+          buyerList.buyers,
+          buyerList.selected,
+        )
         setState((prev) =>
           mergeStatePreservingNonBuyTab(prev, {
+            ...buyerFields,
             operatorConsented: true,
+            operatorConsentPending: false,
             error: null,
             ...(!onNonBuyTab ? { status: 'purchase_setup' } : {}),
           }),
         )
+        clearDeepLinkArtifacts()
         return
       }
 
-      const payload = await chainClient.buildOperatorConsentPayload(ref, operatorStatus)
+      let buyerSig: `0x${string}`
+      if (currentState.buyerPrvKey) {
+        const payload = await chainClient.buildOperatorConsentPayload(ref, operatorStatus)
 
-      if (!payload.enabled || !payload.typedData) {
-        throw new Error('Operator consent is not available')
+        if (!payload.enabled || !payload.typedData) {
+          throw new Error('Operator consent is not available')
+        }
+
+        buyerSig = await signOperatorConsentFromTypedData(
+          currentState.buyerPrvKey as `0x${string}`,
+          payload.typedData,
+        )
+      } else if (storedOperatorSignature) {
+        buyerSig = storedOperatorSignature as `0x${string}`
+      } else {
+        throw new Error('Generate a buyer key before signing operator consent')
       }
-
-      const buyerSig = await signOperatorConsentFromTypedData(
-        currentState.buyerPrvKey as `0x${string}`,
-        payload.typedData,
-      )
 
       await backendClient.submitOperatorConsent(ref.buyer, {
         nonce: operatorStatus.consentNonce,
@@ -647,21 +1069,31 @@ export function useAiCreditsAdapter({
       })
       await waitForOperatorConsent(chainClient, ref)
 
-      patchPayerSession(currentState.address, { operatorConsented: true })
+      setBuyerOperatorConsented(currentState.address, currentState.buyerPubKey, true)
+      const buyerList = resolveBuyerList(currentState.address, currentState.buyerPubKey)
+      const buyerFields = buildBuyerStateFields(
+        currentState.address,
+        buyerList.buyers,
+        buyerList.selected,
+      )
       setState((prev) =>
         mergeStatePreservingNonBuyTab(prev, {
+          ...buyerFields,
           operatorConsented: true,
+          operatorConsentPending: false,
           error: null,
           ...(!onNonBuyTab ? { status: 'purchase_setup' } : {}),
         }),
       )
+      clearDeepLinkArtifacts()
     } catch (err: unknown) {
       setState((prev) => ({
         ...prev,
+        operatorConsentPending: false,
         error: err instanceof Error ? err.message : 'Operator consent signature rejected',
       }))
     }
-  }, [state, backendClient, chainClient])
+  }, [state, backendClient, chainClient, resolveBuyerList])
 
   const handleSyncOperatorConsentFromChain = useCallback(async () => {
     const currentState = state
@@ -674,7 +1106,7 @@ export function useAiCreditsAdapter({
       const operatorStatus = await chainClient.getBuyerOperatorStatus(ref)
       if (!operatorStatus.operatorAccepted) return
 
-      patchPayerSession(currentState.address, { operatorConsented: true })
+      setBuyerOperatorConsented(currentState.address, currentState.buyerPubKey, true)
       const onNonBuyTab = isNonBuyTab(currentState.activeTab)
       setState((prev) =>
         mergeStatePreservingNonBuyTab(prev, {
@@ -832,8 +1264,16 @@ export function useAiCreditsAdapter({
 
         const creditUsdMicro = (BigInt(totalCreditUsd) - BigInt(balanceBefore || '0')).toString()
 
+        const buyerList = resolveBuyerList(currentState.address, currentState.buyerPubKey)
+        const buyerFields = buildBuyerStateFields(
+          currentState.address,
+          buyerList.buyers,
+          buyerList.selected,
+        )
+
         setState((prev) =>
           withDerivedStatus(prev, {
+            ...buyerFields,
             totalCreditUsd,
             error: null,
             activeTab: 'manage',
@@ -869,6 +1309,7 @@ export function useAiCreditsAdapter({
       celoVault,
       onPaySuccess,
       onPayError,
+      resolveBuyerList,
       prepareSettlement,
       skipVaultPaymentValidation,
     ],
@@ -880,34 +1321,36 @@ export function useAiCreditsAdapter({
       if (!currentState.address) return
 
       try {
-        const sessionBuyer =
-          currentState.buyerPubKey ??
-          patchPayerSessionFields(currentState.address).buyerPubKey ??
-          null
+        const preferredBuyer = currentState.buyerPubKey
+        const buyerList = resolveBuyerList(currentState.address, preferredBuyer)
         const [view, discountConfig] = await Promise.all([
           buildAccountView(currentState.address, backendClient, chainClient, {
-            buyerAddress: sessionBuyer,
+            buyerAddress: preferredBuyer,
           }),
           backendClient.getDiscountConfig().catch(() => null),
         ])
         const enriched = await enrichAccountView(view, chainClient)
+        const accountPatch = viewToStatePatch(view, enriched, INITIAL_STATE, {
+          balanceMode: 'always',
+        })
+        if (
+          preferredBuyer &&
+          accountPatch.operatorConsented !== undefined &&
+          currentState.address
+        ) {
+          setBuyerOperatorConsented(
+            currentState.address,
+            preferredBuyer,
+            accountPatch.operatorConsented,
+          )
+        }
+        const buyerFields = buildBuyerStateFields(
+          currentState.address,
+          buyerList.buyers,
+          buyerList.selected,
+        )
 
         setState((prev) => {
-          const accountPatch = viewToStatePatch(view, enriched, prev, {
-            balanceMode: 'always',
-          })
-          const sessionFields = mergeSessionFields(
-            prev,
-            patchPayerSessionFields(currentState.address),
-            accountPatch,
-            false,
-          )
-          if (accountPatch.operatorConsented !== undefined && currentState.address) {
-            syncOperatorConsentSession(currentState.address, accountPatch.operatorConsented)
-          }
-          if (currentState.address && view.buyer) {
-            syncBuyerPubKeySession(currentState.address, view.buyer)
-          }
           const statusSeed =
             options?.afterGoodIdVerify && prev.status === 'payment_failed'
               ? 'quote_ready'
@@ -918,7 +1361,9 @@ export function useAiCreditsAdapter({
             { ...prev, status: statusSeed },
             {
               ...accountPatch,
-              ...sessionFields,
+              ...buyerFields,
+              operatorConsented:
+                accountPatch.operatorConsented ?? buyerFields.operatorConsented,
               activeTab: prev.activeTab,
               error: null,
               depositBonusPercent:
@@ -937,7 +1382,7 @@ export function useAiCreditsAdapter({
         )
       }
     },
-    [state, backendClient, chainClient],
+    [state, backendClient, chainClient, resolveBuyerList],
   )
 
   const handleVerifyGoodId = useCallback(async (): Promise<boolean> => {
@@ -1125,24 +1570,86 @@ export function useAiCreditsAdapter({
   }, [configurationError, handleRefresh])
 
   const handleSetActiveTab = useCallback((tab: AiCreditsWidgetTab) => {
-    if (tab === 'buy') {
-      setState((prev) =>
-        withDerivedStatus(prev, { activeTab: 'buy', status: 'purchase_setup', error: null }, true),
-      )
-      return
-    }
-    setState((prev) => mergeStatePreservingNonBuyTab(prev, { activeTab: tab, error: null }))
+    setState((prev) => {
+      if (needsWalletConnection(prev)) {
+        if (tab === 'setup') {
+          return mergeStatePreservingNonBuyTab(prev, { activeTab: 'setup', error: null })
+        }
+        return prev
+      }
+      if (tab === 'buy') {
+        return withDerivedStatus(prev, { activeTab: 'buy', status: 'purchase_setup', error: null }, true)
+      }
+      return mergeStatePreservingNonBuyTab(prev, { activeTab: tab, error: null })
+    })
   }, [])
 
   const handleStartPurchase = useCallback(() => {
     handleSetActiveTab('buy')
   }, [handleSetActiveTab])
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || deepLinkParseDoneRef.current) return
+    deepLinkParseDoneRef.current = true
+
+    const parsed = resolveDeepLinkParams(window.location.search)
+    if (parsed.status === 'absent') return
+
+    if (parsed.status === 'partial') {
+      const missing =
+        parsed.present === 'buyerAddress' ? 'operatorSignature' : 'buyerAddress'
+      setState((prev) =>
+        withDerivedStatus(
+          prev,
+          {
+            error: deepLinkManualFallbackMessage(`Deep link is missing ${missing}.`),
+            activeTab: 'buy',
+            status: 'purchase_setup',
+          },
+          false,
+        ),
+      )
+      return
+    }
+
+    if (parsed.status === 'invalid') {
+      setState((prev) =>
+        withDerivedStatus(
+          prev,
+          {
+            error: deepLinkManualFallbackMessage(`${parsed.reason}.`),
+            activeTab: 'buy',
+            status: 'purchase_setup',
+          },
+          false,
+        ),
+      )
+      return
+    }
+
+    pendingDeepLinkRef.current = parsed.value
+  }, [])
+
+  useEffect(() => {
+    const pending = pendingDeepLinkRef.current
+    if (!address || !pending || deepLinkApplyInFlightRef.current) return
+
+    deepLinkApplyInFlightRef.current = true
+    void handleApplyDeepLinkBuyer(pending.buyerAddress, pending.operatorSignature).finally(() => {
+      deepLinkApplyInFlightRef.current = false
+      pendingDeepLinkRef.current = null
+    })
+  }, [address, handleApplyDeepLinkBuyer])
+
   const actions: AiCreditsWidgetAdapterActions = useMemo(
     () => ({
       connect: handleConnect,
       switchChain: handleSwitchChain,
       generateBuyerKey: handleGenerateBuyerKey,
+      selectBuyer: handleSelectBuyer,
+      discoverBuyers: handleDiscoverBuyers,
+      importBuyerFromPrivateKey: handleImportBuyerFromPrivateKey,
+      applyDeepLinkBuyer: handleApplyDeepLinkBuyer,
       signOperatorConsent: handleSignOperatorConsent,
       syncOperatorConsentFromChain: handleSyncOperatorConsentFromChain,
       buildQuote: handleBuildQuote,
@@ -1159,6 +1666,10 @@ export function useAiCreditsAdapter({
       handleConnect,
       handleSwitchChain,
       handleGenerateBuyerKey,
+      handleSelectBuyer,
+      handleDiscoverBuyers,
+      handleImportBuyerFromPrivateKey,
+      handleApplyDeepLinkBuyer,
       handleSignOperatorConsent,
       handleSyncOperatorConsentFromChain,
       handleBuildQuote,
