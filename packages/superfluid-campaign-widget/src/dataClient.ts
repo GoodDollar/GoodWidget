@@ -1,4 +1,6 @@
+import type { AirdropStatusAdapter } from './hooks/useAirdropStatus'
 import type { CampaignLeaderboardAdapter } from './hooks/useCampaignLeaderboard'
+import type { CampaignUserPointsAdapter } from './hooks/useCampaignUserPoints'
 import type { ProgramSupTotalsAdapter } from './hooks/useProgramSupTotals'
 
 /**
@@ -16,7 +18,9 @@ export interface ProductionSuperfluidCampaignDataClient {
 
 export interface MockSuperfluidCampaignDataClient {
   kind: 'mock'
+  airdropStatus: AirdropStatusAdapter
   leaderboard: CampaignLeaderboardAdapter
+  userPoints: CampaignUserPointsAdapter
   programSupTotals: ProgramSupTotalsAdapter
 }
 

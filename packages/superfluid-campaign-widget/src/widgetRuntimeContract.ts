@@ -1,5 +1,8 @@
-import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
-import type { CitizenClaimWidgetEnvironment } from '@goodwidget/citizen-claim-widget'
+import type { GoodWidgetConfig, GoodWidgetThemeOverrides, IconName } from '@goodwidget/ui'
+import type {
+  CitizenClaimWidgetCustodialExecution,
+  CitizenClaimWidgetEnvironment,
+} from '@goodwidget/citizen-claim-widget'
 import type { Address } from 'viem'
 
 // ---------------------------------------------------------------------------
@@ -139,9 +142,30 @@ export interface LeaderboardSummaryData {
   lastUpdatedLabel: string
 }
 
+// An answer is either plain text, or an ordered list of blocks — a paragraph
+// (its own sequence of text/link segments) or a bullet list (each bullet is
+// itself a sequence of segments) — so an answer can combine short paragraphs,
+// bullets, and inline external links (e.g. "claim G$ for free") without
+// adopting a full rich-text/markdown format for what is otherwise static FAQ copy.
+export interface FaqAnswerLinkSegment {
+  text: string
+  href: string
+}
+
+export type FaqAnswerSegment = string | FaqAnswerLinkSegment
+
+export type FaqAnswerParagraphBlock = FaqAnswerSegment[]
+
+export interface FaqAnswerBulletListBlock {
+  type: 'bullets'
+  items: FaqAnswerSegment[][]
+}
+
+export type FaqAnswerBlock = FaqAnswerParagraphBlock | FaqAnswerBulletListBlock
+
 export interface FaqItemDefinition {
   question: string
-  answer: string
+  answer: string | FaqAnswerBlock[]
 }
 
 export interface CampaignDefinition {
@@ -170,6 +194,37 @@ export interface SuperfluidCampaignWidgetProps {
   connectOverride?: () => Promise<void>
   /** Integrator-owned wallet disconnect flow. */
   disconnectOverride?: () => Promise<void>
+  /**
+   * Integrator-owned live address (e.g. from a wallet-connection SDK's own
+   * reactive account hook). See `GoodWidgetProviderProps.addressOverride`.
+   */
+  addressOverride?: string | null
+  /**
+   * Integrator-owned live chain id, mirroring `addressOverride`. See
+   * `GoodWidgetProviderProps.chainIdOverride`.
+   */
+  chainIdOverride?: number | null
+  /**
+   * Integrator-owned chain-switch fallback. See
+   * `GoodWidgetProviderProps.switchChainOverride`.
+   */
+  switchChainOverride?: (chainId: number) => Promise<void>
+  /**
+   * Chain ids the passed-down provider can currently execute on. See
+   * `GoodWidgetProviderProps.availableChainIdsOverride`. Claim execution is
+   * scoped to this set; balance/entitlement reads are unaffected.
+   */
+  availableChainIdsOverride?: number[] | null
+  /**
+   * Label for the wallet chip's disconnect action. See
+   * `GoodWidgetProviderProps.disconnectLabel`.
+   */
+  disconnectLabel?: string
+  /**
+   * Icon for the wallet chip's disconnect action, mirroring `disconnectLabel`.
+   * See `GoodWidgetProviderProps.disconnectIcon`.
+   */
+  disconnectIcon?: IconName
   environment?: SuperfluidCampaignWidgetEnvironment
   themeOverrides?: GoodWidgetThemeOverrides
   config?: GoodWidgetConfig
@@ -183,13 +238,23 @@ export interface SuperfluidCampaignWidgetProps {
    */
   data?: CampaignDefinition
   /**
-   * Replaces the destination of link-based action cards (for example, to add
-   * integration-specific UTM parameters). Built-in campaign URLs remain the
-   * default for every omitted action.
+   * Replaces the destination of link-based action cards (including the
+   * GoodWallet fallback used when the Claim CTA is disabled). Built-in campaign
+   * URLs remain the default for every omitted action. The normal Claim CTA still
+   * opens the embedded CitizenClaimWidget when claiming is enabled.
    */
   actionLinks?: CampaignActionLinkOverrides
   /** Passed through to the embedded CitizenClaimWidget for the Claim CTA. */
   citizenClaimEnvironment?: CitizenClaimWidgetEnvironment
+  /** Optional wallet-owned, chain-specific clients for parallel custodial claims. */
+  citizenClaimExecution?: CitizenClaimWidgetCustodialExecution
+  /** Redirect the Claim CTA to GoodWallet instead of embedding CitizenClaimWidget. */
+  disableClaim?: boolean
+  /**
+   * Disables the header's connect-wallet CTA and connected-wallet status chip,
+   * e.g. while the host page isn't ready to accept a wallet connection yet.
+   */
+  disableWalletButton?: boolean
   /**
    * View shown on first render. Defaults to 'content'. Lets Storybook fixtures
    * and deep links land directly on the leaderboard without a click.

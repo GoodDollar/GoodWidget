@@ -1,6 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { CitizenClaimWidget } from '@goodwidget/citizen-claim-widget'
-import { CustodialLocalFixtureStory } from '../helpers/citizenClaimWidgetStories'
+import {
+  CustodialClaimExecutionClaimAllStory,
+  CustodialLocalFixtureStory,
+} from '../helpers/citizenClaimWidgetStories'
 import { BRAND_PRESET_OPTIONS, brandPresetOverrides, type BrandPreset } from '../helpers/themeOverridePresets'
 
 interface CitizenClaimWidgetQAArgs {
@@ -38,4 +41,8 @@ export const CustodialLocalFixture: Story = {
   render: ({ defaultTheme, brandPreset }) => (
     <CustodialLocalFixtureStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
   ),
+}
+
+export const CustodialExecutionClaimAllContract: Story = {
+  render: () => <CustodialClaimExecutionClaimAllStory />,
 }

@@ -1,6 +1,6 @@
 {
   "name": "@goodwidget/embed",
-  "version": "0.1.0",
+  "version": "0.1.4",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -21,7 +21,8 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "lint": "eslint src/",
-    "clean": "rm -rf dist .turbo"
+    "clean": "rm -rf dist .turbo",
+    "bump-version": "pnpm version patch --no-git-tag-version && git add package.json && git commit -m \"chore(release): bump @goodwidget/embed to $(node -p 'JSON.parse(require(\"fs\").readFileSync(\"package.json\")).version')\""
   },
   "peerDependencies": {
     "react": ">=18.0.0",

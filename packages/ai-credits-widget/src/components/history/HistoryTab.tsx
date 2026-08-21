@@ -18,10 +18,12 @@ import { compactButtonProps } from '../shared/styles'
 import type {
   AiCreditsHistoryActions,
   AiCreditsHistoryState,
+  BuyerAddressFilter,
   CreditHistorySource,
   CreditHistoryStatusFilter,
 } from '../../useAiCreditsHistory'
 import {
+  BUYER_FILTER_ALL,
   HISTORY_LOOKBACK_DAYS,
   getLast90DaysRange,
 } from '../../useAiCreditsHistory'
@@ -42,6 +44,8 @@ const SOURCE_PILL_OPTIONS: { id: CreditHistorySource; label: string }[] = [
 export interface HistoryTabProps {
   state: AiCreditsHistoryState
   actions: AiCreditsHistoryActions
+  /** Known buyer records to populate the buyer filter dropdown. */
+  knownBuyers?: { address: string; label?: string }[]
 }
 
 function sourceLabel(source: CreditHistorySource): string {
@@ -448,10 +452,103 @@ function StatusFilterSelect({
   )
 }
 
-export function HistoryTab({ state, actions }: HistoryTabProps) {
+/** Dropdown for filtering history entries by buyer address. */
+function BuyerFilterSelect({
+  value,
+  buyers,
+  onValueChange,
+}: {
+  value: BuyerAddressFilter
+  buyers: { address: string; label?: string }[]
+  onValueChange: (value: BuyerAddressFilter) => void
+}) {
+  const [open, setOpen] = useState(false)
+
+  // Only render when there are known buyers to filter by
+  if (buyers.length === 0) return null
+
+  const options = [
+    { value: BUYER_FILTER_ALL, label: 'All buyers' },
+    ...buyers.map((b) => ({
+      value: b.address,
+      label: b.label ?? `${b.address.slice(0, 6)}…${b.address.slice(-4)}`,
+    })),
+  ]
+
+  const selected = options.find((o) => o.value === value) ?? options[0]
+
+  return (
+    <YStack flex={1} minWidth={0} position="relative" zIndex={open ? 25 : 1}>
+      <XStack
+        tag="button"
+        role="listbox"
+        height="$7"
+        alignItems="center"
+        justifyContent="space-between"
+        gap="$2"
+        paddingHorizontal="$3"
+        borderRadius="$3"
+        borderWidth={1}
+        borderColor="$borderColor"
+        backgroundColor="$backgroundDark"
+        cursor="pointer"
+        onPress={() => setOpen((current) => !current)}
+      >
+        <Text fontSize="$2" color="$placeholderColor" numberOfLines={1} flex={1}>
+          Buyer: {selected?.label ?? 'All buyers'}
+        </Text>
+        <Icon name={open ? 'chevron-up' : 'chevron-down'} size="xs" color="muted" />
+      </XStack>
+
+      {open ? (
+        <YStack
+          position="absolute"
+          top="100%"
+          left={0}
+          right={0}
+          marginTop="$1"
+          borderRadius="$3"
+          borderWidth={1}
+          borderColor="$borderColor"
+          backgroundColor="$backgroundDark"
+          overflow="hidden"
+          zIndex={35}
+        >
+          {options.map((option) => (
+            <XStack
+              key={option.value}
+              tag="button"
+              role="option"
+              paddingHorizontal="$3"
+              paddingVertical="$2"
+              cursor="pointer"
+              backgroundColor={option.value === value ? '$infoMuted' : 'transparent'}
+              hoverStyle={{ backgroundColor: '$backgroundPress' }}
+              onPress={() => {
+                onValueChange(option.value)
+                setOpen(false)
+              }}
+            >
+              <Text
+                fontSize="$2"
+                fontWeight={option.value === value ? '700' : '500'}
+                color={option.value === value ? '$primary' : '$color'}
+              >
+                {option.label}
+              </Text>
+            </XStack>
+          ))}
+        </YStack>
+      ) : null}
+    </YStack>
+  )
+}
+
+export function HistoryTab({ state, actions, knownBuyers = [] }: HistoryTabProps) {
   const {
     selectedSources,
     statusFilter,
+    buyerAddressFilter,
     fromDate,
     toDate,
     entries,
@@ -511,6 +608,11 @@ export function HistoryTab({ state, actions }: HistoryTabProps) {
         <StatusFilterSelect
           value={statusFilter}
           onValueChange={actions.setStatusFilter}
+        />
+        <BuyerFilterSelect
+          value={buyerAddressFilter}
+          buyers={knownBuyers}
+          onValueChange={actions.setBuyerAddressFilter}
         />
       </XStack>
 

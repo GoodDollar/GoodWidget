@@ -18,6 +18,8 @@ export type {
 } from './widgetRuntimeContract'
 export { ACTIVITY_ICON_MAP } from './widgetRuntimeContract'
 
+export type { AirdropStatus, AirdropStatusAdapterResult } from './hooks/useAirdropStatus'
+
 // Live campaign leaderboard response types
 export type {
   CampaignLeaderboardData,
@@ -26,6 +28,12 @@ export type {
   CampaignPointsPagination,
   CampaignPointsSummary,
 } from './hooks/useCampaignLeaderboard'
+
+export type {
+  CampaignUserPoints,
+  CampaignUserPointsAdapter,
+  CampaignUserPointsResult,
+} from './hooks/useCampaignUserPoints'
 
 // Live SUP program response types
 export type { ProgramSupTotals, ProgramSupTotalsResult } from './hooks/useProgramSupTotals'

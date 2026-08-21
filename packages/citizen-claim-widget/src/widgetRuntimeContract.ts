@@ -1,4 +1,5 @@
 import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
+import type { Account, Chain, PublicClient, Transport, WalletClient } from 'viem'
 
 export type CitizenClaimWidgetEnvironment = 'production' | 'staging' | 'development'
 
@@ -6,6 +7,8 @@ export type CitizenClaimWidgetStatus =
   | 'loading'
   | 'connecting'
   | 'not_connected'
+  /** Wallet is connected but its active chain isn't one citizen-sdk supports. */
+  | 'unsupported_chain'
   | 'not_whitelisted'
   | 'eligible'
   | 'already_claimed'
@@ -67,6 +70,7 @@ export interface CitizenClaimWidgetAdapterActions {
   startVerification: () => Promise<void>
   claim: () => Promise<unknown>
   claimOnChain: (chainId: number) => Promise<unknown>
+  claimAll: (chainIds: number[]) => Promise<CitizenClaimWidgetChainClaimResult[]>
   switchChain?: (chainId: number) => Promise<void>
 }
 
@@ -81,22 +85,87 @@ export interface CitizenClaimWidgetClientFactoryInput {
   chainId: number
 }
 
+export type CitizenClaimWidgetWalletClient = WalletClient<
+  Transport,
+  Chain | undefined,
+  Account | undefined
+>
+
 export interface CitizenClaimWidgetClientBundle {
-  readClient: unknown
-  walletClient: unknown
+  /** Public client bound to the same chain as `walletClient`. */
+  publicClient?: PublicClient
+  /** @deprecated Use `publicClient`; retained for compatibility with early integrations. */
+  readClient?: PublicClient
+  /** Wallet client with the account/signing capability for this chain. */
+  walletClient: CitizenClaimWidgetWalletClient
 }
 
 export type CitizenClaimWidgetClientFactory = (
   input: CitizenClaimWidgetClientFactoryInput,
 ) => CitizenClaimWidgetClientBundle | Promise<CitizenClaimWidgetClientBundle>
 
+export type CitizenClaimWidgetClientsByChain = Partial<
+  Record<number, CitizenClaimWidgetClientBundle>
+>
+
+/**
+ * Explicit execution mode for wallet-owned custodial claiming.
+ *
+ * The widget uses one client pair per chain, creates the custodial SDK instances,
+ * and submits eligible claims independently in parallel.
+ */
+export interface CitizenClaimWidgetCustodialExecution {
+  mode: 'custodial'
+  clientsByChain: CitizenClaimWidgetClientsByChain
+}
+
+export interface CitizenClaimWidgetChainClaimResult {
+  chainId: number
+  status: 'fulfilled' | 'rejected'
+  receipt?: unknown
+  error?: unknown
+}
+
 export interface CitizenClaimWidgetProps {
   provider?: unknown
   environment?: CitizenClaimWidgetEnvironment
+  /**
+   * Fallback chain id shown only until the live wallet chain resolves via
+   * `provider`/`chainIdOverride`, or while disconnected. Once a live chain is
+   * known it always takes precedence over this value.
+   */
   chainId?: number
   clientFactory?: CitizenClaimWidgetClientFactory
+  claimExecution?: CitizenClaimWidgetCustodialExecution
   onClaimSuccess?: (detail: CitizenClaimWidgetSuccessDetail) => void
   onClaimError?: (detail: CitizenClaimWidgetErrorDetail) => void
+  /**
+   * Integrator-owned live address (e.g. from a wallet-connection SDK's own
+   * reactive account hook). See `GoodWidgetProviderProps.addressOverride`.
+   */
+  addressOverride?: string | null
+  /**
+   * Integrator-owned live chain id, mirroring `addressOverride`. See
+   * `GoodWidgetProviderProps.chainIdOverride`.
+   */
+  chainIdOverride?: number | null
+  /**
+   * Integrator-owned connect fallback (e.g. opening a wallet-connect modal
+   * instead of requesting the injected provider directly). See
+   * `GoodWidgetProviderProps.connectOverride`.
+   */
+  connectOverride?: () => Promise<void>
+  /**
+   * Integrator-owned chain-switch fallback. See
+   * `GoodWidgetProviderProps.switchChainOverride`.
+   */
+  switchChainOverride?: (chainId: number) => Promise<void>
+  /**
+   * Chain ids the passed-down provider can currently execute on. See
+   * `GoodWidgetProviderProps.availableChainIdsOverride`. Claim execution is
+   * scoped to this set; balance/entitlement reads are unaffected.
+   */
+  availableChainIdsOverride?: number[] | null
   // ---- Theming (optional, passed through to GoodWidgetProvider) ----
   /** Token and theme overrides applied at the widget boundary. */
   themeOverrides?: GoodWidgetThemeOverrides

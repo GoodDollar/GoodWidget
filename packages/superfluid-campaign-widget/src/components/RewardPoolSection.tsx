@@ -1,5 +1,5 @@
 import React from 'react'
-import { Heading, ProgressBar, Text, YStack } from '@goodwidget/ui'
+import { Alert, Heading, ProgressBar, Text, YStack } from '@goodwidget/ui'
 import type { Address } from 'viem'
 import type { ProgramSupTotalsAdapter } from '../hooks/useProgramSupTotals'
 import { useProgramSupTotals } from '../hooks/useProgramSupTotals'
@@ -27,7 +27,8 @@ export function RewardPoolSection({
 }: RewardPoolSectionProps) {
   // Live on-chain SUP totals for this pool's campaign, when a matching program
   // exists (see useProgramSupTotals). While loading, on request failure, or
-  // when no program exists, render zero totals rather than inventing campaign values.
+  // when no program exists, render zero totals rather than inventing campaign values;
+  // request failures are also surfaced below.
   const supTotals = useProgramSupTotals(pool.campaignId, poolAddress, 0, supTotalsAdapter)
   const supDistributed = supTotals.data?.totalClaimed ?? 0
   const supTotal = supTotals.data?.totalAllocated ?? 0
@@ -51,6 +52,10 @@ export function RewardPoolSection({
         variant="success"
         hidePercentageOnMobile
       />
+
+      {supTotals.error && (
+        <Alert type="error" title="Request Failed" message={supTotals.error} />
+      )}
 
       <YStack gap="$2">
         {pool.actions.map((action) => (

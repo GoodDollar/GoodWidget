@@ -128,6 +128,7 @@ test('SuperfluidCampaignWidget renders connected leaderboard view', async ({ pag
 
   await expect(page.getByText('Leaderboard')).toBeVisible()
   await expect(page.getByText(GOOD_DOLLAR_ACTIONS_TOP_ADDRESS)).toBeVisible()
+  await expect(page.getByTestId('LeaderboardStatus')).toContainText('Total points: 4,820')
   await expect(page.getByText('Airdrop status', { exact: true })).not.toBeVisible()
 
   await page.screenshot({
@@ -209,6 +210,7 @@ test('SuperfluidCampaignWidget mobile leaderboard keeps its headers and scrolls 
   await expect(page.getByText('Points', { exact: true })).toBeVisible()
   await expect(page.getByText('Actions', { exact: true })).toBeVisible()
   await expect(page.getByTestId('LeaderboardRow-1')).toHaveCSS('flex-direction', 'row')
+  await expect(page.getByTestId('LeaderboardRow-1')).toHaveCSS('min-width', '480px')
 
   const scrollMetrics = await page.getByTestId('Leaderboard-table-scroll').evaluate((element) => ({
     clientWidth: element.clientWidth,
@@ -412,13 +414,17 @@ test('SuperfluidCampaignWidget SUP distribution and members: populated from the 
   })
 })
 
-test('SuperfluidCampaignWidget SUP totals: request failed renders empty totals for both pools', async ({
+test('SuperfluidCampaignWidget SUP totals: request failure stays visible with empty fallback totals', async ({
   page,
 }) => {
   await gotoStory(page, STORY_IDS.supTotalsRequestFailed)
 
-  // This preserves the existing hook/component behavior: absent totals use zero.
+  // The zero fallback remains deterministic, but the request failure must not be hidden.
   await expect(page.getByText('0 / 0 SUP')).toHaveCount(2)
+  await expect(page.getByText('Request Failed', { exact: true })).toHaveCount(2)
+  await expect(
+    page.getByText('SUP program totals request failed (500)', { exact: true }),
+  ).toHaveCount(2)
 
   await page.screenshot({
     path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-18-sup-totals-request-failed.png',
