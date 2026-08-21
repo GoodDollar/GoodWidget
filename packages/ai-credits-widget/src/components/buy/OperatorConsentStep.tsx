@@ -28,12 +28,13 @@ export function OperatorConsentStep({
 
   return (
     <Shell gap="$3" {...(!embedded ? { backgroundColor: '$backgroundHover' } : {})}>
-      <Heading level={5}>Authorize Operator</Heading>
+      <Heading level={5}>Authorize Wallet</Heading>
       <Text fontSize="$2" lineHeight="$3">
-        Granting consent gives the operator control of your signer funds. This is required to
-        prevent fraud in bonus distribution. You can revoke consent at any time, but revoking
-        makes you ineligible for future bonuses and removes any existing bonuses from your
-        account.
+         GoodDollar needs this one-time authorization to fund and manage your AI credits on Base
+         after you pay with G$ on Celo. It lets the GoodDollar operator move funds in your
+         separate AI credits account, but never gives access to your payer wallet or G$.
+         Granting this permission means trusting GoodDollar with that scoped Base role; you can
+         revoke it later through the account controls.
       </Text>
 
       {buyerPubKey && (
@@ -48,7 +49,7 @@ export function OperatorConsentStep({
       {operatorConsented ? (
         <XStack gap="$2" alignItems="center">
           <Icon name="check" size="sm" color="success" />
-          <Text color="$success">Operator consent accepted — ready to pay</Text>
+          <Text color="$success">Wallet authorized — ready to pay</Text>
         </XStack>
       ) : (
         <Button
@@ -65,7 +66,7 @@ export function OperatorConsentStep({
               <Spinner size="sm" />
             </XStack>
           ) : (
-            <ButtonText>Sign Operator Consent</ButtonText>
+            <ButtonText>Authorize Wallet</ButtonText>
           )}
         </Button>
       )}
