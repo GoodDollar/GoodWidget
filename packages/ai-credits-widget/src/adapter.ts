@@ -993,7 +993,7 @@ export function useAiCreditsAdapter({
       setState((prev) =>
         withDerivedStatus(
           prev,
-          { error: 'Select a buyer before signing operator consent' },
+          { error: 'Select a buyer before authorizing your wallet' },
           true,
         ),
       )
@@ -1008,7 +1008,7 @@ export function useAiCreditsAdapter({
       setState((prev) =>
         withDerivedStatus(
           prev,
-          { error: 'Generate a signer key before signing operator consent' },
+          { error: 'Generate a signer key before authorizing your wallet' },
           true,
         ),
       )
@@ -1079,7 +1079,7 @@ export function useAiCreditsAdapter({
       } else if (storedOperatorSignature) {
         buyerSig = storedOperatorSignature as `0x${string}`
       } else {
-        throw new Error('Generate a signer key before signing operator consent')
+        throw new Error('Generate a signer key before authorizing your wallet')
       }
 
       await backendClient.submitOperatorConsent(ref.buyer, {

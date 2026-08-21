@@ -49,10 +49,10 @@ export function AiCreditsFlowStepper({
     },
     {
       id: 'consent',
-      title: 'Operator Consent',
+      title: 'Authorize Wallet',
       description: state.operatorConsentPending
-        ? 'Submitting operator consent…'
-        : 'Sign permission for the AntseedBuyerOperator',
+        ? 'Submitting authorization…'
+        : 'Authorize GoodDollar to manage your Base credits',
       status: getStepStatus('consent'),
     },
     {

@@ -14,7 +14,7 @@ const FAQ_ITEMS = [
     id: 'how-to-buy',
     question: 'How do I buy credits?',
     answer:
-      'Complete the Buy Credits steps: generate a signer key, sign operator consent, ' +
+      'Complete the Buy Credits steps: generate a signer key, authorize your wallet, ' +
       'then enter a one-time G$ deposit and/or a monthly G$ stream and confirm one Celo transaction ' +
       '(approve, deposit, and stream changes are batched when needed).',
   },
@@ -52,17 +52,17 @@ const FAQ_ITEMS = [
       'Save the signer private key from this session for AI API setup and Manage actions like withdraw.',
   },
   {
-    id: 'operator-consent',
-    question: 'Why do I authorize the Gooddollar operator?',
+    id: 'authorize-wallet',
+    question: 'Why do I authorize my wallet?',
     answer:
       'Payer is the wallet that pays G$ on Celo. ' +
       'Buyer is a separate key derived from a payer signature; it owns your AI credit account on Base.\n\n' +
-      'Operator consent is a one-time sign-off so the GoodDollar operator can act as your operator on Base. ' +
-      'After you pay G$ on Celo, the operator can fund your credits and handle Base-side actions — ' +
-      'including moving credit funds — without you paying Base gas. ' +
+      'Wallet authorization is a one-time permission for the GoodDollar operator to fund your credits ' +
+      'and handle Base-side actions — including moving credit funds — without you paying Base gas. ' +
       'It cannot access your payer wallet or G$ on Celo. ' +
       'Because the operator can act on your Base credit account, you are trusting GoodDollar with that role. ' +
-      'You can also withdraw unused principal yourself with your buyer private key.',
+      'You can revoke the permission later through the account controls, and you can withdraw unused ' +
+      'principal yourself with your buyer private key.',
   },
   {
     id: 'when-credits-arrive',

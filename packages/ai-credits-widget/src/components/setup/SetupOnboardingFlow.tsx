@@ -6,10 +6,11 @@ import type {
   AiCreditsWidgetAdapterState,
 } from '../../widgetRuntimeContract'
 import { SignerKeyPanel } from './SignerKeyPanel'
+import { OperatorConsentStep } from '../buy/OperatorConsentStep'
 
 const ANTSEED_DOWNLOAD_URL = 'https://antseed.com'
 
-type SetupDrawerStep = 'signer'
+type SetupDrawerStep = 'signer' | 'authorize'
 
 interface SetupOnboardingFlowProps {
   state: AiCreditsWidgetAdapterState
@@ -39,9 +40,9 @@ export function SetupOnboardingFlow({ state, actions }: SetupOnboardingFlowProps
     },
     {
       id: 'authorize',
-      title: 'Authorize wallet',
-      description: 'One-time approval — scoped to credits only',
-      status: !hasSignerKey ? 'pending' : state.operatorConsented ? 'completed' : 'pending',
+      title: 'Authorize Wallet',
+      description: 'One-time permission — scoped to Base credits',
+      status: !hasSignerKey ? 'pending' : state.operatorConsented ? 'completed' : 'ready',
     },
   ]
 
@@ -63,8 +64,13 @@ export function SetupOnboardingFlow({ state, actions }: SetupOnboardingFlowProps
       if (stepId === 'signer' && downloadCompleted) {
         openSignerDrawer()
       }
+
+      if (stepId === 'authorize' && hasSignerKey) {
+        setDrawerStep('authorize')
+        setDrawerOpen(true)
+      }
     },
-    [downloadCompleted, openSignerDrawer],
+    [downloadCompleted, hasSignerKey, openSignerDrawer],
   )
 
   return (
@@ -75,15 +81,27 @@ export function SetupOnboardingFlow({ state, actions }: SetupOnboardingFlowProps
         onStepPress={handleStepPress}
       />
       <Drawer
-        open={drawerOpen && drawerStep === 'signer'}
+        open={drawerOpen && drawerStep !== null}
         onClose={() => {
           setDrawerOpen(false)
+          setDrawerStep(null)
         }}
         height="full"
       >
         <ScrollArea width="100%">
           <YStack gap="$3" paddingBottom="$4" width="100%">
             {drawerStep === 'signer' ? <SignerKeyPanel state={state} actions={actions} /> : null}
+            {drawerStep === 'authorize' ? (
+              <OperatorConsentStep
+                embedded
+                buyerPubKey={state.buyerPubKey}
+                buyerPrvKey={state.buyerPrvKey ?? null}
+                operatorSignature={state.operatorSignature ?? null}
+                operatorConsented={state.operatorConsented}
+                operatorConsentPending={state.operatorConsentPending}
+                onSign={actions.signOperatorConsent}
+              />
+            ) : null}
           </YStack>
         </ScrollArea>
       </Drawer>

@@ -668,7 +668,7 @@ http://localhost:8377/v1/responses`}
                     GoodDollar operator role on Base
                   </Text>
                   <Text tone="soft">
-                    Your one-time consent lets the GoodDollar operator fund your credits and handle
+                    Your one-time wallet authorization lets the GoodDollar operator fund your credits and handle
                     Base-side credit actions, including moving credit funds, without requiring you
                     to pay Base gas. It cannot access your payer wallet or your G$ on Celo. This is
                     a trusted role for the Base credit account.

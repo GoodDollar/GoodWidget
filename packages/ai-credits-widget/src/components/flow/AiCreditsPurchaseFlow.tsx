@@ -32,7 +32,7 @@ export function AiCreditsPurchaseFlow({
   // Starts unset (not `activeStep`): the Drawer stays closed until the user opens it,
   // and Tamagui's Sheet keeps its Frame mounted (off-screen, not removed) while closed.
   // Eagerly setting this to the current step would mount that step's interactive content
-  // (e.g. the consent panel's "Sign Operator Consent" button) into the DOM before the
+  // (e.g. the authorization panel's "Authorize Wallet" button) into the DOM before the
   // Drawer is ever opened, duplicating the visible trigger button below with an
   // identically-named, off-screen element.
   const [drawerStep, setDrawerStep] = useState<AiCreditsFlowStep | null>(null)

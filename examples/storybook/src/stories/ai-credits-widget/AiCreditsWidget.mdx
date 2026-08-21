@@ -41,7 +41,7 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
   >
     <DocsGrid>
       <DocsCard title="S1 – Disconnected">Setup tab with connect CTA; Buy Credits, Manage, and History tabs visible but disabled until a wallet connects.</DocsCard>
-      <DocsCard title="S1b – Setup tab">Connected wallet — static onboarding shell for Download AntSeed, Signer Key, and Authorize Wallet (step interactions are follow-up work).</DocsCard>
+      <DocsCard title="S1b – Setup tab">Connected wallet — onboarding for Download AntSeed, Signer Key, and Authorize Wallet. The authorization step opens the same consent flow used by Buy Credits.</DocsCard>
       <DocsCard title="S2 – Purchase Setup">Buy tab — stepper with a CTA to open the active step in a bottom drawer.</DocsCard>
       <DocsCard title="S3 – Quote Ready">Buy tab — pay step available via drawer CTA; ready to confirm Celo transaction.</DocsCard>
       <DocsCard title="S4 – Payment Pending">Buy tab — Celo tx submitted.</DocsCard>
@@ -61,7 +61,7 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
   >
     <DocsGrid>
       <DocsCard title="Setup">Onboarding entry point — connect wallet when disconnected; onboarding step shell when connected.</DocsCard>
-      <DocsCard title="Buy Credits">Stepper for signer key, consent, and pay — tap a step or CTA to open it in a drawer.</DocsCard>
+      <DocsCard title="Buy Credits">Stepper for signer key, wallet authorization, and payment — tap a step or CTA to open it in a drawer.</DocsCard>
       <DocsCard title="Manage">Credits balance, stream info, close/withdraw, and API setup.</DocsCard>
       <DocsCard title="History">Paginated credit history with source, status, and date filters.</DocsCard>
     </DocsGrid>
@@ -86,7 +86,7 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
     </DocsGrid>
     <DocsCallout title="On-chain (not backend)" tone="info">
       Vault minimum reads, quotes, withdrawable principal, and Celo deposit/stream transactions are
-      handled on-chain via RPC. Buyer EIP-712 signing for operator consent, close, and withdraw
+      handled on-chain via RPC. Buyer EIP-712 signing for wallet authorization, close, and withdraw
       happens in the widget; only the Base submission is relayed by the worker. There is no
       channel-list API — paste the channel ID manually.
     </DocsCallout>

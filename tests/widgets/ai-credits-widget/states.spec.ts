@@ -82,9 +82,9 @@ test('AiCreditsWidget Setup tab — onboarding steps visible', async ({ page }) 
   await expect(root).toBeVisible()
   await expect(root.getByText('Your G$ Balance')).toBeVisible()
   await expect(root.getByText(/One-time setup, in order/)).toBeVisible()
-  await expect(root.getByText('Download Antseed', { exact: true })).toBeVisible()
+  await expect(root.getByText('Download Antseed', { exact: true }).first()).toBeVisible()
   await expect(root.getByText('Signer key', { exact: true })).toBeVisible()
-  await expect(root.getByText('Authorize wallet', { exact: true })).toBeVisible()
+  await expect(root.getByText('Authorize Wallet', { exact: true })).toBeVisible()
   await expect(root.getByText('Setup', { exact: true })).toBeVisible()
   await expect(root.getByText('Buy Credits', { exact: true })).toBeVisible()
   await page.screenshot({
@@ -321,7 +321,7 @@ test('AiCreditsWidget deep-link buyer: Sign Consent enabled via operatorSignatur
   })
 })
 
-test('AiCreditsWidget deep-link consent pending: OperatorConsentStep requires an explicit click', async ({
+test('AiCreditsWidget deep-link authorization pending: Authorize Wallet requires an explicit click', async ({
   page,
 }) => {
   await gotoStory(page, MULTI_BUYER_STORY_IDS.deepLinkConsentPending)
@@ -329,23 +329,23 @@ test('AiCreditsWidget deep-link consent pending: OperatorConsentStep requires an
   await expect(root).toBeVisible()
 
   // A pre-filled operatorSignature must never auto-advance past consent: the explicit
-  // "Sign Operator Consent" gate has to render before any consent is granted.
-  const openConsentStepButton = root.getByRole('button', { name: 'Sign Operator Consent' })
-  await expect(openConsentStepButton).toBeVisible()
-  await openConsentStepButton.click()
+  // The authorization gate must render before any permission is granted.
+  const openAuthorizationStepButton = root.getByRole('button', { name: 'Authorize Wallet' })
+  await expect(openAuthorizationStepButton).toBeVisible()
+  await openAuthorizationStepButton.click()
 
   // The Drawer renders via a Tamagui Sheet portal outside the widget's root DOM
   // subtree, so its content must be queried at the page level, not scoped to `root`.
   await expect(
-    page.getByText(/Granting consent gives the operator control of your signer funds/i),
+    page.getByText(/GoodDollar needs this one-time authorization to fund and manage your AI credits/i),
   ).toBeVisible()
   await expect(
-    page.getByText(/ineligible for future bonuses and removes any existing bonuses/i),
+    page.getByText(/revoke it later through the account controls/i),
   ).toBeVisible()
-  await expect(page.getByText('Operator consent accepted')).not.toBeVisible()
+  await expect(page.getByText('Wallet authorized')).not.toBeVisible()
 
-  const signConsentButton = page.getByRole('button', { name: 'Sign Operator Consent' })
-  await expect(signConsentButton).toBeEnabled()
+  const authorizeWalletButton = page.getByRole('button', { name: 'Authorize Wallet' })
+  await expect(authorizeWalletButton).toBeEnabled()
 
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-19-deep-link-consent-pending.png',
@@ -522,7 +522,7 @@ test('AiCreditsWidget Setup — Download AntSeed step is first and shows Start l
 
   await expect(root.getByText('Download Antseed', { exact: true })).toBeVisible()
   await expect(root.getByText('Signer key', { exact: true })).toBeVisible()
-  await expect(root.getByText('Authorize wallet', { exact: true })).toBeVisible()
+  await expect(root.getByText('Authorize Wallet', { exact: true })).toBeVisible()
   await expect(root.getByText('Ready', { exact: true })).toBeVisible()
   await expect(root.getByText('Pending').first()).toBeVisible()
 
