@@ -26,10 +26,6 @@ interface SignerKeyPanelProps {
 
 const ZERO_OPERATOR = '0x0000000000000000000000000000000000000000'
 
-/**
- * Setup-tab signer onboarding. The existing BuyerKeyPanel owns the wallet-derived
- * generation display; this component adds the explicit generate/import choice.
- */
 export function SignerKeyPanel({ state, actions }: SignerKeyPanelProps) {
   const [choice, setChoice] = useState<'generate' | 'import' | null>(null)
   const [privateKey, setPrivateKey] = useState('')

@@ -35,8 +35,7 @@ import {
   SetupGuidanceCard,
   HowToUseView,
   SetupFaqView,
-  DownloadAntSeedStep,
-  SignerKeyPanel,
+  SetupOnboardingFlow,
 } from './components'
 import type {
   AiCreditsWidgetProps,
@@ -120,8 +119,7 @@ function SetupTabPanel({
       <Text secondary fontSize="$2">
         One-time setup, in order — each step unlocks the next:
       </Text>
-      <DownloadAntSeedStep />
-      <SignerKeyPanel state={state} actions={actions} />
+      <SetupOnboardingFlow state={state} actions={actions} />
     </YStack>
   )
 }

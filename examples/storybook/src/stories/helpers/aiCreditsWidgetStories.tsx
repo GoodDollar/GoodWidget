@@ -634,7 +634,7 @@ export function GuidanceCardFaqStory() {
 
 /**
  * Setup tab with wallet connected — shows Download AntSeed as the first
- * actionable step with "Start ›" link, Signer Key and Authorize Wallet locked.
+ * actionable step with locked subsequent steps until download is started.
  */
 export function DownloadAntSeedStepStory() {
   return (
