@@ -1,5 +1,8 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { fileURLToPath } from 'node:url'
+
+const reactNativeSvgShim = fileURLToPath(new URL('../../packages/ui/src/web/reactNativeSvg.tsx', import.meta.url))
 
 export default defineConfig({
   plugins: [react()],
@@ -11,7 +14,7 @@ export default defineConfig({
   resolve: {
     alias: {
       'react-native': 'react-native-web',
-      'react-native-svg': new URL('./src/reactNativeSvgWeb.tsx', import.meta.url).pathname,
+      'react-native-svg': reactNativeSvgShim,
     },
   },
   optimizeDeps: {

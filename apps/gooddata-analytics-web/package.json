@@ -11,6 +11,7 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
+    "@goodwidget/gooddata-widget": "workspace:*",
     "@goodwidget/ui": "workspace:*",
     "@tamagui/core": "1.121.0",
     "@tamagui/lucide-icons": "1.121.0",

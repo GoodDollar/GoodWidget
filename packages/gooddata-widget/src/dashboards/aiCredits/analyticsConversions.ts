@@ -9,8 +9,10 @@
 
 /** G$ uses 18 decimals. Dividing by 10^18 directly (or via Number(BigInt)) risks precision loss for large totals. */
 const GD_DECIMALS = 18n
-/** AI credit / USD amounts use 6 decimals — small enough that a single Number() conversion is already safe. */
-const USD_DECIMALS_DIVISOR = 1e6
+/** AI credit / USD amounts use 6 decimals. */
+const USD_DECIMALS = 6n
+/** How many of the source's decimal digits survive into the final Number — both conversions below keep 4. */
+const OUTPUT_PRECISION_DECIMALS = 4n
 const SECONDS_PER_DAY = 86400n
 
 /**
@@ -25,19 +27,23 @@ const SECONDS_PER_DAY = 86400n
 export function weiToGd(weiStr: string): number {
   if (!weiStr || weiStr === '0') return 0
   const wei = BigInt(weiStr)
-  const reduced = wei / 10n ** (GD_DECIMALS - 4n)
+  const reduced = wei / 10n ** (GD_DECIMALS - OUTPUT_PRECISION_DECIMALS)
   return Number(reduced) / 10000
 }
 
 /**
- * AI credits / USD amounts are 6-decimal wei strings. Their realistic
- * magnitude is far below Number.MAX_SAFE_INTEGER even before scaling, so a
- * direct BigInt -> Number conversion is safe here (unlike weiToGd's 18
- * decimals above).
+ * AI credits / USD amounts are 6-decimal wei strings. Reduces to 4-decimal
+ * precision in BigInt space first — mirroring weiToGd — before crossing into
+ * Number, rather than converting the full BigInt directly. A direct
+ * Number(BigInt(weiStr)) conversion silently loses precision once the value
+ * exceeds Number.MAX_SAFE_INTEGER, which a sufficiently large aggregate USD
+ * total could reach even at only 6 decimals.
  */
 export function weiToUsd(weiStr: string): number {
   if (!weiStr || weiStr === '0') return 0
-  return Number(BigInt(weiStr)) / USD_DECIMALS_DIVISOR
+  const wei = BigInt(weiStr)
+  const reduced = wei / 10n ** (USD_DECIMALS - OUTPUT_PRECISION_DECIMALS)
+  return Number(reduced) / 10000
 }
 
 /**
@@ -50,6 +56,6 @@ export function flowRateToDaily(weiPerSecStr: string): number {
   if (!weiPerSecStr || weiPerSecStr === '0') return 0
   const weiPerSecond = BigInt(weiPerSecStr)
   const dailyWei = weiPerSecond * SECONDS_PER_DAY
-  const reduced = dailyWei / 10n ** (GD_DECIMALS - 4n)
+  const reduced = dailyWei / 10n ** (GD_DECIMALS - OUTPUT_PRECISION_DECIMALS)
   return Number(reduced) / 10000
 }

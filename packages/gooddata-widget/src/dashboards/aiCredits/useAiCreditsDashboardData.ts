@@ -1,14 +1,15 @@
 /**
- * useAnalyticsData — owns the full data-loading state machine for the
- * analytics dashboard: initial live-vs-demo resolution, manual source
+ * useAiCreditsDashboardData — owns the full data-loading state machine for
+ * the AI Credits dashboard: initial live-vs-demo resolution, manual source
  * switching, the refresh button's request/poll cycle, and the 5-minute
  * auto-refresh interval. Ported from the state/loadData/switchSource/
  * triggerRefresh functions in GoodDollar/data-team's reference dashboard
  * app.js, adapted to React state instead of direct DOM manipulation.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { fetchAnalytics, postRefresh, type AnalyticsResponse } from '../lib/analyticsApi'
-import { generateDemoData } from '../lib/generateDemoData'
+import { getConnector } from '../../connectors/registry'
+import { AI_CREDITS_CONNECTOR_ID, type AnalyticsResponse } from './connector'
+import { generateDemoData } from './generateDemoData'
 
 /** Matches the reference dashboard's REFRESH_INTERVAL_MS (5 minutes). */
 const AUTO_REFRESH_INTERVAL_MS = 5 * 60 * 1000
@@ -17,7 +18,7 @@ const REFRESH_SETTLE_DELAY_MS = 2000
 
 export type AnalyticsDataSource = 'live' | 'demo'
 
-export interface UseAnalyticsDataResult {
+export interface UseAiCreditsDashboardDataResult {
   /** The currently active dataset — live data, demo data, or null when the user has explicitly selected "Live" while the endpoint is unavailable (see isLiveUnavailable). */
   data: AnalyticsResponse | null
   /** Which source the toggle is currently set to, independent of whether that source actually has data available. */
@@ -32,7 +33,7 @@ export interface UseAnalyticsDataResult {
   refresh: () => Promise<void>
 }
 
-export function useAnalyticsData(): UseAnalyticsDataResult {
+export function useAiCreditsDashboardData(): UseAiCreditsDashboardDataResult {
   const [liveData, setLiveData] = useState<AnalyticsResponse | null>(null)
   const [liveAvailable, setLiveAvailable] = useState(false)
   // Demo data is generated once and reused — regenerating it on every failed
@@ -51,38 +52,51 @@ export function useAnalyticsData(): UseAnalyticsDataResult {
     return demoDataRef.current
   }, [])
 
-  /** Attempts the live fetch; on success, marks live available and prefers it as the active source. On failure, falls back to (cached) demo data. Mirrors the reference's loadData(). */
-  const loadData = useCallback(async () => {
-    try {
-      const response = await fetchAnalytics()
-      setLiveData(response)
-      setLiveAvailable(true)
-      setSource('live')
-    } catch (error) {
-      console.warn('AntSeed analytics endpoint not reachable:', error)
-      setLiveData(null)
-      setLiveAvailable(false)
-      // Ensure demo data exists so the fallback has something to show immediately.
-      getDemoData()
-      setSource('demo')
-    } finally {
-      setIsInitialLoadComplete(true)
-    }
-  }, [getDemoData])
+  /**
+   * Attempts the live fetch; updates the availability flags either way.
+   * Only the initial mount load is allowed to set `source` automatically —
+   * background loads (the 5-minute auto-refresh interval and the manual
+   * refresh button) must never override a source the user already picked
+   * via switchSource. `isLiveUnavailable` already reacts to `liveAvailable`
+   * on its own, so a background load that changes availability still
+   * surfaces correctly without touching `source`.
+   */
+  const loadData = useCallback(
+    async (options: { isInitialLoad: boolean }) => {
+      const connector = getConnector<AnalyticsResponse>(AI_CREDITS_CONNECTOR_ID)
+      try {
+        const response = await connector.fetch()
+        setLiveData(response)
+        setLiveAvailable(true)
+        if (options.isInitialLoad) setSource('live')
+      } catch (error) {
+        console.warn('AntSeed analytics endpoint not reachable:', error)
+        setLiveData(null)
+        setLiveAvailable(false)
+        // Ensure demo data exists so the fallback has something to show immediately.
+        getDemoData()
+        if (options.isInitialLoad) setSource('demo')
+      } finally {
+        setIsInitialLoadComplete(true)
+      }
+    },
+    [getDemoData],
+  )
 
   // Initial load, once on mount. Intentionally omits `loadData` from the
   // dependency array: we only want this to run a single time on mount, not
   // every time `loadData`'s identity changes (it's recreated whenever
   // `getDemoData` changes, which itself never changes after first render).
   useEffect(() => {
-    void loadData()
+    void loadData({ isInitialLoad: true })
   }, [])
 
   // Auto-refresh every 5 minutes using whichever source is currently active,
-  // matching the reference dashboard's single global refreshTimer.
+  // matching the reference dashboard's single global refreshTimer. Passes
+  // isInitialLoad: false so this never overrides a manual toggle selection.
   useEffect(() => {
     const intervalId = setInterval(() => {
-      void loadData()
+      void loadData({ isInitialLoad: false })
     }, AUTO_REFRESH_INTERVAL_MS)
     return () => clearInterval(intervalId)
   }, [loadData])
@@ -98,16 +112,17 @@ export function useAnalyticsData(): UseAnalyticsDataResult {
     setSource(next)
   }, [])
 
-  /** POSTs a refresh request, waits for server-side aggregation to settle, then re-fetches. On failure, still attempts a reload so the UI doesn't get stuck. */
+  /** POSTs a refresh request, waits for server-side aggregation to settle, then re-fetches. On failure, still attempts a reload so the UI doesn't get stuck. Never treated as an initial load, so it can't override the user's source selection either. */
   const refresh = useCallback(async () => {
     setIsRefreshing(true)
+    const connector = getConnector<AnalyticsResponse>(AI_CREDITS_CONNECTOR_ID)
     try {
-      await postRefresh()
+      await connector.refresh()
       await new Promise((resolve) => setTimeout(resolve, REFRESH_SETTLE_DELAY_MS))
-      await loadData()
+      await loadData({ isInitialLoad: false })
     } catch (error) {
       console.error('Refresh request failed:', error)
-      await loadData()
+      await loadData({ isInitialLoad: false })
     } finally {
       setIsRefreshing(false)
     }

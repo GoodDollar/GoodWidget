@@ -8,7 +8,7 @@
  */
 import React from 'react'
 import { Button, ButtonText, XStack } from '@goodwidget/ui'
-import type { AnalyticsDataSource } from '../hooks/useAnalyticsData'
+import type { AnalyticsDataSource } from '../useAiCreditsDashboardData'
 
 export interface DataSourceToggleProps {
   source: AnalyticsDataSource

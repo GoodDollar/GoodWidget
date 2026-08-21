@@ -8,7 +8,7 @@
  * today has the most) to make the demo charts look like a plausible growth
  * curve rather than flat noise.
  */
-import type { AnalyticsResponse, DailyAnalyticsRecord } from './analyticsApi'
+import type { AnalyticsResponse, DailyAnalyticsRecord } from './connector'
 
 const DEMO_DAY_COUNT = 30
 const GD_DECIMALS = 10n ** 18n
@@ -58,9 +58,9 @@ function sumWeiField(daily: DailyAnalyticsRecord[], field: keyof DailyAnalyticsR
 
 /**
  * Builds one full demo AnalyticsResponse. Callers should generate this once
- * and cache the result (see useAnalyticsData.ts) rather than regenerating it
- * on every failed live fetch, so the demo dataset stays stable across
- * retries within a session.
+ * and cache the result (see useAiCreditsDashboardData.ts) rather than
+ * regenerating it on every failed live fetch, so the demo dataset stays
+ * stable across retries within a session.
  */
 export function generateDemoData(): AnalyticsResponse {
   const daily: DailyAnalyticsRecord[] = []
