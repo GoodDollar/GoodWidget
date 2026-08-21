@@ -26,6 +26,8 @@ import {
   GuidanceCardHowToUseStory,
   GuidanceCardFaqStory,
   DownloadAntSeedStepStory,
+  SignerKeyGeneratedStory,
+  SignerKeyIncompatibleOperatorStory,
 } from '../helpers/aiCreditsWidgetStories'
 
 const meta: Meta<typeof AiCreditsWidget> = {
@@ -180,4 +182,29 @@ export const GuidanceCardFaq: Story = {
 /** Setup tab — Download AntSeed step with active "Start ›" link and locked subsequent steps. */
 export const DownloadAntSeedStep: Story = {
   render: () => <DownloadAntSeedStepStory />,
+}
+
+export const SignerKeyGenerated: Story = {
+  render: () => <SignerKeyGeneratedStory />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByText('Signer key', { exact: true }))
+    await userEvent.click(canvas.getByRole('button', { name: /generate signer key/i }))
+    await expect(canvas.getByText('Private Key — save this securely')).toBeVisible()
+  },
+}
+
+export const SignerKeyIncompatibleOperator: Story = {
+  render: () => <SignerKeyIncompatibleOperatorStory />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByText('Signer key', { exact: true }))
+    await userEvent.click(canvas.getByRole('button', { name: /import signer key/i }))
+    // The operator warning is a status of the import itself, so it only appears
+    // once a key has actually been imported.
+    await expect(canvas.queryByText('Signer key cannot be used')).toBeNull()
+    await userEvent.type(canvas.getByPlaceholderText('0x…'), `0x${'1'.repeat(64)}`)
+    await userEvent.click(canvas.getByRole('button', { name: /import signer key/i }))
+    await expect(canvas.getByText('Signer key cannot be used')).toBeVisible()
+  },
 }

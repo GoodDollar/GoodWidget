@@ -35,7 +35,7 @@ import {
   SetupGuidanceCard,
   HowToUseView,
   SetupFaqView,
-  DownloadAntSeedStep,
+  SetupOnboardingFlow,
 } from './components'
 import type {
   AiCreditsWidgetProps,
@@ -94,9 +94,11 @@ function SetupConnectPrompt({
 
 function SetupTabPanel({
   state,
+  actions,
   onConnect,
 }: {
   state: AiCreditsWidgetAdapterState
+  actions: AiCreditsWidgetAdapterActions
   onConnect: () => Promise<void>
 }) {
   if (needsWalletConnection(state)) {
@@ -117,7 +119,7 @@ function SetupTabPanel({
       <Text secondary fontSize="$2">
         One-time setup, in order — each step unlocks the next:
       </Text>
-      <DownloadAntSeedStep />
+      <SetupOnboardingFlow state={state} actions={actions} />
     </YStack>
   )
 }
@@ -443,7 +445,7 @@ function AiCreditsInner({
     ) : helpView === 'faq' ? (
       <SetupFaqView onBack={handleHelpViewClose} />
     ) : (
-      <SetupTabPanel state={state} onConnect={actions.connect} />
+      <SetupTabPanel state={state} actions={actions} onConnect={actions.connect} />
     )
 
   return (

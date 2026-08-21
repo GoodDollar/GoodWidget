@@ -224,7 +224,7 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
           {...compactButtonProps}
           onPress={() => setShowImport(true)}
         >
-          <ButtonText>Import a buyer key…</ButtonText>
+          <ButtonText>Import a signer key…</ButtonText>
         </Button>
       )}
 

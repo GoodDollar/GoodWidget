@@ -38,6 +38,7 @@ function createMockState(
     operatorConsented: false,
     operatorConsentPending: false,
     operatorAddress: null,
+    currentOperator: null,
     minDepositUsd: '1.00',
     minStreamUsd: '1.00',
     totalGdDepositedG: null,
@@ -65,7 +66,7 @@ function createAdapterFactory(
       generateBuyerKey: async () => {},
       selectBuyer: async () => {},
       discoverBuyers: () => {},
-      importBuyerFromPrivateKey: async () => {},
+      importBuyerFromPrivateKey: async () => overrides.buyerPubKey ?? null,
       applyDeepLinkBuyer: async () => {},
       signOperatorConsent: async () => {},
       syncOperatorConsentFromChain: async () => {},
@@ -275,6 +276,34 @@ export function SetupTabStory() {
       adapterFactory={createAdapterFactory('purchase_setup', {
         gBalance: '42.50',
         activeTab: 'setup',
+      })}
+    />
+  )
+}
+
+export function SignerKeyGeneratedStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-signer-key-generated"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        activeTab: 'setup',
+        buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
+        buyerPrvKey: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+      })}
+    />
+  )
+}
+
+export function SignerKeyIncompatibleOperatorStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-signer-key-incompatible"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        activeTab: 'setup',
+        buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
+        buyerPrvKey: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+        operatorAddress: '0x0000000000000000000000000000000000000004',
+        currentOperator: '0x0000000000000000000000000000000000000005',
       })}
     />
   )
@@ -605,7 +634,7 @@ export function GuidanceCardFaqStory() {
 
 /**
  * Setup tab with wallet connected — shows Download AntSeed as the first
- * actionable step with "Start ›" link, Signer Key and Authorize Wallet locked.
+ * actionable step with locked subsequent steps until download is started.
  */
 export function DownloadAntSeedStepStory() {
   return (

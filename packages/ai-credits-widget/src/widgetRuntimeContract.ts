@@ -46,6 +46,8 @@ export interface AiCreditsWidgetAdapterState {
   /** True while submitting / waiting for on-chain operator consent. */
   operatorConsentPending: boolean
   operatorAddress: string | null
+  /** Operator currently configured for the active signer, if any. */
+  currentOperator: string | null
   minDepositUsd: string | null
   minStreamUsd: string | null
   totalGdDepositedG: string | null
@@ -74,7 +76,13 @@ export interface AiCreditsWidgetAdapterActions {
    */
   selectBuyer: (address: string) => Promise<void>
   discoverBuyers: (addresses: string[]) => void
-  importBuyerFromPrivateKey: (privateKey: string) => Promise<void>
+  /**
+   * Imports a signer key, stores it and selects it as the active buyer.
+   * Resolves with the imported buyer address, or `null` when the key could
+   * not be imported — callers use that to report the outcome of *this* import
+   * rather than the state of whichever buyer happened to be active.
+   */
+  importBuyerFromPrivateKey: (privateKey: string) => Promise<string | null>
   /**
    * Applies an NCDI deep-link buyer assignment from URL GET parameters
    * (`buyerAddress` + `operatorSignature`). Selects the buyer immediately,
@@ -149,4 +157,3 @@ export interface AiCreditsWidgetProps {
   adapterOptions?: AiCreditsWidgetAdapterOptions
   testId?: string
 }
-

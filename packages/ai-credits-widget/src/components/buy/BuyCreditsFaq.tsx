@@ -14,7 +14,7 @@ const FAQ_ITEMS = [
     id: 'how-to-buy',
     question: 'How do I buy credits?',
     answer:
-      'Complete the Buy Credits steps: generate a buyer key, sign operator consent, ' +
+      'Complete the Buy Credits steps: generate a signer key, sign operator consent, ' +
       'then enter a one-time G$ deposit and/or a monthly G$ stream and confirm one Celo transaction ' +
       '(approve, deposit, and stream changes are batched when needed).',
   },
@@ -44,12 +44,12 @@ const FAQ_ITEMS = [
       'Without GoodID verification, bonuses do not apply.',
   },
   {
-    id: 'buyer-key',
-    question: 'What is the buyer key?',
+    id: 'signer-key',
+    question: 'What is the signer key?',
     answer:
       'Your payer wallet pays G$ on Celo. ' +
-      'The buyer key is a separate key derived from a payer signature; it manages your AI credits on Base. ' +
-      'Save the buyer private key from this session for AI API setup and Manage actions like withdraw.',
+      'The signer key is a separate key derived from a payer signature; it manages your AI credits on Base. ' +
+      'Save the signer private key from this session for AI API setup and Manage actions like withdraw.',
   },
   {
     id: 'operator-consent',

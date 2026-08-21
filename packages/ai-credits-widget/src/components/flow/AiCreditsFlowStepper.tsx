@@ -43,8 +43,8 @@ export function AiCreditsFlowStepper({
   const steps: StepperStepItem[] = [
     {
       id: 'buyer_key',
-      title: 'Buyer Key',
-      description: 'Generate or provide your AI credits buyer key',
+      title: 'Signer Key',
+      description: 'Generate or import your AI credits signer key',
       status: getStepStatus('buyer_key'),
     },
     {

@@ -103,6 +103,7 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   operatorConsented: false,
   operatorConsentPending: false,
   operatorAddress: null,
+  currentOperator: null,
   minDepositUsd: null,
   minStreamUsd: null,
   totalGdDepositedG: null,
@@ -127,6 +128,7 @@ const WALLET_LOADING_STATE: Partial<AiCreditsWidgetAdapterState> = {
   monthlyStreamG: null,
   withdrawableUsd: null,
   operatorAddress: null,
+  currentOperator: null,
 }
 
 const BUYER_HISTORY_LOOKUP_LIMIT = 100
@@ -343,6 +345,7 @@ function viewToStatePatch(
     isGoodIdVerified: enriched.goodIdVerified,
     operatorConsented: operatorAccepted,
     operatorAddress: view.operator.operatorAddress ?? null,
+    currentOperator: view.operator.currentOperator ?? null,
     withdrawableUsd: view.withdrawableUsd,
     totalGdDepositedG: enriched.totalGdDepositedG,
     monthlyStreamG: enriched.monthlyStreamG,
@@ -662,7 +665,7 @@ export function useAiCreditsAdapter({
       setState((prev) =>
         withDerivedStatus(
           prev,
-          { error: 'Connect your wallet before generating a buyer key' },
+          { error: 'Connect your wallet before generating a signer key' },
           true,
         ),
       )
@@ -750,6 +753,7 @@ export function useAiCreditsAdapter({
         mergeStatePreservingNonBuyTab(prev, {
           ...buyerFields,
           operatorAddress: null,
+          currentOperator: null,
           totalCreditUsd: null,
           withdrawableUsd: null,
           totalGdDepositedG: null,
@@ -810,12 +814,12 @@ export function useAiCreditsAdapter({
   )
 
   const handleImportBuyerFromPrivateKey = useCallback(
-    async (rawPrivateKey: string) => {
+    async (rawPrivateKey: string): Promise<string | null> => {
       if (!address) {
         setState((prev) =>
-          withDerivedStatus(prev, { error: 'Connect your wallet before importing a buyer key' }, true),
+          withDerivedStatus(prev, { error: 'Connect your wallet before importing a signer key' }, true),
         )
-        return
+        return null
       }
 
       const trimmed = rawPrivateKey.trim()
@@ -828,7 +832,7 @@ export function useAiCreditsAdapter({
             true,
           ),
         )
-        return
+        return null
       }
 
       try {
@@ -845,6 +849,7 @@ export function useAiCreditsAdapter({
           mergeStatePreservingNonBuyTab(prev, {
             ...buyerFields,
             operatorAddress: null,
+            currentOperator: null,
             totalCreditUsd: null,
             withdrawableUsd: null,
             totalGdDepositedG: null,
@@ -884,12 +889,15 @@ export function useAiCreditsAdapter({
             }),
           )
         } catch {
-          return
+          return buyerAccount.address
         }
+
+        return buyerAccount.address
       } catch {
         setState((prev) =>
           withDerivedStatus(prev, { error: 'Could not derive an account from the provided private key' }, true),
         )
+        return null
       }
     },
     [address, backendClient, chainClient],
@@ -965,6 +973,7 @@ export function useAiCreditsAdapter({
         mergeStatePreservingNonBuyTab(prev, {
           ...buyerFields,
           operatorAddress: null,
+          currentOperator: null,
           totalCreditUsd: null,
           withdrawableUsd: null,
           totalGdDepositedG: null,
@@ -999,7 +1008,7 @@ export function useAiCreditsAdapter({
       setState((prev) =>
         withDerivedStatus(
           prev,
-          { error: 'Generate a buyer key before signing operator consent' },
+          { error: 'Generate a signer key before signing operator consent' },
           true,
         ),
       )
@@ -1022,6 +1031,16 @@ export function useAiCreditsAdapter({
 
       if (!operatorStatus.enabled) {
         throw new Error('Operator consent is not available')
+      }
+
+      const hasDifferentOperator =
+        operatorStatus.currentOperator !==
+          '0x0000000000000000000000000000000000000000' &&
+        !operatorStatus.operatorAccepted
+      if (hasDifferentOperator) {
+        throw new Error(
+          'This signer key is already controlled by another operator. Import a different signer key or generate a new one.',
+        )
       }
 
       if (operatorStatus.operatorAccepted) {
@@ -1060,7 +1079,7 @@ export function useAiCreditsAdapter({
       } else if (storedOperatorSignature) {
         buyerSig = storedOperatorSignature as `0x${string}`
       } else {
-        throw new Error('Generate a buyer key before signing operator consent')
+        throw new Error('Generate a signer key before signing operator consent')
       }
 
       await backendClient.submitOperatorConsent(ref.buyer, {
@@ -1141,7 +1160,7 @@ export function useAiCreditsAdapter({
       const currentState = state
 
       if (!currentState.address || !currentState.buyerPubKey || !providerRef.current) {
-        throw new Error('Connect your wallet and generate a buyer key before paying')
+        throw new Error('Connect your wallet and generate a signer key before paying')
       }
 
       const hasDeposit = Number.parseFloat(quote.depositAmountG) > 0
