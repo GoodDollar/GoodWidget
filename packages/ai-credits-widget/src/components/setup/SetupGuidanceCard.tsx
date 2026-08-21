@@ -1,5 +1,5 @@
 import React from 'react'
-import { Anchor, Button, ButtonText, Card, Icon, Separator, Text, XStack, YStack } from '@goodwidget/ui'
+import { Anchor, Button, ButtonText, Icon, Separator, Text, XStack, YStack } from '@goodwidget/ui'
 
 /** URL for the AntSeed website, opened in a new browser tab. */
 const ANTSEED_SITE_URL = 'https://antseed.com'
@@ -22,7 +22,9 @@ interface SetupGuidanceCardProps {
  */
 export function SetupGuidanceCard({ onHowToUse, onFaq, activeHelpView }: SetupGuidanceCardProps) {
   return (
-    <Card gap="$3" paddingVertical="$4" paddingHorizontal="$4">
+    // Rendered flush on the widget background — no card surface, so it reads as
+    // part of the header rather than a separate panel.
+    <YStack gap="$3" paddingHorizontal="$1">
       {/* WHAT'S INVOLVED section */}
       <YStack gap="$1">
         <Text variant="label" secondary fontSize="$1" fontWeight="700" letterSpacing={1}>
@@ -129,6 +131,6 @@ export function SetupGuidanceCard({ onHowToUse, onFaq, activeHelpView }: SetupGu
           <ButtonText numberOfLines={1}>FAQs</ButtonText>
         </Button>
       </XStack>
-    </Card>
+    </YStack>
   )
 }
