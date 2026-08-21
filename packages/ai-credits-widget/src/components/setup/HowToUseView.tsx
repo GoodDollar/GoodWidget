@@ -5,7 +5,7 @@ import { Anchor, Badge, BadgeText, Button, ButtonText, Card, Icon, Text, XStack,
 const VIDEO_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
 
 /** Notion written guide URL. */
-const WRITTEN_GUIDE_URL = 'https://antseed.notion.site'
+const WRITTEN_GUIDE_URL = 'https://app.notion.com/p/gooddollar/Full-Setup-Walkthrough-Widget-AntSeed-VPR-3c0f258232f08184bee9cd440cc93059'
 
 /** Summary step with an associated widget tab label. */
 interface SummaryStep {
