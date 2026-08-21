@@ -46,6 +46,8 @@ export interface AiCreditsWidgetAdapterState {
   /** True while submitting / waiting for on-chain operator consent. */
   operatorConsentPending: boolean
   operatorAddress: string | null
+  /** Operator currently configured for the active signer, if any. */
+  currentOperator: string | null
   minDepositUsd: string | null
   minStreamUsd: string | null
   totalGdDepositedG: string | null
@@ -149,4 +151,3 @@ export interface AiCreditsWidgetProps {
   adapterOptions?: AiCreditsWidgetAdapterOptions
   testId?: string
 }
-

@@ -38,6 +38,7 @@ function createMockState(
     operatorConsented: false,
     operatorConsentPending: false,
     operatorAddress: null,
+    currentOperator: null,
     minDepositUsd: '1.00',
     minStreamUsd: '1.00',
     totalGdDepositedG: null,
@@ -275,6 +276,34 @@ export function SetupTabStory() {
       adapterFactory={createAdapterFactory('purchase_setup', {
         gBalance: '42.50',
         activeTab: 'setup',
+      })}
+    />
+  )
+}
+
+export function SignerKeyGeneratedStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-signer-key-generated"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        activeTab: 'setup',
+        buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
+        buyerPrvKey: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+      })}
+    />
+  )
+}
+
+export function SignerKeyIncompatibleOperatorStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-signer-key-incompatible"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        activeTab: 'setup',
+        buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
+        buyerPrvKey: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+        operatorAddress: '0x0000000000000000000000000000000000000004',
+        currentOperator: '0x0000000000000000000000000000000000000005',
       })}
     />
   )

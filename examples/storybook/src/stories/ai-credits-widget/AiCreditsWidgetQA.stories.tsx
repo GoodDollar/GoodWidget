@@ -26,6 +26,8 @@ import {
   GuidanceCardHowToUseStory,
   GuidanceCardFaqStory,
   DownloadAntSeedStepStory,
+  SignerKeyGeneratedStory,
+  SignerKeyIncompatibleOperatorStory,
 } from '../helpers/aiCreditsWidgetStories'
 
 const meta: Meta<typeof AiCreditsWidget> = {
@@ -180,4 +182,22 @@ export const GuidanceCardFaq: Story = {
 /** Setup tab — Download AntSeed step with active "Start ›" link and locked subsequent steps. */
 export const DownloadAntSeedStep: Story = {
   render: () => <DownloadAntSeedStepStory />,
+}
+
+export const SignerKeyGenerated: Story = {
+  render: () => <SignerKeyGeneratedStory />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByRole('button', { name: /generate signer key/i }))
+    await expect(canvas.getByText('Private Key — save this securely')).toBeVisible()
+  },
+}
+
+export const SignerKeyIncompatibleOperator: Story = {
+  render: () => <SignerKeyIncompatibleOperatorStory />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByRole('button', { name: /import signer key/i }))
+    await expect(canvas.getByText('Signer key cannot be used')).toBeVisible()
+  },
 }

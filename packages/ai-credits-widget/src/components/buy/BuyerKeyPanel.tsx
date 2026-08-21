@@ -39,9 +39,9 @@ export function BuyerKeyPanel({
 
   return (
     <Shell gap="$3">
-      <Heading level={5}>Buyer Key</Heading>
+      <Heading level={5}>Signer Key</Heading>
       <Text>
-        Sign a message with your payer wallet to derive a deterministic AntSeed buyer key. Save the
+        Sign a message with your payer wallet to derive a dedicated AntSeed signer key. Save the
         private key — you will need it to authenticate from your developer tools.
       </Text>
 
@@ -81,6 +81,12 @@ export function BuyerKeyPanel({
 
             {buyerPrvKey && (
               <>
+                <AiCreditsStatusNotice borderColor="$warning">
+                  <Text color="$warning" fontSize="$2">
+                    Back up any existing AntSeed signer key before importing this one. Importing
+                    replaces the signer used by your AntSeed account.
+                  </Text>
+                </AiCreditsStatusNotice>
                 <XStack justifyContent="space-between" alignItems="center">
                   <Text variant="label" secondary>
                     Private Key — save this securely
@@ -126,6 +132,10 @@ export function BuyerKeyPanel({
                     />
                   </Button>
                 </XStack>
+                <Text fontSize="$2" secondary>
+                  In AntSeed, open Settings → Signer key and import this private key. The public
+                  address above is the signer identity used for AI credits.
+                </Text>
               </>
             )}
 

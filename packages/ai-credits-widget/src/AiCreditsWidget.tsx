@@ -36,6 +36,7 @@ import {
   HowToUseView,
   SetupFaqView,
   DownloadAntSeedStep,
+  SignerKeyPanel,
 } from './components'
 import type {
   AiCreditsWidgetProps,
@@ -94,9 +95,11 @@ function SetupConnectPrompt({
 
 function SetupTabPanel({
   state,
+  actions,
   onConnect,
 }: {
   state: AiCreditsWidgetAdapterState
+  actions: AiCreditsWidgetAdapterActions
   onConnect: () => Promise<void>
 }) {
   if (needsWalletConnection(state)) {
@@ -118,6 +121,7 @@ function SetupTabPanel({
         One-time setup, in order — each step unlocks the next:
       </Text>
       <DownloadAntSeedStep />
+      <SignerKeyPanel state={state} actions={actions} />
     </YStack>
   )
 }
@@ -443,7 +447,7 @@ function AiCreditsInner({
     ) : helpView === 'faq' ? (
       <SetupFaqView onBack={handleHelpViewClose} />
     ) : (
-      <SetupTabPanel state={state} onConnect={actions.connect} />
+      <SetupTabPanel state={state} actions={actions} onConnect={actions.connect} />
     )
 
   return (
