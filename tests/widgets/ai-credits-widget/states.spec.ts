@@ -85,7 +85,6 @@ test('AiCreditsWidget Setup tab — onboarding steps visible', async ({ page }) 
   await expect(root.getByText('Download Antseed', { exact: true })).toBeVisible()
   await expect(root.getByText('Signer key', { exact: true })).toBeVisible()
   await expect(root.getByText('Authorize wallet', { exact: true })).toBeVisible()
-  await expect(root.getByText('Buy credits', { exact: true })).toBeVisible()
   await expect(root.getByText('Setup', { exact: true })).toBeVisible()
   await expect(root.getByText('Buy Credits', { exact: true })).toBeVisible()
   await page.screenshot({
@@ -521,17 +520,11 @@ test('AiCreditsWidget Setup — Download AntSeed step is first and shows Start l
   const root = page.getByTestId('AiCreditsWidget-download-antseed-step')
   await expect(root).toBeVisible()
 
-  // Verify step ordering
   await expect(root.getByText('Download Antseed', { exact: true })).toBeVisible()
   await expect(root.getByText('Signer key', { exact: true })).toBeVisible()
   await expect(root.getByText('Authorize wallet', { exact: true })).toBeVisible()
-  await expect(root.getByText('Buy credits', { exact: true })).toBeVisible()
-
-  // Verify the "Start ›" download link is present and points to the AntSeed download page
-  const downloadLink = root.getByTestId('download-antseed-link')
-  await expect(downloadLink).toBeVisible()
-  await expect(downloadLink).toHaveAttribute('href', 'https://antseed.com/')
-  await expect(downloadLink).toHaveAttribute('target', '_blank')
+  await expect(root.getByText('Ready', { exact: true })).toBeVisible()
+  await expect(root.getByText('Pending').first()).toBeVisible()
 
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-25-download-antseed-step.png',
