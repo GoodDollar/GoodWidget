@@ -70,7 +70,7 @@ export function SetupOnboardingFlow({ state, actions }: SetupOnboardingFlowProps
         setDrawerOpen(true)
       }
     },
-    [downloadCompleted, openSignerDrawer],
+    [downloadCompleted, hasSignerKey, openSignerDrawer],
   )
 
   return (
