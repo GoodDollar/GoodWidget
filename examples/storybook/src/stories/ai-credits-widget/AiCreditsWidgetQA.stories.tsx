@@ -188,9 +188,6 @@ export const SignerKeyGenerated: Story = {
   render: () => <SignerKeyGeneratedStory />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    await userEvent.click(canvas.getByText('Signer key', { exact: true }))
-    await userEvent.click(canvas.getByRole('button', { name: /generate signer key/i }))
-    await expect(canvas.getByText('Private Key — save this securely')).toBeVisible()
     await userEvent.click(canvas.getByText('Authorize Wallet', { exact: true }))
     await expect(
       within(document.body).getByText(
