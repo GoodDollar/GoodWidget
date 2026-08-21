@@ -1,119 +1,128 @@
 import React from 'react'
-import { Anchor, Button, ButtonText, Card, Text, XStack, YStack } from '@goodwidget/ui'
+import { Anchor, Button, ButtonText, Card, Separator, Text, XStack, YStack } from '@goodwidget/ui'
 
-/** Direct download / landing page for the AntSeed VPR desktop application. */
-const ANTSEED_DOWNLOAD_URL = 'https://antseed.com/download'
+const ANTSEED_DOWNLOAD_URL = 'https://antseed.com/'
 
-interface LockedStepProps {
+type StepStatus = 'active' | 'locked'
+
+interface SetupStep {
+  id: string
   number: number
   title: string
   description: string
+  status: StepStatus
+  actionLabel?: string
+  href?: string
 }
 
-/**
- * Renders a locked (pending) onboarding step card.
- * Used for steps that cannot be started until a prior step is complete.
- */
-function LockedStep({ number, title, description }: LockedStepProps) {
-  return (
-    <Card padding="$3" opacity={0.5}>
-      <XStack gap="$3" alignItems="flex-start">
-        <YStack
-          width={28}
-          height={28}
-          borderRadius={14}
-          backgroundColor="$backgroundHover"
-          alignItems="center"
-          justifyContent="center"
-          flexShrink={0}
-        >
-          <Text fontWeight="700" fontSize="$2" secondary>
-            {number}
-          </Text>
-        </YStack>
+const SETUP_STEPS: SetupStep[] = [
+  {
+    id: 'download',
+    number: 1,
+    title: 'Download Antseed',
+    description: 'The app that runs your credits locally — required once',
+    status: 'active',
+    actionLabel: 'Start ›',
+    href: ANTSEED_DOWNLOAD_URL,
+  },
+  {
+    id: 'signer',
+    number: 2,
+    title: 'Signer key',
+    description: 'Generate or import — separate from your wallet',
+    status: 'locked',
+  },
+  {
+    id: 'authorize',
+    number: 3,
+    title: 'Authorize wallet',
+    description: 'One-time approval — scoped to credits only',
+    status: 'locked',
+  },
+  {
+    id: 'buy',
+    number: 4,
+    title: 'Buy credits',
+    description: 'Deposit (+10%) or stream (+20%) G$',
+    status: 'locked',
+  },
+]
 
-        <YStack flex={1} gap="$1">
-          <XStack justifyContent="space-between" alignItems="center">
-            <Text fontWeight="700" secondary>
-              {title}
-            </Text>
-            {/* Lock emoji mirrors the design reference treatment for pending steps */}
-            <Text fontSize="$3">🔒</Text>
-          </XStack>
-          <Text secondary fontSize="$2">
-            {description}
-          </Text>
-        </YStack>
-      </XStack>
-    </Card>
+function StepMarker({ number, status }: { number: number; status: StepStatus }) {
+  const active = status === 'active'
+  return (
+    <YStack
+      width={28}
+      height={28}
+      borderRadius={14}
+      backgroundColor={active ? '$primary' : '$backgroundHover'}
+      alignItems="center"
+      justifyContent="center"
+      flexShrink={0}
+    >
+      <Text
+        fontWeight="700"
+        fontSize="$2"
+        color={active ? '$onPrimary' : undefined}
+        secondary={!active}
+      >
+        {number}
+      </Text>
+    </YStack>
   )
 }
 
-/**
- * First step in the Setup onboarding flow.
- *
- * Presents a brief description of what AntSeed is and surfaces an external
- * "Start ›" link that takes the user to the AntSeed VPR/Desktop download page.
- * Subsequent steps (Signer Key, Authorize Wallet) are shown below in a locked
- * / pending state to communicate the required ordering to the user.
- */
-export function DownloadAntSeedStep() {
-  return (
-    <YStack gap="$3" width="100%">
-      {/* Step 1 — Download AntSeed (active, first actionable step) */}
-      <Card padding="$3">
-        <XStack gap="$3" alignItems="flex-start">
-          {/* Active step badge */}
-          <YStack
-            width={28}
-            height={28}
-            borderRadius={14}
-            backgroundColor="$primary"
-            alignItems="center"
-            justifyContent="center"
-            flexShrink={0}
-          >
-            <Text fontWeight="700" fontSize="$2" color="$onPrimary">
-              1
-            </Text>
-          </YStack>
+function SetupStepRow({ step, showSeparator }: { step: SetupStep; showSeparator: boolean }) {
+  const locked = step.status === 'locked'
 
-          {/* Step description and download action */}
-          <YStack flex={1} gap="$2">
-            <XStack justifyContent="space-between" alignItems="center">
-              <Text fontWeight="700">Download AntSeed</Text>
-              {/* Opens the AntSeed VPR/Desktop download page in a new tab */}
+  return (
+    <YStack width="100%">
+      <XStack gap="$3" alignItems="flex-start" paddingVertical="$3" opacity={locked ? 0.55 : 1}>
+        <StepMarker number={step.number} status={step.status} />
+        <YStack flex={1} gap="$1">
+          <XStack justifyContent="space-between" alignItems="center" gap="$2">
+            <Text fontWeight="700" secondary={locked} flex={1}>
+              {step.title}
+            </Text>
+            {step.href && step.actionLabel ? (
               <Anchor
-                href={ANTSEED_DOWNLOAD_URL}
+                href={step.href}
                 target="_blank"
                 data-testid="download-antseed-link"
                 style={{ textDecorationLine: 'none' }}
               >
                 <Button size="sm" variant="ghost" gap="$1" paddingHorizontal="$2">
                   <ButtonText color="$primary" fontWeight="700" fontSize="$2">
-                    Start ›
+                    {step.actionLabel}
                   </ButtonText>
                 </Button>
               </Anchor>
-            </XStack>
-            <Text secondary fontSize="$2">
-              The app that runs your credits locally — required once
-            </Text>
-          </YStack>
-        </XStack>
-      </Card>
-
-      {/* Steps 2 and 3 are locked until the prior step is completed */}
-      <LockedStep
-        number={2}
-        title="Signer Key"
-        description="Generate or import — separate from your wallet"
-      />
-      <LockedStep
-        number={3}
-        title="Authorize Wallet"
-        description="One-time approval — scoped to credits only"
-      />
+            ) : locked ? (
+              <Text fontSize="$3" color="$warning">
+                🔒
+              </Text>
+            ) : null}
+          </XStack>
+          <Text secondary fontSize="$2">
+            {step.description}
+          </Text>
+        </YStack>
+      </XStack>
+      {showSeparator ? <Separator /> : null}
     </YStack>
+  )
+}
+
+export function DownloadAntSeedStep() {
+  return (
+    <Card paddingHorizontal="$3" paddingVertical="$1" width="100%">
+      {SETUP_STEPS.map((step, index) => (
+        <SetupStepRow
+          key={step.id}
+          step={step}
+          showSeparator={index < SETUP_STEPS.length - 1}
+        />
+      ))}
+    </Card>
   )
 }

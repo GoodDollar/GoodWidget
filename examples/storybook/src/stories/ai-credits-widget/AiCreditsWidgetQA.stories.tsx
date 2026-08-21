@@ -161,7 +161,7 @@ export const GuidanceCardHowToUse: Story = {
     const root = canvas.getByTestId('AiCreditsWidget-guidance-how-to-use')
     const howToUseButton = within(root).getByRole('button', { name: /how to use/i })
     await userEvent.click(howToUseButton)
-    await expect(within(root).getByText(/back to buying/i)).toBeVisible()
+    await expect(within(root).getByText(/Back to setup/i)).toBeVisible()
   },
 }
 
@@ -173,7 +173,7 @@ export const GuidanceCardFaq: Story = {
     const root = canvas.getByTestId('AiCreditsWidget-guidance-faq')
     const faqButton = within(root).getByRole('button', { name: /faqs/i })
     await userEvent.click(faqButton)
-    await expect(within(root).getByText(/back to buying/i)).toBeVisible()
+    await expect(within(root).getByText(/Back to setup/i)).toBeVisible()
   },
 }
 

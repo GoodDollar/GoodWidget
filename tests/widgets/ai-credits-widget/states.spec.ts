@@ -80,9 +80,12 @@ test('AiCreditsWidget Setup tab — onboarding steps visible', async ({ page }) 
   await gotoStory(page, STORY_IDS.setupTab)
   const root = page.getByTestId('AiCreditsWidget-setup-tab')
   await expect(root).toBeVisible()
-  await expect(root.getByText('Download AntSeed', { exact: true })).toBeVisible()
-  await expect(root.getByText('Signer Key', { exact: true })).toBeVisible()
-  await expect(root.getByText('Authorize Wallet', { exact: true })).toBeVisible()
+  await expect(root.getByText('Your G$ Balance')).toBeVisible()
+  await expect(root.getByText(/One-time setup, in order/)).toBeVisible()
+  await expect(root.getByText('Download Antseed', { exact: true })).toBeVisible()
+  await expect(root.getByText('Signer key', { exact: true })).toBeVisible()
+  await expect(root.getByText('Authorize wallet', { exact: true })).toBeVisible()
+  await expect(root.getByText('Buy credits', { exact: true })).toBeVisible()
   await expect(root.getByText('Setup', { exact: true })).toBeVisible()
   await expect(root.getByText('Buy Credits', { exact: true })).toBeVisible()
   await page.screenshot({
@@ -425,7 +428,7 @@ test('AiCreditsWidget guidance card: How to use opens in-widget guide', async ({
   await root.getByRole('button', { name: /how to use/i }).click()
 
   // Guide content appears inside the buy tab area
-  await expect(root.getByText(/back to buying/i)).toBeVisible()
+  await expect(root.getByText(/Back to setup/i)).toBeVisible()
   await expect(root.getByText(/Getting started with AI credits/)).toBeVisible()
   await expect(root.getByText(/QUICK SUMMARY/)).toBeVisible()
   await expect(root.getByText(/connect your wallet/i)).toBeVisible()
@@ -439,20 +442,20 @@ test('AiCreditsWidget guidance card: How to use opens in-widget guide', async ({
   })
 })
 
-test('AiCreditsWidget guidance card: Back to buying returns to purchase flow', async ({ page }) => {
+test('AiCreditsWidget guidance card: Back to setup returns to purchase flow', async ({ page }) => {
   await gotoStory(page, GUIDANCE_STORY_IDS.guidanceCardHowToUse)
   const root = widget(page, 'AiCreditsWidget-guidance-how-to-use')
   await expect(root).toBeVisible()
 
   // Open how-to-use view
   await root.getByRole('button', { name: /how to use/i }).click()
-  await expect(root.getByText(/back to buying/i)).toBeVisible()
+  await expect(root.getByText(/Back to setup/i)).toBeVisible()
 
   // Navigate back
-  await root.getByRole('button', { name: /back to buying/i }).click()
+  await root.getByRole('button', { name: /Back to setup/i }).click()
 
   // Purchase flow is restored
-  await expect(root.getByText(/back to buying/i)).not.toBeVisible()
+  await expect(root.getByText(/Back to setup/i)).not.toBeVisible()
   await expect(root.getByText('Buy Credits')).toBeVisible()
 
   await page.screenshot({
@@ -470,7 +473,7 @@ test('AiCreditsWidget guidance card: FAQs opens in-widget FAQ', async ({ page })
   await root.getByRole('button', { name: /faqs/i }).click()
 
   // FAQ content appears inside the buy tab area
-  await expect(root.getByText(/back to buying/i)).toBeVisible()
+  await expect(root.getByText(/Back to setup/i)).toBeVisible()
   await expect(root.getByText(/I only claim UBI with GoodWallet/i)).toBeVisible()
   await expect(root.getByText(/Deposit or stream/i)).toBeVisible()
 
@@ -490,13 +493,13 @@ test('AiCreditsWidget guidance card: switching tabs clears help view', async ({ 
 
   // Open how-to-use
   await root.getByRole('button', { name: /how to use/i }).click()
-  await expect(root.getByText(/back to buying/i)).toBeVisible()
+  await expect(root.getByText(/Back to setup/i)).toBeVisible()
 
   // Switch to Manage tab
   await root.getByRole('button', { name: /manage/i }).click()
 
   // How-to-use view is gone
-  await expect(root.getByText(/back to buying/i)).not.toBeVisible()
+  await expect(root.getByText(/Back to setup/i)).not.toBeVisible()
 
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-24-guidance-tab-switch.png',
@@ -519,14 +522,15 @@ test('AiCreditsWidget Setup — Download AntSeed step is first and shows Start l
   await expect(root).toBeVisible()
 
   // Verify step ordering
-  await expect(root.getByText('Download AntSeed', { exact: true })).toBeVisible()
-  await expect(root.getByText('Signer Key', { exact: true })).toBeVisible()
-  await expect(root.getByText('Authorize Wallet', { exact: true })).toBeVisible()
+  await expect(root.getByText('Download Antseed', { exact: true })).toBeVisible()
+  await expect(root.getByText('Signer key', { exact: true })).toBeVisible()
+  await expect(root.getByText('Authorize wallet', { exact: true })).toBeVisible()
+  await expect(root.getByText('Buy credits', { exact: true })).toBeVisible()
 
   // Verify the "Start ›" download link is present and points to the AntSeed download page
   const downloadLink = root.getByTestId('download-antseed-link')
   await expect(downloadLink).toBeVisible()
-  await expect(downloadLink).toHaveAttribute('href', 'https://antseed.com/download')
+  await expect(downloadLink).toHaveAttribute('href', 'https://antseed.com/')
   await expect(downloadLink).toHaveAttribute('target', '_blank')
 
   await page.screenshot({

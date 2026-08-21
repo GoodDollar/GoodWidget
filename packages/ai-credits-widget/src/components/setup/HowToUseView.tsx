@@ -61,7 +61,7 @@ export function HowToUseView({ onBack }: HowToUseViewProps) {
       <Button variant="ghost" alignSelf="flex-start" onPress={onBack} gap="$1" paddingHorizontal="$0">
         <Icon name="arrow-left" size="xs" color="primary" />
         <ButtonText color="$primary" fontSize="$2">
-          Back to buying
+          Back to setup
         </ButtonText>
       </Button>
 

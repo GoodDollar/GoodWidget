@@ -110,9 +110,13 @@ function SetupTabPanel({
 
   return (
     <YStack gap="$4" width="100%">
-      <Heading level={5} secondary>
-        Onboarding
-      </Heading>
+      <AiCreditsHero
+        gBalance={state.gBalance}
+        isGoodIdVerified={state.isGoodIdVerified}
+      />
+      <Text secondary fontSize="$2">
+        One-time setup, in order — each step unlocks the next:
+      </Text>
       <DownloadAntSeedStep />
     </YStack>
   )
