@@ -9,6 +9,18 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
+      "react-native": {
+        "import": "./dist/index.js",
+        "require": "./dist/index.cjs"
+      },
+      "browser": {
+        "import": "./dist/web.js",
+        "require": "./dist/web.cjs"
+      },
+      "node": {
+        "import": "./dist/web.js",
+        "require": "./dist/web.cjs"
+      },
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     }
