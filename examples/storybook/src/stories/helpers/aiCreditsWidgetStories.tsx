@@ -294,6 +294,20 @@ export function SignerKeyGeneratedStory() {
   )
 }
 
+/** Setup tab with a generated signer key and the Authorize Wallet step ready. */
+export function SetupAuthorizeWalletStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-setup-authorize-wallet"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        activeTab: 'setup',
+        buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
+        buyerPrvKey: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+      })}
+    />
+  )
+}
+
 export function SignerKeyIncompatibleOperatorStory() {
   return (
     <MockStoryShell
