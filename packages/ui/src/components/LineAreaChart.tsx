@@ -671,7 +671,7 @@ function LineAreaChartContent({
                             key={runIndex}
                             d={areaPath}
                             fill={`url(#${gradientIdPrefix}-${seriesItem.key})`}
-                            fillOpacity={areaOpacity / 0.15}
+                            fillOpacity={areaOpacity}
                             accessible={false}
                           />
                         ) : null

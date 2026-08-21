@@ -23,9 +23,25 @@ function Svg({ accessibilityRole: _accessibilityRole, ...props }: SvgElementProp
   return <svg {...props} />
 }
 
+/**
+ * Builds an SVG `rotate()` transform function from react-native-svg's separate
+ * `rotation`/`origin` props. Omits the origin argument entirely when unset
+ * rather than interpolating an empty string, since `rotate(-90 )` (trailing
+ * space, no coordinates) is malformed and some SVG parsers handle it
+ * inconsistently — `rotate(-90)` (angle-only, origin defaults to `0 0`) is the
+ * well-formed equivalent. Shared by G and Text below, which both mirror this
+ * same react-native-svg prop pair.
+ */
+function buildRotationTransform(rotation: string | number | undefined, origin: string | undefined): string | undefined {
+  if (!rotation) {
+    return undefined
+  }
+  return origin ? `rotate(${rotation} ${origin})` : `rotate(${rotation})`
+}
+
 /** Mirrors react-native-svg's G transform props with standard SVG attributes. */
 export function G({ rotation, origin, transform, ...props }: SvgGroupProps) {
-  const rotationTransform = rotation ? `rotate(${rotation} ${origin ?? ''})`.trim() : undefined
+  const rotationTransform = buildRotationTransform(rotation, origin)
   const combinedTransform = [transform, rotationTransform].filter(Boolean).join(' ')
 
   return <g {...props} transform={combinedTransform || undefined} />
@@ -38,7 +54,7 @@ export function Circle({ onPress, ...props }: SvgCircleProps) {
 
 /** Mirrors react-native-svg's Text rotation/origin props with a standard SVG transform; used by BarChart for in-chart axis/tick/value labels. */
 export function Text({ rotation, origin, transform, ...props }: SvgTextProps) {
-  const rotationTransform = rotation ? `rotate(${rotation} ${origin ?? ''})`.trim() : undefined
+  const rotationTransform = buildRotationTransform(rotation, origin)
   const combinedTransform = [transform, rotationTransform].filter(Boolean).join(' ')
 
   return <text {...props} transform={combinedTransform || undefined} />

@@ -58,6 +58,16 @@ export interface DataTableProps<TRow extends Record<string, unknown> = Record<st
   variant?: DataTableVariant
   testID?: string
   accessibilityLabel?: string
+  /**
+   * Derives a stable React key per row from the row's own identity (e.g. a
+   * primary key field) instead of its array index. Sorting reorders `data`
+   * without remounting rows, so an index-based key silently rebinds each
+   * row's DOM/component instance to whatever row now occupies that index —
+   * stale internal state (focus, animation, uncontrolled input values)
+   * follows the position instead of the row. Optional and index-based by
+   * default to stay backward compatible with existing callers.
+   */
+  rowKey?: (row: TRow, index: number) => string | number
 }
 
 /**
@@ -288,6 +298,7 @@ function DataTableContent<TRow extends Record<string, unknown>>({
   onRowPress,
   testID,
   accessibilityLabel,
+  rowKey,
 }: Omit<DataTableProps<TRow>, 'variant'>) {
   const [sort, setSort] = useState<DataTableSort | null>(defaultSort ?? null)
   const isEmpty = data.length === 0
@@ -335,7 +346,7 @@ function DataTableContent<TRow extends Record<string, unknown>>({
           ) : (
             sortedData.map((row, index) => (
               <XStack
-                key={index}
+                key={rowKey ? rowKey(row, index) : index}
                 backgroundColor={striped && index % 2 === 0 ? '$backgroundHover' : 'transparent'}
                 cursor={onRowPress ? 'pointer' : 'default'}
                 pressStyle={onRowPress ? { opacity: 0.7 } : undefined}
