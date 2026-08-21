@@ -131,6 +131,11 @@ const DOT_AUTO_THRESHOLD = 20
 /** Invisible larger hit-target so pressable dots still meet the 44pt touch-target baseline. */
 const DOT_TOUCH_TARGET_RADIUS_PX = 22
 const LEGEND_SWATCH_SIZE_PX = 10
+/** Grid lines need enough contrast to be useful without competing with the series. */
+const GRID_LINE_OPACITY = 0.22
+const GRID_ZERO_LINE_OPACITY = 0.48
+const GRID_LINE_WIDTH_PX = 1
+const GRID_ZERO_LINE_WIDTH_PX = 1.25
 /** Floor width budget per x-axis label — actual formatted labels (e.g. full ISO dates) can need more, see estimateTextWidthPx. */
 const X_LABEL_APPROX_WIDTH_PX = 56
 /** Gap between adjacent x-axis labels so wide formatted labels never touch. */
@@ -487,7 +492,7 @@ function LineAreaChartContent({
   const theme = useTheme()
   const gradientIdPrefix = useId()
   const colors = CHART_COLOR_KEYS.map((key) => resolveThemeColor(theme, key))
-  const gridColor = resolveThemeColor(theme, 'borderColor')
+  const gridColor = resolveThemeColor(theme, 'colorDim')
   const axisLabelColor = resolveThemeColor(theme, 'placeholderColor')
 
   const isEmpty = data.length === 0
@@ -609,9 +614,8 @@ function LineAreaChartContent({
                         x2={plotWidth}
                         y2={tickY}
                         stroke={gridColor}
-                        strokeOpacity={isZeroTick ? 0.3 : 0.1}
-                        strokeWidth={isZeroTick ? 1 : 0.5}
-                        strokeDasharray={isZeroTick ? undefined : '3 3'}
+                        strokeOpacity={isZeroTick ? GRID_ZERO_LINE_OPACITY : GRID_LINE_OPACITY}
+                        strokeWidth={isZeroTick ? GRID_ZERO_LINE_WIDTH_PX : GRID_LINE_WIDTH_PX}
                       />
                     )
                   })}

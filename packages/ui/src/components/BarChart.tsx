@@ -92,6 +92,11 @@ const NICE_STEP_MULTIPLES = [1, 2, 5, 10] as const
 const MIN_BAR_LENGTH_FOR_VALUE_LABEL_PX = 20
 const VALUE_LABEL_GAP_PX = 4
 const BAR_FILL_FRACTION = 0.7
+/** Grid lines need enough contrast to be useful without competing with the bars. */
+const GRID_LINE_OPACITY = 0.22
+const GRID_ZERO_LINE_OPACITY = 0.48
+const GRID_LINE_WIDTH_PX = 1
+const GRID_ZERO_LINE_WIDTH_PX = 1.25
 
 /** Gap between adjacent category labels so wide labels never touch (mirrors LineAreaChart's X_LABEL_GAP_PX). */
 const CATEGORY_LABEL_GAP_PX = 8
@@ -281,7 +286,7 @@ function BarChartContent({
 }: Omit<BarChartProps, 'variant'>) {
   const theme = useTheme()
   const barColor = resolveThemeColor(theme, 'primary')
-  const gridColor = resolveThemeColor(theme, 'borderColor')
+  const gridColor = resolveThemeColor(theme, 'colorDim')
   const axisLabelColor = resolveThemeColor(theme, 'placeholderColor')
   const textColor = resolveThemeColor(theme, 'color')
 
@@ -398,9 +403,8 @@ function BarChartContent({
                         x2={resolvedPadding.left + plotWidth}
                         y2={resolvedPadding.top + plotHeight - tickOffset}
                         stroke={gridColor}
-                        strokeOpacity={isZeroTick ? 0.3 : 0.1}
-                        strokeWidth={isZeroTick ? 1 : 0.5}
-                        strokeDasharray={isZeroTick ? undefined : '3 3'}
+                        strokeOpacity={isZeroTick ? GRID_ZERO_LINE_OPACITY : GRID_LINE_OPACITY}
+                        strokeWidth={isZeroTick ? GRID_ZERO_LINE_WIDTH_PX : GRID_LINE_WIDTH_PX}
                       />
                     ) : (
                       <Line
@@ -410,9 +414,8 @@ function BarChartContent({
                         x2={resolvedPadding.left + tickOffset}
                         y2={resolvedPadding.top + plotHeight}
                         stroke={gridColor}
-                        strokeOpacity={isZeroTick ? 0.3 : 0.1}
-                        strokeWidth={isZeroTick ? 1 : 0.5}
-                        strokeDasharray={isZeroTick ? undefined : '3 3'}
+                        strokeOpacity={isZeroTick ? GRID_ZERO_LINE_OPACITY : GRID_LINE_OPACITY}
+                        strokeWidth={isZeroTick ? GRID_ZERO_LINE_WIDTH_PX : GRID_LINE_WIDTH_PX}
                       />
                     )
                   })}
