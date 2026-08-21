@@ -2,10 +2,13 @@ import React, { useCallback, useMemo, useState } from 'react'
 import { GoodWidgetProvider } from '@goodwidget/core'
 import type { EIP1193Provider } from '@goodwidget/core'
 import {
+  Badge,
+  BadgeText,
   Button,
   ButtonText,
   Card,
   CircularActionButton,
+  getChainDisplayName,
   Heading,
   Icon,
   Text,
@@ -451,7 +454,12 @@ function AiCreditsInner({
 
   return (
     <YStack gap="$3" padding="$3" width="100%">
-      {/* Guidance card is always rendered above the tab navigation when connected. */}
+      <XStack justifyContent="space-between" alignItems="center" paddingHorizontal="$1">
+        <Heading level={4}>GoodDollar</Heading>
+        <Badge type="info">
+          <BadgeText>{getChainDisplayName(state.chainId ?? CELO_CHAIN_ID)}</BadgeText>
+        </Badge>
+      </XStack>
       <SetupGuidanceCard
         activeHelpView={helpView}
         onHowToUse={() => { handleHelpViewOpen('how-to-use') }}
@@ -467,7 +475,7 @@ function AiCreditsInner({
         activeTab={walletRequired ? 'setup' : state.activeTab}
         onTabChange={handleTabChange}
         isTabDisabled={(tabId) => walletRequired && tabId !== 'setup'}
-        chainId={state.chainId ?? CELO_CHAIN_ID}
+        withConnectionStatus={false}
       />
 
       {walletRequired || state.activeTab === 'setup' ? (
