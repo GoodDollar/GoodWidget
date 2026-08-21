@@ -84,6 +84,7 @@ export function SetupOnboardingFlow({ state, actions }: SetupOnboardingFlowProps
         open={drawerOpen && drawerStep !== null}
         onClose={() => {
           setDrawerOpen(false)
+          setDrawerStep(null)
         }}
         height="full"
       >
