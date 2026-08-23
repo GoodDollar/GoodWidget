@@ -202,7 +202,7 @@ function AiCreditsDashboardView({
           variant="card"
           value={totalGdSpent}
           label="Total G$ Spent"
-          suffix="G$"
+          prefix="G$"
           format="decimal"
           testID="scorecard-total-gd"
         />
@@ -210,7 +210,7 @@ function AiCreditsDashboardView({
           variant="card"
           value={aiCreditsUsedUsd}
           label="AI Credits Used"
-          prefix="$"
+          prefix="USD"
           format="decimal"
           testID="scorecard-ai-credits"
         />
@@ -218,7 +218,8 @@ function AiCreditsDashboardView({
           variant="card"
           value={gdFlowRatePerDay}
           label="G$ Flow Rate"
-          suffix="G$/day"
+          prefix="G$"
+          suffix="/day"
           format="decimal"
           testID="scorecard-flow-rate"
         />
@@ -240,6 +241,9 @@ function AiCreditsDashboardView({
                 { key: 'streamed', label: 'Streamed (G$)' },
               ]}
               showArea
+              // G$ volume is never negative — pin the axis floor at 0 instead of letting
+              // the shared chart's default 10%-padding dip below zero.
+              yAxisDomain={[0, 'auto']}
               testID="chart-gd-volume"
             />
             <BarChart variant="card" title="AI Credits Used (USD)" data={creditsChartData} testID="chart-ai-credits" />
