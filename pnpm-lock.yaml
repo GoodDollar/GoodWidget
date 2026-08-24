@@ -527,8 +527,8 @@ importers:
   packages/goodreserve-widget:
     dependencies:
       '@goodsdks/good-reserve':
-        specifier: ^0.1.0
-        version: 0.1.0(@swc/core@1.15.30)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(viem@2.48.4(typescript@5.9.3)(zod@4.1.11))(yaml@2.9.0)
+        specifier: ^0.1.1
+        version: 0.1.1(@swc/core@1.15.30)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(viem@2.48.4(typescript@5.9.3)(zod@4.1.11))(yaml@2.9.0)
       '@goodwidget/core':
         specifier: workspace:*
         version: link:../core
@@ -2703,8 +2703,8 @@ packages:
       viem: '*'
       wagmi: '*'
 
-  '@goodsdks/good-reserve@0.1.0':
-    resolution: {integrity: sha512-hkrnCdlV8LAg5k7YigCp8yIyfZ36KwST69DtDJ21kYW0byrggllUI5qkkgsSitdq4VyrCaYFsW6IGxISJLdeVQ==}
+  '@goodsdks/good-reserve@0.1.1':
+    resolution: {integrity: sha512-I6Uo5HiG2VxE0cIaZFJCyQPM7gw/rYK62Xtx3pJcg10NtCvlLlmNak8z/kO1L8xqlqQ7q2gWSu8tXKaazPuc3g==}
     peerDependencies:
       viem: '*'
 
@@ -13680,7 +13680,7 @@ snapshots:
       - typescript
       - yaml
 
-  '@goodsdks/good-reserve@0.1.0(@swc/core@1.15.30)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(viem@2.48.4(typescript@5.9.3)(zod@4.1.11))(yaml@2.9.0)':
+  '@goodsdks/good-reserve@0.1.1(@swc/core@1.15.30)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(viem@2.48.4(typescript@5.9.3)(zod@4.1.11))(yaml@2.9.0)':
     dependencies:
       tsup: 8.5.1(@swc/core@1.15.30)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0)
       viem: 2.48.4(typescript@5.9.3)(zod@4.1.11)
