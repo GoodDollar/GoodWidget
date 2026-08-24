@@ -64,10 +64,10 @@ function buildThemeOverrides(args: OverridesArgs): GoodWidgetThemeOverrides {
         shadowColor: args.wrapperShadowColor,
       },
       dark_ImpactCard: {
-        backgroundColor: args.impactCardBackground,
+        background: args.impactCardBackground,
       },
       dark_ImpactCardAction: {
-        backgroundColor: args.impactCardActionBackground,
+        white: args.impactCardActionBackground,
       },
     },
   }
