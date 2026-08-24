@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useReducer } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react'
 import type { GdaSDK, StreamingSDK, SubgraphClient } from '@goodsdks/streaming-sdk'
 import type { Address, PublicClient, WalletClient } from 'viem'
 import { formatUnits } from 'viem'
@@ -166,20 +166,28 @@ function streamingDataReducer(
 }
 
 async function runResourceAction<T>({
+  isCurrent,
   onStart,
   load,
   onSuccess,
   onError,
 }: {
+  /** False once the sources this request was issued against are no longer active. */
+  isCurrent: () => boolean
   onStart: () => void
   load: () => Promise<T>
   onSuccess: (value: T) => void
   onError: (message: string) => void
 }) {
+  if (!isCurrent()) return
+
   onStart()
   try {
-    onSuccess(await load())
+    const value = await load()
+    if (!isCurrent()) return
+    onSuccess(value)
   } catch (err) {
+    if (!isCurrent()) return
     onError(humanReadableError(err))
   }
 }
@@ -210,10 +218,29 @@ export function useStreamingData({
     dispatch({ type: 'reset' })
   }, [])
 
+  // Identity of the sources every request reads from, captured by each loader as
+  // it is created. These three cover every input the loaders depend on: the SDKs
+  // are rebuilt from `viemClients` (wallet provider + chain), and the only other
+  // input they carry, the API key, moves `baseSubgraphClient` with them.
+  const sources = useMemo(
+    () => ({ address, baseSubgraphClient, viemClients }),
+    [address, baseSubgraphClient, viemClients],
+  )
+
+  // Latest committed sources, so an in-flight request can tell whether it is
+  // still the current one by the time it resolves.
+  const currentSourcesRef = useRef(sources)
+  useEffect(() => {
+    currentSourcesRef.current = sources
+  }, [sources])
+
+  const isCurrent = useCallback(() => currentSourcesRef.current === sources, [sources])
+
   const refreshStreams = useCallback(async () => {
     if (!streamingSDK || !address) return
 
     await runResourceAction({
+      isCurrent,
       onStart: () => dispatch({ type: 'streams:start' }),
       load: async () => {
         const result = await streamingSDK.getActiveStreams({
@@ -225,12 +252,13 @@ export function useStreamingData({
       onSuccess: (streams) => dispatch({ type: 'streams:success', streams }),
       onError: (error) => dispatch({ type: 'streams:error', error }),
     })
-  }, [streamingSDK, address])
+  }, [streamingSDK, address, isCurrent])
 
   const refreshPools = useCallback(async () => {
     if (!gdaSDK || !address) return
 
     await runResourceAction({
+      isCurrent,
       onStart: () => dispatch({ type: 'pools:start' }),
       load: async () => {
         const result = await gdaSDK.getDistributionPools(address)
@@ -262,35 +290,38 @@ export function useStreamingData({
       onSuccess: (pools) => dispatch({ type: 'pools:success', pools }),
       onError: (error) => dispatch({ type: 'pools:error', error }),
     })
-  }, [gdaSDK, address, viemClients])
+  }, [gdaSDK, address, viemClients, isCurrent])
 
   const refreshActiveBalance = useCallback(async () => {
     if (!streamingSDK || !address) return
 
     await runResourceAction({
+      isCurrent,
       onStart: () => dispatch({ type: 'balance:start' }),
       load: async () => formatUnits(await streamingSDK.getSuperTokenBalance(address), 18),
       onSuccess: (balance) => dispatch({ type: 'balance:success', balance }),
       onError: (error) => dispatch({ type: 'balance:error', error }),
     })
-  }, [streamingSDK, address])
+  }, [streamingSDK, address, isCurrent])
 
   const refreshSupBalance = useCallback(async () => {
     if (!address) return
 
     await runResourceAction({
+      isCurrent,
       onStart: () => dispatch({ type: 'supBalance:start' }),
       load: async () =>
         formatUnits(await baseStreamingSDK.getSuperTokenBalance(address, 'SUP'), 18),
       onSuccess: (balance) => dispatch({ type: 'supBalance:success', balance }),
       onError: (error) => dispatch({ type: 'supBalance:error', error }),
     })
-  }, [baseStreamingSDK, address])
+  }, [baseStreamingSDK, address, isCurrent])
 
   const refreshSupReserve = useCallback(async () => {
     if (!address) return
 
     await runResourceAction({
+      isCurrent,
       onStart: () => dispatch({ type: 'supReserve:start' }),
       load: async () => {
         const lockers = await baseSubgraphClient.querySUPReserves(address)
@@ -319,7 +350,7 @@ export function useStreamingData({
         dispatch({ type: 'supReserve:success', balance, lockers }),
       onError: (error) => dispatch({ type: 'supReserve:error', error }),
     })
-  }, [baseSubgraphClient, baseStreamingSDK, address])
+  }, [baseSubgraphClient, baseStreamingSDK, address, isCurrent])
 
   const refreshBalance = useCallback(async () => {
     await Promise.all([refreshActiveBalance(), refreshSupBalance(), refreshSupReserve()])
