@@ -7,7 +7,7 @@
  */
 import type { DataConnectorFactory } from '../../connectors/types'
 
-const DEFAULT_WORKER_URL = 'https://gooddollar-antseed-integration.gooddollar.workers.dev'
+const DEFAULT_WORKER_URL = 'https://gooddollar-antseed-integration.goodworker.workers.dev'
 /** Number of days of history requested from the analytics endpoint, matching the reference dashboard. */
 const ANALYTICS_DAYS_REQUESTED = 365
 
@@ -68,9 +68,10 @@ async function postRefresh(workerUrl: string): Promise<void> {
 
 export const AI_CREDITS_CONNECTOR_ID = 'ai-credits'
 
-export const createAiCreditsConnector: DataConnectorFactory<AiCreditsConnectorConfig, AnalyticsResponse> = (
-  config,
-) => {
+export const createAiCreditsConnector: DataConnectorFactory<
+  AiCreditsConnectorConfig,
+  AnalyticsResponse
+> = (config) => {
   const workerUrl = config.workerUrl ?? DEFAULT_WORKER_URL
   return {
     fetch: () => fetchAnalytics(workerUrl),
