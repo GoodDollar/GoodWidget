@@ -24,14 +24,16 @@ async function expectWidget(page: Page, testId: string) {
 test('AiCreditsDashboard loading state', async ({ page }) => {
   await gotoStory(page, STORY_IDS.loading)
   const root = await expectWidget(page, 'GoodDataWidget-loading')
-  await expect(root.getByText('Loading analytics…')).toBeVisible()
+  await expect(root.getByTestId('dashboard-loading-skeleton')).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/gooddata-widget/test-results/gdw-01-loading.png',
     fullPage: true,
   })
 })
 
-test('AiCreditsDashboard live state — scorecards, charts, and table render from real data', async ({ page }) => {
+test('AiCreditsDashboard live state — scorecards, charts, and table render from real data', async ({
+  page,
+}) => {
   await gotoStory(page, STORY_IDS.live)
   const root = await expectWidget(page, 'GoodDataWidget-live')
   await expect(root.getByTestId('demo-banner')).not.toBeVisible()
@@ -59,7 +61,9 @@ test('AiCreditsDashboard demo state — shows the demo-data banner', async ({ pa
   })
 })
 
-test('AiCreditsDashboard live-unavailable state — placeholders instead of empty charts/table', async ({ page }) => {
+test('AiCreditsDashboard live-unavailable state — placeholders instead of empty charts/table', async ({
+  page,
+}) => {
   await gotoStory(page, STORY_IDS.liveUnavailable)
   const root = await expectWidget(page, 'GoodDataWidget-live-unavailable')
   await expect(root.getByTestId('section-placeholder').first()).toBeVisible()

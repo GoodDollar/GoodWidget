@@ -15,6 +15,7 @@ import {
   Heading,
   LineAreaChart,
   Scorecard,
+  SkeletonBlock,
   Text,
   XStack,
   YStack,
@@ -23,7 +24,11 @@ import type { DataTableColumnDef } from '@goodwidget/ui'
 import { flowRateToDaily, weiToGd, weiToUsd } from './analyticsConversions'
 import type { DailyAnalyticsRecord } from './connector'
 import { useAiCreditsDashboardData, type AnalyticsDataSource } from './useAiCreditsDashboardData'
-import { buildMockViewProps, type AiCreditsDashboardMockState, type AiCreditsDashboardViewProps } from './mockState'
+import {
+  buildMockViewProps,
+  type AiCreditsDashboardMockState,
+  type AiCreditsDashboardViewProps,
+} from './mockState'
 import { DataSourceToggle } from './components/DataSourceToggle'
 import { PaginatedDataTable } from './components/PaginatedDataTable'
 
@@ -40,12 +45,19 @@ interface TableRow extends Record<string, unknown> {
 
 const TABLE_COLUMNS: Array<DataTableColumnDef<TableRow>> = [
   { key: 'date', label: 'Date', type: 'text', align: 'left', sortable: true },
-  { key: 'gdDeposited', label: 'G$ Deposited', type: 'number', sortable: true },
-  { key: 'gdStreamed', label: 'G$ Streamed', type: 'number', sortable: true },
-  { key: 'totalGd', label: 'Total G$', type: 'number', sortable: true },
-  { key: 'aiCreditsUsd', label: 'AI Credits (USD)', type: 'currency', formatter: (value) => `$${(value as number).toFixed(2)}`, sortable: true },
-  { key: 'walletsGd', label: 'Wallets (G$)', type: 'number', sortable: true },
-  { key: 'walletsAi', label: 'Wallets (AI)', type: 'number', sortable: true },
+  { key: 'gdDeposited', label: 'G$ Deposited', type: 'number', align: 'right', sortable: true },
+  { key: 'gdStreamed', label: 'G$ Streamed', type: 'number', align: 'right', sortable: true },
+  { key: 'totalGd', label: 'Total G$', type: 'number', align: 'right', sortable: true },
+  {
+    key: 'aiCreditsUsd',
+    label: 'AI Credits (USD)',
+    type: 'currency',
+    align: 'right',
+    formatter: (value) => `$${(value as number).toFixed(2)}`,
+    sortable: true,
+  },
+  { key: 'walletsGd', label: 'Wallets (G$)', type: 'number', align: 'right', sortable: true },
+  { key: 'walletsAi', label: 'Wallets (AI)', type: 'number', align: 'right', sortable: true },
 ]
 
 /** Removes any daily record the Worker has flagged as incomplete — the spec requires these excluded from every chart and the table, not just displayed as zero. */
@@ -87,6 +99,25 @@ function SectionPlaceholder({ message }: { message: string }) {
   )
 }
 
+/** Mirrors the loaded layout's shape (3 scorecards, 3 charts, 1 table) so the page doesn't jump/reflow once real content arrives — this replaces the old plain-text loading message that left the page looking frozen for the ~10-15s live fetch. */
+function DashboardLoadingSkeleton() {
+  return (
+    <YStack gap="$8" width="100%" data-testid="dashboard-loading-skeleton">
+      <XStack gap="$4" flexWrap="wrap">
+        {[0, 1, 2].map((index) => (
+          <SkeletonBlock key={index} width={220} height={96} />
+        ))}
+      </XStack>
+      <YStack gap="$6" width="100%">
+        {[0, 1, 2].map((index) => (
+          <SkeletonBlock key={index} height={280} />
+        ))}
+      </YStack>
+      <SkeletonBlock height={320} />
+    </YStack>
+  )
+}
+
 function DashboardHeader({
   source,
   onSelectSource,
@@ -111,7 +142,13 @@ function DashboardHeader({
         </YStack>
         <XStack gap="$3" alignItems="center" flexWrap="wrap">
           <DataSourceToggle source={source} onSelect={onSelectSource} />
-          <Button size="sm" variant="outline" disabled={isRefreshing} onPress={onRefresh} data-testid="refresh-button">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={isRefreshing}
+            onPress={onRefresh}
+            data-testid="refresh-button"
+          >
             <ButtonText>{isRefreshing ? 'Refreshing…' : 'Refresh'}</ButtonText>
           </Button>
         </XStack>
@@ -135,7 +172,9 @@ function DashboardHeader({
       ) : null}
 
       <Text variant="caption" tone="dim" data-testid="last-updated-text">
-        {lastUpdatedAt ? `Last aggregation: ${lastUpdatedAt} · Auto-refreshes every 5 min` : 'Loading last aggregation time…'}
+        {lastUpdatedAt
+          ? `Last aggregation: ${lastUpdatedAt} · Auto-refreshes every 5 min`
+          : 'Loading last aggregation time…'}
       </Text>
     </YStack>
   )
@@ -152,20 +191,20 @@ function AiCreditsDashboardView({
   onRefresh,
 }: AiCreditsDashboardViewProps) {
   if (!isInitialLoadComplete) {
-    return (
-      <YStack minHeight={240} alignItems="center" justifyContent="center">
-        <Text tone="soft">Loading analytics…</Text>
-      </YStack>
-    )
+    return <DashboardLoadingSkeleton />
   }
 
-  const lastUpdatedAt = data?.lastRun.updatedAt ? new Date(data.lastRun.updatedAt).toLocaleString() : null
+  const lastUpdatedAt = data?.lastRun.updatedAt
+    ? new Date(data.lastRun.updatedAt).toLocaleString()
+    : null
 
   const dailyRecords = data ? filterCompleteRecords(data.daily) : []
   const hasDailyData = dailyRecords.length > 0
 
   // Scorecards derive straight from `global`, matching the reference dashboard's renderHero().
-  const totalGdSpent = data ? weiToGd(data.global.gdOneTimeDepositsWei) + weiToGd(data.global.gdStreamedWei) : 0
+  const totalGdSpent = data
+    ? weiToGd(data.global.gdOneTimeDepositsWei) + weiToGd(data.global.gdStreamedWei)
+    : 0
   const aiCreditsUsedUsd = data ? weiToUsd(data.global.aiCreditsUsedWei) : 0
   const gdFlowRatePerDay = data ? flowRateToDaily(data.global.gdTotalFlowRateWeiPerSecond) : 0
 
@@ -241,12 +280,16 @@ function AiCreditsDashboardView({
                 { key: 'streamed', label: 'Streamed (G$)' },
               ]}
               showArea
-              // G$ volume is never negative — pin the axis floor at 0 instead of letting
-              // the shared chart's default 10%-padding dip below zero.
-              yAxisDomain={[0, 'auto']}
+              yAxisLabel="G$"
               testID="chart-gd-volume"
             />
-            <BarChart variant="card" title="AI Credits Used (USD)" data={creditsChartData} testID="chart-ai-credits" />
+            <BarChart
+              variant="card"
+              title="AI Credits Used (USD)"
+              data={creditsChartData}
+              yAxisLabel="USD"
+              testID="chart-ai-credits"
+            />
             <LineAreaChart
               variant="card"
               title="Unique Wallets"
@@ -256,6 +299,7 @@ function AiCreditsDashboardView({
                 { key: 'creditUsers', label: 'Credit Users' },
               ]}
               showArea={false}
+              yAxisLabel="Count"
               testID="chart-unique-wallets"
             />
           </>
@@ -283,8 +327,15 @@ function AiCreditsDashboardView({
 
 /** Data-connected wrapper: wires the real hook (network + timers) to the presentational view. */
 function AiCreditsDashboardLive() {
-  const { data, source, isInitialLoadComplete, isRefreshing, isLiveUnavailable, switchSource, refresh } =
-    useAiCreditsDashboardData()
+  const {
+    data,
+    source,
+    isInitialLoadComplete,
+    isRefreshing,
+    isLiveUnavailable,
+    switchSource,
+    refresh,
+  } = useAiCreditsDashboardData()
 
   return (
     <AiCreditsDashboardView
@@ -306,7 +357,13 @@ export interface AiCreditsDashboardProps {
 
 export function AiCreditsDashboard({ mockState }: AiCreditsDashboardProps = {}) {
   if (mockState) {
-    return <AiCreditsDashboardView {...buildMockViewProps(mockState)} onSelectSource={() => undefined} onRefresh={() => undefined} />
+    return (
+      <AiCreditsDashboardView
+        {...buildMockViewProps(mockState)}
+        onSelectSource={() => undefined}
+        onRefresh={() => undefined}
+      />
+    )
   }
   return <AiCreditsDashboardLive />
 }
