@@ -163,14 +163,20 @@ function nextSortForColumn(current: DataTableSort | null, columnKey: string): Da
 
 function resolveColumnFlexStyle<TRow extends Record<string, unknown>>(
   column: DataTableColumnDef<TRow>,
-): { width?: number | string; minWidth: number; flex?: number; flexShrink?: number } {
+): { width?: number | string; minWidth: number; flex?: number; flexBasis?: number | string; flexShrink?: number } {
   const minWidth = column.minWidth ?? DEFAULT_MIN_COLUMN_WIDTH_PX
 
   if (column.width !== undefined) {
     return { width: column.width, minWidth, flexShrink: 0 }
   }
 
-  return { flex: 1, minWidth }
+  // flexBasis defaults to "auto" (content-based) without this, so the header
+  // row and each data row — separate flex containers — size the same column
+  // to a different width depending on that row's own content (e.g. a long
+  // header label vs a short numeric value). Pinning flexBasis to 0 makes every
+  // row split its width purely by the flex ratio, so same-index columns land
+  // on identical pixel boundaries across the header and every data row.
+  return { flex: 1, flexBasis: 0, minWidth }
 }
 
 const DataTableFrame = createComponent(YStack, {
