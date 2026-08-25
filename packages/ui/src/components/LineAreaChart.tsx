@@ -139,7 +139,13 @@ const REFERENCE_LABEL_BASE_SIZE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2
 const LEGEND_LABEL_BASE_SIZE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2
 
 const TITLE_TO_CHART_GAP_BASE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
-const CHART_TO_LEGEND_GAP_BASE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
+// QA fix: was CHART_BASE_SIZE_PX / GOLDEN_RATIO scaled by chart width (same
+// tier as TITLE_TO_CHART_GAP_BASE_PX) — on a wide dashboard chart that grew
+// to ~30px, reading as wasted whitespace between the chart and its legend.
+// Like AXIS_LABEL_GAP_PX below, this is a fixed structural gap between two
+// stacked blocks, not a font-driven size that needs to track chart width for
+// legibility, so it stays a flat pixel value instead of scaling.
+const CHART_TO_LEGEND_GAP_PX = 10
 const CARD_PADDING_PX = CHART_BASE_SIZE_PX
 /** Gap kept between an axis line and the label sitting next to it — shared by
  * the primary/secondary y-tick offsets and the y-axis title's placement below. */
@@ -595,7 +601,7 @@ function LineAreaChartContent({
     ? computeShrinkToFitFontSizePx(title, titleSizePx, viewBoxWidth, MIN_FONT_SIZE_PX)
     : titleSizePx
   const titleToChartGapPx = scalePx(TITLE_TO_CHART_GAP_BASE_PX, scaleRatio)
-  const chartToLegendGapPx = scalePx(CHART_TO_LEGEND_GAP_BASE_PX, scaleRatio)
+  const chartToLegendGapPx = CHART_TO_LEGEND_GAP_PX
   const axisTitleSizePx = clampFontSize(scalePx(AXIS_TITLE_BASE_SIZE_PX, scaleRatio))
   const tickLabelSizePx = clampFontSize(scalePx(TICK_LABEL_BASE_SIZE_PX, scaleRatio))
   const referenceLabelSizePx = clampFontSize(scalePx(REFERENCE_LABEL_BASE_SIZE_PX, scaleRatio))
