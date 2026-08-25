@@ -63,7 +63,10 @@ const clampFontSize = (px: number): number => Math.max(px, MIN_FONT_SIZE_PX)
 const TITLE_SIZE_PX = clampFontSize(CHART_BASE_SIZE_PX)
 const CENTER_VALUE_SIZE_PX = clampFontSize(CHART_BASE_SIZE_PX)
 const CENTER_LABEL_SIZE_PX = clampFontSize(CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2)
-const LEGEND_LABEL_SIZE_PX = clampFontSize(CHART_BASE_SIZE_PX / GOLDEN_RATIO)
+// QA fix: was CHART_BASE_SIZE_PX / GOLDEN_RATIO (the same tier as axis titles
+// elsewhere) — a legend describing the chart should read as a caption, one
+// tier below that, matching LEGEND_PERCENT_SIZE_PX's tier right below it.
+const LEGEND_LABEL_SIZE_PX = clampFontSize(CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2)
 const LEGEND_PERCENT_SIZE_PX = clampFontSize(CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2)
 
 const TITLE_TO_CHART_GAP_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
@@ -240,6 +243,7 @@ const PieDonutCenterValueText = createComponent(TamaguiText, {
 const PieDonutLegendLabelText = createComponent(TamaguiText, {
   name: 'PieDonutChartLegendLabelText',
   fontFamily: '$body',
+  fontWeight: '400',
   color: '$color',
   fontSize: LEGEND_LABEL_SIZE_PX,
   flex: 1,

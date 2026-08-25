@@ -121,7 +121,12 @@ const TITLE_BASE_SIZE_PX = CHART_BASE_SIZE_PX
 const AXIS_TITLE_BASE_SIZE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
 const TICK_LABEL_BASE_SIZE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2
 const REFERENCE_LABEL_BASE_SIZE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2
-const LEGEND_LABEL_BASE_SIZE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
+// QA fix: was CHART_BASE_SIZE_PX / GOLDEN_RATIO (the axis-title tier), which at
+// MAX_SCALE_RATIO (2x) grows past the chart title's own fixed, unscaled size —
+// the legend then reads larger than the title it's labeling. The tick-label
+// tier caps out at 2x CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2, which stays below
+// TITLE_BASE_SIZE_PX across the whole scale-ratio range.
+const LEGEND_LABEL_BASE_SIZE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2
 
 const TITLE_TO_CHART_GAP_BASE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
 const CHART_TO_LEGEND_GAP_BASE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
@@ -467,6 +472,7 @@ const LineAreaTitleText = createComponent(TamaguiText, {
 const LineAreaLegendLabelText = createComponent(TamaguiText, {
   name: 'LineAreaChartLegendLabelText',
   fontFamily: '$body',
+  fontWeight: '400',
   color: '$color',
   fontSize: LEGEND_LABEL_BASE_SIZE_PX,
 })
