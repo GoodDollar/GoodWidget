@@ -153,9 +153,6 @@ const GRID_LINE_OPACITY = 0.22
 const GRID_ZERO_LINE_OPACITY = 0.48
 const GRID_LINE_WIDTH_PX = 1
 const GRID_ZERO_LINE_WIDTH_PX = 1.25
-/** Floor width budget per x-axis label before any real label is measured — actual formatted labels (e.g. full ISO dates) can need more, see estimateTextWidthPx. */
-const X_LABEL_APPROX_WIDTH_PX = 56
-
 function isValidY(value: number | null | undefined): value is number {
   return value !== null && value !== undefined && Number.isFinite(value)
 }
@@ -595,11 +592,13 @@ function LineAreaChartContent({
     return plotHeight - ((value - scale.min) / domain) * plotHeight
   }
 
-  // Base label spacing on the widest *formatted* label actually in use (e.g. full ISO dates), not a fixed short-label guess.
+  // Base label spacing entirely on the widest *formatted* label actually in
+  // use (e.g. full ISO dates vs short numbers) — no fixed-pixel floor, since
+  // a floor would override genuinely short labels' real measured width and
+  // make the chart pack them more sparsely than their content requires.
   const widestXLabelWidthPx = xCategories.reduce<number>(
-    (widest, category) =>
-      Math.max(widest, estimateTextWidthPx(xAxisFormatter(category), tickLabelSizePx)),
-    X_LABEL_APPROX_WIDTH_PX,
+    (widest, category) => Math.max(widest, estimateTextWidthPx(xAxisFormatter(category), tickLabelSizePx)),
+    0,
   )
   const xAxisLabelPlan = computeXAxisLabelPlan({
     categoryCount,

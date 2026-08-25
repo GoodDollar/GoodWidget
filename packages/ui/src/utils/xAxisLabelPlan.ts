@@ -22,6 +22,40 @@ export interface XAxisLabelPlanInput {
   labelWidthPx: number
 }
 
+/** How far a label's rendered box extends to the right of its own xPixel — a
+ * start anchor's box sits entirely to the right, an end anchor's box sits
+ * entirely to the left (0 rightward reach), a middle anchor's box straddles
+ * its xPixel evenly. */
+function rightwardReachPx(entry: XAxisLabelPlanEntry, labelWidthPx: number): number {
+  if (entry.textAnchor === 'start') return labelWidthPx
+  if (entry.textAnchor === 'end') return 0
+  return labelWidthPx / 2
+}
+
+/** Mirror of rightwardReachPx for the leftward side. */
+function leftwardReachPx(entry: XAxisLabelPlanEntry, labelWidthPx: number): number {
+  if (entry.textAnchor === 'end') return labelWidthPx
+  if (entry.textAnchor === 'start') return 0
+  return labelWidthPx / 2
+}
+
+/**
+ * Minimum center-to-center pixel distance between two adjacent labels (left,
+ * then right) that keeps their rendered boxes from touching. A flat
+ * `labelWidthPx + minGapPx` threshold — as if both labels were middle
+ * anchored — under-counts the true gap whenever either neighbor is the
+ * start-anchored first label or the end-anchored last label, since those
+ * extend their full width toward the interior instead of half.
+ */
+function requiredGapPx(
+  left: XAxisLabelPlanEntry,
+  right: XAxisLabelPlanEntry,
+  labelWidthPx: number,
+  minGapPx: number,
+): number {
+  return rightwardReachPx(left, labelWidthPx) + minGapPx + leftwardReachPx(right, labelWidthPx)
+}
+
 /**
  * Plans which category indexes get an x-axis label and how each is anchored,
  * guaranteeing: the first and last category always render; no two rendered
@@ -83,15 +117,20 @@ export function computeXAxisLabelPlan({
   // Step 8: collision check, left to right. Anchors are mandatory (step 1
   // outranks step 8), so intermediates are the only entries ever dropped —
   // first against whichever label precedes them, then a final pass makes
-  // room for the last anchor by dropping intermediates that crowd it.
+  // room for the last anchor by dropping intermediates that crowd it. Each
+  // pair's own required gap accounts for its two anchors' actual reach
+  // (requiredGapPx), not a single flat middle-anchor-shaped assumption.
   const kept: XAxisLabelPlanEntry[] = [firstAnchor]
   for (const entry of intermediateEntries) {
     const previous = kept[kept.length - 1]
-    if (entry.xPixel - previous.xPixel >= minCenterToCenterPx) {
+    if (entry.xPixel - previous.xPixel >= requiredGapPx(previous, entry, labelWidthPx, minGapPx)) {
       kept.push(entry)
     }
   }
-  while (kept.length > 1 && lastAnchor.xPixel - kept[kept.length - 1].xPixel < minCenterToCenterPx) {
+  while (
+    kept.length > 1 &&
+    lastAnchor.xPixel - kept[kept.length - 1].xPixel < requiredGapPx(kept[kept.length - 1], lastAnchor, labelWidthPx, minGapPx)
+  ) {
     kept.pop()
   }
   kept.push(lastAnchor)

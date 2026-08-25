@@ -108,8 +108,6 @@ const GRID_ZERO_LINE_WIDTH_PX = 1.25
 
 /** Gap between adjacent category labels so wide labels never touch (mirrors LineAreaChart's X_LABEL_GAP_PX). */
 const CATEGORY_LABEL_GAP_PX = 8
-/** Floor width/height budget per category label when no real label is wide enough to raise it — mirrors LineAreaChart's X_LABEL_APPROX_WIDTH_PX. */
-const CATEGORY_LABEL_APPROX_SIZE_PX = 56
 
 interface BarChartItem {
   category: string
@@ -361,9 +359,10 @@ function BarChartContent({
   // layout stacks labels top to bottom instead, one per row inside a
   // fixed-width left column, so it's a *height* problem instead and keeps the
   // simpler adaptive-thinning approach (out of scope for this fix).
+  // No fixed-pixel floor here either — see LineAreaChart's matching comment.
   const widestCategoryLabelWidthPx = items.reduce<number>(
     (widest, item) => Math.max(widest, estimateTextWidthPx(item.category, tickLabelSizePx)),
-    CATEGORY_LABEL_APPROX_SIZE_PX,
+    0,
   )
   const verticalCategoryLabelPlan = isVertical
     ? computeXAxisLabelPlan({
