@@ -294,10 +294,33 @@ test('AiCreditsWidget multi-buyer manage: buyer selector is visible', async ({ p
   const root = widget(page, 'AiCreditsWidget-multi-buyer-manage')
   await expect(root).toBeVisible()
 
+  // Collapsed by default: the header reports the active signer and its authorization,
+  // and nothing else from the card is mounted yet.
+  const toggle = root.getByTestId('signer-key-toggle')
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+  await expect(root.getByText(/0xfc12/i).first()).toBeVisible()
+  await expect(root.getByText('Authorized', { exact: true })).toBeVisible()
+  await expect(root.getByText(/0xAbcD|0xabcd/i)).toHaveCount(0)
+
+  await toggle.click()
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+
+  await root.getByRole('button', { name: /Switch signer \(3\)/i }).click()
   await expect(root.getByText(/0xfc12/i).first()).toBeVisible()
   await expect(root.getByText(/0xAbcD|0xabcd/i).first()).toBeVisible()
   await expect(root.getByText(/0x1111/i).first()).toBeVisible()
-  await expect(root.getByRole('button', { name: /Sign & Generate/i })).toBeVisible()
+
+  // Replacing a signer is a secondary action: it stays behind its own disclosure.
+  await expect(root.getByRole('button', { name: 'Generate Signer Key' })).toHaveCount(0)
+  await root.getByRole('button', { name: 'Replace signer key' }).click()
+  await expect(root.getByRole('button', { name: 'Generate Signer Key' })).toBeVisible()
+  await expect(root.getByRole('button', { name: 'Import Signer Key' })).toBeVisible()
+
+  // The private key stays masked until it is explicitly revealed.
+  const privateKeyField = root.getByTestId('signer-key-card').getByText(/^•+$/)
+  await expect(privateKeyField).toBeVisible()
+  await root.getByRole('button', { name: 'Reveal' }).click()
+  await expect(root.getByTestId('signer-key-card').getByText(/^0x[0-9a-f]{64}$/i)).toBeVisible()
 
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-15-multi-buyer-manage.png',
@@ -312,8 +335,12 @@ test('AiCreditsWidget deep-link buyer: Sign Consent enabled via operatorSignatur
   const root = widget(page, 'AiCreditsWidget-deep-link-buyer')
   await expect(root).toBeVisible()
 
-  const signConsentButton = root.getByRole('button', { name: /Sign Consent/i })
-  await expect(signConsentButton).toBeEnabled()
+  // A pre-signed operatorSignature is enough to authorize, even without a private key.
+  await root.getByTestId('signer-key-toggle').click()
+
+  await expect(root.getByText('Not authorized').first()).toBeVisible()
+  const authorizeButton = root.getByRole('button', { name: 'Authorize GoodDollar' })
+  await expect(authorizeButton).toBeEnabled()
 
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-16-deep-link-buyer.png',
@@ -366,12 +393,18 @@ test('AiCreditsWidget multi-buyer history: buyer filter dropdown is visible', as
   })
 })
 
-test('AiCreditsWidget multi-buyer: import buyer key link is visible', async ({ page }) => {
+test('AiCreditsWidget multi-buyer: signer key import is reachable', async ({ page }) => {
   await gotoStory(page, MULTI_BUYER_STORY_IDS.multiBuyerManage)
   const root = widget(page, 'AiCreditsWidget-multi-buyer-manage')
   await expect(root).toBeVisible()
 
-  await expect(root.getByText(/Import a buyer key/i)).toBeVisible()
+  await root.getByTestId('signer-key-toggle').click()
+  await root.getByRole('button', { name: 'Replace signer key' }).click()
+  await root.getByRole('button', { name: 'Import Signer Key' }).click()
+
+  await expect(
+    root.getByTestId('signer-key-card').getByPlaceholder('0x…', { exact: true }),
+  ).toBeVisible()
   await expect(root.getByText(/Watch Address/i)).toHaveCount(0)
 
   await page.screenshot({

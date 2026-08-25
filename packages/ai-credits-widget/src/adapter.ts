@@ -1477,7 +1477,7 @@ export function useAiCreditsAdapter({
         setState((prev) => ({
           ...prev,
           error:
-            'Sign with your payer wallet in Buyer & Operator below to generate the buyer private key before closing a channel',
+            'Sign with your payer wallet in Signer Key below to generate the buyer private key before closing a channel',
         }))
         return
       }
@@ -1518,7 +1518,7 @@ export function useAiCreditsAdapter({
         setState((prev) => ({
           ...prev,
           error:
-            'Sign with your payer wallet in Buyer & Operator below to generate the buyer private key before withdrawing funds',
+            'Sign with your payer wallet in Signer Key below to generate the buyer private key before withdrawing funds',
         }))
         return
       }
