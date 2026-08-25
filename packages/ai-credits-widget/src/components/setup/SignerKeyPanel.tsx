@@ -9,6 +9,7 @@ import {
   Text,
   XStack,
   YStack,
+  Icon,
 } from '@goodwidget/ui'
 import type {
   AiCreditsWidgetAdapterActions,
@@ -52,6 +53,7 @@ export function SignerKeyPanel({ state, actions }: SignerKeyPanelProps) {
     return (
       <YStack gap="$3">
         <Button variant="text" alignSelf="flex-start" onPress={leaveChoice}>
+          <Icon name="arrow-left" size="xs" color="primary" />
           <ButtonText>Back to Generate / Import</ButtonText>
         </Button>
         <BuyerKeyPanel
@@ -78,6 +80,7 @@ export function SignerKeyPanel({ state, actions }: SignerKeyPanelProps) {
     return (
       <YStack gap="$3">
         <Button variant="text" alignSelf="flex-start" onPress={leaveChoice}>
+          <Icon name="arrow-left" size="xs" color="primary" />
           <ButtonText>Back to Generate / Import</ButtonText>
         </Button>
         <Heading level={5}>Import Signer Key</Heading>
