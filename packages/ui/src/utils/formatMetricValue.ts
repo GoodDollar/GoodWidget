@@ -142,12 +142,19 @@ const VALUE_TYPE_DEFAULT_DECIMALS: Record<Exclude<ChartValueType, 'auto'>, numbe
 /**
  * Formats a chart value from its declared `valueType` rather than the
  * value's own runtime shape. `'integer'` and `'currency'` always render at
- * their fixed precision (0 and 2 decimals respectively); `'decimal'` accepts
- * an optional `decimals` override (default 2); `'auto'` falls back to
- * `formatChartAxisValue`'s existing default for callers that haven't
- * declared a type yet. Callers must feed both a chart's axis ticks and its
- * tooltip through this same function (not separate hardcoded decimal
- * counts) so the two always agree.
+ * their fixed precision (0 and 2 decimals respectively) regardless of
+ * whether a given value happens to be round — a currency value landing on a
+ * whole dollar amount must still show "5.00", not "5". `'decimal'` (rates,
+ * percentages, G$ volume) is the one type that trims padded zeros off round
+ * values ("20K" not "20.00K") while still showing up to its precision when a
+ * value isn't round ("20.50K") — this is a per-value trim on the declared
+ * 'decimal' type itself, not runtime inspection of an arbitrary value, so it
+ * doesn't reintroduce the fragility of the rejected "strip if whole"
+ * approach. `'auto'` falls back to `formatChartAxisValue`'s existing default
+ * for callers that haven't declared a type yet. Callers must feed both a
+ * chart's axis ticks and its tooltip through this same function (not
+ * separate hardcoded decimal counts) so the two always agree for a given
+ * value.
  */
 export function formatByValueType(value: number, valueType: ChartValueType = 'auto', decimals?: number): string {
   if (valueType === 'auto') {
@@ -155,5 +162,6 @@ export function formatByValueType(value: number, valueType: ChartValueType = 'au
   }
 
   const resolvedDecimals = decimals ?? VALUE_TYPE_DEFAULT_DECIMALS[valueType]
-  return formatChartAxisValue(value, 'compact', resolvedDecimals)
+  const trimIntegers = valueType === 'decimal'
+  return formatMetricValue(value, 'compact', resolvedDecimals, { trimIntegers })
 }
