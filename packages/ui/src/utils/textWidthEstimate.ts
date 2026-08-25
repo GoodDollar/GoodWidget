@@ -24,12 +24,19 @@ export function estimateTextWidthPx(
   fontWeight: string = 'normal',
 ): number {
   const context = getMeasureTextContext()
+  // Rounded up: canvas measureText and the real DOM text-layout width for the
+  // same string/font can differ by a fraction of a pixel (confirmed via direct
+  // comparison). Every caller treats "estimate <= available width" as "fits
+  // without truncating/wrapping" — an estimate that's a hair narrower than the
+  // real render clips text that should have fit. Ceiling makes the estimate
+  // never smaller than the real width, at the cost of at most ~1px of
+  // imperceptible extra reserved space.
   if (context) {
     context.font = `${fontWeight} ${fontSizePx}px ${fontFamily}`
-    return context.measureText(text).width
+    return Math.ceil(context.measureText(text).width)
   }
 
-  return text.length * fontSizePx * 0.6
+  return Math.ceil(text.length * fontSizePx * 0.6)
 }
 
 /** Truncates a label with an ellipsis once it can't fit the available width at the given font size. */
