@@ -34,9 +34,10 @@ import {
   scaleEdgeInsets,
   scalePx,
 } from '../utils/chartResponsiveScale'
-import { estimateTextWidthPx } from '../utils/textWidthEstimate'
+import { estimateTextWidthPx, wrapLabelToTwoLines } from '../utils/textWidthEstimate'
 import { computeXAxisLabelPlan } from '../utils/xAxisLabelPlan'
 import { useMeasuredWidth } from '../hooks/useMeasuredWidth'
+import { useMeasuredHeight } from '../hooks/useMeasuredHeight'
 
 export type LineAreaChartVariant = 'bare' | 'card'
 export type LineAreaChartInterpolation = 'linear' | 'monotone' | 'step'
@@ -106,7 +107,7 @@ export interface LineAreaChartProps {
   testID?: string
   accessibilityLabel?: string
   width?: number | string
-  height?: number
+  height?: number | string
   padding?: Partial<LineAreaChartPadding>
 }
 
@@ -161,6 +162,12 @@ const SECONDARY_AXIS_RIGHT_PADDING_BASE_PX = 48
  * Also the fallback viewBox width used for the single frame before a responsive
  * (string `width`) chart's first real layout measurement arrives. */
 const REFERENCE_WIDTH_PX = 400
+/** Mirrors REFERENCE_WIDTH_PX for height: the height a responsive chart renders
+ * at before its first real layout measurement arrives, and the height it holds
+ * to when no flex ancestor offers a taller box — tall enough on its own that a
+ * dual-axis chart's rotated axis titles have real room, rather than reusing the
+ * old cramped 200px fixed default. */
+const REFERENCE_HEIGHT_PX = 280
 
 const DESIRED_TICK_COUNT = 5
 const NICE_STEP_MULTIPLES = [1, 2, 5, 10] as const
@@ -551,7 +558,7 @@ function LineAreaChartContent({
   testID,
   accessibilityLabel,
   width = '100%',
-  height = 200,
+  height = '100%',
   padding,
 }: Omit<LineAreaChartProps, 'variant'>) {
   const theme = useTheme()
@@ -602,6 +609,16 @@ function LineAreaChartContent({
   const { measuredWidthPx, onLayout } = useMeasuredWidth(REFERENCE_WIDTH_PX)
   const viewBoxWidth = isResponsiveWidth ? measuredWidthPx : width
 
+  // Mirrors the width handling above, but measured off LineAreaPlotArea rather
+  // than LineAreaFrame: once flexGrow is applied below, PlotArea's own resolved
+  // layout height genuinely reflects how much vertical room its ancestor chain
+  // gave it. Measuring the Frame here instead would be circular, the same way
+  // measuring PlotArea for *width* would be — PlotArea shrink-wraps horizontally
+  // on purpose (see its definition below).
+  const isResponsiveHeight = typeof height !== 'number'
+  const { measuredHeightPx, onLayout: onPlotAreaLayout } = useMeasuredHeight(REFERENCE_HEIGHT_PX)
+  const viewBoxHeight = isResponsiveHeight ? measuredHeightPx : height
+
   const scaleRatio = computeChartScaleRatio(viewBoxWidth, REFERENCE_WIDTH_PX)
   // QA fix: titles were scaling up with chart width (rendering ~H2/H3-sized on
   // wide charts) instead of staying a fixed Tamagui H5. Keep the base size
@@ -621,11 +638,31 @@ function LineAreaChartContent({
   const referenceLabelSizePx = clampFontSize(scalePx(REFERENCE_LABEL_BASE_SIZE_PX, scaleRatio))
   const legendLabelSizePx = clampFontSize(scalePx(LEGEND_LABEL_BASE_SIZE_PX, scaleRatio))
 
+  // Rotated axis titles read along the plot's *height*, not its width, so
+  // whether one needs to wrap onto a second line depends on plotHeight — which
+  // in turn only depends on top/bottom padding (left/right padding never
+  // affects it). Resolving top/bottom padding once here, ahead of the
+  // left/right gutter sizing below, lets each title's line count feed into its
+  // own gutter's width reservation without a circular dependency.
+  const topBottomPaddingPx = scaleEdgeInsets(DEFAULT_PADDING, scaleRatio)
+  const preliminaryPlotHeightPx = viewBoxHeight - topBottomPaddingPx.top - topBottomPaddingPx.bottom
+  const axisTitleAvailableLengthPx = Math.max(0, preliminaryPlotHeightPx - AXIS_LABEL_GAP_PX * 2)
+  // Wrap to two lines at a word boundary first; only the corrected spec's
+  // last-resort ellipsis (inside wrapLabelToTwoLines) kicks in if a title still
+  // doesn't fit after that.
+  const yAxisTitleLines = yAxisLabel
+    ? wrapLabelToTwoLines(yAxisLabel, axisTitleAvailableLengthPx, tickLabelSizePx, CHART_FONT_FAMILY)
+    : []
+  const secondaryYAxisTitleLines = secondaryYAxis?.label
+    ? wrapLabelToTwoLines(secondaryYAxis.label, axisTitleAvailableLengthPx, tickLabelSizePx, CHART_FONT_FAMILY)
+    : []
+
   // The left gutter must fit the widest actually-formatted primary tick label
   // (measured, not guessed) plus — when a y-axis title is present — that
-  // title's own rotated footprint, so a wide tick value (e.g. "500.0K") can
-  // never collide with the title regardless of how far it reaches leftward.
-  // DEFAULT_PADDING.left is only a floor; real content can widen it further.
+  // title's own rotated footprint (now possibly two lines wide, not one), so a
+  // wide tick value (e.g. "500.0K") can never collide with the title regardless
+  // of how far it reaches leftward. DEFAULT_PADDING.left is only a floor; real
+  // content can widen it further.
   const widestYTickLabelWidthPx = primaryScale.ticks.reduce<number>(
     (widest, tick) => Math.max(widest, estimateTextWidthPx(yAxisFormatter(tick), tickLabelSizePx)),
     0,
@@ -634,7 +671,7 @@ function LineAreaChartContent({
     AXIS_LABEL_GAP_PX +
     widestYTickLabelWidthPx +
     AXIS_LABEL_GAP_PX +
-    (yAxisLabel ? tickLabelSizePx + AXIS_LABEL_GAP_PX : 0)
+    (yAxisTitleLines.length > 0 ? yAxisTitleLines.length * tickLabelSizePx + AXIS_LABEL_GAP_PX : 0)
 
   // Mirrors requiredLeftGutterPx for the secondary axis's own tick labels and
   // title, so a wide secondary tick value or title can't collide with the
@@ -651,7 +688,9 @@ function LineAreaChartContent({
     ? AXIS_LABEL_GAP_PX +
       widestSecondaryTickLabelWidthPx +
       AXIS_LABEL_GAP_PX +
-      (secondaryYAxis?.label ? tickLabelSizePx + AXIS_LABEL_GAP_PX : 0)
+      (secondaryYAxisTitleLines.length > 0
+        ? secondaryYAxisTitleLines.length * tickLabelSizePx + AXIS_LABEL_GAP_PX
+        : 0)
     : 0
 
   const resolvedPadding = mergePadding(
@@ -662,19 +701,29 @@ function LineAreaChartContent({
     requiredRightGutterPx,
   )
   const plotWidth = viewBoxWidth - resolvedPadding.left - resolvedPadding.right
-  const plotHeight = height - resolvedPadding.top - resolvedPadding.bottom
+  const plotHeight = viewBoxHeight - resolvedPadding.top - resolvedPadding.bottom
 
-  const yAxisTitleXPx = Math.max(
-    tickLabelSizePx / 2,
-    resolvedPadding.left - AXIS_LABEL_GAP_PX - widestYTickLabelWidthPx - AXIS_LABEL_GAP_PX - tickLabelSizePx / 2,
-  )
-  const secondaryYAxisTitleXPx =
+  // Per-line x position for the (possibly two-line) rotated primary y-axis
+  // title: line 0 sits where the single-line title always sat (closest to the
+  // tick labels); each subsequent line sits one tickLabelSizePx slot further
+  // out, matching the extra width requiredLeftGutterPx reserved above.
+  const yAxisTitleLineXPx = (lineIndex: number): number =>
+    Math.max(
+      tickLabelSizePx / 2,
+      resolvedPadding.left -
+        AXIS_LABEL_GAP_PX -
+        widestYTickLabelWidthPx -
+        AXIS_LABEL_GAP_PX -
+        tickLabelSizePx * (lineIndex + 0.5),
+    )
+  // Mirrors yAxisTitleLineXPx on the opposite side for the secondary axis title.
+  const secondaryYAxisTitleLineXPx = (lineIndex: number): number =>
     resolvedPadding.left +
     plotWidth +
     AXIS_LABEL_GAP_PX +
     widestSecondaryTickLabelWidthPx +
     AXIS_LABEL_GAP_PX +
-    tickLabelSizePx / 2
+    tickLabelSizePx * (lineIndex + 0.5)
 
   const resolvedAccessibilityLabel =
     accessibilityLabel ??
@@ -757,18 +806,29 @@ function LineAreaChartContent({
       data-testid={testID}
       width={isResponsiveWidth ? '100%' : undefined}
       onLayout={onLayout}
+      flexGrow={isResponsiveHeight ? 1 : undefined}
+      minHeight={isResponsiveHeight ? 0 : undefined}
     >
       {title ? (
         <LineAreaTitleText fontSize={fittedTitleSizePx} marginBottom={titleToChartGapPx}>
           {title}
         </LineAreaTitleText>
       ) : null}
-      <LineAreaScrollContainer>
-        <LineAreaPlotArea onMouseMove={handlePlotPointerMove} onMouseLeave={handlePlotPointerLeave}>
+      <LineAreaScrollContainer
+        flexGrow={isResponsiveHeight ? 1 : undefined}
+        minHeight={isResponsiveHeight ? 0 : undefined}
+      >
+        <LineAreaPlotArea
+          onMouseMove={handlePlotPointerMove}
+          onMouseLeave={handlePlotPointerLeave}
+          onLayout={onPlotAreaLayout}
+          flexGrow={isResponsiveHeight ? 1 : undefined}
+          minHeight={isResponsiveHeight ? 0 : undefined}
+        >
           <Svg
             width={width}
-            height={height}
-            viewBox={`0 0 ${viewBoxWidth} ${height}`}
+            height={viewBoxHeight}
+            viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
             preserveAspectRatio="none"
             accessibilityRole="image"
             aria-label={resolvedAccessibilityLabel}
@@ -990,7 +1050,7 @@ function LineAreaChartContent({
             {xAxisLabel ? (
               <SvgText
                 x={resolvedPadding.left + plotWidth / 2}
-                y={height - 6}
+                y={viewBoxHeight - 6}
                 fontSize={axisTitleSizePx}
                 fontFamily={CHART_FONT_FAMILY}
                 fill={axisLabelColor}
@@ -1000,46 +1060,52 @@ function LineAreaChartContent({
                 {xAxisLabel}
               </SvgText>
             ) : null}
-            {yAxisLabel ? (
-              // Caption-tier size (matches Text variant="caption"'s $placeholderColor/$1
-              // pairing): the rotated title shares the reserved left-gutter with the tick
-              // labels, so it must share their size tier rather than the roomier
-              // axis-title tier the x-axis title uses below the unconstrained plot.
-              // x is derived from the actual widest tick label (yAxisTitleXPx above), not
-              // a fixed offset, so the title clears real tick content of any width.
-              <SvgText
-                x={yAxisTitleXPx}
-                y={resolvedPadding.top + plotHeight / 2}
-                fontSize={tickLabelSizePx}
-                fontFamily={CHART_FONT_FAMILY}
-                fill={primaryAxisColor}
-                textAnchor="middle"
-                rotation={-90}
-                origin={`${yAxisTitleXPx}, ${resolvedPadding.top + plotHeight / 2}`}
-                accessible={false}
-              >
-                {yAxisLabel}
-              </SvgText>
-            ) : null}
-            {secondaryYAxis?.label && secondaryScale ? (
-              // Mirrors the primary y-axis title above on the opposite side —
-              // rotated the other way (+90, not -90) so its reading direction
-              // matches the convention of a right-hand axis title, and colored
-              // to match its own series rather than the primary title's color.
-              <SvgText
-                x={secondaryYAxisTitleXPx}
-                y={resolvedPadding.top + plotHeight / 2}
-                fontSize={tickLabelSizePx}
-                fontFamily={CHART_FONT_FAMILY}
-                fill={secondaryAxisColor}
-                textAnchor="middle"
-                rotation={90}
-                origin={`${secondaryYAxisTitleXPx}, ${resolvedPadding.top + plotHeight / 2}`}
-                accessible={false}
-              >
-                {secondaryYAxis.label}
-              </SvgText>
-            ) : null}
+            {yAxisLabel
+              ? // Caption-tier size (matches Text variant="caption"'s $placeholderColor/$1
+                // pairing): the rotated title shares the reserved left-gutter with the tick
+                // labels, so it must share their size tier rather than the roomier
+                // axis-title tier the x-axis title uses below the unconstrained plot.
+                // Each wrapped line pivots about its own x offset (yAxisTitleLineXPx), so
+                // extra lines stack side-by-side in the gutter without any shared-origin math.
+                yAxisTitleLines.map((lineText, lineIndex) => (
+                  <SvgText
+                    key={`y-axis-title-${lineIndex}`}
+                    x={yAxisTitleLineXPx(lineIndex)}
+                    y={resolvedPadding.top + plotHeight / 2}
+                    fontSize={tickLabelSizePx}
+                    fontFamily={CHART_FONT_FAMILY}
+                    fill={primaryAxisColor}
+                    textAnchor="middle"
+                    rotation={-90}
+                    origin={`${yAxisTitleLineXPx(lineIndex)}, ${resolvedPadding.top + plotHeight / 2}`}
+                    accessible={false}
+                  >
+                    {lineText}
+                  </SvgText>
+                ))
+              : null}
+            {secondaryYAxis?.label && secondaryScale
+              ? // Mirrors the primary y-axis title above on the opposite side —
+                // rotated the other way (+90, not -90) so its reading direction
+                // matches the convention of a right-hand axis title, and colored
+                // to match its own series rather than the primary title's color.
+                secondaryYAxisTitleLines.map((lineText, lineIndex) => (
+                  <SvgText
+                    key={`secondary-y-axis-title-${lineIndex}`}
+                    x={secondaryYAxisTitleLineXPx(lineIndex)}
+                    y={resolvedPadding.top + plotHeight / 2}
+                    fontSize={tickLabelSizePx}
+                    fontFamily={CHART_FONT_FAMILY}
+                    fill={secondaryAxisColor}
+                    textAnchor="middle"
+                    rotation={90}
+                    origin={`${secondaryYAxisTitleLineXPx(lineIndex)}, ${resolvedPadding.top + plotHeight / 2}`}
+                    accessible={false}
+                  >
+                    {lineText}
+                  </SvgText>
+                ))
+              : null}
           </Svg>
           {!isEmpty && hoveredIndex !== null && tooltipRows.length > 0 ? (
             <ChartTooltip

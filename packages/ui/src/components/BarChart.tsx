@@ -23,9 +23,10 @@ import {
   scaleEdgeInsets,
   scalePx,
 } from '../utils/chartResponsiveScale'
-import { estimateTextWidthPx, truncateLabelToWidth } from '../utils/textWidthEstimate'
+import { estimateTextWidthPx, truncateLabelToWidth, wrapLabelToTwoLines } from '../utils/textWidthEstimate'
 import { computeXAxisLabelPlan } from '../utils/xAxisLabelPlan'
 import { useMeasuredWidth } from '../hooks/useMeasuredWidth'
+import { useMeasuredHeight } from '../hooks/useMeasuredHeight'
 
 export type BarChartVariant = 'bare' | 'card'
 export type BarChartLayout = 'vertical' | 'horizontal'
@@ -67,7 +68,7 @@ export interface BarChartProps {
   testID?: string
   accessibilityLabel?: string
   width?: number | string
-  height?: number
+  height?: number | string
   padding?: Partial<BarChartPadding>
 }
 
@@ -100,6 +101,11 @@ const DEFAULT_PADDING: BarChartPadding = { top: 16, right: 16, bottom: 40, left:
  * Also the fallback viewBox width used for the single frame before a responsive
  * (string `width`) chart's first real layout measurement arrives. */
 const REFERENCE_WIDTH_PX = 400
+/** Mirrors REFERENCE_WIDTH_PX above for the vertical axis: the fallback viewBox
+ * height used for a responsive (string `height`) chart before its first real
+ * layout measurement arrives, and the visible height when no flex ancestor
+ * offers any extra vertical room. */
+const REFERENCE_HEIGHT_PX = 280
 
 const DESIRED_TICK_COUNT = 5
 /** "Nice" axis step multiples per spec — 1/2/5/10 at any power-of-ten magnitude
@@ -309,7 +315,7 @@ function BarChartContent({
   testID,
   accessibilityLabel,
   width = '100%',
-  height = 200,
+  height = '100%',
   padding,
 }: Omit<BarChartProps, 'variant'>) {
   const theme = useTheme()
@@ -335,6 +341,16 @@ function BarChartContent({
   const isResponsiveWidth = typeof width !== 'number'
   const { measuredWidthPx, onLayout } = useMeasuredWidth(REFERENCE_WIDTH_PX)
   const viewBoxWidth = isResponsiveWidth ? measuredWidthPx : width
+
+  // Mirrors the width handling above, but measured off BarChartPlotArea rather
+  // than BarChartFrame: once flexGrow is applied below, PlotArea's own resolved
+  // layout height genuinely reflects how much vertical room its ancestor chain
+  // gave it. Measuring the Frame here instead would be circular, the same way
+  // measuring PlotArea for *width* would be — PlotArea shrink-wraps horizontally
+  // on purpose (see its definition above).
+  const isResponsiveHeight = typeof height !== 'number'
+  const { measuredHeightPx, onLayout: onPlotAreaLayout } = useMeasuredHeight(REFERENCE_HEIGHT_PX)
+  const viewBoxHeight = isResponsiveHeight ? measuredHeightPx : height
 
   const scaleRatio = computeChartScaleRatio(viewBoxWidth, REFERENCE_WIDTH_PX)
   // QA fix: titles were scaling up with chart width (rendering ~H2/H3-sized on
@@ -370,21 +386,49 @@ function BarChartContent({
     (widest, tick) => Math.max(widest, estimateTextWidthPx(valueFormatter(tick), tickLabelSizePx)),
     0,
   )
+
+  // Rotated axis titles read along the plot's *height*, not its width, so
+  // whether one needs to wrap onto a second line depends on plotHeight — which
+  // in turn only depends on top/bottom padding (left/right padding never
+  // affects it). Resolving top/bottom padding once here, ahead of the left
+  // gutter sizing below, lets the title's line count feed into the gutter's
+  // width reservation without a circular dependency (mirrors LineAreaChart).
+  const topBottomPaddingPx = scaleEdgeInsets(DEFAULT_PADDING, scaleRatio)
+  const preliminaryPlotHeightPx = viewBoxHeight - topBottomPaddingPx.top - topBottomPaddingPx.bottom
+  const axisTitleAvailableLengthPx = Math.max(0, preliminaryPlotHeightPx - AXIS_LABEL_GAP_PX * 2)
+  // Wrap to two lines at a word boundary first; only the last-resort ellipsis
+  // (inside wrapLabelToTwoLines) kicks in if a title still doesn't fit after
+  // that. Deliberately not gated on isVertical here — the pre-existing render
+  // below isn't either (out of scope for this fix); only the left-gutter
+  // reservation right below stays isVertical-gated, unchanged from before.
+  const yAxisTitleLines = yAxisLabel
+    ? wrapLabelToTwoLines(yAxisLabel, axisTitleAvailableLengthPx, tickLabelSizePx, CHART_FONT_FAMILY)
+    : []
+
   const requiredLeftGutterPx = isVertical
     ? AXIS_LABEL_GAP_PX +
       widestYTickLabelWidthPx +
       AXIS_LABEL_GAP_PX +
-      (yAxisLabel ? tickLabelSizePx + AXIS_LABEL_GAP_PX : 0)
+      (yAxisTitleLines.length > 0 ? yAxisTitleLines.length * tickLabelSizePx + AXIS_LABEL_GAP_PX : 0)
     : 0
 
   const resolvedPadding = mergePadding(padding, scaleRatio, requiredLeftGutterPx)
   const plotWidth = viewBoxWidth - resolvedPadding.left - resolvedPadding.right
-  const plotHeight = height - resolvedPadding.top - resolvedPadding.bottom
+  const plotHeight = viewBoxHeight - resolvedPadding.top - resolvedPadding.bottom
 
-  const yAxisTitleXPx = Math.max(
-    tickLabelSizePx / 2,
-    resolvedPadding.left - AXIS_LABEL_GAP_PX - widestYTickLabelWidthPx - AXIS_LABEL_GAP_PX - tickLabelSizePx / 2,
-  )
+  // Per-line x position for the (possibly two-line) rotated y-axis title: line 0
+  // sits where the single-line title always sat (closest to the tick labels);
+  // each subsequent line sits one tickLabelSizePx slot further out, matching
+  // the extra width requiredLeftGutterPx reserved above.
+  const yAxisTitleLineXPx = (lineIndex: number): number =>
+    Math.max(
+      tickLabelSizePx / 2,
+      resolvedPadding.left -
+        AXIS_LABEL_GAP_PX -
+        widestYTickLabelWidthPx -
+        AXIS_LABEL_GAP_PX -
+        tickLabelSizePx * (lineIndex + 0.5),
+    )
 
   const resolvedAccessibilityLabel =
     accessibilityLabel ??
@@ -480,18 +524,29 @@ function BarChartContent({
       data-testid={testID}
       width={isResponsiveWidth ? '100%' : undefined}
       onLayout={onLayout}
+      flexGrow={isResponsiveHeight ? 1 : undefined}
+      minHeight={isResponsiveHeight ? 0 : undefined}
     >
       {title ? (
         <BarChartTitleText fontSize={fittedTitleSizePx} marginBottom={titleToChartGapPx}>
           {title}
         </BarChartTitleText>
       ) : null}
-      <BarChartScrollContainer>
-        <BarChartPlotArea onMouseMove={handlePlotPointerMove} onMouseLeave={handlePlotPointerLeave}>
+      <BarChartScrollContainer
+        flexGrow={isResponsiveHeight ? 1 : undefined}
+        minHeight={isResponsiveHeight ? 0 : undefined}
+      >
+        <BarChartPlotArea
+          onMouseMove={handlePlotPointerMove}
+          onMouseLeave={handlePlotPointerLeave}
+          onLayout={onPlotAreaLayout}
+          flexGrow={isResponsiveHeight ? 1 : undefined}
+          minHeight={isResponsiveHeight ? 0 : undefined}
+        >
           <Svg
             width={width}
-            height={height}
-            viewBox={`0 0 ${viewBoxWidth} ${height}`}
+            height={viewBoxHeight}
+            viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
             preserveAspectRatio="none"
             accessibilityRole="image"
             aria-label={resolvedAccessibilityLabel}
@@ -723,7 +778,7 @@ function BarChartContent({
             {xAxisLabel ? (
               <SvgText
                 x={resolvedPadding.left + plotWidth / 2}
-                y={height - 6}
+                y={viewBoxHeight - 6}
                 fontSize={axisTitleSizePx}
                 fontFamily={CHART_FONT_FAMILY}
                 fill={axisLabelColor}
@@ -733,27 +788,30 @@ function BarChartContent({
                 {xAxisLabel}
               </SvgText>
             ) : null}
-            {yAxisLabel ? (
-              // Caption-tier size (matches Text variant="caption"'s $placeholderColor/$1
-              // pairing): the rotated title shares the reserved left-gutter with the tick
-              // labels, so it must share their size tier rather than the roomier
-              // axis-title tier the x-axis title uses below the unconstrained plot.
-              // x is derived from the actual widest tick label (yAxisTitleXPx above), not
-              // a fixed offset, so the title clears real tick content of any width.
-              <SvgText
-                x={yAxisTitleXPx}
-                y={resolvedPadding.top + plotHeight / 2}
-                fontSize={tickLabelSizePx}
-                fontFamily={CHART_FONT_FAMILY}
-                fill={axisLabelColor}
-                textAnchor="middle"
-                rotation={-90}
-                origin={`${yAxisTitleXPx}, ${resolvedPadding.top + plotHeight / 2}`}
-                accessible={false}
-              >
-                {yAxisLabel}
-              </SvgText>
-            ) : null}
+            {yAxisLabel
+              ? // Caption-tier size (matches Text variant="caption"'s $placeholderColor/$1
+                // pairing): the rotated title shares the reserved left-gutter with the tick
+                // labels, so it must share their size tier rather than the roomier
+                // axis-title tier the x-axis title uses below the unconstrained plot.
+                // Each wrapped line pivots about its own x offset (yAxisTitleLineXPx), so
+                // extra lines stack side-by-side in the gutter without any shared-origin math.
+                yAxisTitleLines.map((lineText, lineIndex) => (
+                  <SvgText
+                    key={`y-axis-title-${lineIndex}`}
+                    x={yAxisTitleLineXPx(lineIndex)}
+                    y={resolvedPadding.top + plotHeight / 2}
+                    fontSize={tickLabelSizePx}
+                    fontFamily={CHART_FONT_FAMILY}
+                    fill={axisLabelColor}
+                    textAnchor="middle"
+                    rotation={-90}
+                    origin={`${yAxisTitleLineXPx(lineIndex)}, ${resolvedPadding.top + plotHeight / 2}`}
+                    accessible={false}
+                  >
+                    {lineText}
+                  </SvgText>
+                ))
+              : null}
           </Svg>
           {!isEmpty && hoveredItem ? (
             <ChartTooltip

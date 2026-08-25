@@ -55,3 +55,49 @@ export function truncateLabelToWidth(
 
   return label.slice(0, 1)
 }
+
+/**
+ * Wraps a label to at most two lines at a word boundary, for cases (like
+ * rotated axis titles) where a taller/wider container gives room for a
+ * second line instead of truncating immediately. Only falls back to an
+ * ellipsis on the second line if the label still doesn't fit after wrapping.
+ */
+export function wrapLabelToTwoLines(
+  label: string,
+  maxWidthPx: number,
+  fontSizePx: number,
+  fontFamily: string = DEFAULT_FONT_FAMILY,
+  fontWeight: string = 'normal',
+): [string] | [string, string] {
+  if (maxWidthPx <= 0 || estimateTextWidthPx(label, fontSizePx, fontFamily, fontWeight) <= maxWidthPx) {
+    return [label]
+  }
+
+  const words = label.split(' ')
+  let firstLine = ''
+  let wordIndex = 0
+  for (; wordIndex < words.length; wordIndex += 1) {
+    const candidate = firstLine ? `${firstLine} ${words[wordIndex]}` : words[wordIndex]
+    if (estimateTextWidthPx(candidate, fontSizePx, fontFamily, fontWeight) <= maxWidthPx) {
+      firstLine = candidate
+    } else {
+      break
+    }
+  }
+
+  // No usable word boundary (even the first word overflows) — nothing to gain from a
+  // second line, so fall through to the single-line ellipsis fallback instead.
+  if (!firstLine) {
+    return [truncateLabelToWidth(label, maxWidthPx, fontSizePx, fontFamily, fontWeight)]
+  }
+
+  const remaining = words.slice(wordIndex).join(' ')
+  if (!remaining) return [firstLine]
+
+  const secondLine =
+    estimateTextWidthPx(remaining, fontSizePx, fontFamily, fontWeight) <= maxWidthPx
+      ? remaining
+      : truncateLabelToWidth(remaining, maxWidthPx, fontSizePx, fontFamily, fontWeight)
+
+  return [firstLine, secondLine]
+}
