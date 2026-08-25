@@ -299,7 +299,7 @@ function AiCreditsDashboardView({
                 { key: 'creditUsers', label: 'Credit Users' },
               ]}
               showArea={false}
-              yAxisLabel="Count"
+              yAxisLabel="Wallets"
               testID="chart-unique-wallets"
             />
           </>

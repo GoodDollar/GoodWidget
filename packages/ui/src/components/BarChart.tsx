@@ -108,6 +108,10 @@ const GRID_ZERO_LINE_WIDTH_PX = 1.25
 
 /** Gap between adjacent category labels so wide labels never touch (mirrors LineAreaChart's X_LABEL_GAP_PX). */
 const CATEGORY_LABEL_GAP_PX = 8
+/** Gap kept between an axis line and the label sitting next to it — shared by
+ * the primary y-tick offset and the y-axis title's placement below (mirrors
+ * LineAreaChart's AXIS_LABEL_GAP_PX). */
+const AXIS_LABEL_GAP_PX = 8
 
 interface BarChartItem {
   category: string
@@ -273,8 +277,10 @@ const BarChartTitleText = createComponent(TamaguiText, {
 function mergePadding(
   padding: Partial<BarChartPadding> | undefined,
   scaleRatio: number,
+  minLeftPx: number,
 ): BarChartPadding {
-  return { ...scaleEdgeInsets(DEFAULT_PADDING, scaleRatio), ...padding }
+  const scaledDefaults = scaleEdgeInsets(DEFAULT_PADDING, scaleRatio)
+  return { ...scaledDefaults, left: Math.max(scaledDefaults.left, minLeftPx), ...padding }
 }
 
 function BarChartContent({
@@ -331,12 +337,38 @@ function BarChartContent({
   const tickLabelSizePx = clampFontSize(scalePx(TICK_LABEL_BASE_SIZE_PX, scaleRatio))
   const valueLabelSizePx = clampFontSize(scalePx(VALUE_LABEL_BASE_SIZE_PX, scaleRatio))
 
-  const resolvedPadding = mergePadding(padding, scaleRatio)
+  const scale = computeNiceAxisScale(items.map((item) => item.value))
+  const valueRange = scale.max - scale.min || 1
+  const isVertical = layout === 'vertical'
+
+  // Only the vertical layout puts numeric value-tick labels (and, when set, the
+  // yAxisLabel title) in the left gutter — horizontal layout puts category
+  // labels there instead, a separate concern callers already size via an
+  // explicit `padding.left` override. The left gutter must fit the widest
+  // actually-formatted tick label (measured, not guessed) plus, when a title
+  // is present, that title's own rotated footprint, so a wide tick value
+  // (e.g. "500.0K") can never collide with the title regardless of how far it
+  // reaches leftward. DEFAULT_PADDING.left is only a floor; real content can
+  // widen it further.
+  const widestYTickLabelWidthPx = scale.ticks.reduce<number>(
+    (widest, tick) => Math.max(widest, estimateTextWidthPx(valueFormatter(tick), tickLabelSizePx)),
+    0,
+  )
+  const requiredLeftGutterPx = isVertical
+    ? AXIS_LABEL_GAP_PX +
+      widestYTickLabelWidthPx +
+      AXIS_LABEL_GAP_PX +
+      (yAxisLabel ? tickLabelSizePx + AXIS_LABEL_GAP_PX : 0)
+    : 0
+
+  const resolvedPadding = mergePadding(padding, scaleRatio, requiredLeftGutterPx)
   const plotWidth = viewBoxWidth - resolvedPadding.left - resolvedPadding.right
   const plotHeight = height - resolvedPadding.top - resolvedPadding.bottom
 
-  const scale = computeNiceAxisScale(items.map((item) => item.value))
-  const valueRange = scale.max - scale.min || 1
+  const yAxisTitleXPx = Math.max(
+    tickLabelSizePx / 2,
+    resolvedPadding.left - AXIS_LABEL_GAP_PX - widestYTickLabelWidthPx - AXIS_LABEL_GAP_PX - tickLabelSizePx / 2,
+  )
 
   const resolvedAccessibilityLabel =
     accessibilityLabel ??
@@ -346,7 +378,6 @@ function BarChartContent({
   const valueToPixel = (value: number, axisLengthPx: number): number =>
     ((value - scale.min) / valueRange) * axisLengthPx
 
-  const isVertical = layout === 'vertical'
   const slotSize = (isVertical ? plotWidth : plotHeight) / Math.max(items.length, 1)
   const barThickness = slotSize * BAR_FILL_FRACTION
 
@@ -512,7 +543,7 @@ function BarChartContent({
                     return isVertical ? (
                       <SvgText
                         key={tick}
-                        x={resolvedPadding.left - 8}
+                        x={resolvedPadding.left - AXIS_LABEL_GAP_PX}
                         y={resolvedPadding.top + plotHeight - tickOffset}
                         fontSize={tickLabelSizePx}
                         fontFamily={CHART_FONT_FAMILY}
@@ -685,15 +716,21 @@ function BarChartContent({
               </SvgText>
             ) : null}
             {yAxisLabel ? (
+              // Caption-tier size (matches Text variant="caption"'s $placeholderColor/$1
+              // pairing): the rotated title shares the reserved left-gutter with the tick
+              // labels, so it must share their size tier rather than the roomier
+              // axis-title tier the x-axis title uses below the unconstrained plot.
+              // x is derived from the actual widest tick label (yAxisTitleXPx above), not
+              // a fixed offset, so the title clears real tick content of any width.
               <SvgText
-                x={12}
+                x={yAxisTitleXPx}
                 y={resolvedPadding.top + plotHeight / 2}
-                fontSize={axisTitleSizePx}
+                fontSize={tickLabelSizePx}
                 fontFamily={CHART_FONT_FAMILY}
                 fill={axisLabelColor}
                 textAnchor="middle"
                 rotation={-90}
-                origin={`12, ${resolvedPadding.top + plotHeight / 2}`}
+                origin={`${yAxisTitleXPx}, ${resolvedPadding.top + plotHeight / 2}`}
                 accessible={false}
               >
                 {yAxisLabel}

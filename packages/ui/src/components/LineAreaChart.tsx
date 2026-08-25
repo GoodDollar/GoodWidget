@@ -126,6 +126,9 @@ const LEGEND_LABEL_BASE_SIZE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
 const TITLE_TO_CHART_GAP_BASE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
 const CHART_TO_LEGEND_GAP_BASE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
 const CARD_PADDING_PX = CHART_BASE_SIZE_PX
+/** Gap kept between an axis line and the label sitting next to it — shared by
+ * the primary/secondary y-tick offsets and the y-axis title's placement below. */
+const AXIS_LABEL_GAP_PX = 8
 
 /** Multi-category palette, resolved to raw colors via useTheme() at render time. */
 const CHART_COLOR_KEYS = ['primary', 'success', 'warning', 'colorDim', 'error'] as const
@@ -404,12 +407,13 @@ function mergePadding(
   padding: Partial<LineAreaChartPadding> | undefined,
   hasSecondaryAxis: boolean,
   scaleRatio: number,
+  minLeftPx: number,
 ): LineAreaChartPadding {
   const scaledDefaults = scaleEdgeInsets(DEFAULT_PADDING, scaleRatio)
   const defaults = hasSecondaryAxis
     ? { ...scaledDefaults, right: scalePx(SECONDARY_AXIS_RIGHT_PADDING_BASE_PX, scaleRatio) }
     : scaledDefaults
-  return { ...defaults, ...padding }
+  return { ...defaults, left: Math.max(defaults.left, minLeftPx), ...padding }
 }
 
 const LineAreaFrame = createComponent(YStack, {
@@ -575,9 +579,29 @@ function LineAreaChartContent({
   const referenceLabelSizePx = clampFontSize(scalePx(REFERENCE_LABEL_BASE_SIZE_PX, scaleRatio))
   const legendLabelSizePx = clampFontSize(scalePx(LEGEND_LABEL_BASE_SIZE_PX, scaleRatio))
 
-  const resolvedPadding = mergePadding(padding, secondaryScale !== null, scaleRatio)
+  // The left gutter must fit the widest actually-formatted primary tick label
+  // (measured, not guessed) plus — when a y-axis title is present — that
+  // title's own rotated footprint, so a wide tick value (e.g. "500.0K") can
+  // never collide with the title regardless of how far it reaches leftward.
+  // DEFAULT_PADDING.left is only a floor; real content can widen it further.
+  const widestYTickLabelWidthPx = primaryScale.ticks.reduce<number>(
+    (widest, tick) => Math.max(widest, estimateTextWidthPx(yAxisFormatter(tick), tickLabelSizePx)),
+    0,
+  )
+  const requiredLeftGutterPx =
+    AXIS_LABEL_GAP_PX +
+    widestYTickLabelWidthPx +
+    AXIS_LABEL_GAP_PX +
+    (yAxisLabel ? tickLabelSizePx + AXIS_LABEL_GAP_PX : 0)
+
+  const resolvedPadding = mergePadding(padding, secondaryScale !== null, scaleRatio, requiredLeftGutterPx)
   const plotWidth = viewBoxWidth - resolvedPadding.left - resolvedPadding.right
   const plotHeight = height - resolvedPadding.top - resolvedPadding.bottom
+
+  const yAxisTitleXPx = Math.max(
+    tickLabelSizePx / 2,
+    resolvedPadding.left - AXIS_LABEL_GAP_PX - widestYTickLabelWidthPx - AXIS_LABEL_GAP_PX - tickLabelSizePx / 2,
+  )
 
   const resolvedAccessibilityLabel =
     accessibilityLabel ??
@@ -739,7 +763,7 @@ function LineAreaChartContent({
                   {primaryScale.ticks.map((tick) => (
                     <SvgText
                       key={tick}
-                      x={-8}
+                      x={-AXIS_LABEL_GAP_PX}
                       y={yPixelForValue(tick, primaryScale)}
                       fontSize={tickLabelSizePx}
                       fontFamily={CHART_FONT_FAMILY}
@@ -754,7 +778,7 @@ function LineAreaChartContent({
                     ? secondaryScale.ticks.map((tick) => (
                         <SvgText
                           key={tick}
-                          x={plotWidth + 8}
+                          x={plotWidth + AXIS_LABEL_GAP_PX}
                           y={yPixelForValue(tick, secondaryScale)}
                           fontSize={tickLabelSizePx}
                           fontFamily={CHART_FONT_FAMILY}
@@ -902,15 +926,21 @@ function LineAreaChartContent({
               </SvgText>
             ) : null}
             {yAxisLabel ? (
+              // Caption-tier size (matches Text variant="caption"'s $placeholderColor/$1
+              // pairing): the rotated title shares the reserved left-gutter with the tick
+              // labels, so it must share their size tier rather than the roomier
+              // axis-title tier the x-axis title uses below the unconstrained plot.
+              // x is derived from the actual widest tick label (yAxisTitleXPx above), not
+              // a fixed offset, so the title clears real tick content of any width.
               <SvgText
-                x={12}
+                x={yAxisTitleXPx}
                 y={resolvedPadding.top + plotHeight / 2}
-                fontSize={axisTitleSizePx}
+                fontSize={tickLabelSizePx}
                 fontFamily={CHART_FONT_FAMILY}
                 fill={axisLabelColor}
                 textAnchor="middle"
                 rotation={-90}
-                origin={`12, ${resolvedPadding.top + plotHeight / 2}`}
+                origin={`${yAxisTitleXPx}, ${resolvedPadding.top + plotHeight / 2}`}
                 accessible={false}
               >
                 {yAxisLabel}
