@@ -43,21 +43,27 @@ interface TableRow extends Record<string, unknown> {
   walletsAi: number
 }
 
+/**
+ * QA fix: previously set align: 'left' on the date column and align: 'right'
+ * on every numeric/currency column, overriding DataTable's own center
+ * default (DataTable.tsx: `column.align ?? 'center'`) on a per-type basis.
+ * Left unset here so every column falls through to that shared default
+ * instead of this dashboard re-deriving its own left/right-by-type rule.
+ */
 const TABLE_COLUMNS: Array<DataTableColumnDef<TableRow>> = [
-  { key: 'date', label: 'Date', type: 'text', align: 'left', sortable: true },
-  { key: 'gdDeposited', label: 'G$ Deposited', type: 'number', align: 'right', sortable: true },
-  { key: 'gdStreamed', label: 'G$ Streamed', type: 'number', align: 'right', sortable: true },
-  { key: 'totalGd', label: 'Total G$', type: 'number', align: 'right', sortable: true },
+  { key: 'date', label: 'Date', type: 'text', sortable: true },
+  { key: 'gdDeposited', label: 'G$ Deposited', type: 'number', sortable: true },
+  { key: 'gdStreamed', label: 'G$ Streamed', type: 'number', sortable: true },
+  { key: 'totalGd', label: 'Total G$', type: 'number', sortable: true },
   {
     key: 'aiCreditsUsd',
     label: 'AI Credits (USD)',
     type: 'currency',
-    align: 'right',
     formatter: (value) => `$${(value as number).toFixed(2)}`,
     sortable: true,
   },
-  { key: 'walletsGd', label: 'Wallets (G$)', type: 'number', align: 'right', sortable: true },
-  { key: 'walletsAi', label: 'Wallets (AI)', type: 'number', align: 'right', sortable: true },
+  { key: 'walletsGd', label: 'Wallets (G$)', type: 'number', sortable: true },
+  { key: 'walletsAi', label: 'Wallets (AI)', type: 'number', sortable: true },
 ]
 
 /** Removes any daily record the Worker has flagged as incomplete — the spec requires these excluded from every chart and the table, not just displayed as zero. */
