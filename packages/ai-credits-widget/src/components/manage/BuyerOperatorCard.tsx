@@ -168,7 +168,6 @@ function BuyerSelector({
  */
 export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
   const {
-    address,
     buyerPubKey,
     buyerPrvKey,
     operatorSignature,
