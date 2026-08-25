@@ -1,0 +1,40 @@
+{
+  "name": "ai-credits-analytics-web",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "playwright test",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
+  },
+  "dependencies": {
+    "@goodwidget/ui": "workspace:*",
+    "@goodwidget/core": "workspace:*",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tamagui": "^1.115.0",
+    "@tamagui/core": "^1.115.0",
+    "@tamagui/config": "^1.115.0",
+    "@tamagui/animations-react-native": "^1.115.0",
+    "@tamagui/animations-css": "^1.115.0",
+    "@tamagui/colors": "^1.115.0",
+    "@tamagui/font-inter": "^1.115.0",
+    "@tamagui/shorthands": "^1.115.0",
+    "@tamagui/themes": "^1.115.0",
+    "@tamagui/web": "^1.115.0",
+    "@tamagui/stacks": "^1.115.0",
+    "@tamagui/lucide-react": "^1.115.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10",
+    "playwright": "^1.48.2",
+    "@playwright/test": "^1.48.2"
+  }
+}
