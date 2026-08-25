@@ -51,19 +51,50 @@ interface TableRow extends Record<string, unknown> {
  * instead of this dashboard re-deriving its own left/right-by-type rule.
  */
 const TABLE_COLUMNS: Array<DataTableColumnDef<TableRow>> = [
-  { key: 'date', label: 'Date', type: 'text', sortable: true },
-  { key: 'gdDeposited', label: 'G$ Deposited', type: 'number', sortable: true },
-  { key: 'gdStreamed', label: 'G$ Streamed', type: 'number', sortable: true },
-  { key: 'totalGd', label: 'Total G$', type: 'number', sortable: true },
+  { key: 'date', label: 'Date', type: 'text', sortable: true, description: 'Calendar date (UTC) this row summarizes.' },
+  {
+    key: 'gdDeposited',
+    label: 'G$ Deposited',
+    type: 'number',
+    sortable: true,
+    description: 'One-time G$ deposits made this day.',
+  },
+  {
+    key: 'gdStreamed',
+    label: 'G$ Streamed',
+    type: 'number',
+    sortable: true,
+    description: 'G$ streamed to AI Credits (Superfluid flow) this day.',
+  },
+  {
+    key: 'totalGd',
+    label: 'Total G$',
+    type: 'number',
+    sortable: true,
+    description: 'Total G$ spent this day: one-time deposits plus streamed amounts.',
+  },
   {
     key: 'aiCreditsUsd',
     label: 'AI Credits (USD)',
     type: 'currency',
     formatter: (value) => `$${(value as number).toFixed(2)}`,
     sortable: true,
+    description: 'AI Credits consumed this day, converted to USD.',
   },
-  { key: 'walletsGd', label: 'Wallets (G$)', type: 'number', sortable: true },
-  { key: 'walletsAi', label: 'Wallets (AI)', type: 'number', sortable: true },
+  {
+    key: 'walletsGd',
+    label: 'Wallets (G$)',
+    type: 'number',
+    sortable: true,
+    description: 'Unique wallets that deposited or streamed G$ this day.',
+  },
+  {
+    key: 'walletsAi',
+    label: 'Wallets (AI)',
+    type: 'number',
+    sortable: true,
+    description: 'Unique wallets that consumed AI Credits this day.',
+  },
 ]
 
 /** Removes any daily record the Worker has flagged as incomplete — the spec requires these excluded from every chart and the table, not just displayed as zero. */
