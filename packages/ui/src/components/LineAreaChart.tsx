@@ -34,7 +34,8 @@ import {
   scaleEdgeInsets,
   scalePx,
 } from '../utils/chartResponsiveScale'
-import { estimateTextWidthPx, truncateLabelToWidth } from '../utils/textWidthEstimate'
+import { estimateTextWidthPx } from '../utils/textWidthEstimate'
+import { computeXAxisLabelPlan } from '../utils/xAxisLabelPlan'
 import { useMeasuredWidth } from '../hooks/useMeasuredWidth'
 
 export type LineAreaChartVariant = 'bare' | 'card'
@@ -152,10 +153,8 @@ const GRID_LINE_OPACITY = 0.22
 const GRID_ZERO_LINE_OPACITY = 0.48
 const GRID_LINE_WIDTH_PX = 1
 const GRID_ZERO_LINE_WIDTH_PX = 1.25
-/** Floor width budget per x-axis label — actual formatted labels (e.g. full ISO dates) can need more, see estimateTextWidthPx. */
+/** Floor width budget per x-axis label before any real label is measured — actual formatted labels (e.g. full ISO dates) can need more, see estimateTextWidthPx. */
 const X_LABEL_APPROX_WIDTH_PX = 56
-/** Gap between adjacent x-axis labels so wide formatted labels never touch. */
-const X_LABEL_GAP_PX = 8
 
 function isValidY(value: number | null | undefined): value is number {
   return value !== null && value !== undefined && Number.isFinite(value)
@@ -400,17 +399,6 @@ function resolveShowDotsForSeries(showDots: boolean | 'auto', validPointCount: n
   return showDots
 }
 
-/** Adaptive x-label thinning (rule 7): shows every Nth category label so labels don't collide as category count grows. */
-function computeLabelSkipFactor(
-  categoryCount: number,
-  plotWidth: number,
-  labelSlotWidthPx: number,
-): number {
-  if (categoryCount <= 1) return 1
-  const maxLabels = Math.max(1, Math.floor(plotWidth / labelSlotWidthPx))
-  return Math.max(1, Math.ceil(categoryCount / maxLabels))
-}
-
 /** Scales DEFAULT_PADDING (and the secondary-axis right-padding override) to the
  * chart's actual size, then layers an explicit per-instance `padding` override on
  * top unscaled — an override is the caller opting out of the default for that
@@ -607,18 +595,17 @@ function LineAreaChartContent({
     return plotHeight - ((value - scale.min) / domain) * plotHeight
   }
 
-  // Base the skip factor on the widest *formatted* label actually in use (e.g. full ISO dates), not a fixed short-label guess.
+  // Base label spacing on the widest *formatted* label actually in use (e.g. full ISO dates), not a fixed short-label guess.
   const widestXLabelWidthPx = xCategories.reduce<number>(
     (widest, category) =>
       Math.max(widest, estimateTextWidthPx(xAxisFormatter(category), tickLabelSizePx)),
     X_LABEL_APPROX_WIDTH_PX,
   )
-  const labelSkipFactor = computeLabelSkipFactor(
+  const xAxisLabelPlan = computeXAxisLabelPlan({
     categoryCount,
-    plotWidth,
-    widestXLabelWidthPx + X_LABEL_GAP_PX,
-  )
-  const xLabelSlotWidthPx = (plotWidth / Math.max(1, categoryCount - 1)) * labelSkipFactor
+    xPixelForIndex,
+    labelWidthPx: widestXLabelWidthPx,
+  })
 
   // Maps a pointer position to the nearest x-category index, in the plot's
   // own coordinate space (0..plotWidth) — the SVG always renders at
@@ -780,31 +767,18 @@ function LineAreaChartContent({
                         </SvgText>
                       ))
                     : null}
-                  {xCategories.map((category, index) => {
-                    if (index % labelSkipFactor !== 0) return null
-                    // Clamp the first/last labels' anchor so a wide label centered at the plot edge can't overhang past the SVG boundary.
-                    const labelHalfWidthPx = widestXLabelWidthPx / 2
-                    const xPixel = xPixelForIndex(index)
-                    const isNearLeftEdge = xPixel < labelHalfWidthPx
-                    const isNearRightEdge = xPixel > plotWidth - labelHalfWidthPx
-                    const textAnchor = isNearLeftEdge ? 'start' : isNearRightEdge ? 'end' : 'middle'
-                    const labelX = isNearLeftEdge ? 0 : isNearRightEdge ? plotWidth : xPixel
-
+                  {xAxisLabelPlan.map(({ index, xPixel, textAnchor }) => {
                     return (
                       <SvgText
-                        key={String(category)}
-                        x={labelX}
+                        key={String(xCategories[index])}
+                        x={xPixel}
                         y={plotHeight + 16}
                         fontSize={tickLabelSizePx}
                         fontFamily={CHART_FONT_FAMILY}
                         fill={axisLabelColor}
                         textAnchor={textAnchor}
                       >
-                        {truncateLabelToWidth(
-                          xAxisFormatter(category),
-                          xLabelSlotWidthPx,
-                          tickLabelSizePx,
-                        )}
+                        {xAxisFormatter(xCategories[index])}
                       </SvgText>
                     )
                   })}

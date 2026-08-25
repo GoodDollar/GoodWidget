@@ -24,6 +24,7 @@ import {
   scalePx,
 } from '../utils/chartResponsiveScale'
 import { estimateTextWidthPx, truncateLabelToWidth } from '../utils/textWidthEstimate'
+import { computeXAxisLabelPlan } from '../utils/xAxisLabelPlan'
 import { useMeasuredWidth } from '../hooks/useMeasuredWidth'
 
 export type BarChartVariant = 'bare' | 'card'
@@ -354,23 +355,32 @@ function BarChartContent({
   // Zero baseline position within the plot rect, in each layout's value-axis direction.
   const zeroOffset = valueToPixel(0, isVertical ? plotHeight : plotWidth)
 
-  // Vertical layout stacks labels side by side, so the crowding budget is the widest real
-  // label's *width*. Horizontal layout stacks labels top to bottom instead, one per row, so
-  // the budget is a single line's *height* (a label's width is already bounded by the fixed
-  // left-padding column regardless of category count, so width can't be the constraint there).
+  // Vertical layout's category axis stacks labels side by side (crowding is a
+  // *width* problem), the same shape as LineAreaChart's x-axis, so it shares
+  // that shared deterministic, collision-free placement algorithm. Horizontal
+  // layout stacks labels top to bottom instead, one per row inside a
+  // fixed-width left column, so it's a *height* problem instead and keeps the
+  // simpler adaptive-thinning approach (out of scope for this fix).
   const widestCategoryLabelWidthPx = items.reduce<number>(
     (widest, item) => Math.max(widest, estimateTextWidthPx(item.category, tickLabelSizePx)),
     CATEGORY_LABEL_APPROX_SIZE_PX,
   )
-  const categoryLabelSlotBudgetPx = isVertical
-    ? widestCategoryLabelWidthPx + CATEGORY_LABEL_GAP_PX
-    : tickLabelSizePx + CATEGORY_LABEL_GAP_PX
+  const verticalCategoryLabelPlan = isVertical
+    ? computeXAxisLabelPlan({
+        categoryCount: items.length,
+        xPixelForIndex: (index) => index * slotSize + slotSize / 2,
+        labelWidthPx: widestCategoryLabelWidthPx,
+      })
+    : []
+  const shownVerticalCategoryLabelIndexes = new Set(verticalCategoryLabelPlan.map((entry) => entry.index))
+  const verticalCategoryLabelTextAnchorByIndex = new Map(
+    verticalCategoryLabelPlan.map((entry) => [entry.index, entry.textAnchor]),
+  )
   const categoryLabelSkipFactor = computeLabelSkipFactor(
     items.length,
-    isVertical ? plotWidth : plotHeight,
-    categoryLabelSlotBudgetPx,
+    plotHeight,
+    tickLabelSizePx + CATEGORY_LABEL_GAP_PX,
   )
-  const categoryLabelSlotSizePx = slotSize * categoryLabelSkipFactor
 
   // Maps a pointer position to the item whose slot it falls in — a discrete
   // per-bar hit test, unlike LineAreaChart's continuous nearest-index lookup,
@@ -540,38 +550,14 @@ function BarChartContent({
                     const baselineY = resolvedPadding.top + plotHeight - zeroOffset
                     const barY = isPositive ? baselineY - barLength : baselineY
                     const barHeight = Math.abs(barLength)
-                    const showCategoryLabel = index % categoryLabelSkipFactor === 0
-                    const categoryLabel = showCategoryLabel
-                      ? truncateLabelToWidth(
-                          item.category,
-                          categoryLabelSlotSizePx,
-                          tickLabelSizePx,
-                        )
-                      : ''
-                    // QA fix: a label centered under the first/last bar could overhang past
-                    // the plot's own left/right edges (e.g. into the Y-axis tick area) —
-                    // clamp its anchor the same way LineAreaChart clamps its x-axis labels.
-                    // All positions here are absolute SVG coordinates (slotStart already
-                    // includes resolvedPadding.left), so the plot bounds are expressed the
-                    // same way for the comparison.
-                    const categoryLabelHalfWidthPx = widestCategoryLabelWidthPx / 2
-                    const categoryLabelCenterX = slotStart + slotSize / 2
-                    const plotLeft = resolvedPadding.left
-                    const plotRight = resolvedPadding.left + plotWidth
-                    const isNearLeftEdge =
-                      categoryLabelCenterX < plotLeft + categoryLabelHalfWidthPx
-                    const isNearRightEdge =
-                      categoryLabelCenterX > plotRight - categoryLabelHalfWidthPx
-                    const categoryLabelTextAnchor = isNearLeftEdge
-                      ? 'start'
-                      : isNearRightEdge
-                        ? 'end'
-                        : 'middle'
-                    const categoryLabelX = isNearLeftEdge
-                      ? plotLeft
-                      : isNearRightEdge
-                        ? plotRight
-                        : categoryLabelCenterX
+                    // The shared label plan already guarantees this label's full width fits
+                    // without colliding with a neighbor or spilling into the Y-axis tick area,
+                    // so no truncation or ad-hoc edge clamping is needed here.
+                    const showCategoryLabel = shownVerticalCategoryLabelIndexes.has(index)
+                    const categoryLabel = showCategoryLabel ? item.category : ''
+                    const categoryLabelTextAnchor =
+                      verticalCategoryLabelTextAnchorByIndex.get(index) ?? 'middle'
+                    const categoryLabelX = slotStart + slotSize / 2
 
                     return (
                       <G key={`${item.category}-${index}`}>
