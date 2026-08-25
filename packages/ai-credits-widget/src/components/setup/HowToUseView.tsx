@@ -58,7 +58,7 @@ export function HowToUseView({ onBack }: HowToUseViewProps) {
   return (
     <YStack gap="$4">
       {/* Back navigation */}
-      <Button variant="ghost" alignSelf="flex-start" onPress={onBack} gap="$1" paddingHorizontal="$0">
+      <Button variant="text" alignSelf="flex-start" onPress={onBack} gap="$1">
         <Icon name="arrow-left" size="xs" color="primary" />
         <ButtonText color="$primary" fontSize="$2">
           Back to setup

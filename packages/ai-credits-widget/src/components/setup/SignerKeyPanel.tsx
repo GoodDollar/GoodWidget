@@ -9,6 +9,7 @@ import {
   Text,
   XStack,
   YStack,
+  Icon,
 } from '@goodwidget/ui'
 import type {
   AiCreditsWidgetAdapterActions,
@@ -20,11 +21,13 @@ import { compactButtonProps, truncateAddress } from '../shared/styles'
 interface SignerKeyPanelProps {
   state: AiCreditsWidgetAdapterState
   actions: AiCreditsWidgetAdapterActions
+  /** Called once a signer is generated-and-confirmed or imported successfully. */
+  onProceed: () => void
 }
 
 const ZERO_OPERATOR = '0x0000000000000000000000000000000000000000'
 
-export function SignerKeyPanel({ state, actions }: SignerKeyPanelProps) {
+export function SignerKeyPanel({ state, actions, onProceed }: SignerKeyPanelProps) {
   const [choice, setChoice] = useState<'generate' | 'import' | null>(null)
   const [privateKey, setPrivateKey] = useState('')
   const [isImporting, setIsImporting] = useState(false)
@@ -42,6 +45,10 @@ export function SignerKeyPanel({ state, actions }: SignerKeyPanelProps) {
   const expectedOperator = state.operatorAddress?.toLowerCase()
   // Only meaningful once the operator status of the active signer has loaded:
   // an unknown expected operator must never read as "a different operator".
+  // Once the signer is settled the only step left is authorizing the wallet —
+  // unless this signer already carries GoodDollar consent, which ends setup.
+  const proceedLabel = state.operatorConsented ? 'Done' : 'Continue to Authorize Wallet'
+
   const hasDifferentOperator =
     Boolean(currentOperator) &&
     currentOperator !== ZERO_OPERATOR &&
@@ -51,7 +58,8 @@ export function SignerKeyPanel({ state, actions }: SignerKeyPanelProps) {
   if (choice === 'generate') {
     return (
       <YStack gap="$3">
-        <Button variant="ghost" alignSelf="flex-start" onPress={leaveChoice}>
+        <Button variant="text" alignSelf="flex-start" onPress={leaveChoice}>
+          <Icon name="arrow-left" size="xs" color="primary" />
           <ButtonText>Back to Generate / Import</ButtonText>
         </Button>
         <BuyerKeyPanel
@@ -62,6 +70,11 @@ export function SignerKeyPanel({ state, actions }: SignerKeyPanelProps) {
           onGenerate={actions.generateBuyerKey}
           onConfirm={() => setKeyConfirmed(true)}
         />
+        {keyConfirmed && (
+          <Button size="sm" {...compactButtonProps} onPress={onProceed}>
+            <ButtonText>{proceedLabel}</ButtonText>
+          </Button>
+        )}
       </YStack>
     )
   }
@@ -77,7 +90,8 @@ export function SignerKeyPanel({ state, actions }: SignerKeyPanelProps) {
 
     return (
       <YStack gap="$3">
-        <Button variant="ghost" alignSelf="flex-start" onPress={leaveChoice}>
+        <Button variant="text" alignSelf="flex-start" onPress={leaveChoice}>
+          <Icon name="arrow-left" size="xs" color="primary" />
           <ButtonText>Back to Generate / Import</ButtonText>
         </Button>
         <Heading level={5}>Import Signer Key</Heading>
@@ -134,6 +148,9 @@ export function SignerKeyPanel({ state, actions }: SignerKeyPanelProps) {
                   ? 'No operator is configured yet. Continue to authorize GoodDollar.'
                   : 'The configured operator is being checked.'}
             </Text>
+            <Button size="sm" {...compactButtonProps} onPress={onProceed}>
+              <ButtonText>{proceedLabel}</ButtonText>
+            </Button>
           </YStack>
         ) : null}
       </YStack>

@@ -51,6 +51,18 @@ export function SetupOnboardingFlow({ state, actions }: SetupOnboardingFlowProps
     setDrawerOpen(true)
   }, [])
 
+  // A settled signer leaves exactly one step open: authorizing the wallet. Move
+  // the drawer there instead of dropping the user back on the stepper — unless
+  // the signer already carries consent, in which case setup is done.
+  const handleSignerReady = useCallback(() => {
+    if (state.operatorConsented) {
+      setDrawerOpen(false)
+      setDrawerStep(null)
+      return
+    }
+    setDrawerStep('authorize')
+  }, [state.operatorConsented])
+
   const handleStepPress = useCallback(
     (stepId: string) => {
       if (stepId === 'download') {
@@ -90,7 +102,9 @@ export function SetupOnboardingFlow({ state, actions }: SetupOnboardingFlowProps
       >
         <ScrollArea width="100%">
           <YStack gap="$3" paddingBottom="$4" width="100%">
-            {drawerStep === 'signer' ? <SignerKeyPanel state={state} actions={actions} /> : null}
+            {drawerStep === 'signer' ? (
+              <SignerKeyPanel state={state} actions={actions} onProceed={handleSignerReady} />
+            ) : null}
             {drawerStep === 'authorize' ? (
               <OperatorConsentStep
                 embedded
