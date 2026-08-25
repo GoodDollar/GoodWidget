@@ -26,7 +26,6 @@ import {
   AiCreditsHero,
   AiCreditsFlowStepper,
   AiCreditsPurchaseFlow,
-  BuyCreditsFaq,
   AiCreditsStatusNotice,
   CreditsManagementCard,
   BuyerOperatorCard,
@@ -270,7 +269,6 @@ function BuyCreditsPanel({ state, actions, isPending, onPay }: BuyPanelProps) {
   return (
     <YStack gap="$4">
       {content}
-      <BuyCreditsFaq />
     </YStack>
   )
 }
