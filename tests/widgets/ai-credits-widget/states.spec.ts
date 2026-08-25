@@ -287,6 +287,10 @@ const MULTI_BUYER_STORY_IDS = {
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--deep-link-consent-pending&viewMode=story',
   multiBuyerHistory:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--multi-buyer-history&viewMode=story',
+  walletControls:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--wallet-controls&viewMode=story',
+  walletControlsHidden:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--wallet-controls-hidden&viewMode=story',
 } as const
 
 test('AiCreditsWidget multi-buyer manage: buyer selector is visible', async ({ page }) => {
@@ -324,6 +328,44 @@ test('AiCreditsWidget multi-buyer manage: buyer selector is visible', async ({ p
 
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-15-multi-buyer-manage.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget wallet controls: header chip disconnects when the host opts in', async ({
+  page,
+}) => {
+  await gotoStory(page, MULTI_BUYER_STORY_IDS.walletControls)
+  // expectWidget, not widget(): Storybook compiles a story module on its first
+  // request, which can outrun the default assertion timeout on a cold server.
+  const root = await expectWidget(page, 'AiCreditsWidget-wallet-controls')
+
+  const chip = root.getByLabel('Wallet options')
+  await expect(chip).toBeVisible()
+  await expect(root.getByRole('button', { name: /Disconnect/i })).toHaveCount(0)
+
+  await chip.click()
+  await expect(root.getByRole('button', { name: 'Disconnect' })).toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-27-wallet-controls.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget wallet controls: hidden by default for wallet hosts', async ({ page }) => {
+  await gotoStory(page, MULTI_BUYER_STORY_IDS.walletControlsHidden)
+  // expectWidget, not widget(): Storybook compiles a story module on its first
+  // request, which can outrun the default assertion timeout on a cold server.
+  const root = await expectWidget(page, 'AiCreditsWidget-wallet-controls-hidden')
+
+  // The header keeps its chain badge but offers no address and no session controls.
+  await expect(root.getByText('Celo').first()).toBeVisible()
+  await expect(root.getByLabel('Wallet options')).toHaveCount(0)
+  await expect(root.getByRole('button', { name: /Disconnect/i })).toHaveCount(0)
+
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-28-wallet-controls-hidden.png',
     fullPage: true,
   })
 })

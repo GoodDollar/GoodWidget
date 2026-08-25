@@ -11,6 +11,7 @@ import {
   useAppKit,
   useAppKitAccount,
   useAppKitProvider,
+  useDisconnect,
 } from '@goodwidget/embed/appkit-provider'
 import {
   ExternalLink,
@@ -64,6 +65,7 @@ function useDiscountConfig(backendUrl: string | undefined): DiscountConfig {
 
 function ReownAiCreditsWidget() {
   const { open } = useAppKit()
+  const { disconnect } = useDisconnect()
   const { address: appKitAddress } = useAppKitAccount()
   const { walletProvider } = useAppKitProvider<EIP1193Provider | undefined>('eip155')
   const appKitAddressRef = useRef(appKitAddress)
@@ -78,6 +80,10 @@ function ReownAiCreditsWidget() {
         if (!appKitAddressRef.current) {
           throw new Error('wallet_connect_cancelled')
         }
+      }}
+      showWalletControls
+      disconnectOverride={async () => {
+        await disconnect()
       }}
       backendUrl={import.meta.env.VITE_AI_CREDITS_BACKEND_URL}
       baseRpcUrl={import.meta.env.VITE_AI_CREDITS_BASE_RPC_URL}

@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react'
-import { GoodWidgetProvider } from '@goodwidget/core'
+import { GoodWidgetProvider, useWallet } from '@goodwidget/core'
 import type { EIP1193Provider } from '@goodwidget/core'
 import {
   Badge,
@@ -49,6 +49,7 @@ import type {
   AiCreditsQuote,
 } from './widgetRuntimeContract'
 import { compactButtonProps } from './components/shared/styles'
+import { WalletChip } from './components/shared/WalletChip'
 
 const CELO_CHAIN_ID = 42220
 
@@ -64,6 +65,8 @@ interface AiCreditsInnerProps {
   adapterOptions?: AiCreditsWidgetAdapterOptions
   onPaySuccess?: (detail: AiCreditsPaySuccessDetail) => void
   onPayError?: (detail: AiCreditsPayErrorDetail) => void
+  showWalletControls?: boolean
+  hasDisconnectOverride?: boolean
 }
 
 function SetupConnectPrompt({
@@ -344,6 +347,8 @@ function AiCreditsInner({
   adapterOptions,
   onPaySuccess,
   onPayError,
+  showWalletControls = false,
+  hasDisconnectOverride = false,
 }: AiCreditsInnerProps) {
   const defaultAdapter = useAiCreditsAdapter({
     environment,
@@ -423,6 +428,16 @@ function AiCreditsInner({
     [actions],
   )
 
+  const { disconnect, disconnectLabel, disconnectIcon } = useWallet()
+
+  // Ending the session leaves every other tab showing empty rows, so the widget
+  // returns to Setup — the only tab that has something to say while disconnected.
+  const handleDisconnect = useCallback(async () => {
+    await disconnect()
+    setHelpView(null)
+    actions.setActiveTab('setup')
+  }, [actions, disconnect])
+
   const walletRequired = needsWalletConnection(state)
 
   const handleHelpViewOpen = useCallback(
@@ -448,11 +463,26 @@ function AiCreditsInner({
 
   return (
     <YStack gap="$3" padding="$3" width="100%">
-      <XStack justifyContent="space-between" alignItems="center" paddingHorizontal="$1">
+      <XStack
+        justifyContent="space-between"
+        alignItems="center"
+        gap="$2"
+        paddingHorizontal="$1"
+      >
         <Heading level={4}>GoodDollar</Heading>
-        <Badge type="info">
-          <BadgeText>{getChainDisplayName(state.chainId ?? CELO_CHAIN_ID)}</BadgeText>
-        </Badge>
+        <XStack gap="$2" alignItems="center" flexShrink={1} minWidth={0}>
+          <Badge type="info">
+            <BadgeText>{getChainDisplayName(state.chainId ?? CELO_CHAIN_ID)}</BadgeText>
+          </Badge>
+          {showWalletControls && state.address && (
+            <WalletChip
+              address={state.address}
+              onDisconnect={hasDisconnectOverride ? handleDisconnect : undefined}
+              disconnectLabel={hasDisconnectOverride ? disconnectLabel : undefined}
+              disconnectIcon={hasDisconnectOverride ? disconnectIcon : undefined}
+            />
+          )}
+        </XStack>
       </XStack>
       <SetupGuidanceCard
         activeHelpView={helpView}
@@ -502,6 +532,10 @@ function AiCreditsInner({
 export function AiCreditsWidget({
   provider,
   connectOverride,
+  showWalletControls = false,
+  disconnectOverride,
+  disconnectLabel,
+  disconnectIcon,
   environment = 'production',
   backendUrl,
   baseRpcUrl,
@@ -522,6 +556,9 @@ export function AiCreditsWidget({
     <GoodWidgetProvider
       provider={provider as EIP1193Provider | undefined}
       connectOverride={connectOverride}
+      disconnectOverride={disconnectOverride}
+      disconnectLabel={disconnectLabel}
+      disconnectIcon={disconnectIcon}
       config={config}
       themeOverrides={themeOverrides}
       defaultTheme={defaultTheme}
@@ -539,6 +576,8 @@ export function AiCreditsWidget({
           adapterOptions={adapterOptions}
           onPaySuccess={onPaySuccess}
           onPayError={onPayError}
+          showWalletControls={showWalletControls}
+          hasDisconnectOverride={Boolean(disconnectOverride)}
         />
         <ToastContainer />
       </YStack>
