@@ -10,7 +10,14 @@ const FIXED_ANALYTICS_RESPONSE: AnalyticsResponse = {
     {
       date: '2026-01-01',
       gdOneTimeDepositsWei: '1000000000000000000000',
-      gdStreamedWei: '200000000000000000000',
+      // Kept off an exact 1/5 ratio of gdOneTimeDepositsWei (the original
+      // fixture's 200/300/400 was exactly deposits/5 on every day) — on the
+      // G$ Volume chart's independent per-series axes, two proportional
+      // series normalize to identical pixel positions and the later-drawn
+      // one fully occludes the other. Sum across the 3 days still matches
+      // global.gdStreamedWei (900) below, accelerating to reflect the rising
+      // gdTotalFlowRateWeiPerSecond.
+      gdStreamedWei: '250000000000000000000',
       gdTotalFlowRateWeiPerSecond: '2000000000000000',
       aiCreditsUsedWei: '50000000',
       uniqueGdBuyers: 4,
@@ -21,7 +28,7 @@ const FIXED_ANALYTICS_RESPONSE: AnalyticsResponse = {
     {
       date: '2026-01-02',
       gdOneTimeDepositsWei: '1500000000000000000000',
-      gdStreamedWei: '300000000000000000000',
+      gdStreamedWei: '280000000000000000000',
       gdTotalFlowRateWeiPerSecond: '3000000000000000',
       aiCreditsUsedWei: '75000000',
       uniqueGdBuyers: 6,
@@ -32,7 +39,7 @@ const FIXED_ANALYTICS_RESPONSE: AnalyticsResponse = {
     {
       date: '2026-01-03',
       gdOneTimeDepositsWei: '2000000000000000000000',
-      gdStreamedWei: '400000000000000000000',
+      gdStreamedWei: '370000000000000000000',
       gdTotalFlowRateWeiPerSecond: '4000000000000000',
       aiCreditsUsedWei: '100000000',
       uniqueGdBuyers: 8,

@@ -12,6 +12,7 @@ import {
   BarChart,
   Button,
   ButtonText,
+  formatMetricValue,
   Heading,
   LineAreaChart,
   Scorecard,
@@ -317,8 +318,18 @@ function AiCreditsDashboardView({
                 { key: 'streamed', label: 'Streamed (G$)' },
               ]}
               showArea
-              yAxisLabel="G$"
+              yAxisLabel="One-time Deposits (G$)"
               valueType="decimal"
+              // Streamed G$ (a Superfluid flow) accrues far more gradually per
+              // day than one-time deposits, so sharing the primary axis flattens
+              // it out to near-zero. Its own axis — with matching decimal
+              // formatting via formatMetricValue so both axes read consistently
+              // — lets its actual day-to-day trend show.
+              secondaryYAxis={{
+                key: 'streamed',
+                label: 'Streamed (G$)',
+                formatter: (value) => formatMetricValue(value, 'compact', 2, { trimIntegers: true }),
+              }}
               testID="chart-gd-volume"
             />
             <BarChart

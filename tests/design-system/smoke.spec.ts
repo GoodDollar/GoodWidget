@@ -288,7 +288,12 @@ test('LineAreaChart/MultiSeriesSecondaryAxis story renders both series with a le
   const chart = frame.getByTestId('LineAreaChart-multi-axis')
   await expect(chart).toBeVisible()
   await expect(chart.getByText('Claims', { exact: true })).toBeVisible()
-  await expect(chart.getByText('G$ Price', { exact: true })).toBeVisible()
+  // "G$ Price" now renders twice — the legend label (HTML span) and the
+  // secondary axis title (SVG text, QA fix: this title used to be a dead
+  // prop that never rendered) — assert each by tag instead of the ambiguous
+  // shared-text locator this test used before that fix.
+  await expect(chart.locator('span').filter({ hasText: /^G\$ Price$/ })).toBeVisible()
+  await expect(chart.locator('svg text').filter({ hasText: /^G\$ Price$/ })).toBeVisible()
   await screenshotStory(page, 'tests/design-system/test-results/story-lineareachart-multiaxis.png')
 })
 

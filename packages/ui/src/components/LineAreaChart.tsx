@@ -429,12 +429,18 @@ function mergePadding(
   hasSecondaryAxis: boolean,
   scaleRatio: number,
   minLeftPx: number,
+  minRightPx: number,
 ): LineAreaChartPadding {
   const scaledDefaults = scaleEdgeInsets(DEFAULT_PADDING, scaleRatio)
   const defaults = hasSecondaryAxis
     ? { ...scaledDefaults, right: scalePx(SECONDARY_AXIS_RIGHT_PADDING_BASE_PX, scaleRatio) }
     : scaledDefaults
-  return { ...defaults, left: Math.max(defaults.left, minLeftPx), ...padding }
+  return {
+    ...defaults,
+    left: Math.max(defaults.left, minLeftPx),
+    right: Math.max(defaults.right, minRightPx),
+    ...padding,
+  }
 }
 
 const LineAreaFrame = createComponent(YStack, {
@@ -581,6 +587,14 @@ function LineAreaChartContent({
   )
   const secondaryScale = secondaryValues.length > 0 ? computeNiceAxisScale(secondaryValues) : null
 
+  // Each axis is colored to match the single series it represents once a
+  // secondary axis splits the chart into two — otherwise the primary axis
+  // stays neutral, since "which color" is ambiguous when it's still shared
+  // by more than one series.
+  const primaryAxisColor =
+    secondaryScale && primarySeriesList.length === 1 ? primarySeriesList[0].color : axisLabelColor
+  const secondaryAxisColor = secondarySeries?.color ?? axisLabelColor
+
   // A string `width` (e.g. the default "100%") only tells the SVG element itself how
   // to stretch — it carries no pixel value we can lay points out against, so that case
   // needs the frame's real rendered width measured via onLayout instead.
@@ -622,7 +636,31 @@ function LineAreaChartContent({
     AXIS_LABEL_GAP_PX +
     (yAxisLabel ? tickLabelSizePx + AXIS_LABEL_GAP_PX : 0)
 
-  const resolvedPadding = mergePadding(padding, secondaryScale !== null, scaleRatio, requiredLeftGutterPx)
+  // Mirrors requiredLeftGutterPx for the secondary axis's own tick labels and
+  // title, so a wide secondary tick value or title can't collide with the
+  // plot area on the right the same way the primary title is protected on
+  // the left.
+  const widestSecondaryTickLabelWidthPx = secondaryScale
+    ? secondaryScale.ticks.reduce<number>(
+        (widest, tick) =>
+          Math.max(widest, estimateTextWidthPx((secondaryYAxis?.formatter ?? formatChartAxisValue)(tick), tickLabelSizePx)),
+        0,
+      )
+    : 0
+  const requiredRightGutterPx = secondaryScale
+    ? AXIS_LABEL_GAP_PX +
+      widestSecondaryTickLabelWidthPx +
+      AXIS_LABEL_GAP_PX +
+      (secondaryYAxis?.label ? tickLabelSizePx + AXIS_LABEL_GAP_PX : 0)
+    : 0
+
+  const resolvedPadding = mergePadding(
+    padding,
+    secondaryScale !== null,
+    scaleRatio,
+    requiredLeftGutterPx,
+    requiredRightGutterPx,
+  )
   const plotWidth = viewBoxWidth - resolvedPadding.left - resolvedPadding.right
   const plotHeight = height - resolvedPadding.top - resolvedPadding.bottom
 
@@ -630,6 +668,13 @@ function LineAreaChartContent({
     tickLabelSizePx / 2,
     resolvedPadding.left - AXIS_LABEL_GAP_PX - widestYTickLabelWidthPx - AXIS_LABEL_GAP_PX - tickLabelSizePx / 2,
   )
+  const secondaryYAxisTitleXPx =
+    resolvedPadding.left +
+    plotWidth +
+    AXIS_LABEL_GAP_PX +
+    widestSecondaryTickLabelWidthPx +
+    AXIS_LABEL_GAP_PX +
+    tickLabelSizePx / 2
 
   const resolvedAccessibilityLabel =
     accessibilityLabel ??
@@ -797,7 +842,7 @@ function LineAreaChartContent({
                       y={yPixelForValue(tick, primaryScale)}
                       fontSize={tickLabelSizePx}
                       fontFamily={CHART_FONT_FAMILY}
-                      fill={axisLabelColor}
+                      fill={primaryAxisColor}
                       textAnchor="end"
                       alignmentBaseline="middle"
                     >
@@ -812,7 +857,7 @@ function LineAreaChartContent({
                           y={yPixelForValue(tick, secondaryScale)}
                           fontSize={tickLabelSizePx}
                           fontFamily={CHART_FONT_FAMILY}
-                          fill={secondarySeries?.color ?? axisLabelColor}
+                          fill={secondaryAxisColor}
                           textAnchor="start"
                           alignmentBaseline="middle"
                         >
@@ -967,13 +1012,32 @@ function LineAreaChartContent({
                 y={resolvedPadding.top + plotHeight / 2}
                 fontSize={tickLabelSizePx}
                 fontFamily={CHART_FONT_FAMILY}
-                fill={axisLabelColor}
+                fill={primaryAxisColor}
                 textAnchor="middle"
                 rotation={-90}
                 origin={`${yAxisTitleXPx}, ${resolvedPadding.top + plotHeight / 2}`}
                 accessible={false}
               >
                 {yAxisLabel}
+              </SvgText>
+            ) : null}
+            {secondaryYAxis?.label && secondaryScale ? (
+              // Mirrors the primary y-axis title above on the opposite side —
+              // rotated the other way (+90, not -90) so its reading direction
+              // matches the convention of a right-hand axis title, and colored
+              // to match its own series rather than the primary title's color.
+              <SvgText
+                x={secondaryYAxisTitleXPx}
+                y={resolvedPadding.top + plotHeight / 2}
+                fontSize={tickLabelSizePx}
+                fontFamily={CHART_FONT_FAMILY}
+                fill={secondaryAxisColor}
+                textAnchor="middle"
+                rotation={90}
+                origin={`${secondaryYAxisTitleXPx}, ${resolvedPadding.top + plotHeight / 2}`}
+                accessible={false}
+              >
+                {secondaryYAxis.label}
               </SvgText>
             ) : null}
           </Svg>
