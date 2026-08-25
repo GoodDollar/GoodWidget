@@ -91,6 +91,8 @@ export const ButtonFrame = createComponent(Stack, {
         height: 'auto',
         hoverStyle: { opacity: 0.7, backgroundColor: '$backgroundTransparent' },
         pressStyle: { opacity: 0.5, backgroundColor: '$backgroundTransparent' },
+        // Keep the focus ring but never fill — a solid focus bg reads as a button.
+        focusStyle: { backgroundColor: '$backgroundTransparent' },
       },
       // Icon + label row — smaller $2 radius for a rectangular row appearance.
       list: {
