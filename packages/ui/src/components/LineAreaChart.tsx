@@ -26,7 +26,7 @@ import { createComponent } from '../createComponent'
 import { Card } from './Card'
 import { ChartTooltip, estimateChartTooltipWidthPx, type ChartTooltipRow } from './ChartTooltip'
 import { CHART_FONT_FAMILY } from '../utils/chartFontFamily'
-import { formatChartAxisValue } from '../utils/formatMetricValue'
+import { type ChartValueType, formatByValueType, formatChartAxisValue } from '../utils/formatMetricValue'
 import { resolveThemeColor } from '../utils/resolveThemeColor'
 import {
   computeChartScaleRatio,
@@ -88,6 +88,16 @@ export interface LineAreaChartProps {
   yAxisLabel?: string
   xAxisFormatter?: (value: string | number) => string
   yAxisFormatter?: (value: number) => string
+  /**
+   * The primary y-axis's declared semantic type — drives decimal precision
+   * for both axis ticks and the hover tooltip from one shared config instead
+   * of each guessing from a value's runtime shape. Ignored when
+   * `yAxisFormatter` is explicitly provided. Defaults to `'auto'` (today's
+   * default chart formatting).
+   */
+  valueType?: ChartValueType
+  /** Precision override for `valueType: 'decimal'` (default 2). Ignored by `'integer'`/`'currency'`, which are fixed. */
+  valueDecimals?: number
   yAxisDomain?: [number | 'auto', number | 'auto']
   secondaryYAxis?: LineAreaChartSecondaryAxis
   referenceLines?: LineAreaChartReferenceLine[]
@@ -519,7 +529,9 @@ function LineAreaChartContent({
   xAxisLabel,
   yAxisLabel,
   xAxisFormatter = (value) => String(value),
-  yAxisFormatter = formatChartAxisValue,
+  yAxisFormatter: yAxisFormatterProp,
+  valueType = 'auto',
+  valueDecimals,
   yAxisDomain,
   secondaryYAxis,
   referenceLines = [],
@@ -532,6 +544,10 @@ function LineAreaChartContent({
 }: Omit<LineAreaChartProps, 'variant'>) {
   const theme = useTheme()
   const gradientIdPrefix = useId()
+  // An explicit formatter always wins; otherwise the axis's declared
+  // valueType picks precision, so ticks and the hover tooltip below both
+  // read from this single resolved formatter.
+  const yAxisFormatter = yAxisFormatterProp ?? ((value: number) => formatByValueType(value, valueType, valueDecimals))
   // QA fix: hovering a point previously showed nothing. Tracks which
   // x-category index the pointer is nearest to, or null when not hovering.
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)

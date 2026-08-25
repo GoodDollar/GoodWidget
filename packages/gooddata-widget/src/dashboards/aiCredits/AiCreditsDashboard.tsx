@@ -318,6 +318,7 @@ function AiCreditsDashboardView({
               ]}
               showArea
               yAxisLabel="G$"
+              valueType="decimal"
               testID="chart-gd-volume"
             />
             <BarChart
@@ -325,6 +326,7 @@ function AiCreditsDashboardView({
               title="AI Credits Used (USD)"
               data={creditsChartData}
               yAxisLabel="USD"
+              valueType="currency"
               testID="chart-ai-credits"
             />
             <LineAreaChart
@@ -337,6 +339,7 @@ function AiCreditsDashboardView({
               ]}
               showArea={false}
               yAxisLabel="Wallets"
+              valueType="integer"
               testID="chart-unique-wallets"
             />
           </>

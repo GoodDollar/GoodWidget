@@ -15,7 +15,7 @@ import { createComponent } from '../createComponent'
 import { Card } from './Card'
 import { ChartTooltip, estimateChartTooltipWidthPx, type ChartTooltipRow } from './ChartTooltip'
 import { CHART_FONT_FAMILY } from '../utils/chartFontFamily'
-import { formatChartAxisValue } from '../utils/formatMetricValue'
+import { type ChartValueType, formatByValueType } from '../utils/formatMetricValue'
 import { resolveThemeColor } from '../utils/resolveThemeColor'
 import {
   computeChartScaleRatio,
@@ -49,6 +49,16 @@ export interface BarChartProps {
   showGrid?: boolean
   showValueLabels?: boolean
   valueFormatter?: (value: number) => string
+  /**
+   * The bar values' declared semantic type — drives decimal precision for
+   * both axis ticks and the hover tooltip from one shared config instead of
+   * each guessing from a value's runtime shape. Ignored when
+   * `valueFormatter` is explicitly provided. Defaults to `'auto'` (today's
+   * default chart formatting).
+   */
+  valueType?: ChartValueType
+  /** Precision override for `valueType: 'decimal'` (default 2). Ignored by `'integer'`/`'currency'`, which are fixed. */
+  valueDecimals?: number
   xAxisLabel?: string
   yAxisLabel?: string
   barCornerRadius?: number
@@ -289,7 +299,9 @@ function BarChartContent({
   layout = 'vertical',
   showGrid = true,
   showValueLabels = false,
-  valueFormatter = formatChartAxisValue,
+  valueFormatter: valueFormatterProp,
+  valueType = 'auto',
+  valueDecimals,
   xAxisLabel,
   yAxisLabel,
   barCornerRadius = 0,
@@ -305,6 +317,10 @@ function BarChartContent({
   const gridColor = resolveThemeColor(theme, 'colorDim')
   const axisLabelColor = resolveThemeColor(theme, 'placeholderColor')
   const textColor = resolveThemeColor(theme, 'color')
+  // An explicit formatter always wins; otherwise the chart's declared
+  // valueType picks precision, so ticks, bar-top labels, and the hover
+  // tooltip below all read from this single resolved formatter.
+  const valueFormatter = valueFormatterProp ?? ((value: number) => formatByValueType(value, valueType, valueDecimals))
 
   // QA fix: hovering a bar previously showed nothing. Tracks which item
   // index the pointer is currently over, or null when not hovering.

@@ -122,3 +122,38 @@ export function formatMetricValue(
 export function formatChartAxisValue(value: number, format: MetricFormat = 'compact', decimals?: number): string {
   return formatMetricValue(value, format, decimals, { trimIntegers: false })
 }
+
+/**
+ * A chart series/axis's declared semantic type, used to pick decimal
+ * precision instead of inspecting the runtime value (the previously
+ * considered "strip decimals if the value is whole" approach is fragile — a
+ * currency value that happens to land on a whole dollar amount would wrongly
+ * lose its decimals).
+ */
+export type ChartValueType = 'integer' | 'currency' | 'decimal' | 'auto'
+
+/** Fixed precision for the two non-configurable types; 'decimal' allows an override via `formatByValueType`'s `decimals` param. */
+const VALUE_TYPE_DEFAULT_DECIMALS: Record<Exclude<ChartValueType, 'auto'>, number> = {
+  integer: 0,
+  currency: 2,
+  decimal: 2,
+}
+
+/**
+ * Formats a chart value from its declared `valueType` rather than the
+ * value's own runtime shape. `'integer'` and `'currency'` always render at
+ * their fixed precision (0 and 2 decimals respectively); `'decimal'` accepts
+ * an optional `decimals` override (default 2); `'auto'` falls back to
+ * `formatChartAxisValue`'s existing default for callers that haven't
+ * declared a type yet. Callers must feed both a chart's axis ticks and its
+ * tooltip through this same function (not separate hardcoded decimal
+ * counts) so the two always agree.
+ */
+export function formatByValueType(value: number, valueType: ChartValueType = 'auto', decimals?: number): string {
+  if (valueType === 'auto') {
+    return formatChartAxisValue(value)
+  }
+
+  const resolvedDecimals = decimals ?? VALUE_TYPE_DEFAULT_DECIMALS[valueType]
+  return formatChartAxisValue(value, 'compact', resolvedDecimals)
+}
