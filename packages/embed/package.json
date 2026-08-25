@@ -1,6 +1,11 @@
 {
   "name": "@goodwidget/embed",
   "version": "0.1.4",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GoodDollar/GoodWidget.git",
+    "directory": "packages/embed"
+  },
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

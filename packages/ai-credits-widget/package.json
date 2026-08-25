@@ -2,6 +2,11 @@
   "name": "@goodwidget/ai-credits-widget",
   "version": "0.1.6",
   "description": "GoodWidget for buying AI coding credits with G$ on Celo",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GoodDollar/GoodWidget.git",
+    "directory": "packages/ai-credits-widget"
+  },
   "files": [
     "dist",
     "README.md"

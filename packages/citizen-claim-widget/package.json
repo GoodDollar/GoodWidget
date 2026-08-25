@@ -2,6 +2,11 @@
   "name": "@goodwidget/citizen-claim-widget",
   "version": "0.2.1",
   "description": "GoodWidget migration target for the GoodSDKs citizen claim flow",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GoodDollar/GoodWidget.git",
+    "directory": "packages/citizen-claim-widget"
+  },
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
