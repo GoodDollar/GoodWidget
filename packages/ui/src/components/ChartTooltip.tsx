@@ -32,6 +32,10 @@ const TOOLTIP_ROW_FONT_SIZE_PX = 12
 const TOOLTIP_PADDING_HORIZONTAL_PX = 12
 const TOOLTIP_DOT_SIZE_PX = 8
 const TOOLTIP_DOT_TO_TEXT_GAP_PX = 8
+/** ChartTooltipFrame's `borderWidth` — border-box sizing means this eats into
+ * the frame's own content area on both sides, so it must be subtracted here
+ * too or the row's real available width comes up short of what was estimated. */
+const TOOLTIP_BORDER_WIDTH_PX = 1
 /** QA fix: the numeric value must never truncate — width expands to fit the
  * longest value, only the series label ellipsizes once it would push the
  * tooltip past `TOOLTIP_MAX_WIDTH_RATIO` of the hosting chart's own width. */
@@ -48,7 +52,9 @@ function formatRowValueText(value: string): string {
 function estimateRowContentWidthPx(row: ChartTooltipRow): number {
   const labelWidthPx = estimateTextWidthPx(row.label, TOOLTIP_ROW_FONT_SIZE_PX)
   const valueWidthPx = estimateTextWidthPx(formatRowValueText(row.value), TOOLTIP_ROW_FONT_SIZE_PX)
-  return TOOLTIP_DOT_SIZE_PX + TOOLTIP_DOT_TO_TEXT_GAP_PX + labelWidthPx + valueWidthPx
+  // The row is an XStack with `gap="$2"` between all 3 children (dot, label,
+  // value) — that's two gaps (dot→label, label→value), not one.
+  return TOOLTIP_DOT_SIZE_PX + TOOLTIP_DOT_TO_TEXT_GAP_PX * 2 + labelWidthPx + valueWidthPx
 }
 
 /**
@@ -63,10 +69,12 @@ export function estimateChartTooltipWidthPx(
   rows: ChartTooltipRow[],
   chartWidthPx: number,
 ): number {
-  const headerWidthPx = estimateTextWidthPx(header, TOOLTIP_HEADER_FONT_SIZE_PX)
+  // Header renders bold (see ChartTooltipHeaderText) — matching fontWeight
+  // keeps this estimate consistent with the glyph widths that actually render.
+  const headerWidthPx = estimateTextWidthPx(header, TOOLTIP_HEADER_FONT_SIZE_PX, undefined, '700')
   const widestRowWidthPx = rows.reduce((widest, row) => Math.max(widest, estimateRowContentWidthPx(row)), 0)
   const contentWidthPx = Math.max(headerWidthPx, widestRowWidthPx)
-  const widthPx = contentWidthPx + TOOLTIP_PADDING_HORIZONTAL_PX * 2
+  const widthPx = contentWidthPx + TOOLTIP_PADDING_HORIZONTAL_PX * 2 + TOOLTIP_BORDER_WIDTH_PX * 2
   const maxWidthPx = Math.max(TOOLTIP_MIN_WIDTH_PX, chartWidthPx * TOOLTIP_MAX_WIDTH_RATIO)
 
   return Math.min(maxWidthPx, Math.max(TOOLTIP_MIN_WIDTH_PX, widthPx))
@@ -76,7 +84,7 @@ const ChartTooltipFrame = createComponent(YStack, {
   name: 'ChartTooltipFrame',
   position: 'absolute',
   backgroundColor: '$background',
-  borderWidth: 1,
+  borderWidth: TOOLTIP_BORDER_WIDTH_PX,
   borderColor: '$borderColor',
   borderRadius: '$3',
   paddingHorizontal: TOOLTIP_PADDING_HORIZONTAL_PX,
@@ -124,8 +132,15 @@ const ChartTooltipDot = createComponent(YStack, {
 
 export function ChartTooltip({ header, rows, left, top, chartWidthPx }: ChartTooltipProps) {
   const widthPx = estimateChartTooltipWidthPx(header, rows, chartWidthPx)
-  // Space left for label text once the dot, gap, and full (never-truncated) value are accounted for.
-  const availableTextWidthPx = widthPx - TOOLTIP_PADDING_HORIZONTAL_PX * 2 - TOOLTIP_DOT_SIZE_PX - TOOLTIP_DOT_TO_TEXT_GAP_PX
+  // Space left for label text once the frame's padding and border, the dot,
+  // both gaps, and the full (never-truncated) value are accounted for —
+  // matches estimateRowContentWidthPx plus the border-box border itself.
+  const availableTextWidthPx =
+    widthPx -
+    TOOLTIP_PADDING_HORIZONTAL_PX * 2 -
+    TOOLTIP_BORDER_WIDTH_PX * 2 -
+    TOOLTIP_DOT_SIZE_PX -
+    TOOLTIP_DOT_TO_TEXT_GAP_PX * 2
 
   return (
     <ChartTooltipFrame left={left} top={top} width={widthPx} data-testid="chart-tooltip">
