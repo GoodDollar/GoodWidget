@@ -19,6 +19,8 @@ import {
   UnsupportedChainStory,
   AppKitConnectWalletStory,
   MultiBuyerManageStory,
+  WalletControlsStory,
+  WalletControlsHiddenStory,
   DeepLinkBuyerStory,
   DeepLinkConsentPendingStory,
   MultiBuyerHistoryStory,
@@ -106,6 +108,16 @@ export const UnsupportedChain: Story = {
 /** Multi-buyer manage tab: buyer selector and private-key reveal. */
 export const MultiBuyerManage: Story = {
   render: () => <MultiBuyerManageStory />,
+}
+
+/** Header wallet chip opted in, with a host-supplied disconnect. */
+export const WalletControls: Story = {
+  render: () => <WalletControlsStory />,
+}
+
+/** Wallet host default: no address and no disconnect in the header. */
+export const WalletControlsHidden: Story = {
+  render: () => <WalletControlsHiddenStory />,
 }
 
 /** Deep-link partner buyer: consent via pre-signed operatorSignature. */

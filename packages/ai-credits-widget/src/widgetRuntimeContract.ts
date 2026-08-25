@@ -1,5 +1,5 @@
 import type { Address } from 'viem'
-import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
+import type { GoodWidgetConfig, GoodWidgetThemeOverrides, IconName } from '@goodwidget/ui'
 import type { AccountRef } from './backendTypes'
 import type { AiCreditsBackendClient } from './backendClient'
 import type { AiCreditsChainClient } from './chainClient'
@@ -141,6 +141,27 @@ export interface AiCreditsPayErrorDetail {
 export interface AiCreditsWidgetProps {
   provider?: unknown
   connectOverride?: () => Promise<void>
+  /**
+   * Shows the connected-wallet chip (address, and disconnect when the host supplies
+   * `disconnectOverride`) in the widget header.
+   *
+   * Off by default: wallet hosts own the connection and must not offer a second,
+   * widget-local way to end it. Standalone deployments and Storybook opt in.
+   */
+  showWalletControls?: boolean
+  /**
+   * Integrator-owned wallet disconnect flow. Without it the chip renders the address
+   * only, and its menu explains that the session belongs to the host.
+   */
+  disconnectOverride?: () => Promise<void>
+  /**
+   * Label for the chip's menu action. Defaults to "Disconnect", which only fits when
+   * `disconnectOverride` really ends the session — integrators who instead open an
+   * account modal should relabel it.
+   */
+  disconnectLabel?: string
+  /** Icon for the chip's menu action, mirroring `disconnectLabel`. */
+  disconnectIcon?: IconName
   environment?: AiCreditsWidgetEnvironment
   backendUrl?: string
   baseRpcUrl?: string

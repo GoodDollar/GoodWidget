@@ -23,11 +23,27 @@ interface SignerKeyPanelProps {
   actions: AiCreditsWidgetAdapterActions
   /** Called once a signer is generated-and-confirmed or imported successfully. */
   onProceed: () => void
+  /** Hide the panel heading when the host section already carries one (Manage tab). */
+  showHeading?: boolean
+  /** Overrides the label of the button offered once a signer is settled. */
+  proceedLabel?: string
+  /**
+   * Narrow presentation for the Manage tab: stacked full-width choices, no badge and
+   * no surrounding prose, so replacing a signer reads as a secondary action.
+   */
+  compact?: boolean
 }
 
 const ZERO_OPERATOR = '0x0000000000000000000000000000000000000000'
 
-export function SignerKeyPanel({ state, actions, onProceed }: SignerKeyPanelProps) {
+export function SignerKeyPanel({
+  state,
+  actions,
+  onProceed,
+  showHeading = true,
+  proceedLabel: proceedLabelOverride,
+  compact = false,
+}: SignerKeyPanelProps) {
   const [choice, setChoice] = useState<'generate' | 'import' | null>(null)
   const [privateKey, setPrivateKey] = useState('')
   const [isImporting, setIsImporting] = useState(false)
@@ -47,7 +63,8 @@ export function SignerKeyPanel({ state, actions, onProceed }: SignerKeyPanelProp
   // an unknown expected operator must never read as "a different operator".
   // Once the signer is settled the only step left is authorizing the wallet —
   // unless this signer already carries GoodDollar consent, which ends setup.
-  const proceedLabel = state.operatorConsented ? 'Done' : 'Continue to Authorize Wallet'
+  const proceedLabel =
+    proceedLabelOverride ?? (state.operatorConsented ? 'Done' : 'Continue to Authorize Wallet')
 
   const hasDifferentOperator =
     Boolean(currentOperator) &&
@@ -157,39 +174,51 @@ export function SignerKeyPanel({ state, actions, onProceed }: SignerKeyPanelProp
     )
   }
 
-  return (
-    <YStack gap="$3">
-      <Heading level={5}>Signer Key</Heading>
-      <Text secondary>
-        A dedicated identity used only to buy and spend AI credits — separate from your wallet.
-      </Text>
-      <XStack gap="$3">
-        <Button
-          flex={1}
-          size="lg"
-          variant="outline"
-          {...compactButtonProps}
-          onPress={() => setChoice('generate')}
-        >
+  const choices = (
+    <>
+      <Button
+        flex={compact ? undefined : 1}
+        alignSelf={compact ? 'stretch' : undefined}
+        size={compact ? 'sm' : 'lg'}
+        variant="outline"
+        {...compactButtonProps}
+        onPress={() => setChoice('generate')}
+      >
+        {!compact && (
           <Badge type="success">
             <BadgeText>Recommended</BadgeText>
           </Badge>
-          <ButtonText>Generate Signer Key</ButtonText>
-        </Button>
-        <Button
-          flex={1}
-          size="lg"
-          variant="outline"
-          {...compactButtonProps}
-          onPress={() => setChoice('import')}
-        >
-          <ButtonText>Import Signer Key</ButtonText>
-        </Button>
-      </XStack>
-      <Text fontSize="$2" secondary>
-        Generate is recommended for a fresh signer. Either direction uses the same key once it is
-        set up in AntSeed.
-      </Text>
+        )}
+        <ButtonText>Generate Signer Key</ButtonText>
+      </Button>
+      <Button
+        flex={compact ? undefined : 1}
+        alignSelf={compact ? 'stretch' : undefined}
+        size={compact ? 'sm' : 'lg'}
+        variant="outline"
+        {...compactButtonProps}
+        onPress={() => setChoice('import')}
+      >
+        <ButtonText>Import Signer Key</ButtonText>
+      </Button>
+    </>
+  )
+
+  return (
+    <YStack gap="$3">
+      {showHeading && <Heading level={5}>Signer Key</Heading>}
+      {!compact && (
+        <Text secondary>
+          A dedicated identity used only to buy and spend AI credits — separate from your wallet.
+        </Text>
+      )}
+      {compact ? <YStack gap="$2">{choices}</YStack> : <XStack gap="$3">{choices}</XStack>}
+      {!compact && (
+        <Text fontSize="$2" secondary>
+          Generate is recommended for a fresh signer. Either direction uses the same key once it is
+          set up in AntSeed.
+        </Text>
+      )}
     </YStack>
   )
 }

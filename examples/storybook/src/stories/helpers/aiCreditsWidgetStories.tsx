@@ -100,10 +100,14 @@ function MockStoryShell({
   adapterFactory,
   dataTestId,
   provider,
+  showWalletControls,
+  disconnectOverride,
 }: {
   adapterFactory: AiCreditsWidgetAdapterFactory
   dataTestId: string
   provider?: EIP1193Provider
+  showWalletControls?: boolean
+  disconnectOverride?: () => Promise<void>
 }) {
   const resolvedProviderRef = useRef<EIP1193Provider | null>(provider ?? null)
   const configErrorRef = useRef<unknown>(null)
@@ -135,6 +139,8 @@ function MockStoryShell({
       <AiCreditsWidget
         provider={resolvedProviderRef.current!}
         adapterFactory={adapterFactory}
+        showWalletControls={showWalletControls}
+        disconnectOverride={disconnectOverride}
       />
     </div>
   )
@@ -544,6 +550,50 @@ export function MultiBuyerManageStory() {
         activeTab: 'manage',
         buyers: [BUYER_WALLET.address, BUYER_IMPORTED.address, BUYER_PARTNER.address],
         derivedBuyerAddress: BUYER_WALLET.address,
+      })}
+    />
+  )
+}
+
+/**
+ * Standalone/Storybook host: the wallet chip is opted in and the host supplies a
+ * disconnect, so the header carries the address and its Disconnect action.
+ */
+export function WalletControlsStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-wallet-controls"
+      showWalletControls
+      disconnectOverride={async () => {}}
+      adapterFactory={createAdapterFactory('quote_ready', {
+        totalCreditUsd: '110000000',
+        buyerPubKey: BUYER_WALLET.address,
+        buyerPrvKey: BUYER_WALLET.privateKey,
+        operatorConsented: true,
+        gBalance: '42.50',
+        activeTab: 'manage',
+        buyers: [BUYER_WALLET.address],
+      })}
+    />
+  )
+}
+
+/**
+ * Wallet host: showWalletControls is left at its default, so the header renders
+ * exactly as before — no address, no disconnect. The wallet owns the session.
+ */
+export function WalletControlsHiddenStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-wallet-controls-hidden"
+      adapterFactory={createAdapterFactory('quote_ready', {
+        totalCreditUsd: '110000000',
+        buyerPubKey: BUYER_WALLET.address,
+        buyerPrvKey: BUYER_WALLET.privateKey,
+        operatorConsented: true,
+        gBalance: '42.50',
+        activeTab: 'manage',
+        buyers: [BUYER_WALLET.address],
       })}
     />
   )
