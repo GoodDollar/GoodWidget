@@ -238,25 +238,6 @@ function LandingPage() {
         alignItems="center"
         $sm={{ paddingHorizontal: '$4', paddingTop: '$8', paddingBottom: '$6' }}
       >
-        <XStack
-          borderWidth={1}
-          borderColor="$borderColorFocus"
-          borderRadius="$full"
-          paddingHorizontal="$4"
-          paddingVertical="$2"
-          backgroundColor="$infoMuted"
-        >
-          <Text
-            variant="caption"
-            color="$primaryLight"
-            textTransform="uppercase"
-            letterSpacing={1.4}
-            bold
-          >
-            Early beta
-          </Text>
-        </XStack>
-
         <YStack gap="$4" alignItems="center" maxWidth={850}>
           <Heading
             level={1}
