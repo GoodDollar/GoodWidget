@@ -464,7 +464,9 @@ function BarChartContent({
   // tooltip never overhangs the chart frame. Width is estimated from this
   // hover's actual header/rows so the clamp matches what ChartTooltip itself
   // will render at, rather than a fixed guess.
-  const tooltipWidthPx = hoveredItem ? estimateChartTooltipWidthPx(hoveredItem.category, tooltipRows) : 0
+  const tooltipWidthPx = hoveredItem
+    ? estimateChartTooltipWidthPx(hoveredItem.category, tooltipRows, viewBoxWidth)
+    : 0
   const maxTooltipLeftPx = Math.max(0, viewBoxWidth - tooltipWidthPx)
   const hoveredSlotCenterPx =
     hoveredIndex !== null ? resolvedPadding.left + hoveredIndex * slotSize + slotSize / 2 : 0
@@ -759,6 +761,7 @@ function BarChartContent({
               rows={tooltipRows}
               left={tooltipLeftPx}
               top={resolvedPadding.top}
+              chartWidthPx={viewBoxWidth}
             />
           ) : null}
         </BarChartPlotArea>

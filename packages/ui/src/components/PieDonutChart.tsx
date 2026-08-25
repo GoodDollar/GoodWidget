@@ -446,7 +446,9 @@ function PieDonutChartContent({
     : []
   // Width is estimated from this hover's actual header/rows so the clamp
   // matches what ChartTooltip itself will render at, rather than a fixed guess.
-  const tooltipWidthPx = hoveredSegment ? estimateChartTooltipWidthPx(hoveredSegment.label, tooltipRows) : 0
+  const tooltipWidthPx = hoveredSegment
+    ? estimateChartTooltipWidthPx(hoveredSegment.label, tooltipRows, geometry.size)
+    : 0
   const maxTooltipLeftPx = Math.max(0, geometry.size - tooltipWidthPx)
   const tooltipLeftPx = Math.min(maxTooltipLeftPx, Math.max(0, pointerLeftPx - tooltipWidthPx / 2))
 
@@ -534,6 +536,7 @@ function PieDonutChartContent({
             rows={tooltipRows}
             left={tooltipLeftPx}
             top={0}
+            chartWidthPx={geometry.size}
           />
         ) : null}
         {isEmpty ? (

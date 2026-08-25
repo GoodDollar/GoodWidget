@@ -688,7 +688,9 @@ function LineAreaChartContent({
   // the chart frame. Width is estimated from this hover's actual header/rows
   // so the clamp matches what ChartTooltip itself will render at.
   const tooltipWidthPx =
-    hoveredIndex !== null ? estimateChartTooltipWidthPx(xAxisFormatter(xCategories[hoveredIndex]), tooltipRows) : 0
+    hoveredIndex !== null
+      ? estimateChartTooltipWidthPx(xAxisFormatter(xCategories[hoveredIndex]), tooltipRows, viewBoxWidth)
+      : 0
   const maxTooltipLeftPx = Math.max(0, viewBoxWidth - tooltipWidthPx)
   const tooltipLeftPx =
     hoveredIndex !== null
@@ -975,6 +977,7 @@ function LineAreaChartContent({
               rows={tooltipRows}
               left={tooltipLeftPx}
               top={resolvedPadding.top}
+              chartWidthPx={viewBoxWidth}
             />
           ) : null}
         </LineAreaPlotArea>

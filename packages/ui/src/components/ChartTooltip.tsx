@@ -22,6 +22,9 @@ export interface ChartTooltipProps {
   rows: ChartTooltipRow[]
   left: number
   top: number
+  /** The hosting chart's own pixel width — the tooltip's cap is derived from
+   * this (see `TOOLTIP_MAX_WIDTH_RATIO`), never a fixed pixel guess. */
+  chartWidthPx: number
 }
 
 const TOOLTIP_HEADER_FONT_SIZE_PX = 12
@@ -30,9 +33,13 @@ const TOOLTIP_PADDING_HORIZONTAL_PX = 12
 const TOOLTIP_DOT_SIZE_PX = 8
 const TOOLTIP_DOT_TO_TEXT_GAP_PX = 8
 /** QA fix: the numeric value must never truncate — width expands to fit the
- * longest value, up to this cap, and only the series label ellipsizes. */
+ * longest value, only the series label ellipsizes once it would push the
+ * tooltip past `TOOLTIP_MAX_WIDTH_RATIO` of the hosting chart's own width. */
 const TOOLTIP_MIN_WIDTH_PX = 96
-const TOOLTIP_MAX_WIDTH_PX = 280
+/** Tooltip width never exceeds this fraction of the hosting chart's own
+ * pixel width — generalizes to any chart size instead of a fixed pixel cap
+ * tuned to one dashboard's typical content length. */
+const TOOLTIP_MAX_WIDTH_RATIO = 0.8
 
 function formatRowValueText(value: string): string {
   return `: ${value}`
@@ -47,16 +54,22 @@ function estimateRowContentWidthPx(row: ChartTooltipRow): number {
 /**
  * Estimates the tooltip's rendered width from its actual header/rows so
  * every caller can clamp the tooltip's horizontal position against the same
- * width ChartTooltip itself will use to render — no fixed pixel guess tuned
- * to any one dashboard's typical content length.
+ * width ChartTooltip itself will use to render. `chartWidthPx` is the hosting
+ * chart's own real pixel width — the tooltip only truncates once its content
+ * would exceed `TOOLTIP_MAX_WIDTH_RATIO` of that, never a fixed pixel guess.
  */
-export function estimateChartTooltipWidthPx(header: string, rows: ChartTooltipRow[]): number {
+export function estimateChartTooltipWidthPx(
+  header: string,
+  rows: ChartTooltipRow[],
+  chartWidthPx: number,
+): number {
   const headerWidthPx = estimateTextWidthPx(header, TOOLTIP_HEADER_FONT_SIZE_PX)
   const widestRowWidthPx = rows.reduce((widest, row) => Math.max(widest, estimateRowContentWidthPx(row)), 0)
   const contentWidthPx = Math.max(headerWidthPx, widestRowWidthPx)
   const widthPx = contentWidthPx + TOOLTIP_PADDING_HORIZONTAL_PX * 2
+  const maxWidthPx = Math.max(TOOLTIP_MIN_WIDTH_PX, chartWidthPx * TOOLTIP_MAX_WIDTH_RATIO)
 
-  return Math.min(TOOLTIP_MAX_WIDTH_PX, Math.max(TOOLTIP_MIN_WIDTH_PX, widthPx))
+  return Math.min(maxWidthPx, Math.max(TOOLTIP_MIN_WIDTH_PX, widthPx))
 }
 
 const ChartTooltipFrame = createComponent(YStack, {
@@ -109,8 +122,8 @@ const ChartTooltipDot = createComponent(YStack, {
   flexShrink: 0,
 })
 
-export function ChartTooltip({ header, rows, left, top }: ChartTooltipProps) {
-  const widthPx = estimateChartTooltipWidthPx(header, rows)
+export function ChartTooltip({ header, rows, left, top, chartWidthPx }: ChartTooltipProps) {
+  const widthPx = estimateChartTooltipWidthPx(header, rows, chartWidthPx)
   // Space left for label text once the dot, gap, and full (never-truncated) value are accounted for.
   const availableTextWidthPx = widthPx - TOOLTIP_PADDING_HORIZONTAL_PX * 2 - TOOLTIP_DOT_SIZE_PX - TOOLTIP_DOT_TO_TEXT_GAP_PX
 
