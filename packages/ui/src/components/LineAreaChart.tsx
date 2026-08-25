@@ -137,7 +137,11 @@ const REFERENCE_LABEL_BASE_SIZE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2
 // the legend then reads larger than the title it's labeling. The tick-label
 // tier caps out at 2x CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2, which stays below
 // TITLE_BASE_SIZE_PX across the whole scale-ratio range.
-const LEGEND_LABEL_BASE_SIZE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2
+// QA fix: even within that tier, the label and the gap between legend items
+// still read a touch large at MAX_SCALE_RATIO — LEGEND_SIZE_SCALE_FACTOR
+// trims both proportionally rather than hardcoding a new pixel size for one.
+const LEGEND_SIZE_SCALE_FACTOR = 0.9
+const LEGEND_LABEL_BASE_SIZE_PX = (CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2) * LEGEND_SIZE_SCALE_FACTOR
 
 const TITLE_TO_CHART_GAP_BASE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
 // QA fix: was CHART_BASE_SIZE_PX / GOLDEN_RATIO scaled by chart width (same
@@ -179,6 +183,10 @@ const DOT_AUTO_THRESHOLD = 20
 /** Invisible larger hit-target so pressable dots still meet the 44pt touch-target baseline. */
 const DOT_TOUCH_TARGET_RADIUS_PX = 22
 const LEGEND_SWATCH_SIZE_PX = 10
+/** Was the Tamagui `$4` spacing token (16px), flat regardless of legend label
+ * size. Scaled down by the same LEGEND_SIZE_SCALE_FACTOR as the label so the
+ * gap between legend items shrinks in proportion to the text it separates. */
+const LEGEND_ITEM_GAP_PX = 16 * LEGEND_SIZE_SCALE_FACTOR
 /** Grid lines need enough contrast to be useful without competing with the series. */
 const GRID_LINE_OPACITY = 0.22
 const GRID_ZERO_LINE_OPACITY = 0.48
@@ -521,7 +529,7 @@ function LineAreaLegend({
   legendLabelSizePx: number
 }) {
   return (
-    <XStack gap="$4" flexWrap="wrap" justifyContent="center">
+    <XStack gap={LEGEND_ITEM_GAP_PX} flexWrap="wrap" justifyContent="center">
       {seriesList.map((series) => (
         <XStack key={series.key} alignItems="center" gap="$2">
           <LineAreaSwatch backgroundColor={series.color} />
