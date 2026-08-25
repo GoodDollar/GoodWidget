@@ -51,7 +51,7 @@ export function SignerKeyPanel({ state, actions }: SignerKeyPanelProps) {
   if (choice === 'generate') {
     return (
       <YStack gap="$3">
-        <Button variant="ghost" alignSelf="flex-start" onPress={leaveChoice}>
+        <Button variant="text" alignSelf="flex-start" onPress={leaveChoice}>
           <ButtonText>Back to Generate / Import</ButtonText>
         </Button>
         <BuyerKeyPanel
@@ -77,7 +77,7 @@ export function SignerKeyPanel({ state, actions }: SignerKeyPanelProps) {
 
     return (
       <YStack gap="$3">
-        <Button variant="ghost" alignSelf="flex-start" onPress={leaveChoice}>
+        <Button variant="text" alignSelf="flex-start" onPress={leaveChoice}>
           <ButtonText>Back to Generate / Import</ButtonText>
         </Button>
         <Heading level={5}>Import Signer Key</Heading>
