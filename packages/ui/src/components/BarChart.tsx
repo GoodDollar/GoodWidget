@@ -13,9 +13,9 @@ import Svg, { G, Line, Path, Text as SvgText } from 'react-native-svg'
 import { Text as TamaguiText, useTheme, YStack } from 'tamagui'
 import { createComponent } from '../createComponent'
 import { Card } from './Card'
-import { ChartTooltip, CHART_TOOLTIP_WIDTH_PX, type ChartTooltipRow } from './ChartTooltip'
+import { ChartTooltip, estimateChartTooltipWidthPx, type ChartTooltipRow } from './ChartTooltip'
 import { CHART_FONT_FAMILY } from '../utils/chartFontFamily'
-import { formatMetricValue } from '../utils/formatMetricValue'
+import { formatChartAxisValue } from '../utils/formatMetricValue'
 import { resolveThemeColor } from '../utils/resolveThemeColor'
 import {
   computeChartScaleRatio,
@@ -23,6 +23,7 @@ import {
   scaleEdgeInsets,
   scalePx,
 } from '../utils/chartResponsiveScale'
+import { estimateTextWidthPx, truncateLabelToWidth } from '../utils/textWidthEstimate'
 import { useMeasuredWidth } from '../hooks/useMeasuredWidth'
 
 export type BarChartVariant = 'bare' | 'card'
@@ -159,27 +160,6 @@ function filterValidItems(data: BarChartDataItem[]): BarChartItem[] {
 }
 
 /**
- * SVG uses en-dash-free character estimation rather than real text
- * measurement (unavailable cross-platform in react-native-svg without a
- * canvas). Truncates with an ellipsis once the label can't fit the
- * available width at the given font size (behavioral rule 8).
- */
-function truncateLabelToWidth(label: string, maxWidthPx: number, fontSizePx: number): string {
-  const approxCharWidthPx = fontSizePx * 0.6
-  const maxChars = Math.floor(maxWidthPx / approxCharWidthPx)
-
-  if (maxChars <= 0) return ''
-  if (label.length <= maxChars) return label
-  if (maxChars === 1) return label.slice(0, 1)
-  return `${label.slice(0, maxChars - 1)}…`
-}
-
-/** Same character-width estimate truncateLabelToWidth uses, exposed standalone to size a label-skip budget against real label text (mirrors LineAreaChart's estimateTextWidthPx). */
-function estimateTextWidthPx(text: string, fontSizePx: number): number {
-  return text.length * fontSizePx * 0.6
-}
-
-/**
  * Degradation strategy for category-axis crowding (this is the fix item #3 QA
  * flagged as missing): at low category counts every label renders in full via
  * truncateLabelToWidth above. As category count grows, per-category slot size
@@ -304,7 +284,7 @@ function BarChartContent({
   layout = 'vertical',
   showGrid = true,
   showValueLabels = false,
-  valueFormatter = formatMetricValue,
+  valueFormatter = formatChartAxisValue,
   xAxisLabel,
   yAxisLabel,
   barCornerRadius = 0,
@@ -425,12 +405,15 @@ function BarChartContent({
 
   // Follows the cursor along the axis bars are laid out on (horizontally for
   // vertical bars, at a fixed left offset otherwise), clamped so the
-  // fixed-width tooltip never overhangs the chart frame.
-  const maxTooltipLeftPx = Math.max(0, viewBoxWidth - CHART_TOOLTIP_WIDTH_PX)
+  // tooltip never overhangs the chart frame. Width is estimated from this
+  // hover's actual header/rows so the clamp matches what ChartTooltip itself
+  // will render at, rather than a fixed guess.
+  const tooltipWidthPx = hoveredItem ? estimateChartTooltipWidthPx(hoveredItem.category, tooltipRows) : 0
+  const maxTooltipLeftPx = Math.max(0, viewBoxWidth - tooltipWidthPx)
   const hoveredSlotCenterPx =
     hoveredIndex !== null ? resolvedPadding.left + hoveredIndex * slotSize + slotSize / 2 : 0
   const tooltipLeftPx = isVertical
-    ? Math.min(maxTooltipLeftPx, Math.max(0, hoveredSlotCenterPx - CHART_TOOLTIP_WIDTH_PX / 2))
+    ? Math.min(maxTooltipLeftPx, Math.max(0, hoveredSlotCenterPx - tooltipWidthPx / 2))
     : Math.min(maxTooltipLeftPx, resolvedPadding.left)
 
   return (

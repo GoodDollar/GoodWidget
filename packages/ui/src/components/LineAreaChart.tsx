@@ -24,9 +24,9 @@ import Svg, {
 import { Text as TamaguiText, useTheme, XStack, YStack } from 'tamagui'
 import { createComponent } from '../createComponent'
 import { Card } from './Card'
-import { ChartTooltip, CHART_TOOLTIP_WIDTH_PX, type ChartTooltipRow } from './ChartTooltip'
+import { ChartTooltip, estimateChartTooltipWidthPx, type ChartTooltipRow } from './ChartTooltip'
 import { CHART_FONT_FAMILY } from '../utils/chartFontFamily'
-import { formatMetricValue } from '../utils/formatMetricValue'
+import { formatChartAxisValue } from '../utils/formatMetricValue'
 import { resolveThemeColor } from '../utils/resolveThemeColor'
 import {
   computeChartScaleRatio,
@@ -34,6 +34,7 @@ import {
   scaleEdgeInsets,
   scalePx,
 } from '../utils/chartResponsiveScale'
+import { estimateTextWidthPx, truncateLabelToWidth } from '../utils/textWidthEstimate'
 import { useMeasuredWidth } from '../hooks/useMeasuredWidth'
 
 export type LineAreaChartVariant = 'bare' | 'card'
@@ -158,26 +159,6 @@ const X_LABEL_GAP_PX = 8
 
 function isValidY(value: number | null | undefined): value is number {
   return value !== null && value !== undefined && Number.isFinite(value)
-}
-
-/**
- * SVG uses en-dash-free character estimation rather than real text
- * measurement (unavailable cross-platform in react-native-svg without a
- * canvas). Mirrors BarChart's truncateLabelToWidth approach.
- */
-function estimateTextWidthPx(text: string, fontSizePx: number): number {
-  return text.length * fontSizePx * 0.6
-}
-
-/** Truncates a label with an ellipsis once it can't fit the available width at the given font size (carries forward BarChart's long-label rule). */
-function truncateLabelToWidth(label: string, maxWidthPx: number, fontSizePx: number): string {
-  const approxCharWidthPx = fontSizePx * 0.6
-  const maxChars = Math.floor(maxWidthPx / approxCharWidthPx)
-
-  if (maxChars <= 0) return ''
-  if (label.length <= maxChars) return label
-  if (maxChars === 1) return label.slice(0, 1)
-  return `${label.slice(0, maxChars - 1)}…`
 }
 
 interface AxisScale {
@@ -543,7 +524,7 @@ function LineAreaChartContent({
   xAxisLabel,
   yAxisLabel,
   xAxisFormatter = (value) => String(value),
-  yAxisFormatter = formatMetricValue,
+  yAxisFormatter = formatChartAxisValue,
   yAxisDomain,
   secondaryYAxis,
   referenceLines = [],
@@ -664,23 +645,24 @@ function LineAreaChartContent({
           if (!point || !isValidY(point.y)) return rows
           const formatter =
             seriesItem === secondarySeries
-              ? (secondaryYAxis?.formatter ?? formatMetricValue)
+              ? (secondaryYAxis?.formatter ?? formatChartAxisValue)
               : yAxisFormatter
           rows.push({ color: seriesItem.color, label: seriesItem.label, value: formatter(point.y) })
           return rows
         }, [])
       : []
 
-  // Center the tooltip on the hovered point, then clamp so its fixed width never overhangs the chart frame.
-  const maxTooltipLeftPx = Math.max(0, viewBoxWidth - CHART_TOOLTIP_WIDTH_PX)
+  // Center the tooltip on the hovered point, then clamp so it never overhangs
+  // the chart frame. Width is estimated from this hover's actual header/rows
+  // so the clamp matches what ChartTooltip itself will render at.
+  const tooltipWidthPx =
+    hoveredIndex !== null ? estimateChartTooltipWidthPx(xAxisFormatter(xCategories[hoveredIndex]), tooltipRows) : 0
+  const maxTooltipLeftPx = Math.max(0, viewBoxWidth - tooltipWidthPx)
   const tooltipLeftPx =
     hoveredIndex !== null
       ? Math.min(
           maxTooltipLeftPx,
-          Math.max(
-            0,
-            resolvedPadding.left + xPixelForIndex(hoveredIndex) - CHART_TOOLTIP_WIDTH_PX / 2,
-          ),
+          Math.max(0, resolvedPadding.left + xPixelForIndex(hoveredIndex) - tooltipWidthPx / 2),
         )
       : 0
 
@@ -794,7 +776,7 @@ function LineAreaChartContent({
                           textAnchor="start"
                           alignmentBaseline="middle"
                         >
-                          {(secondaryYAxis?.formatter ?? formatMetricValue)(tick)}
+                          {(secondaryYAxis?.formatter ?? formatChartAxisValue)(tick)}
                         </SvgText>
                       ))
                     : null}

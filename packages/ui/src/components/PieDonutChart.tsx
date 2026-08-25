@@ -15,7 +15,7 @@ import Svg, { Circle, G } from 'react-native-svg'
 import { Text as TamaguiText, useTheme, XStack, YStack } from 'tamagui'
 import { createComponent } from '../createComponent'
 import { Card } from './Card'
-import { ChartTooltip, CHART_TOOLTIP_WIDTH_PX, type ChartTooltipRow } from './ChartTooltip'
+import { ChartTooltip, estimateChartTooltipWidthPx, type ChartTooltipRow } from './ChartTooltip'
 import { formatMetricValue } from '../utils/formatMetricValue'
 import { resolveThemeColor } from '../utils/resolveThemeColor'
 
@@ -440,11 +440,11 @@ function PieDonutChartContent({
         },
       ]
     : []
-  const maxTooltipLeftPx = Math.max(0, geometry.size - CHART_TOOLTIP_WIDTH_PX)
-  const tooltipLeftPx = Math.min(
-    maxTooltipLeftPx,
-    Math.max(0, pointerLeftPx - CHART_TOOLTIP_WIDTH_PX / 2),
-  )
+  // Width is estimated from this hover's actual header/rows so the clamp
+  // matches what ChartTooltip itself will render at, rather than a fixed guess.
+  const tooltipWidthPx = hoveredSegment ? estimateChartTooltipWidthPx(hoveredSegment.label, tooltipRows) : 0
+  const maxTooltipLeftPx = Math.max(0, geometry.size - tooltipWidthPx)
+  const tooltipLeftPx = Math.min(maxTooltipLeftPx, Math.max(0, pointerLeftPx - tooltipWidthPx / 2))
 
   const handlePlotPointerMove = (event: {
     clientX: number

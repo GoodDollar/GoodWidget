@@ -22,15 +22,17 @@ function assertNonNegativeInteger(decimals: number): void {
   }
 }
 
-function formatCompact(value: number, decimals: number): string {
+function formatCompact(value: number, decimals: number, trimIntegers: boolean): string {
   const absValue = Math.abs(value)
   let thresholdIndex = COMPACT_THRESHOLDS.findIndex(({ threshold }) => absValue >= threshold)
 
   if (thresholdIndex === -1) {
     // Below the smallest compact threshold: whole-number metrics (wallet
     // counts, day counts, etc.) render without decimal places regardless of
-    // the requested precision — "47", not "47.0".
-    return Number.isInteger(value) ? String(value) : value.toFixed(decimals)
+    // the requested precision — "47", not "47.0" — unless the caller opted
+    // out via `trimIntegers: false` (chart axis ticks/tooltips need every
+    // value at the same fixed precision, not just the non-whole ones).
+    return trimIntegers && Number.isInteger(value) ? String(value) : value.toFixed(decimals)
   }
 
   // Rounding the scaled value can carry it up to the next unit (e.g. 999_950 → "1000.0K"
@@ -51,8 +53,9 @@ function formatCompact(value: number, decimals: number): string {
 
   // A compacted value that lands on a whole unit (892_000 -> 892K, not
   // "892.0K") renders without decimal places regardless of the requested
-  // precision, same rule as the below-threshold branch above.
-  const formattedScaledValue = Number.isInteger(scaledValue) ? String(scaledValue) : scaledValue.toFixed(decimals)
+  // precision, same rule (and same opt-out) as the below-threshold branch above.
+  const formattedScaledValue =
+    trimIntegers && Number.isInteger(scaledValue) ? String(scaledValue) : scaledValue.toFixed(decimals)
 
   return `${formattedScaledValue}${suffix}`
 }
@@ -66,6 +69,18 @@ function formatDecimal(value: number, decimals: number): string {
   }).format(value)
 }
 
+export interface FormatMetricValueOptions {
+  /**
+   * Whole-number values render without decimal places regardless of
+   * `decimals` when true (the default) — "47" not "47.0", desired for
+   * standalone displays like Scorecard/DataTable. Set to `false` where a
+   * value's precision must stay fixed regardless of whether that particular
+   * value happens to be a whole number, e.g. a chart's axis ticks and its
+   * hover tooltip, which must always agree on decimal count.
+   */
+  trimIntegers?: boolean
+}
+
 /**
  * Formats a raw metric value per the K/M/B/T "compact" scale, a full
  * comma-grouped "decimal" form, or a "none" passthrough.
@@ -74,7 +89,12 @@ function formatDecimal(value: number, decimals: number): string {
  * and must be a non-negative integer — invalid input is a developer error,
  * not a runtime state, so it throws rather than silently clamping.
  */
-export function formatMetricValue(value: number, format: MetricFormat = 'compact', decimals?: number): string {
+export function formatMetricValue(
+  value: number,
+  format: MetricFormat = 'compact',
+  decimals?: number,
+  options?: FormatMetricValueOptions,
+): string {
   if (!Number.isFinite(value)) {
     return NON_FINITE_FALLBACK
   }
@@ -85,6 +105,20 @@ export function formatMetricValue(value: number, format: MetricFormat = 'compact
 
   const resolvedDecimals = decimals ?? (format === 'compact' ? 1 : 2)
   assertNonNegativeInteger(resolvedDecimals)
+  const trimIntegers = options?.trimIntegers ?? true
 
-  return format === 'compact' ? formatCompact(value, resolvedDecimals) : formatDecimal(value, resolvedDecimals)
+  return format === 'compact'
+    ? formatCompact(value, resolvedDecimals, trimIntegers)
+    : formatDecimal(value, resolvedDecimals)
+}
+
+/**
+ * Default formatter for chart axis ticks and hover tooltips. Charts render
+ * both from this same function so a tick and its corresponding tooltip value
+ * always show identical decimal precision — unlike `formatMetricValue`'s
+ * default, it never drops decimals off an individual value just because that
+ * one value happens to be a whole number.
+ */
+export function formatChartAxisValue(value: number, format: MetricFormat = 'compact', decimals?: number): string {
+  return formatMetricValue(value, format, decimals, { trimIntegers: false })
 }
