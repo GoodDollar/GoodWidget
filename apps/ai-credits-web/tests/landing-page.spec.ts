@@ -40,6 +40,13 @@ test('drops the marketing sections that the widget now covers itself', async ({ 
 })
 
 test('keeps the security disclosures that have no widget equivalent', async ({ page }) => {
+  // The section heading stays on the page; the detail sits behind a collapsed
+  // disclosure, so it has to be expanded before any of it is visible.
+  await expect(page.getByText('Know what runs, who can see it, and what is at risk')).toBeVisible()
+  await expect(page.getByText('Separated identity')).toHaveCount(0)
+
+  await page.getByText('How routing, identity, and the operator role work').click()
+
   await expect(page.getByText('GoodDollar operator role on Base')).toBeVisible()
   await expect(page.getByText('Local, explicit routing')).toBeVisible()
   await expect(page.getByText('Separated identity')).toBeVisible()
