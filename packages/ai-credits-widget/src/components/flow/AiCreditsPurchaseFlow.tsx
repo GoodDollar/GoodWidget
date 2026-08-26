@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react'
+import React, { useCallback, useEffect, useRef } from 'react'
 import type {
   AiCreditsQuote,
   AiCreditsWidgetAdapterActions,
@@ -43,10 +43,15 @@ export function AiCreditsPurchaseFlow({
   onPay,
 }: AiCreditsPurchaseFlowProps) {
   // Consent may have been granted on another device or in an earlier session,
-  // so reconcile against the chain rather than trusting local state alone.
+  // so reconcile against the chain rather than trusting local state alone. Keyed
+  // on payer+buyer because `actions` is rebuilt on every state change.
+  const syncedConsentForRef = useRef<string | null>(null)
   useEffect(() => {
     if (state.operatorConsented) return
     if (!state.address || !state.buyerPubKey) return
+    const key = `${state.address}:${state.buyerPubKey}`.toLowerCase()
+    if (syncedConsentForRef.current === key) return
+    syncedConsentForRef.current = key
     void actions.syncOperatorConsentFromChain()
   }, [state.operatorConsented, state.address, state.buyerPubKey, actions])
 

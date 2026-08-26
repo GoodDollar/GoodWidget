@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Drawer, ScrollArea, Stepper, YStack } from '@goodwidget/ui'
 import type { StepperStepItem } from '@goodwidget/ui'
 import type {
@@ -24,6 +24,21 @@ export function SetupOnboardingFlow({ state, actions }: SetupOnboardingFlowProps
 
   const hasSignerKey = Boolean(state.buyerPubKey)
   const downloadCompleted = downloadOpened || hasSignerKey
+
+  // Authorization lives on chain, not in this browser. Someone arriving on a new
+  // device — or carrying a stale "not authorized" from an earlier session — would
+  // otherwise be asked to re-authorize something they already granted.
+  //
+  // `actions` is rebuilt on every state change, so the check is keyed on the pair
+  // it actually depends on; without that it would re-read the chain each render.
+  const syncedConsentForRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!state.address || !state.buyerPubKey || state.operatorConsented) return
+    const key = `${state.address}:${state.buyerPubKey}`.toLowerCase()
+    if (syncedConsentForRef.current === key) return
+    syncedConsentForRef.current = key
+    void actions.syncOperatorConsentFromChain()
+  }, [state.address, state.buyerPubKey, state.operatorConsented, actions])
 
   // None of these gate the widget: every step stays open so a first-time
   // visitor can read through the flow, skip it, and come back later. Steps that
@@ -128,6 +143,8 @@ export function SetupOnboardingFlow({ state, actions }: SetupOnboardingFlowProps
                 operatorConsented={state.operatorConsented}
                 operatorConsentPending={state.operatorConsentPending}
                 onSign={actions.signOperatorConsent}
+                derivedBuyerAddress={state.derivedBuyerAddress}
+                onRestoreKey={actions.generateBuyerKey}
               />
             ) : null}
           </YStack>
