@@ -13,6 +13,7 @@ import {
   useAppKit,
   useAppKitAccount,
   useAppKitProvider,
+  useDisconnect,
 } from '@goodwidget/embed/appkit-provider'
 import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
 import {
@@ -409,7 +410,7 @@ export function MockBackendStory() {
 
   return (
     <YStack data-testid="AiCreditsWidget-mock-backend" style={{ width: 380 }}>
-      <MockAiCreditsWidget provider={injectedProvider} />
+      <MockAiCreditsWidget provider={injectedProvider} showWalletControls />
     </YStack>
   )
 }
@@ -420,6 +421,7 @@ export function MockBackendStory() {
  */
 function AppKitConnectShell() {
   const { open } = useAppKit()
+  const { disconnect } = useDisconnect()
   const { address: appKitAddress } = useAppKitAccount()
   const { walletProvider } = useAppKitProvider<EIP1193Provider | undefined>('eip155')
   const appKitAddressRef = useRef(appKitAddress)
@@ -435,6 +437,10 @@ function AppKitConnectShell() {
           if (!appKitAddressRef.current) {
             throw new Error('wallet_connect_cancelled')
           }
+        }}
+        showWalletControls
+        disconnectOverride={async () => {
+          await disconnect()
         }}
       />
     </div>
@@ -494,6 +500,7 @@ export function InjectedWalletStory() {
     <YStack data-testid="AiCreditsWidget-injected-wallet" style={{ width: 380 }} gap="$3">
       <AiCreditsWidget
         provider={injectedProvider}
+        showWalletControls
         backendUrl={backendUrl}
         baseRpcUrl={baseRpcUrl}
         celoRpcUrl={celoRpcUrl}

@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react'
-import { GoodWidgetProvider, useWallet } from '@goodwidget/core'
+import { GoodWidgetProvider, WalletControls } from '@goodwidget/core'
 import type { EIP1193Provider } from '@goodwidget/core'
 import {
   Badge,
@@ -48,7 +48,6 @@ import type {
   AiCreditsQuote,
 } from './widgetRuntimeContract'
 import { compactButtonProps } from './components/shared/styles'
-import { WalletChip } from './components/shared/WalletChip'
 
 const CELO_CHAIN_ID = 42220
 
@@ -65,7 +64,6 @@ interface AiCreditsInnerProps {
   onPaySuccess?: (detail: AiCreditsPaySuccessDetail) => void
   onPayError?: (detail: AiCreditsPayErrorDetail) => void
   showWalletControls?: boolean
-  hasDisconnectOverride?: boolean
 }
 
 function SetupConnectPrompt({
@@ -345,7 +343,6 @@ function AiCreditsInner({
   onPaySuccess,
   onPayError,
   showWalletControls = false,
-  hasDisconnectOverride = false,
 }: AiCreditsInnerProps) {
   const defaultAdapter = useAiCreditsAdapter({
     environment,
@@ -425,15 +422,12 @@ function AiCreditsInner({
     [actions],
   )
 
-  const { disconnect, disconnectLabel, disconnectIcon } = useWallet()
-
   // Ending the session leaves every other tab showing empty rows, so the widget
   // returns to Setup — the only tab that has something to say while disconnected.
-  const handleDisconnect = useCallback(async () => {
-    await disconnect()
+  const handleDisconnected = useCallback(() => {
     setHelpView(null)
     actions.setActiveTab('setup')
-  }, [actions, disconnect])
+  }, [actions])
 
   const walletRequired = needsWalletConnection(state)
 
@@ -471,13 +465,8 @@ function AiCreditsInner({
           <Badge type="info">
             <BadgeText>{getChainDisplayName(state.chainId ?? CELO_CHAIN_ID)}</BadgeText>
           </Badge>
-          {showWalletControls && state.address && (
-            <WalletChip
-              address={state.address}
-              onDisconnect={hasDisconnectOverride ? handleDisconnect : undefined}
-              disconnectLabel={hasDisconnectOverride ? disconnectLabel : undefined}
-              disconnectIcon={hasDisconnectOverride ? disconnectIcon : undefined}
-            />
+          {showWalletControls && (
+            <WalletControls size="sm" onDisconnected={handleDisconnected} />
           )}
         </XStack>
       </XStack>
@@ -574,7 +563,6 @@ export function AiCreditsWidget({
           onPaySuccess={onPaySuccess}
           onPayError={onPayError}
           showWalletControls={showWalletControls}
-          hasDisconnectOverride={Boolean(disconnectOverride)}
         />
         <ToastContainer />
       </YStack>

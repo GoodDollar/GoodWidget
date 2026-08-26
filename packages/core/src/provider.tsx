@@ -24,6 +24,13 @@ const DEFAULT_CAPABILITIES: HostCapabilities = {
 export interface WalletContextValue extends WalletState {
   connect: () => Promise<void>
   disconnect: () => Promise<void>
+  /**
+   * Whether `disconnect` can actually end the session. False for connectors
+   * that give a dApp no way to do it — an injected provider with no
+   * `disconnectOverride`, since EIP-1193 has no disconnect method. UI should
+   * read this instead of offering an action that cannot fire.
+   */
+  canDisconnect: boolean
   /** Label for the disconnect action; see `GoodWidgetProviderProps.disconnectLabel`. */
   disconnectLabel: string
   /** Icon for the disconnect action; see `GoodWidgetProviderProps.disconnectIcon`. */
@@ -36,11 +43,15 @@ export type HostContextValue = HostState
 export interface GoodWidgetContextValue extends GoodWidgetState {
   connect: () => Promise<void>
   disconnect: () => Promise<void>
+  /** See `WalletContextValue.canDisconnect`. */
+  canDisconnect: boolean
   disconnectLabel: string
   disconnectIcon: IconName
   switchChain: (chainId: number) => Promise<void>
 }
 
+export const DISCONNECT_UNAVAILABLE_ERROR =
+  'This connector cannot be disconnected by the site — end the session from your wallet'
 const SWITCH_CHAIN_UNAVAILABLE_ERROR = 'No wallet provider available to switch chains'
 const SWITCH_CHAIN_TIMEOUT_ERROR = 'Timed out waiting for the wallet to respond to the network switch request'
 const SWITCH_CHAIN_REQUEST_TIMEOUT_MS = 10_000
@@ -93,6 +104,7 @@ export const WalletContext = React.createContext<WalletContextValue>({
   availableChainIds: null,
   connect: async () => {},
   disconnect: async () => {},
+  canDisconnect: false,
   disconnectLabel: 'Disconnect',
   disconnectIcon: 'log-out',
   switchChain: noopSwitchChain,
@@ -113,6 +125,7 @@ export const GoodWidgetContext = React.createContext<GoodWidgetContextValue>({
   capabilities: DEFAULT_CAPABILITIES,
   connect: async () => {},
   disconnect: async () => {},
+  canDisconnect: false,
   disconnectLabel: 'Disconnect',
   disconnectIcon: 'log-out',
   switchChain: noopSwitchChain,
@@ -225,8 +238,16 @@ export function GoodWidgetProvider({
   // updates after the override resolves flow back through addressOverride/
   // chainIdOverride when supplied, otherwise through the normal EIP-1193
   // accountsChanged event or a changed provider prop.
+  const canDisconnect = Boolean(disconnectOverride)
+
   const disconnect = useCallback(async () => {
-    await disconnectOverride?.()
+    // Rejecting beats resolving into nothing: a caller that skipped
+    // `canDisconnect` gets told the session is still open rather than
+    // reporting success for a disconnect that never happened.
+    if (!disconnectOverride) {
+      throw new Error(DISCONNECT_UNAVAILABLE_ERROR)
+    }
+    await disconnectOverride()
   }, [disconnectOverride])
 
   // Tries the standard EIP-3326 request first; falls back to the
@@ -275,6 +296,7 @@ export function GoodWidgetProvider({
       availableChainIds,
       connect,
       disconnect,
+      canDisconnect,
       disconnectLabel,
       disconnectIcon,
       switchChain,
@@ -286,6 +308,7 @@ export function GoodWidgetProvider({
       availableChainIds,
       connect,
       disconnect,
+      canDisconnect,
       disconnectLabel,
       disconnectIcon,
       switchChain,
