@@ -25,24 +25,29 @@ export function SetupOnboardingFlow({ state, actions }: SetupOnboardingFlowProps
   const hasSignerKey = Boolean(state.buyerPubKey)
   const downloadCompleted = downloadOpened || hasSignerKey
 
+  // None of these gate the widget: every step stays open so a first-time
+  // visitor can read through the flow, skip it, and come back later. Steps that
+  // are not the natural next one render as `optional` rather than locked.
   const steps: StepperStepItem[] = [
     {
       id: 'download',
       title: 'Download Antseed',
-      description: 'The app that runs your credits locally — required once',
+      description: 'The app that runs your credits locally — do this whenever you are ready',
       status: downloadCompleted ? 'completed' : 'ready',
     },
     {
       id: 'signer',
       title: 'Signer key',
       description: 'Generate or import — separate from your wallet',
-      status: !downloadCompleted ? 'pending' : hasSignerKey ? 'completed' : 'ready',
+      status: hasSignerKey ? 'completed' : downloadCompleted ? 'ready' : 'pending',
+      optional: true,
     },
     {
       id: 'authorize',
       title: 'Authorize Wallet',
       description: 'One-time permission — scoped to Base credits',
-      status: !hasSignerKey ? 'pending' : state.operatorConsented ? 'completed' : 'ready',
+      status: state.operatorConsented ? 'completed' : hasSignerKey ? 'ready' : 'pending',
+      optional: true,
     },
   ]
 
@@ -73,23 +78,32 @@ export function SetupOnboardingFlow({ state, actions }: SetupOnboardingFlowProps
         return
       }
 
-      if (stepId === 'signer' && downloadCompleted) {
+      if (stepId === 'signer') {
         openSignerDrawer()
+        return
       }
 
-      if (stepId === 'authorize' && hasSignerKey) {
+      // Authorizing needs a key to sign with, so an early tap lands on the
+      // signer panel instead of a dead end — it hands off to authorize on its own.
+      if (stepId === 'authorize') {
+        if (!hasSignerKey) {
+          openSignerDrawer()
+          return
+        }
         setDrawerStep('authorize')
         setDrawerOpen(true)
       }
     },
-    [downloadCompleted, hasSignerKey, openSignerDrawer],
+    [hasSignerKey, openSignerDrawer],
   )
 
   return (
     <>
       <Stepper
         steps={steps}
-        activeStepId={downloadCompleted ? (hasSignerKey ? 'authorize' : 'signer') : 'download'}
+        // No auto-scroll: the setup list must never pull the page to itself
+        // while someone is scrolling past it.
+        activeStepId={null}
         onStepPress={handleStepPress}
       />
       <Drawer

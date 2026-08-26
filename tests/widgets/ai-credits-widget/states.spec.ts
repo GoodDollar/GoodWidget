@@ -81,7 +81,7 @@ test('AiCreditsWidget Setup tab — onboarding steps visible', async ({ page }) 
   const root = page.getByTestId('AiCreditsWidget-setup-tab')
   await expect(root).toBeVisible()
   await expect(root.getByText('Your G$ Balance')).toBeVisible()
-  await expect(root.getByText(/One-time setup, in order/)).toBeVisible()
+  await expect(root.getByText(/One-time setup — optional for now/)).toBeVisible()
   await expect(root.getByText('Download Antseed', { exact: true }).first()).toBeVisible()
   await expect(root.getByText('Signer key', { exact: true })).toBeVisible()
   await expect(root.getByText('Authorize Wallet', { exact: true })).toBeVisible()
@@ -595,11 +595,12 @@ test('AiCreditsWidget Setup — Download AntSeed step is first and shows Start l
   const root = page.getByTestId('AiCreditsWidget-download-antseed-step')
   await expect(root).toBeVisible()
 
-  await expect(root.getByText('Download Antseed', { exact: true })).toBeVisible()
+  await expect(root.getByText('Download Antseed', { exact: true }).first()).toBeVisible()
   await expect(root.getByText('Signer key', { exact: true })).toBeVisible()
   await expect(root.getByText('Authorize Wallet', { exact: true })).toBeVisible()
   await expect(root.getByText('Ready', { exact: true })).toBeVisible()
-  await expect(root.getByText('Pending').first()).toBeVisible()
+  // Later steps are skippable rather than locked, so they read as Optional.
+  await expect(root.getByText('Optional').first()).toBeVisible()
 
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-25-download-antseed-step.png',

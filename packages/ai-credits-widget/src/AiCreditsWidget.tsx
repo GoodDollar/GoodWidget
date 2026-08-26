@@ -119,7 +119,8 @@ function SetupTabPanel({
         isGoodIdVerified={state.isGoodIdVerified}
       />
       <Text secondary fontSize="$2">
-        One-time setup, in order — each step unlocks the next:
+        One-time setup — optional for now. Take the steps in any order, or skip ahead and come
+        back when you are ready to buy.
       </Text>
       <SetupOnboardingFlow state={state} actions={actions} />
     </YStack>
