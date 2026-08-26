@@ -5,6 +5,8 @@ import {
   Card,
   Heading,
   Icon,
+  PermissionList,
+  PermissionRow,
   Spinner,
   Text,
   XStack,
@@ -81,20 +83,28 @@ export function OperatorConsentStep({
     <Shell gap="$3" {...(!embedded ? { backgroundColor: '$backgroundHover' } : {})}>
       <Heading level={5}>Authorize Wallet</Heading>
       <Text fontSize="$2" lineHeight="$3">
-        GoodDollar needs this one-time authorization to fund and manage your AI credits on Base
-        after you pay with G$ on Celo. It lets the GoodDollar operator move funds in your separate
-        AI credits account, but never gives access to your payer wallet or G$. Granting this
-        permission means trusting GoodDollar with that scoped Base role; you can revoke it later
-        through the account controls.
+        A one-time, on-chain approval — not a payment. Here&apos;s exactly what it does and
+        doesn&apos;t allow:
       </Text>
 
+      {/* Scope confirmed with the AntseedDeposits contract owner: the operator can
+          only fulfil purchases the buyer initiates, withdrawals return to the payer,
+          and the role carries no ERC-20 allowance and nothing on Celo. Do not widen
+          these claims without re-checking. */}
+      <PermissionList>
+        <PermissionRow tone="can" lead="Can" divided>
+          move funds inside your credit balance, to fulfil purchases you initiate.
+        </PermissionRow>
+        <PermissionRow tone="cannot" lead="Cannot">
+          touch your G$ wallet, your savings, or anything outside this purchase flow.
+        </PermissionRow>
+      </PermissionList>
+
       <YStack gap="$1.5">
-        <ConsentBullet>
-          Approval happens in your wallet — your wallet app opens a request that you accept or
-          reject there, not in this widget.
-        </ConsentBullet>
         <ConsentBullet>It costs no gas and moves no funds.</ConsentBullet>
-        <ConsentBullet>One time only — later purchases reuse it.</ConsentBullet>
+        <ConsentBullet>
+          One time only — later purchases reuse it, and you can revoke it at any time.
+        </ConsentBullet>
       </YStack>
 
       {buyerPubKey && (
