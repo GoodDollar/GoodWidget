@@ -23,6 +23,10 @@ const DEFAULT_CAPABILITIES: HostCapabilities = {
 
 export interface WalletContextValue extends WalletState {
   connect: () => Promise<void>
+  /**
+   * Ends the wallet session when supported.
+   * @throws Error with message `DISCONNECT_UNAVAILABLE_ERROR` when `canDisconnect` is false.
+   */
   disconnect: () => Promise<void>
   /**
    * Whether `disconnect` can actually end the session. False for connectors
