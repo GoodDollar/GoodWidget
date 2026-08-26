@@ -426,8 +426,19 @@ function AppKitConnectShell() {
   const { walletProvider } = useAppKitProvider<EIP1193Provider | undefined>('eip155')
   const appKitAddressRef = useRef(appKitAddress)
   appKitAddressRef.current = appKitAddress
+  const backendUrl = import.meta.env.VITE_AI_CREDITS_BACKEND_URL
+  const baseRpcUrl = import.meta.env.VITE_AI_CREDITS_BASE_RPC_URL
+  const celoRpcUrl = import.meta.env.VITE_AI_CREDITS_CELO_RPC_URL
+  const fundingVaultAddress = import.meta.env.VITE_AI_CREDITS_FUNDING_VAULT_ADDRESS as
+    | `0x${string}`
+    | undefined
+  const vaultAddress = import.meta.env.VITE_AI_CREDITS_VAULT_ADDRESS as `0x${string}` | undefined
+  const goodIdAddress = import.meta.env.VITE_AI_CREDITS_GOODID_ADDRESS as `0x${string}` | undefined
 
   return (
+    // Plain div, not a Tamagui stack: this Showcase meta disables the shared
+    // provider, so the widget brings its own theme context and anything wrapping
+    // it has none.
     <div data-testid="AiCreditsWidget-appkit-connect" style={{ width: 380 }}>
       <AiCreditsWidget
         provider={walletProvider}
@@ -442,6 +453,12 @@ function AppKitConnectShell() {
         disconnectOverride={async () => {
           await disconnect()
         }}
+        backendUrl={backendUrl}
+        baseRpcUrl={baseRpcUrl}
+        celoRpcUrl={celoRpcUrl}
+        fundingVaultAddress={fundingVaultAddress}
+        vaultAddress={vaultAddress}
+        goodIdAddress={goodIdAddress}
       />
     </div>
   )
