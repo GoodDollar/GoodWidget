@@ -24,7 +24,6 @@ import { needsWalletConnection, useAiCreditsAdapter } from './adapter'
 import { useAiCreditsHistory } from './useAiCreditsHistory'
 import {
   AiCreditsHero,
-  AiCreditsFlowStepper,
   AiCreditsPurchaseFlow,
   AiCreditsStatusNotice,
   CreditsManagementCard,
@@ -214,17 +213,14 @@ function BuyCreditsPanel({ state, actions, isPending, onPay }: BuyPanelProps) {
         : 'Payment confirmed — settling credits on Base…'
 
     content = (
-      <>
-        <Card>
-          <YStack gap="$4" alignItems="center" padding="$4">
-            <Spinner size="lg" />
-            <Text center secondary>
-              {message}
-            </Text>
-          </YStack>
-        </Card>
-        <AiCreditsFlowStepper state={state} buyerPubKeySaved />
-      </>
+      <Card>
+        <YStack gap="$4" alignItems="center" padding="$4">
+          <Spinner size="lg" />
+          <Text center secondary>
+            {message}
+          </Text>
+        </YStack>
+      </Card>
     )
   } else {
     content = (
