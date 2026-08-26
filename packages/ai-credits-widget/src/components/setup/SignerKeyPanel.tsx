@@ -16,6 +16,7 @@ import type {
   AiCreditsWidgetAdapterState,
 } from '../../widgetRuntimeContract'
 import { BuyerKeyPanel } from '../buy/BuyerKeyPanel'
+import { AntseedSignerRow } from './AntseedSignerRow'
 import { compactButtonProps, truncateAddress } from '../shared/styles'
 
 interface SignerKeyPanelProps {
@@ -113,9 +114,10 @@ export function SignerKeyPanel({
         </Button>
         <Heading level={5}>Import Signer Key</Heading>
         <Text secondary>
-          Paste the private key from AntSeed. It will be checked against the operator configured
-          for this signer before you can continue.
+          Already have a signer key in Antseed? Export it there and paste it below. It will be
+          checked against the operator configured for this signer before you can continue.
         </Text>
+        <AntseedSignerRow mode="import" />
         <Input
           size="sm"
           value={privateKey}

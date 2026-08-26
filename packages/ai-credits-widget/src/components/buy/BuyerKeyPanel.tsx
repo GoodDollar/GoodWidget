@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Button, ButtonText, Card, Heading, Icon, Text, XStack, YStack } from '@goodwidget/ui'
 import { AiCreditsStatusNotice } from '../theme/cards'
+import { AntseedSignerRow } from '../setup/AntseedSignerRow'
 import { monospaceSingleLineStyle, compactButtonProps } from '../shared/styles'
 import { useCopyFeedback } from '../shared/useCopyFeedback'
 
@@ -132,9 +133,9 @@ export function BuyerKeyPanel({
                     />
                   </Button>
                 </XStack>
+                <AntseedSignerRow mode="generate" />
                 <Text fontSize="$2" secondary>
-                  In AntSeed, open Settings → Signer key and import this private key. The public
-                  address above is the signer identity used for AI credits.
+                  The public address above is the signer identity used for AI credits.
                 </Text>
               </>
             )}
