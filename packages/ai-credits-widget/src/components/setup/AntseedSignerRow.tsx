@@ -17,8 +17,11 @@ interface AntseedSignerRowProps {
  * Screenshot of Antseed's Profile → Signer row, captioned per flow.
  *
  * The image shows both arrow buttons because that is what the user will
- * actually see; the caption below is what distinguishes exporting from
- * importing. Keep the two in step when either changes.
+ * actually see; the caption below names the one to press. Deliberately one
+ * action per flow — an earlier version also told the user to back up first,
+ * which duplicated the warning rendered just above this in BuyerKeyPanel and
+ * left two different keys to keep straight in a single sentence. Backing up
+ * belongs to that warning; this line only answers "which arrow".
  */
 export function AntseedSignerRow({ mode }: AntseedSignerRowProps) {
   const isGenerate = mode === 'generate'
@@ -38,7 +41,7 @@ export function AntseedSignerRow({ mode }: AntseedSignerRowProps) {
             <Text fontSize="$2" fontWeight="700">
               Profile → Signer
             </Text>
-            : tap ↓ to back up the key it holds now, then ↑ to import this one
+            , tap ↑ to import this key.
           </>
         ) : (
           <>
@@ -46,7 +49,7 @@ export function AntseedSignerRow({ mode }: AntseedSignerRowProps) {
             <Text fontSize="$2" fontWeight="700">
               Profile → Signer
             </Text>
-            : tap ↓ to export the key it holds now, then paste it below
+            , tap ↓ to export your key, then paste it below.
           </>
         )}
       </Text>
