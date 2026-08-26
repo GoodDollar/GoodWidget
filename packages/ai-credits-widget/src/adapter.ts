@@ -395,7 +395,7 @@ export function useAiCreditsAdapter({
   skipVaultPaymentValidation = false,
   prepareSettlement,
 }: UseAiCreditsAdapterOptions): AiCreditsWidgetAdapterResult {
-  const { address, chainId, isConnected, provider, connect } = useWallet()
+  const { address, chainId, isConnected, provider, connect, switchChain } = useWallet()
   const [state, setState] = useState<AiCreditsWidgetAdapterState>(INITIAL_STATE)
   const configurationError =
     backendClientOverride || backendUrl
@@ -671,16 +671,28 @@ export function useAiCreditsAdapter({
     })
   }, [connect])
 
+  /**
+   * Switches to Celo through the wallet context rather than issuing
+   * `wallet_switchEthereumChain` directly.
+   *
+   * The raw request is not enough on its own: plenty of mobile wallets bridged
+   * over WalletConnect either reject the method or never answer it. Core races
+   * the request against a timeout and falls back to the integrator's own
+   * network flow, and every failure lands in `state.error` — a switch that
+   * cannot happen has to say so rather than leave a button that does nothing.
+   */
   const handleSwitchChain = useCallback(async () => {
-    const prov = providerRef.current
-    if (!prov) return
-    await (
-      prov as { request: (args: { method: string; params: unknown[] }) => Promise<unknown> }
-    ).request({
-      method: 'wallet_switchEthereumChain',
-      params: [{ chainId: `0x${CELO_CHAIN_ID.toString(16)}` }],
-    })
-  }, [])
+    setState((prev) => ({ ...prev, error: null }))
+    try {
+      await switchChain(CELO_CHAIN_ID)
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : 'Could not switch to Celo. Switch networks in your wallet, then try again.'
+      setState((prev) => withDerivedStatus(prev, { error: message }, true))
+    }
+  }, [switchChain])
 
   /**
    * Creates or restores the single deterministic wallet buyer.

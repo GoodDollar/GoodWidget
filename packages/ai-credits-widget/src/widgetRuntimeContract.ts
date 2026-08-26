@@ -162,6 +162,31 @@ export interface AiCreditsWidgetProps {
   disconnectLabel?: string
   /** Icon for the chip's menu action, mirroring `disconnectLabel`. */
   disconnectIcon?: IconName
+  /**
+   * Integrator-owned live address (e.g. from a wallet-connection SDK's own
+   * reactive account hook). See `GoodWidgetProviderProps.addressOverride`.
+   */
+  addressOverride?: string | null
+  /**
+   * Integrator-owned live chain id, mirroring `addressOverride`. See
+   * `GoodWidgetProviderProps.chainIdOverride`. Worth supplying for connectors
+   * that do not reliably emit `chainChanged` — a WalletConnect session bridged
+   * through AppKit, for one — otherwise the widget can keep reporting the wrong
+   * network after the user has already switched.
+   */
+  chainIdOverride?: number | null
+  /**
+   * Integrator-owned chain-switch fallback, used when the wallet rejects or
+   * ignores `wallet_switchEthereumChain`. See
+   * `GoodWidgetProviderProps.switchChainOverride`. Without it, wallets that
+   * cannot be switched from a page leave the user stuck on the wrong network.
+   */
+  switchChainOverride?: (chainId: number) => Promise<void>
+  /**
+   * Chain ids the passed-down provider can currently execute on. See
+   * `GoodWidgetProviderProps.availableChainIdsOverride`.
+   */
+  availableChainIdsOverride?: number[] | null
   environment?: AiCreditsWidgetEnvironment
   backendUrl?: string
   baseRpcUrl?: string

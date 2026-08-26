@@ -124,6 +124,83 @@ function SetupTabPanel({
   )
 }
 
+/**
+ * Wrong-network prompt.
+ *
+ * Some wallets — mobile ones bridged over WalletConnect in particular — cannot
+ * be switched by the page at all, so this reports what happened instead of
+ * leaving a button that silently does nothing, and names the manual route as a
+ * fallback.
+ */
+function SwitchChainNotice({
+  actions,
+  error,
+}: {
+  actions: AiCreditsWidgetAdapterActions
+  error: string | null
+}) {
+  const [switching, setSwitching] = useState(false)
+  // The stock adapter reports failures through `state.error`, but a custom
+  // adapterFactory may just reject. Catching here means neither route ends in
+  // an unhandled rejection and a button that appears to do nothing.
+  const [localError, setLocalError] = useState<string | null>(null)
+
+  const handleSwitch = useCallback(async () => {
+    setSwitching(true)
+    setLocalError(null)
+    try {
+      await actions.switchChain()
+    } catch (err: unknown) {
+      setLocalError(
+        err instanceof Error && err.message
+          ? err.message
+          : 'Could not switch to Celo. Switch networks in your wallet, then try again.',
+      )
+    } finally {
+      setSwitching(false)
+    }
+  }, [actions])
+
+  const shownError = error ?? localError
+
+  return (
+    <AiCreditsStatusNotice>
+      <XStack gap="$2" alignItems="center">
+        <Text color="$warning" fontWeight="700">
+          Wrong Network
+        </Text>
+      </XStack>
+      <Text secondary>Please switch to the Celo network to continue.</Text>
+      <Button
+        disabled={switching}
+        onPress={() => {
+          void handleSwitch()
+        }}
+      >
+        {switching ? (
+          <XStack gap="$2" alignItems="center">
+            <ButtonText>Switching…</ButtonText>
+            <Spinner size="sm" />
+          </XStack>
+        ) : (
+          <ButtonText>Switch to Celo</ButtonText>
+        )}
+      </Button>
+      {shownError && (
+        <>
+          <Text color="$error" fontSize="$2">
+            {shownError}
+          </Text>
+          <Text secondary fontSize="$2">
+            Some wallets cannot switch networks from a website. Change the network to Celo in your
+            wallet app, then return here.
+          </Text>
+        </>
+      )}
+    </AiCreditsStatusNotice>
+  )
+}
+
 interface BuyPanelProps {
   state: AiCreditsWidgetAdapterState
   actions: AiCreditsWidgetAdapterActions
@@ -135,23 +212,7 @@ function BuyCreditsPanel({ state, actions, isPending, onPay }: BuyPanelProps) {
   let content: React.ReactNode
 
   if (state.status === 'unsupported_chain') {
-    content = (
-      <AiCreditsStatusNotice>
-        <XStack gap="$2" alignItems="center">
-          <Text color="$warning" fontWeight="700">
-            Wrong Network
-          </Text>
-        </XStack>
-        <Text secondary>Please switch to the Celo network to continue.</Text>
-        <Button
-          onPress={() => {
-            void actions.switchChain()
-          }}
-        >
-          <ButtonText>Switch to Celo</ButtonText>
-        </Button>
-      </AiCreditsStatusNotice>
-    )
+    content = <SwitchChainNotice actions={actions} error={state.error} />
   } else if (state.status === 'payment_failed') {
     content = (
       <>
@@ -522,6 +583,10 @@ export function AiCreditsWidget({
   disconnectOverride,
   disconnectLabel,
   disconnectIcon,
+  addressOverride,
+  chainIdOverride,
+  switchChainOverride,
+  availableChainIdsOverride,
   environment = 'production',
   backendUrl,
   baseRpcUrl,
@@ -545,6 +610,10 @@ export function AiCreditsWidget({
       disconnectOverride={disconnectOverride}
       disconnectLabel={disconnectLabel}
       disconnectIcon={disconnectIcon}
+      addressOverride={addressOverride}
+      chainIdOverride={chainIdOverride}
+      switchChainOverride={switchChainOverride}
+      availableChainIdsOverride={availableChainIdsOverride}
       config={config}
       themeOverrides={themeOverrides}
       defaultTheme={defaultTheme}
