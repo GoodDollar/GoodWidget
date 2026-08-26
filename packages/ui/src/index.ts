@@ -129,10 +129,14 @@ export type {
 
 // Web3
 export { AddressDisplay } from './components-test/AddressDisplay'
+export { WalletInfo } from './components-test/WalletInfo'
+export { PermissionList, PermissionRow } from './components/PermissionRow'
+export type { PermissionRowProps } from './components/PermissionRow'
+export { WalletChip } from './components/WalletChip'
+export type { WalletChipProps } from './components/WalletChip'
 export { TokenAmount } from './components/TokenAmount'
 export { TransactionButton } from './components-test/TransactionButton'
 export { ChainBadge, getChainDisplayName } from './components-test/ChainBadge'
-export { WalletInfo } from './components-test/WalletInfo'
 
 // Patterns / Composites
 export { MiniAppShell } from './components/MiniAppShell'

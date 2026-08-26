@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react'
-import { GoodWidgetProvider, useWallet } from '@goodwidget/core'
+import { GoodWidgetProvider, WalletControls } from '@goodwidget/core'
 import type { EIP1193Provider } from '@goodwidget/core'
 import {
   Badge,
@@ -24,7 +24,6 @@ import { needsWalletConnection, useAiCreditsAdapter } from './adapter'
 import { useAiCreditsHistory } from './useAiCreditsHistory'
 import {
   AiCreditsHero,
-  AiCreditsFlowStepper,
   AiCreditsPurchaseFlow,
   AiCreditsStatusNotice,
   CreditsManagementCard,
@@ -49,7 +48,6 @@ import type {
   AiCreditsQuote,
 } from './widgetRuntimeContract'
 import { compactButtonProps } from './components/shared/styles'
-import { WalletChip } from './components/shared/WalletChip'
 
 const CELO_CHAIN_ID = 42220
 
@@ -66,7 +64,6 @@ interface AiCreditsInnerProps {
   onPaySuccess?: (detail: AiCreditsPaySuccessDetail) => void
   onPayError?: (detail: AiCreditsPayErrorDetail) => void
   showWalletControls?: boolean
-  hasDisconnectOverride?: boolean
 }
 
 function SetupConnectPrompt({
@@ -119,10 +116,88 @@ function SetupTabPanel({
         isGoodIdVerified={state.isGoodIdVerified}
       />
       <Text secondary fontSize="$2">
-        One-time setup, in order — each step unlocks the next:
+        One-time setup — optional for now. Take the steps in any order, or skip ahead and come
+        back when you are ready to buy.
       </Text>
       <SetupOnboardingFlow state={state} actions={actions} />
     </YStack>
+  )
+}
+
+/**
+ * Wrong-network prompt.
+ *
+ * Some wallets — mobile ones bridged over WalletConnect in particular — cannot
+ * be switched by the page at all, so this reports what happened instead of
+ * leaving a button that silently does nothing, and names the manual route as a
+ * fallback.
+ */
+function SwitchChainNotice({
+  actions,
+  error,
+}: {
+  actions: AiCreditsWidgetAdapterActions
+  error: string | null
+}) {
+  const [switching, setSwitching] = useState(false)
+  // The stock adapter reports failures through `state.error`, but a custom
+  // adapterFactory may just reject. Catching here means neither route ends in
+  // an unhandled rejection and a button that appears to do nothing.
+  const [localError, setLocalError] = useState<string | null>(null)
+
+  const handleSwitch = useCallback(async () => {
+    setSwitching(true)
+    setLocalError(null)
+    try {
+      await actions.switchChain()
+    } catch (err: unknown) {
+      setLocalError(
+        err instanceof Error && err.message
+          ? err.message
+          : 'Could not switch to Celo. Switch networks in your wallet, then try again.',
+      )
+    } finally {
+      setSwitching(false)
+    }
+  }, [actions])
+
+  const shownError = error ?? localError
+
+  return (
+    <AiCreditsStatusNotice>
+      <XStack gap="$2" alignItems="center">
+        <Text color="$warning" fontWeight="700">
+          Wrong Network
+        </Text>
+      </XStack>
+      <Text secondary>Please switch to the Celo network to continue.</Text>
+      <Button
+        disabled={switching}
+        onPress={() => {
+          void handleSwitch()
+        }}
+      >
+        {switching ? (
+          <XStack gap="$2" alignItems="center">
+            <ButtonText>Switching…</ButtonText>
+            <Spinner size="sm" />
+          </XStack>
+        ) : (
+          <ButtonText>Switch to Celo</ButtonText>
+        )}
+      </Button>
+      {shownError && (
+        <>
+          <Text color="$error" fontSize="$2">
+            {shownError}
+          </Text>
+          <Text secondary fontSize="$2">
+            Some wallets cannot switch networks from a website. Change the network to Celo in your
+            wallet app, then return here.
+          </Text>
+        </>
+      )}
+    </AiCreditsStatusNotice>
   )
 }
 
@@ -137,23 +212,7 @@ function BuyCreditsPanel({ state, actions, isPending, onPay }: BuyPanelProps) {
   let content: React.ReactNode
 
   if (state.status === 'unsupported_chain') {
-    content = (
-      <AiCreditsStatusNotice>
-        <XStack gap="$2" alignItems="center">
-          <Text color="$warning" fontWeight="700">
-            Wrong Network
-          </Text>
-        </XStack>
-        <Text secondary>Please switch to the Celo network to continue.</Text>
-        <Button
-          onPress={() => {
-            void actions.switchChain()
-          }}
-        >
-          <ButtonText>Switch to Celo</ButtonText>
-        </Button>
-      </AiCreditsStatusNotice>
-    )
+    content = <SwitchChainNotice actions={actions} error={state.error} />
   } else if (state.status === 'payment_failed') {
     content = (
       <>
@@ -213,17 +272,14 @@ function BuyCreditsPanel({ state, actions, isPending, onPay }: BuyPanelProps) {
         : 'Payment confirmed — settling credits on Base…'
 
     content = (
-      <>
-        <Card>
-          <YStack gap="$4" alignItems="center" padding="$4">
-            <Spinner size="lg" />
-            <Text center secondary>
-              {message}
-            </Text>
-          </YStack>
-        </Card>
-        <AiCreditsFlowStepper state={state} buyerPubKeySaved />
-      </>
+      <Card>
+        <YStack gap="$4" alignItems="center" padding="$4">
+          <Spinner size="lg" />
+          <Text center secondary>
+            {message}
+          </Text>
+        </YStack>
+      </Card>
     )
   } else {
     content = (
@@ -348,7 +404,6 @@ function AiCreditsInner({
   onPaySuccess,
   onPayError,
   showWalletControls = false,
-  hasDisconnectOverride = false,
 }: AiCreditsInnerProps) {
   const defaultAdapter = useAiCreditsAdapter({
     environment,
@@ -428,15 +483,12 @@ function AiCreditsInner({
     [actions],
   )
 
-  const { disconnect, disconnectLabel, disconnectIcon } = useWallet()
-
   // Ending the session leaves every other tab showing empty rows, so the widget
   // returns to Setup — the only tab that has something to say while disconnected.
-  const handleDisconnect = useCallback(async () => {
-    await disconnect()
+  const handleDisconnected = useCallback(() => {
     setHelpView(null)
     actions.setActiveTab('setup')
-  }, [actions, disconnect])
+  }, [actions])
 
   const walletRequired = needsWalletConnection(state)
 
@@ -474,13 +526,8 @@ function AiCreditsInner({
           <Badge type="info">
             <BadgeText>{getChainDisplayName(state.chainId ?? CELO_CHAIN_ID)}</BadgeText>
           </Badge>
-          {showWalletControls && state.address && (
-            <WalletChip
-              address={state.address}
-              onDisconnect={hasDisconnectOverride ? handleDisconnect : undefined}
-              disconnectLabel={hasDisconnectOverride ? disconnectLabel : undefined}
-              disconnectIcon={hasDisconnectOverride ? disconnectIcon : undefined}
-            />
+          {showWalletControls && (
+            <WalletControls size="sm" onDisconnected={handleDisconnected} />
           )}
         </XStack>
       </XStack>
@@ -536,6 +583,10 @@ export function AiCreditsWidget({
   disconnectOverride,
   disconnectLabel,
   disconnectIcon,
+  addressOverride,
+  chainIdOverride,
+  switchChainOverride,
+  availableChainIdsOverride,
   environment = 'production',
   backendUrl,
   baseRpcUrl,
@@ -559,6 +610,10 @@ export function AiCreditsWidget({
       disconnectOverride={disconnectOverride}
       disconnectLabel={disconnectLabel}
       disconnectIcon={disconnectIcon}
+      addressOverride={addressOverride}
+      chainIdOverride={chainIdOverride}
+      switchChainOverride={switchChainOverride}
+      availableChainIdsOverride={availableChainIdsOverride}
       config={config}
       themeOverrides={themeOverrides}
       defaultTheme={defaultTheme}
@@ -577,7 +632,6 @@ export function AiCreditsWidget({
           onPaySuccess={onPaySuccess}
           onPayError={onPayError}
           showWalletControls={showWalletControls}
-          hasDisconnectOverride={Boolean(disconnectOverride)}
         />
         <ToastContainer />
       </YStack>

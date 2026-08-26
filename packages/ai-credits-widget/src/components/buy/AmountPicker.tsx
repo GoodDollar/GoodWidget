@@ -106,6 +106,11 @@ interface AmountPickerProps {
   depositBonusPercent: number
   streamBonusPercent: number
   isPayPending: boolean
+  /**
+   * Why buying is unavailable regardless of the amounts entered — missing setup,
+   * for instance. Blocks payment and is surfaced verbatim; null when nothing blocks it.
+   */
+  payBlockedReason?: string | null
   buildQuote: (depositG: string, streamG: string) => Promise<AiCreditsQuote>
   onPay: (quote: AiCreditsQuote) => void
   onVerifyGoodId: () => Promise<void>
@@ -123,6 +128,7 @@ export function AmountPicker({
   depositBonusPercent,
   streamBonusPercent,
   isPayPending,
+  payBlockedReason = null,
   buildQuote,
   onPay,
   onVerifyGoodId,
@@ -183,6 +189,7 @@ export function AmountPicker({
   const minsLoaded = minStreamUsd !== null
   const canRetryAfterFailure = status === 'quote_ready' || status === 'payment_failed'
   const canPay =
+    !payBlockedReason &&
     canRetryAfterFailure &&
     minsLoaded &&
     paymentValidation.hasPaymentAction &&
@@ -190,14 +197,18 @@ export function AmountPicker({
     !paymentValidation.overBalance &&
     !quotePending &&
     quote !== null
-  const payDisabledMessage = getPayDisabledMessage({
-    canPay,
-    minsLoaded,
-    status,
-    minDepositUsd,
-    minStreamUsd,
-    validation: paymentValidation,
-  })
+  // A missing prerequisite outranks any amount-related hint: telling someone to
+  // adjust their deposit is misleading when the real blocker is setup.
+  const payDisabledMessage =
+    payBlockedReason ??
+    getPayDisabledMessage({
+      canPay,
+      minsLoaded,
+      status,
+      minDepositUsd,
+      minStreamUsd,
+      validation: paymentValidation,
+    })
   const { depositBelowMin, streamBelowMin, overBalance } = paymentValidation
   const depositMinUsdLabel =
     minDepositUsd !== null
@@ -356,6 +367,14 @@ export function AmountPicker({
             />
           </XStack>
         </>
+      )}
+
+      {payBlockedReason && (
+        <AiCreditsStatusNotice borderColor="$warning">
+          <Text color="$warning" fontSize="$2">
+            {payBlockedReason}
+          </Text>
+        </AiCreditsStatusNotice>
       )}
 
       {overBalance && (

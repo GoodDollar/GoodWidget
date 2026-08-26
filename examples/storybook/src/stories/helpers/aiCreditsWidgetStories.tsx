@@ -1,4 +1,4 @@
-import React, { useRef } from 'react'
+import React, { useMemo, useRef } from 'react'
 import type { EIP1193Provider } from '@goodwidget/core'
 import { YStack } from '@goodwidget/ui'
 import {
@@ -10,9 +10,12 @@ import {
 import { MockAiCreditsWidget } from '@goodwidget/ai-credits-widget/mocked'
 import {
   DefaultAppKitProvider,
+  DEFAULT_APPKIT_NETWORKS,
   useAppKit,
   useAppKitAccount,
+  useAppKitNetwork,
   useAppKitProvider,
+  useDisconnect,
 } from '@goodwidget/embed/appkit-provider'
 import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
 import {
@@ -409,7 +412,7 @@ export function MockBackendStory() {
 
   return (
     <YStack data-testid="AiCreditsWidget-mock-backend" style={{ width: 380 }}>
-      <MockAiCreditsWidget provider={injectedProvider} />
+      <MockAiCreditsWidget provider={injectedProvider} showWalletControls />
     </YStack>
   )
 }
@@ -420,12 +423,43 @@ export function MockBackendStory() {
  */
 function AppKitConnectShell() {
   const { open } = useAppKit()
-  const { address: appKitAddress } = useAppKitAccount()
+  const { disconnect } = useDisconnect()
+  const { address: appKitAddress, status: accountStatus } = useAppKitAccount()
   const { walletProvider } = useAppKitProvider<EIP1193Provider | undefined>('eip155')
+  const { chainId, switchNetwork, approvedCaipNetworkIds } = useAppKitNetwork()
   const appKitAddressRef = useRef(appKitAddress)
   appKitAddressRef.current = appKitAddress
 
+  // Mirrors apps/ai-credits-web so the story exercises the same wallet wiring
+  // real users hit — without these, a WalletConnect wallet that ignores
+  // wallet_switchEthereumChain has no fallback and no reliable chain reading.
+  const isAccountResolved = accountStatus === 'connected' || accountStatus === 'disconnected'
+  const appKitNetworksByChainId = useMemo(
+    () => new Map(DEFAULT_APPKIT_NETWORKS.map((network) => [Number(network.id), network])),
+    [],
+  )
+  const availableChainIds = useMemo(
+    () =>
+      approvedCaipNetworkIds
+        ? approvedCaipNetworkIds
+            .map((caipId) => Number(caipId.split(':')[1]))
+            .filter((id) => Number.isFinite(id))
+        : null,
+    [approvedCaipNetworkIds],
+  )
+  const backendUrl = import.meta.env.VITE_AI_CREDITS_BACKEND_URL
+  const baseRpcUrl = import.meta.env.VITE_AI_CREDITS_BASE_RPC_URL
+  const celoRpcUrl = import.meta.env.VITE_AI_CREDITS_CELO_RPC_URL
+  const fundingVaultAddress = import.meta.env.VITE_AI_CREDITS_FUNDING_VAULT_ADDRESS as
+    | `0x${string}`
+    | undefined
+  const vaultAddress = import.meta.env.VITE_AI_CREDITS_VAULT_ADDRESS as `0x${string}` | undefined
+  const goodIdAddress = import.meta.env.VITE_AI_CREDITS_GOODID_ADDRESS as `0x${string}` | undefined
+
   return (
+    // Plain div, not a Tamagui stack: this Showcase meta disables the shared
+    // provider, so the widget brings its own theme context and anything wrapping
+    // it has none.
     <div data-testid="AiCreditsWidget-appkit-connect" style={{ width: 380 }}>
       <AiCreditsWidget
         provider={walletProvider}
@@ -436,6 +470,34 @@ function AppKitConnectShell() {
             throw new Error('wallet_connect_cancelled')
           }
         }}
+        showWalletControls
+        disconnectOverride={async () => {
+          await disconnect()
+        }}
+        addressOverride={isAccountResolved ? (appKitAddress ?? null) : undefined}
+        chainIdOverride={isAccountResolved ? (chainId == null ? null : Number(chainId)) : undefined}
+        availableChainIdsOverride={availableChainIds}
+        switchChainOverride={async (targetChainId) => {
+          const targetNetwork = appKitNetworksByChainId.get(targetChainId)
+          // Opening the modal is not proof of a switch, so this throws rather
+          // than resolves — the caller must not treat it as done.
+          if (!targetNetwork) {
+            await open({ view: 'Networks' })
+            throw new Error('Select the network in the wallet dialog, then try again.')
+          }
+          try {
+            await switchNetwork(targetNetwork)
+          } catch {
+            await open({ view: 'Networks' })
+            throw new Error('Select the network in the wallet dialog, then try again.')
+          }
+        }}
+        backendUrl={backendUrl}
+        baseRpcUrl={baseRpcUrl}
+        celoRpcUrl={celoRpcUrl}
+        fundingVaultAddress={fundingVaultAddress}
+        vaultAddress={vaultAddress}
+        goodIdAddress={goodIdAddress}
       />
     </div>
   )
@@ -494,6 +556,7 @@ export function InjectedWalletStory() {
     <YStack data-testid="AiCreditsWidget-injected-wallet" style={{ width: 380 }} gap="$3">
       <AiCreditsWidget
         provider={injectedProvider}
+        showWalletControls
         backendUrl={backendUrl}
         baseRpcUrl={baseRpcUrl}
         celoRpcUrl={celoRpcUrl}

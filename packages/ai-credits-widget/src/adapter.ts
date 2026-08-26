@@ -42,6 +42,7 @@ import {
   type DeepLinkParams,
 } from './deepLinkParams'
 import {
+  addressesMatch,
   buildBuyerStateFields,
   patchPayerSessionFields,
   readPayerSession,
@@ -394,7 +395,7 @@ export function useAiCreditsAdapter({
   skipVaultPaymentValidation = false,
   prepareSettlement,
 }: UseAiCreditsAdapterOptions): AiCreditsWidgetAdapterResult {
-  const { address, chainId, isConnected, provider, connect } = useWallet()
+  const { address, chainId, isConnected, provider, connect, switchChain } = useWallet()
   const [state, setState] = useState<AiCreditsWidgetAdapterState>(INITIAL_STATE)
   const configurationError =
     backendClientOverride || backendUrl
@@ -574,12 +575,37 @@ export function useAiCreditsAdapter({
         }
 
         const selectedBuyer = selectPreferredBuyer(buyers, preferredBuyer)
-        const accountPatch = account
-          ? viewToStatePatch(account.view, account.enriched, INITIAL_STATE, {
+
+        // Buyer discovery runs alongside the account fetch, so a buyer found in
+        // history arrives after the view was already built for `preferredBuyer`
+        // (null on a first visit, which makes the operator read fall back to a
+        // hardcoded "not accepted"). Rebuild for the buyer we actually settled on
+        // rather than reporting a status that was never queried for it.
+        let resolvedAccount = account
+        if (selectedBuyer && !addressesMatch(account?.view.buyer ?? null, selectedBuyer)) {
+          resolvedAccount = await buildAccountView(address!, backendClient, chainClient, {
+            buyerAddress: selectedBuyer,
+          })
+            .then(async (view) => ({ view, enriched: await enrichAccountView(view, chainClient) }))
+            .catch(() => account)
+          if (cancelled) return
+        }
+
+        const accountPatch = resolvedAccount
+          ? viewToStatePatch(resolvedAccount.view, resolvedAccount.enriched, INITIAL_STATE, {
               balanceMode: 'always',
             })
           : {}
-        if (selectedBuyer && accountPatch.operatorConsented !== undefined) {
+
+        // Consent is only trustworthy when the view was built for this exact buyer.
+        // Otherwise drop it from the patch and leave the stored value alone: a false
+        // negative here is what makes an already-authorized account look unauthorized
+        // on every later load.
+        const consentChecked =
+          Boolean(selectedBuyer) && addressesMatch(resolvedAccount?.view.buyer ?? null, selectedBuyer)
+        if (!consentChecked) {
+          delete accountPatch.operatorConsented
+        } else if (selectedBuyer && accountPatch.operatorConsented !== undefined) {
           setBuyerOperatorConsented(address!, selectedBuyer, accountPatch.operatorConsented)
         }
         const buyerFields = activateBuyerSelection(address!, buyers, selectedBuyer)
@@ -645,16 +671,28 @@ export function useAiCreditsAdapter({
     })
   }, [connect])
 
+  /**
+   * Switches to Celo through the wallet context rather than issuing
+   * `wallet_switchEthereumChain` directly.
+   *
+   * The raw request is not enough on its own: plenty of mobile wallets bridged
+   * over WalletConnect either reject the method or never answer it. Core races
+   * the request against a timeout and falls back to the integrator's own
+   * network flow, and every failure lands in `state.error` — a switch that
+   * cannot happen has to say so rather than leave a button that does nothing.
+   */
   const handleSwitchChain = useCallback(async () => {
-    const prov = providerRef.current
-    if (!prov) return
-    await (
-      prov as { request: (args: { method: string; params: unknown[] }) => Promise<unknown> }
-    ).request({
-      method: 'wallet_switchEthereumChain',
-      params: [{ chainId: `0x${CELO_CHAIN_ID.toString(16)}` }],
-    })
-  }, [])
+    setState((prev) => ({ ...prev, error: null }))
+    try {
+      await switchChain(CELO_CHAIN_ID)
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : 'Could not switch to Celo. Switch networks in your wallet, then try again.'
+      setState((prev) => withDerivedStatus(prev, { error: message }, true))
+    }
+  }, [switchChain])
 
   /**
    * Creates or restores the single deterministic wallet buyer.
