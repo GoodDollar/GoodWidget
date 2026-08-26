@@ -1,4 +1,4 @@
-import React, { useRef } from 'react'
+import React, { useMemo, useRef } from 'react'
 import type { EIP1193Provider } from '@goodwidget/core'
 import { YStack } from '@goodwidget/ui'
 import {
@@ -10,8 +10,10 @@ import {
 import { MockAiCreditsWidget } from '@goodwidget/ai-credits-widget/mocked'
 import {
   DefaultAppKitProvider,
+  DEFAULT_APPKIT_NETWORKS,
   useAppKit,
   useAppKitAccount,
+  useAppKitNetwork,
   useAppKitProvider,
   useDisconnect,
 } from '@goodwidget/embed/appkit-provider'
@@ -422,10 +424,29 @@ export function MockBackendStory() {
 function AppKitConnectShell() {
   const { open } = useAppKit()
   const { disconnect } = useDisconnect()
-  const { address: appKitAddress } = useAppKitAccount()
+  const { address: appKitAddress, status: accountStatus } = useAppKitAccount()
   const { walletProvider } = useAppKitProvider<EIP1193Provider | undefined>('eip155')
+  const { chainId, switchNetwork, approvedCaipNetworkIds } = useAppKitNetwork()
   const appKitAddressRef = useRef(appKitAddress)
   appKitAddressRef.current = appKitAddress
+
+  // Mirrors apps/ai-credits-web so the story exercises the same wallet wiring
+  // real users hit — without these, a WalletConnect wallet that ignores
+  // wallet_switchEthereumChain has no fallback and no reliable chain reading.
+  const isAccountResolved = accountStatus === 'connected' || accountStatus === 'disconnected'
+  const appKitNetworksByChainId = useMemo(
+    () => new Map(DEFAULT_APPKIT_NETWORKS.map((network) => [Number(network.id), network])),
+    [],
+  )
+  const availableChainIds = useMemo(
+    () =>
+      approvedCaipNetworkIds
+        ? approvedCaipNetworkIds
+            .map((caipId) => Number(caipId.split(':')[1]))
+            .filter((id) => Number.isFinite(id))
+        : null,
+    [approvedCaipNetworkIds],
+  )
   const backendUrl = import.meta.env.VITE_AI_CREDITS_BACKEND_URL
   const baseRpcUrl = import.meta.env.VITE_AI_CREDITS_BASE_RPC_URL
   const celoRpcUrl = import.meta.env.VITE_AI_CREDITS_CELO_RPC_URL
@@ -452,6 +473,24 @@ function AppKitConnectShell() {
         showWalletControls
         disconnectOverride={async () => {
           await disconnect()
+        }}
+        addressOverride={isAccountResolved ? (appKitAddress ?? null) : undefined}
+        chainIdOverride={isAccountResolved ? (chainId == null ? null : Number(chainId)) : undefined}
+        availableChainIdsOverride={availableChainIds}
+        switchChainOverride={async (targetChainId) => {
+          const targetNetwork = appKitNetworksByChainId.get(targetChainId)
+          // Opening the modal is not proof of a switch, so this throws rather
+          // than resolves — the caller must not treat it as done.
+          if (!targetNetwork) {
+            await open({ view: 'Networks' })
+            throw new Error('Select the network in the wallet dialog, then try again.')
+          }
+          try {
+            await switchNetwork(targetNetwork)
+          } catch {
+            await open({ view: 'Networks' })
+            throw new Error('Select the network in the wallet dialog, then try again.')
+          }
         }}
         backendUrl={backendUrl}
         baseRpcUrl={baseRpcUrl}
