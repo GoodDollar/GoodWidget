@@ -7,6 +7,9 @@ on:
       - main
     paths:
       - 'apps/gooddata-analytics-web/**'
+      - 'packages/gooddata-widget/**'
+      - 'packages/core/**'
+      - 'packages/embed/**'
       - 'packages/ui/**'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
@@ -16,6 +19,9 @@ on:
       - main
     paths:
       - 'apps/gooddata-analytics-web/**'
+      - 'packages/gooddata-widget/**'
+      - 'packages/core/**'
+      - 'packages/embed/**'
       - 'packages/ui/**'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
@@ -45,7 +51,7 @@ jobs:
     needs: authorize-preview
     runs-on: ubuntu-latest
     environment:
-      name: preview
+      name: preview-gooddata
       url: ${{ steps.deploy.outputs.url }}
     steps:
       - name: Checkout pull request head
