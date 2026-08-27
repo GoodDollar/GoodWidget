@@ -12,11 +12,11 @@ test('source=antseed renders only the purchase widget, without landing-page sect
   await expect(page.getByTestId('ai-credits-purchase-only')).toBeVisible()
   await expect(page.getByTestId('purchase-frame')).toBeVisible()
   await expect(page.getByTestId('ai-credits-landing-page')).toHaveCount(0)
-  await expect(page.getByTestId('benefits-strip')).toHaveCount(0)
-  await expect(page.getByTestId('agent-skills')).toHaveCount(0)
+  await expect(page.getByRole('heading', { level: 1 })).toHaveCount(0)
+  await expect(page.getByText('Know what runs, who can see it, and what is at risk')).toHaveCount(0)
 })
 
-test('omitting source keeps the full landing page unchanged', async ({ page }) => {
+test('omitting source keeps the landing page wrapper', async ({ page }) => {
   await page.goto('/')
 
   await expect(page.getByTestId('ai-credits-landing-page')).toBeVisible()

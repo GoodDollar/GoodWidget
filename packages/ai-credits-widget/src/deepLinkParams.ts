@@ -14,7 +14,7 @@ const OPERATOR_SIGNATURE_RE = /^0x[0-9a-fA-F]{128}([0-9a-fA-F]{2})?$/
 const DEEP_LINK_STORAGE_KEY = 'goodwidget.ai-credits.deepLink'
 
 export const DEEP_LINK_MANUAL_FALLBACK_HINT =
-  'Generate or import a buyer key manually to continue.'
+  'Generate or import a signer key manually to continue.'
 
 export function isValidBuyerAddress(value: string): boolean {
   return BUYER_ADDRESS_RE.test(value.trim())

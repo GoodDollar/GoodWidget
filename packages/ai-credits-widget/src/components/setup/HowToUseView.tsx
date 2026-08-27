@@ -5,7 +5,7 @@ import { Anchor, Badge, BadgeText, Button, ButtonText, Card, Icon, Text, XStack,
 const VIDEO_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
 
 /** Notion written guide URL. */
-const WRITTEN_GUIDE_URL = 'https://antseed.notion.site'
+const WRITTEN_GUIDE_URL = 'https://app.notion.com/p/gooddollar/Full-Setup-Walkthrough-Widget-AntSeed-VPR-3c0f258232f08184bee9cd440cc93059'
 
 /** Summary step with an associated widget tab label. */
 interface SummaryStep {
@@ -58,10 +58,10 @@ export function HowToUseView({ onBack }: HowToUseViewProps) {
   return (
     <YStack gap="$4">
       {/* Back navigation */}
-      <Button variant="ghost" alignSelf="flex-start" onPress={onBack} gap="$1" paddingHorizontal="$0">
+      <Button variant="text" alignSelf="flex-start" onPress={onBack} gap="$1">
         <Icon name="arrow-left" size="xs" color="primary" />
         <ButtonText color="$primary" fontSize="$2">
-          Back to buying
+          Back to setup
         </ButtonText>
       </Button>
 

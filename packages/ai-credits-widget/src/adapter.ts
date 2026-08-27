@@ -42,6 +42,7 @@ import {
   type DeepLinkParams,
 } from './deepLinkParams'
 import {
+  addressesMatch,
   buildBuyerStateFields,
   patchPayerSessionFields,
   readPayerSession,
@@ -103,6 +104,7 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   operatorConsented: false,
   operatorConsentPending: false,
   operatorAddress: null,
+  currentOperator: null,
   minDepositUsd: null,
   minStreamUsd: null,
   totalGdDepositedG: null,
@@ -127,6 +129,7 @@ const WALLET_LOADING_STATE: Partial<AiCreditsWidgetAdapterState> = {
   monthlyStreamG: null,
   withdrawableUsd: null,
   operatorAddress: null,
+  currentOperator: null,
 }
 
 const BUYER_HISTORY_LOOKUP_LIMIT = 100
@@ -343,6 +346,7 @@ function viewToStatePatch(
     isGoodIdVerified: enriched.goodIdVerified,
     operatorConsented: operatorAccepted,
     operatorAddress: view.operator.operatorAddress ?? null,
+    currentOperator: view.operator.currentOperator ?? null,
     withdrawableUsd: view.withdrawableUsd,
     totalGdDepositedG: enriched.totalGdDepositedG,
     monthlyStreamG: enriched.monthlyStreamG,
@@ -391,7 +395,7 @@ export function useAiCreditsAdapter({
   skipVaultPaymentValidation = false,
   prepareSettlement,
 }: UseAiCreditsAdapterOptions): AiCreditsWidgetAdapterResult {
-  const { address, chainId, isConnected, provider, connect } = useWallet()
+  const { address, chainId, isConnected, provider, connect, switchChain } = useWallet()
   const [state, setState] = useState<AiCreditsWidgetAdapterState>(INITIAL_STATE)
   const configurationError =
     backendClientOverride || backendUrl
@@ -571,12 +575,37 @@ export function useAiCreditsAdapter({
         }
 
         const selectedBuyer = selectPreferredBuyer(buyers, preferredBuyer)
-        const accountPatch = account
-          ? viewToStatePatch(account.view, account.enriched, INITIAL_STATE, {
+
+        // Buyer discovery runs alongside the account fetch, so a buyer found in
+        // history arrives after the view was already built for `preferredBuyer`
+        // (null on a first visit, which makes the operator read fall back to a
+        // hardcoded "not accepted"). Rebuild for the buyer we actually settled on
+        // rather than reporting a status that was never queried for it.
+        let resolvedAccount = account
+        if (selectedBuyer && !addressesMatch(account?.view.buyer ?? null, selectedBuyer)) {
+          resolvedAccount = await buildAccountView(address!, backendClient, chainClient, {
+            buyerAddress: selectedBuyer,
+          })
+            .then(async (view) => ({ view, enriched: await enrichAccountView(view, chainClient) }))
+            .catch(() => account)
+          if (cancelled) return
+        }
+
+        const accountPatch = resolvedAccount
+          ? viewToStatePatch(resolvedAccount.view, resolvedAccount.enriched, INITIAL_STATE, {
               balanceMode: 'always',
             })
           : {}
-        if (selectedBuyer && accountPatch.operatorConsented !== undefined) {
+
+        // Consent is only trustworthy when the view was built for this exact buyer.
+        // Otherwise drop it from the patch and leave the stored value alone: a false
+        // negative here is what makes an already-authorized account look unauthorized
+        // on every later load.
+        const consentChecked =
+          Boolean(selectedBuyer) && addressesMatch(resolvedAccount?.view.buyer ?? null, selectedBuyer)
+        if (!consentChecked) {
+          delete accountPatch.operatorConsented
+        } else if (selectedBuyer && accountPatch.operatorConsented !== undefined) {
           setBuyerOperatorConsented(address!, selectedBuyer, accountPatch.operatorConsented)
         }
         const buyerFields = activateBuyerSelection(address!, buyers, selectedBuyer)
@@ -642,16 +671,28 @@ export function useAiCreditsAdapter({
     })
   }, [connect])
 
+  /**
+   * Switches to Celo through the wallet context rather than issuing
+   * `wallet_switchEthereumChain` directly.
+   *
+   * The raw request is not enough on its own: plenty of mobile wallets bridged
+   * over WalletConnect either reject the method or never answer it. Core races
+   * the request against a timeout and falls back to the integrator's own
+   * network flow, and every failure lands in `state.error` — a switch that
+   * cannot happen has to say so rather than leave a button that does nothing.
+   */
   const handleSwitchChain = useCallback(async () => {
-    const prov = providerRef.current
-    if (!prov) return
-    await (
-      prov as { request: (args: { method: string; params: unknown[] }) => Promise<unknown> }
-    ).request({
-      method: 'wallet_switchEthereumChain',
-      params: [{ chainId: `0x${CELO_CHAIN_ID.toString(16)}` }],
-    })
-  }, [])
+    setState((prev) => ({ ...prev, error: null }))
+    try {
+      await switchChain(CELO_CHAIN_ID)
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : 'Could not switch to Celo. Switch networks in your wallet, then try again.'
+      setState((prev) => withDerivedStatus(prev, { error: message }, true))
+    }
+  }, [switchChain])
 
   /**
    * Creates or restores the single deterministic wallet buyer.
@@ -662,7 +703,7 @@ export function useAiCreditsAdapter({
       setState((prev) =>
         withDerivedStatus(
           prev,
-          { error: 'Connect your wallet before generating a buyer key' },
+          { error: 'Connect your wallet before generating a signer key' },
           true,
         ),
       )
@@ -750,6 +791,7 @@ export function useAiCreditsAdapter({
         mergeStatePreservingNonBuyTab(prev, {
           ...buyerFields,
           operatorAddress: null,
+          currentOperator: null,
           totalCreditUsd: null,
           withdrawableUsd: null,
           totalGdDepositedG: null,
@@ -810,12 +852,12 @@ export function useAiCreditsAdapter({
   )
 
   const handleImportBuyerFromPrivateKey = useCallback(
-    async (rawPrivateKey: string) => {
+    async (rawPrivateKey: string): Promise<string | null> => {
       if (!address) {
         setState((prev) =>
-          withDerivedStatus(prev, { error: 'Connect your wallet before importing a buyer key' }, true),
+          withDerivedStatus(prev, { error: 'Connect your wallet before importing a signer key' }, true),
         )
-        return
+        return null
       }
 
       const trimmed = rawPrivateKey.trim()
@@ -828,7 +870,7 @@ export function useAiCreditsAdapter({
             true,
           ),
         )
-        return
+        return null
       }
 
       try {
@@ -845,6 +887,7 @@ export function useAiCreditsAdapter({
           mergeStatePreservingNonBuyTab(prev, {
             ...buyerFields,
             operatorAddress: null,
+            currentOperator: null,
             totalCreditUsd: null,
             withdrawableUsd: null,
             totalGdDepositedG: null,
@@ -884,12 +927,15 @@ export function useAiCreditsAdapter({
             }),
           )
         } catch {
-          return
+          return buyerAccount.address
         }
+
+        return buyerAccount.address
       } catch {
         setState((prev) =>
           withDerivedStatus(prev, { error: 'Could not derive an account from the provided private key' }, true),
         )
+        return null
       }
     },
     [address, backendClient, chainClient],
@@ -965,6 +1011,7 @@ export function useAiCreditsAdapter({
         mergeStatePreservingNonBuyTab(prev, {
           ...buyerFields,
           operatorAddress: null,
+          currentOperator: null,
           totalCreditUsd: null,
           withdrawableUsd: null,
           totalGdDepositedG: null,
@@ -984,7 +1031,7 @@ export function useAiCreditsAdapter({
       setState((prev) =>
         withDerivedStatus(
           prev,
-          { error: 'Select a buyer before signing operator consent' },
+          { error: 'Select a buyer before authorizing your wallet' },
           true,
         ),
       )
@@ -999,7 +1046,7 @@ export function useAiCreditsAdapter({
       setState((prev) =>
         withDerivedStatus(
           prev,
-          { error: 'Generate a buyer key before signing operator consent' },
+          { error: 'Generate a signer key before authorizing your wallet' },
           true,
         ),
       )
@@ -1022,6 +1069,16 @@ export function useAiCreditsAdapter({
 
       if (!operatorStatus.enabled) {
         throw new Error('Operator consent is not available')
+      }
+
+      const hasDifferentOperator =
+        operatorStatus.currentOperator !==
+          '0x0000000000000000000000000000000000000000' &&
+        !operatorStatus.operatorAccepted
+      if (hasDifferentOperator) {
+        throw new Error(
+          'This signer key is already controlled by another operator. Import a different signer key or generate a new one.',
+        )
       }
 
       if (operatorStatus.operatorAccepted) {
@@ -1060,7 +1117,7 @@ export function useAiCreditsAdapter({
       } else if (storedOperatorSignature) {
         buyerSig = storedOperatorSignature as `0x${string}`
       } else {
-        throw new Error('Generate a buyer key before signing operator consent')
+        throw new Error('Generate a signer key before authorizing your wallet')
       }
 
       await backendClient.submitOperatorConsent(ref.buyer, {
@@ -1141,7 +1198,7 @@ export function useAiCreditsAdapter({
       const currentState = state
 
       if (!currentState.address || !currentState.buyerPubKey || !providerRef.current) {
-        throw new Error('Connect your wallet and generate a buyer key before paying')
+        throw new Error('Connect your wallet and generate a signer key before paying')
       }
 
       const hasDeposit = Number.parseFloat(quote.depositAmountG) > 0
@@ -1458,7 +1515,7 @@ export function useAiCreditsAdapter({
         setState((prev) => ({
           ...prev,
           error:
-            'Sign with your payer wallet in Buyer & Operator below to generate the buyer private key before closing a channel',
+            'Sign with your payer wallet in Signer Key below to generate the buyer private key before closing a channel',
         }))
         return
       }
@@ -1499,7 +1556,7 @@ export function useAiCreditsAdapter({
         setState((prev) => ({
           ...prev,
           error:
-            'Sign with your payer wallet in Buyer & Operator below to generate the buyer private key before withdrawing funds',
+            'Sign with your payer wallet in Signer Key below to generate the buyer private key before withdrawing funds',
         }))
         return
       }

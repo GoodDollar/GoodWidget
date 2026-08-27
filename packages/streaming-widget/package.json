@@ -2,6 +2,11 @@
   "name": "@goodwidget/streaming-widget",
   "version": "0.1.0-beta",
   "description": "GoodWidget for Superfluid streaming flows — streams, GDA pool memberships, and Super Token balances",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GoodDollar/GoodWidget.git",
+    "directory": "packages/streaming-widget"
+  },
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
