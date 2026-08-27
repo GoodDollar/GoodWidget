@@ -113,7 +113,7 @@ export function SignerKeyPanel({
           <ButtonText>Back to Generate / Import</ButtonText>
         </Button>
         <Heading level={5}>Import Signer Key</Heading>
-        <Text secondary>
+        <Text>
           Already have a signer key in Antseed? Export it there and paste it below. It will be
           checked against the operator configured for this signer before you can continue.
         </Text>
@@ -147,7 +147,7 @@ export function SignerKeyPanel({
             <Text color="$error" fontWeight="700">
               Signer key cannot be used
             </Text>
-            <Text secondary>
+            <Text tone="soft">
               The imported signer key already has another operator configured. Paste a different
               signer key, or go back and generate a new one.
             </Text>
@@ -157,10 +157,10 @@ export function SignerKeyPanel({
             <Text color="$success" fontWeight="700">
               Signer imported
             </Text>
-            <Text secondary>
+            <Text tone="soft">
               {truncateAddress(state.buyerPubKey ?? '')} is now your active signer.
             </Text>
-            <Text secondary>
+            <Text tone="soft">
               {state.operatorConsented
                 ? 'GoodDollar is already configured as the operator.'
                 : currentOperator === ZERO_OPERATOR
@@ -182,7 +182,6 @@ export function SignerKeyPanel({
         flex={compact ? undefined : 1}
         alignSelf={compact ? 'stretch' : undefined}
         size={compact ? 'sm' : 'lg'}
-        variant="outline"
         {...compactButtonProps}
         onPress={() => setChoice('generate')}
       >
@@ -210,13 +209,13 @@ export function SignerKeyPanel({
     <YStack gap="$3">
       {showHeading && <Heading level={5}>Signer Key</Heading>}
       {!compact && (
-        <Text secondary>
+        <Text tone="soft">
           A dedicated identity used only to buy and spend AI credits — separate from your wallet.
         </Text>
       )}
       {compact ? <YStack gap="$2">{choices}</YStack> : <XStack gap="$3">{choices}</XStack>}
       {!compact && (
-        <Text fontSize="$2" secondary>
+        <Text fontSize="$2" tone="soft">
           Generate is recommended for a fresh signer. Either direction uses the same key once it is
           set up in AntSeed.
         </Text>

@@ -14,7 +14,7 @@ export function AiCreditsHero({ gBalance, isGoodIdVerified }: HeroCardProps) {
     <Card gap="$4" backgroundColor="$backgroundHover">
       <XStack justifyContent="space-between" alignItems="flex-start" gap="$2">
         <YStack gap="$1" flexShrink={1}>
-          <Text variant="label" secondary>
+          <Text variant="label" tone="soft">
             Your G$ Balance
           </Text>
           {gBalance !== null ? (

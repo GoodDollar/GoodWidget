@@ -12,7 +12,7 @@ import {
   XStack,
   YStack,
 } from '@goodwidget/ui'
-import { truncateAddress, compactButtonProps } from '../shared/styles'
+import { truncateAddress, compactButtonProps, monospaceSingleLineStyle } from '../shared/styles'
 
 interface OperatorConsentStepProps {
   buyerPubKey: string | null
@@ -31,10 +31,10 @@ interface OperatorConsentStepProps {
 function ConsentBullet({ children }: { children: React.ReactNode }) {
   return (
     <XStack gap="$2" alignItems="flex-start">
-      <Text fontSize="$2" secondary lineHeight="$3">
+      <Text fontSize="$2" tone="soft" lineHeight="$3">
         •
       </Text>
-      <Text fontSize="$2" secondary lineHeight="$3" flex={1}>
+      <Text fontSize="$2" tone="soft" lineHeight="$3" flex={1}>
         {children}
       </Text>
     </XStack>
@@ -110,7 +110,7 @@ export function OperatorConsentStep({
       {buyerPubKey && (
         <Text fontSize="$2" lineHeight="$2">
           Buyer address:{' '}
-          <Text fontFamily="$mono" fontSize="$2">
+          <Text fontSize="$2" style={monospaceSingleLineStyle}>
             {truncateAddress(buyerPubKey)}
           </Text>
         </Text>
@@ -128,7 +128,7 @@ export function OperatorConsentStep({
         </Text>
       ) : canRestoreKey ? (
         <>
-          <Text fontSize="$2" secondary lineHeight="$3">
+          <Text fontSize="$2" tone="soft" lineHeight="$3">
             This browser does not hold your signer key. Restore it from your wallet to continue —
             the same wallet always produces the same key.
           </Text>

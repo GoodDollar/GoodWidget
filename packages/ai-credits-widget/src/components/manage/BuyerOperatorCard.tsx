@@ -60,7 +60,7 @@ function CopyableValue({ value, display }: { value: string; display?: string }) 
 
   return (
     <XStack
-      backgroundColor="$backgroundMuted"
+      backgroundColor="$backgroundSurface"
       borderRadius="$2"
       padding="$2"
       justifyContent="space-between"
@@ -125,7 +125,7 @@ function BuyerSelector({
             borderRadius="$2"
             borderWidth={1}
             borderColor={isActive ? '$primary' : '$borderColor'}
-            backgroundColor={isActive ? '$infoMuted' : '$backgroundDark'}
+            backgroundColor={isActive ? '$infoMuted' : '$background'}
             cursor={isActive ? 'default' : 'pointer'}
             hoverStyle={isActive ? {} : { backgroundColor: '$backgroundPress' }}
             onPress={() => {
@@ -209,13 +209,13 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
             <XStack alignItems="center" flexWrap="wrap">
               {/* Separators carry their own spacing: adjacent Text renders inline, so
                   the flex gap between two of them collapses. */}
-              <Text fontSize="$1" secondary style={monospaceSingleLineStyle}>
+              <Text fontSize="$1" tone="soft" style={monospaceSingleLineStyle}>
                 {`${truncateAddress(buyerPubKey)}  ·  `}
               </Text>
               <SignerStatus consented={operatorConsented} />
             </XStack>
           ) : (
-            <Text fontSize="$1" secondary>
+            <Text fontSize="$1" tone="soft">
               No signer key yet
             </Text>
           )}
@@ -227,11 +227,11 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
         <YStack gap="$4">
           {buyerPubKey && (
             <YStack gap="$2">
-              <Text variant="label" secondary>
+              <Text variant="label" tone="soft">
                 Active signer
               </Text>
               <YStack
-                backgroundColor="$backgroundDark"
+                backgroundColor="$background"
                 borderRadius="$2"
                 borderWidth={1}
                 borderColor="$borderColor"
@@ -301,7 +301,7 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
           {buyerPrvKey && (
             <YStack gap="$2">
               <XStack justifyContent="space-between" alignItems="center" gap="$2">
-                <Text variant="label" secondary>
+                <Text variant="label" tone="soft">
                   Private key
                 </Text>
                 <Button

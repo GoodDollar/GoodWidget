@@ -1,8 +1,8 @@
 import React from 'react'
 import { Anchor, Badge, BadgeText, Button, ButtonText, Card, Icon, Text, XStack, YStack } from '@goodwidget/ui'
 
-/** YouTube video URL for the getting-started walkthrough. Replace with final video ID once published. */
-const VIDEO_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+/** YouTube video URL for the getting-started walkthrough.*/
+const VIDEO_URL = 'https://youtu.be/Anb2GkLqs24'
 
 /** Notion written guide URL. */
 const WRITTEN_GUIDE_URL = 'https://app.notion.com/p/gooddollar/Full-Setup-Walkthrough-Widget-AntSeed-VPR-3c0f258232f08184bee9cd440cc93059'
@@ -65,7 +65,7 @@ export function HowToUseView({ onBack }: HowToUseViewProps) {
         </ButtonText>
       </Button>
 
-      <Text fontSize="$2" secondary lineHeight="$3">
+      <Text fontSize="$2" tone="soft" lineHeight="$3">
         New here? Start with the 3-minute video — it covers the whole journey, start to finish.
       </Text>
 
@@ -104,7 +104,7 @@ export function HowToUseView({ onBack }: HowToUseViewProps) {
             <Text fontSize="$2" fontWeight="700">
               Getting started with AI credits
             </Text>
-            <Text fontSize="$1" secondary>
+            <Text fontSize="$1" tone="soft">
               Wallet → buy credits → connect Antseed
             </Text>
           </YStack>
@@ -122,7 +122,7 @@ export function HowToUseView({ onBack }: HowToUseViewProps) {
                   <Text fontSize="$2" fontWeight="700">
                     Full written guide{' '}
                   </Text>
-                  <Text fontSize="$2" secondary>
+                  <Text fontSize="$2" tone="soft">
                     Step-by-step walkthrough with screenshots, on Notion
                   </Text>
                 </Text>
@@ -135,7 +135,7 @@ export function HowToUseView({ onBack }: HowToUseViewProps) {
 
       {/* Quick summary section */}
       <YStack gap="$3">
-        <Text variant="label" secondary fontSize="$1" fontWeight="700" letterSpacing={1}>
+        <Text variant="label" tone="soft" fontSize="$1" fontWeight="700" letterSpacing={1}>
           QUICK SUMMARY
         </Text>
 
@@ -168,7 +168,7 @@ export function HowToUseView({ onBack }: HowToUseViewProps) {
                     <BadgeText>{step.tabLabel}</BadgeText>
                   </Badge>
                 </XStack>
-                <Text fontSize="$2" secondary lineHeight="$3">
+                <Text fontSize="$2" tone="soft" lineHeight="$3">
                   {step.description}
                 </Text>
               </YStack>
@@ -177,7 +177,7 @@ export function HowToUseView({ onBack }: HowToUseViewProps) {
         </YStack>
 
         {/* Security note */}
-        <Text fontSize="$1" secondary textAlign="center" paddingTop="$1">
+        <Text fontSize="$1" tone="soft" textAlign="center" paddingTop="$1">
           Your G$ wallet is never exposed — only the scoped signer key.
         </Text>
       </YStack>
