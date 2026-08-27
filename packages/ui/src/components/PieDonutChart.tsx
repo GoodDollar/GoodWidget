@@ -10,11 +10,12 @@
  * Scorecard.tsx's structural patterns (createComponent, useTheme,
  * formatMetricValue, golden-ratio spacing).
  */
-import React from 'react'
+import React, { useState } from 'react'
 import Svg, { Circle, G } from 'react-native-svg'
 import { Text as TamaguiText, useTheme, XStack, YStack } from 'tamagui'
 import { createComponent } from '../createComponent'
 import { Card } from './Card'
+import { ChartTooltip, estimateChartTooltipWidthPx, type ChartTooltipRow } from './ChartTooltip'
 import { formatMetricValue } from '../utils/formatMetricValue'
 import { resolveThemeColor } from '../utils/resolveThemeColor'
 
@@ -62,7 +63,10 @@ const clampFontSize = (px: number): number => Math.max(px, MIN_FONT_SIZE_PX)
 const TITLE_SIZE_PX = clampFontSize(CHART_BASE_SIZE_PX)
 const CENTER_VALUE_SIZE_PX = clampFontSize(CHART_BASE_SIZE_PX)
 const CENTER_LABEL_SIZE_PX = clampFontSize(CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2)
-const LEGEND_LABEL_SIZE_PX = clampFontSize(CHART_BASE_SIZE_PX / GOLDEN_RATIO)
+// QA fix: was CHART_BASE_SIZE_PX / GOLDEN_RATIO (the same tier as axis titles
+// elsewhere) — a legend describing the chart should read as a caption, one
+// tier below that, matching LEGEND_PERCENT_SIZE_PX's tier right below it.
+const LEGEND_LABEL_SIZE_PX = clampFontSize(CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2)
 const LEGEND_PERCENT_SIZE_PX = clampFontSize(CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2)
 
 const TITLE_TO_CHART_GAP_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
@@ -118,13 +122,16 @@ function buildSegments(
 
   const exceedsMax = validItems.length > maxSlices
   const keepCount = Math.max(maxSlices - 1, 1)
-  const keptItems = exceedsMax ? sortedByValueDescending.slice(0, keepCount) : sortedByValueDescending
+  const keptItems = exceedsMax
+    ? sortedByValueDescending.slice(0, keepCount)
+    : sortedByValueDescending
   const overflowItems = exceedsMax ? sortedByValueDescending.slice(keepCount) : []
   const colorIndexByItem = new Map(keptItems.map((item, index) => [item, index]))
 
   // 'none' preserves the caller's original ordering for kept items rather
   // than the by-value order used above just to pick the aggregation set.
-  const orderedKeptItems = sort === 'none' ? validItems.filter((item) => colorIndexByItem.has(item)) : keptItems
+  const orderedKeptItems =
+    sort === 'none' ? validItems.filter((item) => colorIndexByItem.has(item)) : keptItems
 
   const keptSegments: PieDonutChartSegment[] = orderedKeptItems.map((item) => ({
     label: item.label,
@@ -178,6 +185,34 @@ const PieDonutFrame = createComponent(YStack, {
   alignItems: 'center',
 })
 
+/**
+ * Wraps the SVG ring so pointer handlers have a positioned container to
+ * measure against for the tooltip's horizontal placement. `createComponent`
+ * (unlike a raw `<YStack>`) accepts arbitrary DOM event props consistently
+ * across every tsconfig this repo type-checks under — see LineAreaChart's
+ * and BarChart's `*PlotArea` for the same pattern.
+ */
+const PieDonutPlotArea = createComponent(YStack, {
+  name: 'PieDonutChartPlotArea',
+  position: 'relative',
+  alignItems: 'center',
+  justifyContent: 'center',
+})
+
+/**
+ * react-native-svg's TS types don't declare onMouseEnter/onMouseLeave on
+ * Circle, even though it forwards unrecognized props straight through to the
+ * underlying DOM `<circle>` on web (its `prepare()` helper spreads anything
+ * it doesn't explicitly recognize via `...rest`). This narrows the gap
+ * instead of casting each usage to `any`.
+ */
+const HoverableSegmentCircle = Circle as React.ComponentType<
+  React.ComponentProps<typeof Circle> & {
+    onMouseEnter?: () => void
+    onMouseLeave?: () => void
+  }
+>
+
 const PieDonutTitleText = createComponent(TamaguiText, {
   name: 'PieDonutChartTitleText',
   fontFamily: '$body',
@@ -208,6 +243,7 @@ const PieDonutCenterValueText = createComponent(TamaguiText, {
 const PieDonutLegendLabelText = createComponent(TamaguiText, {
   name: 'PieDonutChartLegendLabelText',
   fontFamily: '$body',
+  fontWeight: '400',
   color: '$color',
   fontSize: LEGEND_LABEL_SIZE_PX,
   flex: 1,
@@ -250,11 +286,20 @@ function PieDonutCenterContent({
   // clipping at the default chart size even after correcting maxWidth above.
   const formattedValue =
     typeof centerValue === 'number'
-      ? (centerValueFormatter ?? ((value: number) => formatMetricValue(value, 'compact', 0)))(centerValue)
+      ? (centerValueFormatter ?? ((value: number) => formatMetricValue(value, 'compact', 0)))(
+          centerValue,
+        )
       : centerValue
 
   return (
-    <YStack position="absolute" alignItems="center" justifyContent="center" gap="$1" maxWidth={maxWidth} pointerEvents="none">
+    <YStack
+      position="absolute"
+      alignItems="center"
+      justifyContent="center"
+      gap="$1"
+      maxWidth={maxWidth}
+      pointerEvents="none"
+    >
       {centerLabel ? (
         <PieDonutCenterLabelText numberOfLines={1} ellipsizeMode="tail">
           {centerLabel}
@@ -291,7 +336,11 @@ function PieDonutLegend({
         // Legend rows are non-native `<div>`s under XStack on web, so `role="button"`
         // alone doesn't make them keyboard-activatable — tabIndex opts them into the
         // tab order, and the key handler mirrors native <button> Enter/Space activation.
-        const activateSegment = () => onSegmentPress?.({ label: segment.label, value: segment.value, color: segment.color }, index)
+        const activateSegment = () =>
+          onSegmentPress?.(
+            { label: segment.label, value: segment.value, color: segment.color },
+            index,
+          )
         return (
           <XStack
             key={`${segment.label}-${index}`}
@@ -319,7 +368,9 @@ function PieDonutLegend({
               {segment.label}
             </PieDonutLegendLabelText>
             {showPercentages ? (
-              <PieDonutLegendPercentText>{formatSegmentPercentage(segment.value, totalValue)}</PieDonutLegendPercentText>
+              <PieDonutLegendPercentText>
+                {formatSegmentPercentage(segment.value, totalValue)}
+              </PieDonutLegendPercentText>
             ) : null}
           </XStack>
         )
@@ -351,6 +402,9 @@ function PieDonutChartContent({
   const colors = CHART_COLOR_KEYS.map((key) => resolveThemeColor(theme, key))
   const emptyRingColor = resolveThemeColor(theme, 'borderColor')
 
+  const [hoveredSegmentIndex, setHoveredSegmentIndex] = useState<number | null>(null)
+  const [pointerLeftPx, setPointerLeftPx] = useState(0)
+
   const segments = buildSegments(data, maxSlices, otherLabel, sort, colors)
   const totalValue = segments.reduce((sum, segment) => sum + segment.value, 0)
   const isEmpty = segments.length === 0
@@ -374,11 +428,56 @@ function PieDonutChartContent({
 
   let cumulativeDashOffset = 0
 
+  // QA fix: hovering a segment showed nothing. Each Circle's stroke already
+  // hit-tests correctly against its own dash pattern (the dash gaps aren't
+  // part of the pointer-events area), so enter/leave per segment is enough
+  // to know which one is hovered — no manual angle math needed. Pointer
+  // position (tracked on the wrapper) only drives the tooltip's horizontal
+  // placement.
+  const hoveredSegment = hoveredSegmentIndex !== null ? segments[hoveredSegmentIndex] : null
+  const tooltipRows: ChartTooltipRow[] = hoveredSegment
+    ? [
+        {
+          color: hoveredSegment.color,
+          label: 'Value',
+          value: `${formatMetricValue(hoveredSegment.value)} (${formatSegmentPercentage(hoveredSegment.value, totalValue)})`,
+        },
+      ]
+    : []
+  // Width is estimated from this hover's actual header/rows so the clamp
+  // matches what ChartTooltip itself will render at, rather than a fixed guess.
+  const tooltipWidthPx = hoveredSegment
+    ? estimateChartTooltipWidthPx(hoveredSegment.label, tooltipRows, geometry.size)
+    : 0
+  const maxTooltipLeftPx = Math.max(0, geometry.size - tooltipWidthPx)
+  const tooltipLeftPx = Math.min(maxTooltipLeftPx, Math.max(0, pointerLeftPx - tooltipWidthPx / 2))
+
+  const handlePlotPointerMove = (event: {
+    clientX: number
+    currentTarget: { getBoundingClientRect?: () => DOMRect }
+  }) => {
+    const rect = event.currentTarget.getBoundingClientRect?.()
+    if (!rect) return
+    setPointerLeftPx(event.clientX - rect.left)
+  }
+  const handlePlotPointerLeave = () => setHoveredSegmentIndex(null)
+
   return (
     <PieDonutFrame testID={testID} data-testid={testID}>
       {title ? <PieDonutTitleText>{title}</PieDonutTitleText> : null}
-      <YStack width={geometry.size} height={geometry.size} alignItems="center" justifyContent="center">
-        <Svg width={geometry.size} height={geometry.size} viewBox={`0 0 ${geometry.size} ${geometry.size}`} accessibilityRole="image" aria-label={resolvedAccessibilityLabel}>
+      <PieDonutPlotArea
+        width={geometry.size}
+        height={geometry.size}
+        onMouseMove={handlePlotPointerMove}
+        onMouseLeave={handlePlotPointerLeave}
+      >
+        <Svg
+          width={geometry.size}
+          height={geometry.size}
+          viewBox={`0 0 ${geometry.size} ${geometry.size}`}
+          accessibilityRole="image"
+          aria-label={resolvedAccessibilityLabel}
+        >
           <G rotation="-90" origin={`${center}, ${center}`}>
             {isEmpty ? (
               <Circle
@@ -398,7 +497,7 @@ function PieDonutChartContent({
                 cumulativeDashOffset += dashLength
 
                 return (
-                  <Circle
+                  <HoverableSegmentCircle
                     key={`${segment.label}-${index}`}
                     cx={center}
                     cy={center}
@@ -414,15 +513,36 @@ function PieDonutChartContent({
                     strokeLinecap="butt"
                     fill="transparent"
                     accessible={false}
-                    onPress={onSegmentPress ? () => onSegmentPress({ label: segment.label, value: segment.value, color: segment.color }, index) : undefined}
+                    onPress={
+                      onSegmentPress
+                        ? () =>
+                            onSegmentPress(
+                              { label: segment.label, value: segment.value, color: segment.color },
+                              index,
+                            )
+                        : undefined
+                    }
+                    onMouseEnter={() => setHoveredSegmentIndex(index)}
+                    onMouseLeave={() => setHoveredSegmentIndex(null)}
                   />
                 )
               })
             )}
           </G>
         </Svg>
+        {!isEmpty && hoveredSegment ? (
+          <ChartTooltip
+            header={hoveredSegment.label}
+            rows={tooltipRows}
+            left={tooltipLeftPx}
+            top={0}
+            chartWidthPx={geometry.size}
+          />
+        ) : null}
         {isEmpty ? (
-          <PieDonutCenterLabelText position="absolute">{centerLabel ?? 'No data'}</PieDonutCenterLabelText>
+          <PieDonutCenterLabelText position="absolute">
+            {centerLabel ?? 'No data'}
+          </PieDonutCenterLabelText>
         ) : innerRadius > 0 ? (
           <PieDonutCenterContent
             centerLabel={centerLabel}
@@ -432,10 +552,15 @@ function PieDonutChartContent({
             maxWidth={centerContentMaxWidth}
           />
         ) : null}
-      </YStack>
+      </PieDonutPlotArea>
       {showLegend && !isEmpty ? (
         <YStack marginTop={CHART_TO_LEGEND_GAP_PX} width="100%">
-          <PieDonutLegend segments={segments} totalValue={totalValue} showPercentages={showPercentages} onSegmentPress={onSegmentPress} />
+          <PieDonutLegend
+            segments={segments}
+            totalValue={totalValue}
+            showPercentages={showPercentages}
+            onSegmentPress={onSegmentPress}
+          />
         </YStack>
       ) : null}
     </PieDonutFrame>

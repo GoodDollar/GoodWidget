@@ -24,7 +24,6 @@ export interface AiCreditsQuote {
   depositAmountG: string
   streamAmountG: string
 }
-
 /** Re-export for consumers that don't want to import from payerSession directly. */
 export type { BuyerKeyEntry } from './payerSession'
 
