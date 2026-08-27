@@ -125,7 +125,7 @@ function BuyerSelector({
             borderRadius="$2"
             borderWidth={1}
             borderColor={isActive ? '$primary' : '$borderColor'}
-            backgroundColor={isActive ? '$infoMuted' : '$backgroundDark'}
+            backgroundColor={isActive ? '$infoMuted' : '$background'}
             cursor={isActive ? 'default' : 'pointer'}
             hoverStyle={isActive ? {} : { backgroundColor: '$backgroundPress' }}
             onPress={() => {
@@ -231,7 +231,7 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
                 Active signer
               </Text>
               <YStack
-                backgroundColor="$backgroundDark"
+                backgroundColor="$background"
                 borderRadius="$2"
                 borderWidth={1}
                 borderColor="$borderColor"

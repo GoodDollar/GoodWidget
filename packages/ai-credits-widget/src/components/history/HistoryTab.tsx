@@ -353,7 +353,7 @@ function SourceFilterChip({
       borderRadius="$full"
       borderWidth={1}
       borderColor={selected ? '$primary' : '$borderColor'}
-      backgroundColor={selected ? '$infoMuted' : '$backgroundDark'}
+      backgroundColor={selected ? '$infoMuted' : '$background'}
       hoverStyle={{
         opacity: 0.9,
       }}
@@ -398,7 +398,7 @@ function StatusFilterSelect({
         borderRadius="$3"
         borderWidth={1}
         borderColor="$borderColor"
-        backgroundColor="$backgroundDark"
+        backgroundColor="$background"
         cursor="pointer"
         onPress={() => setOpen((current) => !current)}
       >
@@ -418,7 +418,7 @@ function StatusFilterSelect({
           borderRadius="$3"
           borderWidth={1}
           borderColor="$borderColor"
-          backgroundColor="$backgroundDark"
+          backgroundColor="$background"
           overflow="hidden"
           zIndex={30}
         >
@@ -490,7 +490,7 @@ function BuyerFilterSelect({
         borderRadius="$3"
         borderWidth={1}
         borderColor="$borderColor"
-        backgroundColor="$backgroundDark"
+        backgroundColor="$background"
         cursor="pointer"
         onPress={() => setOpen((current) => !current)}
       >
@@ -510,7 +510,7 @@ function BuyerFilterSelect({
           borderRadius="$3"
           borderWidth={1}
           borderColor="$borderColor"
-          backgroundColor="$backgroundDark"
+          backgroundColor="$background"
           overflow="hidden"
           zIndex={35}
         >
