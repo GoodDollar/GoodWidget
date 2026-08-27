@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { parseUnits } from 'viem'
-import { erc20ABI, getReserveChainFromId } from '@goodsdks/good-reserve'
+import { getReserveChainFromId } from '@goodsdks/good-reserve'
 import type { ReserveSwapWidgetAdapterState } from './widgetRuntimeContract'
 import { QUOTE_REFRESHED_NOTICE } from './constants'
 import { mapReserveError } from './errors'
@@ -12,62 +12,9 @@ import type { ReserveRefs } from './useReserveBootstrap'
 // Responsibilities:
 //   - Stale-quote guard (QUOTE_TTL_MS) + automatic re-quote.
 //   - Live chain re-validation before signing.
-//   - Pre-flight ERC20 approval (see ensureSwapAllowance).
 //   - buy() / sell() SDK call with onHash immediate feedback.
 //   - Success / error state transitions.
 // ---------------------------------------------------------------------------
-
-/**
- * Approves the swap spender ourselves when the current allowance is short.
- *
- * The SDK already has an `ensureAllowance`, but its `submitAndWait` helper never
- * inspects `receipt.status`, and viem's waitForTransactionReceipt resolves
- * normally for *reverted* transactions. A failed approval therefore looks like a
- * success to the SDK, which goes straight on to swapIn and reverts with
- * "SuperToken: transfer amount exceeds allowance" (G$ on Celo is a Superfluid
- * SuperToken). Doing the approval here — and actually checking the receipt —
- * turns that silent failure into an honest error, and lets the UI show a
- * distinct approval_pending step so the user knows a second wallet signature is
- * coming. Once the allowance is in place the SDK's own check is a no-op.
- *
- * Tracked upstream in docs/issues/goodsdks-good-reserve-receipt-status.md.
- */
-async function ensureSwapAllowance(
-  refs: ReserveRefs,
-  account: `0x${string}`,
-  token: `0x${string}`,
-  spender: `0x${string}`,
-  amount: bigint,
-  onApprovalStart: () => void,
-): Promise<void> {
-  const publicClient = refs.publicClientRef.current
-  const walletClient = refs.walletClientRef.current
-  if (!publicClient || !walletClient) return
-
-  const allowance = (await publicClient.readContract({
-    address: token,
-    abi: erc20ABI,
-    functionName: 'allowance',
-    args: [account, spender],
-  })) as bigint
-  if (allowance >= amount) return
-
-  onApprovalStart()
-
-  const { request } = await publicClient.simulateContract({
-    account,
-    address: token,
-    abi: erc20ABI,
-    functionName: 'approve',
-    // Exact approval, matching the SDK's exactApproval: true construction.
-    args: [spender, amount],
-  })
-  const hash = await walletClient.writeContract(request)
-  const receipt = await publicClient.waitForTransactionReceipt({ hash })
-  if (receipt.status !== 'success') {
-    throw new Error('Token approval transaction reverted. Please try again.')
-  }
-}
 
 export function useReserveSwap(
   refs: ReserveRefs,
@@ -137,22 +84,6 @@ export function useReserveSwap(
             return (quoteOut * (10_000n - slippageBps)) / 10_000n
           })()
 
-      // Approve before swapping, verifying the approval receipt ourselves.
-      const spender = sdk.getRouteInfo().broker
-      if (state.address && spender) {
-        await ensureSwapAllowance(
-          refs,
-          state.address as `0x${string}`,
-          state.direction === 'buy' ? stableToken : sdk.getGoodDollarAddress(),
-          spender,
-          amountIn,
-          () => applyStatePatch({ status: 'approval_pending' }),
-        )
-        applyStatePatch({ status: 'swap_pending' })
-      }
-
-      // onHash provides the hash immediately for logging/UI feedback.
-      // We still wait for the receipt before showing success.
       const onHash = (hash: `0x${string}`) => {
         applyStatePatch({ txHash: hash })
       }
@@ -195,7 +126,6 @@ export function useReserveSwap(
     refreshBalances,
     refs,
     requestQuoteRefresh,
-    state.address,
     state.direction,
     state.inputAmount,
     state.quote,

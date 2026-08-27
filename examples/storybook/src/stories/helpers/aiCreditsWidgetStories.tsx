@@ -1,4 +1,4 @@
-import React, { useRef } from 'react'
+import React, { useMemo, useRef } from 'react'
 import type { EIP1193Provider } from '@goodwidget/core'
 import { YStack } from '@goodwidget/ui'
 import {
@@ -10,9 +10,12 @@ import {
 import { MockAiCreditsWidget } from '@goodwidget/ai-credits-widget/mocked'
 import {
   DefaultAppKitProvider,
+  DEFAULT_APPKIT_NETWORKS,
   useAppKit,
   useAppKitAccount,
+  useAppKitNetwork,
   useAppKitProvider,
+  useDisconnect,
 } from '@goodwidget/embed/appkit-provider'
 import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
 import {
@@ -38,6 +41,7 @@ function createMockState(
     operatorConsented: false,
     operatorConsentPending: false,
     operatorAddress: null,
+    currentOperator: null,
     minDepositUsd: '1.00',
     minStreamUsd: '1.00',
     totalGdDepositedG: null,
@@ -65,7 +69,7 @@ function createAdapterFactory(
       generateBuyerKey: async () => {},
       selectBuyer: async () => {},
       discoverBuyers: () => {},
-      importBuyerFromPrivateKey: async () => {},
+      importBuyerFromPrivateKey: async () => overrides.buyerPubKey ?? null,
       applyDeepLinkBuyer: async () => {},
       signOperatorConsent: async () => {},
       syncOperatorConsentFromChain: async () => {},
@@ -85,21 +89,42 @@ function createAdapterFactory(
   })
 }
 
+const DISCONNECTED_EIP1193_PROVIDER: EIP1193Provider = {
+  request: async ({ method }) => {
+    if (method === 'eth_accounts' || method === 'eth_requestAccounts') return []
+    if (method === 'eth_chainId') return '0xa4ec'
+    throw new Error(`Unsupported method: ${method}`)
+  },
+  on: () => {},
+  removeListener: () => {},
+}
+
 function MockStoryShell({
   adapterFactory,
   dataTestId,
+  provider,
+  showWalletControls,
+  disconnectOverride,
 }: {
   adapterFactory: AiCreditsWidgetAdapterFactory
   dataTestId: string
+  provider?: EIP1193Provider
+  showWalletControls?: boolean
+  disconnectOverride?: () => Promise<void>
 }) {
-  try {
-    const provider = createCustodialEip1193Provider()
-    return (
-      <div data-testid={dataTestId} style={{ width: 380 }}>
-        <AiCreditsWidget provider={provider} adapterFactory={adapterFactory} />
-      </div>
-    )
-  } catch (error: unknown) {
+  const resolvedProviderRef = useRef<EIP1193Provider | null>(provider ?? null)
+  const configErrorRef = useRef<unknown>(null)
+
+  if (!resolvedProviderRef.current && !configErrorRef.current) {
+    try {
+      resolvedProviderRef.current = provider ?? createCustodialEip1193Provider()
+    } catch (error: unknown) {
+      configErrorRef.current = error
+    }
+  }
+
+  if (configErrorRef.current) {
+    const error = configErrorRef.current
     return (
       <div data-testid="AiCreditsWidget-custodial-config-error" style={{ width: 380 }}>
         <strong>Custodial fixture not configured</strong>
@@ -111,17 +136,32 @@ function MockStoryShell({
       </div>
     )
   }
+
+  return (
+    <div data-testid={dataTestId} style={{ width: 380 }}>
+      <AiCreditsWidget
+        provider={resolvedProviderRef.current!}
+        adapterFactory={adapterFactory}
+        showWalletControls={showWalletControls}
+        disconnectOverride={disconnectOverride}
+      />
+    </div>
+  )
 }
+
+const DISCONNECTED_ADAPTER_FACTORY = createAdapterFactory('disconnected', {
+  address: null,
+  chainId: null,
+  gBalance: null,
+  activeTab: 'setup',
+})
 
 export function DisconnectedStory() {
   return (
     <MockStoryShell
       dataTestId="AiCreditsWidget-disconnected"
-      adapterFactory={createAdapterFactory('disconnected', {
-        address: null,
-        chainId: null,
-        gBalance: null,
-      })}
+      provider={DISCONNECTED_EIP1193_PROVIDER}
+      adapterFactory={DISCONNECTED_ADAPTER_FACTORY}
     />
   )
 }
@@ -134,6 +174,7 @@ export function ConnectingStory() {
         address: '0x329377cbeeF39f01b0Ea04B80465c9eB47D3ED1',
         chainId: 42220,
         gBalance: null,
+        activeTab: 'setup',
       })}
     />
   )
@@ -237,6 +278,60 @@ export function HistoryTabStory() {
   )
 }
 
+export function SetupTabStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-setup-tab"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        gBalance: '42.50',
+        activeTab: 'setup',
+      })}
+    />
+  )
+}
+
+export function SignerKeyGeneratedStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-signer-key-generated"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        activeTab: 'setup',
+        buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
+        buyerPrvKey: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+      })}
+    />
+  )
+}
+
+/** Setup tab with a generated signer key and the Authorize Wallet step ready. */
+export function SetupAuthorizeWalletStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-setup-authorize-wallet"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        activeTab: 'setup',
+        buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
+        buyerPrvKey: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+      })}
+    />
+  )
+}
+
+export function SignerKeyIncompatibleOperatorStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-signer-key-incompatible"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        activeTab: 'setup',
+        buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
+        buyerPrvKey: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+        operatorAddress: '0x0000000000000000000000000000000000000004',
+        currentOperator: '0x0000000000000000000000000000000000000005',
+      })}
+    />
+  )
+}
+
 export function CreditsManagementStory() {
   return <ManageTabStory />
 }
@@ -317,7 +412,7 @@ export function MockBackendStory() {
 
   return (
     <YStack data-testid="AiCreditsWidget-mock-backend" style={{ width: 380 }}>
-      <MockAiCreditsWidget provider={injectedProvider} />
+      <MockAiCreditsWidget provider={injectedProvider} showWalletControls />
     </YStack>
   )
 }
@@ -328,12 +423,43 @@ export function MockBackendStory() {
  */
 function AppKitConnectShell() {
   const { open } = useAppKit()
-  const { address: appKitAddress } = useAppKitAccount()
+  const { disconnect } = useDisconnect()
+  const { address: appKitAddress, status: accountStatus } = useAppKitAccount()
   const { walletProvider } = useAppKitProvider<EIP1193Provider | undefined>('eip155')
+  const { chainId, switchNetwork, approvedCaipNetworkIds } = useAppKitNetwork()
   const appKitAddressRef = useRef(appKitAddress)
   appKitAddressRef.current = appKitAddress
 
+  // Mirrors apps/ai-credits-web so the story exercises the same wallet wiring
+  // real users hit — without these, a WalletConnect wallet that ignores
+  // wallet_switchEthereumChain has no fallback and no reliable chain reading.
+  const isAccountResolved = accountStatus === 'connected' || accountStatus === 'disconnected'
+  const appKitNetworksByChainId = useMemo(
+    () => new Map(DEFAULT_APPKIT_NETWORKS.map((network) => [Number(network.id), network])),
+    [],
+  )
+  const availableChainIds = useMemo(
+    () =>
+      approvedCaipNetworkIds
+        ? approvedCaipNetworkIds
+            .map((caipId) => Number(caipId.split(':')[1]))
+            .filter((id) => Number.isFinite(id))
+        : null,
+    [approvedCaipNetworkIds],
+  )
+  const backendUrl = import.meta.env.VITE_AI_CREDITS_BACKEND_URL
+  const baseRpcUrl = import.meta.env.VITE_AI_CREDITS_BASE_RPC_URL
+  const celoRpcUrl = import.meta.env.VITE_AI_CREDITS_CELO_RPC_URL
+  const fundingVaultAddress = import.meta.env.VITE_AI_CREDITS_FUNDING_VAULT_ADDRESS as
+    | `0x${string}`
+    | undefined
+  const vaultAddress = import.meta.env.VITE_AI_CREDITS_VAULT_ADDRESS as `0x${string}` | undefined
+  const goodIdAddress = import.meta.env.VITE_AI_CREDITS_GOODID_ADDRESS as `0x${string}` | undefined
+
   return (
+    // Plain div, not a Tamagui stack: this Showcase meta disables the shared
+    // provider, so the widget brings its own theme context and anything wrapping
+    // it has none.
     <div data-testid="AiCreditsWidget-appkit-connect" style={{ width: 380 }}>
       <AiCreditsWidget
         provider={walletProvider}
@@ -344,6 +470,34 @@ function AppKitConnectShell() {
             throw new Error('wallet_connect_cancelled')
           }
         }}
+        showWalletControls
+        disconnectOverride={async () => {
+          await disconnect()
+        }}
+        addressOverride={isAccountResolved ? (appKitAddress ?? null) : undefined}
+        chainIdOverride={isAccountResolved ? (chainId == null ? null : Number(chainId)) : undefined}
+        availableChainIdsOverride={availableChainIds}
+        switchChainOverride={async (targetChainId) => {
+          const targetNetwork = appKitNetworksByChainId.get(targetChainId)
+          // Opening the modal is not proof of a switch, so this throws rather
+          // than resolves — the caller must not treat it as done.
+          if (!targetNetwork) {
+            await open({ view: 'Networks' })
+            throw new Error('Select the network in the wallet dialog, then try again.')
+          }
+          try {
+            await switchNetwork(targetNetwork)
+          } catch {
+            await open({ view: 'Networks' })
+            throw new Error('Select the network in the wallet dialog, then try again.')
+          }
+        }}
+        backendUrl={backendUrl}
+        baseRpcUrl={baseRpcUrl}
+        celoRpcUrl={celoRpcUrl}
+        fundingVaultAddress={fundingVaultAddress}
+        vaultAddress={vaultAddress}
+        goodIdAddress={goodIdAddress}
       />
     </div>
   )
@@ -402,6 +556,7 @@ export function InjectedWalletStory() {
     <YStack data-testid="AiCreditsWidget-injected-wallet" style={{ width: 380 }} gap="$3">
       <AiCreditsWidget
         provider={injectedProvider}
+        showWalletControls
         backendUrl={backendUrl}
         baseRpcUrl={baseRpcUrl}
         celoRpcUrl={celoRpcUrl}
@@ -463,6 +618,50 @@ export function MultiBuyerManageStory() {
   )
 }
 
+/**
+ * Standalone/Storybook host: the wallet chip is opted in and the host supplies a
+ * disconnect, so the header carries the address and its Disconnect action.
+ */
+export function WalletControlsStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-wallet-controls"
+      showWalletControls
+      disconnectOverride={async () => {}}
+      adapterFactory={createAdapterFactory('quote_ready', {
+        totalCreditUsd: '110000000',
+        buyerPubKey: BUYER_WALLET.address,
+        buyerPrvKey: BUYER_WALLET.privateKey,
+        operatorConsented: true,
+        gBalance: '42.50',
+        activeTab: 'manage',
+        buyers: [BUYER_WALLET.address],
+      })}
+    />
+  )
+}
+
+/**
+ * Wallet host: showWalletControls is left at its default, so the header renders
+ * exactly as before — no address, no disconnect. The wallet owns the session.
+ */
+export function WalletControlsHiddenStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-wallet-controls-hidden"
+      adapterFactory={createAdapterFactory('quote_ready', {
+        totalCreditUsd: '110000000',
+        buyerPubKey: BUYER_WALLET.address,
+        buyerPrvKey: BUYER_WALLET.privateKey,
+        operatorConsented: true,
+        gBalance: '42.50',
+        activeTab: 'manage',
+        buyers: [BUYER_WALLET.address],
+      })}
+    />
+  )
+}
+
 /** Deep-link partner buyer: consent uses pre-signed operatorSignature (no private key). */
 export function DeepLinkBuyerStory() {
   return (
@@ -516,6 +715,61 @@ export function MultiBuyerHistoryStory() {
         activeTab: 'history',
         buyers: [BUYER_WALLET.address, BUYER_IMPORTED.address],
         derivedBuyerAddress: BUYER_WALLET.address,
+      })}
+    />
+  )
+}
+
+/** Buy tab with the guidance card visible (default state). */
+export function GuidanceCardDefaultStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-guidance-card"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        gBalance: '42.50',
+        activeTab: 'buy',
+      })}
+    />
+  )
+}
+
+/** Buy tab with the How to use help view open. */
+export function GuidanceCardHowToUseStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-guidance-how-to-use"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        gBalance: '42.50',
+        activeTab: 'buy',
+      })}
+    />
+  )
+}
+
+/** Buy tab with the FAQ help view open. */
+export function GuidanceCardFaqStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-guidance-faq"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        gBalance: '42.50',
+        activeTab: 'buy',
+      })}
+    />
+  )
+}
+
+/**
+ * Setup tab with wallet connected — shows Download AntSeed as the first
+ * actionable step with locked subsequent steps until download is started.
+ */
+export function DownloadAntSeedStepStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-download-antseed-step"
+      adapterFactory={createAdapterFactory('purchase_setup', {
+        gBalance: '54570',
+        activeTab: 'setup',
       })}
     />
   )

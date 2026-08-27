@@ -13,4 +13,8 @@ export default defineConfig({
   clean: true,
   tsconfig: 'tsconfig.build.json',
   external: ['react', 'react-dom', 'react-native', 'react-native-web'],
+  // Screenshots ship inside the bundle rather than as separate files: the widget
+  // embeds into third-party pages, where a relative asset URL would not resolve
+  // and a remote one can be blocked by the host's img-src policy.
+  loader: { '.png': 'dataurl' },
 })

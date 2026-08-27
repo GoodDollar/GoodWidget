@@ -53,6 +53,19 @@ GitHub Actions workflow:
 - Pushes to `main` or `master` create production deployments.
 - Required GitHub secrets: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`.
 
+Deployment workflows are path-filtered so that a standalone app is deployed only when
+its app, widget package, shared package, or workspace dependency metadata changes.
+Changes to `packages/ui`, `packages/core`, or `packages/embed` trigger every standalone
+deployment as well as Storybook. All other package changes trigger Storybook; a package
+is included in a standalone deployment only when that app consumes it.
+
+Preview deployments use distinct GitHub environment names — `preview-storybook`,
+`preview-ai-credits`, `preview-gooddata`, and `preview-superfluid-campaign` — so the
+deployment target is visible in the pull request UI. GitHub creates these named
+environments when they are first used; protection rules can be configured per name if
+needed. The names are independent of Vercel's `preview` build environment and do not
+require separate Vercel projects.
+
 ---
 
 ## Running in a Copilot cloud agent
