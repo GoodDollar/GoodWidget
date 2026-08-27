@@ -201,6 +201,47 @@ function SwitchChainNotice({
   )
 }
 
+/**
+ * Standing disclaimer that buying and using credits are different jobs: the
+ * purchase works anywhere, but Antseed runs on a desktop, so a phone-only user
+ * cannot finish setup or spend what they bought.
+ *
+ * Collapsed by default to keep it off the top of every panel, but the warning
+ * itself stays on the summary line — folding away the sentence that says "you
+ * need a computer" would defeat the point of showing it at all. Only the
+ * reassuring half, that buying on a phone is fine, is behind the toggle.
+ */
+function DesktopRequiredNotice() {
+  const [expanded, setExpanded] = useState(false)
+
+  return (
+    <AiCreditsStatusNotice>
+      <XStack
+        gap="$2"
+        alignItems="flex-start"
+        cursor="pointer"
+        aria-expanded={expanded}
+        onPress={() => setExpanded((prev) => !prev)}
+      >
+        <Icon name="info" size="sm" color="muted" />
+        <Text fontSize="$2" lineHeight="$3" flex={1}>
+          <Text fontSize="$2" fontWeight="700">
+            Please note:
+          </Text>{' '}
+          setup requires a computer.
+        </Text>
+        <Icon name={expanded ? 'chevron-up' : 'chevron-down'} size="xs" color="muted" />
+      </XStack>
+      {expanded && (
+        <Text fontSize="$2" lineHeight="$3" tone="soft" paddingLeft="$6">
+          You can buy credits from your phone anytime. Antseed, the app that manages your credits,
+          only runs on a desktop.
+        </Text>
+      )}
+    </AiCreditsStatusNotice>
+  )
+}
+
 interface BuyPanelProps {
   state: AiCreditsWidgetAdapterState
   actions: AiCreditsWidgetAdapterActions
@@ -551,6 +592,7 @@ function AiCreditsInner({
         isTabDisabled={(tabId) => walletRequired && tabId !== 'setup'}
         withConnectionStatus={false}
       />
+      <DesktopRequiredNotice/>
 
       {walletRequired || state.activeTab === 'setup' ? (
         setupPanel
