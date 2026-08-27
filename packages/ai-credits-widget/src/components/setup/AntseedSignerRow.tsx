@@ -41,7 +41,7 @@ export function AntseedSignerRow({ mode }: AntseedSignerRowProps) {
             <Text fontSize="$2" fontWeight="700">
               Profile → Signer
             </Text>
-            , copy the key above and paste it in Antseed.
+            , copy the key above and tap ↑ and paste it to import this key in Antseed.
           </>
         ) : (
           <>
