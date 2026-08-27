@@ -88,7 +88,7 @@ function FaqItem({ question, answer, expanded, onToggle }: FaqItemProps) {
         <Icon name={expanded ? 'chevron-up' : 'chevron-down'} size="xs" color="muted" />
       </XStack>
       {expanded && (
-        <Text fontSize="$2" secondary lineHeight="$3">
+        <Text fontSize="$2" tone="soft" lineHeight="$3">
           {answer}
         </Text>
       )}

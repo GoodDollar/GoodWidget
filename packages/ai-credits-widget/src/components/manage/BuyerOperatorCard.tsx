@@ -209,13 +209,13 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
             <XStack alignItems="center" flexWrap="wrap">
               {/* Separators carry their own spacing: adjacent Text renders inline, so
                   the flex gap between two of them collapses. */}
-              <Text fontSize="$1" secondary style={monospaceSingleLineStyle}>
+              <Text fontSize="$1" tone="soft" style={monospaceSingleLineStyle}>
                 {`${truncateAddress(buyerPubKey)}  ·  `}
               </Text>
               <SignerStatus consented={operatorConsented} />
             </XStack>
           ) : (
-            <Text fontSize="$1" secondary>
+            <Text fontSize="$1" tone="soft">
               No signer key yet
             </Text>
           )}
@@ -227,7 +227,7 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
         <YStack gap="$4">
           {buyerPubKey && (
             <YStack gap="$2">
-              <Text variant="label" secondary>
+              <Text variant="label" tone="soft">
                 Active signer
               </Text>
               <YStack
@@ -301,7 +301,7 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
           {buyerPrvKey && (
             <YStack gap="$2">
               <XStack justifyContent="space-between" alignItems="center" gap="$2">
-                <Text variant="label" secondary>
+                <Text variant="label" tone="soft">
                   Private key
                 </Text>
                 <Button

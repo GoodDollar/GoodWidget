@@ -81,7 +81,7 @@ export function SetupSnippet() {
               </Text>
             ))}
           </YStack>
-          <Text fontSize="$1" secondary>
+          <Text fontSize="$1" tone="soft">
             To connect AI tools to the AntSeed AI provider, see the{' '}
             <Anchor href={ANTSEED_API_DOCS_URL} target="_blank">
               AntSeed API guide

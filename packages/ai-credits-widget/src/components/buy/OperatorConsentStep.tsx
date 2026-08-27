@@ -31,10 +31,10 @@ interface OperatorConsentStepProps {
 function ConsentBullet({ children }: { children: React.ReactNode }) {
   return (
     <XStack gap="$2" alignItems="flex-start">
-      <Text fontSize="$2" secondary lineHeight="$3">
+      <Text fontSize="$2" tone="soft" lineHeight="$3">
         •
       </Text>
-      <Text fontSize="$2" secondary lineHeight="$3" flex={1}>
+      <Text fontSize="$2" tone="soft" lineHeight="$3" flex={1}>
         {children}
       </Text>
     </XStack>
@@ -128,7 +128,7 @@ export function OperatorConsentStep({
         </Text>
       ) : canRestoreKey ? (
         <>
-          <Text fontSize="$2" secondary lineHeight="$3">
+          <Text fontSize="$2" tone="soft" lineHeight="$3">
             This browser does not hold your signer key. Restore it from your wallet to continue —
             the same wallet always produces the same key.
           </Text>

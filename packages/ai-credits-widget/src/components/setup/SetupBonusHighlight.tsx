@@ -55,14 +55,14 @@ export function SetupBonusHighlight({
             <Text fontSize="$2" fontWeight="700" color="$primary">
               +{depositBonusPercent}%
             </Text>
-            <Text fontSize="$2" secondary>
+            <Text fontSize="$2" tone="soft">
               {' '}
               on deposits,{' '}
             </Text>
             <Text fontSize="$2" fontWeight="700" color="$primary">
               +{streamBonusPercent}%
             </Text>
-            <Text fontSize="$2" secondary>
+            <Text fontSize="$2" tone="soft">
               {' '}
               on streams — paid with G$
             </Text>
@@ -74,7 +74,7 @@ export function SetupBonusHighlight({
 
       {isExpanded && (
         <YStack backgroundColor="$background" borderRadius="$2" padding="$3">
-          <Text fontSize="$2" secondary lineHeight="$3">
+          <Text fontSize="$2" tone="soft" lineHeight="$3">
             {isGoodIdVerified ? (
               <>
                 Your wallet is{' '}

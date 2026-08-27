@@ -38,7 +38,7 @@ function StatCell({ label, children }: { label: string; children: React.ReactNod
         minWidth: '28%',
       }}
     >
-      <Text fontSize="$1" secondary>
+      <Text fontSize="$1" tone="soft">
         {label}
       </Text>
       <YStack justifyContent="center">
@@ -188,7 +188,7 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
 
       <XStack gap="$4" width="100%" alignItems="flex-start" flexWrap="wrap">
         <YStack gap="$2" flex={1} minWidth={0}>
-          <Text fontSize="$1" secondary>
+          <Text fontSize="$1" tone="soft">
             Total Credit (US$)
           </Text>
           {totalCreditDisplay !== null ? (
@@ -198,7 +198,7 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
           )}
         </YStack>
         <YStack gap="$2" flex={1} minWidth={0}>
-          <Text fontSize="$1" secondary>
+          <Text fontSize="$1" tone="soft">
             Est. Monthly Credit (US$)
           </Text>
           {monthlyStreamUsdDisplay ? (

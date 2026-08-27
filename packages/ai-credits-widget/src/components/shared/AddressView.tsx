@@ -7,7 +7,7 @@ export function AddressView({ label, address }: { label: string; address: string
 
   return (
     <YStack gap="$1">
-      <Text fontSize="$1" secondary>
+      <Text fontSize="$1" tone="soft">
         {label}
       </Text>
       <XStack

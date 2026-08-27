@@ -256,14 +256,14 @@ export function AmountPicker({
       <XStack justifyContent="space-between" alignItems="center" gap="$2">
         <Heading level={5}>Buy Credits</Heading>
         {usd1ToGLabel && (
-          <Text fontSize="$2" secondary flexShrink={1} textAlign="right">
+          <Text fontSize="$2" tone="soft" flexShrink={1} textAlign="right">
             US$1 ≈ {usd1ToGLabel} G$
           </Text>
         )}
       </XStack>
 
       <XStack justifyContent="space-between" alignItems="center">
-        <Text variant="label" secondary>
+        <Text variant="label" tone="soft">
           Your G$ Balance
         </Text>
         {gBalance !== null ? (
@@ -286,7 +286,7 @@ export function AmountPicker({
         />
         <XStack justifyContent="space-between" alignItems="center" gap="$2">
           {depositG > 0 && depositEstUsd ? (
-            <Text fontSize="$1" secondary>
+            <Text fontSize="$1" tone="soft">
               ≈ {depositEstUsd}
             </Text>
           ) : depositG > 0 && quotePending ? (
@@ -294,7 +294,7 @@ export function AmountPicker({
           ) : (
             <YStack />
           )}
-          <Text fontSize="$1" secondary textAlign="right" flexShrink={0}>
+          <Text fontSize="$1" tone="soft" textAlign="right" flexShrink={0}>
             {depositMinUsdLabel}
           </Text>
         </XStack>
@@ -315,7 +315,7 @@ export function AmountPicker({
         />
         <XStack justifyContent="space-between" alignItems="center" gap="$2">
           {streamG > 0 && streamEstUsd ? (
-            <Text fontSize="$1" secondary>
+            <Text fontSize="$1" tone="soft">
               ≈ {streamEstUsd}/month
             </Text>
           ) : streamG > 0 && quotePending ? (
@@ -323,7 +323,7 @@ export function AmountPicker({
           ) : (
             <YStack />
           )}
-          <Text fontSize="$1" secondary textAlign="right" flexShrink={0}>
+          <Text fontSize="$1" tone="soft" textAlign="right" flexShrink={0}>
             {streamMinUsdLabel}
           </Text>
         </XStack>

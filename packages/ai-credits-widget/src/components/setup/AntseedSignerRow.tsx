@@ -34,7 +34,7 @@ export function AntseedSignerRow({ mode }: AntseedSignerRowProps) {
         style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 8 }}
       />
 
-      <Text fontSize="$2" secondary textAlign="center" lineHeight="$3">
+      <Text fontSize="$2" tone="soft" textAlign="center" lineHeight="$3">
         {isGenerate ? (
           <>
             Copy the key above, then tap ↑ in Antseed&apos;s{' '}
