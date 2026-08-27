@@ -1,5 +1,5 @@
 import type { Address } from 'viem'
-import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
+import type { GoodWidgetConfig, GoodWidgetThemeOverrides, IconName } from '@goodwidget/ui'
 import type { AccountRef } from './backendTypes'
 import type { AiCreditsBackendClient } from './backendClient'
 import type { AiCreditsChainClient } from './chainClient'
@@ -18,13 +18,12 @@ export type AiCreditsWidgetStatus =
   | 'backend_unavailable'
   | 'unsupported_chain'
 
-export type AiCreditsWidgetTab = 'buy' | 'manage' | 'history'
+export type AiCreditsWidgetTab = 'buy' | 'setup' | 'manage' | 'history'
 
 export interface AiCreditsQuote {
   depositAmountG: string
   streamAmountG: string
 }
-
 /** Re-export for consumers that don't want to import from payerSession directly. */
 export type { BuyerKeyEntry } from './payerSession'
 
@@ -46,6 +45,8 @@ export interface AiCreditsWidgetAdapterState {
   /** True while submitting / waiting for on-chain operator consent. */
   operatorConsentPending: boolean
   operatorAddress: string | null
+  /** Operator currently configured for the active signer, if any. */
+  currentOperator: string | null
   minDepositUsd: string | null
   minStreamUsd: string | null
   totalGdDepositedG: string | null
@@ -74,7 +75,13 @@ export interface AiCreditsWidgetAdapterActions {
    */
   selectBuyer: (address: string) => Promise<void>
   discoverBuyers: (addresses: string[]) => void
-  importBuyerFromPrivateKey: (privateKey: string) => Promise<void>
+  /**
+   * Imports a signer key, stores it and selects it as the active buyer.
+   * Resolves with the imported buyer address, or `null` when the key could
+   * not be imported — callers use that to report the outcome of *this* import
+   * rather than the state of whichever buyer happened to be active.
+   */
+  importBuyerFromPrivateKey: (privateKey: string) => Promise<string | null>
   /**
    * Applies an NCDI deep-link buyer assignment from URL GET parameters
    * (`buyerAddress` + `operatorSignature`). Selects the buyer immediately,
@@ -133,6 +140,52 @@ export interface AiCreditsPayErrorDetail {
 export interface AiCreditsWidgetProps {
   provider?: unknown
   connectOverride?: () => Promise<void>
+  /**
+   * Shows the connected-wallet chip (address, and disconnect when the host supplies
+   * `disconnectOverride`) in the widget header.
+   *
+   * Off by default: wallet hosts own the connection and must not offer a second,
+   * widget-local way to end it. Standalone deployments and Storybook opt in.
+   */
+  showWalletControls?: boolean
+  /**
+   * Integrator-owned wallet disconnect flow. Without it the chip renders the address
+   * only, and its menu explains that the session belongs to the host.
+   */
+  disconnectOverride?: () => Promise<void>
+  /**
+   * Label for the chip's menu action. Defaults to "Disconnect", which only fits when
+   * `disconnectOverride` really ends the session — integrators who instead open an
+   * account modal should relabel it.
+   */
+  disconnectLabel?: string
+  /** Icon for the chip's menu action, mirroring `disconnectLabel`. */
+  disconnectIcon?: IconName
+  /**
+   * Integrator-owned live address (e.g. from a wallet-connection SDK's own
+   * reactive account hook). See `GoodWidgetProviderProps.addressOverride`.
+   */
+  addressOverride?: string | null
+  /**
+   * Integrator-owned live chain id, mirroring `addressOverride`. See
+   * `GoodWidgetProviderProps.chainIdOverride`. Worth supplying for connectors
+   * that do not reliably emit `chainChanged` — a WalletConnect session bridged
+   * through AppKit, for one — otherwise the widget can keep reporting the wrong
+   * network after the user has already switched.
+   */
+  chainIdOverride?: number | null
+  /**
+   * Integrator-owned chain-switch fallback, used when the wallet rejects or
+   * ignores `wallet_switchEthereumChain`. See
+   * `GoodWidgetProviderProps.switchChainOverride`. Without it, wallets that
+   * cannot be switched from a page leave the user stuck on the wrong network.
+   */
+  switchChainOverride?: (chainId: number) => Promise<void>
+  /**
+   * Chain ids the passed-down provider can currently execute on. See
+   * `GoodWidgetProviderProps.availableChainIdsOverride`.
+   */
+  availableChainIdsOverride?: number[] | null
   environment?: AiCreditsWidgetEnvironment
   backendUrl?: string
   baseRpcUrl?: string
@@ -149,4 +202,3 @@ export interface AiCreditsWidgetProps {
   adapterOptions?: AiCreditsWidgetAdapterOptions
   testId?: string
 }
-

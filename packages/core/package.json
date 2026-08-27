@@ -1,6 +1,11 @@
 {
   "name": "@goodwidget/core",
   "version": "0.1.4",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GoodDollar/GoodWidget.git",
+    "directory": "packages/core"
+  },
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

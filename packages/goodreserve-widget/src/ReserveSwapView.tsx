@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Anchor,
   Button,
@@ -340,7 +340,10 @@ function SwapSuccessView({
           fullWidth
           height={54}
           borderRadius="$full"
-          onPress={() => actions.setDirection('buy')}
+          onPress={async () => {
+            await actions.refreshBalances()
+            actions.setDirection('buy')
+          }}
         >
           <ButtonText>Do another swap</ButtonText>
         </Button>
@@ -440,7 +443,8 @@ function ConfirmDrawer({
               Tamagui passes through to the DOM, where it does no fitting and
               renders the digits smeared. amountFontSize already sizes the text. */}
           <Text
-            fontSize={amountFontSize(minimumReceived, 50)}
+            fontSize={amountFontSize(minimumReceived, AMOUNT_VALUE_FONT_SIZE)}
+            lineHeight={AMOUNT_VALUE_LINE_HEIGHT}
             fontWeight="800"
             color="$textColor"
             numberOfLines={1}
@@ -573,6 +577,10 @@ function MainSwapView({
   network: string
   switchTarget: number
 }) {
+  useEffect(() => {
+    void actions.refreshBalances()
+  }, [actions.refreshBalances])
+
   const hasAmount = Boolean(state.inputAmount) && Number(state.inputAmount) > 0
   const primaryCta = getMainSwapPrimaryCta(state, hasAmount)
   const stableSymbol = state.tokenInSymbol === 'G$' ? state.tokenOutSymbol : state.tokenInSymbol
@@ -749,6 +757,8 @@ function MainSwapView({
               testID="GoodReserveWidget-retry"
               variant="secondary"
               fullWidth
+              height={54}
+              borderRadius="$3"
               onPress={actions.refresh}
             >
               <ButtonText>Retry</ButtonText>

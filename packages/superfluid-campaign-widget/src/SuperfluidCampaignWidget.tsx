@@ -50,7 +50,6 @@ interface SuperfluidCampaignRuntimeProps {
   connectOverride?: SuperfluidCampaignWidgetProps['connectOverride']
   switchChainOverride?: SuperfluidCampaignWidgetProps['switchChainOverride']
   availableChainIdsOverride?: SuperfluidCampaignWidgetProps['availableChainIdsOverride']
-  hasDisconnectOverride: boolean
 }
 
 /**
@@ -130,9 +129,8 @@ function SuperfluidCampaignRuntime({
   connectOverride,
   switchChainOverride,
   availableChainIdsOverride,
-  hasDisconnectOverride,
 }: SuperfluidCampaignRuntimeProps) {
-  const { isConnected, connect, disconnect, disconnectLabel, disconnectIcon, address } = useWallet()
+  const { isConnected, connect, address } = useWallet()
   const [view, setView] = useState<SuperfluidCampaignView>(initialView)
   const [embeddedClaimTab, setEmbeddedClaimTab] = useState<EmbeddedClaimTab>(null)
   const [leaderboardRefreshKey, setLeaderboardRefreshKey] = useState(0)
@@ -155,12 +153,8 @@ function SuperfluidCampaignRuntime({
       <YStack gap="$5" width="100%" padding="$5" style={{ boxSizing: 'border-box' }}>
         <CampaignHeader
           data={campaignData}
-          address={address}
           isConnected={isConnected}
           onConnect={connect}
-          onDisconnect={hasDisconnectOverride ? disconnect : undefined}
-          disconnectLabel={hasDisconnectOverride ? disconnectLabel : undefined}
-          disconnectIcon={hasDisconnectOverride ? disconnectIcon : undefined}
           onClose={() => setEmbeddedClaimTab(null)}
           disableWalletButton={disableWalletButton}
         />
@@ -191,9 +185,6 @@ function SuperfluidCampaignRuntime({
         leaderboardAdapter={isMockRuntime ? dataClient.leaderboard : undefined}
         isConnected={isConnected}
         onConnect={connect}
-        onDisconnect={hasDisconnectOverride ? disconnect : undefined}
-        disconnectLabel={hasDisconnectOverride ? disconnectLabel : undefined}
-        disconnectIcon={hasDisconnectOverride ? disconnectIcon : undefined}
         onClose={() => setView('content')}
         leaderboardRefreshKey={leaderboardRefreshKey}
         userPointsAdapter={isMockRuntime ? dataClient.userPoints : undefined}
@@ -208,12 +199,8 @@ function SuperfluidCampaignRuntime({
           top-right slot (see CampaignHeader) instead of its own row here. */}
       <CampaignHeader
         data={campaignData}
-        address={address}
         isConnected={isConnected}
         onConnect={connect}
-        onDisconnect={hasDisconnectOverride ? disconnect : undefined}
-        disconnectLabel={hasDisconnectOverride ? disconnectLabel : undefined}
-        disconnectIcon={hasDisconnectOverride ? disconnectIcon : undefined}
         disableWalletButton={disableWalletButton}
       />
 
@@ -318,7 +305,6 @@ export function SuperfluidCampaignWidgetWithClient({
           connectOverride={connectOverride}
           switchChainOverride={switchChainOverride}
           availableChainIdsOverride={availableChainIdsOverride}
-          hasDisconnectOverride={Boolean(disconnectOverride)}
         />
       </Card>
       <ToastContainer />

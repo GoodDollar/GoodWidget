@@ -193,6 +193,7 @@ export function useGoodReserveAdapter(
         applyStatePatch({ status: refs.previousStatusRef.current })
       },
       executeSwap,
+      refreshBalances,
       refresh: async () => {
         if (mockState) return
         await bootstrapSdk()
@@ -207,6 +208,7 @@ export function useGoodReserveAdapter(
       mockState,
       provider,
       refs,
+      refreshBalances,
       state.status,
       state.tokenInBalance,
     ],
