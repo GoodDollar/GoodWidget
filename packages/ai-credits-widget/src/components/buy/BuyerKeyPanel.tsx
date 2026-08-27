@@ -62,7 +62,7 @@ export function BuyerKeyPanel({
               Address (registered on-chain)
             </Text>
             <XStack
-              backgroundColor="$backgroundMuted"
+              backgroundColor="$backgroundSurface"
               borderRadius="$2"
               padding="$3"
               justifyContent="space-between"
@@ -109,7 +109,7 @@ export function BuyerKeyPanel({
                   </Text>
                 </AiCreditsStatusNotice>
                 <XStack
-                  backgroundColor="$backgroundMuted"
+                  backgroundColor="$backgroundSurface"
                   borderRadius="$2"
                   padding="$3"
                   justifyContent="space-between"

@@ -69,7 +69,7 @@ export function SetupSnippet() {
       {expanded && (
         <YStack gap="$2">
           <YStack
-            backgroundColor="$backgroundMuted"
+            backgroundColor="$backgroundSurface"
             borderRadius="$2"
             padding="$3"
             width="100%"

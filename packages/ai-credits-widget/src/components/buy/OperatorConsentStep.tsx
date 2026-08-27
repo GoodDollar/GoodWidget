@@ -12,7 +12,7 @@ import {
   XStack,
   YStack,
 } from '@goodwidget/ui'
-import { truncateAddress, compactButtonProps } from '../shared/styles'
+import { truncateAddress, compactButtonProps, monospaceSingleLineStyle } from '../shared/styles'
 
 interface OperatorConsentStepProps {
   buyerPubKey: string | null
@@ -110,7 +110,7 @@ export function OperatorConsentStep({
       {buyerPubKey && (
         <Text fontSize="$2" lineHeight="$2">
           Buyer address:{' '}
-          <Text fontFamily="$mono" fontSize="$2">
+          <Text fontSize="$2" style={monospaceSingleLineStyle}>
             {truncateAddress(buyerPubKey)}
           </Text>
         </Text>

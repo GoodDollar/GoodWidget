@@ -182,7 +182,6 @@ export function SignerKeyPanel({
         flex={compact ? undefined : 1}
         alignSelf={compact ? 'stretch' : undefined}
         size={compact ? 'sm' : 'lg'}
-        variant="outline"
         {...compactButtonProps}
         onPress={() => setChoice('generate')}
       >

@@ -60,7 +60,7 @@ function CopyableValue({ value, display }: { value: string; display?: string }) 
 
   return (
     <XStack
-      backgroundColor="$backgroundMuted"
+      backgroundColor="$backgroundSurface"
       borderRadius="$2"
       padding="$2"
       justifyContent="space-between"
