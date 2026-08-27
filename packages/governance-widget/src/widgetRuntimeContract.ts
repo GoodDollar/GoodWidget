@@ -82,6 +82,8 @@ export interface GovernanceDashboardState {
   impact: ImpactCardProps
   activeMembers: BalanceCardProps
   alignmentVoting: GovernanceVotingState
+  /** Optional previous rounds shown alongside the current vote on the homepage. */
+  alignmentVotingHistory?: GovernanceVotingState[]
   fundingDistribution: FundingDistributionChartProps
 }
 

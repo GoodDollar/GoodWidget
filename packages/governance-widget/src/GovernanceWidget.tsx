@@ -1,5 +1,18 @@
-import { useMemo } from 'react'
-import { Button, ButtonText, Card, Heading, Icon, Input, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
+import { createElement, useEffect, useMemo, useRef, useState } from 'react'
+import { useWallet, WalletControls } from '@goodwidget/core'
+import {
+  Button,
+  ButtonText,
+  Card,
+  Heading,
+  Icon,
+  resolveThemeColor,
+  Spinner,
+  Text,
+  XStack,
+  YStack,
+} from '@goodwidget/ui'
+import { useTheme } from 'tamagui'
 import { AlignmentVotingProposalCard } from './AlignmentVotingProposalCard'
 import { BalanceCard } from './BalanceCard'
 import { FundingDistributionChart } from './FundingDistributionChart'
@@ -17,6 +30,8 @@ import {
 } from './widgetRuntimeContract'
 import { isActiveStatus } from './adapter'
 import { formatStakeAmount } from './sdks/contracts'
+
+const GOVERNANCE_WIDGET_MAX_WIDTH = 480
 
 function formatMemberDate(timestamp: number | null): string {
   if (!timestamp) return 'Not available'
@@ -43,7 +58,7 @@ function GovernanceHeader({
   state: GovernanceWidgetAdapterState
   actions: GovernanceWidgetAdapterActions
 }) {
-  const addressLabel = state.address ? `${state.address.slice(0, 6)}…${state.address.slice(-4)}` : null
+  const { address: walletContextAddress } = useWallet()
 
   return (
     <YStack
@@ -67,15 +82,20 @@ function GovernanceHeader({
           </YStack>
           <Heading level={5} color="$primary">GoodDAO</Heading>
         </XStack>
-        {state.address ? (
+        {state.address && walletContextAddress ? (
+          <WalletControls />
+        ) : state.address ? (
           <YStack alignItems="flex-end" gap="$1">
-            <Text variant="caption" tone="secondary">
-              Connected wallet
-            </Text>
-            <Text fontWeight="700">{addressLabel}</Text>
+            <Text variant="caption" tone="secondary">Connected wallet</Text>
+            <Text fontWeight="700">{`${state.address.slice(0, 6)}…${state.address.slice(-4)}`}</Text>
           </YStack>
         ) : (
           <Button
+            size="sm"
+            borderRadius="$3"
+            height="$7"
+            paddingHorizontal="$3"
+            flexShrink={0}
             onPress={() => {
               void actions.connect()
             }}
@@ -159,19 +179,82 @@ function GovernanceDashboard({
   state: GovernanceWidgetAdapterState
   actions: GovernanceWidgetAdapterActions
 }) {
+  const carouselRef = useRef<HTMLDivElement>(null)
+  const [activeVotingIndex, setActiveVotingIndex] = useState(0)
+  const votingSections = [
+    state.dashboard.alignmentVoting,
+    ...(state.dashboard.alignmentVotingHistory ?? []),
+  ]
+
+  const goToVotingSection = (index: number) => {
+    const nextIndex = Math.max(0, Math.min(index, votingSections.length - 1))
+    setActiveVotingIndex(nextIndex)
+    carouselRef.current?.scrollTo({
+      left: nextIndex * carouselRef.current.clientWidth,
+      behavior: 'smooth',
+    })
+  }
+
   return (
     <YStack gap="$4" width="100%" data-testid="GovernanceWidget-dashboard">
       <ImpactCard {...state.dashboard.impact} testID="GovernanceWidget-impact" />
       <BalanceCard {...state.dashboard.activeMembers} testID="GovernanceWidget-active-members" />
-      <AlignmentVotingProposalCard
-        id={state.dashboard.alignmentVoting.voteId}
-        categoryLabel="Alignment Voting"
-        title={state.dashboard.alignmentVoting.title}
-        summaryLabel={state.dashboard.alignmentVoting.summaryLabel}
-        options={state.dashboard.alignmentVoting.options}
-        testID="GovernanceWidget-active-governance"
-        onPress={() => actions.openVote()}
-      />
+      <YStack
+        width="100%"
+        gap="$3"
+        data-testid="GovernanceWidget-voting-carousel"
+        ref={carouselRef}
+        style={{ overflowX: 'auto', scrollSnapType: 'x mandatory', scrollbarWidth: 'none' }}
+      >
+        <XStack width="100%" gap="$3" paddingRight="$3">
+          {votingSections.map((voting, index) => (
+            <YStack
+              key={voting.voteId}
+              width="calc(100% - 24px)"
+              minWidth="calc(100% - 24px)"
+              flexShrink={0}
+              style={{ scrollSnapAlign: 'start' }}
+            >
+              <AlignmentVotingProposalCard
+                id={voting.voteId}
+                categoryLabel={index === 0 ? 'Alignment Voting' : 'Previous Alignment Vote'}
+                title={voting.title}
+                summaryLabel={voting.summaryLabel}
+                options={voting.options}
+                testID={index === 0 ? 'GovernanceWidget-active-governance' : `GovernanceWidget-past-governance-${index}`}
+                onPress={index === 0 ? () => actions.openVote() : undefined}
+              />
+            </YStack>
+          ))}
+        </XStack>
+      </YStack>
+      {votingSections.length > 1 ? (
+        <XStack alignItems="center" justifyContent="space-between" gap="$3">
+          <Text variant="caption" tone="secondary">
+            Voting round {activeVotingIndex + 1} of {votingSections.length}
+          </Text>
+          <XStack gap="$2">
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={activeVotingIndex === 0}
+              aria-label="Previous voting round"
+              onPress={() => goToVotingSection(activeVotingIndex - 1)}
+            >
+              <Icon name="arrow-left" size="xs" color="primary" />
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={activeVotingIndex === votingSections.length - 1}
+              aria-label="Next voting round"
+              onPress={() => goToVotingSection(activeVotingIndex + 1)}
+            >
+              <Icon name="arrow-right" size="xs" color="primary" />
+            </Button>
+          </XStack>
+        </XStack>
+      ) : null}
       {state.dashboard.alignmentVoting.options.length === 0 ? (
         <Card data-testid="GovernanceWidget-empty-recipients">
           <Text tone="secondary">
@@ -290,20 +373,78 @@ function RevokedState({ state }: { state: GovernanceWidgetAdapterState }) {
   )
 }
 
-function MemberFooter({ state }: { state: GovernanceWidgetAdapterState }) {
-  if (!state.member || !isActiveStatus(state.status)) return null
+function GovernanceSignupBanner({ onResume }: { onResume: () => void }) {
+  return (
+    <Card outlined data-testid="GovernanceWidget-signup-banner">
+      <XStack alignItems="center" justifyContent="space-between" gap="$3" flexWrap="wrap">
+        <Text tone="secondary">Sign up and stake to participate in GoodDAO</Text>
+        <Button
+          variant="secondary"
+          backgroundColor="$backgroundHover"
+          hoverStyle={{ backgroundColor: '$backgroundPress' }}
+          pressStyle={{ backgroundColor: '$backgroundPress' }}
+          focusStyle={{ backgroundColor: '$backgroundFocus' }}
+          onPress={onResume}
+        >
+          <ButtonText color="$color">Sign Up</ButtonText>
+        </Button>
+      </XStack>
+    </Card>
+  )
+}
+
+interface WidgetBounds {
+  left: number
+  width: number
+}
+
+function MemberFooter({
+  state,
+  bounds,
+}: {
+  state: GovernanceWidgetAdapterState
+  bounds?: WidgetBounds
+}) {
+  const memberStatus = state.member?.status ?? (
+    state.status === 'disconnected' ? 'not connected' :
+      state.status === 'onboarding_required' ? 'onboarding' :
+        state.status === 'pending_alignment' ? 'pending approval' :
+          state.status === 'revoked' ? 'revoked' : 'not available'
+  )
+  const house = state.member
+    ? state.member.house === 'alignment' ? 'House of Alignment' : 'House of Citizenship'
+    : 'No house selected'
 
   return (
-    <Card outlined data-testid="GovernanceWidget-member-footer">
+    <Card
+      outlined
+      data-testid="GovernanceWidget-member-footer"
+      position="fixed"
+      bottom={0}
+      width={bounds?.width ?? '100%'}
+      maxWidth={bounds ? undefined : GOVERNANCE_WIDGET_MAX_WIDTH}
+      left={bounds?.left ?? '50%'}
+      zIndex={10}
+      backgroundColor="$background"
+      borderTopWidth={1}
+      paddingHorizontal="$4"
+      // Keep the footer fixed for the widget's content width, rather than
+      // stretching it across the host page or Storybook viewport.
+      style={{
+        pointerEvents: 'none',
+        transform: bounds ? undefined : 'translateX(-50%)',
+        boxSizing: 'border-box',
+      } as any}
+    >
       <XStack alignItems="center" justifyContent="space-between" gap="$3" flexWrap="wrap">
         <Text variant="caption" tone="secondary">
-          House: {state.member.house === 'alignment' ? 'House of Alignment' : 'House of Citizenship'}
+          House: {house}
         </Text>
         <Text variant="caption" tone="secondary">
-          Joined: {formatMemberDate(state.member.joinedAt)}
+          Joined: {state.member ? formatMemberDate(state.member.joinedAt) : 'Not yet'}
         </Text>
         <Text variant="caption" tone="secondary">
-          Status: {state.member.status}
+          Status: {memberStatus}
         </Text>
       </XStack>
     </Card>
@@ -317,6 +458,9 @@ function GovernanceVoteDetail({
   state: GovernanceWidgetAdapterState
   actions: GovernanceWidgetAdapterActions
 }) {
+  const theme = useTheme()
+  const sliderAccentColor = resolveThemeColor(theme, '$primary')
+  const sliderTrackColor = resolveThemeColor(theme, '$backgroundHover')
   const vote = state.dashboard.alignmentVoting
   const disabledReason = getGovernanceVotingDisabledReason(vote)
   const voteTransactionPending =
@@ -339,8 +483,15 @@ function GovernanceVoteDetail({
       <YStack gap="$4">
         <XStack alignItems="center" justifyContent="space-between" gap="$3">
           <Heading level={4}>{vote.title}</Heading>
-          <Button variant="secondary" onPress={actions.closeVote}>
-            <ButtonText>Back</ButtonText>
+          <Button
+            variant="secondary"
+            backgroundColor="$backgroundHover"
+            hoverStyle={{ backgroundColor: '$backgroundPress' }}
+            pressStyle={{ backgroundColor: '$backgroundPress' }}
+            focusStyle={{ backgroundColor: '$backgroundFocus' }}
+            onPress={actions.closeVote}
+          >
+            <ButtonText color="$color">Back</ButtonText>
           </Button>
         </XStack>
         <Text tone="secondary">
@@ -348,25 +499,55 @@ function GovernanceVoteDetail({
           Your allocation must total exactly 10,000 basis points.
         </Text>
         <YStack gap="$3">
-          {vote.options.map((option) =>
-            isReadOnly ? (
+          {vote.options.map((option) => {
+            const currentValue = vote.allocationsBps[option.id] ?? 0
+            const availablePoints = Math.max(0, 10_000 - vote.allocationTotalBps)
+            const sliderMax = Math.max(currentValue, currentValue + availablePoints)
+
+            return isReadOnly ? (
               <Text key={option.id} tone="secondary">
-                {option.label}: {vote.executed ? `${vote.finalizedUnits[option.id] ?? '0'} finalized units` : `${vote.allocationsBps[option.id] ?? 0} bps`}
+                {option.label}: {vote.executed ? `${vote.finalizedUnits[option.id] ?? '0'} finalized units` : `${currentValue} bps`}
               </Text>
             ) : (
-              <Input
-                key={option.id}
-                label={option.label}
-                value={String(vote.allocationsBps[option.id] ?? 0)}
-                inputMode="numeric"
-                onChangeText={(value) => actions.setVoteAllocation(option.id, Number.parseInt(value || '0', 10))}
-              />
-            ),
-          )}
+              <YStack key={option.id} gap="$2">
+                <XStack alignItems="center" justifyContent="space-between" gap="$3">
+                  <Text variant="label" color="$primary" flex={1}>{option.label}</Text>
+                  <Text variant="label" color="$primary" fontWeight="700">{currentValue} bps</Text>
+                </XStack>
+                {createElement('input', {
+                  type: 'range',
+                  min: 0,
+                  max: sliderMax,
+                  step: 100,
+                  value: currentValue,
+                  'aria-label': `${option.label} allocation`,
+                  onChange: (event: { currentTarget?: { value?: string } }) => {
+                    actions.setVoteAllocation(option.id, Number.parseInt(event.currentTarget?.value ?? '0', 10))
+                  },
+                  style: {
+                    width: '100%',
+                    accentColor: sliderAccentColor,
+                    backgroundColor: sliderTrackColor,
+                    color: sliderAccentColor,
+                    cursor: 'pointer',
+                  },
+                })}
+                <XStack justifyContent="space-between">
+                  <Text variant="caption" tone="secondary">0 bps</Text>
+                  <Text variant="caption" tone="secondary">Up to {sliderMax} bps</Text>
+                </XStack>
+              </YStack>
+            )
+          })}
         </YStack>
         <Text tone={vote.allocationTotalBps === 10000 ? 'default' : 'secondary'}>
           Allocation total: {vote.allocationTotalBps} / 10,000 bps
         </Text>
+        {!isReadOnly ? (
+          <Text tone="secondary" data-testid="GovernanceWidget-vote-available-points">
+            Available points: {Math.max(0, 10_000 - vote.allocationTotalBps)} bps
+          </Text>
+        ) : null}
         {vote.hasVoted ? (
           <Text color="$success" fontWeight="700">
             Already voted — this contract does not support ballot replacement.
@@ -408,15 +589,47 @@ function GovernanceWidgetView({
   testId?: string
 }) {
   const { state, actions } = adapter
+  const widgetRef = useRef<HTMLDivElement>(null)
+  const [widgetBounds, setWidgetBounds] = useState<WidgetBounds>()
+  useEffect(() => {
+    const element = widgetRef.current
+    if (!element || typeof ResizeObserver === 'undefined') return
+
+    const updateBounds = () => {
+      const { left, width } = element.getBoundingClientRect()
+      setWidgetBounds({ left, width })
+    }
+
+    updateBounds()
+    const observer = new ResizeObserver(updateBounds)
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
+
+  // Skip is a view-only choice, not membership state: it never touches the
+  // contract, so a reload or a wallet reconnect (address change) drops back
+  // to onboarding rather than silently remembering the skip.
+  const [isOnboardingSkipped, setIsOnboardingSkipped] = useState(false)
+  useEffect(() => {
+    setIsOnboardingSkipped(false)
+  }, [state.address])
+
   const shouldShowDashboard =
     state.status === 'disconnected' ||
     state.status === 'loading' ||
     state.status === 'unsupported_chain' ||
     state.status === 'friendly_error' ||
-    isActiveStatus(state.status)
+    isActiveStatus(state.status) ||
+    (state.status === 'onboarding_required' && isOnboardingSkipped)
 
   return (
-    <YStack gap="$4" width="100%" data-testid={testId ?? 'GovernanceWidget'}>
+    <YStack
+      ref={widgetRef}
+      gap="$4"
+      width="100%"
+      paddingBottom="$16"
+      data-testid={testId ?? 'GovernanceWidget'}
+    >
       <GovernanceHeader state={state} actions={actions} />
       <RuntimeNotice state={state} actions={actions} />
       {state.error && state.status !== 'friendly_error' && state.transaction.status === 'idle' ? (
@@ -428,7 +641,10 @@ function GovernanceWidgetView({
         </Card>
       ) : null}
       {state.status === 'vote_detail' ? <GovernanceVoteDetail state={state} actions={actions} /> : null}
-      {state.status === 'onboarding_required' ? (
+      {state.status === 'onboarding_required' && isOnboardingSkipped ? (
+        <GovernanceSignupBanner onResume={() => setIsOnboardingSkipped(false)} />
+      ) : null}
+      {state.status === 'onboarding_required' && !isOnboardingSkipped ? (
         <YStack gap="$4">
           {state.lifecycleNotice ? (
             <Card data-testid="GovernanceWidget-lifecycle-notice">
@@ -456,13 +672,33 @@ function GovernanceWidgetView({
               void actions.register(profileDraft)
             }}
           />
+          <Button
+            variant="secondary"
+            size="sm"
+            alignSelf="center"
+            height={32}
+            paddingHorizontal="$3"
+            borderWidth={1}
+            borderColor="$primary"
+            borderRadius="$2"
+            backgroundColor="$primary"
+            color="$white"
+            hoverStyle={{ backgroundColor: '$primaryDark', borderColor: '$primaryDark', color: '$white' }}
+            pressStyle={{ backgroundColor: '$primaryDark', borderColor: '$primaryDark', color: '$white' }}
+            focusStyle={{ backgroundColor: '$primaryDark', borderColor: '$primaryDark', color: '$white' }}
+            data-testid="GovernanceWidget-skip-onboarding"
+            style={{ scrollMarginBottom: 80 }}
+            onPress={() => setIsOnboardingSkipped(true)}
+          >
+            <ButtonText color="$white">Skip for now</ButtonText>
+          </Button>
         </YStack>
       ) : null}
       {state.status === 'pending_alignment' ? <PendingAlignmentState state={state} /> : null}
       {state.status === 'revoked' ? <RevokedState state={state} /> : null}
       {shouldShowDashboard ? <GovernanceDashboard state={state} actions={actions} /> : null}
-      <MemberFooter state={state} />
       {isActiveStatus(state.status) ? <MembershipExitState state={state} actions={actions} /> : null}
+      <MemberFooter state={state} />
     </YStack>
   )
 }

@@ -15,6 +15,7 @@ import {
   unstakeGovernanceMembership,
 } from '../../../packages/governance-widget/src/sdks/transactions'
 import {
+  readGovernancePublicState,
   readGovernanceSchedule,
   readGovernanceVote,
   voteStartTimeFromSchedule,
@@ -451,6 +452,47 @@ test('derives vote start and excludes late provisional Alignment recipients', as
   })
   expect(result.voteStartTime).toBe(1_200_000)
   expect(result.recipients).toEqual([earlyRecipient])
+})
+
+test('loads public governance state and voting data without a wallet account', async () => {
+  const recipient = '0x1111111111111111111111111111111111111111' as Address
+  const calls: string[] = []
+  const publicClient = {
+    readContract: async ({ functionName }: { functionName: string }) => {
+      calls.push(functionName)
+      switch (functionName) {
+        case 'minimumStake': return 1_000n
+        case 'getActiveMembers': return [recipient]
+        case 'isVotingPeriod': return true
+        case 'getCurrentVoteId': return 2n
+        case 'getVoteConfig': return [1_000n, 2_000n, 0n, false]
+        case 'getVoteRecipients': return [recipient]
+        case 'getFinalizedUnits': return 0n
+        default: throw new Error(`Unexpected contract read: ${functionName}`)
+      }
+    },
+  } as unknown as PublicClient
+
+  await expect(readGovernancePublicState({ publicClient, housesAddress: houses })).resolves.toEqual({
+    minimumStakes: { citizenship: 1_000n, alignment: 1_000n },
+    activeCitizens: [recipient],
+    activeAlignment: [recipient],
+  })
+
+  const vote = await readGovernanceVote({
+    publicClient,
+    housesAddress: houses,
+    activeAlignment: [recipient],
+    schedule: {
+      cycleStartTime: 1_000_000,
+      termDurationSeconds: 100n,
+      votingTermLengthSeconds: 50n,
+      currentBlockTime: 1_200_000,
+    },
+  })
+
+  expect(vote.recipients).toEqual([recipient])
+  expect(calls).not.toContain('getHasVoted')
 })
 
 test('requires voters to have joined before vote start and validates exact ballots', () => {

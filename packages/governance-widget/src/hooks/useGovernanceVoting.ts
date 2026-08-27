@@ -63,6 +63,7 @@ export function resolveGovernanceVoterKey(
 }
 
 export function createVotingState(params: {
+  account?: Address | null
   member: GovernanceMemberRecord | null
   identityRoot: Address | null
   voteId: bigint
@@ -120,6 +121,8 @@ export function createVotingState(params: {
     disabledReason = 'No House of Alignment members were eligible when this vote opened.'
   } else if (params.hasVoted) {
     disabledReason = 'You already voted in this allocation cycle.'
+  } else if (params.account === null) {
+    disabledReason = 'Connect a wallet to participate in voting.'
   } else if (!isActiveMember) {
     disabledReason = 'Only active members can vote.'
   } else if (!hasRequiredStake) {
@@ -197,7 +200,7 @@ export function createEmptyVotingState(): GovernanceVotingState {
     isVotingOpen: false,
     executed: false,
     finalizedUnits: {},
-    disabledReason: 'Connect a wallet to load governance voting state.',
+    disabledReason: 'Connect a wallet to participate in voting.',
   }
 }
 
@@ -237,10 +240,10 @@ export function useGovernanceVoting(params: {
   ].join(':'))
 
   const refresh = useCallback(async () => {
-    if (!enabled || !account || !addresses.houses || !schedule) return
+    if (!enabled || !addresses.houses || !schedule) return
     const requestId = ++refreshRequestId.current
     try {
-      const voterKey = resolveGovernanceVoterKey(member, identityRoot, account)
+      const voterKey = account ? resolveGovernanceVoterKey(member, identityRoot, account) : undefined
       const vote = await readGovernanceVote({
         publicClient,
         housesAddress: addresses.houses,
@@ -250,6 +253,7 @@ export function useGovernanceVoting(params: {
       })
       if (requestId === refreshRequestId.current) {
         setVoting(createVotingState({
+          account,
           member,
           identityRoot,
           voteId: vote.voteId,

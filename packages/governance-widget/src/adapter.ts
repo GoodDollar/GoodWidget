@@ -132,9 +132,7 @@ export function useGovernanceAdapter({
     [address],
   )
   const resolvedChainId = chainId ?? null
-  const runtimeEnabled = Boolean(
-    account && resolvedChainId === CELO_CHAIN_ID && addresses.houses,
-  )
+  const runtimeEnabled = Boolean(addresses.houses)
 
   const membership = useGovernanceMembership({
     account,

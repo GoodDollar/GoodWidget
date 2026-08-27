@@ -51,6 +51,77 @@ export interface GovernanceMembershipReads {
   activeAlignment: Address[]
 }
 
+export interface GovernancePublicReads {
+  minimumStakes: GovernanceStakeRequirements
+  activeCitizens: Address[]
+  activeAlignment: Address[]
+}
+
+export async function readGovernancePublicState(params: {
+  publicClient: PublicClient
+  housesAddress: Address
+}): Promise<GovernancePublicReads> {
+  const { publicClient, housesAddress } = params
+  const [citizenshipStake, alignmentStake, activeCitizens, activeAlignment] = await Promise.all([
+    publicClient.readContract({
+      address: housesAddress,
+      abi: GOODDAO_HOUSES_ABI,
+      functionName: 'minimumStake',
+      args: [houseToContractValue('citizenship')],
+    }),
+    publicClient.readContract({
+      address: housesAddress,
+      abi: GOODDAO_HOUSES_ABI,
+      functionName: 'minimumStake',
+      args: [houseToContractValue('alignment')],
+    }),
+    publicClient.readContract({
+      address: housesAddress,
+      abi: GOODDAO_HOUSES_ABI,
+      functionName: 'getActiveMembers',
+      args: [houseToContractValue('citizenship')],
+    }),
+    publicClient.readContract({
+      address: housesAddress,
+      abi: GOODDAO_HOUSES_ABI,
+      functionName: 'getActiveMembers',
+      args: [houseToContractValue('alignment')],
+    }),
+  ])
+
+  return {
+    minimumStakes: {
+      citizenship: citizenshipStake,
+      alignment: alignmentStake,
+    },
+    activeCitizens: [...activeCitizens],
+    activeAlignment: [...activeAlignment],
+  }
+}
+
+export async function readGovernanceAccountState(params: {
+  publicClient: PublicClient
+  housesAddress: Address
+  goodIdAddress: Address
+  account: Address
+}): Promise<Pick<GovernanceMembershipReads, 'member' | 'identityRoot'>> {
+  const { publicClient, housesAddress, goodIdAddress, account } = params
+  const [member, identityRoot] = await Promise.all([
+    publicClient.readContract({
+      address: housesAddress,
+      abi: GOODDAO_HOUSES_ABI,
+      functionName: 'getMember',
+      args: [account],
+    }),
+    readGoodIdRoot(publicClient, goodIdAddress, account),
+  ])
+
+  return {
+    member: mapMemberRecord(member),
+    identityRoot,
+  }
+}
+
 export async function readGovernanceMembership(params: {
   publicClient: PublicClient
   housesAddress: Address
@@ -58,50 +129,14 @@ export async function readGovernanceMembership(params: {
   account: Address
 }): Promise<GovernanceMembershipReads> {
   const { publicClient, housesAddress, goodIdAddress, account } = params
-  const [member, citizenshipStake, alignmentStake, identityRoot, activeCitizens, activeAlignment] =
-    await Promise.all([
-      publicClient.readContract({
-        address: housesAddress,
-        abi: GOODDAO_HOUSES_ABI,
-        functionName: 'getMember',
-        args: [account],
-      }),
-      publicClient.readContract({
-        address: housesAddress,
-        abi: GOODDAO_HOUSES_ABI,
-        functionName: 'minimumStake',
-        args: [houseToContractValue('citizenship')],
-      }),
-      publicClient.readContract({
-        address: housesAddress,
-        abi: GOODDAO_HOUSES_ABI,
-        functionName: 'minimumStake',
-        args: [houseToContractValue('alignment')],
-      }),
-      readGoodIdRoot(publicClient, goodIdAddress, account),
-      publicClient.readContract({
-        address: housesAddress,
-        abi: GOODDAO_HOUSES_ABI,
-        functionName: 'getActiveMembers',
-        args: [houseToContractValue('citizenship')],
-      }),
-      publicClient.readContract({
-        address: housesAddress,
-        abi: GOODDAO_HOUSES_ABI,
-        functionName: 'getActiveMembers',
-        args: [houseToContractValue('alignment')],
-      }),
-    ])
+  const [publicState, accountState] = await Promise.all([
+    readGovernancePublicState({ publicClient, housesAddress }),
+    readGovernanceAccountState({ publicClient, housesAddress, goodIdAddress, account }),
+  ])
 
   return {
-    member: mapMemberRecord(member),
-    minimumStakes: {
-      citizenship: citizenshipStake,
-      alignment: alignmentStake,
-    },
-    identityRoot,
-    activeCitizens: [...activeCitizens],
-    activeAlignment: [...activeAlignment],
+    ...publicState,
+    ...accountState,
   }
 }
 
@@ -142,7 +177,7 @@ export async function readGovernanceSchedule(params: {
 export async function readGovernanceVote(params: {
   publicClient: PublicClient
   housesAddress: Address
-  voterKey: Address
+  voterKey?: Address
   activeAlignment: Address[]
   schedule: GovernanceSchedule
 }): Promise<{
@@ -173,12 +208,14 @@ export async function readGovernanceVote(params: {
       functionName: 'getVoteRecipients',
       args: [voteId],
     }),
-    publicClient.readContract({
-      address: housesAddress,
-      abi: GOODDAO_HOUSES_ABI,
-      functionName: 'getHasVoted',
-      args: [voteId, voterKey],
-    }),
+    voterKey
+      ? publicClient.readContract({
+          address: housesAddress,
+          abi: GOODDAO_HOUSES_ABI,
+          functionName: 'getHasVoted',
+          args: [voteId, voterKey],
+        })
+      : Promise.resolve(false),
   ])
 
   const voteConfig = mapVoteConfig(rawVoteConfig)
