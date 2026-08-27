@@ -19,9 +19,11 @@ import {
   type GovernanceMemberRecord,
 } from '../sdks/contracts'
 import {
-  readGovernanceMembership,
+  readGovernanceAccountState,
+  readGovernancePublicState,
   readGovernanceSchedule,
   type GovernanceMembershipReads,
+  type GovernancePublicReads,
   type GovernanceSchedule,
   type GovernanceStakeRequirements,
 } from '../sdks/contractReads'
@@ -185,6 +187,7 @@ export function getUnstakeAvailability(
 interface MembershipHookState {
   loadedAccount: Address | null
   membership: GovernanceMembershipReads | null
+  publicState: GovernancePublicReads | null
   schedule: GovernanceSchedule | null
   selectedHouse: GovernanceHouse
   onboardingStepId?: GovernanceOnboardingStepId
@@ -215,6 +218,7 @@ function createInitialMembershipState(): MembershipHookState {
   return {
     loadedAccount: null,
     membership: null,
+    publicState: null,
     schedule: null,
     selectedHouse: 'citizenship',
     onboardingStepId: undefined,
@@ -253,38 +257,49 @@ export function useGovernanceMembership(params: {
     chainId ?? 'no-chain',
     addresses.houses?.toLowerCase() ?? 'no-contract',
   ].join(':'))
-  const enabled = Boolean(account && chainId === CELO_CHAIN_ID && addresses.houses)
+  const enabled = Boolean(addresses.houses)
   const hasCurrentAccountState = Boolean(
     account && state.loadedAccount?.toLowerCase() === account.toLowerCase(),
   )
   const membership = hasCurrentAccountState ? state.membership : null
-  const schedule = hasCurrentAccountState ? state.schedule : null
+  const schedule = state.publicState ? state.schedule : null
 
   const refresh = useCallback(async () => {
-    if (!account || !addresses.houses || chainId !== CELO_CHAIN_ID) return
+    if (!addresses.houses) return
     const requestId = ++refreshRequestId.current
     setState((previous) => ({ ...previous, isLoading: true, loadError: null }))
 
     try {
-      const [membership, schedule] = await Promise.all([
-        readGovernanceMembership({
+      const [publicState, schedule, accountState] = await Promise.all([
+        readGovernancePublicState({
           publicClient,
           housesAddress: addresses.houses,
-          goodIdAddress: addresses.goodId,
-          account,
         }),
         readGovernanceSchedule({ publicClient, housesAddress: addresses.houses }),
+        account && chainId === CELO_CHAIN_ID
+          ? readGovernanceAccountState({
+              publicClient,
+              housesAddress: addresses.houses,
+              goodIdAddress: addresses.goodId,
+              account,
+            })
+          : Promise.resolve(null),
       ])
       setState((previous) => requestId === refreshRequestId.current
         ? {
             ...previous,
             loadedAccount: account,
-            membership,
+            publicState,
+            membership: accountState
+              ? { ...publicState, ...accountState }
+              : null,
             schedule,
             selectedHouse:
-              membership.member.status === 'none' || membership.member.status === 'unstaked'
+              !accountState ||
+              accountState.member.status === 'none' ||
+              accountState.member.status === 'unstaked'
                 ? previous.selectedHouse
-                : membership.member.house,
+                : accountState.member.house,
             isLoading: false,
             loadError: null,
           }
@@ -505,7 +520,7 @@ export function useGovernanceMembership(params: {
     }
   }, [account, chainId, environment, provider, publicClient])
 
-  const minimumStakes = membership?.minimumStakes ?? EMPTY_STAKES
+  const minimumStakes = membership?.minimumStakes ?? state.publicState?.minimumStakes ?? EMPTY_STAKES
   const member = membership?.member ?? null
   const status = statusFromMember(member)
   const unstakeAvailability = useMemo(
@@ -521,7 +536,9 @@ export function useGovernanceMembership(params: {
     ...state,
     membership,
     schedule,
-    isLoading: enabled && !hasCurrentAccountState ? true : state.isLoading,
+    isLoading: enabled && (!state.publicState || (account !== null && !hasCurrentAccountState))
+      ? true
+      : state.isLoading,
     status,
     member,
     minimumStakes,
@@ -530,8 +547,8 @@ export function useGovernanceMembership(params: {
     identityStatus: membership?.identityRoot && membership.identityRoot !== '0x0000000000000000000000000000000000000000'
       ? 'verified' as const
       : 'unverified' as const,
-    activeCitizens: membership?.activeCitizens ?? EMPTY_ADDRESSES,
-    activeAlignment: membership?.activeAlignment ?? EMPTY_ADDRESSES,
+    activeCitizens: membership?.activeCitizens ?? state.publicState?.activeCitizens ?? EMPTY_ADDRESSES,
+    activeAlignment: membership?.activeAlignment ?? state.publicState?.activeAlignment ?? EMPTY_ADDRESSES,
     unstakeAvailability,
     refresh,
     selectHouse,

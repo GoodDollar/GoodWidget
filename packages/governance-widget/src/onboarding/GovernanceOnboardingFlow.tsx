@@ -3,7 +3,12 @@ import type { ReactNode } from 'react'
 import { Button, ButtonText, PageWizardShell, XStack, usePageWizard } from '@goodwidget/ui'
 import { HOUSE_COPY } from './copy'
 import { DEFAULT_TRANSACTION_STEPS, DEFAULT_FINAL_ACTIONS } from './constants'
-import { validateProfileDraft, isProfileDraftComplete, validateField } from './validation'
+import {
+  isProfileDraftComplete,
+  isProfileFieldRequired,
+  validateField,
+  validateProfileDraft,
+} from './validation'
 import { WelcomeStepContent } from './steps/WelcomeStepContent'
 import { HouseStepContent } from './steps/HouseStepContent'
 import { ProfileStepContent } from './steps/ProfileStepContent'
@@ -51,7 +56,7 @@ export function GovernanceOnboardingFlow({
   onFinalActionPress,
   dataTestId,
 }: GovernanceOnboardingFlowProps) {
-  const { currentStep, steps, data, setData, next } = usePageWizard()
+  const { currentStep, steps, data, setData, next, back, isFirst } = usePageWizard()
   const stepperDisplaySteps = steps.filter((s) => s.id !== 'success')
   const [fieldErrors, setFieldErrors] = useState<GovernanceProfileFieldErrors>(initialFieldErrors)
 
@@ -83,7 +88,11 @@ export function GovernanceOnboardingFlow({
   }
 
   const handleFieldBlur = (fieldKey: GovernanceProfileFieldKey, fieldValue: string) => {
-    const error = validateField(fieldKey, fieldValue)
+    const error = validateField(
+      fieldKey,
+      fieldValue,
+      isProfileFieldRequired(resolvedHouse, fieldKey),
+    )
     setFieldErrors((prev) => {
       if (!error) {
         const next = { ...prev }
@@ -114,6 +123,7 @@ export function GovernanceOnboardingFlow({
   let shellContent: ReactNode = null
   let shellFooter: ReactNode = null
   let hideStepper = false
+  const showBackButton = !isFirst && currentStep?.id !== 'stake' && currentStep?.id !== 'success'
 
   switch (currentStep?.id as GovernanceOnboardingStepId | undefined) {
     case 'welcome':
@@ -210,6 +220,21 @@ export function GovernanceOnboardingFlow({
     <PageWizardShell
       title={shellTitle}
       description={shellDescription}
+      headerAction={showBackButton ? (
+        <Button
+          variant="secondary"
+          size="sm"
+          backgroundColor="$backgroundHover"
+          borderColor="$borderColor"
+          hoverStyle={{ backgroundColor: '$backgroundPress' }}
+          pressStyle={{ backgroundColor: '$backgroundPress' }}
+          focusStyle={{ backgroundColor: '$backgroundFocus' }}
+          data-testid="GovernanceOnboardingWidget-back"
+          onPress={back}
+        >
+          <ButtonText color="$color">Back</ButtonText>
+        </Button>
+      ) : undefined}
       footer={shellFooter}
       dataTestId={dataTestId}
       showStepper={!hideStepper}

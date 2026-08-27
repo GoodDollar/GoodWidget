@@ -277,8 +277,7 @@ export const CustodialAlignmentProfileError: Story = {
         },
         initialFieldErrors: {
           projectWebpage: 'Project webpage is required',
-          missionStatement: 'Mission statement is required',
-          distributionStrategy: 'Distribution strategy is required',
+          missionStatement: 'Discourse link for mission statement and distribution strategy is required',
         },
         dataTestId: 'GovernanceOnboardingWidget-alignment-profile-error',
       }}
@@ -416,8 +415,7 @@ export const CustodialMobileDarkProfile: Story = {
         initialProfileDraft: { name: 'Solar Commons' },
         initialFieldErrors: {
           projectWebpage: 'Project webpage is required',
-          missionStatement: 'Mission statement is required',
-          distributionStrategy: 'Distribution strategy is required',
+          missionStatement: 'Discourse link for mission statement and distribution strategy is required',
         },
       }}
     />

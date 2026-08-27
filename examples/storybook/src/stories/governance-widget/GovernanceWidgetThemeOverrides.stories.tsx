@@ -50,6 +50,7 @@ function CodeBlock({ children }: { children: string }) {
 }
 
 interface OverridesArgs {
+  defaultTheme: 'light' | 'dark'
   wrapperBorderColor: string
   wrapperShadowColor: string
   impactCardBackground: string
@@ -57,18 +58,27 @@ interface OverridesArgs {
 }
 
 function buildThemeOverrides(args: OverridesArgs): GoodWidgetThemeOverrides {
+  const componentThemes = {
+    GovernanceWrapper: {
+      borderColor: args.wrapperBorderColor,
+      shadowColor: args.wrapperShadowColor,
+    },
+    ImpactCard: {
+      background: args.impactCardBackground,
+    },
+    ImpactCardAction: {
+      white: args.impactCardActionBackground,
+    },
+  }
+
   return {
     themes: {
-      dark_GovernanceWrapper: {
-        borderColor: args.wrapperBorderColor,
-        shadowColor: args.wrapperShadowColor,
-      },
-      dark_ImpactCard: {
-        background: args.impactCardBackground,
-      },
-      dark_ImpactCardAction: {
-        white: args.impactCardActionBackground,
-      },
+      dark_GovernanceWrapper: componentThemes.GovernanceWrapper,
+      light_GovernanceWrapper: componentThemes.GovernanceWrapper,
+      dark_ImpactCard: componentThemes.ImpactCard,
+      light_ImpactCard: componentThemes.ImpactCard,
+      dark_ImpactCardAction: componentThemes.ImpactCardAction,
+      light_ImpactCardAction: componentThemes.ImpactCardAction,
     },
   }
 }
@@ -78,6 +88,11 @@ const meta: Meta<OverridesArgs> = {
   tags: ['integrator', 'showcase'],
   parameters: { layout: 'padded' },
   argTypes: {
+    defaultTheme: {
+      control: 'radio',
+      options: ['light', 'dark'],
+      description: 'Base theme applied via the widget’s own defaultTheme prop.',
+    },
     wrapperBorderColor: { control: 'color', description: 'themes.dark_GovernanceWrapper.borderColor' },
     wrapperShadowColor: { control: 'color', description: 'themes.dark_GovernanceWrapper.shadowColor' },
     impactCardBackground: { control: 'color', description: 'themes.dark_ImpactCard.backgroundColor' },
@@ -87,6 +102,7 @@ const meta: Meta<OverridesArgs> = {
     },
   },
   args: {
+    defaultTheme: 'light',
     wrapperBorderColor: '#7C3AED',
     wrapperShadowColor: '#7C3AED',
     impactCardBackground: '#1E1B4B',
@@ -131,7 +147,7 @@ export const Playground: Story = {
           </DocsList>
         </DocsCallout>
 
-        <ThemedDashboardStory defaultTheme="dark" themeOverrides={themeOverrides} />
+        <ThemedDashboardStory defaultTheme={args.defaultTheme} themeOverrides={themeOverrides} />
       </div>
     )
   },

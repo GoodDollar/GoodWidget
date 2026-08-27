@@ -166,7 +166,7 @@ function FundingDistributionChartContent({
 
 export function FundingDistributionChart(props: FundingDistributionChartProps) {
   return (
-    <GovernanceWrapper data-testid={props.testID} maxWidth={340}>
+    <GovernanceWrapper data-testid={props.testID}>
       <FundingDistributionChartContent {...props} />
     </GovernanceWrapper>
   )

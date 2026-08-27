@@ -1,11 +1,21 @@
+import { useCallback, useMemo, useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { Card, Text, YStack } from '@goodwidget/ui'
-import { GovernanceWidget } from '@goodwidget/governance-widget'
+import {
+  GovernanceWidget,
+  type GovernanceWidgetAdapterActions,
+  type GovernanceWidgetAdapterState,
+} from '@goodwidget/governance-widget'
 import {
   getInjectedEip1193Provider,
   isInjectedProviderUsable,
 } from '../../fixtures/injectedEip1193'
 import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
+import {
+  alignmentRecipients,
+  createDashboard,
+  createState,
+} from '../helpers/governanceWidgetStories'
 
 // The GoodDaoHouses contract is not yet on the production Celo deployment — this is the
 // `development-celo` address recorded in GoodProtocol PR #300 (GoodProtocol PR #299 has the
@@ -30,7 +40,7 @@ const meta: Meta<GovernanceWidgetStoryArgs> = {
     },
   },
   args: {
-    defaultTheme: 'dark',
+    defaultTheme: 'light',
   },
 }
 
@@ -89,6 +99,109 @@ function CustodialWalletStory({ defaultTheme }: GovernanceWidgetStoryArgs) {
   }
 }
 
+const activeDemoVote: GovernanceWidgetAdapterState['dashboard']['alignmentVoting'] = {
+  ...createDashboard().alignmentVoting,
+  voteId: 'alignment-active-demo',
+  title: 'House of Alignment Community Grants',
+  summaryLabel: 'Voting open · 2 days remaining',
+  options: [
+    { id: alignmentRecipients[0], label: 'Local Food Chain', percentage: 42 },
+    { id: alignmentRecipients[1], label: 'Web3 Literacy', percentage: 31 },
+    { id: alignmentRecipients[2], label: 'Civic Onboarding', percentage: 27 },
+  ],
+  recipients: [...alignmentRecipients],
+  allocationsBps: {
+    [alignmentRecipients[0]]: 4200,
+    [alignmentRecipients[1]]: 3000,
+    [alignmentRecipients[2]]: 2000,
+  },
+  allocationTotalBps: 9200,
+  canVote: true,
+  hasVoted: false,
+  isVotingOpen: true,
+  executed: false,
+  finalizedUnits: {},
+  disabledReason: undefined,
+}
+
+const previousDemoVote: GovernanceWidgetAdapterState['dashboard']['alignmentVoting'] = {
+  ...activeDemoVote,
+  voteId: 'alignment-previous-demo',
+  title: 'Previous Round: Regional Access Grants',
+  summaryLabel: 'Final units executed',
+  options: [
+    { id: alignmentRecipients[0], label: 'Local Food Chain', percentage: 50 },
+    { id: alignmentRecipients[1], label: 'Web3 Literacy', percentage: 30 },
+    { id: alignmentRecipients[2], label: 'Civic Onboarding', percentage: 20 },
+  ],
+  allocationsBps: {},
+  allocationTotalBps: 0,
+  canVote: false,
+  hasVoted: true,
+  isVotingOpen: false,
+  executed: true,
+  finalizedUnits: {
+    [alignmentRecipients[0]]: '500000',
+    [alignmentRecipients[1]]: '300000',
+    [alignmentRecipients[2]]: '200000',
+  },
+  disabledReason: 'This vote has already been executed.',
+}
+
+function DemoGovernanceWidget({ defaultTheme }: GovernanceWidgetStoryArgs) {
+  const initialState = useMemo(
+    () => createState('active_alignment', {
+      dashboard: createDashboard({
+        alignmentVoting: activeDemoVote,
+        alignmentVotingHistory: [previousDemoVote],
+      }),
+    }),
+    [],
+  )
+  const [state, setState] = useState(initialState)
+
+  const setVoteAllocation = useCallback((recipientId: string, basisPoints: number) => {
+    setState((previous) => {
+      const voting = previous.dashboard.alignmentVoting
+      if (!(recipientId in voting.allocationsBps)) return previous
+      const allocationsBps = {
+        ...voting.allocationsBps,
+        [recipientId]: Math.max(0, Math.min(10_000, Math.trunc(basisPoints))),
+      }
+      return {
+        ...previous,
+        dashboard: {
+          ...previous.dashboard,
+          alignmentVoting: {
+            ...voting,
+            allocationsBps,
+            allocationTotalBps: Object.values(allocationsBps).reduce((total, amount) => total + amount, 0),
+          },
+        },
+      }
+    })
+  }, [])
+
+  const actions = useMemo<GovernanceWidgetAdapterActions>(() => ({
+    connect: async () => {},
+    switchToCelo: async () => {},
+    refresh: async () => {},
+    retry: async () => {},
+    selectHouse: () => {},
+    register: async () => {},
+    unstake: async () => {},
+    openVote: () => setState((previous) => ({ ...previous, status: 'vote_detail' })),
+    closeVote: () => setState((previous) => ({ ...previous, status: 'active_alignment' })),
+    setVoteAllocation,
+    submitVote: async () => {},
+    startIdentityVerification: async () => {},
+  }), [setVoteAllocation])
+
+  const adapterFactory = useCallback(() => ({ state, actions }), [actions, state])
+
+  return <GovernanceWidget defaultTheme={defaultTheme} adapterFactory={adapterFactory} testId="GovernanceWidget-showcase-demo" />
+}
+
 // Real wallet, real dev-celo GoodDaoHouses contract, no mocked reads or writes — this is the
 // live integrator-facing surface, deliberately kept separate from the QA fixtures/mocked flow.
 export const InjectedWallet: Story = {
@@ -96,5 +209,10 @@ export const InjectedWallet: Story = {
 }
 
 export const CustodialWallet: Story = {
+  tags: ['!dev'],
   render: ({ defaultTheme }) => <CustodialWalletStory defaultTheme={defaultTheme} />,
+}
+
+export const Demo: Story = {
+  render: ({ defaultTheme }) => <DemoGovernanceWidget defaultTheme={defaultTheme} />,
 }

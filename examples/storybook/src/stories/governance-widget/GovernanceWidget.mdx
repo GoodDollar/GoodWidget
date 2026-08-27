@@ -18,6 +18,13 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
   </DocsSection>
 
   <DocsSection
+    title="Storybook demo data"
+    description="Preview an active House of Alignment vote, interactive allocation sliders, funding data, and a previous executed round. The wallet and onboarding path above remains the live showcase path."
+  >
+    <Canvas of={ShowcaseStories.Demo} />
+  </DocsSection>
+
+  <DocsSection
     title="Theme overrides"
     description="Play around with some of the theme overrides using the controls below (you may have to activate Controls in the addons panel, top-right). The code here can be copied and used directly in your own dapp — it always matches what's rendered. See the callout below the code for additional overridable styles not wired to a control."
   >
@@ -39,7 +46,7 @@ export function GovernancePanel({ provider }: { provider?: unknown }) {
     <MiniAppShell title="GoodDollar">
       <GovernanceWidget
         provider={provider}
-        defaultTheme="dark"
+        defaultTheme="light"
       />
     </MiniAppShell>
   )

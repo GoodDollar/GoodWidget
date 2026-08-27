@@ -688,13 +688,14 @@ test('vote submission is single-flight and ignores a stale receipt after account
   logRuntimeDiagnostics(page)
   await page.clock.install({ time: MOCK_NOW_SECONDS * 1000 })
   await installInjectedProvider(page)
-  const runtimeMocks = await installGovernanceRuntimeMocks(page)
+  const runtimeMocks = await installGovernanceRuntimeMocks(page, { memberHouse: 1 })
   runtimeMocks.pauseReceipts()
   await gotoStory(page, 'qa-governancewidget-runtime-fixtures--real-adapter-mocked-runtime')
 
   await page.getByTestId('GovernanceWidget-active-governance').click()
   await expect(page.getByTestId('GovernanceWidget-vote-detail')).toBeVisible()
-  await page.getByRole('textbox').fill('10000')
+  await expect(page.locator('input[type="range"]')).toHaveCount(1)
+  await page.locator('input[type="range"]').fill('10000')
   const submitButton = page.getByRole('button', { name: 'Submit Allocation Vote' })
   await expect(submitButton).toBeEnabled()
   await submitButton.evaluate((button) => {
@@ -753,7 +754,7 @@ test('real adapter clears account-scoped governance state while a new wallet loa
 
     await expect(page.getByTestId('GovernanceWidget-header')).toContainText('0x9999')
     await expect(page.getByTestId('GovernanceWidget-loading')).toBeVisible()
-    await expect(page.getByTestId('GovernanceWidget-member-footer')).toHaveCount(0)
+    await expect(page.getByTestId('GovernanceWidget-member-footer')).toContainText('Status: not available')
     await expect(page.getByTestId('GovernanceWidget-unstake')).toHaveCount(0)
   } finally {
     runtimeMocks.resumeReads()

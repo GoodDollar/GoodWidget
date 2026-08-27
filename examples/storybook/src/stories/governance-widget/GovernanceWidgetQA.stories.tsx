@@ -139,7 +139,7 @@ export const ActiveAlignmentInjected: Story = {
   render: () => (
     <RuntimeStory
       useInjectedProvider
-      defaultTheme="dark"
+      defaultTheme="light"
       state={createState('active_alignment', {
         dashboard: createDashboard({
           alignmentVoting: {

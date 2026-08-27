@@ -114,7 +114,7 @@ test('Governance onboarding shows the citizenship profile ready state', async ({
 test('Governance onboarding shows the alignment profile validation state', async ({ page }) => {
   await gotoStory(page, STORY_IDS.custodialAlignmentProfileError)
   await expect(page.getByText('Project webpage is required')).toBeVisible()
-  await expect(page.getByText('Distribution strategy is required')).toBeVisible()
+  await expect(page.getByText('Discourse link for mission statement and distribution strategy is required')).toBeVisible()
   await captureEvidence(page, 'tests/widgets/governance-widget/test-results/gwo-09-profile-alignment-error.png')
 })
 
