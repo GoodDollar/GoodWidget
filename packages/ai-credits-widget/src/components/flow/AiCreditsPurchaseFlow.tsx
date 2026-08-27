@@ -22,12 +22,12 @@ interface AiCreditsPurchaseFlowProps {
  */
 function getPayBlockedReason(state: AiCreditsWidgetAdapterState): string | null {
   if (!state.buyerPubKey) {
-    return 'Generate or import your signer key in the Setup tab before buying.'
+    return 'Generate or import your signer key in the Set Up tab before buying.'
   }
   if (!state.operatorConsented) {
     return state.operatorConsentPending
       ? 'Waiting for your wallet authorization to confirm…'
-      : 'Authorize your wallet in the Setup tab before buying.'
+      : 'Authorize your wallet in the Set Up tab before buying.'
   }
   return null
 }

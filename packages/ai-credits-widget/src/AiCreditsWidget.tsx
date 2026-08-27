@@ -541,7 +541,7 @@ function AiCreditsInner({
       />
       <WidgetTabs
         tabs={[
-          { id: 'setup', label: 'Setup' },
+          { id: 'setup', label: 'Set Up' },
           { id: 'buy', label: 'Buy Credits' },
           { id: 'manage', label: 'Manage' },
           { id: 'history', label: 'History' },
