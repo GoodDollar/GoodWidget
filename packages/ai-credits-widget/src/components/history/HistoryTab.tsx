@@ -119,7 +119,7 @@ function entryDetailRows(entry: GdCreditEntry): { label: string; value: string }
 function EntryDetailRow({ label, value }: { label: string; value: string }) {
   return (
     <XStack gap="$2" alignItems="flex-start" width="100%">
-      <Text fontSize="$1" fontWeight="600" secondary minWidth={72} flexShrink={0}>
+      <Text fontSize="$1" fontWeight="600" tone="soft" minWidth={72} flexShrink={0}>
         {label}
       </Text>
       <Text
@@ -314,7 +314,7 @@ function CreditHistoryEntryRow({
               {amounts.secondary}
             </Text>
           ) : null}
-          <Text fontSize="$1" secondary>
+          <Text fontSize="$1" tone="soft">
             {formatEntryDate(entry.createdAt)}
           </Text>
         </YStack>
@@ -353,7 +353,7 @@ function SourceFilterChip({
       borderRadius="$full"
       borderWidth={1}
       borderColor={selected ? '$primary' : '$borderColor'}
-      backgroundColor={selected ? '$infoMuted' : '$backgroundDark'}
+      backgroundColor={selected ? '$infoMuted' : '$background'}
       hoverStyle={{
         opacity: 0.9,
       }}
@@ -398,7 +398,7 @@ function StatusFilterSelect({
         borderRadius="$3"
         borderWidth={1}
         borderColor="$borderColor"
-        backgroundColor="$backgroundDark"
+        backgroundColor="$background"
         cursor="pointer"
         onPress={() => setOpen((current) => !current)}
       >
@@ -418,7 +418,7 @@ function StatusFilterSelect({
           borderRadius="$3"
           borderWidth={1}
           borderColor="$borderColor"
-          backgroundColor="$backgroundDark"
+          backgroundColor="$background"
           overflow="hidden"
           zIndex={30}
         >
@@ -490,7 +490,7 @@ function BuyerFilterSelect({
         borderRadius="$3"
         borderWidth={1}
         borderColor="$borderColor"
-        backgroundColor="$backgroundDark"
+        backgroundColor="$background"
         cursor="pointer"
         onPress={() => setOpen((current) => !current)}
       >
@@ -510,7 +510,7 @@ function BuyerFilterSelect({
           borderRadius="$3"
           borderWidth={1}
           borderColor="$borderColor"
-          backgroundColor="$backgroundDark"
+          backgroundColor="$background"
           overflow="hidden"
           zIndex={35}
         >
@@ -575,14 +575,14 @@ export function HistoryTab({ state, actions, knownBuyers = [] }: HistoryTabProps
         <XStack alignItems="flex-start" justifyContent="space-between" gap="$2" width="100%">
           <YStack flex={1} gap="$0.5" minWidth={0}>
             <Heading level={4}>AI Credit History</Heading>
-            <Text fontSize="$1" secondary>
+            <Text fontSize="$1" tone="soft">
               {rangeSummary}
             </Text>
           </YStack>
         </XStack>
 
         <YStack gap="$1">
-          <Text fontSize="$1" fontWeight="600" secondary letterSpacing={0.6}>
+          <Text fontSize="$1" fontWeight="600" tone="soft" letterSpacing={0.6}>
             TOTAL ACCUMULATED
           </Text>
           <Text fontSize="$7" fontWeight="700" color="$color">
@@ -638,7 +638,7 @@ export function HistoryTab({ state, actions, knownBuyers = [] }: HistoryTabProps
       </XStack>
 
       <XStack alignItems="center" justifyContent="space-between" gap="$2" width="100%">
-        <Text fontSize="$1" fontWeight="700" secondary letterSpacing={0.6}>
+        <Text fontSize="$1" fontWeight="700" tone="soft" letterSpacing={0.6}>
           CREDIT HISTORY
         </Text>
         <XStack
@@ -665,7 +665,7 @@ export function HistoryTab({ state, actions, knownBuyers = [] }: HistoryTabProps
         <Card gap="$2">
           <YStack alignItems="center" paddingVertical="$4" gap="$2">
             <Spinner size="sm" />
-            <Text fontSize="$2" secondary>
+            <Text fontSize="$2" tone="soft">
               Loading credit history…
             </Text>
           </YStack>
@@ -691,13 +691,13 @@ export function HistoryTab({ state, actions, knownBuyers = [] }: HistoryTabProps
         </Card>
       ) : activeSources.length === 0 ? (
         <Card>
-          <Text fontSize="$2" secondary>
+          <Text fontSize="$2" tone="soft">
             Select at least one source to view history.
           </Text>
         </Card>
       ) : entries.length === 0 ? (
         <Card>
-          <Text fontSize="$2" secondary>
+          <Text fontSize="$2" tone="soft">
             No credit history matches these filters.
           </Text>
         </Card>

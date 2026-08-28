@@ -58,11 +58,11 @@ export function BuyerKeyPanel({
 
         {buyerPubKey && (
           <YStack gap="$2">
-            <Text variant="label" secondary>
+            <Text variant="label" tone="soft">
               Address (registered on-chain)
             </Text>
             <XStack
-              backgroundColor="$backgroundMuted"
+              backgroundColor="$backgroundSurface"
               borderRadius="$2"
               padding="$3"
               justifyContent="space-between"
@@ -89,7 +89,7 @@ export function BuyerKeyPanel({
                   </Text>
                 </AiCreditsStatusNotice>
                 <XStack justifyContent="space-between" alignItems="center">
-                  <Text variant="label" secondary>
+                  <Text variant="label" tone="soft">
                     Private Key — save this securely
                   </Text>
                   <Button
@@ -109,7 +109,7 @@ export function BuyerKeyPanel({
                   </Text>
                 </AiCreditsStatusNotice>
                 <XStack
-                  backgroundColor="$backgroundMuted"
+                  backgroundColor="$backgroundSurface"
                   borderRadius="$2"
                   padding="$3"
                   justifyContent="space-between"
@@ -134,7 +134,7 @@ export function BuyerKeyPanel({
                   </Button>
                 </XStack>
                 <AntseedSignerRow mode="generate" />
-                <Text fontSize="$2" secondary>
+                <Text fontSize="$2" tone="soft">
                   The public address above is the signer identity used for AI credits.
                 </Text>
               </>

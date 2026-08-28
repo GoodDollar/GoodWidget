@@ -75,7 +75,7 @@ function SetupConnectPrompt({
 }) {
   return (
     <YStack gap="$5" alignItems="center" paddingVertical="$6" width="100%">
-      <Text secondary center>
+      <Text tone="soft" center>
         Connect your wallet to get started
       </Text>
       <CircularActionButton
@@ -115,7 +115,7 @@ function SetupTabPanel({
         gBalance={state.gBalance}
         isGoodIdVerified={state.isGoodIdVerified}
       />
-      <Text secondary fontSize="$2">
+      <Text tone="soft" fontSize="$2">
         One-time setup — optional for now. Take the steps in any order, or skip ahead and come
         back when you are ready to buy.
       </Text>
@@ -170,7 +170,7 @@ function SwitchChainNotice({
           Wrong Network
         </Text>
       </XStack>
-      <Text secondary>Please switch to the Celo network to continue.</Text>
+      <Text tone="soft">Please switch to the Celo network to continue.</Text>
       <Button
         disabled={switching}
         onPress={() => {
@@ -191,11 +191,52 @@ function SwitchChainNotice({
           <Text color="$error" fontSize="$2">
             {shownError}
           </Text>
-          <Text secondary fontSize="$2">
+          <Text tone="soft" fontSize="$2">
             Some wallets cannot switch networks from a website. Change the network to Celo in your
             wallet app, then return here.
           </Text>
         </>
+      )}
+    </AiCreditsStatusNotice>
+  )
+}
+
+/**
+ * Standing disclaimer that buying and using credits are different jobs: the
+ * purchase works anywhere, but Antseed runs on a desktop, so a phone-only user
+ * cannot finish setup or spend what they bought.
+ *
+ * Collapsed by default to keep it off the top of every panel, but the warning
+ * itself stays on the summary line — folding away the sentence that says "you
+ * need a computer" would defeat the point of showing it at all. Only the
+ * reassuring half, that buying on a phone is fine, is behind the toggle.
+ */
+function DesktopRequiredNotice() {
+  const [expanded, setExpanded] = useState(false)
+
+  return (
+    <AiCreditsStatusNotice>
+      <XStack
+        gap="$2"
+        alignItems="flex-start"
+        cursor="pointer"
+        aria-expanded={expanded}
+        onPress={() => setExpanded((prev) => !prev)}
+      >
+        <Icon name="info" size="sm" color="muted" />
+        <Text fontSize="$2" lineHeight="$3" flex={1}>
+          <Text fontSize="$2" fontWeight="700">
+            Please note:
+          </Text>{' '}
+          setup requires a computer.
+        </Text>
+        <Icon name={expanded ? 'chevron-up' : 'chevron-down'} size="xs" color="muted" />
+      </XStack>
+      {expanded && (
+        <Text fontSize="$2" lineHeight="$3" tone="soft" paddingLeft="$6">
+          You can buy credits from your phone anytime. Antseed, the app that manages your credits,
+          only runs on a desktop.
+        </Text>
       )}
     </AiCreditsStatusNotice>
   )
@@ -220,7 +261,7 @@ function BuyCreditsPanel({ state, actions, isPending, onPay }: BuyPanelProps) {
           <Text color="$error" fontWeight="700">
             Payment Failed
           </Text>
-          {state.error && <Text secondary>{state.error}</Text>}
+          {state.error && <Text tone="soft">{state.error}</Text>}
         </AiCreditsStatusNotice>
         <AiCreditsPurchaseFlow
           state={state}
@@ -236,7 +277,7 @@ function BuyCreditsPanel({ state, actions, isPending, onPay }: BuyPanelProps) {
         <Text color="$warning" fontWeight="700">
           Service Unavailable
         </Text>
-        <Text secondary>
+        <Text tone="soft">
           The AI credits service is temporarily unavailable. Your wallet has not been charged.
         </Text>
         <Button
@@ -259,7 +300,7 @@ function BuyCreditsPanel({ state, actions, isPending, onPay }: BuyPanelProps) {
           <Text color="$warning" fontWeight="700">
             Insufficient G$ Balance
           </Text>
-          <Text secondary>
+          <Text tone="soft">
             You need at least 1 G$ to purchase AI credits. Top up your wallet and try again.
           </Text>
         </AiCreditsStatusNotice>
@@ -275,7 +316,7 @@ function BuyCreditsPanel({ state, actions, isPending, onPay }: BuyPanelProps) {
       <Card>
         <YStack gap="$4" alignItems="center" padding="$4">
           <Spinner size="lg" />
-          <Text center secondary>
+          <Text center tone="soft">
             {message}
           </Text>
         </YStack>
@@ -289,7 +330,7 @@ function BuyCreditsPanel({ state, actions, isPending, onPay }: BuyPanelProps) {
             <Text color="$error" fontWeight="700">
               Deep link unavailable
             </Text>
-            <Text secondary>{state.error}</Text>
+            <Text tone="soft">{state.error}</Text>
           </AiCreditsStatusNotice>
         )}
 
@@ -305,13 +346,13 @@ function BuyCreditsPanel({ state, actions, isPending, onPay }: BuyPanelProps) {
             <Text color="$error" fontWeight="700">
               Request Failed
             </Text>
-            <Text secondary>{state.error}</Text>
+            <Text tone="soft">{state.error}</Text>
           </AiCreditsStatusNotice>
         )}
 
         {state.gBalance !== null && Number.parseFloat(state.gBalance) <= 0 && (
           <AiCreditsStatusNotice>
-            <Text secondary>You need G$ before you can buy AI credits.</Text>
+            <Text tone="soft">You need G$ before you can buy AI credits.</Text>
           </AiCreditsStatusNotice>
         )}
 
@@ -551,6 +592,7 @@ function AiCreditsInner({
         isTabDisabled={(tabId) => walletRequired && tabId !== 'setup'}
         withConnectionStatus={false}
       />
+      <DesktopRequiredNotice/>
 
       {walletRequired || state.activeTab === 'setup' ? (
         setupPanel
@@ -618,7 +660,7 @@ export function AiCreditsWidget({
       themeOverrides={themeOverrides}
       defaultTheme={defaultTheme}
     >
-      <YStack backgroundColor="$background" width="100%" data-testid={testId}>
+      <YStack backgroundColor="$backgroundSurface" width="100%" data-testid={testId}>
         <AiCreditsInner
           environment={environment}
           backendUrl={backendUrl}

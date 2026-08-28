@@ -40,7 +40,7 @@ export function SetupGuidanceCard({
     // part of the header rather than a separate panel.
     <YStack gap="$3" paddingHorizontal="$1">
       {/* Tagline */}
-      <Text fontSize="$3" secondary lineHeight="$4">
+      <Text fontSize="$3" tone="soft" lineHeight="$4">
         Buy AI credits with G$ for Claude Code, Codex, chat &amp; other AI tools.
       </Text>
 
@@ -52,7 +52,7 @@ export function SetupGuidanceCard({
 
       {/* WHAT'S INVOLVED section */}
       <YStack gap="$1">
-        <Text variant="label" secondary fontSize="$1" fontWeight="700" letterSpacing={1}>
+        <Text variant="label" tone="soft" fontSize="$1" fontWeight="700" letterSpacing={1}>
           WHAT&apos;S INVOLVED:
         </Text>
       </YStack>
@@ -78,7 +78,7 @@ export function SetupGuidanceCard({
             <Text fontSize="$2" fontWeight="700">
               Get G${' '}
             </Text>
-            <Text fontSize="$2" secondary>
+            <Text fontSize="$2" tone="soft">
               — claim UBI via GoodWallet, or buy G$ with your wallet of choice
             </Text>
           </Text>
@@ -104,7 +104,7 @@ export function SetupGuidanceCard({
             <Text fontSize="$2" fontWeight="700">
               Download Antseed{' '}
             </Text>
-            <Text fontSize="$2" secondary>
+            <Text fontSize="$2" tone="soft">
               — the free desktop app that runs your credits locally
             </Text>
           </Text>
