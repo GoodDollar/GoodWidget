@@ -46,7 +46,7 @@ export function SetupBonusHighlight({
           <Icon name="party-popper" size="sm" color="primary" />
         </YStack>
 
-        <YStack flex={1} gap={2} backgroundColor="$backgroundSurface" padding="$3">
+        <YStack flex={1} gap={2} backgroundColor="$background" padding="$3">
           <Text fontSize="$3" fontWeight="700">
             Up to {maxBonusPercent}% more AI credits
           </Text>
