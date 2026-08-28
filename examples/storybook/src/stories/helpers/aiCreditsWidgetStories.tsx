@@ -1,9 +1,10 @@
-import React, { useMemo, useRef } from 'react'
+import React, { useMemo, useRef, useState } from 'react'
 import type { EIP1193Provider } from '@goodwidget/core'
 import { YStack } from '@goodwidget/ui'
 import {
   AiCreditsWidget,
   type AiCreditsWidgetAdapterFactory,
+  type AiCreditsWidgetTab,
   type AiCreditsWidgetAdapterState,
   type AiCreditsWidgetStatus,
 } from '@goodwidget/ai-credits-widget'
@@ -115,6 +116,19 @@ function MockStoryShell({
   const resolvedProviderRef = useRef<EIP1193Provider | null>(provider ?? null)
   const configErrorRef = useRef<unknown>(null)
 
+  // The fixtures return a frozen state object, so `setActiveTab` was a no-op and
+  // any flow that switches tabs silently did nothing. Opening How to use is one
+  // of those — the widget routes to Set Up to render it, so with a dead
+  // setActiveTab the guide never appeared and the Buy panel stayed on screen.
+  const [tabOverride, setTabOverride] = useState<AiCreditsWidgetTab | null>(null)
+  const statefulAdapterFactory: AiCreditsWidgetAdapterFactory = (input) => {
+    const adapter = adapterFactory(input)
+    return {
+      state: tabOverride ? { ...adapter.state, activeTab: tabOverride } : adapter.state,
+      actions: { ...adapter.actions, setActiveTab: setTabOverride },
+    }
+  }
+
   if (!resolvedProviderRef.current && !configErrorRef.current) {
     try {
       resolvedProviderRef.current = provider ?? createCustodialEip1193Provider()
@@ -141,7 +155,7 @@ function MockStoryShell({
     <div data-testid={dataTestId} style={{ width: 380 }}>
       <AiCreditsWidget
         provider={resolvedProviderRef.current!}
-        adapterFactory={adapterFactory}
+        adapterFactory={statefulAdapterFactory}
         showWalletControls={showWalletControls}
         disconnectOverride={disconnectOverride}
       />
