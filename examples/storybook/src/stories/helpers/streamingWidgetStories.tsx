@@ -234,21 +234,26 @@ function createAdapter(
   }
 }
 
+// MiniAppShell must sit inside a provider: without one it first paints before any
+// Tamagui theme is registered, and the theme that the widget's own provider registers
+// then flips its internal Theme hook path on the next re-render ("Should have a queue").
 function StoryShell({ children, dataTestId }: { children: React.ReactNode; dataTestId: string }) {
   return (
-    <MiniAppShell>
-      <YStack
-        data-testid={dataTestId}
-        style={{
-          width: '100%',
-          maxWidth: 400,
-          minHeight: '100vh',
-          boxSizing: 'border-box',
-        }}
-      >
-        {children}
-      </YStack>
-    </MiniAppShell>
+    <GoodWidgetProvider>
+      <MiniAppShell>
+        <YStack
+          data-testid={dataTestId}
+          style={{
+            width: '100%',
+            maxWidth: 400,
+            minHeight: '100vh',
+            boxSizing: 'border-box',
+          }}
+        >
+          {children}
+        </YStack>
+      </MiniAppShell>
+    </GoodWidgetProvider>
   )
 }
 
