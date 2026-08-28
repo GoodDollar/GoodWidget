@@ -2,6 +2,8 @@ import type { Meta, StoryObj } from '@storybook/react'
 import { StreamingWidget } from '@goodwidget/streaming-widget'
 import {
   BaseSupBalanceAndReserveStory,
+  CancelStreamFailureStory,
+  CancelStreamPendingStory,
   CreateUpdateFailureStory,
   CreateUpdateFormStory,
   CreateUpdateInvalidInputStory,
@@ -12,6 +14,7 @@ import {
   ErrorStateStory,
   LightThemePopulatedStory,
   LoadingStateStory,
+  MultiTokenStreamsStory,
   NoWalletStory,
   NonBaseSupReserveDisabledStory,
   PoolClaimableAmountErrorStory,
@@ -21,6 +24,7 @@ import {
   PoolClaimSuccessStory,
   PoolConnectedStateStory,
   PopulatedStateStory,
+  UpdateStreamFormStory,
   WrongChainStory,
 } from '../helpers/streamingWidgetStories'
 import { BRAND_PRESET_OPTIONS, brandPresetOverrides, type BrandPreset } from '../helpers/themeOverridePresets'
@@ -142,6 +146,30 @@ export const CreateUpdatePending: Story = {
 export const CreateUpdateSuccess: Story = {
   render: ({ defaultTheme, brandPreset }) => (
     <CreateUpdateSuccessStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
+}
+
+export const CancelStreamPending: Story = {
+  render: ({ defaultTheme, brandPreset }) => (
+    <CancelStreamPendingStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
+}
+
+export const CancelStreamFailure: Story = {
+  render: ({ defaultTheme, brandPreset }) => (
+    <CancelStreamFailureStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
+}
+
+export const MultiTokenStreams: Story = {
+  render: ({ defaultTheme, brandPreset }) => (
+    <MultiTokenStreamsStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
+}
+
+export const UpdateStreamForm: Story = {
+  render: ({ defaultTheme, brandPreset }) => (
+    <UpdateStreamFormStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
   ),
 }
 
