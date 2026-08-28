@@ -22,6 +22,11 @@ export type StreamingChainId = (typeof STREAMING_CHAINS)[keyof typeof STREAMING_
 export type StreamDirection = 'all' | 'incoming' | 'outgoing'
 
 // ---------------------------------------------------------------------------
+// Stream status filter used by the History tab
+// ---------------------------------------------------------------------------
+export type StreamStatusFilter = 'all' | 'active' | 'ended'
+
+// ---------------------------------------------------------------------------
 // Time unit for flow rate display/input
 // ---------------------------------------------------------------------------
 export type StreamTimeUnit = 'day' | 'month' | 'year'
@@ -114,7 +119,7 @@ export interface StreamingWidgetAdapterState {
   streams: StreamListItem[]
   streamsLoading: boolean
   streamsError: string | null
-  /** Streams that have ended (flow rate dropped to zero) */
+  /** Every stream ever opened by the connected address, active and ended alike */
   streamHistory: StreamListItem[]
   streamHistoryLoading: boolean
   streamHistoryError: string | null

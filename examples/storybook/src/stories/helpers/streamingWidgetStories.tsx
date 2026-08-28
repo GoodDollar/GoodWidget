@@ -80,8 +80,9 @@ const sampleStreams: StreamListItem[] = [
   },
 ]
 
-// Ended streams only — the Streams tab owns anything still flowing.
+// The full record: History shows active and ended streams, filtered in the tab.
 const sampleStreamHistory: StreamListItem[] = [
+  ...sampleStreams,
   {
     id: 'history-outgoing-demo-stream-1',
     sender: DEMO_ADDRESS,

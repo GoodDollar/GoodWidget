@@ -225,12 +225,14 @@ export function useStreamingData({
         const items = result.map((stream) => toStreamListItemFromQuery(stream, address))
 
         return {
+          // The Streams tab is active-only; History keeps the full record and
+          // filters by status in the UI.
           streams: items
             .filter((stream) => stream.isActive)
             .sort((a, b) => b.createdAtTimestamp - a.createdAtTimestamp),
-          history: items
-            .filter((stream) => !stream.isActive)
-            .sort((a, b) => (b.closedAtTimestamp ?? 0) - (a.closedAtTimestamp ?? 0)),
+          history: [...items].sort(
+            (a, b) => b.updatedAtTimestamp - a.updatedAtTimestamp,
+          ),
         }
       },
       onSuccess: ({ streams, history }) =>
