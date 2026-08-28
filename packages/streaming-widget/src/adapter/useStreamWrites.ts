@@ -79,8 +79,11 @@ function streamWriteReducer(
     case 'error':
       return { ...state, setStreamStatus: 'error', setStreamError: action.error }
     case 'reset':
-      return { ...initialStreamWriteState, cancelStreamStatus: state.cancelStreamStatus }
-    case 'cancel:start':
+      return {
+        ...initialStreamWriteState,
+        cancelStreamStatus: state.cancelStreamStatus,
+        cancelStreamError: state.cancelStreamError,
+      }
       return {
         ...state,
         cancelStreamStatus: { ...state.cancelStreamStatus, [action.key]: 'pending' },
