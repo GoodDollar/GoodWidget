@@ -90,7 +90,6 @@ function SetupConnectPrompt({
   )
 }
 
-
 function SetupTabPanel({
   state,
   actions,
@@ -101,23 +100,15 @@ function SetupTabPanel({
   onConnect: () => Promise<void>
 }) {
   if (needsWalletConnection(state)) {
-    return (
-      <SetupConnectPrompt
-        onConnect={onConnect}
-        connecting={state.status === 'connecting'}
-      />
-    )
+    return <SetupConnectPrompt onConnect={onConnect} connecting={state.status === 'connecting'} />
   }
 
   return (
     <YStack gap="$4" width="100%">
-      <AiCreditsHero
-        gBalance={state.gBalance}
-        isGoodIdVerified={state.isGoodIdVerified}
-      />
+      <AiCreditsHero gBalance={state.gBalance} isGoodIdVerified={state.isGoodIdVerified} />
       <Text tone="soft" fontSize="$2">
-        One-time setup — optional for now. Take the steps in any order, or skip ahead and come
-        back when you are ready to buy.
+        One-time setup — optional for now. Take the steps in any order, or skip ahead and come back
+        when you are ready to buy.
       </Text>
       <SetupOnboardingFlow state={state} actions={actions} />
     </YStack>
@@ -292,10 +283,7 @@ function BuyCreditsPanel({ state, actions, isPending, onPay }: BuyPanelProps) {
   } else if (state.status === 'insufficient_g_balance') {
     content = (
       <>
-        <AiCreditsHero
-          gBalance={state.gBalance}
-          isGoodIdVerified={state.isGoodIdVerified}
-        />
+        <AiCreditsHero gBalance={state.gBalance} isGoodIdVerified={state.isGoodIdVerified} />
         <AiCreditsStatusNotice>
           <Text color="$warning" fontWeight="700">
             Insufficient G$ Balance
@@ -335,10 +323,7 @@ function BuyCreditsPanel({ state, actions, isPending, onPay }: BuyPanelProps) {
         )}
 
         {state.address && (
-          <AiCreditsHero
-            gBalance={state.gBalance}
-            isGoodIdVerified={state.isGoodIdVerified}
-          />
+          <AiCreditsHero gBalance={state.gBalance} isGoodIdVerified={state.isGoodIdVerified} />
         )}
 
         {state.error && (
@@ -366,11 +351,7 @@ function BuyCreditsPanel({ state, actions, isPending, onPay }: BuyPanelProps) {
     )
   }
 
-  return (
-    <YStack gap="$4">
-      {content}
-    </YStack>
-  )
+  return <YStack gap="$4">{content}</YStack>
 }
 
 function ManagePanel({
@@ -501,7 +482,8 @@ function AiCreditsInner({
         })
       } catch (err) {
         updateToast(toastId, {
-          message: err instanceof Error ? err.message : (state.error ?? 'Payment failed. Try again.'),
+          message:
+            err instanceof Error ? err.message : (state.error ?? 'Payment failed. Try again.'),
           status: 'error',
           duration: 4000,
         })
@@ -556,26 +538,23 @@ function AiCreditsInner({
 
   return (
     <YStack gap="$3" padding="$3" width="100%">
-      <XStack
-        justifyContent="space-between"
-        alignItems="center"
-        gap="$2"
-        paddingHorizontal="$1"
-      >
+      <XStack justifyContent="space-between" alignItems="center" gap="$2" paddingHorizontal="$1">
         <Heading level={4}>GoodDollar</Heading>
         <XStack gap="$2" alignItems="center" flexShrink={1} minWidth={0}>
           <Badge type="info">
             <BadgeText>{getChainDisplayName(state.chainId ?? CELO_CHAIN_ID)}</BadgeText>
           </Badge>
-          {showWalletControls && (
-            <WalletControls size="sm" onDisconnected={handleDisconnected} />
-          )}
+          {showWalletControls && <WalletControls size="sm" onDisconnected={handleDisconnected} />}
         </XStack>
       </XStack>
       <SetupGuidanceCard
         activeHelpView={helpView}
-        onHowToUse={() => { handleHelpViewOpen('how-to-use') }}
-        onFaq={() => { handleHelpViewOpen('faq') }}
+        onHowToUse={() => {
+          handleHelpViewOpen('how-to-use')
+        }}
+        onFaq={() => {
+          handleHelpViewOpen('faq')
+        }}
         depositBonusPercent={state.depositBonusPercent}
         streamBonusPercent={state.streamBonusPercent}
         isGoodIdVerified={state.isGoodIdVerified}
@@ -592,7 +571,7 @@ function AiCreditsInner({
         isTabDisabled={(tabId) => walletRequired && tabId !== 'setup'}
         withConnectionStatus={false}
       />
-      <DesktopRequiredNotice/>
+      <DesktopRequiredNotice />
 
       {walletRequired || state.activeTab === 'setup' ? (
         setupPanel
@@ -660,7 +639,7 @@ export function AiCreditsWidget({
       themeOverrides={themeOverrides}
       defaultTheme={defaultTheme}
     >
-      <YStack backgroundColor="$backgroundSurface" width="100%" data-testid={testId}>
+      <YStack backgroundColor="$background" width="100%" data-testid={testId}>
         <AiCreditsInner
           environment={environment}
           backendUrl={backendUrl}

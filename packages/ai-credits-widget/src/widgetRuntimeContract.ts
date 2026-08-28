@@ -49,6 +49,8 @@ export interface AiCreditsWidgetAdapterState {
   currentOperator: string | null
   minDepositUsd: string | null
   minStreamUsd: string | null
+  /** Bonus credit earned so far, in micro-USD. Folded into `totalCreditUsd`. */
+  totalBonusUsd: string | null
   totalGdDepositedG: string | null
   monthlyStreamG: string | null
   withdrawableUsd: string | null
