@@ -20,7 +20,7 @@ const STREAM_FIELDS = `
   id
   sender { id }
   receiver { id }
-  token { id }
+  token { id symbol }
   currentFlowRate
   streamedUntilUpdatedAt
   updatedAtTimestamp
@@ -55,12 +55,15 @@ interface RawStream {
   id: string
   sender: { id: string }
   receiver: { id: string }
-  token: { id: string }
+  token: { id: string; symbol: string }
   currentFlowRate: string
   streamedUntilUpdatedAt: string
   updatedAtTimestamp: string
   createdAtTimestamp: string
 }
+
+/** `StreamQueryResult` has no token symbol, so it is carried alongside. */
+export type StreamQueryRow = StreamQueryResult & { tokenSymbol: string }
 
 interface GraphQLResponse {
   data?: { streams?: RawStream[] }
@@ -73,7 +76,7 @@ export function streamsSubgraphUrl(chainId: number | null): string | null {
   return SUBGRAPH_URLS[chainId] ?? null
 }
 
-function toStreamQueryResult(stream: RawStream): StreamQueryResult {
+function toStreamQueryResult(stream: RawStream): StreamQueryRow {
   return {
     id: stream.id,
     sender: stream.sender.id as Address,
@@ -83,6 +86,7 @@ function toStreamQueryResult(stream: RawStream): StreamQueryResult {
     streamedUntilUpdatedAt: BigInt(stream.streamedUntilUpdatedAt),
     updatedAtTimestamp: Number(stream.updatedAtTimestamp),
     createdAtTimestamp: Number(stream.createdAtTimestamp),
+    tokenSymbol: stream.token.symbol,
   }
 }
 
@@ -138,7 +142,7 @@ async function fetchDirection(
 export async function queryAllStreams(
   endpoint: string,
   account: Address,
-): Promise<StreamQueryResult[]> {
+): Promise<StreamQueryRow[]> {
   // Subgraph entity ids are lowercased addresses.
   const normalizedAccount = account.toLowerCase()
 

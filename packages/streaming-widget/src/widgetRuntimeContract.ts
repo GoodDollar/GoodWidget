@@ -49,6 +49,8 @@ export interface StreamListItem {
   sender: Address
   receiver: Address
   token: Address
+  /** Super token symbol as reported by the subgraph, e.g. "G$" */
+  tokenSymbol: string
   /** Flow rate in wei per second */
   flowRate: bigint
   /** Accumulated streamed amount in wei */

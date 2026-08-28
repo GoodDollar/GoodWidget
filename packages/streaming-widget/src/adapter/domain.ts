@@ -1,5 +1,5 @@
 import { calculateFlowRate } from '@goodsdks/streaming-sdk'
-import type { GDAPool, StreamInfo, StreamQueryResult } from '@goodsdks/streaming-sdk'
+import type { GDAPool, StreamInfo } from '@goodsdks/streaming-sdk'
 import type { Address } from 'viem'
 import { formatUnits, parseUnits } from 'viem'
 import type {
@@ -8,6 +8,7 @@ import type {
   StreamListItem,
   StreamTimeUnit,
 } from '../widgetRuntimeContract'
+import type { StreamQueryRow } from './streamsSubgraph'
 
 const SECONDS_PER_TIME_UNIT: Record<StreamTimeUnit, bigint> = {
   day: 86_400n,
@@ -82,6 +83,7 @@ export function toStreamListItem(stream: StreamInfo, address: Address): StreamLi
     sender: stream.sender,
     receiver: stream.receiver,
     token: stream.token,
+    tokenSymbol: '',
     flowRate: stream.flowRate,
     streamedSoFar: stream.streamedSoFar ?? 0n,
     createdAtTimestamp: stream.timestamp ? Number(stream.timestamp) : 0,
@@ -97,7 +99,7 @@ export function toStreamListItem(stream: StreamInfo, address: Address): StreamLi
  * apart from a running one — `getActiveStreams` simply omits ended streams.
  */
 export function toStreamListItemFromQuery(
-  stream: StreamQueryResult,
+  stream: StreamQueryRow,
   address: Address,
 ): StreamListItem {
   const direction =
@@ -109,6 +111,7 @@ export function toStreamListItemFromQuery(
     sender: stream.sender,
     receiver: stream.receiver,
     token: stream.token,
+    tokenSymbol: stream.tokenSymbol,
     flowRate: stream.currentFlowRate,
     streamedSoFar: stream.streamedUntilUpdatedAt,
     createdAtTimestamp: stream.createdAtTimestamp,
