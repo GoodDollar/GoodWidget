@@ -6,6 +6,7 @@ import type {
   StreamListItem,
   WriteStatus,
 } from '../widgetRuntimeContract'
+import { streamWriteKey } from '../adapter/domain'
 import { TIME_UNIT_OPTIONS, tokenSymbol } from './format'
 import { SetStreamForm } from './SetStreamForm'
 import { StreamCard } from './StreamCard'
@@ -92,7 +93,7 @@ export function StreamsTab({
       {isFormOpen && (
         <SetStreamForm
           form={setStreamForm}
-          token={activeToken}
+          token={setStreamForm.tokenSymbol || activeToken}
           status={setStreamStatus}
           error={setStreamError}
           txHash={setStreamTxHash}
@@ -160,8 +161,8 @@ export function StreamsTab({
             token={activeToken}
             onEdit={onEditStream}
             onCancel={onCancelStream}
-            cancelStatus={cancelStreamStatus[stream.receiver.toLowerCase()] ?? 'idle'}
-            cancelError={cancelStreamError[stream.receiver.toLowerCase()] ?? null}
+            cancelStatus={cancelStreamStatus[streamWriteKey(stream.receiver, stream.token)] ?? 'idle'}
+            cancelError={cancelStreamError[streamWriteKey(stream.receiver, stream.token)] ?? null}
           />
         ))}
     </StreamingTabContent>

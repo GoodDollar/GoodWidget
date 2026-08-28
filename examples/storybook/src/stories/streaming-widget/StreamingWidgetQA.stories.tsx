@@ -14,6 +14,7 @@ import {
   ErrorStateStory,
   LightThemePopulatedStory,
   LoadingStateStory,
+  MultiTokenStreamsStory,
   NoWalletStory,
   NonBaseSupReserveDisabledStory,
   PoolClaimableAmountErrorStory,
@@ -157,6 +158,12 @@ export const CancelStreamPending: Story = {
 export const CancelStreamFailure: Story = {
   render: ({ defaultTheme, brandPreset }) => (
     <CancelStreamFailureStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
+}
+
+export const MultiTokenStreams: Story = {
+  render: ({ defaultTheme, brandPreset }) => (
+    <MultiTokenStreamsStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
   ),
 }
 

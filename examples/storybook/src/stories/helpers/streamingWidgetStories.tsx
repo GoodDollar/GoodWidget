@@ -24,6 +24,8 @@ const DEMO_ADDRESS = '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef'
 const DEMO_RECEIVER = '0x1111111111111111111111111111111111111111'
 const DEMO_SENDER = '0x2222222222222222222222222222222222222222'
 const DEMO_TOKEN = '0x3333333333333333333333333333333333333333'
+// A super token other than the chain default, so fixtures cover multi-token streams.
+const DEMO_ALT_TOKEN = '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
 const DEMO_POOL = '0x4444444444444444444444444444444444444444'
 const DEMO_RESERVE_LOCKER = '0x8888888888888888888888888888888888888888'
 
@@ -81,6 +83,23 @@ const sampleStreams: StreamListItem[] = [
     closedAtTimestamp: null,
   },
 ]
+
+// A stream in a non-default super token: writes must target `stream.token`, not the
+// chain default, or Cancel/Update would hit the wrong stream.
+const altTokenStream: StreamListItem = {
+  id: 'outgoing-alt-token-stream',
+  sender: DEMO_ADDRESS,
+  receiver: DEMO_RECEIVER,
+  token: DEMO_ALT_TOKEN,
+  tokenSymbol: 'USDGLOx',
+  flowRate: 7716049382716n,
+  streamedSoFar: 3100000000000000000n,
+  createdAtTimestamp: 1767196800,
+  updatedAtTimestamp: 1767312000,
+  direction: 'outgoing',
+  isActive: true,
+  closedAtTimestamp: null,
+}
 
 // The full record: History shows active and ended streams, filtered in the tab.
 const sampleStreamHistory: StreamListItem[] = [
@@ -595,7 +614,7 @@ export function CancelStreamPendingStory({ defaultTheme, themeOverrides }: Theme
   return (
     <PreviewStoryShell
       adapter={createAdapter({
-        cancelStreamStatus: { [DEMO_RECEIVER.toLowerCase()]: 'pending' },
+        cancelStreamStatus: { [`${DEMO_RECEIVER.toLowerCase()}-${DEMO_TOKEN.toLowerCase()}`]: 'pending' },
       })}
       dataTestId="StreamingWidget-cancel-stream-pending"
       defaultTheme={defaultTheme}
@@ -608,10 +627,27 @@ export function CancelStreamFailureStory({ defaultTheme, themeOverrides }: Theme
   return (
     <PreviewStoryShell
       adapter={createAdapter({
-        cancelStreamStatus: { [DEMO_RECEIVER.toLowerCase()]: 'error' },
-        cancelStreamError: { [DEMO_RECEIVER.toLowerCase()]: 'Transaction cancelled by wallet.' },
+        cancelStreamStatus: { [`${DEMO_RECEIVER.toLowerCase()}-${DEMO_TOKEN.toLowerCase()}`]: 'error' },
+        cancelStreamError: {
+          [`${DEMO_RECEIVER.toLowerCase()}-${DEMO_TOKEN.toLowerCase()}`]:
+            'Transaction cancelled by wallet.',
+        },
       })}
       dataTestId="StreamingWidget-cancel-stream-failure"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function MultiTokenStreamsStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        streams: [...sampleStreams, altTokenStream],
+        streamHistory: [...sampleStreams, altTokenStream, ...sampleStreamHistory.slice(2)],
+      })}
+      dataTestId="StreamingWidget-multi-token-streams"
       defaultTheme={defaultTheme}
       themeOverrides={themeOverrides}
     />

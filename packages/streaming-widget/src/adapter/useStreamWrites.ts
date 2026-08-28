@@ -10,6 +10,7 @@ import {
   DEFAULT_FORM_STATE,
   flowRateToAmountInput,
   humanReadableError,
+  streamWriteKey,
   validateSetStreamForm,
 } from './domain'
 
@@ -84,6 +85,7 @@ function streamWriteReducer(
         cancelStreamStatus: state.cancelStreamStatus,
         cancelStreamError: state.cancelStreamError,
       }
+    case 'cancel:start':
       return {
         ...state,
         cancelStreamStatus: { ...state.cancelStreamStatus, [action.key]: 'pending' },
@@ -128,6 +130,9 @@ export function useStreamWrites({ streamingSDK, refreshStreams }: UseStreamWrite
       form: validateSetStreamForm({
         ...DEFAULT_FORM_STATE,
         receiver: stream.receiver,
+        // Carry the stream's own token, or the write would hit the chain default.
+        token: stream.token,
+        tokenSymbol: stream.tokenSymbol || undefined,
         amount: flowRateToAmountInput(stream.flowRate, 'month'),
       }),
     })
@@ -146,6 +151,7 @@ export function useStreamWrites({ streamingSDK, refreshStreams }: UseStreamWrite
     try {
       const hash = await streamingSDK.createOrUpdateStream({
         receiver: validated.receiver as Address,
+        token: validated.token,
         flowRate: validated.flowRate,
         onHash: (txHash) => dispatch({ type: 'hash', hash: txHash }),
       })
@@ -161,14 +167,14 @@ export function useStreamWrites({ streamingSDK, refreshStreams }: UseStreamWrite
    * stream, which moves it out of the active list and into history.
    */
   const cancelStream = useCallback(
-    async (receiver: Address) => {
+    async (receiver: Address, token?: Address) => {
       if (!streamingSDK) return
 
-      const key = receiver.toLowerCase()
+      const key = streamWriteKey(receiver, token)
       dispatch({ type: 'cancel:start', key })
 
       try {
-        await streamingSDK.createOrUpdateStream({ receiver, flowRate: 0n })
+        await streamingSDK.createOrUpdateStream({ receiver, token, flowRate: 0n })
         dispatch({ type: 'cancel:success', key })
         await refreshStreams()
       } catch (err) {

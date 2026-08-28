@@ -163,7 +163,8 @@ test('StreamingWidget covers stream cancellation and update states', async ({ pa
   await saveScreenshot(page, 'sw-29-cancel-stream-failure')
 
   await gotoStory(page, 'update-stream-form')
-  await expect(page.getByRole('heading', { name: 'Update Stream' })).toBeVisible()
+  // Heading renders as styled Text, not an h1-h6, so match on text not role.
+  await expect(page.getByText('Update Stream').first()).toBeVisible()
   await expect(page.getByRole('button', { name: 'Update Stream' })).toBeVisible()
   await saveScreenshot(page, 'sw-30-update-stream-form')
 })

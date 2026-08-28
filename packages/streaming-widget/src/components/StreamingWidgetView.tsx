@@ -52,7 +52,7 @@ export function StreamingWidgetView({
           onSubmitSetStream={actions.submitSetStream}
           onResetSetStream={actions.resetSetStream}
           onEditStream={actions.editStream}
-          onCancelStream={(stream) => void actions.cancelStream(stream.receiver)}
+          onCancelStream={(stream) => void actions.cancelStream(stream.receiver, stream.token)}
         />
       )}
       {activeTab === 'history' && (

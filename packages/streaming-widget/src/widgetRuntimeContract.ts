@@ -97,6 +97,13 @@ export interface SupReserveLockerItem {
 // ---------------------------------------------------------------------------
 export interface SetStreamFormState {
   receiver: string
+  /**
+   * Super token being streamed. Undefined for a new stream, which falls back to
+   * the chain default; set when editing so the write lands on the right token.
+   */
+  token?: Address
+  /** Display symbol for `token`, when known */
+  tokenSymbol?: string
   /** User-visible amount string (e.g. "100") */
   amount: string
   timeUnit: StreamTimeUnit
@@ -155,7 +162,7 @@ export interface StreamingWidgetAdapterState {
   /** Id of the active stream the form is editing, null when creating a new stream */
   editingStreamId: string | null
 
-  /** Cancel-stream write status keyed by lowercased receiver address */
+  /** Cancel-stream write status keyed by `streamWriteKey(receiver, token)` */
   cancelStreamStatus: Record<string, WriteStatus>
   cancelStreamError: Record<string, string | null>
 
@@ -186,8 +193,11 @@ export interface StreamingWidgetAdapterActions {
   resetSetStream: () => void
   /** Prefill the set-stream form from an existing active stream */
   editStream: (stream: StreamListItem) => void
-  /** Stop an outgoing stream by setting its flow rate to zero */
-  cancelStream: (receiver: Address) => Promise<void>
+  /**
+   * Stop an outgoing stream by setting its flow rate to zero. `token` must be the
+   * stream's own super token — omitting it would target the chain default instead.
+   */
+  cancelStream: (receiver: Address, token?: Address) => Promise<void>
 
   /** Connect wallet to a GDA pool to begin receiving distributions */
   connectToPool: (poolAddress: Address) => Promise<void>

@@ -44,6 +44,14 @@ export const DEFAULT_FORM_STATE: SetStreamFormState = {
   validationError: null,
 }
 
+/**
+ * Per-stream write status key. A recipient can hold one stream per super token,
+ * so the token has to be part of the key.
+ */
+export function streamWriteKey(receiver: Address, token?: Address): string {
+  return `${receiver.toLowerCase()}-${token?.toLowerCase() ?? 'default'}`
+}
+
 export function humanReadableError(err: unknown): string {
   console.error('[StreamingWidget]', err)
 
