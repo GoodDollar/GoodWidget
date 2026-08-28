@@ -10,7 +10,10 @@ import {
   XStack,
   YStack,
 } from '@goodwidget/ui'
-import type { AiCreditsWidgetAdapterActions, AiCreditsWidgetAdapterState } from '../../widgetRuntimeContract'
+import type {
+  AiCreditsWidgetAdapterActions,
+  AiCreditsWidgetAdapterState,
+} from '../../widgetRuntimeContract'
 import { formatUsdMicro, quoteTotalUsdMicro } from '../../quoteMath'
 import {
   BUYER_KEY_REQUIRED_CLOSE_TOOLTIP,
@@ -27,34 +30,16 @@ interface CreditsManagementCardProps {
 
 function StatCell({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <YStack
-      flex={1}
-      minWidth="45%"
-      gap="$1"
-      backgroundColor="$backgroundHover"
-      borderRadius="$2"
-      padding="$2"
-      $gtSm={{
-        minWidth: '28%',
-      }}
-    >
+    <Card raised borderWidth={0}>
       <Text fontSize="$1" tone="soft">
         {label}
       </Text>
-      <YStack justifyContent="center">
-        {children}
-      </YStack>
-    </YStack>
+      <YStack justifyContent="center">{children}</YStack>
+    </Card>
   )
 }
 
-function StatValueText({
-  children,
-  color,
-}: {
-  children: React.ReactNode
-  color?: string
-}) {
+function StatValueText({ children, color }: { children: React.ReactNode; color?: string }) {
   return (
     <Text fontSize="$2" fontWeight="700" color={color}>
       {children}
@@ -162,7 +147,13 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
     })
     if (usdMicro <= 0n) return null
     return formatUsdAmount(usdMicro.toString())
-  }, [monthlyStreamG, gdUsdPerToken, isGoodIdVerified, state.depositBonusPercent, state.streamBonusPercent])
+  }, [
+    monthlyStreamG,
+    gdUsdPerToken,
+    isGoodIdVerified,
+    state.depositBonusPercent,
+    state.streamBonusPercent,
+  ])
 
   const totalCreditDisplay =
     totalCreditUsd && BigInt(totalCreditUsd) > 0n
@@ -171,10 +162,8 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
         ? formatUsdAmount('0')
         : null
 
-  const withdrawableDisplay =
-    withdrawableUsd !== null ? formatUsdAmount(withdrawableUsd) : null
-  const hasWithdrawableBalance =
-    withdrawableUsd !== null && BigInt(withdrawableUsd) > 0n
+  const withdrawableDisplay = withdrawableUsd !== null ? formatUsdAmount(withdrawableUsd) : null
+  const hasWithdrawableBalance = withdrawableUsd !== null && BigInt(withdrawableUsd) > 0n
   const canClose = Boolean(buyerPrvKey) && Boolean(channelId.trim()) && !isClosing
   const canWithdraw =
     Boolean(buyerPrvKey) &&
@@ -183,11 +172,11 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
     !isWithdrawing
 
   return (
-    <Card gap="$3">
+    <Card>
       <Heading level={6}>AI Credits</Heading>
 
-      <XStack gap="$4" width="100%" alignItems="flex-start" flexWrap="wrap">
-        <YStack gap="$2" flex={1} minWidth={0}>
+      <XStack gap="$4" width="100%" justifyContent="flex-start">
+        <Card raised borderWidth={0}>
           <Text fontSize="$1" tone="soft">
             Total Credit (US$)
           </Text>
@@ -196,8 +185,8 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
           ) : (
             <Spinner size="sm" />
           )}
-        </YStack>
-        <YStack gap="$2" flex={1} minWidth={0}>
+        </Card>
+        <Card raised borderWidth={0}>
           <Text fontSize="$1" tone="soft">
             Est. Monthly Credit (US$)
           </Text>
@@ -208,26 +197,29 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
           ) : (
             <Heading level={5}>—</Heading>
           )}
-        </YStack>
+        </Card>
       </XStack>
 
       <XStack gap="$2" width="100%" flexWrap="wrap" alignItems="stretch">
-          <StatCell label="Total Deposited (G$)">
-            <CompactGStatValue amount={totalGdDepositedG ?? '0.00'} />
-          </StatCell>
-          <StatCell label="Monthly Stream (G$)">
-            <CompactGStatValue amount={monthlyStreamG ?? '0.00'} />
-          </StatCell>
-          <StatCell label="Withdrawable (US$)">
-            {withdrawableDisplay !== null ? (
-              <StatValueText>{withdrawableDisplay}</StatValueText>
-            ) : (
-              <Spinner size="sm" />
-            )}
-          </StatCell>
+        <StatCell label="Total Deposited (G$)">
+          <CompactGStatValue amount={totalGdDepositedG ?? '0.00'} />
+        </StatCell>
+        <StatCell label="Monthly Stream (G$)">
+          <CompactGStatValue amount={monthlyStreamG ?? '0.00'} />
+        </StatCell>
       </XStack>
+      <Card raised borderWidth={0} width="100%">
+        <Text fontSize="$1" tone="soft">
+          Withdrawable (US$)
+        </Text>
+        {withdrawableDisplay !== null ? (
+          <StatValueText>{withdrawableDisplay}</StatValueText>
+        ) : (
+          <Spinner size="sm" />
+        )}
+      </Card>
 
-      <YStack gap="$1">
+      <YStack gap="$1" width="100%">
         <XStack gap="$1" alignItems="center">
           <Text fontSize="$1" variant="label">
             Withdraw
