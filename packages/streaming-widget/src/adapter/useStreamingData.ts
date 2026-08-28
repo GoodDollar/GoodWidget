@@ -13,6 +13,7 @@ import {
   toPoolMembershipItem,
   toStreamListItemFromQuery,
 } from './domain'
+import { queryAllStreams } from './streamsSubgraph'
 
 type StreamingDataState = Pick<
   StreamingWidgetAdapterState,
@@ -188,7 +189,8 @@ interface UseStreamingDataArgs {
   address: Address | null
   streamingSDK: StreamingSDK | null
   gdaSDK: GdaSDK | null
-  subgraphClient: SubgraphClient | null
+  /** Superfluid subgraph endpoint for the connected chain */
+  streamsEndpoint: string | null
   baseStreamingSDK: StreamingSDK
   baseSubgraphClient: SubgraphClient
   viemClients: {
@@ -201,7 +203,7 @@ export function useStreamingData({
   address,
   streamingSDK,
   gdaSDK,
-  subgraphClient,
+  streamsEndpoint,
   baseStreamingSDK,
   baseSubgraphClient,
   viemClients,
@@ -213,15 +215,12 @@ export function useStreamingData({
   }, [])
 
   const refreshStreams = useCallback(async () => {
-    if (!subgraphClient || !address) return
+    if (!streamsEndpoint || !address) return
 
     await runResourceAction({
       onStart: () => dispatch({ type: 'streams:start' }),
       load: async () => {
-        const result = await subgraphClient.queryStreams({
-          account: address,
-          direction: 'all',
-        })
+        const result = await queryAllStreams(streamsEndpoint, address)
         const items = result.map((stream) => toStreamListItemFromQuery(stream, address))
 
         return {
@@ -239,7 +238,7 @@ export function useStreamingData({
         dispatch({ type: 'streams:success', streams, history }),
       onError: (error) => dispatch({ type: 'streams:error', error }),
     })
-  }, [subgraphClient, address])
+  }, [streamsEndpoint, address])
 
   const refreshPools = useCallback(async () => {
     if (!gdaSDK || !address) return

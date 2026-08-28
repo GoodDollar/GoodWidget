@@ -9,6 +9,7 @@ import {
 } from '@goodsdks/streaming-sdk'
 import type { StreamingWidgetEnvironment } from '../widgetRuntimeContract'
 import { createBasePublicClient, VIEM_CHAINS } from './chains'
+import { streamsSubgraphUrl } from './streamsSubgraph'
 
 interface UseStreamingClientsArgs {
   provider: unknown
@@ -60,12 +61,9 @@ export function useStreamingClients({
     [viemClients, environment],
   )
 
-  const subgraphClient = useMemo(
-    () =>
-      chainId && isSupportedChain(chainId)
-        ? new SubgraphClient(chainId as SupportedChains, { apiKey })
-        : null,
-    [chainId, apiKey],
+  const streamsEndpoint = useMemo(
+    () => (chainId && isSupportedChain(chainId) ? streamsSubgraphUrl(chainId) : null),
+    [chainId],
   )
 
   const basePublicClient = useMemo(() => createBasePublicClient(), [])
@@ -90,7 +88,7 @@ export function useStreamingClients({
     viemClients,
     streamingSDK,
     gdaSDK,
-    subgraphClient,
+    streamsEndpoint,
     baseStreamingSDK,
     baseSubgraphClient,
   }

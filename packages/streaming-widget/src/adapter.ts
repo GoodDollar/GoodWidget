@@ -32,7 +32,7 @@ export function useStreamingAdapter({
     viemClients,
     streamingSDK,
     gdaSDK,
-    subgraphClient,
+    streamsEndpoint,
     baseStreamingSDK,
     baseSubgraphClient,
   } = useStreamingClients({
@@ -46,7 +46,7 @@ export function useStreamingAdapter({
     address: walletAddress,
     streamingSDK,
     gdaSDK,
-    subgraphClient,
+    streamsEndpoint,
     baseStreamingSDK,
     baseSubgraphClient,
     viemClients,
