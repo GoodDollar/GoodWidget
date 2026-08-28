@@ -34,6 +34,7 @@ function createMockState(
     gBalance: '42.50',
     gdUsdPerToken: 0.0015,
     totalCreditUsd: null,
+    totalBonusUsd: null,
     isGoodIdVerified: false,
     buyerPubKey: null,
     buyerPrvKey: null,
@@ -248,6 +249,7 @@ export function ManageTabStory() {
       dataTestId="AiCreditsWidget-manage-tab"
       adapterFactory={createAdapterFactory('quote_ready', {
         totalCreditUsd: '110000000',
+        totalBonusUsd: '10000000',
         buyerPubKey: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a',
         operatorConsented: true,
         operatorAddress: '0x0000000000000000000000000000000000000004',
@@ -266,6 +268,7 @@ export function HistoryTabStory() {
       dataTestId="AiCreditsWidget-history-tab"
       adapterFactory={createAdapterFactory('quote_ready', {
         totalCreditUsd: '110000000',
+        totalBonusUsd: '10000000',
         buyerPubKey: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a',
         operatorConsented: true,
         operatorAddress: '0x0000000000000000000000000000000000000004',
@@ -603,6 +606,7 @@ export function MultiBuyerManageStory() {
       dataTestId="AiCreditsWidget-multi-buyer-manage"
       adapterFactory={createAdapterFactory('quote_ready', {
         totalCreditUsd: '110000000',
+        totalBonusUsd: '10000000',
         buyerPubKey: BUYER_WALLET.address,
         buyerPrvKey: BUYER_WALLET.privateKey,
         operatorConsented: true,
@@ -630,6 +634,7 @@ export function WalletControlsStory() {
       disconnectOverride={async () => {}}
       adapterFactory={createAdapterFactory('quote_ready', {
         totalCreditUsd: '110000000',
+        totalBonusUsd: '10000000',
         buyerPubKey: BUYER_WALLET.address,
         buyerPrvKey: BUYER_WALLET.privateKey,
         operatorConsented: true,
@@ -651,6 +656,7 @@ export function WalletControlsHiddenStory() {
       dataTestId="AiCreditsWidget-wallet-controls-hidden"
       adapterFactory={createAdapterFactory('quote_ready', {
         totalCreditUsd: '110000000',
+        totalBonusUsd: '10000000',
         buyerPubKey: BUYER_WALLET.address,
         buyerPrvKey: BUYER_WALLET.privateKey,
         operatorConsented: true,
@@ -708,6 +714,7 @@ export function MultiBuyerHistoryStory() {
       dataTestId="AiCreditsWidget-multi-buyer-history"
       adapterFactory={createAdapterFactory('quote_ready', {
         totalCreditUsd: '110000000',
+        totalBonusUsd: '10000000',
         buyerPubKey: BUYER_WALLET.address,
         buyerPrvKey: BUYER_WALLET.privateKey,
         operatorConsented: true,

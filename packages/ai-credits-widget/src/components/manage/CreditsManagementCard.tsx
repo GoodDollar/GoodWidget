@@ -30,7 +30,7 @@ interface CreditsManagementCardProps {
 
 function StatCell({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <Card raised borderWidth={0}>
+    <Card raised borderWidth={0} flexGrow={1} flexBasis={0}>
       <Text fontSize="$1" tone="soft">
         {label}
       </Text>
@@ -39,9 +39,27 @@ function StatCell({ label, children }: { label: string; children: React.ReactNod
   )
 }
 
-function StatValueText({ children, color }: { children: React.ReactNode; color?: string }) {
+/** One row of stat cards. Pairs are explicit so widths never depend on wrapping. */
+function StatRow({ children }: { children: React.ReactNode }) {
   return (
-    <Text fontSize="$2" fontWeight="700" color={color}>
+    <XStack gap="$2" width="100%" alignItems="stretch">
+      {children}
+    </XStack>
+  )
+}
+
+function StatValueText({
+  children,
+  color,
+  fontSize = '$2',
+}: {
+  children: React.ReactNode
+  color?: string
+  /** `$5` matches Heading level 5, used by the two headline stats. */
+  fontSize?: string
+}) {
+  return (
+    <Text fontSize={fontSize} fontWeight="700" color={color}>
       {children}
     </Text>
   )
@@ -134,6 +152,7 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
     gdUsdPerToken,
     isGoodIdVerified,
     withdrawableUsd,
+    totalBonusUsd,
     buyerPrvKey,
   } = state
 
@@ -163,6 +182,7 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
         : null
 
   const withdrawableDisplay = withdrawableUsd !== null ? formatUsdAmount(withdrawableUsd) : null
+  const totalBonusDisplay = totalBonusUsd !== null ? formatUsdAmount(totalBonusUsd) : null
   const hasWithdrawableBalance = withdrawableUsd !== null && BigInt(withdrawableUsd) > 0n
   const canClose = Boolean(buyerPrvKey) && Boolean(channelId.trim()) && !isClosing
   const canWithdraw =
@@ -175,49 +195,50 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
     <Card>
       <Heading level={6}>AI Credits</Heading>
 
-      <XStack gap="$4" width="100%" justifyContent="flex-start">
-        <Card raised borderWidth={0}>
-          <Text fontSize="$1" tone="soft">
-            Total Credit (US$)
-          </Text>
+      <StatRow>
+        <StatCell label="Total Credit (US$)">
           {totalCreditDisplay !== null ? (
-            <Heading level={5}>{totalCreditDisplay}</Heading>
+            <StatValueText fontSize="$5">{totalCreditDisplay}</StatValueText>
           ) : (
             <Spinner size="sm" />
           )}
-        </Card>
-        <Card raised borderWidth={0}>
-          <Text fontSize="$1" tone="soft">
-            Est. Monthly Credit (US$)
-          </Text>
+        </StatCell>
+        <StatCell label="Monthly Credit (US$)">
           {monthlyStreamUsdDisplay ? (
-            <Heading level={5} color="$primary">
+            <StatValueText fontSize="$5" color="$primary">
               ~{monthlyStreamUsdDisplay}
-            </Heading>
+            </StatValueText>
           ) : (
-            <Heading level={5}>—</Heading>
+            <StatValueText fontSize="$5">—</StatValueText>
           )}
-        </Card>
-      </XStack>
+        </StatCell>
+      </StatRow>
 
-      <XStack gap="$2" width="100%" flexWrap="wrap" alignItems="stretch">
+      <StatRow>
         <StatCell label="Total Deposited (G$)">
           <CompactGStatValue amount={totalGdDepositedG ?? '0.00'} />
         </StatCell>
         <StatCell label="Monthly Stream (G$)">
           <CompactGStatValue amount={monthlyStreamG ?? '0.00'} />
         </StatCell>
-      </XStack>
-      <Card raised borderWidth={0} width="100%">
-        <Text fontSize="$1" tone="soft">
-          Withdrawable (US$)
-        </Text>
-        {withdrawableDisplay !== null ? (
-          <StatValueText>{withdrawableDisplay}</StatValueText>
-        ) : (
-          <Spinner size="sm" />
-        )}
-      </Card>
+      </StatRow>
+
+      <StatRow>
+        <StatCell label="Bonus Earned (US$)">
+          {totalBonusDisplay !== null ? (
+            <StatValueText>{totalBonusDisplay}</StatValueText>
+          ) : (
+            <Spinner size="sm" />
+          )}
+        </StatCell>
+        <StatCell label="Withdrawable (US$)">
+          {withdrawableDisplay !== null ? (
+            <StatValueText>{withdrawableDisplay}</StatValueText>
+          ) : (
+            <Spinner size="sm" />
+          )}
+        </StatCell>
+      </StatRow>
 
       <YStack gap="$1" width="100%">
         <XStack gap="$1" alignItems="center">
