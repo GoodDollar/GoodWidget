@@ -122,6 +122,52 @@ test('StreamingWidget shows populated incoming and outgoing stream views', async
   await saveScreenshot(page, 'sw-22-stream-history-tab')
 })
 
+test('StreamingWidget expands and collapses stream details', async ({ page }) => {
+  await gotoStory(page, 'populated-state')
+
+  const expandButton = page.getByRole('button', { name: 'Expand stream details' }).first()
+  await expandButton.click()
+  await expectBodyToContain(page, ['Token', 'Flow rate', 'Update', 'Cancel stream'])
+  await saveScreenshot(page, 'sw-24-stream-details-expanded')
+
+  await page.getByRole('button', { name: 'Collapse stream details' }).first().click()
+  await expect(page.getByText('Flow rate', { exact: true })).toHaveCount(0)
+  await saveScreenshot(page, 'sw-25-stream-details-collapsed')
+})
+
+test('StreamingWidget filters stream history by status', async ({ page }) => {
+  await gotoStory(page, 'populated-state')
+  await page.getByText('History').first().click()
+
+  await page.getByRole('button', { name: 'Active' }).click()
+  await expectBodyToContain(page, ['Active'])
+  await expect(page.getByRole('button', { name: 'Expand stream details' })).toHaveCount(2)
+  await saveScreenshot(page, 'sw-26-history-active-filter')
+
+  await page.getByRole('button', { name: 'Ended' }).click()
+  await expectBodyToContain(page, ['Ended'])
+  await expect(page.getByRole('button', { name: 'Expand stream details' })).toHaveCount(4)
+  await saveScreenshot(page, 'sw-27-history-ended-filter')
+})
+
+test('StreamingWidget covers stream cancellation and update states', async ({ page }) => {
+  await gotoStory(page, 'cancel-stream-pending')
+  await page.getByRole('button', { name: 'Expand stream details' }).first().click()
+  await expect(page.getByRole('button', { name: 'Update' })).toBeVisible()
+  await expect(page.getByText('Cancel stream', { exact: true })).toHaveCount(0)
+  await saveScreenshot(page, 'sw-28-cancel-stream-pending')
+
+  await gotoStory(page, 'cancel-stream-failure')
+  await page.getByRole('button', { name: 'Expand stream details' }).first().click()
+  await expectBodyToContain(page, ['Transaction cancelled by wallet.'])
+  await saveScreenshot(page, 'sw-29-cancel-stream-failure')
+
+  await gotoStory(page, 'update-stream-form')
+  await expect(page.getByRole('heading', { name: 'Update Stream' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Update Stream' })).toBeVisible()
+  await saveScreenshot(page, 'sw-30-update-stream-form')
+})
+
 test('StreamingWidget renders usable mobile and desktop layouts', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await gotoStory(page, 'populated-state')
