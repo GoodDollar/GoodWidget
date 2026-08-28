@@ -48,6 +48,14 @@ const config: StorybookConfig = {
         ...(config.optimizeDeps?.exclude ?? []),
         '@storybook/addon-interactions/preview',
       ],
+      // MDX docs load these dependencies lazily. Include them in the initial
+      // dependency scan so opening a docs page cannot trigger a second Vite
+      // optimization pass and invalidate chunk URLs already in the browser.
+      include: [
+        ...(config.optimizeDeps?.include ?? []),
+        '@storybook/blocks',
+        '@mdx-js/react',
+      ],
       esbuildOptions: {
         ...config.optimizeDeps?.esbuildOptions,
         resolveExtensions: [

@@ -22,6 +22,7 @@ import {
 // final contract build this widget targets). FlowSplitter isn't wired to this deployment yet,
 // so the funding-distribution chart is expected to render its empty state here.
 const DEV_CELO_HOUSES_ADDRESS = '0x4Bc3Cdc036f21b68E034C0f1d90775fc3D725735' as const
+const DEV_CELO_G_TOKEN_ADDRESS = '0xFa51eFDc0910CCdA91732e6806912Fa12e2FD475' as const
 
 interface GovernanceWidgetStoryArgs {
   defaultTheme: 'light' | 'dark'
@@ -67,7 +68,10 @@ function InjectedWalletStory({ defaultTheme }: GovernanceWidgetStoryArgs) {
     <GovernanceWidget
       provider={injectedProvider}
       defaultTheme={defaultTheme}
-      addresses={{ housesAddress: DEV_CELO_HOUSES_ADDRESS }}
+      addresses={{
+        housesAddress: DEV_CELO_HOUSES_ADDRESS,
+        gTokenAddress: DEV_CELO_G_TOKEN_ADDRESS,
+      }}
       testId="GovernanceWidget-showcase-injected"
     />
   )
@@ -81,7 +85,10 @@ function CustodialWalletStory({ defaultTheme }: GovernanceWidgetStoryArgs) {
       <GovernanceWidget
         provider={provider}
         defaultTheme={defaultTheme}
-        addresses={{ housesAddress: DEV_CELO_HOUSES_ADDRESS }}
+        addresses={{
+          housesAddress: DEV_CELO_HOUSES_ADDRESS,
+          gTokenAddress: DEV_CELO_G_TOKEN_ADDRESS,
+        }}
         testId="GovernanceWidget-showcase-custodial"
       />
     )
