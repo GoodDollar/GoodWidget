@@ -175,8 +175,8 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
     <Card>
       <Heading level={6}>AI Credits</Heading>
 
-      <XStack gap="$4" width="100%" justifyContent="flex-start">
-        <Card raised borderWidth={0}>
+      <XStack gap="$4" width="100%" alignItems="flex-start" flexWrap="wrap">
+        <YStack gap="$2" flex={1} minWidth={0}>
           <Text fontSize="$1" tone="soft">
             Total Credit (US$)
           </Text>
@@ -185,8 +185,8 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
           ) : (
             <Spinner size="sm" />
           )}
-        </Card>
-        <Card raised borderWidth={0}>
+        </YStack>
+        <YStack gap="$2" flex={1} minWidth={0}>
           <Text fontSize="$1" tone="soft">
             Est. Monthly Credit (US$)
           </Text>
@@ -197,7 +197,7 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
           ) : (
             <Heading level={5}>—</Heading>
           )}
-        </Card>
+        </YStack>
       </XStack>
 
       <XStack gap="$2" width="100%" flexWrap="wrap" alignItems="stretch">
