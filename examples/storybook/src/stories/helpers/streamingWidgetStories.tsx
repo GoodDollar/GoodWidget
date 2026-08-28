@@ -62,6 +62,8 @@ const sampleStreams: StreamListItem[] = [
     createdAtTimestamp: 1767225600,
     updatedAtTimestamp: 1767312000,
     direction: 'outgoing',
+    isActive: true,
+    closedAtTimestamp: null,
   },
   {
     id: 'incoming-demo-stream',
@@ -73,44 +75,77 @@ const sampleStreams: StreamListItem[] = [
     createdAtTimestamp: 1767139200,
     updatedAtTimestamp: 1767312000,
     direction: 'incoming',
+    isActive: true,
+    closedAtTimestamp: null,
   },
 ]
 
-// Mirrors the current SDK-backed adapter; diverge this once past-stream history is fetched separately.
+// Ended streams only — the Streams tab owns anything still flowing.
 const sampleStreamHistory: StreamListItem[] = [
-  ...sampleStreams,
   {
-    id: 'history-outgoing-demo-stream-2',
+    id: 'history-outgoing-demo-stream-1',
     sender: DEMO_ADDRESS,
     receiver: '0x5555555555555555555555555555555555555555',
     token: DEMO_TOKEN,
-    flowRate: 9645061728395n,
+    flowRate: 0n,
     streamedSoFar: 4300000000000000000n,
     createdAtTimestamp: 1767052800,
     updatedAtTimestamp: 1767139200,
     direction: 'outgoing',
+    isActive: false,
+    closedAtTimestamp: 1767139200,
   },
   {
-    id: 'history-incoming-demo-stream-2',
+    id: 'history-incoming-demo-stream-1',
     sender: '0x6666666666666666666666666666666666666666',
     receiver: DEMO_ADDRESS,
     token: DEMO_TOKEN,
-    flowRate: 5787037037037n,
+    flowRate: 0n,
     streamedSoFar: 2200000000000000000n,
     createdAtTimestamp: 1766966400,
     updatedAtTimestamp: 1767052800,
     direction: 'incoming',
+    isActive: false,
+    closedAtTimestamp: 1767052800,
   },
   {
-    id: 'history-outgoing-demo-stream-3',
+    id: 'history-outgoing-demo-stream-2',
     sender: DEMO_ADDRESS,
     receiver: '0x7777777777777777777777777777777777777777',
     token: DEMO_TOKEN,
-    flowRate: 3858024691358n,
+    flowRate: 0n,
     streamedSoFar: 1400000000000000000n,
     createdAtTimestamp: 1766880000,
     updatedAtTimestamp: 1766966400,
     direction: 'outgoing',
+    isActive: false,
+    closedAtTimestamp: 1766966400,
+  },
+  {
+    id: 'history-incoming-demo-stream-2',
+    sender: '0x9999999999999999999999999999999999999999',
+    receiver: DEMO_ADDRESS,
+    token: DEMO_TOKEN,
+    flowRate: 0n,
+    streamedSoFar: 900000000000000000n,
+    createdAtTimestamp: 1766793600,
+    updatedAtTimestamp: 1766880000,
+    direction: 'incoming',
+    isActive: false,
+    closedAtTimestamp: 1766880000,
+  },
+  {
+    id: 'history-outgoing-demo-stream-3',
+    sender: DEMO_ADDRESS,
+    receiver: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    token: DEMO_TOKEN,
+    flowRate: 0n,
+    streamedSoFar: 500000000000000000n,
+    createdAtTimestamp: 1766707200,
+    updatedAtTimestamp: 1766793600,
+    direction: 'outgoing',
+    isActive: false,
+    closedAtTimestamp: 1766793600,
   },
 ]
 
@@ -158,6 +193,9 @@ function createAdapter(
     setStreamStatus: 'idle',
     setStreamError: null,
     setStreamTxHash: null,
+    editingStreamId: null,
+    cancelStreamStatus: {},
+    cancelStreamError: {},
     poolConnectStatus: {},
     poolConnectError: {},
     poolClaimStatus: {},
@@ -174,6 +212,8 @@ function createAdapter(
     updateSetStreamForm: () => {},
     submitSetStream: async () => {},
     resetSetStream: () => {},
+    editStream: () => {},
+    cancelStream: async () => {},
     connectToPool: async () => {},
     disconnectFromPool: async () => {},
     claimFromPool: async () => {},
@@ -532,6 +572,47 @@ export function CreateUpdateFailureStory({ defaultTheme, themeOverrides }: Theme
       })}
       dataTestId="StreamingWidget-create-update-failure"
       initialStreamsFormOpen
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function CancelStreamPendingStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        cancelStreamStatus: { [DEMO_RECEIVER.toLowerCase()]: 'pending' },
+      })}
+      dataTestId="StreamingWidget-cancel-stream-pending"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function CancelStreamFailureStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        cancelStreamStatus: { [DEMO_RECEIVER.toLowerCase()]: 'error' },
+        cancelStreamError: { [DEMO_RECEIVER.toLowerCase()]: 'Transaction cancelled by wallet.' },
+      })}
+      dataTestId="StreamingWidget-cancel-stream-failure"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function UpdateStreamFormStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        setStreamForm: validForm,
+        editingStreamId: sampleStreams[0].id,
+      })}
+      dataTestId="StreamingWidget-update-stream-form"
       defaultTheme={defaultTheme}
       themeOverrides={themeOverrides}
     />

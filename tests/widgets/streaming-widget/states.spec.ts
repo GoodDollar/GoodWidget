@@ -82,7 +82,7 @@ test('StreamingWidget shows loading states for streams and history', async ({ pa
 test('StreamingWidget shows empty states for streams and history', async ({ page }) => {
   await gotoStory(page, 'empty-state')
 
-  await expectBodyToContain(page, ['No streams found.'])
+  await expectBodyToContain(page, ['No active streams found.'])
 
   await page.getByText('History').first().click()
   await expectBodyToContain(page, ['No stream history found.'])

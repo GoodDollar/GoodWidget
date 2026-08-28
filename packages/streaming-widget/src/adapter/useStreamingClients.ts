@@ -60,6 +60,14 @@ export function useStreamingClients({
     [viemClients, environment],
   )
 
+  const subgraphClient = useMemo(
+    () =>
+      chainId && isSupportedChain(chainId)
+        ? new SubgraphClient(chainId as SupportedChains, { apiKey })
+        : null,
+    [chainId, apiKey],
+  )
+
   const basePublicClient = useMemo(() => createBasePublicClient(), [])
 
   const baseStreamingSDK = useMemo(
@@ -82,6 +90,7 @@ export function useStreamingClients({
     viemClients,
     streamingSDK,
     gdaSDK,
+    subgraphClient,
     baseStreamingSDK,
     baseSubgraphClient,
   }

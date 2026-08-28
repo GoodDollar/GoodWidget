@@ -53,6 +53,10 @@ export interface StreamListItem {
   /** Unix timestamp (seconds) of last on-chain update */
   updatedAtTimestamp: number
   direction: 'incoming' | 'outgoing'
+  /** True while the flow rate is above zero; false once the stream has ended */
+  isActive: boolean
+  /** Unix timestamp (seconds) when the stream stopped, null while still active */
+  closedAtTimestamp: number | null
 }
 
 // ---------------------------------------------------------------------------
@@ -106,10 +110,11 @@ export interface StreamingWidgetAdapterState {
   /** True when the connected chain is not supported by the streaming SDK */
   isWrongChain: boolean
 
-  /** Active + historical streams for the connected address */
+  /** Currently flowing streams for the connected address */
   streams: StreamListItem[]
   streamsLoading: boolean
   streamsError: string | null
+  /** Streams that have ended (flow rate dropped to zero) */
   streamHistory: StreamListItem[]
   streamHistoryLoading: boolean
   streamHistoryError: string | null
@@ -140,6 +145,12 @@ export interface StreamingWidgetAdapterState {
   setStreamStatus: WriteStatus
   setStreamError: string | null
   setStreamTxHash: string | null
+  /** Id of the active stream the form is editing, null when creating a new stream */
+  editingStreamId: string | null
+
+  /** Cancel-stream write status keyed by lowercased receiver address */
+  cancelStreamStatus: Record<string, WriteStatus>
+  cancelStreamError: Record<string, string | null>
 
   /** Pool connect/disconnect write status keyed by pool address */
   poolConnectStatus: Record<string, WriteStatus>
@@ -166,6 +177,10 @@ export interface StreamingWidgetAdapterActions {
   submitSetStream: () => Promise<void>
   /** Reset the set-stream form and its write status */
   resetSetStream: () => void
+  /** Prefill the set-stream form from an existing active stream */
+  editStream: (stream: StreamListItem) => void
+  /** Stop an outgoing stream by setting its flow rate to zero */
+  cancelStream: (receiver: Address) => Promise<void>
 
   /** Connect wallet to a GDA pool to begin receiving distributions */
   connectToPool: (poolAddress: Address) => Promise<void>
