@@ -115,8 +115,9 @@ test('Scorecard/Default story renders all 5 mock-data rows in both variants', as
   // Taller than the default viewport so both the bare and card rows fit
   // without clipping — 10 cards across two rows need more vertical space
   // than a single-row story. 1000 (rather than 900) accounts for the
-  // increased card padding/spacing from the golden-ratio spacing pass.
-  await page.setViewportSize({ width: 1280, height: 1000 })
+  // increased card padding/spacing from the golden-ratio spacing pass;
+  // 1080 accounts for the extra subtitle line added to two of the rows.
+  await page.setViewportSize({ width: 1280, height: 1080 })
   await gotoStory(page, 'design-system-primitives-scorecard--default')
   const frame = getStoryFrame(page)
   await expect(frame.getByTestId('Scorecard-default')).toBeVisible()
@@ -126,6 +127,11 @@ test('Scorecard/Default story renders all 5 mock-data rows in both variants', as
     await expect(frame.getByTestId(`Scorecard-${slug}-bare`)).toBeVisible()
     await expect(frame.getByTestId(`Scorecard-${slug}-card`)).toBeVisible()
   }
+
+  // subtitle renders below the trend row when trend is present (unique-wallets)
+  // and directly below the value row when trend is absent (daily-flow-rate).
+  await expect(frame.getByTestId('Scorecard-unique-wallets-bare').getByText('Last 30 days')).toBeVisible()
+  await expect(frame.getByTestId('Scorecard-daily-flow-rate-bare').getByText('From AntSeed vault')).toBeVisible()
 
   await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-default.png')
 })
