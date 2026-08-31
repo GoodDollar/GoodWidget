@@ -12,7 +12,6 @@ import {
   XStack,
   YStack,
 } from '@goodwidget/ui'
-import type { IconName } from '@goodwidget/ui'
 import type {
   CampaignLeaderboardAdapter,
   CampaignPointsAccount,
@@ -31,7 +30,7 @@ import {
 } from './LeaderboardRow'
 import { compactButtonProps } from './shared/styles'
 import { LeaderboardStatus } from './LeaderboardStatus'
-import { WalletChip } from './shared/WalletChip'
+import { WalletControls } from '@goodwidget/core'
 
 interface LeaderboardViewProps {
   /** Matches the "SEASON N" badge shown next to the wordmark on the content view's header. */
@@ -42,11 +41,6 @@ interface LeaderboardViewProps {
   leaderboardAdapter?: CampaignLeaderboardAdapter
   isConnected: boolean
   onConnect: () => void
-  onDisconnect?: () => Promise<void>
-  /** Label for the WalletChip's disconnect action. See WalletChip's own prop for details. */
-  disconnectLabel?: string
-  /** Icon for the WalletChip's disconnect action. See WalletChip's own prop for details. */
-  disconnectIcon?: IconName
   onClose: () => void
   leaderboardRefreshKey: number
   userPointsAdapter?: CampaignUserPointsAdapter
@@ -91,9 +85,6 @@ export function LeaderboardView({
   leaderboardAdapter,
   isConnected,
   onConnect,
-  onDisconnect,
-  disconnectLabel,
-  disconnectIcon,
   onClose,
   leaderboardRefreshKey,
   userPointsAdapter,
@@ -187,13 +178,7 @@ export function LeaderboardView({
             </Badge>
           </XStack>
           {isConnected ? (
-            <WalletChip
-              address={address}
-              onDisconnect={onDisconnect}
-              disconnectLabel={disconnectLabel}
-              disconnectIcon={disconnectIcon}
-              disabled={disableWalletButton}
-            />
+            <WalletControls disabled={disableWalletButton} />
           ) : (
             <Button
               size="sm"

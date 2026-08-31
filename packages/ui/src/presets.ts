@@ -46,6 +46,7 @@ export const defaultTokenPreset = {
       backgroundDark: '#13151C',
       surface: '#1E1F26',
       surfaceAlt: '#171C2B',
+      surfaceRaised: '#252730',
       text: '#FFFFFF',
       textDark: '#FFFFFF',
       textSecondary: '#808080',
@@ -248,6 +249,7 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
       backgroundOverlay: color.backgroundOverlay,
 
       backgroundSurface: color.surface,
+      backgroundRaised: color.surfaceRaised,
       backgroundSurfaceAlt: color.surfaceAlt,
 
       color: color.textDark,

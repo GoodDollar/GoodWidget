@@ -38,7 +38,9 @@ function createMockClaimExecutionClientBundle(chainId: number, shouldFail: boole
       },
       estimateFeesPerGas: async () => ({ maxFeePerGas: 1n }),
       getBalance: async () => 1_000000000000000000n,
-      simulateContract: async () => ({ request: { to: '0x0000000000000000000000000000000000000001' } }),
+      simulateContract: async () => ({
+        request: { to: '0x0000000000000000000000000000000000000001' },
+      }),
       getTransactionReceipt: async ({ hash }: { hash: `0x${string}` }) => ({
         transactionHash: hash,
         blockNumber: 1n,
@@ -190,7 +192,9 @@ function CustodialExecutionClaimAllHarness() {
   })
   const [running, setRunning] = useState(false)
   const [durationMs, setDurationMs] = useState<number | null>(null)
-  const [results, setResults] = useState<Array<{ chainId: number; status: string; message: string }>>([])
+  const [results, setResults] = useState<
+    Array<{ chainId: number; status: string; message: string }>
+  >([])
 
   const runClaimAll = async () => {
     setRunning(true)
@@ -217,7 +221,11 @@ function CustodialExecutionClaimAllHarness() {
   }
 
   return (
-    <YStack data-testid="CitizenClaimWidget-custodial-claim-all-contract" style={{ width: 420 }} gap="$3">
+    <YStack
+      data-testid="CitizenClaimWidget-custodial-claim-all-contract"
+      style={{ width: 420 }}
+      gap="$3"
+    >
       <button type="button" onClick={runClaimAll} disabled={running}>
         {running ? 'Running claimAll…' : 'Run claimAll'}
       </button>

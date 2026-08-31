@@ -10,7 +10,10 @@ import {
   XStack,
   YStack,
 } from '@goodwidget/ui'
-import type { AiCreditsWidgetAdapterActions, AiCreditsWidgetAdapterState } from '../../widgetRuntimeContract'
+import type {
+  AiCreditsWidgetAdapterActions,
+  AiCreditsWidgetAdapterState,
+} from '../../widgetRuntimeContract'
 import { formatUsdMicro, quoteTotalUsdMicro } from '../../quoteMath'
 import {
   BUYER_KEY_REQUIRED_CLOSE_TOOLTIP,
@@ -27,36 +30,36 @@ interface CreditsManagementCardProps {
 
 function StatCell({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <YStack
-      flex={1}
-      minWidth="45%"
-      gap="$1"
-      backgroundColor="$backgroundHover"
-      borderRadius="$2"
-      padding="$2"
-      $gtSm={{
-        minWidth: '28%',
-      }}
-    >
-      <Text fontSize="$1" secondary>
+    <Card raised borderWidth={0} flexGrow={1} flexBasis={0}>
+      <Text fontSize="$1" tone="soft">
         {label}
       </Text>
-      <YStack justifyContent="center">
-        {children}
-      </YStack>
-    </YStack>
+      <YStack justifyContent="center">{children}</YStack>
+    </Card>
+  )
+}
+
+/** One row of stat cards. Pairs are explicit so widths never depend on wrapping. */
+function StatRow({ children }: { children: React.ReactNode }) {
+  return (
+    <XStack gap="$2" width="100%" alignItems="stretch">
+      {children}
+    </XStack>
   )
 }
 
 function StatValueText({
   children,
   color,
+  fontSize = '$2',
 }: {
   children: React.ReactNode
   color?: string
+  /** `$5` matches Heading level 5, used by the two headline stats. */
+  fontSize?: string
 }) {
   return (
-    <Text fontSize="$2" fontWeight="700" color={color}>
+    <Text fontSize={fontSize} fontWeight="700" color={color}>
       {children}
     </Text>
   )
@@ -149,6 +152,7 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
     gdUsdPerToken,
     isGoodIdVerified,
     withdrawableUsd,
+    totalBonusUsd,
     buyerPrvKey,
   } = state
 
@@ -162,7 +166,13 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
     })
     if (usdMicro <= 0n) return null
     return formatUsdAmount(usdMicro.toString())
-  }, [monthlyStreamG, gdUsdPerToken, isGoodIdVerified, state.depositBonusPercent, state.streamBonusPercent])
+  }, [
+    monthlyStreamG,
+    gdUsdPerToken,
+    isGoodIdVerified,
+    state.depositBonusPercent,
+    state.streamBonusPercent,
+  ])
 
   const totalCreditDisplay =
     totalCreditUsd && BigInt(totalCreditUsd) > 0n
@@ -171,10 +181,9 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
         ? formatUsdAmount('0')
         : null
 
-  const withdrawableDisplay =
-    withdrawableUsd !== null ? formatUsdAmount(withdrawableUsd) : null
-  const hasWithdrawableBalance =
-    withdrawableUsd !== null && BigInt(withdrawableUsd) > 0n
+  const withdrawableDisplay = withdrawableUsd !== null ? formatUsdAmount(withdrawableUsd) : null
+  const totalBonusDisplay = totalBonusUsd !== null ? formatUsdAmount(totalBonusUsd) : null
+  const hasWithdrawableBalance = withdrawableUsd !== null && BigInt(withdrawableUsd) > 0n
   const canClose = Boolean(buyerPrvKey) && Boolean(channelId.trim()) && !isClosing
   const canWithdraw =
     Boolean(buyerPrvKey) &&
@@ -183,51 +192,55 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
     !isWithdrawing
 
   return (
-    <Card gap="$3">
+    <Card>
       <Heading level={6}>AI Credits</Heading>
 
-      <XStack gap="$4" width="100%" alignItems="flex-start" flexWrap="wrap">
-        <YStack gap="$2" flex={1} minWidth={0}>
-          <Text fontSize="$1" secondary>
-            Total Credit (US$)
-          </Text>
+      <StatRow>
+        <StatCell label="Total Credit (US$)">
           {totalCreditDisplay !== null ? (
-            <Heading level={5}>{totalCreditDisplay}</Heading>
+            <StatValueText fontSize="$5">{totalCreditDisplay}</StatValueText>
           ) : (
             <Spinner size="sm" />
           )}
-        </YStack>
-        <YStack gap="$2" flex={1} minWidth={0}>
-          <Text fontSize="$1" secondary>
-            Est. Monthly Credit (US$)
-          </Text>
+        </StatCell>
+        <StatCell label="Monthly Credit (US$)">
           {monthlyStreamUsdDisplay ? (
-            <Heading level={5} color="$primary">
+            <StatValueText fontSize="$5" color="$primary">
               ~{monthlyStreamUsdDisplay}
-            </Heading>
+            </StatValueText>
           ) : (
-            <Heading level={5}>—</Heading>
+            <StatValueText fontSize="$5">—</StatValueText>
           )}
-        </YStack>
-      </XStack>
+        </StatCell>
+      </StatRow>
 
-      <XStack gap="$2" width="100%" flexWrap="wrap" alignItems="stretch">
-          <StatCell label="Total Deposited (G$)">
-            <CompactGStatValue amount={totalGdDepositedG ?? '0.00'} />
-          </StatCell>
-          <StatCell label="Monthly Stream (G$)">
-            <CompactGStatValue amount={monthlyStreamG ?? '0.00'} />
-          </StatCell>
-          <StatCell label="Withdrawable (US$)">
-            {withdrawableDisplay !== null ? (
-              <StatValueText>{withdrawableDisplay}</StatValueText>
-            ) : (
-              <Spinner size="sm" />
-            )}
-          </StatCell>
-      </XStack>
+      <StatRow>
+        <StatCell label="Total Deposited (G$)">
+          <CompactGStatValue amount={totalGdDepositedG ?? '0.00'} />
+        </StatCell>
+        <StatCell label="Monthly Stream (G$)">
+          <CompactGStatValue amount={monthlyStreamG ?? '0.00'} />
+        </StatCell>
+      </StatRow>
 
-      <YStack gap="$1">
+      <StatRow>
+        <StatCell label="Bonus Earned (US$)">
+          {totalBonusDisplay !== null ? (
+            <StatValueText>{totalBonusDisplay}</StatValueText>
+          ) : (
+            <Spinner size="sm" />
+          )}
+        </StatCell>
+        <StatCell label="Withdrawable (US$)">
+          {withdrawableDisplay !== null ? (
+            <StatValueText>{withdrawableDisplay}</StatValueText>
+          ) : (
+            <Spinner size="sm" />
+          )}
+        </StatCell>
+      </StatRow>
+
+      <YStack gap="$1" width="100%">
         <XStack gap="$1" alignItems="center">
           <Text fontSize="$1" variant="label">
             Withdraw

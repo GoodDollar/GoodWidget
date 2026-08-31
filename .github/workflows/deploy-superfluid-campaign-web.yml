@@ -43,7 +43,7 @@ jobs:
     needs: authorize-preview
     runs-on: ubuntu-latest
     environment:
-      name: preview
+      name: preview-superfluid-campaign
       url: ${{ steps.deploy.outputs.url }}
     steps:
       - name: Checkout pull request head

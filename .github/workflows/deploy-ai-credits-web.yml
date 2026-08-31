@@ -9,8 +9,8 @@ on:
       - 'apps/ai-credits-web/**'
       - 'packages/ai-credits-widget/**'
       - 'packages/core/**'
-      - 'packages/ui/**'
       - 'packages/embed/**'
+      - 'packages/ui/**'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
   pull_request_target:
@@ -44,7 +44,7 @@ jobs:
     needs: authorize-preview
     runs-on: ubuntu-latest
     environment:
-      name: preview
+      name: preview-ai-credits
       url: ${{ steps.deploy.outputs.url }}
     steps:
       - name: Checkout pull request head

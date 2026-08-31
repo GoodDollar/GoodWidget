@@ -22,6 +22,11 @@ export type StreamingChainId = (typeof STREAMING_CHAINS)[keyof typeof STREAMING_
 export type StreamDirection = 'all' | 'incoming' | 'outgoing'
 
 // ---------------------------------------------------------------------------
+// Stream status filter used by the History tab
+// ---------------------------------------------------------------------------
+export type StreamStatusFilter = 'all' | 'active' | 'ended'
+
+// ---------------------------------------------------------------------------
 // Time unit for flow rate display/input
 // ---------------------------------------------------------------------------
 export type StreamTimeUnit = 'day' | 'month' | 'year'
@@ -44,6 +49,8 @@ export interface StreamListItem {
   sender: Address
   receiver: Address
   token: Address
+  /** Super token symbol as reported by the subgraph, e.g. "G$" */
+  tokenSymbol: string
   /** Flow rate in wei per second */
   flowRate: bigint
   /** Accumulated streamed amount in wei */
@@ -53,6 +60,10 @@ export interface StreamListItem {
   /** Unix timestamp (seconds) of last on-chain update */
   updatedAtTimestamp: number
   direction: 'incoming' | 'outgoing'
+  /** True while the flow rate is above zero; false once the stream has ended */
+  isActive: boolean
+  /** Unix timestamp (seconds) when the stream stopped, null while still active */
+  closedAtTimestamp: number | null
 }
 
 // ---------------------------------------------------------------------------
@@ -86,6 +97,13 @@ export interface SupReserveLockerItem {
 // ---------------------------------------------------------------------------
 export interface SetStreamFormState {
   receiver: string
+  /**
+   * Super token being streamed. Undefined for a new stream, which falls back to
+   * the chain default; set when editing so the write lands on the right token.
+   */
+  token?: Address
+  /** Display symbol for `token`, when known */
+  tokenSymbol?: string
   /** User-visible amount string (e.g. "100") */
   amount: string
   timeUnit: StreamTimeUnit
@@ -106,10 +124,11 @@ export interface StreamingWidgetAdapterState {
   /** True when the connected chain is not supported by the streaming SDK */
   isWrongChain: boolean
 
-  /** Active + historical streams for the connected address */
+  /** Currently flowing streams for the connected address */
   streams: StreamListItem[]
   streamsLoading: boolean
   streamsError: string | null
+  /** Every stream ever opened by the connected address, active and ended alike */
   streamHistory: StreamListItem[]
   streamHistoryLoading: boolean
   streamHistoryError: string | null
@@ -140,6 +159,12 @@ export interface StreamingWidgetAdapterState {
   setStreamStatus: WriteStatus
   setStreamError: string | null
   setStreamTxHash: string | null
+  /** Id of the active stream the form is editing, null when creating a new stream */
+  editingStreamId: string | null
+
+  /** Cancel-stream write status keyed by `streamWriteKey(receiver, token)` */
+  cancelStreamStatus: Record<string, WriteStatus>
+  cancelStreamError: Record<string, string | null>
 
   /** Pool connect/disconnect write status keyed by pool address */
   poolConnectStatus: Record<string, WriteStatus>
@@ -166,6 +191,13 @@ export interface StreamingWidgetAdapterActions {
   submitSetStream: () => Promise<void>
   /** Reset the set-stream form and its write status */
   resetSetStream: () => void
+  /** Prefill the set-stream form from an existing active stream */
+  editStream: (stream: StreamListItem) => void
+  /**
+   * Stop an outgoing stream by setting its flow rate to zero. `token` must be the
+   * stream's own super token — omitting it would target the chain default instead.
+   */
+  cancelStream: (receiver: Address, token?: Address) => Promise<void>
 
   /** Connect wallet to a GDA pool to begin receiving distributions */
   connectToPool: (poolAddress: Address) => Promise<void>
