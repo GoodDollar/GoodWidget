@@ -13,7 +13,10 @@ import {
   closeDialog,
   createDialog,
 } from '@goodwidget/ui'
-import type { AiCreditsWidgetAdapterActions, AiCreditsWidgetAdapterState } from '../../widgetRuntimeContract'
+import type {
+  AiCreditsWidgetAdapterActions,
+  AiCreditsWidgetAdapterState,
+} from '../../widgetRuntimeContract'
 import { AddressView } from '../shared/AddressView'
 import { monospaceSingleLineStyle, compactButtonProps } from '../shared/styles'
 import { useCopyFeedback } from '../shared/useCopyFeedback'
@@ -24,7 +27,6 @@ interface BuyerOperatorCardProps {
     | 'address'
     | 'buyerPubKey'
     | 'buyerPrvKey'
-    | 'operatorSignature'
     | 'operatorConsented'
     | 'operatorConsentPending'
     | 'buyers'
@@ -161,28 +163,20 @@ function BuyerImportPanel({
 }
 
 export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
-  const {
-    address,
-    buyerPubKey,
-    buyerPrvKey,
-    operatorSignature,
-    operatorConsented,
-    operatorConsentPending,
-    buyers,
-  } = state
+  const { address, buyerPubKey, buyerPrvKey, operatorConsented, operatorConsentPending, buyers } =
+    state
   const { copied: copiedPrivate, copy: copyPrivate } = useCopyFeedback()
   const [isPrivateKeyVisible, setIsPrivateKeyVisible] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [showImport, setShowImport] = useState(false)
 
-  const buyerCanSign = Boolean(buyerPrvKey || operatorSignature)
+  const buyerCanSign = Boolean(buyerPrvKey)
 
   const handleOpenRevokeDialog = () => {
     createDialog({
-      title: 'Revoke Operator?',
-      body:
-        "Revoking removes the operator's ability to act on your behalf. Any bonus balance will be deducted, and any active stream bonuses will stop.",
-      acceptLabel: 'Revoke Operator',
+      title: 'Unauthorize Wallet?',
+      body: "Removes the operator's wallet ability to act on your behalf. Any bonus balance will be deducted, and any active stream bonuses will stop.",
+      acceptLabel: 'Unauthorize Wallet',
       rejectLabel: 'Cancel',
       showClose: true,
       onAccept: async () => {
@@ -244,7 +238,7 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
         </Button>
       </XStack>
 
-      {operatorConsented && (
+      {buyerCanSign && operatorConsented && (
         <Button
           size="sm"
           variant="outline"
@@ -254,7 +248,7 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
           disabled={operatorConsentPending}
           onPress={handleOpenRevokeDialog}
         >
-          <ButtonText color="$error">Revoke Operator</ButtonText>
+          <ButtonText color="$error">Unauthorize Wallet</ButtonText>
         </Button>
       )}
 
@@ -297,9 +291,7 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
             alignItems="center"
           >
             <Text fontSize="$2" style={monospaceSingleLineStyle} flex={1} numberOfLines={1}>
-              {isPrivateKeyVisible
-                ? buyerPrvKey
-                : '•'.repeat(Math.min(48, buyerPrvKey.length))}
+              {isPrivateKeyVisible ? buyerPrvKey : '•'.repeat(Math.min(48, buyerPrvKey.length))}
             </Text>
             <Button
               size="sm"
