@@ -2,7 +2,7 @@ const DEFAULT_TAG_NAME = 'gw-goodreserve-widget'
 
 export const goodWidgetMetadata = {
   packageName: '@goodwidget/goodreserve-widget',
-  packageVersion: '0.1.1',
+  packageVersion: '0.1.2',
 } as const
 
 export async function register(tagName: string = DEFAULT_TAG_NAME): Promise<string> {

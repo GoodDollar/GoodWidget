@@ -12,7 +12,7 @@ export const VIEM_CHAINS: Record<number, Chain> = {
     id: SupportedChains.BASE,
     name: 'Base',
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-    rpcUrls: { default: { http: ['https://mainnet.base.org'] } },
+    rpcUrls: { default: { http: ['https://base.drpc.org'] } },
   } as Chain,
 }
 

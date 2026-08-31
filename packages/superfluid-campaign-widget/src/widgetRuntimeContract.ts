@@ -1,4 +1,4 @@
-import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
+import type { GoodWidgetConfig, GoodWidgetThemeOverrides, IconName } from '@goodwidget/ui'
 import type {
   CitizenClaimWidgetCustodialExecution,
   CitizenClaimWidgetEnvironment,
@@ -194,6 +194,37 @@ export interface SuperfluidCampaignWidgetProps {
   connectOverride?: () => Promise<void>
   /** Integrator-owned wallet disconnect flow. */
   disconnectOverride?: () => Promise<void>
+  /**
+   * Integrator-owned live address (e.g. from a wallet-connection SDK's own
+   * reactive account hook). See `GoodWidgetProviderProps.addressOverride`.
+   */
+  addressOverride?: string | null
+  /**
+   * Integrator-owned live chain id, mirroring `addressOverride`. See
+   * `GoodWidgetProviderProps.chainIdOverride`.
+   */
+  chainIdOverride?: number | null
+  /**
+   * Integrator-owned chain-switch fallback. See
+   * `GoodWidgetProviderProps.switchChainOverride`.
+   */
+  switchChainOverride?: (chainId: number) => Promise<void>
+  /**
+   * Chain ids the passed-down provider can currently execute on. See
+   * `GoodWidgetProviderProps.availableChainIdsOverride`. Claim execution is
+   * scoped to this set; balance/entitlement reads are unaffected.
+   */
+  availableChainIdsOverride?: number[] | null
+  /**
+   * Label for the wallet chip's disconnect action. See
+   * `GoodWidgetProviderProps.disconnectLabel`.
+   */
+  disconnectLabel?: string
+  /**
+   * Icon for the wallet chip's disconnect action, mirroring `disconnectLabel`.
+   * See `GoodWidgetProviderProps.disconnectIcon`.
+   */
+  disconnectIcon?: IconName
   environment?: SuperfluidCampaignWidgetEnvironment
   themeOverrides?: GoodWidgetThemeOverrides
   config?: GoodWidgetConfig
@@ -219,6 +250,11 @@ export interface SuperfluidCampaignWidgetProps {
   citizenClaimExecution?: CitizenClaimWidgetCustodialExecution
   /** Redirect the Claim CTA to GoodWallet instead of embedding CitizenClaimWidget. */
   disableClaim?: boolean
+  /**
+   * Disables the header's connect-wallet CTA and connected-wallet status chip,
+   * e.g. while the host page isn't ready to accept a wallet connection yet.
+   */
+  disableWalletButton?: boolean
   /**
    * View shown on first render. Defaults to 'content'. Lets Storybook fixtures
    * and deep links land directly on the leaderboard without a click.

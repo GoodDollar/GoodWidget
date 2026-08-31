@@ -25,6 +25,15 @@ export const FOCUSED_STATUSES = new Set<StepperStepStatus>([
   'attention',
 ])
 
+/**
+ * Style for a step that has not been reached yet but is not blocked either —
+ * the caller marked it `optional`, so it reads as available rather than locked.
+ */
+export const OPTIONAL_STEP_OVERRIDES = {
+  label: 'Optional',
+  titleColor: '$colorSoft',
+} as const
+
 export const STEP_STYLE: Record<StepperStepStatus, StepStyle> = {
   pending: {
     connector: '$borderColor',

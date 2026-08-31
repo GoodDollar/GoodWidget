@@ -7,6 +7,7 @@ import { createComponent } from '../createComponent'
 import {
   FOCUSED_STATUSES,
   MARKER_SIZE,
+  OPTIONAL_STEP_OVERRIDES,
   ROW_GAP_PX,
   STEP_STYLE,
   type MarkerStyle,
@@ -20,10 +21,19 @@ export interface StepperStepItem {
   title: string
   description?: string
   status: StepperStepStatus
+  /**
+   * Marks a not-yet-reached step as skippable: it renders as available rather
+   * than locked and stays pressable, so the flow never gates the user.
+   */
+  optional?: boolean
 }
 
 export interface StepperProps {
   steps: StepperStepItem[]
+  /**
+   * Step to scroll into view. Pass `null` to opt out of auto-scrolling entirely,
+   * which keeps the stepper from yanking the surrounding page on mount.
+   */
   activeStepId?: string | null
   header?: ReactNode
   maxHeight?: number
@@ -124,12 +134,16 @@ function StepperStepRow({
   stepRef: (node: HTMLElement | null) => void
   onStepPress?: (stepId: string) => void
 }) {
-  const style = STEP_STYLE[step.status]
+  const isOptional = step.optional === true && step.status === 'pending'
+  const style = isOptional
+    ? { ...STEP_STYLE[step.status], ...OPTIONAL_STEP_OVERRIDES }
+    : STEP_STYLE[step.status]
   const showDescription = Boolean(step.description) && (style.active || style.failed)
   const emphasized = style.active || style.failed
   const pressable =
     Boolean(onStepPress) &&
-    (step.status === 'ready' ||
+    (isOptional ||
+      step.status === 'ready' ||
       step.status === 'active' ||
       step.status === 'failed' ||
       step.status === 'completed')
@@ -214,8 +228,12 @@ const StepperScrollFrame = createComponent(YStack, {
 
 export function Stepper({ steps, activeStepId, header, maxHeight = 360, onStepPress }: StepperProps) {
   const stepRefs = useRef(new Map<string, HTMLElement>())
+  // `undefined` means "pick the focused step"; an explicit `null` means the
+  // caller does not want the stepper to scroll anything into view.
   const resolvedActiveStepId =
-    activeStepId ?? steps.find((step) => FOCUSED_STATUSES.has(step.status))?.id ?? null
+    activeStepId === null
+      ? null
+      : (activeStepId ?? steps.find((step) => FOCUSED_STATUSES.has(step.status))?.id ?? null)
 
   ensureScrollbarHidden()
 

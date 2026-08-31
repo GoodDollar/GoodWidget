@@ -7,6 +7,8 @@ export type CitizenClaimWidgetStatus =
   | 'loading'
   | 'connecting'
   | 'not_connected'
+  /** Wallet is connected but its active chain isn't one citizen-sdk supports. */
+  | 'unsupported_chain'
   | 'not_whitelisted'
   | 'eligible'
   | 'already_claimed'
@@ -127,11 +129,43 @@ export interface CitizenClaimWidgetChainClaimResult {
 export interface CitizenClaimWidgetProps {
   provider?: unknown
   environment?: CitizenClaimWidgetEnvironment
+  /**
+   * Fallback chain id shown only until the live wallet chain resolves via
+   * `provider`/`chainIdOverride`, or while disconnected. Once a live chain is
+   * known it always takes precedence over this value.
+   */
   chainId?: number
   clientFactory?: CitizenClaimWidgetClientFactory
   claimExecution?: CitizenClaimWidgetCustodialExecution
   onClaimSuccess?: (detail: CitizenClaimWidgetSuccessDetail) => void
   onClaimError?: (detail: CitizenClaimWidgetErrorDetail) => void
+  /**
+   * Integrator-owned live address (e.g. from a wallet-connection SDK's own
+   * reactive account hook). See `GoodWidgetProviderProps.addressOverride`.
+   */
+  addressOverride?: string | null
+  /**
+   * Integrator-owned live chain id, mirroring `addressOverride`. See
+   * `GoodWidgetProviderProps.chainIdOverride`.
+   */
+  chainIdOverride?: number | null
+  /**
+   * Integrator-owned connect fallback (e.g. opening a wallet-connect modal
+   * instead of requesting the injected provider directly). See
+   * `GoodWidgetProviderProps.connectOverride`.
+   */
+  connectOverride?: () => Promise<void>
+  /**
+   * Integrator-owned chain-switch fallback. See
+   * `GoodWidgetProviderProps.switchChainOverride`.
+   */
+  switchChainOverride?: (chainId: number) => Promise<void>
+  /**
+   * Chain ids the passed-down provider can currently execute on. See
+   * `GoodWidgetProviderProps.availableChainIdsOverride`. Claim execution is
+   * scoped to this set; balance/entitlement reads are unaffected.
+   */
+  availableChainIdsOverride?: number[] | null
   // ---- Theming (optional, passed through to GoodWidgetProvider) ----
   /** Token and theme overrides applied at the widget boundary. */
   themeOverrides?: GoodWidgetThemeOverrides

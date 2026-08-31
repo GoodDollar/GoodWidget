@@ -9,7 +9,7 @@ import type {
   StreamingWidgetEnvironment,
 } from './widgetRuntimeContract'
 import { usePoolWrites } from './adapter/usePoolWrites'
-import { useSetStreamForm } from './adapter/useSetStreamForm'
+import { useStreamWrites } from './adapter/useStreamWrites'
 import { useStreamingClients } from './adapter/useStreamingClients'
 import { useStreamingData } from './adapter/useStreamingData'
 
@@ -32,6 +32,7 @@ export function useStreamingAdapter({
     viemClients,
     streamingSDK,
     gdaSDK,
+    streamsEndpoint,
     baseStreamingSDK,
     baseSubgraphClient,
   } = useStreamingClients({
@@ -45,12 +46,13 @@ export function useStreamingAdapter({
     address: walletAddress,
     streamingSDK,
     gdaSDK,
+    streamsEndpoint,
     baseStreamingSDK,
     baseSubgraphClient,
     viemClients,
   })
 
-  const setStream = useSetStreamForm({
+  const setStream = useStreamWrites({
     streamingSDK,
     refreshStreams: data.refreshStreams,
   })
@@ -130,6 +132,8 @@ export function useStreamingAdapter({
       updateSetStreamForm: setStream.updateSetStreamForm,
       submitSetStream: setStream.submitSetStream,
       resetSetStream: setStream.resetSetStream,
+      editStream: setStream.editStream,
+      cancelStream: setStream.cancelStream,
       connectToPool: poolWrites.connectToPool,
       disconnectFromPool: poolWrites.disconnectFromPool,
       claimFromPool: poolWrites.claimFromPool,
@@ -144,6 +148,8 @@ export function useStreamingAdapter({
       setStream.updateSetStreamForm,
       setStream.submitSetStream,
       setStream.resetSetStream,
+      setStream.editStream,
+      setStream.cancelStream,
       poolWrites.connectToPool,
       poolWrites.disconnectFromPool,
       poolWrites.claimFromPool,

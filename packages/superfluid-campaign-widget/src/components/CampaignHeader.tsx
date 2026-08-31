@@ -3,7 +3,7 @@ import { Badge, BadgeText, Button, ButtonText, Heading, Icon, Text, XStack, YSta
 import type { CampaignDefinition } from '../widgetRuntimeContract'
 import { ConnectWalletPrompt } from './ConnectWalletPrompt'
 import { compactButtonProps } from './shared/styles'
-import { WalletChip } from './shared/WalletChip'
+import { WalletControls } from '@goodwidget/core'
 
 /** claim.superfluid.org is the Superfluid-operated claim app — always opened in a new tab, never embedded. */
 const SUPERFLUID_CLAIM_APP_URL = 'https://claim.superfluid.org/'
@@ -13,30 +13,29 @@ interface CampaignHeaderProps {
     CampaignDefinition,
     'seasonLabel' | 'title' | 'description' | 'supAllocatedLabel' | 'endsLabel'
   >
-  address: string | null
   isConnected: boolean
   onConnect: () => void
-  onDisconnect?: () => Promise<void>
   /** Present when the campaign shell is showing an in-place child widget. */
   onClose?: () => void
+  /** Disables the connect/wallet-status button. See `SuperfluidCampaignWidgetProps.disableWalletButton`. */
+  disableWalletButton?: boolean
 }
 
 /**
  * Top-of-page header: "Superfluid" wordmark + season badge, top-right slot,
  * title, description, and configured campaign-info pills. The top-right slot shows the
  * "Connect wallet" CTA while disconnected, per #127 follow-up, and the same
- * WalletChip (status dot + truncated address + dropdown chevron, opening a
- * Disconnect menu) used on LeaderboardView's header once connected. An
+ * WalletControls chip (status dot + truncated address + dropdown chevron,
+ * opening a Disconnect menu) used on LeaderboardView's header once connected. An
  * optional close affordance is supplied when this header frames an in-place
  * child widget, such as the Citizen Claim flow.
  */
 export function CampaignHeader({
   data,
-  address,
   isConnected,
   onConnect,
-  onDisconnect,
   onClose,
+  disableWalletButton = false,
 }: CampaignHeaderProps) {
   return (
     <YStack gap="$4" width="100%">
@@ -60,9 +59,9 @@ export function CampaignHeader({
 
         <XStack gap="$2" alignItems="center">
           {isConnected ? (
-            <WalletChip address={address} onDisconnect={onDisconnect} />
+            <WalletControls disabled={disableWalletButton} />
           ) : (
-            <ConnectWalletPrompt onConnect={onConnect} />
+            <ConnectWalletPrompt onConnect={onConnect} disabled={disableWalletButton} />
           )}
           {onClose && (
             <Button

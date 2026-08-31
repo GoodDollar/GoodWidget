@@ -30,7 +30,7 @@ import {
 } from './LeaderboardRow'
 import { compactButtonProps } from './shared/styles'
 import { LeaderboardStatus } from './LeaderboardStatus'
-import { WalletChip } from './shared/WalletChip'
+import { WalletControls } from '@goodwidget/core'
 
 interface LeaderboardViewProps {
   /** Matches the "SEASON N" badge shown next to the wordmark on the content view's header. */
@@ -41,10 +41,11 @@ interface LeaderboardViewProps {
   leaderboardAdapter?: CampaignLeaderboardAdapter
   isConnected: boolean
   onConnect: () => void
-  onDisconnect?: () => Promise<void>
   onClose: () => void
   leaderboardRefreshKey: number
   userPointsAdapter?: CampaignUserPointsAdapter
+  /** Disables the connect/wallet-status button. See `SuperfluidCampaignWidgetProps.disableWalletButton`. */
+  disableWalletButton?: boolean
 }
 
 /**
@@ -84,10 +85,10 @@ export function LeaderboardView({
   leaderboardAdapter,
   isConnected,
   onConnect,
-  onDisconnect,
   onClose,
   leaderboardRefreshKey,
   userPointsAdapter,
+  disableWalletButton = false,
 }: LeaderboardViewProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCampaignTab, setActiveCampaignTab] = useState<string>(pools[0]?.id ?? '')
@@ -177,9 +178,14 @@ export function LeaderboardView({
             </Badge>
           </XStack>
           {isConnected ? (
-            <WalletChip address={address} onDisconnect={onDisconnect} />
+            <WalletControls disabled={disableWalletButton} />
           ) : (
-            <Button size="sm" {...compactButtonProps} onPress={onConnect}>
+            <Button
+              size="sm"
+              {...compactButtonProps}
+              disabled={disableWalletButton}
+              onPress={onConnect}
+            >
               <ButtonText>Connect wallet</ButtonText>
             </Button>
           )}
