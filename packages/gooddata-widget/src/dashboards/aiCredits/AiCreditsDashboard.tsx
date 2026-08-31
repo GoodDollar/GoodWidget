@@ -243,9 +243,8 @@ function AiCreditsDashboardView({
   const hasDailyData = dailyRecords.length > 0
 
   // Scorecards derive straight from `global`, matching the reference dashboard's renderHero().
-  const totalGdSpent = data
-    ? weiToGd(data.global.gdOneTimeDepositsWei) + weiToGd(data.global.gdStreamedWei)
-    : 0
+  const gdStreamedTotal = data ? weiToGd(data.global.gdStreamedWei) : 0
+  const totalGdSpent = data ? weiToGd(data.global.gdOneTimeDepositsWei) + gdStreamedTotal : 0
   const aiCreditsUsedUsd = data ? weiToUsd(data.global.aiCreditsUsedWei) : 0
   const gdFlowRatePerMonth = data ? flowRateToMonthly(data.global.gdTotalFlowRateWeiPerSecond) : 0
 
@@ -285,6 +284,7 @@ function AiCreditsDashboardView({
           prefix="G$"
           suffix={`(≈ $${formatMetricValue(aiCreditsUsedUsd, 'decimal', 2)} USD)`}
           format="decimal"
+          subLabel={`out of ${formatMetricValue(gdStreamedTotal, 'decimal', 2)} G$ in subscription (streaming)`}
           testID="scorecard-total-gd"
         />
         <Scorecard
