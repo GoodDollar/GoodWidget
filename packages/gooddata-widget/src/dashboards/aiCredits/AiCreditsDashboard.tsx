@@ -281,8 +281,9 @@ function AiCreditsDashboardView({
         <Scorecard
           variant="card"
           value={totalGdSpent}
-          label="Total G$ Spent"
+          label="Total Credits Bought in G$"
           prefix="G$"
+          suffix={`(≈ $${formatMetricValue(aiCreditsUsedUsd, 'decimal', 2)} USD)`}
           format="decimal"
           testID="scorecard-total-gd"
         />
