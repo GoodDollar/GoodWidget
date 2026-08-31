@@ -65,8 +65,14 @@ export type AccountView = {
   account: string
   buyer: string | null
   profile: UserCreditProfile
-  operator: BuyerOperatorStatus
-  withdrawableUsd: string
+  /**
+   * Null when the operator read did not answer. Distinct from a read that came
+   * back saying "no operator": callers must not present an unread status as
+   * "not authorized", or an already-authorized account looks unconfigured.
+   */
+  operator: BuyerOperatorStatus | null
+  /** Null when the withdrawable read did not answer. */
+  withdrawableUsd: string | null
   outstandingFundingUsd: string
   outstandingFundingCount: number
 }
