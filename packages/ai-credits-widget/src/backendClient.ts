@@ -505,27 +505,33 @@ export async function buildAccountView(
   options: BuildAccountViewOptions = {},
 ): Promise<AccountView> {
   const normalizedPayer = normalizeAddress(payer)
-  const [credit, outstanding] = await Promise.all([
-    backend.getAccountCredit(payer),
-    backend.getOutstanding(payer),
-  ])
   const buyer =
     options.buyerAddress && isAddress(options.buyerAddress)
       ? normalizeAddress(options.buyerAddress)
       : null
-  const [operator, withdrawableUsd] = buyer
-    ? await Promise.all([
-        chain.getBuyerOperatorStatus({ payer: normalizedPayer, buyer }),
-        chain.getWithdrawableUsd(buyer),
-      ])
-    : [defaultOperatorStatus(normalizedPayer), '0']
+
+  // These four reads are independent of one another and span two networks (the
+  // credit backend and Base). Only the credit profile is load-bearing, so the
+  // rest degrade on their own rather than taking the whole view down with them:
+  // a Base RPC hiccup used to discard a perfectly good credit profile.
+  const [credit, outstanding, operator, withdrawableUsd] = await Promise.all([
+    backend.getAccountCredit(payer),
+    backend.getOutstanding(payer).catch(() => null),
+    buyer
+      ? chain.getBuyerOperatorStatus({ payer: normalizedPayer, buyer }).catch(() => null)
+      : Promise.resolve(defaultOperatorStatus(normalizedPayer)),
+    buyer ? chain.getWithdrawableUsd(buyer).catch(() => null) : Promise.resolve('0'),
+  ])
+
   return {
     account: normalizedPayer,
     buyer,
     profile: credit.profile,
     operator,
     withdrawableUsd,
-    outstandingFundingUsd: outstanding.outstandingFundingUsd,
-    outstandingFundingCount: outstanding.count,
+    // Not rendered anywhere today; '0' keeps the shape without inventing a
+    // balance the caller would display.
+    outstandingFundingUsd: outstanding?.outstandingFundingUsd ?? '0',
+    outstandingFundingCount: outstanding?.count ?? 0,
   }
 }
