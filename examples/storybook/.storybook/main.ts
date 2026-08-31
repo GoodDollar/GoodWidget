@@ -39,6 +39,23 @@ const config: StorybookConfig = {
     }
     config.optimizeDeps = {
       ...config.optimizeDeps,
+      // Storybook loads this preview annotation through a virtual module. When it is
+      // pre-bundled alongside the branch's larger widget dependency graph, Vite can
+      // discover a new shared chunk after the first browser request and invalidate the
+      // URL that Storybook already emitted. It is a small ESM module, so serving it
+      // directly avoids that dev-only optimizer race while preserving interactions.
+      exclude: [
+        ...(config.optimizeDeps?.exclude ?? []),
+        '@storybook/addon-interactions/preview',
+      ],
+      // MDX docs load these dependencies lazily. Include them in the initial
+      // dependency scan so opening a docs page cannot trigger a second Vite
+      // optimization pass and invalidate chunk URLs already in the browser.
+      include: [
+        ...(config.optimizeDeps?.include ?? []),
+        '@storybook/blocks',
+        '@mdx-js/react',
+      ],
       esbuildOptions: {
         ...config.optimizeDeps?.esbuildOptions,
         resolveExtensions: [

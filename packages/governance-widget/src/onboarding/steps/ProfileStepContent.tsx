@@ -65,7 +65,9 @@ function FormField({
       />
       {/* Show the requirement hint only when there is no error showing */}
       {helperText && !errorMessage ? (
-        <Text variant="caption" tone="secondary">{helperText}</Text>
+        <Text variant="caption" tone="secondary">
+          {helperText}
+        </Text>
       ) : null}
       {errorMessage ? <InputError>{errorMessage}</InputError> : null}
     </YStack>
@@ -82,7 +84,6 @@ export function ProfileStepContent({
   onProfileFieldBlur,
   onContinuePress,
 }: ProfileStepContentProps) {
-
   return (
     <YStack gap="$3">
       <Card elevated>
@@ -140,20 +141,28 @@ export function ProfileStepContent({
               onBlur={(v) => onProfileFieldBlur('name', v)}
             />
 
-            {selectedHouse === 'citizenship' ? (
-              <FormField
-                label="Social Profile Link"
-                placeholder="https://twitter.com/username"
-                helperText="Must start with https://"
-                value={profileDraft.socialLinks}
-                errorMessage={fieldErrors.socialLinks}
-                onChangeText={(v) => onProfileFieldChange('socialLinks', v)}
-                onBlur={(v) => onProfileFieldBlur('socialLinks', v)}
-              />
-            ) : (
+            <FormField
+              label={
+                selectedHouse === 'citizenship'
+                  ? 'Social Profile Link (optional)'
+                  : 'Social Profile Link'
+              }
+              placeholder="https://twitter.com/username"
+              helperText={
+                selectedHouse === 'citizenship'
+                  ? 'Optional · Must start with https:// if provided'
+                  : 'Must start with https://'
+              }
+              value={profileDraft.socialLinks}
+              errorMessage={fieldErrors.socialLinks}
+              onChangeText={(v) => onProfileFieldChange('socialLinks', v)}
+              onBlur={(v) => onProfileFieldBlur('socialLinks', v)}
+            />
+
+            {selectedHouse !== 'citizenship' && (
               <>
                 <FormField
-                  label="External Link"
+                  label="Project Web Page"
                   placeholder="https://example.com"
                   helperText="Must start with https://"
                   value={profileDraft.projectWebpage}
@@ -161,29 +170,19 @@ export function ProfileStepContent({
                   onChangeText={(v) => onProfileFieldChange('projectWebpage', v)}
                   onBlur={(v) => onProfileFieldBlur('projectWebpage', v)}
                 />
-                <ProfileTextAreaField
-                  label="Mission Statement"
-                  placeholder="What is the primary goal of your alignment?"
-                  helperText="Min. 20 characters"
+                <FormField
+                  label="Discourse link for mission statement and distribution strategy"
+                  placeholder="https://discourse.example.com/t/mission"
+                  helperText="Must start with https://"
                   value={profileDraft.missionStatement}
                   errorMessage={fieldErrors.missionStatement}
                   onChangeText={(v) => onProfileFieldChange('missionStatement', v)}
                   onBlur={(v) => onProfileFieldBlur('missionStatement', v)}
                 />
-                <ProfileTextAreaField
-                  label="Redistribution Strategy"
-                  placeholder="How do you plan to allocate resources?"
-                  helperText="Min. 20 characters"
-                  value={profileDraft.distributionStrategy}
-                  errorMessage={fieldErrors.distributionStrategy}
-                  onChangeText={(v) => onProfileFieldChange('distributionStrategy', v)}
-                  onBlur={(v) => onProfileFieldBlur('distributionStrategy', v)}
-                />
               </>
             )}
           </YStack>
 
-          {/* ── CTA button (Figma: inside card at bottom) ───────────────── */}
           <Button
             fullWidth
             disabled={ctaDisabled}
