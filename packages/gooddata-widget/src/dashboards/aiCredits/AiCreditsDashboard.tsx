@@ -78,7 +78,10 @@ const TABLE_COLUMNS: Array<DataTableColumnDef<TableRow>> = [
     key: 'aiCreditsUsd',
     label: 'AI Credits (USD)',
     type: 'currency',
-    formatter: (value) => `$${(value as number).toFixed(2)}`,
+    // 3 decimal places, not 2 — per-day AI Credits USD amounts are small enough
+    // that 2 decimals rounded most rows to $0.00, per CEO feedback after the
+    // PR #179 production deploy.
+    formatter: (value) => `$${(value as number).toFixed(3)}`,
     sortable: true,
     description: 'AI Credits consumed this day, converted to USD.',
   },
