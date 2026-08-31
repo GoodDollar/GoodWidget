@@ -22,7 +22,7 @@ import {
   YStack,
 } from '@goodwidget/ui'
 import type { DataTableColumnDef } from '@goodwidget/ui'
-import { flowRateToDaily, weiToGd, weiToUsd } from './analyticsConversions'
+import { flowRateToMonthly, weiToGd, weiToUsd } from './analyticsConversions'
 import type { DailyAnalyticsRecord } from './connector'
 import { useAiCreditsDashboardData, type AnalyticsDataSource } from './useAiCreditsDashboardData'
 import {
@@ -247,7 +247,7 @@ function AiCreditsDashboardView({
     ? weiToGd(data.global.gdOneTimeDepositsWei) + weiToGd(data.global.gdStreamedWei)
     : 0
   const aiCreditsUsedUsd = data ? weiToUsd(data.global.aiCreditsUsedWei) : 0
-  const gdFlowRatePerDay = data ? flowRateToDaily(data.global.gdTotalFlowRateWeiPerSecond) : 0
+  const gdFlowRatePerMonth = data ? flowRateToMonthly(data.global.gdTotalFlowRateWeiPerSecond) : 0
 
   const volumeChartData = dailyRecords.flatMap((record) => [
     { x: record.date, y: weiToGd(record.gdOneTimeDepositsWei), series: 'deposits' },
@@ -296,10 +296,9 @@ function AiCreditsDashboardView({
         />
         <Scorecard
           variant="card"
-          value={gdFlowRatePerDay}
-          label="G$ Flow Rate"
+          value={gdFlowRatePerMonth}
+          label="Total Monthly Subscriptions"
           prefix="G$"
-          suffix="/day"
           format="decimal"
           testID="scorecard-flow-rate"
         />
