@@ -13,7 +13,7 @@ import type { AccountRef } from './backendTypes'
 import { buildQuoteAmounts } from './quoteMath'
 
 export const BASE_CHAIN_ID = 8453
-export const DEFAULT_BASE_RPC_URL = 'https://mainnet.base.org'
+export const DEFAULT_BASE_RPC_URL = 'https://base.drpc.org'
 export const CELO_GD_ANTSEED_VAULT_ADDRESS =
   '0x4Dd0136b9aabD5823cf0F65d89e8fB882C660885' as const
 export const CELO_GOODID_ADDRESS = '0xC361A6E67822a0EDc17D899227dd9FC50BD62F42' as const

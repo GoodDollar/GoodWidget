@@ -24,6 +24,8 @@ const DEMO_ADDRESS = '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef'
 const DEMO_RECEIVER = '0x1111111111111111111111111111111111111111'
 const DEMO_SENDER = '0x2222222222222222222222222222222222222222'
 const DEMO_TOKEN = '0x3333333333333333333333333333333333333333'
+// A super token other than the chain default, so fixtures cover multi-token streams.
+const DEMO_ALT_TOKEN = '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
 const DEMO_POOL = '0x4444444444444444444444444444444444444444'
 const DEMO_RESERVE_LOCKER = '0x8888888888888888888888888888888888888888'
 
@@ -57,60 +59,120 @@ const sampleStreams: StreamListItem[] = [
     sender: DEMO_ADDRESS,
     receiver: DEMO_RECEIVER,
     token: DEMO_TOKEN,
+    tokenSymbol: 'G$',
     flowRate: 38580246913580n,
     streamedSoFar: 15000000000000000000n,
     createdAtTimestamp: 1767225600,
     updatedAtTimestamp: 1767312000,
     direction: 'outgoing',
+    isActive: true,
+    closedAtTimestamp: null,
   },
   {
     id: 'incoming-demo-stream',
     sender: DEMO_SENDER,
     receiver: DEMO_ADDRESS,
     token: DEMO_TOKEN,
+    tokenSymbol: 'G$',
     flowRate: 19290123456790n,
     streamedSoFar: 7800000000000000000n,
     createdAtTimestamp: 1767139200,
     updatedAtTimestamp: 1767312000,
     direction: 'incoming',
+    isActive: true,
+    closedAtTimestamp: null,
   },
 ]
 
-// Mirrors the current SDK-backed adapter; diverge this once past-stream history is fetched separately.
+// A stream in a non-default super token: writes must target `stream.token`, not the
+// chain default, or Cancel/Update would hit the wrong stream.
+const altTokenStream: StreamListItem = {
+  id: 'outgoing-alt-token-stream',
+  sender: DEMO_ADDRESS,
+  receiver: DEMO_RECEIVER,
+  token: DEMO_ALT_TOKEN,
+  tokenSymbol: 'USDGLOx',
+  flowRate: 7716049382716n,
+  streamedSoFar: 3100000000000000000n,
+  createdAtTimestamp: 1767196800,
+  updatedAtTimestamp: 1767312000,
+  direction: 'outgoing',
+  isActive: true,
+  closedAtTimestamp: null,
+}
+
+// The full record: History shows active and ended streams, filtered in the tab.
 const sampleStreamHistory: StreamListItem[] = [
   ...sampleStreams,
   {
-    id: 'history-outgoing-demo-stream-2',
+    id: 'history-outgoing-demo-stream-1',
     sender: DEMO_ADDRESS,
     receiver: '0x5555555555555555555555555555555555555555',
     token: DEMO_TOKEN,
-    flowRate: 9645061728395n,
+    tokenSymbol: 'G$',
+    flowRate: 0n,
     streamedSoFar: 4300000000000000000n,
     createdAtTimestamp: 1767052800,
     updatedAtTimestamp: 1767139200,
     direction: 'outgoing',
+    isActive: false,
+    closedAtTimestamp: 1767139200,
   },
   {
-    id: 'history-incoming-demo-stream-2',
+    id: 'history-incoming-demo-stream-1',
     sender: '0x6666666666666666666666666666666666666666',
     receiver: DEMO_ADDRESS,
     token: DEMO_TOKEN,
-    flowRate: 5787037037037n,
+    tokenSymbol: 'G$',
+    flowRate: 0n,
     streamedSoFar: 2200000000000000000n,
     createdAtTimestamp: 1766966400,
     updatedAtTimestamp: 1767052800,
     direction: 'incoming',
+    isActive: false,
+    closedAtTimestamp: 1767052800,
   },
   {
-    id: 'history-outgoing-demo-stream-3',
+    id: 'history-outgoing-demo-stream-2',
     sender: DEMO_ADDRESS,
     receiver: '0x7777777777777777777777777777777777777777',
     token: DEMO_TOKEN,
-    flowRate: 3858024691358n,
+    tokenSymbol: 'G$',
+    flowRate: 0n,
     streamedSoFar: 1400000000000000000n,
     createdAtTimestamp: 1766880000,
     updatedAtTimestamp: 1766966400,
     direction: 'outgoing',
+    isActive: false,
+    closedAtTimestamp: 1766966400,
+  },
+  {
+    id: 'history-incoming-demo-stream-2',
+    sender: '0x9999999999999999999999999999999999999999',
+    receiver: DEMO_ADDRESS,
+    token: DEMO_TOKEN,
+    tokenSymbol: 'G$',
+    flowRate: 0n,
+    streamedSoFar: 900000000000000000n,
+    createdAtTimestamp: 1766793600,
+    updatedAtTimestamp: 1766880000,
+    direction: 'incoming',
+    isActive: false,
+    closedAtTimestamp: 1766880000,
+  },
+  {
+    id: 'history-outgoing-demo-stream-3',
+    sender: DEMO_ADDRESS,
+    receiver: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    token: DEMO_TOKEN,
+    tokenSymbol: 'G$',
+    flowRate: 0n,
+    streamedSoFar: 500000000000000000n,
+    createdAtTimestamp: 1766707200,
+    updatedAtTimestamp: 1766793600,
+    direction: 'outgoing',
+    isActive: false,
+    closedAtTimestamp: 1766793600,
   },
 ]
 
@@ -158,6 +220,9 @@ function createAdapter(
     setStreamStatus: 'idle',
     setStreamError: null,
     setStreamTxHash: null,
+    editingStreamId: null,
+    cancelStreamStatus: {},
+    cancelStreamError: {},
     poolConnectStatus: {},
     poolConnectError: {},
     poolClaimStatus: {},
@@ -174,6 +239,8 @@ function createAdapter(
     updateSetStreamForm: () => {},
     submitSetStream: async () => {},
     resetSetStream: () => {},
+    editStream: () => {},
+    cancelStream: async () => {},
     connectToPool: async () => {},
     disconnectFromPool: async () => {},
     claimFromPool: async () => {},
@@ -186,21 +253,26 @@ function createAdapter(
   }
 }
 
+// MiniAppShell must sit inside a provider: without one it first paints before any
+// Tamagui theme is registered, and the theme that the widget's own provider registers
+// then flips its internal Theme hook path on the next re-render ("Should have a queue").
 function StoryShell({ children, dataTestId }: { children: React.ReactNode; dataTestId: string }) {
   return (
-    <MiniAppShell>
-      <YStack
-        data-testid={dataTestId}
-        style={{
-          width: '100%',
-          maxWidth: 400,
-          minHeight: '100vh',
-          boxSizing: 'border-box',
-        }}
-      >
-        {children}
-      </YStack>
-    </MiniAppShell>
+    <GoodWidgetProvider>
+      <MiniAppShell>
+        <YStack
+          data-testid={dataTestId}
+          style={{
+            width: '100%',
+            maxWidth: 400,
+            minHeight: '100vh',
+            boxSizing: 'border-box',
+          }}
+        >
+          {children}
+        </YStack>
+      </MiniAppShell>
+    </GoodWidgetProvider>
   )
 }
 
@@ -532,6 +604,64 @@ export function CreateUpdateFailureStory({ defaultTheme, themeOverrides }: Theme
       })}
       dataTestId="StreamingWidget-create-update-failure"
       initialStreamsFormOpen
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function CancelStreamPendingStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        cancelStreamStatus: { [`${DEMO_RECEIVER.toLowerCase()}-${DEMO_TOKEN.toLowerCase()}`]: 'pending' },
+      })}
+      dataTestId="StreamingWidget-cancel-stream-pending"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function CancelStreamFailureStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        cancelStreamStatus: { [`${DEMO_RECEIVER.toLowerCase()}-${DEMO_TOKEN.toLowerCase()}`]: 'error' },
+        cancelStreamError: {
+          [`${DEMO_RECEIVER.toLowerCase()}-${DEMO_TOKEN.toLowerCase()}`]:
+            'Transaction cancelled by wallet.',
+        },
+      })}
+      dataTestId="StreamingWidget-cancel-stream-failure"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function MultiTokenStreamsStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        streams: [...sampleStreams, altTokenStream],
+        streamHistory: [...sampleStreams, altTokenStream, ...sampleStreamHistory.slice(2)],
+      })}
+      dataTestId="StreamingWidget-multi-token-streams"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function UpdateStreamFormStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        setStreamForm: validForm,
+        editingStreamId: sampleStreams[0].id,
+      })}
+      dataTestId="StreamingWidget-update-stream-form"
       defaultTheme={defaultTheme}
       themeOverrides={themeOverrides}
     />

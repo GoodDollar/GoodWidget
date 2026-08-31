@@ -18,29 +18,29 @@ interface SummaryStep {
 const QUICK_SUMMARY_STEPS: SummaryStep[] = [
   {
     index: 1,
-    title: 'First, connect your wallet',
-    tabLabel: 'Buy',
+    title: 'Get G$ and connect your wallet',
+    tabLabel: 'Set Up',
     description:
       'Any wallet holding G$ works. Verified GoodDollar wallets get the bonus automatically.',
   },
   {
     index: 2,
-    title: 'Then complete the one-time setup',
-    tabLabel: 'Buy',
-    description: 'Download Antseed, generate your signer key, and authorize your wallet — three quick taps.',
+    title: 'Complete one-time setup',
+    tabLabel: 'Set Up',
+    description: 'Download AntSeed, generate your signer key, and authorize your wallet. Take the steps in any order, or skip ahead and come back when you’re ready to buy.',
   },
   {
     index: 3,
-    title: 'Head to Manage to buy or stream credits',
-    tabLabel: 'Manage',
-    description: 'Deposit once (+10%) or stream continuously (+20%), then confirm.',
+    title: 'Buy or stream credits',
+    tabLabel: 'Buy Credits',
+    description: 'Deposit once (+10% bonus) or stream continuously (+20% bonus), then confirm.',
   },
   {
     index: 4,
-    title: 'Finally, connect Antseed to start using them',
-    tabLabel: 'Connect',
+    title: 'Manage and track',
+    tabLabel: 'Manage History',
     description:
-      'Import your signer key — no separate "start" step, it just works from there.',
+      'Check your signer key and balance under Manage, and your full credit history — exportable as CSV — under History.',
   },
 ]
 

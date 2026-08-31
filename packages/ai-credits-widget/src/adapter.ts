@@ -97,6 +97,7 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   gBalance: null,
   gdUsdPerToken: null,
   totalCreditUsd: null,
+  totalBonusUsd: null,
   isGoodIdVerified: false,
   buyerPubKey: null,
   buyerPrvKey: null,
@@ -336,6 +337,7 @@ function viewToStatePatch(
 ): Partial<AiCreditsWidgetAdapterState> {
   const operatorAccepted = view.operator.operatorAccepted
   const totalCreditUsd = enriched.totalCreditUsd
+  const totalBonusUsd = view.profile?.totalBonusUsd ?? null
   const balanceMode = options?.balanceMode ?? 'if_positive'
 
   return {
@@ -343,6 +345,7 @@ function viewToStatePatch(
       balanceMode === 'always' || hasCreditBalance(totalCreditUsd)
         ? totalCreditUsd
         : prev.totalCreditUsd,
+    totalBonusUsd,
     isGoodIdVerified: enriched.goodIdVerified,
     operatorConsented: operatorAccepted,
     operatorAddress: view.operator.operatorAddress ?? null,

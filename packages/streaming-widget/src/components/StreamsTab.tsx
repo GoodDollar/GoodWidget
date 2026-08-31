@@ -6,6 +6,7 @@ import type {
   StreamListItem,
   WriteStatus,
 } from '../widgetRuntimeContract'
+import { streamWriteKey } from '../adapter/domain'
 import { TIME_UNIT_OPTIONS, tokenSymbol } from './format'
 import { SetStreamForm } from './SetStreamForm'
 import { StreamCard } from './StreamCard'
@@ -32,11 +33,16 @@ interface StreamsTabProps {
   setStreamStatus: WriteStatus
   setStreamError: string | null
   setStreamTxHash: string | null
+  editingStreamId: string | null
+  cancelStreamStatus: Record<string, WriteStatus>
+  cancelStreamError: Record<string, string | null>
   initialFormOpen?: boolean
   onRefresh: () => void
   onUpdateSetStreamForm: (partial: Partial<SetStreamFormState>) => void
   onSubmitSetStream: () => void
   onResetSetStream: () => void
+  onEditStream: (stream: StreamListItem) => void
+  onCancelStream: (stream: StreamListItem) => void
 }
 
 export function StreamsTab({
@@ -48,44 +54,54 @@ export function StreamsTab({
   setStreamStatus,
   setStreamError,
   setStreamTxHash,
+  editingStreamId,
+  cancelStreamStatus,
+  cancelStreamError,
   initialFormOpen = false,
   onRefresh,
   onUpdateSetStreamForm,
   onSubmitSetStream,
   onResetSetStream,
+  onEditStream,
+  onCancelStream,
 }: StreamsTabProps) {
   const [direction, setDirection] = useState<StreamDirection>('all')
   const [showForm, setShowForm] = useState(initialFormOpen)
 
+  // Picking Update on a stream card prefills the form, so it must open the form too.
+  const isFormOpen = showForm || editingStreamId !== null
   const filteredStreams = streams.filter(
     (stream) => direction === 'all' || stream.direction === direction,
   )
   const emptyStreamsMessage =
-    direction === 'all' ? 'No streams found.' : `No ${direction} streams found.`
+    direction === 'all' ? 'No active streams found.' : `No active ${direction} streams found.`
   const activeToken = tokenSymbol(chainId)
+
+  const closeForm = () => {
+    onResetSetStream()
+    setShowForm(false)
+  }
 
   return (
     <StreamingTabContent>
       <XStack justifyContent="flex-end">
-        <ActionButton onPress={() => setShowForm((visible) => !visible)}>
-          <ButtonText>{showForm ? 'Cancel' : '+ New Stream'}</ButtonText>
+        <ActionButton onPress={() => (isFormOpen ? closeForm() : setShowForm(true))}>
+          <ButtonText>{isFormOpen ? 'Close' : '+ New Stream'}</ButtonText>
         </ActionButton>
       </XStack>
 
-      {showForm && (
+      {isFormOpen && (
         <SetStreamForm
           form={setStreamForm}
-          token={activeToken}
+          token={setStreamForm.tokenSymbol || activeToken}
           status={setStreamStatus}
           error={setStreamError}
           txHash={setStreamTxHash}
+          isEditing={editingStreamId !== null}
           timeUnitOptions={TIME_UNIT_OPTIONS}
           onUpdate={onUpdateSetStreamForm}
           onSubmit={onSubmitSetStream}
-          onReset={() => {
-            onResetSetStream()
-            setShowForm(false)
-          }}
+          onReset={closeForm}
         />
       )}
 
@@ -139,7 +155,15 @@ export function StreamsTab({
       {!loading &&
         !error &&
         filteredStreams.map((stream) => (
-          <StreamCard key={stream.id} stream={stream} token={activeToken} />
+          <StreamCard
+            key={stream.id}
+            stream={stream}
+            token={activeToken}
+            onEdit={onEditStream}
+            onCancel={onCancelStream}
+            cancelStatus={cancelStreamStatus[streamWriteKey(stream.receiver, stream.token)] ?? 'idle'}
+            cancelError={cancelStreamError[streamWriteKey(stream.receiver, stream.token)] ?? null}
+          />
         ))}
     </StreamingTabContent>
   )

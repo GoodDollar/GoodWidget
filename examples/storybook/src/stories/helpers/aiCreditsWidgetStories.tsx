@@ -1,9 +1,10 @@
-import React, { useMemo, useRef } from 'react'
+import React, { useMemo, useRef, useState } from 'react'
 import type { EIP1193Provider } from '@goodwidget/core'
 import { YStack } from '@goodwidget/ui'
 import {
   AiCreditsWidget,
   type AiCreditsWidgetAdapterFactory,
+  type AiCreditsWidgetTab,
   type AiCreditsWidgetAdapterState,
   type AiCreditsWidgetStatus,
 } from '@goodwidget/ai-credits-widget'
@@ -34,6 +35,7 @@ function createMockState(
     gBalance: '42.50',
     gdUsdPerToken: 0.0015,
     totalCreditUsd: null,
+    totalBonusUsd: null,
     isGoodIdVerified: false,
     buyerPubKey: null,
     buyerPrvKey: null,
@@ -115,6 +117,19 @@ function MockStoryShell({
   const resolvedProviderRef = useRef<EIP1193Provider | null>(provider ?? null)
   const configErrorRef = useRef<unknown>(null)
 
+  // The fixtures return a frozen state object, so `setActiveTab` was a no-op and
+  // any flow that switches tabs silently did nothing. Opening How to use is one
+  // of those — the widget routes to Set Up to render it, so with a dead
+  // setActiveTab the guide never appeared and the Buy panel stayed on screen.
+  const [tabOverride, setTabOverride] = useState<AiCreditsWidgetTab | null>(null)
+  const statefulAdapterFactory: AiCreditsWidgetAdapterFactory = (input) => {
+    const adapter = adapterFactory(input)
+    return {
+      state: tabOverride ? { ...adapter.state, activeTab: tabOverride } : adapter.state,
+      actions: { ...adapter.actions, setActiveTab: setTabOverride },
+    }
+  }
+
   if (!resolvedProviderRef.current && !configErrorRef.current) {
     try {
       resolvedProviderRef.current = provider ?? createCustodialEip1193Provider()
@@ -141,7 +156,7 @@ function MockStoryShell({
     <div data-testid={dataTestId} style={{ width: 380 }}>
       <AiCreditsWidget
         provider={resolvedProviderRef.current!}
-        adapterFactory={adapterFactory}
+        adapterFactory={statefulAdapterFactory}
         showWalletControls={showWalletControls}
         disconnectOverride={disconnectOverride}
       />
@@ -248,6 +263,7 @@ export function ManageTabStory() {
       dataTestId="AiCreditsWidget-manage-tab"
       adapterFactory={createAdapterFactory('quote_ready', {
         totalCreditUsd: '110000000',
+        totalBonusUsd: '10000000',
         buyerPubKey: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a',
         operatorConsented: true,
         operatorAddress: '0x0000000000000000000000000000000000000004',
@@ -266,6 +282,7 @@ export function HistoryTabStory() {
       dataTestId="AiCreditsWidget-history-tab"
       adapterFactory={createAdapterFactory('quote_ready', {
         totalCreditUsd: '110000000',
+        totalBonusUsd: '10000000',
         buyerPubKey: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a',
         operatorConsented: true,
         operatorAddress: '0x0000000000000000000000000000000000000004',
@@ -603,6 +620,7 @@ export function MultiBuyerManageStory() {
       dataTestId="AiCreditsWidget-multi-buyer-manage"
       adapterFactory={createAdapterFactory('quote_ready', {
         totalCreditUsd: '110000000',
+        totalBonusUsd: '10000000',
         buyerPubKey: BUYER_WALLET.address,
         buyerPrvKey: BUYER_WALLET.privateKey,
         operatorConsented: true,
@@ -630,6 +648,7 @@ export function WalletControlsStory() {
       disconnectOverride={async () => {}}
       adapterFactory={createAdapterFactory('quote_ready', {
         totalCreditUsd: '110000000',
+        totalBonusUsd: '10000000',
         buyerPubKey: BUYER_WALLET.address,
         buyerPrvKey: BUYER_WALLET.privateKey,
         operatorConsented: true,
@@ -651,6 +670,7 @@ export function WalletControlsHiddenStory() {
       dataTestId="AiCreditsWidget-wallet-controls-hidden"
       adapterFactory={createAdapterFactory('quote_ready', {
         totalCreditUsd: '110000000',
+        totalBonusUsd: '10000000',
         buyerPubKey: BUYER_WALLET.address,
         buyerPrvKey: BUYER_WALLET.privateKey,
         operatorConsented: true,
@@ -708,6 +728,7 @@ export function MultiBuyerHistoryStory() {
       dataTestId="AiCreditsWidget-multi-buyer-history"
       adapterFactory={createAdapterFactory('quote_ready', {
         totalCreditUsd: '110000000',
+        totalBonusUsd: '10000000',
         buyerPubKey: BUYER_WALLET.address,
         buyerPrvKey: BUYER_WALLET.privateKey,
         operatorConsented: true,

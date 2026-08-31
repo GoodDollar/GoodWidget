@@ -11,8 +11,9 @@ import {
   GDA_POOL_CLAIM_ABI,
   humanReadableError,
   toPoolMembershipItem,
-  toStreamListItem,
+  toStreamListItemFromQuery,
 } from './domain'
+import { queryAllStreams } from './streamsSubgraph'
 
 type StreamingDataState = Pick<
   StreamingWidgetAdapterState,
@@ -40,7 +41,7 @@ type StreamingDataState = Pick<
 type StreamingDataAction =
   | { type: 'reset' }
   | { type: 'streams:start' }
-  | { type: 'streams:success'; streams: StreamListItem[] }
+  | { type: 'streams:success'; streams: StreamListItem[]; history: StreamListItem[] }
   | { type: 'streams:error'; error: string }
   | { type: 'pools:start' }
   | { type: 'pools:success'; pools: PoolMembershipItem[] }
@@ -102,7 +103,7 @@ function streamingDataReducer(
         streams: action.streams,
         streamsLoading: false,
         streamsError: null,
-        streamHistory: action.streams,
+        streamHistory: action.history,
         streamHistoryLoading: false,
         streamHistoryError: null,
       }
@@ -188,6 +189,8 @@ interface UseStreamingDataArgs {
   address: Address | null
   streamingSDK: StreamingSDK | null
   gdaSDK: GdaSDK | null
+  /** Superfluid subgraph endpoint for the connected chain */
+  streamsEndpoint: string | null
   baseStreamingSDK: StreamingSDK
   baseSubgraphClient: SubgraphClient
   viemClients: {
@@ -200,6 +203,7 @@ export function useStreamingData({
   address,
   streamingSDK,
   gdaSDK,
+  streamsEndpoint,
   baseStreamingSDK,
   baseSubgraphClient,
   viemClients,
@@ -211,21 +215,30 @@ export function useStreamingData({
   }, [])
 
   const refreshStreams = useCallback(async () => {
-    if (!streamingSDK || !address) return
+    if (!streamsEndpoint || !address) return
 
     await runResourceAction({
       onStart: () => dispatch({ type: 'streams:start' }),
       load: async () => {
-        const result = await streamingSDK.getActiveStreams({
-          account: address,
-          direction: 'all',
-        })
-        return result.map((stream) => toStreamListItem(stream, address))
+        const result = await queryAllStreams(streamsEndpoint, address)
+        const items = result.map((stream) => toStreamListItemFromQuery(stream, address))
+
+        return {
+          // The Streams tab is active-only; History keeps the full record and
+          // filters by status in the UI.
+          streams: items
+            .filter((stream) => stream.isActive)
+            .sort((a, b) => b.createdAtTimestamp - a.createdAtTimestamp),
+          history: [...items].sort(
+            (a, b) => b.updatedAtTimestamp - a.updatedAtTimestamp,
+          ),
+        }
       },
-      onSuccess: (streams) => dispatch({ type: 'streams:success', streams }),
+      onSuccess: ({ streams, history }) =>
+        dispatch({ type: 'streams:success', streams, history }),
       onError: (error) => dispatch({ type: 'streams:error', error }),
     })
-  }, [streamingSDK, address])
+  }, [streamsEndpoint, address])
 
   const refreshPools = useCallback(async () => {
     if (!gdaSDK || !address) return

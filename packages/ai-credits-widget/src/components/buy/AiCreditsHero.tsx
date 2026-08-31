@@ -7,11 +7,10 @@ interface HeroCardProps {
 }
 
 export function AiCreditsHero({ gBalance, isGoodIdVerified }: HeroCardProps) {
-  const showVerifiedBadge =
-    gBalance !== null && Number.parseFloat(gBalance) > 0 && isGoodIdVerified
+  const showVerifiedBadge = gBalance !== null && Number.parseFloat(gBalance) > 0 && isGoodIdVerified
 
   return (
-    <Card gap="$4" backgroundColor="$backgroundHover">
+    <Card gap="$4" backgroundColor="$backgroundSurface">
       <XStack justifyContent="space-between" alignItems="flex-start" gap="$2">
         <YStack gap="$1" flexShrink={1}>
           <Text variant="label" tone="soft">

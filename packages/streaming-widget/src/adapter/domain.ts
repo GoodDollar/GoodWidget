@@ -1,12 +1,20 @@
 import { calculateFlowRate } from '@goodsdks/streaming-sdk'
 import type { GDAPool, StreamInfo } from '@goodsdks/streaming-sdk'
 import type { Address } from 'viem'
-import { parseUnits } from 'viem'
+import { formatUnits, parseUnits } from 'viem'
 import type {
   PoolMembershipItem,
   SetStreamFormState,
   StreamListItem,
+  StreamTimeUnit,
 } from '../widgetRuntimeContract'
+import type { StreamQueryRow } from './streamsSubgraph'
+
+const SECONDS_PER_TIME_UNIT: Record<StreamTimeUnit, bigint> = {
+  day: 86_400n,
+  month: 2_592_000n,
+  year: 31_536_000n,
+}
 
 export const GDA_POOL_CLAIM_ABI = [
   {
@@ -34,6 +42,14 @@ export const DEFAULT_FORM_STATE: SetStreamFormState = {
   timeUnit: 'month',
   flowRate: null,
   validationError: null,
+}
+
+/**
+ * Per-stream write status key. A recipient can hold one stream per super token,
+ * so the token has to be part of the key.
+ */
+export function streamWriteKey(receiver: Address, token?: Address): string {
+  return `${receiver.toLowerCase()}-${token?.toLowerCase() ?? 'default'}`
 }
 
 export function humanReadableError(err: unknown): string {
@@ -75,12 +91,57 @@ export function toStreamListItem(stream: StreamInfo, address: Address): StreamLi
     sender: stream.sender,
     receiver: stream.receiver,
     token: stream.token,
+    tokenSymbol: '',
     flowRate: stream.flowRate,
     streamedSoFar: stream.streamedSoFar ?? 0n,
     createdAtTimestamp: stream.timestamp ? Number(stream.timestamp) : 0,
     updatedAtTimestamp: stream.timestamp ? Number(stream.timestamp) : 0,
     direction,
+    isActive: stream.flowRate > 0n,
+    closedAtTimestamp: null,
   }
+}
+
+/**
+ * Subgraph rows carry `currentFlowRate`, which is what tells an ended stream
+ * apart from a running one — `getActiveStreams` simply omits ended streams.
+ */
+export function toStreamListItemFromQuery(
+  stream: StreamQueryRow,
+  address: Address,
+): StreamListItem {
+  const direction =
+    stream.sender.toLowerCase() === address.toLowerCase() ? 'outgoing' : 'incoming'
+  const isActive = stream.currentFlowRate > 0n
+
+  return {
+    id: stream.id,
+    sender: stream.sender,
+    receiver: stream.receiver,
+    token: stream.token,
+    tokenSymbol: stream.tokenSymbol,
+    flowRate: stream.currentFlowRate,
+    streamedSoFar: stream.streamedUntilUpdatedAt,
+    createdAtTimestamp: stream.createdAtTimestamp,
+    updatedAtTimestamp: stream.updatedAtTimestamp,
+    direction,
+    isActive,
+    closedAtTimestamp: isActive ? null : stream.updatedAtTimestamp,
+  }
+}
+
+/**
+ * Turn a per-second flow rate back into the plain decimal string the amount
+ * input expects, so an existing stream can be loaded into the form for editing.
+ */
+export function flowRateToAmountInput(
+  flowRate: bigint,
+  timeUnit: StreamTimeUnit,
+): string {
+  if (flowRate <= 0n) return ''
+
+  const perUnit = formatUnits(flowRate * SECONDS_PER_TIME_UNIT[timeUnit], 18)
+  return perUnit.includes('.') ? perUnit.replace(/0+$/, '').replace(/\.$/, '') : perUnit
 }
 
 export function toPoolMembershipItem(pool: GDAPool): PoolMembershipItem {

@@ -53,7 +53,7 @@ test('AiCreditsWidget connecting — Setup tab connect prompt shows', async ({ p
   const root = page.getByTestId('AiCreditsWidget-connecting')
   await expect(root).toBeVisible()
   await expect(root.getByText('Connecting...')).toBeVisible()
-  await expect(root.getByText('Setup', { exact: true })).toBeVisible()
+  await expect(root.getByText('Set Up', { exact: true })).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-12-connecting.png',
     fullPage: true,
@@ -65,7 +65,7 @@ test('AiCreditsWidget disconnected', async ({ page }) => {
   const root = await expectWidget(page, 'AiCreditsWidget-disconnected')
   await expect(root.getByText('Connect your wallet to get started')).toBeVisible()
   await expect(root.getByRole('button', { name: 'Connect Wallet' })).toBeVisible()
-  await expect(root.getByText('Setup', { exact: true })).toBeVisible()
+  await expect(root.getByText('Set Up', { exact: true })).toBeVisible()
   await expect(root.getByText('Buy Credits', { exact: true })).toBeVisible()
   await root.getByText('Buy Credits', { exact: true }).click({ force: true })
   await expect(root.getByText('Connect your wallet to get started')).toBeVisible()
@@ -85,7 +85,7 @@ test('AiCreditsWidget Setup tab — onboarding steps visible', async ({ page }) 
   await expect(root.getByText('Download Antseed', { exact: true }).first()).toBeVisible()
   await expect(root.getByText('Signer key', { exact: true })).toBeVisible()
   await expect(root.getByText('Authorize Wallet', { exact: true })).toBeVisible()
-  await expect(root.getByText('Setup', { exact: true })).toBeVisible()
+  await expect(root.getByText('Set Up', { exact: true })).toBeVisible()
   await expect(root.getByText('Buy Credits', { exact: true })).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-20-setup-tab.png',
@@ -98,8 +98,7 @@ test('AiCreditsWidget purchase_setup', async ({ page }) => {
   const root = widget(page, 'AiCreditsWidget-purchase-setup')
   await expect(root).toBeVisible()
   await expect(root.getByText('You need G$ before you can buy AI credits.')).toBeVisible()
-  await expect(root.getByText('Purchase Flow')).toBeVisible()
-  await expect(root.getByRole('button', { name: 'Sign & Generate Key' }).first()).toBeVisible()
+  await expect(root.getByText('Buy Credits').first()).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-02-purchase-setup.png',
     fullPage: true,
@@ -109,9 +108,6 @@ test('AiCreditsWidget purchase_setup', async ({ page }) => {
 test('AiCreditsWidget quote_ready', async ({ page }) => {
   await gotoStory(page, STORY_IDS.quoteReady)
   await expect(page.getByTestId('AiCreditsWidget-quote-ready')).toBeVisible()
-  // The pay step's content (and its "Buy AI Credits" submit button) only mounts once the
-  // drawer is opened; open it via the outer trigger before asserting on drawer content.
-  await page.getByRole('button', { name: 'Set Amounts & Pay' }).click()
   await expect(page.getByRole('button', { name: 'Buy AI Credits' })).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-03-quote-ready.png',
@@ -152,7 +148,7 @@ test('AiCreditsWidget manage tab', async ({ page }) => {
   await gotoStory(page, STORY_IDS.creditsManagement)
   const root = page.getByTestId('AiCreditsWidget-manage-tab')
   await expect(root).toBeVisible()
-  await expect(root.getByText('Setup', { exact: true })).toBeVisible()
+  await expect(root.getByText('Set Up', { exact: true })).toBeVisible()
   await expect(root.getByText('Buy Credits', { exact: true })).toBeVisible()
   await expect(root.getByText('Manage', { exact: true })).toBeVisible()
   await expect(root.getByText('History', { exact: true })).toBeVisible()
@@ -194,7 +190,7 @@ test('AiCreditsWidget buy tab with error', async ({ page }) => {
   await expect(root).toBeVisible()
   await expect(root.getByText('Request Failed', { exact: true })).toBeVisible()
   await expect(root.getByText('Network request failed. Please try again.', { exact: true }).first()).toBeVisible()
-  await expect(root.getByRole('button', { name: 'Set Amounts & Pay' })).toBeVisible()
+  await expect(root.getByRole('button', { name: 'Buy AI Credits' })).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-15-buy-tab-error.png',
     fullPage: true,
@@ -207,8 +203,7 @@ test('AiCreditsWidget payment_failed', async ({ page }) => {
   await expect(root).toBeVisible()
   await expect(root.getByText('Payment Failed', { exact: true })).toBeVisible()
   await expect(root.getByText('Payment failed. Try again.', { exact: true }).first()).toBeVisible()
-  await expect(root.getByText('Needs attention', { exact: true })).toBeVisible()
-  await expect(root.getByText('Set Amounts & Pay', { exact: true })).toBeVisible()
+  await expect(root.getByRole('button', { name: 'Buy AI Credits' })).toBeVisible()
   await expect(root.getByRole('button', { name: 'Try Again' })).toHaveCount(0)
   await expect(root.getByText('insufficient allowance')).toHaveCount(0)
   await page.screenshot({
@@ -397,20 +392,18 @@ test('AiCreditsWidget deep-link authorization pending: Authorize Wallet requires
   const root = widget(page, 'AiCreditsWidget-deep-link-consent-pending')
   await expect(root).toBeVisible()
 
-  // A pre-filled operatorSignature must never auto-advance past consent: the explicit
-  // The authorization gate must render before any permission is granted.
-  const openAuthorizationStepButton = root.getByRole('button', { name: 'Authorize Wallet' })
-  await expect(openAuthorizationStepButton).toBeVisible()
-  await openAuthorizationStepButton.click()
+  // A pre-filled operatorSignature must never auto-advance past consent: the
+  // authorization gate must render before any permission is granted. The step
+  // lives on Set Up now that Buy is purchase-only.
+  await root.getByText('Set Up', { exact: true }).click()
+  await root.getByText('Authorize Wallet', { exact: true }).first().click()
 
   // The Drawer renders via a Tamagui Sheet portal outside the widget's root DOM
   // subtree, so its content must be queried at the page level, not scoped to `root`.
   await expect(
-    page.getByText(/GoodDollar needs this one-time authorization to fund and manage your AI credits/i),
+    page.getByText(/A one-time, on-chain approval — not a payment/i),
   ).toBeVisible()
-  await expect(
-    page.getByText(/revoke it later through the account controls/i),
-  ).toBeVisible()
+  await expect(page.getByText(/you can revoke it at any time/i)).toBeVisible()
   await expect(page.getByText('Wallet authorized')).not.toBeVisible()
 
   const authorizeWalletButton = page.getByRole('button', { name: 'Authorize Wallet' })
@@ -485,7 +478,7 @@ test('AiCreditsWidget guidance card: renders above tab navigation', async ({ pag
   await expect(root.getByText(/Antseed site/i)).toBeVisible()
 
   // Tab navigation is also visible (card is above it)
-  await expect(root.getByText('Buy Credits')).toBeVisible()
+  await expect(root.getByText('Buy Credits').first()).toBeVisible()
 
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-20-guidance-card-default.png',
@@ -502,13 +495,13 @@ test('AiCreditsWidget guidance card: How to use opens in-widget guide', async ({
   await root.getByRole('button', { name: /how to use/i }).click()
 
   // Guide content appears inside the buy tab area
-  await expect(root.getByText(/Back to setup/i)).toBeVisible()
+  await expect(root.getByText(/Back to Set Up/i)).toBeVisible()
   await expect(root.getByText(/Getting started with AI credits/)).toBeVisible()
   await expect(root.getByText(/QUICK SUMMARY/)).toBeVisible()
   await expect(root.getByText(/connect your wallet/i)).toBeVisible()
 
   // Tab navigation remains visible (content rendered inside tab, not as a new tab)
-  await expect(root.getByText('Buy Credits')).toBeVisible()
+  await expect(root.getByText('Buy Credits').first()).toBeVisible()
 
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-21-guidance-how-to-use.png',
@@ -523,14 +516,14 @@ test('AiCreditsWidget guidance card: Back to setup returns to purchase flow', as
 
   // Open how-to-use view
   await root.getByRole('button', { name: /how to use/i }).click()
-  await expect(root.getByText(/Back to setup/i)).toBeVisible()
+  await expect(root.getByText(/Back to Set Up/i)).toBeVisible()
 
   // Navigate back
-  await root.getByRole('button', { name: /Back to setup/i }).click()
+  await root.getByRole('button', { name: /Back to Set Up/i }).click()
 
   // Purchase flow is restored
-  await expect(root.getByText(/Back to setup/i)).not.toBeVisible()
-  await expect(root.getByText('Buy Credits')).toBeVisible()
+  await expect(root.getByText(/Back to Set Up/i)).not.toBeVisible()
+  await expect(root.getByText('Buy Credits').first()).toBeVisible()
 
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-22-guidance-back-to-buying.png',
@@ -547,12 +540,12 @@ test('AiCreditsWidget guidance card: FAQs opens in-widget FAQ', async ({ page })
   await root.getByRole('button', { name: /faqs/i }).click()
 
   // FAQ content appears inside the buy tab area
-  await expect(root.getByText(/Back to setup/i)).toBeVisible()
+  await expect(root.getByText(/Back to Set Up/i)).toBeVisible()
   await expect(root.getByText(/I only claim UBI with GoodWallet/i)).toBeVisible()
   await expect(root.getByText(/Deposit or stream/i)).toBeVisible()
 
   // Tab navigation remains visible
-  await expect(root.getByText('Buy Credits')).toBeVisible()
+  await expect(root.getByText('Buy Credits').first()).toBeVisible()
 
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-23-guidance-faq.png',
@@ -567,13 +560,13 @@ test('AiCreditsWidget guidance card: switching tabs clears help view', async ({ 
 
   // Open how-to-use
   await root.getByRole('button', { name: /how to use/i }).click()
-  await expect(root.getByText(/Back to setup/i)).toBeVisible()
+  await expect(root.getByText(/Back to Set Up/i)).toBeVisible()
 
   // Switch to Manage tab
-  await root.getByRole('button', { name: /manage/i }).click()
+  await root.getByText('Manage', { exact: true }).first().click()
 
   // How-to-use view is gone
-  await expect(root.getByText(/Back to setup/i)).not.toBeVisible()
+  await expect(root.getByText(/Back to Set Up/i)).not.toBeVisible()
 
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-24-guidance-tab-switch.png',
@@ -614,7 +607,7 @@ test('AiCreditsWidget Setup — Download AntSeed step is shown on Setup tab', as
   await expect(root).toBeVisible()
 
   // Setup tab should be active
-  await expect(root.getByText('Setup', { exact: true })).toBeVisible()
+  await expect(root.getByText('Set Up', { exact: true })).toBeVisible()
 
   // Buy and other tabs present but separate from the Setup flow
   await expect(root.getByText('Buy Credits', { exact: true })).toBeVisible()
