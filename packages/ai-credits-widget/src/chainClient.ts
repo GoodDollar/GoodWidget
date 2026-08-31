@@ -72,6 +72,7 @@ export type AiCreditsChainClientOptions = {
 
 export interface AiCreditsChainClient {
   fetchGdUsdPerToken(): Promise<number>
+  /** Resolves the GoodID whitelist state, or rejects when the read fails. */
   isGoodIdVerified(account: string): Promise<boolean>
   buildQuote(depositG: string, streamG: string): Promise<AiCreditsQuote>
   getBuyerOperatorStatus(ref: AccountRef): Promise<BuyerOperatorStatus>
@@ -104,20 +105,26 @@ export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
         : null
   }
 
+  /**
+   * Reads the GoodID whitelist root for `account`.
+   *
+   * Rejects when the read fails. A transport error must never surface as
+   * "not verified": the public Celo RPC rate-limits the burst of reads the
+   * widget issues on load, and swallowing that here is what made a verified
+   * wallet show up as unverified on some loads and not others.
+   */
   async isGoodIdVerified(account: string): Promise<boolean> {
-    if (!this.celoClient || !this.celoGoodIdAddress) return false
-    try {
-      const root = await this.celoClient.readContract({
-        address: this.celoGoodIdAddress,
-        abi: GOODID_ABI,
-        functionName: 'getWhitelistedRoot',
-        args: [normalizeAddress(account) as Address],
-      })
-      const rootAddress = String(root).toLowerCase()
-      return rootAddress !== '0x0000000000000000000000000000000000000000'
-    } catch {
-      return false
+    if (!this.celoClient || !this.celoGoodIdAddress) {
+      throw new Error('GoodID contract is not configured')
     }
+    const root = await this.celoClient.readContract({
+      address: this.celoGoodIdAddress,
+      abi: GOODID_ABI,
+      functionName: 'getWhitelistedRoot',
+      args: [normalizeAddress(account) as Address],
+    })
+    const rootAddress = String(root).toLowerCase()
+    return rootAddress !== '0x0000000000000000000000000000000000000000'
   }
 
   async fetchGdUsdPerToken(): Promise<number> {

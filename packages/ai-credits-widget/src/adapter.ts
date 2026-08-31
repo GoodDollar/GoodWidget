@@ -123,7 +123,6 @@ const WALLET_LOADING_STATE: Partial<AiCreditsWidgetAdapterState> = {
   gBalance: null,
   gdUsdPerToken: null,
   totalCreditUsd: null,
-  isGoodIdVerified: false,
   minDepositUsd: null,
   minStreamUsd: null,
   totalGdDepositedG: null,
@@ -346,7 +345,6 @@ function viewToStatePatch(
         ? totalCreditUsd
         : prev.totalCreditUsd,
     totalBonusUsd,
-    isGoodIdVerified: enriched.goodIdVerified,
     operatorConsented: operatorAccepted,
     operatorAddress: view.operator.operatorAddress ?? null,
     currentOperator: view.operator.currentOperator ?? null,
@@ -432,6 +430,33 @@ export function useAiCreditsAdapter({
     [chainClientOverride, baseRpcUrl, celoRpcUrl, fundingVaultAddress, celoVault, goodIdAddress],
   )
 
+  /**
+   * Reads GoodID verification for `account` straight from Celo, independently of
+   * the backend account fetch. A failed read leaves the previous value alone:
+   * reporting "not verified" because the RPC rate-limited us is exactly what
+   * made a verified wallet lose its bonus on some loads.
+   */
+  const readGoodIdVerification = useCallback(
+    async (account: string) => {
+      try {
+        const verified = await chainClient.isGoodIdVerified(account)
+        setState((prev) =>
+          addressesMatch(prev.address, account) ? { ...prev, isGoodIdVerified: verified } : prev,
+        )
+      } catch {
+        // Transport failure — says nothing about the wallet, so leave it be.
+      }
+    },
+    [chainClient],
+  )
+
+  // Verification is a property of the wallet, not of the credit balance, so it
+  // is read when the account changes rather than on every refresh.
+  useEffect(() => {
+    if (!isConnected || !address) return
+    void readGoodIdVerification(address)
+  }, [isConnected, address, readGoodIdVerification])
+
   useEffect(() => {
     if (!isConnected || !address) {
       setState((prev) => {
@@ -510,7 +535,7 @@ export function useAiCreditsAdapter({
             })
               .then(async (view) => ({
                 view,
-                enriched: await enrichAccountView(view, chainClient),
+                enriched: enrichAccountView(view),
               }))
               .catch(() => null)
 
@@ -589,7 +614,7 @@ export function useAiCreditsAdapter({
           resolvedAccount = await buildAccountView(address!, backendClient, chainClient, {
             buyerAddress: selectedBuyer,
           })
-            .then(async (view) => ({ view, enriched: await enrichAccountView(view, chainClient) }))
+            .then((view) => ({ view, enriched: enrichAccountView(view) }))
             .catch(() => account)
           if (cancelled) return
         }
@@ -808,7 +833,7 @@ export function useAiCreditsAdapter({
         const view = await buildAccountView(address, backendClient, chainClient, {
           buyerAddress,
         })
-        const enriched = await enrichAccountView(view, chainClient)
+        const enriched = enrichAccountView(view)
         const accountPatch = viewToStatePatch(view, enriched, INITIAL_STATE, {
           balanceMode: 'always',
         })
@@ -904,7 +929,7 @@ export function useAiCreditsAdapter({
           const view = await buildAccountView(address, backendClient, chainClient, {
             buyerAddress: buyerAccount.address,
           })
-          const enriched = await enrichAccountView(view, chainClient)
+          const enriched = enrichAccountView(view)
           const accountPatch = viewToStatePatch(view, enriched, INITIAL_STATE, {
             balanceMode: 'always',
           })
@@ -1380,6 +1405,10 @@ export function useAiCreditsAdapter({
       const currentState = state
       if (!currentState.address) return
 
+      if (options?.afterGoodIdVerify) {
+        void readGoodIdVerification(currentState.address)
+      }
+
       try {
         const preferredBuyer = currentState.buyerPubKey
         const buyerList = resolveBuyerList(currentState.address, preferredBuyer)
@@ -1389,7 +1418,7 @@ export function useAiCreditsAdapter({
           }),
           backendClient.getDiscountConfig().catch(() => null),
         ])
-        const enriched = await enrichAccountView(view, chainClient)
+        const enriched = enrichAccountView(view)
         const accountPatch = viewToStatePatch(view, enriched, INITIAL_STATE, {
           balanceMode: 'always',
         })
@@ -1442,7 +1471,7 @@ export function useAiCreditsAdapter({
         )
       }
     },
-    [state, backendClient, chainClient, resolveBuyerList],
+    [state, backendClient, chainClient, resolveBuyerList, readGoodIdVerification],
   )
 
   const handleVerifyGoodId = useCallback(async (): Promise<boolean> => {

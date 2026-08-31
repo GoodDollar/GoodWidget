@@ -176,7 +176,6 @@ export function totalCreditUsdFromStatus(status: {
 
 export type AccountEnrichment = {
   totalCreditUsd: string
-  goodIdVerified: boolean
   totalGdDepositedG: string
   monthlyStreamG: string
 }
@@ -185,17 +184,19 @@ export type BuildAccountViewOptions = {
   buyerAddress?: string | null
 }
 
-export async function enrichAccountView(
-  view: AccountView,
-  chain: AiCreditsChainClient,
-): Promise<AccountEnrichment> {
+/**
+ * Derives the display fields that need no further network access.
+ *
+ * GoodID verification is deliberately not read here. Chaining it to the backend
+ * credit fetch meant any backend error also cleared the verified flag, and it
+ * re-ran on every refresh; the adapter resolves it once per account instead.
+ */
+export function enrichAccountView(view: AccountView): AccountEnrichment {
   const { profile } = view
-  const goodIdVerified = await chain.isGoodIdVerified(view.account)
   const monthlyStreamG = flowRateWeiToMonthlyG(profile.streamFlowRateWeiPerSecond)
   const depositedWei = BigInt(profile.totalGdDepositedWei)
   return {
     totalCreditUsd: totalCreditUsdFromProfile(profile),
-    goodIdVerified,
     totalGdDepositedG: depositedWei > 0n ? weiToG(depositedWei) : '0.00',
     monthlyStreamG,
   }
