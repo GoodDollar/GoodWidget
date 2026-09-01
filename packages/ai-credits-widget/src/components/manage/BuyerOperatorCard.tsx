@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Button,
   ButtonText,
@@ -9,12 +9,15 @@ import {
   Text,
   XStack,
   YStack,
+  Drawer,
+  ScrollArea,
 } from '@goodwidget/ui'
 import type {
   AiCreditsWidgetAdapterActions,
   AiCreditsWidgetAdapterState,
 } from '../../widgetRuntimeContract'
 import { SignerKeyPanel } from '../setup/SignerKeyPanel'
+import { RevokeConsentStep } from './RevokeConsentStep'
 import { monospaceSingleLineStyle, compactButtonProps, truncateAddress } from '../shared/styles'
 import { useCopyFeedback } from '../shared/useCopyFeedback'
 
@@ -77,13 +80,7 @@ function CopyableValue({ value, display }: { value: string; display?: string }) 
   )
 }
 
-function SignerStatus({
-  consented,
-  size = '$1',
-}: {
-  consented: boolean
-  size?: '$1' | '$2'
-}) {
+function SignerStatus({ consented, size = '$1' }: { consented: boolean; size?: '$1' | '$2' }) {
   return (
     <XStack gap="$1" alignItems="center">
       <Icon
@@ -183,8 +180,25 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
   // Remounts SignerKeyPanel so it returns to its Generate / Import choice after a
   // signer settles, instead of staying parked in the sub-flow that created it.
   const [panelInstance, setPanelInstance] = useState(0)
+  const [showRevokeDrawer, setShowRevokeDrawer] = useState(false)
+  // Keeps a pre-existing widget error out of the sheet until this flow produces one.
+  const [revokeAttempted, setRevokeAttempted] = useState(false)
 
   const buyerCanSign = Boolean(buyerPrvKey || operatorSignature)
+  // Revoking is signed locally by the signer key, so a deep-link buyer that only carries
+  // an operator signature cannot revoke even though it can consent.
+  const buyerCanRevoke = Boolean(buyerPrvKey)
+
+  // revokeOperatorConsent reports failure through state.error rather than by rejecting,
+  // so the sheet closes on consent actually dropping — not on the promise settling.
+  useEffect(() => {
+    if (!operatorConsented) setShowRevokeDrawer(false)
+  }, [operatorConsented])
+
+  const handleConfirmRevoke = () => {
+    setRevokeAttempted(true)
+    void Promise.resolve(actions.revokeOperatorConsent())
+  }
 
   return (
     <Card gap="$3" data-testid="signer-key-card">
@@ -253,6 +267,25 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
                       <Spinner size="sm" />
                     ) : (
                       <ButtonText>Authorize GoodDollar</ButtonText>
+                    )}
+                  </Button>
+                )}
+                {operatorConsented && buyerCanRevoke && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    borderColor="$error"
+                    {...compactButtonProps}
+                    disabled={operatorConsentPending}
+                    onPress={() => {
+                      setRevokeAttempted(false)
+                      setShowRevokeDrawer(true)
+                    }}
+                  >
+                    {operatorConsentPending ? (
+                      <Spinner size="sm" />
+                    ) : (
+                      <ButtonText color="$error">Unauthorize Wallet</ButtonText>
                     )}
                   </Button>
                 )}
@@ -327,6 +360,20 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
           )}
         </YStack>
       )}
+
+      <Drawer open={showRevokeDrawer} onClose={() => setShowRevokeDrawer(false)}>
+        <ScrollArea width="100%">
+          <YStack gap="$3" paddingBottom="$4" width="100%">
+            <RevokeConsentStep
+              buyerPubKey={buyerPubKey}
+              operatorConsentPending={operatorConsentPending}
+              error={revokeAttempted ? (state.error ?? null) : null}
+              onConfirm={handleConfirmRevoke}
+              onCancel={() => setShowRevokeDrawer(false)}
+            />
+          </YStack>
+        </ScrollArea>
+      </Drawer>
     </Card>
   )
 }

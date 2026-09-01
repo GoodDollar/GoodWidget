@@ -92,6 +92,7 @@ export interface AiCreditsWidgetAdapterActions {
    */
   applyDeepLinkBuyer: (address: string, operatorSignature: string) => Promise<void>
   signOperatorConsent: () => Promise<void>
+  revokeOperatorConsent: () => Promise<void>
   syncOperatorConsentFromChain: () => Promise<void>
   buildQuote: (depositG: string, streamG: string) => Promise<AiCreditsQuote>
   pay: (quote: AiCreditsQuote) => Promise<void>

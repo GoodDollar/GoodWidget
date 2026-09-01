@@ -8,6 +8,7 @@ import type {
   DiscountConfig,
   GdCreditEntry,
   OperatorConsentResponse,
+  OperatorRevokeResponse,
   SettlementResult,
   TransactionsResponse,
   UserCreditProfile,
@@ -16,7 +17,7 @@ import type {
 } from '../backendClient'
 import { DEFAULT_DISCOUNT_CONFIG, totalCreditUsdFromProfile } from '../backendClient'
 import type { AiCreditsBackendClient } from '../backendClient'
-import { markMockOperatorConsent } from './chainClient'
+import { clearMockOperatorConsent, markMockOperatorConsent } from './chainClient'
 
 const MOCK_DELAY_MS = 600
 const DEFAULT_HISTORY_LIMIT = 20
@@ -221,6 +222,19 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     markMockOperatorConsent(normalizedBuyer)
     return {
       buyer: normalizedBuyer,
+      bridge: { enabled: true, txHash: '0xmock' },
+    }
+  }
+
+  async revokeOperatorConsent(
+    buyer: string,
+    {}: { nonce: string; signature: string },
+  ): Promise<OperatorRevokeResponse> {
+    await sleep(MOCK_DELAY_MS)
+    // Mirrors submitOperatorConsent: the chain mock is what waitForOperatorRevoke polls.
+    clearMockOperatorConsent(normalizeAddress(buyer))
+    return {
+      buyer: normalizeAddress(buyer),
       bridge: { enabled: true, txHash: '0xmock' },
     }
   }

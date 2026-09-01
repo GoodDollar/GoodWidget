@@ -74,6 +74,7 @@ function createAdapterFactory(
       importBuyerFromPrivateKey: async () => overrides.buyerPubKey ?? null,
       applyDeepLinkBuyer: async () => {},
       signOperatorConsent: async () => {},
+      revokeOperatorConsent: async () => {},
       syncOperatorConsentFromChain: async () => {},
       buildQuote: async (depositG, streamG) => ({
         depositAmountG: depositG,
@@ -265,6 +266,9 @@ export function ManageTabStory() {
         totalCreditUsd: '110000000',
         totalBonusUsd: '10000000',
         buyerPubKey: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a',
+        // Unauthorizing is signed locally, so the Manage story needs the signer key
+        // for the Signer Key card to offer it.
+        buyerPrvKey: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
         operatorConsented: true,
         operatorAddress: '0x0000000000000000000000000000000000000004',
         totalGdDepositedG: '50.00',

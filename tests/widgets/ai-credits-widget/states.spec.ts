@@ -14,14 +14,11 @@ const STORY_IDS = {
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--payment-confirmed&viewMode=story',
   creditsManagement:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--credits-management&viewMode=story',
-  historyTab:
-    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--history-tab&viewMode=story',
-  setupTab:
-    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--setup-tab&viewMode=story',
+  historyTab: '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--history-tab&viewMode=story',
+  setupTab: '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--setup-tab&viewMode=story',
   insufficientBalance:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--insufficient-g-balance&viewMode=story',
-  buyTabError:
-    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--buy-tab-error&viewMode=story',
+  buyTabError: '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--buy-tab-error&viewMode=story',
   paymentFailed:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--payment-failed&viewMode=story',
   backendUnavailable:
@@ -147,13 +144,28 @@ test('AiCreditsWidget payment_confirmed', async ({ page }) => {
 test('AiCreditsWidget manage tab', async ({ page }) => {
   await gotoStory(page, STORY_IDS.creditsManagement)
   const root = page.getByTestId('AiCreditsWidget-manage-tab')
-  await expect(root).toBeVisible()
+  await expect(root).toBeVisible({ timeout: 10_000 })
   await expect(root.getByText('Set Up', { exact: true })).toBeVisible()
   await expect(root.getByText('Buy Credits', { exact: true })).toBeVisible()
   await expect(root.getByText('Manage', { exact: true })).toBeVisible()
   await expect(root.getByText('History', { exact: true })).toBeVisible()
   await expect(page.getByText('110.00')).toBeVisible()
   await expect(page.getByText('Credit History')).not.toBeVisible()
+  // The Signer Key card is collapsed at rest; unauthorize lives inside it.
+  await root.getByTestId('signer-key-toggle').click()
+  await root.getByRole('button', { name: 'Unauthorize Wallet' }).click()
+
+  // Like the Set Up authorization sheet, the Drawer renders through a Tamagui Sheet
+  // portal outside the widget root, so its content is queried at the page level.
+  const revokeSheetTitle = page.getByText('Unauthorize Wallet?', { exact: true })
+  await expect(revokeSheetTitle).toBeVisible()
+  await expect(
+    page.getByText(/removes the operator's ability to act on your behalf/i),
+  ).toBeVisible()
+  await expect(page.getByText(/your bonus balance/i)).toBeVisible()
+
+  await page.getByRole('button', { name: 'Cancel' }).click()
+  await expect(revokeSheetTitle).not.toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-07-credits-management.png',
     fullPage: true,
@@ -189,7 +201,9 @@ test('AiCreditsWidget buy tab with error', async ({ page }) => {
   const root = page.getByTestId('AiCreditsWidget-buy-tab-error')
   await expect(root).toBeVisible()
   await expect(root.getByText('Request Failed', { exact: true })).toBeVisible()
-  await expect(root.getByText('Network request failed. Please try again.', { exact: true }).first()).toBeVisible()
+  await expect(
+    root.getByText('Network request failed. Please try again.', { exact: true }).first(),
+  ).toBeVisible()
   await expect(root.getByRole('button', { name: 'Buy AI Credits' })).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-15-buy-tab-error.png',
@@ -400,9 +414,7 @@ test('AiCreditsWidget deep-link authorization pending: Authorize Wallet requires
 
   // The Drawer renders via a Tamagui Sheet portal outside the widget's root DOM
   // subtree, so its content must be queried at the page level, not scoped to `root`.
-  await expect(
-    page.getByText(/A one-time, on-chain approval — not a payment/i),
-  ).toBeVisible()
+  await expect(page.getByText(/A one-time, on-chain approval — not a payment/i)).toBeVisible()
   await expect(page.getByText(/you can revoke it at any time/i)).toBeVisible()
   await expect(page.getByText('Wallet authorized')).not.toBeVisible()
 
@@ -447,7 +459,6 @@ test('AiCreditsWidget multi-buyer: signer key import is reachable', async ({ pag
     fullPage: true,
   })
 })
-
 
 // ---------------------------------------------------------------------------
 // Setup guidance card tests

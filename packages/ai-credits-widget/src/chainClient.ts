@@ -51,6 +51,7 @@ const DEPOSITS_ABI = parseAbi([
 
 const FUNDING_VAULT_ABI = parseAbi([
   'function withdrawablePrincipal(address buyer) view returns (uint256)',
+  'function usedNonces(address buyer) view returns (uint256)',
 ])
 
 const GOODID_ABI = parseAbi([
@@ -81,6 +82,7 @@ export interface AiCreditsChainClient {
     operatorStatus?: BuyerOperatorStatus,
   ): Promise<OperatorConsentPayloadResponse>
   getWithdrawableUsd(buyer: string): Promise<string>
+  getBuyerAuthNonce(buyer: string): Promise<bigint>
 }
 
 export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
@@ -217,6 +219,20 @@ export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
       args: [normalizeAddress(buyer) as Address],
     })
     return amount.toString()
+  }
+
+  async getBuyerAuthNonce(buyer: string): Promise<bigint> {
+    // Never fall back to a default: the nonce is signed over, so a wrong one produces a
+    // valid signature the vault will reject — or worse, replay-protect the wrong slot.
+    if (!this.fundingVaultAddress) {
+      throw new Error('Funding vault address is not configured')
+    }
+    return this.baseClient.readContract({
+      address: this.fundingVaultAddress,
+      abi: FUNDING_VAULT_ABI,
+      functionName: 'usedNonces',
+      args: [normalizeAddress(buyer) as Address],
+    })
   }
 
   private async readOperatorNonce(buyer: Address): Promise<bigint> {
