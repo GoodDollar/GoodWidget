@@ -107,15 +107,16 @@ function filterCompleteRecords(daily: DailyAnalyticsRecord[]): DailyAnalyticsRec
 }
 
 /**
+ * TEMP_GD_USD_RATE = 0.00013 // hardcoded until Worker exposes a live rate — Thales following up with Mike/Hadar
+ *
  * Data-source gap: the Worker's schema (`/v1/analytics`, `/v1/analytics/refresh`) exposes no
  * G$/USD exchange rate anywhere, so the USD equivalent of the G$ *deposited/bought* total
- * (the "Total Credits Bought in G$" scorecard's value) cannot be computed from any data this
+ * (the "Total Credits Bought in G$" scorecard's value) can't be computed from any data this
  * widget receives. `aiCreditsUsedWei` ("AI credits consumed") is a different metric and must
- * not be substituted here even though it's denominated in USD too. Flagged to the data team
- * (Mike) to add a rate field/endpoint — this placeholder stays until that lands, per explicit
- * instruction to keep the USD line rather than remove it.
+ * not be substituted here even though it's denominated in USD too. This rate is a stand-in
+ * pending a real rate field/endpoint from the data team — swap it out once that lands.
  */
-const DEPOSITED_GD_USD_SUFFIX_PENDING_RATE = 'USD rate pending'
+const TEMP_GD_USD_RATE = 0.00013
 
 function toTableRow(record: DailyAnalyticsRecord): TableRow {
   const gdDeposited = weiToGd(record.gdOneTimeDepositsWei)
@@ -257,6 +258,8 @@ function AiCreditsDashboardView({
   // except the flow rate below, which can't safely use `global` as-is (see comment there).
   const gdStreamedTotal = data ? weiToGd(data.global.gdStreamedWei) : 0
   const totalGdSpent = data ? weiToGd(data.global.gdOneTimeDepositsWei) + gdStreamedTotal : 0
+  // Temporary USD estimate for the deposited/bought G$ total — see TEMP_GD_USD_RATE above.
+  const totalGdSpentUsd = totalGdSpent * TEMP_GD_USD_RATE
   const aiCreditsUsedUsd = data ? weiToUsd(data.global.aiCreditsUsedWei) : 0
   // `data.global.gdTotalFlowRateWeiPerSecond` mirrors whatever the Worker's most recent daily
   // record is, even when that record is today's still-accumulating, `missing: true` snapshot —
@@ -303,7 +306,7 @@ function AiCreditsDashboardView({
           value={totalGdSpent}
           label="Total Credits Bought in G$"
           prefix="G$"
-          suffix={`(${DEPOSITED_GD_USD_SUFFIX_PENDING_RATE})`}
+          suffix={`(≈ ${formatMetricValue(totalGdSpentUsd, 'decimal', 2)} USD)`}
           format="decimal"
           subLabel={`out of ${formatMetricValue(gdStreamedTotal, 'decimal', 2)} G$ in subscription (streaming)`}
           testID="scorecard-total-gd"
