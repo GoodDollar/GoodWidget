@@ -107,7 +107,7 @@ function SetupTabPanel({
     <YStack gap="$4" width="100%">
       <AiCreditsHero gBalance={state.gBalance} isGoodIdVerified={state.isGoodIdVerified} />
       <Text tone="soft" fontSize="$2">
-        One-time setup — optional for now. Take the steps in any order, or skip ahead and come back
+        One-time setup required before buying credits. Set up your Signer Key first, then authorize it. Take the steps in any order, or skip ahead and come back
         when you are ready to buy.
       </Text>
       <SetupOnboardingFlow state={state} actions={actions} />

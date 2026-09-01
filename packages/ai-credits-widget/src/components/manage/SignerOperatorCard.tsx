@@ -242,7 +242,7 @@ export function SignerOperatorCard({ state, actions }: SignerOperatorCardProps) 
           {signerPubKey && (
             <YStack gap="$2">
               <Text variant="label" tone="soft">
-                Active signer
+                Active Signer Key
               </Text>
               <YStack
                 backgroundColor="$background"
@@ -314,7 +314,7 @@ export function SignerOperatorCard({ state, actions }: SignerOperatorCardProps) 
             {signerPubKey ? (
               <DisclosureToggle
                 open={showReplacePanel}
-                label="Replace signer key"
+                label="New Signer Key"
                 onPress={() => setShowReplacePanel((prev) => !prev)}
               />
             ) : null}
@@ -335,7 +335,7 @@ export function SignerOperatorCard({ state, actions }: SignerOperatorCardProps) 
             <YStack gap="$2">
               <XStack justifyContent="space-between" alignItems="center" gap="$2">
                 <Text variant="label" tone="soft">
-                  Private key
+                  Signer Private Key
                 </Text>
                 <Button
                   variant="text"

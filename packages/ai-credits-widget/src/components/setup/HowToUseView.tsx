@@ -21,26 +21,26 @@ const QUICK_SUMMARY_STEPS: SummaryStep[] = [
     title: 'Get G$ and connect your wallet',
     tabLabel: 'Set Up',
     description:
-      'Any wallet holding G$ works. Verified GoodDollar wallets get the bonus automatically.',
+      'Any wallet holding G$ works. If your wallet is GoodDollar-verified, the bonus is applied automatically.',
   },
   {
     index: 2,
     title: 'Complete one-time setup',
     tabLabel: 'Set Up',
-    description: 'Download AntSeed, generate your signer key, and authorize your wallet. Take the steps in any order, or skip ahead and come back when you’re ready to buy.',
+    description: 'Set up your Signer Key and complete the required authorization. Set up how you’ll use your credits with Antseed Desktop or API Setup for advanced users.',
   },
   {
     index: 3,
     title: 'Buy or stream credits',
     tabLabel: 'Buy Credits',
-    description: 'Deposit once (+10% bonus) or stream continuously (+20% bonus), then confirm.',
+    description: 'Deposit once (+10% if verified) or subscribe continuously (+20% if verified), then confirm.',
   },
   {
     index: 4,
     title: 'Manage and track',
     tabLabel: 'Manage History',
     description:
-      'Check your signer key and balance under Manage, and your full credit history — exportable as CSV — under History.',
+      'Check your Signer Address and balance under Manage, and view or export your credit history under History.',
   },
 ]
 
@@ -123,7 +123,7 @@ export function HowToUseView({ onBack }: HowToUseViewProps) {
                     Full written guide{' '}
                   </Text>
                   <Text fontSize="$2" tone="soft">
-                    Step-by-step walkthrough with screenshots, on Notion
+                    - See the complete step-by-step walkthrough with screenshots.
                   </Text>
                 </Text>
               </YStack>

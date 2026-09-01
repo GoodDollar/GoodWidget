@@ -47,7 +47,7 @@ export function SetupOnboardingFlow({ state, actions }: SetupOnboardingFlowProps
     {
       id: 'download',
       title: 'Download Antseed',
-      description: 'The app that runs your credits locally — do this whenever you are ready',
+      description: 'Use your AI credits with the Antseed Desktop app',
       status: downloadCompleted ? 'completed' : 'ready',
     },
     {
