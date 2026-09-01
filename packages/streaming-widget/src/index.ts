@@ -4,6 +4,7 @@ export type {
   StreamingWidgetEnvironment,
   StreamingWidgetTab,
   StreamDirection,
+  StreamStatusFilter,
   StreamTimeUnit,
   StreamListItem,
   PoolMembershipItem,

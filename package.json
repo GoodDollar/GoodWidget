@@ -5,6 +5,7 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
+    "test": "turbo run test",
     "clean": "turbo run clean",
     "storybook": "pnpm --filter @goodwidget/storybook storybook",
     "build-storybook": "pnpm --filter @goodwidget/storybook build-storybook",
@@ -17,7 +18,8 @@
     "test:storybook": "pnpm --filter @goodwidget/storybook test:storybook",
     "test:demo": "playwright test",
     "test:ai-credits-web": "playwright test --config apps/ai-credits-web/playwright.config.ts",
-    "test:superfluid-campaign-web": "playwright test --config apps/superfluid-campaign-web/playwright.config.ts"
+    "test:superfluid-campaign-web": "playwright test --config apps/superfluid-campaign-web/playwright.config.ts",
+    "test:gooddata-analytics-web": "playwright test --config apps/gooddata-analytics-web/playwright.config.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.44.0",

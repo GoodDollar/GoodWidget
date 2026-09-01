@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Button, ButtonText, Card, Heading, Icon, Text, XStack, YStack } from '@goodwidget/ui'
 import { AiCreditsStatusNotice } from '../theme/cards'
+import { AntseedSignerRow } from '../setup/AntseedSignerRow'
 import { monospaceSingleLineStyle, compactButtonProps } from '../shared/styles'
 import { useCopyFeedback } from '../shared/useCopyFeedback'
 
@@ -39,9 +40,9 @@ export function BuyerKeyPanel({
 
   return (
     <Shell gap="$3">
-      <Heading level={5}>Buyer Key</Heading>
+      <Heading level={5}>Signer Key</Heading>
       <Text>
-        Sign a message with your payer wallet to derive a deterministic AntSeed buyer key. Save the
+        Sign a message with your payer wallet to derive a dedicated AntSeed signer key. Save the
         private key — you will need it to authenticate from your developer tools.
       </Text>
 
@@ -57,11 +58,11 @@ export function BuyerKeyPanel({
 
         {buyerPubKey && (
           <YStack gap="$2">
-            <Text variant="label" secondary>
+            <Text variant="label" tone="soft">
               Address (registered on-chain)
             </Text>
             <XStack
-              backgroundColor="$backgroundMuted"
+              backgroundColor="$backgroundSurface"
               borderRadius="$2"
               padding="$3"
               justifyContent="space-between"
@@ -81,8 +82,14 @@ export function BuyerKeyPanel({
 
             {buyerPrvKey && (
               <>
+                <AiCreditsStatusNotice borderColor="$warning">
+                  <Text color="$warning" fontSize="$2">
+                    Back up any existing AntSeed signer key before importing this one. Importing
+                    replaces the signer used by your AntSeed account.
+                  </Text>
+                </AiCreditsStatusNotice>
                 <XStack justifyContent="space-between" alignItems="center">
-                  <Text variant="label" secondary>
+                  <Text variant="label" tone="soft">
                     Private Key — save this securely
                   </Text>
                   <Button
@@ -102,7 +109,7 @@ export function BuyerKeyPanel({
                   </Text>
                 </AiCreditsStatusNotice>
                 <XStack
-                  backgroundColor="$backgroundMuted"
+                  backgroundColor="$backgroundSurface"
                   borderRadius="$2"
                   padding="$3"
                   justifyContent="space-between"
@@ -126,6 +133,10 @@ export function BuyerKeyPanel({
                     />
                   </Button>
                 </XStack>
+                <AntseedSignerRow mode="generate" />
+                <Text fontSize="$2" tone="soft">
+                  The public address above is the signer identity used for AI credits.
+                </Text>
               </>
             )}
 

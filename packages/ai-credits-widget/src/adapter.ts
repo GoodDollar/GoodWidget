@@ -10,6 +10,7 @@ import {
   parseAbi,
   type Address,
   type Chain,
+  type PublicClient,
 } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { buildBuyerKeyMessage, deriveBuyerPrivateKeyFromSignature } from './buyerKeyDerivation'
@@ -47,6 +48,7 @@ import {
   type DeepLinkParams,
 } from './deepLinkParams'
 import {
+  addressesMatch,
   buildBuyerStateFields,
   patchPayerSessionFields,
   readPayerSession,
@@ -101,6 +103,7 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   gBalance: null,
   gdUsdPerToken: null,
   totalCreditUsd: null,
+  totalBonusUsd: null,
   isGoodIdVerified: false,
   buyerPubKey: null,
   buyerPrvKey: null,
@@ -108,6 +111,7 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   operatorConsented: false,
   operatorConsentPending: false,
   operatorAddress: null,
+  currentOperator: null,
   minDepositUsd: null,
   minStreamUsd: null,
   totalGdDepositedG: null,
@@ -116,7 +120,7 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   depositBonusPercent: DEFAULT_DISCOUNT_CONFIG.depositBonusPercent,
   streamBonusPercent: DEFAULT_DISCOUNT_CONFIG.streamBonusPercent,
   error: null,
-  activeTab: 'buy',
+  activeTab: 'setup',
   buyers: [],
   derivedBuyerAddress: null,
 }
@@ -125,13 +129,13 @@ const WALLET_LOADING_STATE: Partial<AiCreditsWidgetAdapterState> = {
   gBalance: null,
   gdUsdPerToken: null,
   totalCreditUsd: null,
-  isGoodIdVerified: false,
   minDepositUsd: null,
   minStreamUsd: null,
   totalGdDepositedG: null,
   monthlyStreamG: null,
   withdrawableUsd: null,
   operatorAddress: null,
+  currentOperator: null,
 }
 
 const BUYER_HISTORY_LOOKUP_LIMIT = 100
@@ -178,7 +182,24 @@ function selectPreferredBuyer(buyers: string[], preferredBuyer?: string | null):
 }
 
 function isNonBuyTab(tab: AiCreditsWidgetTab): boolean {
-  return tab === 'manage' || tab === 'history'
+  return tab === 'setup' || tab === 'manage' || tab === 'history'
+}
+
+export function needsWalletConnection(state: AiCreditsWidgetAdapterState): boolean {
+  return (
+    !state.address ||
+    state.status === 'disconnected' ||
+    state.status === 'connecting'
+  )
+}
+
+function resolveDefaultActiveTab(
+  payerAddress: string | null,
+  totalCreditUsd: string | null,
+): AiCreditsWidgetTab {
+  if (hasCreditBalance(totalCreditUsd)) return 'manage'
+  if (payerAddress && listKnownBuyerAddresses(payerAddress).length > 0) return 'buy'
+  return 'setup'
 }
 
 function resolveActiveTab(
@@ -187,15 +208,53 @@ function resolveActiveTab(
 ): AiCreditsWidgetTab {
   if (overrides.activeTab !== undefined) return overrides.activeTab
 
+  const payerAddress = overrides.address !== undefined ? overrides.address : prev.address
+  const totalCreditUsd =
+    overrides.totalCreditUsd !== undefined ? overrides.totalCreditUsd : prev.totalCreditUsd
+
   if (overrides.totalCreditUsd !== undefined && overrides.totalCreditUsd !== null) {
-    return hasCreditBalance(overrides.totalCreditUsd) ? 'manage' : 'buy'
+    return resolveDefaultActiveTab(payerAddress, overrides.totalCreditUsd)
   }
 
-  return prev.activeTab ?? 'buy'
+  if (overrides.address !== undefined && overrides.address !== prev.address) {
+    return resolveDefaultActiveTab(payerAddress, totalCreditUsd)
+  }
+
+  return prev.activeTab ?? resolveDefaultActiveTab(payerAddress, totalCreditUsd)
 }
 
 function hasCreditBalance(totalCreditUsd: string | null): boolean {
   return totalCreditUsd !== null && BigInt(totalCreditUsd) > 0n
+}
+
+/**
+ * Reads the wallet's G$ balance from Celo. Both the connect load and the
+ * refresh action go through here so the Manage tab's "Refresh Balance" button
+ * actually re-reads the balance it names.
+ */
+async function readGBalance(client: PublicClient, account: string): Promise<string> {
+  const [raw, decimals] = await Promise.all([
+    client.readContract({
+      address: G_TOKEN_CELO_ADDRESS,
+      abi: G_TOKEN_ABI,
+      functionName: 'balanceOf',
+      args: [account as Address],
+    }),
+    client.readContract({
+      address: G_TOKEN_CELO_ADDRESS,
+      abi: G_TOKEN_ABI,
+      functionName: 'decimals',
+    }),
+  ])
+  return formatUnits(raw as bigint, decimals as number)
+}
+
+function isPaymentInFlight(status: AiCreditsWidgetStatus): boolean {
+  return (
+    status === 'payment_pending' ||
+    status === 'payment_confirmed' ||
+    status === 'payment_failed'
+  )
 }
 
 function deriveStatus(params: {
@@ -284,7 +343,7 @@ function mergeStatePreservingNonBuyTab(
   }
   const activeTab = isNonBuyTab(nextTab) ? nextTab : prev.activeTab
   const status = deriveStatus({
-    isConnected: true,
+    isConnected: !needsWalletConnection(prev),
     chainId: overrides.chainId ?? prev.chainId,
     gBalance: overrides.gBalance ?? prev.gBalance,
     buyerPubKey: overrides.buyerPubKey ?? prev.buyerPubKey,
@@ -308,8 +367,8 @@ function viewToStatePatch(
     balanceMode?: 'if_positive' | 'always'
   },
 ): Partial<AiCreditsWidgetAdapterState> {
-  const operatorAccepted = view.operator.operatorAccepted
   const totalCreditUsd = enriched.totalCreditUsd
+  const totalBonusUsd = view.profile?.totalBonusUsd ?? null
   const balanceMode = options?.balanceMode ?? 'if_positive'
 
   return {
@@ -317,10 +376,18 @@ function viewToStatePatch(
       balanceMode === 'always' || hasCreditBalance(totalCreditUsd)
         ? totalCreditUsd
         : prev.totalCreditUsd,
-    isGoodIdVerified: enriched.goodIdVerified,
-    operatorConsented: operatorAccepted,
-    operatorAddress: view.operator.operatorAddress ?? null,
-    withdrawableUsd: view.withdrawableUsd,
+    totalBonusUsd,
+    // A read that never answered contributes nothing: omitting the key leaves
+    // the last known value in place instead of asserting "not authorized" or
+    // wiping the withdrawable balance.
+    ...(view.operator
+      ? {
+          operatorConsented: view.operator.operatorAccepted,
+          operatorAddress: view.operator.operatorAddress ?? null,
+          currentOperator: view.operator.currentOperator ?? null,
+        }
+      : {}),
+    ...(view.withdrawableUsd !== null ? { withdrawableUsd: view.withdrawableUsd } : {}),
     totalGdDepositedG: enriched.totalGdDepositedG,
     monthlyStreamG: enriched.monthlyStreamG,
   }
@@ -364,7 +431,7 @@ export function useAiCreditsAdapter({
   skipVaultPaymentValidation = false,
   prepareSettlement,
 }: UseAiCreditsAdapterOptions): AiCreditsWidgetAdapterResult {
-  const { address, chainId, isConnected, provider, connect } = useWallet()
+  const { address, chainId, isConnected, provider, connect, switchChain } = useWallet()
   const [state, setState] = useState<AiCreditsWidgetAdapterState>(INITIAL_STATE)
   const configurationError =
     backendClientOverride || backendUrl ? null : 'AI Credits backend is not configured'
@@ -377,6 +444,10 @@ export function useAiCreditsAdapter({
   const deepLinkApplyInFlightRef = useRef(false)
 
   const celoVault = vaultAddress ?? CELO_GD_ANTSEED_VAULT_FALLBACK
+  const celoPublicClient = useMemo(
+    () => createPublicClient({ chain: CELO_CHAIN, transport: http() }),
+    [],
+  )
 
   const backendClient = useMemo<AiCreditsBackendClient>(
     () => backendClientOverride ?? createBackendClient(backendUrl),
@@ -396,9 +467,40 @@ export function useAiCreditsAdapter({
     [chainClientOverride, baseRpcUrl, celoRpcUrl, fundingVaultAddress, celoVault, goodIdAddress],
   )
 
+  /**
+   * Reads GoodID verification for `account` straight from Celo, independently of
+   * the backend account fetch. A failed read leaves the previous value alone:
+   * reporting "not verified" because the RPC rate-limited us is exactly what
+   * made a verified wallet lose its bonus on some loads.
+   */
+  const readGoodIdVerification = useCallback(
+    async (account: string) => {
+      try {
+        const verified = await chainClient.isGoodIdVerified(account)
+        setState((prev) =>
+          addressesMatch(prev.address, account) ? { ...prev, isGoodIdVerified: verified } : prev,
+        )
+      } catch {
+        // Transport failure — says nothing about the wallet, so leave it be.
+      }
+    },
+    [chainClient],
+  )
+
+  // Verification is a property of the wallet, not of the credit balance, so it
+  // is read when the account changes rather than on every refresh.
+  useEffect(() => {
+    if (!isConnected || !address) return
+    void readGoodIdVerification(address)
+  }, [isConnected, address, readGoodIdVerification])
+
   useEffect(() => {
     if (!isConnected || !address) {
-      setState((prev) => (prev.status === 'connecting' ? prev : { ...INITIAL_STATE }))
+      setState((prev) => {
+        if (prev.status === 'connecting') return prev
+        if (!prev.address && prev.status === 'disconnected' && prev.error === null) return prev
+        return { ...INITIAL_STATE }
+      })
       return
     }
     if (configurationError) {
@@ -443,20 +545,11 @@ export function useAiCreditsAdapter({
     })
 
     async function loadWalletData() {
-      const publicClient = createPublicClient({ chain: CELO_CHAIN, transport: http() })
-      const balancePromise = Promise.all([
-        publicClient.readContract({
-          address: G_TOKEN_CELO_ADDRESS,
-          abi: G_TOKEN_ABI,
-          functionName: 'balanceOf',
-          args: [address as Address],
-        }),
-        publicClient.readContract({
-          address: G_TOKEN_CELO_ADDRESS,
-          abi: G_TOKEN_ABI,
-          functionName: 'decimals',
-        }),
-      ])
+      const publicClient = celoPublicClient
+      // Guarded like every other member of the load batch: a forno hiccup on the
+      // balance read used to reject the whole batch and drop the account view,
+      // minimums, price, discount config and buyer list along with it.
+      const balancePromise = readGBalance(publicClient, address!).catch(() => null)
 
       const pendingDeepLink = pendingDeepLinkRef.current
       const sessionBuyer = patchPayerSessionFields(address!).buyerPubKey
@@ -470,7 +563,7 @@ export function useAiCreditsAdapter({
             })
               .then(async (view) => ({
                 view,
-                enriched: await enrichAccountView(view, chainClient),
+                enriched: enrichAccountView(view),
               }))
               .catch(() => null)
 
@@ -498,7 +591,7 @@ export function useAiCreditsAdapter({
           )
 
       try {
-        const [[rawBalance, decimals], account, minimums, gdUsdPerToken, discountConfig, buyers] =
+        const [balanceRead, account, minimums, gdUsdPerToken, discountConfig, buyers] =
           await Promise.all([
             balancePromise,
             accountPromise,
@@ -509,10 +602,13 @@ export function useAiCreditsAdapter({
           ])
         if (cancelled) return
 
+        const gBalance = balanceRead
+
         const patch: Partial<AiCreditsWidgetAdapterState> = {
           address,
           chainId,
-          gBalance: formatUnits(rawBalance as bigint, decimals as number),
+          // An unread balance stays null rather than becoming a false '0'.
+          ...(gBalance !== null ? { gBalance } : {}),
           gdUsdPerToken,
           minDepositUsd: minimums?.minDepositUsd ?? null,
           minStreamUsd: minimums?.minStreamUsd ?? null,
@@ -522,14 +618,21 @@ export function useAiCreditsAdapter({
             discountConfig?.streamBonusPercent ?? DEFAULT_DISCOUNT_CONFIG.streamBonusPercent,
         }
 
+        // `deriveStatus` parks on 'connecting' while the balance is null, so an
+        // unread balance needs an explicit step off that spinner.
+        const balanceStalledStatus = (prev: AiCreditsWidgetAdapterState) =>
+          gBalance === null && !isPaymentInFlight(prev.status)
+            ? { status: 'purchase_setup' as const }
+            : {}
+
         if (pendingDeepLink || deepLinkApplyInFlightRef.current) {
           setState((prev) =>
             withDerivedStatus(
               prev,
               {
                 ...patch,
+                ...balanceStalledStatus(prev),
                 buyers: mergeBuyerAddressList(prev.buyers, ...buyers),
-                ...(account ? {} : { activeTab: 'buy' as const }),
               },
               true,
             ),
@@ -538,12 +641,37 @@ export function useAiCreditsAdapter({
         }
 
         const selectedBuyer = selectPreferredBuyer(buyers, preferredBuyer)
-        const accountPatch = account
-          ? viewToStatePatch(account.view, account.enriched, INITIAL_STATE, {
+
+        // Buyer discovery runs alongside the account fetch, so a buyer found in
+        // history arrives after the view was already built for `preferredBuyer`
+        // (null on a first visit, which makes the operator read fall back to a
+        // hardcoded "not accepted"). Rebuild for the buyer we actually settled on
+        // rather than reporting a status that was never queried for it.
+        let resolvedAccount = account
+        if (selectedBuyer && !addressesMatch(account?.view.buyer ?? null, selectedBuyer)) {
+          resolvedAccount = await buildAccountView(address!, backendClient, chainClient, {
+            buyerAddress: selectedBuyer,
+          })
+            .then((view) => ({ view, enriched: enrichAccountView(view) }))
+            .catch(() => account)
+          if (cancelled) return
+        }
+
+        const accountPatch = resolvedAccount
+          ? viewToStatePatch(resolvedAccount.view, resolvedAccount.enriched, INITIAL_STATE, {
               balanceMode: 'always',
             })
           : {}
-        if (selectedBuyer && accountPatch.operatorConsented !== undefined) {
+
+        // Consent is only trustworthy when the view was built for this exact buyer.
+        // Otherwise drop it from the patch and leave the stored value alone: a false
+        // negative here is what makes an already-authorized account look unauthorized
+        // on every later load.
+        const consentChecked =
+          Boolean(selectedBuyer) && addressesMatch(resolvedAccount?.view.buyer ?? null, selectedBuyer)
+        if (!consentChecked) {
+          delete accountPatch.operatorConsented
+        } else if (selectedBuyer && accountPatch.operatorConsented !== undefined) {
           setBuyerOperatorConsented(address!, selectedBuyer, accountPatch.operatorConsented)
         }
         const buyerFields = activateBuyerSelection(address!, buyers, selectedBuyer)
@@ -552,6 +680,7 @@ export function useAiCreditsAdapter({
             prev,
             {
               ...patch,
+              ...balanceStalledStatus(prev),
               ...accountPatch,
               ...buyerFields,
               operatorConsented: accountPatch.operatorConsented ?? buyerFields.operatorConsented,
@@ -562,19 +691,18 @@ export function useAiCreditsAdapter({
         )
       } catch {
         if (cancelled) return
+        // Last resort: every individual read is guarded above, so reaching here
+        // means something unexpected failed. Keep the locally-known session —
+        // clearing the buyer keys made a configured wallet look brand new — and
+        // leave the balance unread rather than claiming it is zero.
         setState((prev) => {
           return withDerivedStatus(
             prev,
             {
               address,
               chainId,
-              gBalance: '0',
-              buyers: [],
-              derivedBuyerAddress: null,
-              buyerPubKey: null,
-              buyerPrvKey: null,
-              operatorSignature: null,
-              operatorConsented: false,
+              ...sessionPatch,
+              buyers: mergeBuyerAddressList(prev.buyers, ...listKnownBuyerAddresses(address!)),
               status:
                 chainId !== null && chainId !== CELO_CHAIN_ID
                   ? 'unsupported_chain'
@@ -590,7 +718,16 @@ export function useAiCreditsAdapter({
     return () => {
       cancelled = true
     }
-  }, [isConnected, address, chainId, backendClient, chainClient, celoVault, configurationError])
+  }, [
+    isConnected,
+    address,
+    chainId,
+    backendClient,
+    chainClient,
+    celoPublicClient,
+    celoVault,
+    configurationError,
+  ])
 
   const handleConnect = useCallback(async () => {
     setState((prev) => withDerivedStatus(prev, { status: 'connecting', error: null }, false))
@@ -609,16 +746,28 @@ export function useAiCreditsAdapter({
     })
   }, [connect])
 
+  /**
+   * Switches to Celo through the wallet context rather than issuing
+   * `wallet_switchEthereumChain` directly.
+   *
+   * The raw request is not enough on its own: plenty of mobile wallets bridged
+   * over WalletConnect either reject the method or never answer it. Core races
+   * the request against a timeout and falls back to the integrator's own
+   * network flow, and every failure lands in `state.error` — a switch that
+   * cannot happen has to say so rather than leave a button that does nothing.
+   */
   const handleSwitchChain = useCallback(async () => {
-    const prov = providerRef.current
-    if (!prov) return
-    await (
-      prov as { request: (args: { method: string; params: unknown[] }) => Promise<unknown> }
-    ).request({
-      method: 'wallet_switchEthereumChain',
-      params: [{ chainId: `0x${CELO_CHAIN_ID.toString(16)}` }],
-    })
-  }, [])
+    setState((prev) => ({ ...prev, error: null }))
+    try {
+      await switchChain(CELO_CHAIN_ID)
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : 'Could not switch to Celo. Switch networks in your wallet, then try again.'
+      setState((prev) => withDerivedStatus(prev, { error: message }, true))
+    }
+  }, [switchChain])
 
   /**
    * Creates or restores the single deterministic wallet buyer.
@@ -629,7 +778,7 @@ export function useAiCreditsAdapter({
       setState((prev) =>
         withDerivedStatus(
           prev,
-          { error: 'Connect your wallet before generating a buyer key' },
+          { error: 'Connect your wallet before generating a signer key' },
           true,
         ),
       )
@@ -714,6 +863,7 @@ export function useAiCreditsAdapter({
         mergeStatePreservingNonBuyTab(prev, {
           ...buyerFields,
           operatorAddress: null,
+          currentOperator: null,
           totalCreditUsd: null,
           withdrawableUsd: null,
           totalGdDepositedG: null,
@@ -727,7 +877,7 @@ export function useAiCreditsAdapter({
         const view = await buildAccountView(address, backendClient, chainClient, {
           buyerAddress,
         })
-        const enriched = await enrichAccountView(view, chainClient)
+        const enriched = enrichAccountView(view)
         const accountPatch = viewToStatePatch(view, enriched, INITIAL_STATE, {
           balanceMode: 'always',
         })
@@ -771,7 +921,7 @@ export function useAiCreditsAdapter({
   )
 
   const handleImportBuyerFromPrivateKey = useCallback(
-    async (rawPrivateKey: string) => {
+    async (rawPrivateKey: string): Promise<string | null> => {
       if (!address) {
         setState((prev) =>
           withDerivedStatus(
@@ -780,7 +930,7 @@ export function useAiCreditsAdapter({
             true,
           ),
         )
-        return
+        return null
       }
 
       const trimmed = rawPrivateKey.trim()
@@ -793,7 +943,7 @@ export function useAiCreditsAdapter({
             true,
           ),
         )
-        return
+        return null
       }
 
       try {
@@ -807,6 +957,7 @@ export function useAiCreditsAdapter({
           mergeStatePreservingNonBuyTab(prev, {
             ...buyerFields,
             operatorAddress: null,
+            currentOperator: null,
             totalCreditUsd: null,
             withdrawableUsd: null,
             totalGdDepositedG: null,
@@ -820,7 +971,7 @@ export function useAiCreditsAdapter({
           const view = await buildAccountView(address, backendClient, chainClient, {
             buyerAddress: buyerAccount.address,
           })
-          const enriched = await enrichAccountView(view, chainClient)
+          const enriched = enrichAccountView(view)
           const accountPatch = viewToStatePatch(view, enriched, INITIAL_STATE, {
             balanceMode: 'always',
           })
@@ -838,8 +989,10 @@ export function useAiCreditsAdapter({
             }),
           )
         } catch {
-          return
+          return buyerAccount.address
         }
+
+        return buyerAccount.address
       } catch {
         setState((prev) =>
           withDerivedStatus(
@@ -848,6 +1001,7 @@ export function useAiCreditsAdapter({
             true,
           ),
         )
+        return null
       }
     },
     [address, backendClient, chainClient],
@@ -923,6 +1077,7 @@ export function useAiCreditsAdapter({
         mergeStatePreservingNonBuyTab(prev, {
           ...buyerFields,
           operatorAddress: null,
+          currentOperator: null,
           totalCreditUsd: null,
           withdrawableUsd: null,
           totalGdDepositedG: null,
@@ -940,7 +1095,11 @@ export function useAiCreditsAdapter({
     const currentState = state
     if (!currentState.address || !currentState.buyerPubKey) {
       setState((prev) =>
-        withDerivedStatus(prev, { error: 'Select a buyer before signing operator consent' }, true),
+        withDerivedStatus(
+          prev,
+          { error: 'Select a buyer before authorizing your wallet' },
+          true,
+        ),
       )
       return
     }
@@ -953,7 +1112,7 @@ export function useAiCreditsAdapter({
       setState((prev) =>
         withDerivedStatus(
           prev,
-          { error: 'Generate a buyer key before signing operator consent' },
+          { error: 'Generate a signer key before authorizing your wallet' },
           true,
         ),
       )
@@ -976,6 +1135,16 @@ export function useAiCreditsAdapter({
 
       if (!operatorStatus.enabled) {
         throw new Error('Operator consent is not available')
+      }
+
+      const hasDifferentOperator =
+        operatorStatus.currentOperator !==
+          '0x0000000000000000000000000000000000000000' &&
+        !operatorStatus.operatorAccepted
+      if (hasDifferentOperator) {
+        throw new Error(
+          'This signer key is already controlled by another operator. Import a different signer key or generate a new one.',
+        )
       }
 
       if (operatorStatus.operatorAccepted) {
@@ -1014,7 +1183,7 @@ export function useAiCreditsAdapter({
       } else if (storedOperatorSignature) {
         buyerSig = storedOperatorSignature as `0x${string}`
       } else {
-        throw new Error('Generate a buyer key before signing operator consent')
+        throw new Error('Generate a signer key before authorizing your wallet')
       }
 
       await backendClient.submitOperatorConsent(ref.buyer, {
@@ -1190,7 +1359,7 @@ export function useAiCreditsAdapter({
       const currentState = state
 
       if (!currentState.address || !currentState.buyerPubKey || !providerRef.current) {
-        throw new Error('Connect your wallet and generate a buyer key before paying')
+        throw new Error('Connect your wallet and generate a signer key before paying')
       }
 
       const hasDeposit = Number.parseFloat(quote.depositAmountG) > 0
@@ -1374,24 +1543,32 @@ export function useAiCreditsAdapter({
       const currentState = state
       if (!currentState.address) return
 
+      if (options?.afterGoodIdVerify) {
+        void readGoodIdVerification(currentState.address)
+      }
+
       try {
         const preferredBuyer = currentState.buyerPubKey
         const buyerList = resolveBuyerList(currentState.address, preferredBuyer)
-        const [view, discountConfig] = await Promise.all([
+
+        // Each read stands alone: a failed credit read should not also discard a
+        // G$ balance or discount config that came back fine, and vice versa.
+        const [account, discountConfig, gBalance] = await Promise.all([
           buildAccountView(currentState.address, backendClient, chainClient, {
             buyerAddress: preferredBuyer,
-          }),
+          })
+            .then((view) => ({ view, enriched: enrichAccountView(view) }))
+            .catch(() => null),
           backendClient.getDiscountConfig().catch(() => null),
+          readGBalance(celoPublicClient, currentState.address).catch(() => null),
         ])
-        const enriched = await enrichAccountView(view, chainClient)
-        const accountPatch = viewToStatePatch(view, enriched, INITIAL_STATE, {
-          balanceMode: 'always',
-        })
-        if (
-          preferredBuyer &&
-          accountPatch.operatorConsented !== undefined &&
-          currentState.address
-        ) {
+
+        const accountPatch = account
+          ? viewToStatePatch(account.view, account.enriched, INITIAL_STATE, {
+              balanceMode: 'always',
+            })
+          : {}
+        if (preferredBuyer && accountPatch.operatorConsented !== undefined) {
           setBuyerOperatorConsented(
             currentState.address,
             preferredBuyer,
@@ -1408,7 +1585,7 @@ export function useAiCreditsAdapter({
           const statusSeed =
             options?.afterGoodIdVerify && prev.status === 'payment_failed'
               ? 'quote_ready'
-              : prev.status === 'backend_unavailable'
+              : prev.status === 'backend_unavailable' && account
                 ? 'purchase_setup'
                 : prev.status
           return withDerivedStatus(
@@ -1418,23 +1595,40 @@ export function useAiCreditsAdapter({
               ...buyerFields,
               operatorConsented: accountPatch.operatorConsented ?? buyerFields.operatorConsented,
               activeTab: prev.activeTab,
-              error: null,
-              depositBonusPercent: discountConfig?.depositBonusPercent ?? prev.depositBonusPercent,
+              // An unread balance keeps the one already on screen.
+              ...(gBalance !== null ? { gBalance } : {}),
+              // Only the credit read failing means the backend is unreachable —
+              // every peripheral read degrades inside `buildAccountView` now.
+              ...(account
+                ? { error: null }
+                : {
+                    status: 'backend_unavailable' as const,
+                    error: 'Could not reach backend — check your connection',
+                  }),
+              depositBonusPercent:
+                discountConfig?.depositBonusPercent ?? prev.depositBonusPercent,
               streamBonusPercent: discountConfig?.streamBonusPercent ?? prev.streamBonusPercent,
             },
             true,
           )
         })
       } catch {
+        // Every network read above is individually guarded, so this only
+        // fires for a local session-storage failure. Report it without
+        // blaming the backend and without dropping what was applied.
         setState((prev) =>
-          mergeStatePreservingNonBuyTab(prev, {
-            status: 'backend_unavailable',
-            error: 'Could not reach backend — check your connection',
-          }),
+          mergeStatePreservingNonBuyTab(prev, { error: 'Could not refresh — try again' }),
         )
       }
     },
-    [state, backendClient, chainClient, resolveBuyerList],
+    [
+      state,
+      backendClient,
+      chainClient,
+      celoPublicClient,
+      resolveBuyerList,
+      readGoodIdVerification,
+    ],
   )
 
   const handleVerifyGoodId = useCallback(async (): Promise<boolean> => {
@@ -1510,7 +1704,7 @@ export function useAiCreditsAdapter({
         setState((prev) => ({
           ...prev,
           error:
-            'Sign with your payer wallet in Buyer & Operator below to generate the buyer private key before closing a channel',
+            'Sign with your payer wallet in Signer Key below to generate the buyer private key before closing a channel',
         }))
         return
       }
@@ -1556,7 +1750,7 @@ export function useAiCreditsAdapter({
         setState((prev) => ({
           ...prev,
           error:
-            'Sign with your payer wallet in Buyer & Operator below to generate the buyer private key before withdrawing funds',
+            'Sign with your payer wallet in Signer Key below to generate the buyer private key before withdrawing funds',
         }))
         return
       }
@@ -1627,13 +1821,18 @@ export function useAiCreditsAdapter({
   }, [configurationError, handleRefresh])
 
   const handleSetActiveTab = useCallback((tab: AiCreditsWidgetTab) => {
-    if (tab === 'buy') {
-      setState((prev) =>
-        withDerivedStatus(prev, { activeTab: 'buy', status: 'purchase_setup', error: null }, true),
-      )
-      return
-    }
-    setState((prev) => mergeStatePreservingNonBuyTab(prev, { activeTab: tab, error: null }))
+    setState((prev) => {
+      if (needsWalletConnection(prev)) {
+        if (tab === 'setup') {
+          return mergeStatePreservingNonBuyTab(prev, { activeTab: 'setup', error: null })
+        }
+        return prev
+      }
+      if (tab === 'buy') {
+        return withDerivedStatus(prev, { activeTab: 'buy', status: 'purchase_setup', error: null }, true)
+      }
+      return mergeStatePreservingNonBuyTab(prev, { activeTab: tab, error: null })
+    })
   }, [])
 
   const handleStartPurchase = useCallback(() => {

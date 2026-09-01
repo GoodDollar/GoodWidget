@@ -1,6 +1,18 @@
-import React from 'react'
-import { Button, ButtonText, Card, Heading, Icon, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
-import { truncateAddress, compactButtonProps } from '../shared/styles'
+import React, { useState } from 'react'
+import {
+  Button,
+  ButtonText,
+  Card,
+  Heading,
+  Icon,
+  PermissionList,
+  PermissionRow,
+  Spinner,
+  Text,
+  XStack,
+  YStack,
+} from '@goodwidget/ui'
+import { truncateAddress, compactButtonProps, monospaceSingleLineStyle } from '../shared/styles'
 
 interface OperatorConsentStepProps {
   buyerPubKey: string | null
@@ -9,7 +21,24 @@ interface OperatorConsentStepProps {
   operatorConsented: boolean
   operatorConsentPending?: boolean
   onSign: () => Promise<void>
+  /** Signer key this wallet derives, when the browser already knows it. */
+  derivedBuyerAddress?: string | null
+  /** Re-derives this wallet's signer key, for a browser that no longer holds it. */
+  onRestoreKey?: () => Promise<void>
   embedded?: boolean
+}
+
+function ConsentBullet({ children }: { children: React.ReactNode }) {
+  return (
+    <XStack gap="$2" alignItems="flex-start">
+      <Text fontSize="$2" tone="soft" lineHeight="$3">
+        •
+      </Text>
+      <Text fontSize="$2" tone="soft" lineHeight="$3" flex={1}>
+        {children}
+      </Text>
+    </XStack>
+  )
 }
 
 export function OperatorConsentStep({
@@ -19,27 +48,69 @@ export function OperatorConsentStep({
   operatorConsented,
   operatorConsentPending = false,
   onSign,
+  derivedBuyerAddress = null,
+  onRestoreKey,
   embedded = false,
 }: OperatorConsentStepProps) {
+  const [restorePending, setRestorePending] = useState(false)
   const canSign = Boolean(buyerPubKey && (buyerPrvKey || operatorSignature))
   const isBusy = operatorConsentPending
 
+  // Nothing here can be signed without the signer key. Rather than show a button
+  // that cannot fire, offer the action that actually unblocks it — unless this
+  // wallet derives a different signer key, in which case re-deriving would switch
+  // buyers behind the user's back and importing is the only honest route.
+  const needsKey = Boolean(buyerPubKey) && !canSign && !operatorConsented
+  const derivesDifferentKey =
+    needsKey &&
+    Boolean(derivedBuyerAddress) &&
+    derivedBuyerAddress?.toLowerCase() !== buyerPubKey?.toLowerCase()
+  const canRestoreKey = needsKey && !derivesDifferentKey && Boolean(onRestoreKey)
+
   const Shell = embedded ? YStack : Card
+
+  const handleRestore = async () => {
+    if (!onRestoreKey) return
+    setRestorePending(true)
+    try {
+      await onRestoreKey()
+    } finally {
+      setRestorePending(false)
+    }
+  }
 
   return (
     <Shell gap="$3" {...(!embedded ? { backgroundColor: '$backgroundHover' } : {})}>
-      <Heading level={5}>Authorize Operator</Heading>
+      <Heading level={5}>Authorize Wallet</Heading>
       <Text fontSize="$2" lineHeight="$3">
-        Granting consent gives the operator control of your signer funds. This is required to
-        prevent fraud in bonus distribution. You can revoke consent at any time, but revoking
-        makes you ineligible for future bonuses and removes any existing bonuses from your
-        account.
+        A one-time, on-chain approval — not a payment. Here&apos;s exactly what it does and
+        doesn&apos;t allow:
       </Text>
+
+      {/* Scope confirmed with the AntseedDeposits contract owner: the operator can
+          only fulfil purchases the buyer initiates, withdrawals return to the payer,
+          and the role carries no ERC-20 allowance and nothing on Celo. Do not widen
+          these claims without re-checking. */}
+      <PermissionList>
+        <PermissionRow tone="can" lead="Can" divided>
+          move funds inside your credit balance, to fulfil purchases you initiate.
+        </PermissionRow>
+        <PermissionRow tone="cannot" lead="Cannot">
+          touch your G$ wallet, your savings, or anything outside this purchase flow.
+        </PermissionRow>
+      </PermissionList>
+
+      <YStack gap="$1.5">
+        <ConsentBullet>It costs no gas and moves no funds.</ConsentBullet>
+        <ConsentBullet>
+          One time only — later purchases reuse it, and you can revoke it at any time.
+        </ConsentBullet>
+      </YStack>
 
       {buyerPubKey && (
         <Text fontSize="$2" lineHeight="$2">
           Buyer address:{' '}
-          <Text fontFamily="$mono" fontSize="$2">
+          <Text fontSize="$2" style={monospaceSingleLineStyle}>
             {truncateAddress(buyerPubKey)}
           </Text>
         </Text>
@@ -48,8 +119,37 @@ export function OperatorConsentStep({
       {operatorConsented ? (
         <XStack gap="$2" alignItems="center">
           <Icon name="check" size="sm" color="success" />
-          <Text color="$success">Operator consent accepted — ready to pay</Text>
+          <Text color="$success">Wallet authorized — ready to pay</Text>
         </XStack>
+      ) : derivesDifferentKey ? (
+        <Text fontSize="$2" color="$warning" lineHeight="$3">
+          This signer key was not generated by the connected wallet, so it cannot be restored here.
+          Import its private key from the Signer key step to authorize it.
+        </Text>
+      ) : canRestoreKey ? (
+        <>
+          <Text fontSize="$2" tone="soft" lineHeight="$3">
+            This browser does not hold your signer key. Restore it from your wallet to continue —
+            the same wallet always produces the same key.
+          </Text>
+          <Button
+            size="sm"
+            {...compactButtonProps}
+            onPress={() => {
+              void handleRestore()
+            }}
+            disabled={restorePending}
+          >
+            {restorePending ? (
+              <XStack gap="$2" alignItems="center">
+                <ButtonText>Restoring…</ButtonText>
+                <Spinner size="sm" />
+              </XStack>
+            ) : (
+              <ButtonText>Restore Signer Key</ButtonText>
+            )}
+          </Button>
+        </>
       ) : (
         <Button
           size="sm"
@@ -65,7 +165,7 @@ export function OperatorConsentStep({
               <Spinner size="sm" />
             </XStack>
           ) : (
-            <ButtonText>Sign Operator Consent</ButtonText>
+            <ButtonText>Authorize Wallet</ButtonText>
           )}
         </Button>
       )}
