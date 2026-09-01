@@ -26,5 +26,5 @@ export function deriveBuyerPrivateKeyFromSignature(signature: Hex): `0x${string}
     }
   }
 
-  throw new Error('Could not derive a valid buyer key from wallet signature')
+  throw new Error('Could not derive a valid signer key from wallet signature')
 }

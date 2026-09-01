@@ -693,7 +693,7 @@ export function useAiCreditsAdapter({
         if (cancelled) return
         // Last resort: every individual read is guarded above, so reaching here
         // means something unexpected failed. Keep the locally-known session —
-        // clearing the buyer keys made a configured wallet look brand new — and
+        // clearing the signer keys made a configured wallet look brand new — and
         // leave the balance unread rather than claiming it is zero.
         setState((prev) => {
           return withDerivedStatus(
@@ -841,7 +841,7 @@ export function useAiCreditsAdapter({
         withDerivedStatus(
           prev,
           {
-            error: err instanceof Error ? err.message : 'Buyer key generation was rejected',
+            error: err instanceof Error ? err.message : 'Signer Key generation was rejected',
           },
           true,
         ),
@@ -926,7 +926,7 @@ export function useAiCreditsAdapter({
         setState((prev) =>
           withDerivedStatus(
             prev,
-            { error: 'Connect your wallet before importing a buyer key' },
+            { error: 'Connect your wallet before importing a signer key' },
             true,
           ),
         )
