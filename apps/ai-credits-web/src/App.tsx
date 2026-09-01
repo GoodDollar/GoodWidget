@@ -82,7 +82,15 @@ function ReownAiCreditsWidget() {
   // has settled on "no wallet". Only the second is a real override, so during
   // the unresolved window these stay undefined and the core provider's own
   // EIP-1193 tracking covers the gap.
-  const isAccountResolved = accountStatus === 'connected' || accountStatus === 'disconnected'
+  //
+  // A restored 'connected' also needs its provider before it counts. AppKit
+  // rehydrates the last account from storage without checking the wallet behind
+  // it, so that address alone can describe a locked wallet — and the widget can
+  // only catch that by asking the provider for its accounts. Handing down an
+  // address with no provider to verify it against is the one combination that
+  // renders as a healthy session nothing can disprove.
+  const isAccountResolved =
+    (accountStatus === 'connected' && Boolean(walletProvider)) || accountStatus === 'disconnected'
 
   // switchNetwork takes a network descriptor, not a chain id.
   const appKitNetworksByChainId = useMemo(

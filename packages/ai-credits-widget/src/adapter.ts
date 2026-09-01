@@ -96,6 +96,14 @@ const CELO_CHAIN: Chain = {
   },
 }
 
+/**
+ * A connected-looking session whose wallet is locked reaches the widget as a
+ * cached address (see GoodWidgetProvider.verifyAccount). Naming that beats
+ * surfacing whatever exception the wallet throws when the signature is refused.
+ */
+const WALLET_UNAVAILABLE_ERROR =
+  'Your wallet is locked or no longer connected. Unlock it and reconnect to continue.'
+
 const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   status: 'disconnected',
   address: null,
@@ -431,7 +439,8 @@ export function useAiCreditsAdapter({
   skipVaultPaymentValidation = false,
   prepareSettlement,
 }: UseAiCreditsAdapterOptions): AiCreditsWidgetAdapterResult {
-  const { address, chainId, isConnected, provider, connect, switchChain } = useWallet()
+  const { address, chainId, isConnected, provider, connect, switchChain, verifyAccount } =
+    useWallet()
   const [state, setState] = useState<AiCreditsWidgetAdapterState>(INITIAL_STATE)
   const configurationError =
     backendClientOverride || backendUrl ? null : 'AI Credits backend is not configured'
@@ -785,6 +794,11 @@ export function useAiCreditsAdapter({
       return
     }
 
+    if (!(await verifyAccount())) {
+      setState((prev) => withDerivedStatus(prev, { error: WALLET_UNAVAILABLE_ERROR }, true))
+      return
+    }
+
     const payerAddress = address as Address
     const session = readPayerSession(payerAddress)
     const derivedAddress = session?.derivedSignerAddress ?? null
@@ -847,7 +861,7 @@ export function useAiCreditsAdapter({
         ),
       )
     }
-  }, [address])
+  }, [address, verifyAccount])
 
   const handleSelectSigner = useCallback(
     async (signerAddress: string) => {
@@ -1365,6 +1379,11 @@ export function useAiCreditsAdapter({
         throw new Error('Connect your wallet and generate a signer key before paying')
       }
 
+      if (!(await verifyAccount())) {
+        setState((prev) => ({ ...prev, error: WALLET_UNAVAILABLE_ERROR }))
+        throw new Error(WALLET_UNAVAILABLE_ERROR)
+      }
+
       const hasDeposit = Number.parseFloat(quote.depositAmountG) > 0
       const streamChanged = isStreamAmountChanged(quote.streamAmountG, currentState.monthlyStreamG)
       if (!hasDeposit && !streamChanged) {
@@ -1538,6 +1557,7 @@ export function useAiCreditsAdapter({
       resolveSignerList,
       prepareSettlement,
       skipVaultPaymentValidation,
+      verifyAccount,
     ],
   )
 

@@ -3,6 +3,11 @@ import { TamaguiProvider } from 'tamagui'
 import { createGoodWidgetConfig, mergeThemeOverrides, YStack, Stack } from '@goodwidget/ui'
 import type { IconName } from '@goodwidget/ui'
 import { detectHost } from './detect'
+import {
+  resolveLiveAddress,
+  resolveTrackedAddress,
+  resolveVerifiedAddress,
+} from './walletLiveness'
 import type { EIP1193Provider } from './eip1193'
 import type {
   GoodWidgetProviderProps,
@@ -12,6 +17,9 @@ import type {
   HostState,
   GoodWidgetState,
 } from './types'
+
+/** Collapses the focus + visibilitychange pair a single tab return fires into one probe. */
+const WAKE_PROBE_MIN_INTERVAL_MS = 1000
 
 const DEFAULT_CAPABILITIES: HostCapabilities = {
   batchTransactions: false,
@@ -23,6 +31,17 @@ const DEFAULT_CAPABILITIES: HostCapabilities = {
 
 export interface WalletContextValue extends WalletState {
   connect: () => Promise<void>
+  /**
+   * Re-reads the wallet's authorized accounts and returns the live address, or
+   * `null` when it has none — locked, disconnected, or permissions revoked.
+   *
+   * `isConnected` is a rendered snapshot and a wallet can lock at any moment
+   * after it, so anything that is about to ask for a signature should await this
+   * first and fail with its own message rather than letting the wallet throw.
+   * Resolves to the current address when no provider can answer, so callers on
+   * exotic hosts are not blocked by an unanswerable question.
+   */
+  verifyAccount: () => Promise<string | null>
   /**
    * Ends the wallet session when supported.
    * @throws Error with message `DISCONNECT_UNAVAILABLE_ERROR` when `canDisconnect` is false.
@@ -46,6 +65,8 @@ export type HostContextValue = HostState
 
 export interface GoodWidgetContextValue extends GoodWidgetState {
   connect: () => Promise<void>
+  /** See `WalletContextValue.verifyAccount`. */
+  verifyAccount: () => Promise<string | null>
   disconnect: () => Promise<void>
   /** See `WalletContextValue.canDisconnect`. */
   canDisconnect: boolean
@@ -107,6 +128,7 @@ export const WalletContext = React.createContext<WalletContextValue>({
   provider: null,
   availableChainIds: null,
   connect: async () => {},
+  verifyAccount: async () => null,
   disconnect: async () => {},
   canDisconnect: false,
   disconnectLabel: 'Disconnect',
@@ -128,6 +150,7 @@ export const GoodWidgetContext = React.createContext<GoodWidgetContextValue>({
   host: 'injected',
   capabilities: DEFAULT_CAPABILITIES,
   connect: async () => {},
+  verifyAccount: async () => null,
   disconnect: async () => {},
   canDisconnect: false,
   disconnectLabel: 'Disconnect',
@@ -158,6 +181,7 @@ export function GoodWidgetProvider({
   const [capabilities, setCapabilities] = useState<HostCapabilities>(DEFAULT_CAPABILITIES)
   const [trackedAddress, setTrackedAddress] = useState<string | null>(null)
   const [trackedChainId, setTrackedChainId] = useState<number | null>(null)
+  const [walletReportsNoAccounts, setWalletReportsNoAccounts] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -172,56 +196,122 @@ export function GoodWidgetProvider({
     }
   }, [explicitProvider])
 
-  // When the integrator supplies both a live address and chain id (e.g. from
-  // a wallet connection SDK's own reactive hooks), those become the single
-  // source of truth and the raw EIP-1193 event listeners below are skipped
-  // entirely. When only one of the two is supplied, the listeners still run
-  // so the other value keeps tracking — some connectors (WalletConnect
-  // sessions bridged through AppKit in particular) do not reliably emit
-  // accountsChanged/chainChanged, which otherwise leaves that value stale
-  // after a connect/disconnect/switch.
   const hasAddressOverride = addressOverride !== undefined
   const hasChainIdOverride = chainIdOverride !== undefined
 
+  // One subscription to the wallet, feeding two questions.
+  //
+  // 1. Tracking — when the integrator supplies no override, the raw
+  //    accountsChanged/chainChanged events and their initial reads are where
+  //    address and chain id come from.
+  //
+  // 2. Liveness — when the integrator *does* supply an address, it can still go
+  //    stale: connection SDKs restore the last account from storage without
+  //    checking the wallet, so AppKit reports a connected session while the
+  //    wallet behind it is locked. The address is then real but dead — reads
+  //    against it succeed, so the widget renders a healthy session until the
+  //    first signature fails. An empty account list is the wallet contradicting
+  //    that override.
+  //
+  // Only an explicitly supplied provider may contradict an override. One we
+  // detected ourselves may be a different wallet than the one backing it — an
+  // injected MetaMask sitting next to a live WalletConnect session — and its
+  // empty account list would say nothing about that session.
   useEffect(() => {
-    if (hasAddressOverride && hasChainIdOverride) return
     if (!resolvedProvider) return
+    setWalletReportsNoAccounts(false)
 
-    const handleAccountsChanged = (accounts: string[]) => {
-      if (!hasAddressOverride) setTrackedAddress(accounts[0] ?? null)
+    let cancelled = false
+    let lastProbeAt = 0
+    const mayVetoOverride = resolvedProvider === explicitProvider
+
+    const applyAccounts = (accounts: string[], source: 'event' | 'poll') => {
+      if (cancelled) return
+      if (mayVetoOverride) setWalletReportsNoAccounts(accounts.length === 0)
+      if (hasAddressOverride) return
+      setTrackedAddress((current) => resolveTrackedAddress(current, accounts, source))
     }
+
+    const handleAccountsChanged = (accounts: string[]) => applyAccounts(accounts, 'event')
     const handleChainChanged = (newChainId: string) => {
-      if (!hasChainIdOverride) setTrackedChainId(parseInt(newChainId, 16))
+      if (!cancelled && !hasChainIdOverride) setTrackedChainId(parseInt(newChainId, 16))
+    }
+
+    const probeAccounts = () => {
+      lastProbeAt = Date.now()
+      resolvedProvider
+        .request({ method: 'eth_accounts' })
+        .then((accounts) => applyAccounts(accounts as string[], 'poll'))
+        // A wallet that refuses the probe has told us nothing, so leave what we
+        // have standing rather than reading a thrown request as "no accounts".
+        .catch(() => {})
+    }
+
+    // accountsChanged is the fast path, but not every wallet emits it on lock and
+    // a WalletConnect session can die on the phone with nothing reaching this tab.
+    // Returning to the tab is when that is most likely to have happened — and
+    // both events fire on a single return, hence the interval guard.
+    const handleWake = () => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return
+      if (Date.now() - lastProbeAt < WAKE_PROBE_MIN_INTERVAL_MS) return
+      probeAccounts()
     }
 
     resolvedProvider.on('accountsChanged', handleAccountsChanged)
     resolvedProvider.on('chainChanged', handleChainChanged)
-
-    if (!hasAddressOverride) {
-      resolvedProvider
-        .request({ method: 'eth_accounts' })
-        .then((accounts) => {
-          const accs = accounts as string[]
-          if (accs.length > 0) setTrackedAddress(accs[0])
-        })
-        .catch(() => {})
+    if (mayVetoOverride && typeof window !== 'undefined') {
+      window.addEventListener('focus', handleWake)
+      document.addEventListener('visibilitychange', handleWake)
     }
+
+    // Skippable only when nothing would read the result: an overridden address
+    // that this provider is not entitled to contradict.
+    if (!hasAddressOverride || mayVetoOverride) probeAccounts()
 
     if (!hasChainIdOverride) {
       resolvedProvider
         .request({ method: 'eth_chainId' })
-        .then((id) => setTrackedChainId(parseInt(id as string, 16)))
+        .then((id) => {
+          if (!cancelled) setTrackedChainId(parseInt(id as string, 16))
+        })
         .catch(() => {})
     }
 
     return () => {
+      cancelled = true
       resolvedProvider.removeListener('accountsChanged', handleAccountsChanged)
       resolvedProvider.removeListener('chainChanged', handleChainChanged)
+      if (mayVetoOverride && typeof window !== 'undefined') {
+        window.removeEventListener('focus', handleWake)
+        document.removeEventListener('visibilitychange', handleWake)
+      }
     }
-  }, [resolvedProvider, hasAddressOverride, hasChainIdOverride])
+  }, [resolvedProvider, explicitProvider, hasAddressOverride, hasChainIdOverride])
 
-  const address = hasAddressOverride ? (addressOverride ?? null) : trackedAddress
+  const overrideOrTrackedAddress = hasAddressOverride ? (addressOverride ?? null) : trackedAddress
+  const address = resolveLiveAddress(overrideOrTrackedAddress, walletReportsNoAccounts)
   const chainId = hasChainIdOverride ? (chainIdOverride ?? null) : trackedChainId
+
+  // Fresh read at the moment of asking, for callers that are about to request a
+  // signature. Unlike the effect above this runs against whatever provider we
+  // have — at the point of use, a detected provider answering "no accounts" is
+  // still the best evidence available, and the alternative is handing the user a
+  // raw wallet exception.
+  const verifyAccount = useCallback(async (): Promise<string | null> => {
+    if (!resolvedProvider) return address
+    try {
+      const accounts = (await resolvedProvider.request({ method: 'eth_accounts' })) as string[]
+      setWalletReportsNoAccounts(accounts.length === 0)
+      if (!hasAddressOverride) setTrackedAddress(accounts[0] ?? null)
+      return resolveVerifiedAddress(accounts, {
+        hasAddressOverride,
+        candidate: overrideOrTrackedAddress,
+      })
+    } catch {
+      // Unanswerable, not answered "no" — never block on a refused probe.
+      return address
+    }
+  }, [resolvedProvider, address, overrideOrTrackedAddress, hasAddressOverride])
 
   const connect = useCallback(async () => {
     if (connectOverride) {
@@ -233,8 +323,11 @@ export function GoodWidgetProvider({
     const accounts = (await resolvedProvider.request({
       method: 'eth_requestAccounts',
     })) as string[]
-    if (accounts.length > 0 && !hasAddressOverride) {
-      setTrackedAddress(accounts[0])
+    if (accounts.length > 0) {
+      // A granted request is first-hand proof of a live account, so lift the veto
+      // here rather than waiting on an accountsChanged some wallets never emit.
+      setWalletReportsNoAccounts(false)
+      if (!hasAddressOverride) setTrackedAddress(accounts[0])
     }
   }, [connectOverride, resolvedProvider, hasAddressOverride])
 
@@ -299,6 +392,7 @@ export function GoodWidgetProvider({
       provider: resolvedProvider,
       availableChainIds,
       connect,
+      verifyAccount,
       disconnect,
       canDisconnect,
       disconnectLabel,
@@ -311,6 +405,7 @@ export function GoodWidgetProvider({
       resolvedProvider,
       availableChainIds,
       connect,
+      verifyAccount,
       disconnect,
       canDisconnect,
       disconnectLabel,
