@@ -105,10 +105,15 @@ test('AiCreditsDashboard live state — G$ Volume dual-axis stays legible at rea
   const root = await expectWidget(page, 'GoodDataWidget-realistic-volume')
   const volumeChart = root.getByTestId('chart-gd-volume')
   await expect(volumeChart).toBeVisible()
+  // Axis titles render as <text> nodes inside the chart's own <svg>; the legend renders as a
+  // separate sibling YStack below it and would also match "Deposits"/"Streamed" text, letting
+  // this assertion pass even if the axis titles themselves were broken. Scoping to the <svg>
+  // guards specifically what this test is meant to guard: axis-title legibility.
+  const volumeChartSvg = volumeChart.locator('svg')
   // The rotated axis title can wrap onto two lines (each its own text node), so
   // match the distinctive word rather than the full label string.
-  await expect(volumeChart.getByText('Deposits', { exact: false }).first()).toBeVisible()
-  await expect(volumeChart.getByText('Streamed', { exact: false }).first()).toBeVisible()
+  await expect(volumeChartSvg.getByText('Deposits', { exact: false }).first()).toBeVisible()
+  await expect(volumeChartSvg.getByText('Streamed', { exact: false }).first()).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/gooddata-widget/test-results/gdw-06-realistic-volume.png',
     fullPage: true,

@@ -128,7 +128,9 @@ const REALISTIC_VOLUME_RESPONSE: AnalyticsResponse = {
     gdOneTimeDepositsWei: String(
       REALISTIC_VOLUME_DAILY.reduce((sum, day) => sum + BigInt(day.gdOneTimeDepositsWei), 0n),
     ),
-    gdStreamedWei: REALISTIC_VOLUME_DAILY[REALISTIC_VOLUME_DAILY.length - 1].gdStreamedWei,
+    gdStreamedWei: String(
+      REALISTIC_VOLUME_DAILY.reduce((sum, day) => sum + BigInt(day.gdStreamedWei), 0n),
+    ),
     aiCreditsUsedWei: String(
       REALISTIC_VOLUME_DAILY.reduce((sum, day) => sum + BigInt(day.aiCreditsUsedWei), 0n),
     ),
