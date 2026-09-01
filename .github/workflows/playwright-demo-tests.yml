@@ -57,6 +57,8 @@ jobs:
         run: pnpm exec playwright install chromium --with-deps
 
       - name: Run Playwright demo tests
+        env:
+          VITE_REOWN_PROJECT_ID: ${{ secrets.VITE_REOWN_PROJECT_ID }}
         run: pnpm test:demo
 
       - name: Upload Playwright artifacts

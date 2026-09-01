@@ -85,7 +85,7 @@ test('quote-loading state shows the fetching-quote CTA', async ({ page }) => {
 
 test('quote-ready buy renders the quoted G$ output', async ({ page }) => {
   await gotoStory(page, 'widgets-goodreservewidget--quote-ready-buy')
-  await expect(page.getByText('108.2500')).toBeVisible()
+  await expect(page.getByText('108.25')).toBeVisible()
   await expect(page.getByText('Review Swap')).toBeVisible()
   await page.screenshot({ path: `${SCREENSHOT_DIR}/grw-04-quote-ready-buy.png` })
 })
@@ -113,7 +113,7 @@ test('quote-ready light theme resolves a different semantic palette from dark', 
   const lightShellBackground = await computedStyle(lightShell, 'background-color')
   const lightAmountCardBackground = await computedStyle(lightAmountCard, 'background-color')
 
-  await expect(page.getByText('108.2500')).toBeVisible()
+  await expect(page.getByText('108.25')).toBeVisible()
   await expect(page.getByText('Review Swap')).toBeVisible()
   await expect(lightHeadingColor).not.toBe(darkHeadingColor)
   await expect(lightShellBackground).not.toBe(darkShellBackground)
@@ -125,15 +125,15 @@ test('quote-ready light theme resolves a different semantic palette from dark', 
 test('quote-ready sell maps G$ into the from slot', async ({ page }) => {
   await gotoStory(page, 'widgets-goodreservewidget--quote-ready-sell')
   await expect(page.getByText('8.9231')).toBeVisible()
-  // Sell direction: the "from" balance is the G$ balance (300.00), not the stable balance.
-  await expect(page.getByText('Balance: 300.00')).toBeVisible()
+  // Sell direction: the "from" balance is the G$ balance, not the stable balance.
+  await expect(page.getByText('Balance: 300.123457')).toBeVisible()
   await page.screenshot({ path: `${SCREENSHOT_DIR}/grw-05-quote-ready-sell.png` })
 })
 
 test('quote-ready on XDC renders the dynamic network label', async ({ page }) => {
   await gotoStory(page, 'widgets-goodreservewidget--quote-ready-xdc')
   await expect(page.getByText('Swap on XDC').first()).toBeVisible()
-  await expect(page.getByText('216.5000')).toBeVisible()
+  await expect(page.getByText('216.50')).toBeVisible()
   await page.screenshot({ path: `${SCREENSHOT_DIR}/grw-06-quote-ready-xdc.png` })
 })
 
@@ -171,9 +171,9 @@ test('swap-success state shows the received amount, not the wallet balance', asy
   await gotoStory(page, 'widgets-goodreservewidget--swap-success')
   await expect(page.getByText('Swap Successful')).toBeVisible()
   await expect(page.getByText('Final amount received')).toBeVisible()
-  // The fixture's lastSwapOutput is 10,230 while the wallet balance is 12,500;
+  // The fixture's lastSwapOutput is 10,230.46 while the wallet balance is 12,500;
   // the success card must show the amount received from the swap.
-  await expect(page.getByText('10,230 G$')).toBeVisible()
+  await expect(page.getByText('10,230.46 G$')).toBeVisible()
   await expect(page.getByText('Do another swap')).toBeVisible()
   await page.screenshot({ path: `${SCREENSHOT_DIR}/grw-11-swap-success.png` })
 })
