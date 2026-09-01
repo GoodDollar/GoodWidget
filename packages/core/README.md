@@ -8,7 +8,7 @@ Runtime helpers for GoodWidget providers, host detection, wallet context, and vi
 
 The helper accepts a small key-value storage adapter. On initialization it reads cached RPC metadata from storage. If the cache is missing or older than 1 day, it starts a background refresh from Chainlist. Client creation waits for that first refresh only when no cached RPCs are available for the requested chain.
 
-Caller-provided `fallbackRpcs` are always tried first, then the chain's own default RPC URLs, and finally any cached Chainlist URLs. The generated viem fallback transport enables ranking and a single retry so unhealthy discovered RPCs can be deprioritized during use instead of being trusted purely by cache order.
+Caller-provided `fallbackRpcs` are always tried first, then the chain's own default RPC URLs, and finally any cached Chainlist URLs. The generated viem fallback transport keeps that order and retries once, moving on to the next endpoint whenever one fails.
 
 ```ts
 import { createViemFallbackClient } from '@goodwidget/core/viemFallbackClient'
@@ -92,7 +92,10 @@ createViemFallbackClient(storage, {
   fetchTimeoutMs: 10_000,
   fetch: globalThis.fetch,
   onError: console.warn,
+  rank: false,
 })
 ```
 
 `chainlistRpcsUrl` defaults to Chainlist's RPC JSON endpoint, but can be overridden. Refresh requests still use a timeout and `redirect: 'error'`.
+
+`rank` is off by default. Setting it to `true` (or `{ intervalMs }`) turns on viem's latency ranking, which reorders transports by measured health — but it starts a background ping against every discovered RPC that runs for the lifetime of the client and cannot be stopped, and it overrides the caller-first ordering described above.

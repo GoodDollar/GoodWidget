@@ -35,6 +35,13 @@ export interface ViemFallbackClientOptions {
   fetchTimeoutMs?: number
   fetch?: typeof fetch
   onError?: (error: unknown) => void
+  /**
+   * Enables viem's latency ranking for the generated fallback transport. Ranking runs a
+   * repeating background ping against every discovered RPC for the lifetime of the client
+   * and cannot be stopped, so it is opt-in. Defaults to `false`, which keeps the transports
+   * in the caller-controlled order and simply skips endpoints that fail a request.
+   */
+  rank?: boolean | { intervalMs?: number }
 }
 
 export interface CachedChainRpcs {
@@ -84,7 +91,17 @@ export function createViemFallbackClient(
   const chainlistRpcsUrl = options.chainlistRpcsUrl ?? DEFAULT_CHAINLIST_RPCS_URL
   const refreshIntervalMs = options.refreshIntervalMs ?? DEFAULT_REFRESH_INTERVAL_MS
   const fetchTimeoutMs = options.fetchTimeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS
-  const fetchImpl = options.fetch ?? globalThis.fetch
+  const fetchImpl = options.fetch ?? globalThis.fetch?.bind(globalThis)
+
+  // Many managed RPC providers reject viem's default `net_listening` ping, which would score
+  // them as permanently unhealthy, so rank against a method every provider implements.
+  const rankOptions = options.rank
+    ? {
+        interval: typeof options.rank === 'object' ? (options.rank.intervalMs ?? 30_000) : 30_000,
+        ping: ({ transport }: { transport: { request: (args: { method: string }) => Promise<unknown> } }) =>
+          transport.request({ method: 'eth_chainId' }),
+      }
+    : false
 
   let cache: ViemRpcCacheEntry | null = null
   let refreshPromise: Promise<void> | null = null
@@ -170,10 +187,10 @@ export function createViemFallbackClient(
   ): Promise<Transport> => {
     const rpcUrls = await getRpcUrls(chain, fallbackRpcs)
     const transports = rpcUrls.length > 0 ? rpcUrls.map((rpcUrl) => http(rpcUrl)) : [http()]
-    // Let viem re-rank transports during use so stale cached endpoints do not remain
-    // the preferred RPCs after they start failing or slowing down.
+    // Without ranking viem walks the transports in order and skips the ones that fail, which
+    // preserves the caller-controlled ordering built in `getRpcUrls`.
     return fallback(transports, {
-      rank: true,
+      rank: rankOptions,
       retryCount: 1,
     })
   }
@@ -256,6 +273,7 @@ function parseCacheEntry(value: unknown): ViemRpcCacheEntry | null {
   if (typeof candidate.fetchedAt !== 'string' || !Array.isArray(candidate.rpcs)) return null
 
   const rpcs = candidate.rpcs
+    .filter((entry): entry is CachedChainRpcs => Boolean(entry) && typeof entry === 'object')
     .map((entry) => ({
       chainId: typeof entry.chainId === 'number' ? entry.chainId : Number.NaN,
       rpcs: Array.isArray(entry.rpcs)
@@ -276,13 +294,14 @@ function normalizeChainlistPayload(payload: unknown): CachedChainRpcs[] {
   if (!Array.isArray(payload)) return []
 
   return payload
+    .filter((entry) => Boolean(entry) && typeof entry === 'object')
     .map((entry) => {
       const candidate = entry as { chainId?: unknown; rpc?: unknown }
       const rpcEntries = Array.isArray(candidate.rpc) ? candidate.rpc : []
       const urls = rpcEntries
         .map((rpcEntry) => {
           if (typeof rpcEntry === 'string') return rpcEntry
-          if (typeof rpcEntry === 'object' && rpcEntry && 'url' in rpcEntry) {
+          if (rpcEntry && typeof rpcEntry === 'object' && 'url' in rpcEntry) {
             const url = (rpcEntry as { url?: unknown }).url
             return typeof url === 'string' ? url : ''
           }

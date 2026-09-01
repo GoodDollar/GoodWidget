@@ -7,6 +7,9 @@
     "directory": "packages/core"
   },
   "type": "module",
+  "engines": {
+    "node": ">=22.6"
+  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -31,7 +34,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "lint": "eslint src/",
-    "test": "node --test --experimental-strip-types --test-force-exit src/**/*.test.ts",
+    "test": "node --test --experimental-strip-types src/*.test.ts",
     "clean": "rm -rf dist .turbo",
     "bump-version": "pnpm version patch --no-git-tag-version && git add package.json && git commit -m \"chore(release): bump @goodwidget/core to $(node -p 'JSON.parse(require(\"fs\").readFileSync(\"package.json\")).version')\""
   },
@@ -53,6 +56,7 @@
     "react": "^18.3.0",
     "react-native": "0.76.9",
     "@types/react": "^18.3.0",
+    "@types/node": "^22.10.0",
     "tsup": "^8.4.0",
     "typescript": "^5.7.0"
   }
