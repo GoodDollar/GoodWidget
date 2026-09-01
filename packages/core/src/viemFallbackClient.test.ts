@@ -136,6 +136,9 @@ test(
       const client = createViemFallbackClient(createStorage(), {
         chainlistRpcsUrl: chainlistUrl,
         fetch: mockFetch,
+        // Ranking is on by default and its background ping loop cannot be stopped, which would
+        // keep the test process alive. This test only cares about failover ordering.
+        rank: false,
       })
       const publicClient = await client.createPublicClient({
         chain: createChain([]),

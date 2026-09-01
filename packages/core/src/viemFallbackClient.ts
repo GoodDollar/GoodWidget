@@ -19,6 +19,7 @@ const DEFAULT_CACHE_KEY = 'goodwidget:viem-rpcs'
 const DEFAULT_REFRESH_INTERVAL_MS = 24 * 60 * 60 * 1000
 const DEFAULT_FETCH_TIMEOUT_MS = 10_000
 const DEFAULT_REFRESH_RETRY_MS = 60_000
+const DEFAULT_RANK_INTERVAL_MS = 30_000
 
 type MaybePromise<T> = T | Promise<T>
 
@@ -48,10 +49,11 @@ export interface ViemFallbackClientOptions {
   fetch?: typeof fetch
   onError?: (error: unknown) => void
   /**
-   * Enables viem's latency ranking for the generated fallback transport. Ranking runs a
-   * repeating background ping against every discovered RPC for the lifetime of the client
-   * and cannot be stopped, so it is opt-in. Defaults to `false`, which keeps the transports
-   * in the caller-controlled order and simply skips endpoints that fail a request.
+   * viem's latency ranking for the generated fallback transport, which reorders endpoints by
+   * measured health so a chronically rate-limited RPC stops being preferred. Enabled by
+   * default. Note that ranking starts a repeating background ping against every discovered
+   * RPC that runs for the lifetime of the client and cannot be stopped — pass `false` to keep
+   * the caller-controlled order and only skip endpoints that fail an actual request.
    */
   rank?: boolean | { intervalMs?: number }
 }
@@ -107,12 +109,18 @@ export function createViemFallbackClient(
   const fetchImpl = options.fetch ?? globalThis.fetch?.bind(globalThis)
 
   // Many managed RPC providers reject viem's default `net_listening` ping, which would score
-  // them as permanently unhealthy, so rank against a method every provider implements.
-  const rankOptions = options.rank
+  // them as permanently unhealthy and demote the integrator's own endpoints, so rank against a
+  // method every provider implements. viem's default 4s interval is also far too aggressive for
+  // a list this size.
+  const rank = options.rank ?? true
+  const rankOptions = rank
     ? {
-        interval: typeof options.rank === 'object' ? (options.rank.intervalMs ?? 30_000) : 30_000,
-        ping: ({ transport }: { transport: { request: (args: { method: string }) => Promise<unknown> } }) =>
-          transport.request({ method: 'eth_chainId' }),
+        interval: typeof rank === 'object' ? (rank.intervalMs ?? DEFAULT_RANK_INTERVAL_MS) : DEFAULT_RANK_INTERVAL_MS,
+        ping: ({
+          transport,
+        }: {
+          transport: { request: (args: { method: string }) => Promise<unknown> }
+        }) => transport.request({ method: 'eth_chainId' }),
       }
     : false
 
@@ -258,8 +266,8 @@ export function createViemFallbackClient(
   ): Promise<Transport> => {
     const rpcUrls = await getRpcUrls(chain, fallbackRpcs)
     const transports = rpcUrls.length > 0 ? rpcUrls.map((rpcUrl) => http(rpcUrl)) : [http()]
-    // Without ranking viem walks the transports in order and skips the ones that fail, which
-    // preserves the caller-controlled ordering built in `getRpcUrls`.
+    // Ranking reorders these by measured health during use; with `rank: false` viem instead
+    // walks them in the caller-controlled order built by `getRpcUrls`, skipping failures.
     return fallback(transports, {
       rank: rankOptions,
       retryCount: 1,

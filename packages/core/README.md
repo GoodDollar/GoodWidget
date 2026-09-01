@@ -10,7 +10,7 @@ The helper accepts a small key-value storage adapter. On initialization it reads
 
 Chainlist returns every known chain, which is far too large to put in `localStorage`. Only the chains you list in `chainIds`, the chains the client is actually asked about, and the chains already in the cache are written back to storage.
 
-Caller-provided `fallbackRpcs` are always tried first, then the chain's own default RPC URLs, and finally any cached Chainlist URLs. The generated viem fallback transport keeps that order and retries once, moving on to the next endpoint whenever one fails.
+Caller-provided `fallbackRpcs` are always tried first, then the chain's own default RPC URLs, and finally any cached Chainlist URLs. The generated viem fallback transport retries once and moves on to the next endpoint whenever one fails, and ranks endpoints by measured health so a cached RPC that starts rate-limiting or erroring is deprioritized instead of being trusted for the rest of the cache cycle.
 
 ```ts
 import { createViemFallbackClient } from '@goodwidget/core/viemFallbackClient'
@@ -96,7 +96,7 @@ createViemFallbackClient(storage, {
   fetchTimeoutMs: 10_000,
   fetch: globalThis.fetch,
   onError: console.warn,
-  rank: false,
+  rank: true,
 })
 ```
 
@@ -104,4 +104,4 @@ createViemFallbackClient(storage, {
 
 `chainIds` seeds the set of chains persisted to storage; it is optional, since any chain passed to `getRpcUrls`, `createPublicClient`, or `createWalletClient` is added automatically. `refreshRetryMs` bounds how often a failed Chainlist fetch is retried.
 
-`rank` is off by default. Setting it to `true` (or `{ intervalMs }`) turns on viem's latency ranking, which reorders transports by measured health — but it starts a background ping against every discovered RPC that runs for the lifetime of the client and cannot be stopped, and it overrides the caller-first ordering described above.
+`rank` is on by default and reorders transports by measured health, pinging with `eth_chainId` (rather than viem's default `net_listening`, which many managed providers reject) every 30 seconds. Pass `{ intervalMs }` to change the interval. Be aware that ranking starts a background ping against every discovered RPC that runs for the lifetime of the client and cannot be stopped, and that once it has samples it supersedes the caller-first ordering described above. Pass `rank: false` to disable it.
