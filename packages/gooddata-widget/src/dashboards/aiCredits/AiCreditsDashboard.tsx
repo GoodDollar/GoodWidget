@@ -106,6 +106,17 @@ function filterCompleteRecords(daily: DailyAnalyticsRecord[]): DailyAnalyticsRec
   return daily.filter((record) => !record.missing)
 }
 
+/**
+ * Data-source gap: the Worker's schema (`/v1/analytics`, `/v1/analytics/refresh`) exposes no
+ * G$/USD exchange rate anywhere, so the USD equivalent of the G$ *deposited/bought* total
+ * (the "Total Credits Bought in G$" scorecard's value) cannot be computed from any data this
+ * widget receives. `aiCreditsUsedWei` ("AI credits consumed") is a different metric and must
+ * not be substituted here even though it's denominated in USD too. Flagged to the data team
+ * (Mike) to add a rate field/endpoint — this placeholder stays until that lands, per explicit
+ * instruction to keep the USD line rather than remove it.
+ */
+const DEPOSITED_GD_USD_SUFFIX_PENDING_RATE = 'USD rate pending'
+
 function toTableRow(record: DailyAnalyticsRecord): TableRow {
   const gdDeposited = weiToGd(record.gdOneTimeDepositsWei)
   const gdStreamed = weiToGd(record.gdStreamedWei)
@@ -242,11 +253,21 @@ function AiCreditsDashboardView({
   const dailyRecords = data ? filterCompleteRecords(data.daily) : []
   const hasDailyData = dailyRecords.length > 0
 
-  // Scorecards derive straight from `global`, matching the reference dashboard's renderHero().
+  // Scorecards derive straight from `global`, matching the reference dashboard's renderHero() —
+  // except the flow rate below, which can't safely use `global` as-is (see comment there).
   const gdStreamedTotal = data ? weiToGd(data.global.gdStreamedWei) : 0
   const totalGdSpent = data ? weiToGd(data.global.gdOneTimeDepositsWei) + gdStreamedTotal : 0
   const aiCreditsUsedUsd = data ? weiToUsd(data.global.aiCreditsUsedWei) : 0
-  const gdFlowRatePerMonth = data ? flowRateToMonthly(data.global.gdTotalFlowRateWeiPerSecond) : 0
+  // `data.global.gdTotalFlowRateWeiPerSecond` mirrors whatever the Worker's most recent daily
+  // record is, even when that record is today's still-accumulating, `missing: true` snapshot —
+  // right after a day boundary this reads as "0" until the new day's first streaming event
+  // lands, understating the real current rate. `dailyRecords` above already filters out
+  // incomplete records for the chart/table, so reuse its latest entry here too instead of
+  // reading `global` directly.
+  const latestCompleteDailyRecord = dailyRecords[dailyRecords.length - 1]
+  const gdFlowRatePerMonth = latestCompleteDailyRecord
+    ? flowRateToMonthly(latestCompleteDailyRecord.gdTotalFlowRateWeiPerSecond)
+    : 0
 
   const volumeChartData = dailyRecords.flatMap((record) => [
     { x: record.date, y: weiToGd(record.gdOneTimeDepositsWei), series: 'deposits' },
@@ -282,7 +303,7 @@ function AiCreditsDashboardView({
           value={totalGdSpent}
           label="Total Credits Bought in G$"
           prefix="G$"
-          suffix={`(≈ $${formatMetricValue(aiCreditsUsedUsd, 'decimal', 2)} USD)`}
+          suffix={`(${DEPOSITED_GD_USD_SUFFIX_PENDING_RATE})`}
           format="decimal"
           subLabel={`out of ${formatMetricValue(gdStreamedTotal, 'decimal', 2)} G$ in subscription (streaming)`}
           testID="scorecard-total-gd"
