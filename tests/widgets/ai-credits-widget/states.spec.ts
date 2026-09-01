@@ -153,18 +153,19 @@ test('AiCreditsWidget manage tab', async ({ page }) => {
   await expect(page.getByText('Credit History')).not.toBeVisible()
   // The Signer Key card is collapsed at rest; unauthorize lives inside it.
   await root.getByTestId('signer-key-toggle').click()
-  const revokeButton = root.getByRole('button', { name: 'Unauthorize Wallet' })
-  await expect(revokeButton).toBeVisible()
-  await revokeButton.click()
-  const dialogTitle = page.getByText('Unauthorize Wallet?', { exact: true })
-  await expect(dialogTitle).toBeVisible()
+  await root.getByRole('button', { name: 'Unauthorize Wallet' }).click()
+
+  // Like the Set Up authorization sheet, the Drawer renders through a Tamagui Sheet
+  // portal outside the widget root, so its content is queried at the page level.
+  const revokeSheetTitle = page.getByText('Unauthorize Wallet?', { exact: true })
+  await expect(revokeSheetTitle).toBeVisible()
   await expect(
-    page.getByText(
-      "Removes the operator's wallet ability to act on your behalf. Any bonus balance will be deducted, and any active stream bonuses will stop.",
-    ),
+    page.getByText(/removes the operator's ability to act on your behalf/i),
   ).toBeVisible()
+  await expect(page.getByText(/your bonus balance/i)).toBeVisible()
+
   await page.getByRole('button', { name: 'Cancel' }).click()
-  await expect(dialogTitle).toHaveCount(0)
+  await expect(revokeSheetTitle).not.toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-07-credits-management.png',
     fullPage: true,

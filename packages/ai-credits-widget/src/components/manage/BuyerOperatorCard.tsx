@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Button,
   ButtonText,
@@ -9,14 +9,15 @@ import {
   Text,
   XStack,
   YStack,
-  closeDialog,
-  createDialog,
+  Drawer,
+  ScrollArea,
 } from '@goodwidget/ui'
 import type {
   AiCreditsWidgetAdapterActions,
   AiCreditsWidgetAdapterState,
 } from '../../widgetRuntimeContract'
 import { SignerKeyPanel } from '../setup/SignerKeyPanel'
+import { RevokeConsentStep } from './RevokeConsentStep'
 import { monospaceSingleLineStyle, compactButtonProps, truncateAddress } from '../shared/styles'
 import { useCopyFeedback } from '../shared/useCopyFeedback'
 
@@ -179,30 +180,24 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
   // Remounts SignerKeyPanel so it returns to its Generate / Import choice after a
   // signer settles, instead of staying parked in the sub-flow that created it.
   const [panelInstance, setPanelInstance] = useState(0)
+  const [showRevokeDrawer, setShowRevokeDrawer] = useState(false)
+  // Keeps a pre-existing widget error out of the sheet until this flow produces one.
+  const [revokeAttempted, setRevokeAttempted] = useState(false)
 
   const buyerCanSign = Boolean(buyerPrvKey || operatorSignature)
   // Revoking is signed locally by the signer key, so a deep-link buyer that only carries
   // an operator signature cannot revoke even though it can consent.
   const buyerCanRevoke = Boolean(buyerPrvKey)
 
-  const handleOpenRevokeDialog = () => {
-    createDialog({
-      title: 'Unauthorize Wallet?',
-      body: "Removes the operator's wallet ability to act on your behalf. Any bonus balance will be deducted, and any active stream bonuses will stop.",
-      acceptLabel: 'Unauthorize Wallet',
-      rejectLabel: 'Cancel',
-      showClose: true,
-      onAccept: async () => {
-        // GoodWidgetDialog leaves an async accept parked on its success state, so the
-        // caller owns the close.
-        try {
-          await actions.revokeOperatorConsent()
-        } finally {
-          closeDialog()
-        }
-      },
-      onReject: () => {},
-    })
+  // revokeOperatorConsent reports failure through state.error rather than by rejecting,
+  // so the sheet closes on consent actually dropping — not on the promise settling.
+  useEffect(() => {
+    if (!operatorConsented) setShowRevokeDrawer(false)
+  }, [operatorConsented])
+
+  const handleConfirmRevoke = () => {
+    setRevokeAttempted(true)
+    void Promise.resolve(actions.revokeOperatorConsent())
   }
 
   return (
@@ -282,7 +277,10 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
                     borderColor="$error"
                     {...compactButtonProps}
                     disabled={operatorConsentPending}
-                    onPress={handleOpenRevokeDialog}
+                    onPress={() => {
+                      setRevokeAttempted(false)
+                      setShowRevokeDrawer(true)
+                    }}
                   >
                     {operatorConsentPending ? (
                       <Spinner size="sm" />
@@ -362,6 +360,20 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
           )}
         </YStack>
       )}
+
+      <Drawer open={showRevokeDrawer} onClose={() => setShowRevokeDrawer(false)}>
+        <ScrollArea width="100%">
+          <YStack gap="$3" paddingBottom="$4" width="100%">
+            <RevokeConsentStep
+              buyerPubKey={buyerPubKey}
+              operatorConsentPending={operatorConsentPending}
+              error={revokeAttempted ? (state.error ?? null) : null}
+              onConfirm={handleConfirmRevoke}
+              onCancel={() => setShowRevokeDrawer(false)}
+            />
+          </YStack>
+        </ScrollArea>
+      </Drawer>
     </Card>
   )
 }

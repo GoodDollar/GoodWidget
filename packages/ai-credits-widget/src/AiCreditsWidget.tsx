@@ -18,7 +18,6 @@ import {
   YStack,
   Spinner,
   createToast,
-  GoodWidgetDialog,
   updateToast,
 } from '@goodwidget/ui'
 import { needsWalletConnection, useAiCreditsAdapter } from './adapter'
@@ -414,23 +413,6 @@ function ManagePanel({
   )
 }
 
-function WidgetDialog() {
-  return (
-    <GoodWidgetDialog
-      renderAccept={(onPress, label) => (
-        <Button onPress={onPress}>
-          <ButtonText>{label}</ButtonText>
-        </Button>
-      )}
-      renderReject={(onPress, label) => (
-        <Button variant="outline" onPress={onPress}>
-          <ButtonText>{label}</ButtonText>
-        </Button>
-      )}
-    />
-  )
-}
-
 function AiCreditsInner({
   environment,
   backendUrl,
@@ -672,7 +654,6 @@ export function AiCreditsWidget({
           onPayError={onPayError}
           showWalletControls={showWalletControls}
         />
-        <WidgetDialog />
         <ToastContainer />
       </YStack>
     </GoodWidgetProvider>
