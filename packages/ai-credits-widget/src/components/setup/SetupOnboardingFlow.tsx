@@ -59,7 +59,7 @@ export function SetupOnboardingFlow({ state, actions }: SetupOnboardingFlowProps
     },
     {
       id: 'authorize',
-      title: 'Authorize Wallet',
+      title: 'Authorize Credits Management',
       description: 'One-time permission — scoped to Base credits',
       status: state.operatorConsented ? 'completed' : hasSignerKey ? 'ready' : 'pending',
       optional: true,

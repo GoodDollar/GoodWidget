@@ -5,7 +5,7 @@ import { AntseedSignerRow } from '../setup/AntseedSignerRow'
 import { monospaceSingleLineStyle, compactButtonProps } from '../shared/styles'
 import { useCopyFeedback } from '../shared/useCopyFeedback'
 
-interface SignerKeyPanelProps {
+interface GenerateSignerKeyPanelProps {
   signerPubKey: string | null
   signerPrvKey: string | null
   signerPubKeySaved: boolean
@@ -14,14 +14,14 @@ interface SignerKeyPanelProps {
   embedded?: boolean
 }
 
-export function SignerKeyPanel({
+export function GenerateSignerKeyPanel({
   signerPubKey,
   signerPrvKey,
   signerPubKeySaved,
   onGenerate,
   onConfirm,
   embedded = false,
-}: SignerKeyPanelProps) {
+}: GenerateSignerKeyPanelProps) {
   const { copied: copiedAddress, copy: copyAddress } = useCopyFeedback()
   const { copied: copiedPrivate, copy: copyPrivate } = useCopyFeedback()
   const [isPrivateKeyVisible, setIsPrivateKeyVisible] = useState(false)

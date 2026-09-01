@@ -81,7 +81,7 @@ export function OperatorConsentStep({
 
   return (
     <Shell gap="$3" {...(!embedded ? { backgroundColor: '$backgroundHover' } : {})}>
-      <Heading level={5}>Authorize Wallet</Heading>
+      <Heading level={5}>Authorize Credits Management</Heading>
       <Text fontSize="$2" lineHeight="$3">
         A one-time, on-chain approval — not a payment. Here&apos;s exactly what it does and
         doesn&apos;t allow:
@@ -165,7 +165,7 @@ export function OperatorConsentStep({
               <Spinner size="sm" />
             </XStack>
           ) : (
-            <ButtonText>Authorize Wallet</ButtonText>
+            <ButtonText>Authorize Credits Management</ButtonText>
           )}
         </Button>
       )}

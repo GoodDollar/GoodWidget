@@ -15,7 +15,7 @@ import type {
   AiCreditsWidgetAdapterActions,
   AiCreditsWidgetAdapterState,
 } from '../../widgetRuntimeContract'
-import { SignerKeyPanel } from '../buy/SignerKeyPanel'
+import { GenerateSignerKeyPanel } from '../buy/GenerateSignerKeyPanel'
 import { AntseedSignerRow } from './AntseedSignerRow'
 import { compactButtonProps, truncateAddress } from '../shared/styles'
 
@@ -65,7 +65,7 @@ export function SignerKeyPanel({
   // Once the signer is settled the only step left is authorizing the wallet —
   // unless this signer already carries GoodDollar consent, which ends setup.
   const proceedLabel =
-    proceedLabelOverride ?? (state.operatorConsented ? 'Done' : 'Continue to Authorize Wallet')
+    proceedLabelOverride ?? (state.operatorConsented ? 'Done' : 'Continue to Authorize Credits Management')
 
   const hasDifferentOperator =
     Boolean(currentOperator) &&
@@ -80,7 +80,7 @@ export function SignerKeyPanel({
           <Icon name="arrow-left" size="xs" color="primary" />
           <ButtonText>Back to Generate / Import</ButtonText>
         </Button>
-        <SignerKeyPanel
+        <GenerateSignerKeyPanel
           embedded
           signerPubKey={state.signerPubKey}
           signerPrvKey={state.signerPrvKey}

@@ -1,6 +1,6 @@
 export * from './theme/cards'
 export { AiCreditsHero } from './buy/AiCreditsHero'
-export { SignerKeyPanel } from './buy/SignerKeyPanel'
+export { GenerateSignerKeyPanel } from './buy/GenerateSignerKeyPanel'
 export { OperatorConsentStep } from './buy/OperatorConsentStep'
 export { AmountPicker } from './buy/AmountPicker'
 export { CreditsManagementCard } from './manage/CreditsManagementCard'

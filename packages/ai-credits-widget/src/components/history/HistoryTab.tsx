@@ -481,7 +481,7 @@ function SignerFilterSelect({
     <YStack flex={1} minWidth={0} position="relative" zIndex={open ? 25 : 1}>
       <XStack
         tag="button"
-        role="listbox"
+        role="combobox"
         height="$7"
         alignItems="center"
         justifyContent="space-between"

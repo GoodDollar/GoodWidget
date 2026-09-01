@@ -211,14 +211,14 @@ export const SetupAuthorizeWallet: Story = {
   render: () => <SetupAuthorizeWalletStory />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    await userEvent.click(canvas.getByText('Authorize Wallet', { exact: true }))
+    await userEvent.click(canvas.getByText('Authorize Credits Management', { exact: true }))
     await expect(
       within(document.body).getByText(
         /GoodDollar needs this one-time authorization to fund and manage your AI credits/i,
       ),
     ).toBeVisible()
     await expect(
-      within(document.body).getByRole('button', { name: 'Authorize Wallet' }),
+      within(document.body).getByRole('button', { name: 'Authorize Credits Management' }),
     ).toBeEnabled()
   },
 }

@@ -81,7 +81,7 @@ test('AiCreditsWidget Setup tab — onboarding steps visible', async ({ page }) 
   await expect(root.getByText(/One-time setup — optional for now/)).toBeVisible()
   await expect(root.getByText('Download Antseed', { exact: true }).first()).toBeVisible()
   await expect(root.getByText('Signer key', { exact: true })).toBeVisible()
-  await expect(root.getByText('Authorize Wallet', { exact: true })).toBeVisible()
+  await expect(root.getByText('Authorize Credits Management', { exact: true })).toBeVisible()
   await expect(root.getByText('Set Up', { exact: true })).toBeVisible()
   await expect(root.getByText('Buy Credits', { exact: true })).toBeVisible()
   await page.screenshot({
@@ -399,7 +399,7 @@ test('AiCreditsWidget deep-link signer: Sign Consent enabled via operatorSignatu
   })
 })
 
-test('AiCreditsWidget deep-link authorization pending: Authorize Wallet requires an explicit click', async ({
+test('AiCreditsWidget deep-link authorization pending: Authorize Credits Management requires an explicit click', async ({
   page,
 }) => {
   await gotoStory(page, MULTI_BUYER_STORY_IDS.deepLinkConsentPending)
@@ -410,7 +410,7 @@ test('AiCreditsWidget deep-link authorization pending: Authorize Wallet requires
   // authorization gate must render before any permission is granted. The step
   // lives on Set Up now that Buy is purchase-only.
   await root.getByText('Set Up', { exact: true }).click()
-  await root.getByText('Authorize Wallet', { exact: true }).first().click()
+  await root.getByText('Authorize Credits Management', { exact: true }).first().click()
 
   // The Drawer renders via a Tamagui Sheet portal outside the widget's root DOM
   // subtree, so its content must be queried at the page level, not scoped to `root`.
@@ -418,7 +418,7 @@ test('AiCreditsWidget deep-link authorization pending: Authorize Wallet requires
   await expect(page.getByText(/you can revoke it at any time/i)).toBeVisible()
   await expect(page.getByText('Wallet authorized')).not.toBeVisible()
 
-  const authorizeWalletButton = page.getByRole('button', { name: 'Authorize Wallet' })
+  const authorizeWalletButton = page.getByRole('button', { name: 'Authorize Credits Management' })
   await expect(authorizeWalletButton).toBeEnabled()
 
   await page.screenshot({
@@ -601,7 +601,7 @@ test('AiCreditsWidget Setup — Download AntSeed step is first and shows Start l
 
   await expect(root.getByText('Download Antseed', { exact: true }).first()).toBeVisible()
   await expect(root.getByText('Signer key', { exact: true })).toBeVisible()
-  await expect(root.getByText('Authorize Wallet', { exact: true })).toBeVisible()
+  await expect(root.getByText('Authorize Credits Management', { exact: true })).toBeVisible()
   await expect(root.getByText('Ready', { exact: true })).toBeVisible()
   // Later steps are skippable rather than locked, so they read as Optional.
   await expect(root.getByText('Optional').first()).toBeVisible()

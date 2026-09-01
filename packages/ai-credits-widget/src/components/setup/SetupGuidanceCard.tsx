@@ -146,7 +146,7 @@ export function SetupGuidanceCard({
           flexGrow={1}
           flexBasis="auto"
           size="sm"
-          variant={activeHelpView === 'how-to-use' ? 'default' : 'outline'}
+          variant={activeHelpView === 'how-to-use' ? 'primary' : 'outline'}
           onPress={onHowToUse}
           borderRadius="$3"
           paddingHorizontal="$2"
@@ -180,7 +180,7 @@ export function SetupGuidanceCard({
           flexGrow={1}
           flexBasis="auto"
           size="sm"
-          variant={activeHelpView === 'faq' ? 'default' : 'outline'}
+          variant={activeHelpView === 'faq' ? 'primary' : 'outline'}
           onPress={onFaq}
           borderRadius="$3"
           paddingHorizontal="$2"

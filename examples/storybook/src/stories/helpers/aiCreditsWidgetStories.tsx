@@ -324,7 +324,7 @@ export function SignerKeyGeneratedStory() {
   )
 }
 
-/** Setup tab with a generated signer key and the Authorize Wallet step ready. */
+/** Setup tab with a generated signer key and the Authorize Credits Management step ready. */
 export function SetupAuthorizeWalletStory() {
   return (
     <MockStoryShell
