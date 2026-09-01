@@ -151,3 +151,73 @@ test(
     }
   },
 )
+
+test('persists only tracked chains instead of the whole Chainlist payload', async () => {
+  let stored: string | null = null
+  const storage: ViemFallbackStorage = {
+    async getItem() {
+      return stored
+    },
+    async setItem(_key, value) {
+      stored = value
+    },
+  }
+
+  const client = createViemFallbackClient(storage, {
+    fetch: async () =>
+      new Response(
+        JSON.stringify([
+          { chainId: celo.id, rpc: ['https://celo.example'] },
+          { chainId: 999_001, rpc: ['https://other.example'] },
+          { chainId: 999_002, rpc: ['https://other2.example'] },
+        ]),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      ),
+  })
+
+  await client.getRpcUrls(createChain([]))
+
+  assert.ok(stored, 'expected the cache to be written')
+  const parsed = JSON.parse(stored) as { rpcs: { chainId: number }[] }
+  assert.deepEqual(
+    parsed.rpcs.map((entry) => entry.chainId),
+    [celo.id],
+  )
+})
+
+test('retries a failed refresh instead of giving up for the session', async () => {
+  let attempts = 0
+  const errors: unknown[] = []
+
+  const client = createViemFallbackClient(createStorage(), {
+    refreshRetryMs: 0,
+    onError: (error) => errors.push(error),
+    fetch: async () => {
+      attempts += 1
+      if (attempts === 1) throw new Error('offline')
+      return createChainlistResponse(['https://recovered.example'])
+    },
+  })
+
+  await client.ready
+
+  assert.deepEqual(await client.getRpcUrls(createChain([])), ['https://recovered.example'])
+  assert.equal(attempts, 2)
+  assert.equal(errors.length, 1)
+})
+
+test('does not refetch for a chain Chainlist does not know about', async () => {
+  let attempts = 0
+  const client = createViemFallbackClient(createStorage(), {
+    fetch: async () => {
+      attempts += 1
+      return createChainlistResponse(['https://celo.example'])
+    },
+  })
+
+  const unknownChain = { ...createChain([]), id: 999_999 }
+
+  assert.deepEqual(await client.getRpcUrls(unknownChain), [])
+  assert.deepEqual(await client.getRpcUrls(unknownChain), [])
+  assert.equal(attempts, 1)
+})

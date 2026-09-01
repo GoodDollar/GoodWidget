@@ -6,7 +6,9 @@ Runtime helpers for GoodWidget providers, host detection, wallet context, and vi
 
 `createViemFallbackClient` wraps viem `createPublicClient` and `createWalletClient` so callers get a fallback HTTP transport built from cached Chainlist RPC URLs for the requested chain.
 
-The helper accepts a small key-value storage adapter. On initialization it reads cached RPC metadata from storage. If the cache is missing or older than 1 day, it starts a background refresh from Chainlist. Client creation waits for that first refresh only when no cached RPCs are available for the requested chain.
+The helper accepts a small key-value storage adapter. On initialization it reads cached RPC metadata from storage. If the cache is missing or older than 1 day, it starts a background refresh from Chainlist. Client creation waits for that first refresh only when no cached RPCs are available for the requested chain; a stale cache is served immediately while the refresh runs behind it, and a refresh that fails is retried on a later call rather than disabling discovery for the session.
+
+Chainlist returns every known chain, which is far too large to put in `localStorage`. Only the chains you list in `chainIds`, the chains the client is actually asked about, and the chains already in the cache are written back to storage.
 
 Caller-provided `fallbackRpcs` are always tried first, then the chain's own default RPC URLs, and finally any cached Chainlist URLs. The generated viem fallback transport keeps that order and retries once, moving on to the next endpoint whenever one fails.
 
@@ -89,6 +91,8 @@ createViemFallbackClient(storage, {
   cacheKey: 'goodwidget:viem-rpcs',
   chainlistRpcsUrl: 'https://chainlist.org/rpcs.json',
   refreshIntervalMs: 24 * 60 * 60 * 1000,
+  refreshRetryMs: 60_000,
+  chainIds: [42220],
   fetchTimeoutMs: 10_000,
   fetch: globalThis.fetch,
   onError: console.warn,
@@ -97,5 +101,7 @@ createViemFallbackClient(storage, {
 ```
 
 `chainlistRpcsUrl` defaults to Chainlist's RPC JSON endpoint, but can be overridden. Refresh requests still use a timeout and `redirect: 'error'`.
+
+`chainIds` seeds the set of chains persisted to storage; it is optional, since any chain passed to `getRpcUrls`, `createPublicClient`, or `createWalletClient` is added automatically. `refreshRetryMs` bounds how often a failed Chainlist fetch is retried.
 
 `rank` is off by default. Setting it to `true` (or `{ intervalMs }`) turns on viem's latency ranking, which reorders transports by measured health — but it starts a background ping against every discovered RPC that runs for the lifetime of the client and cannot be stopped, and it overrides the caller-first ordering described above.

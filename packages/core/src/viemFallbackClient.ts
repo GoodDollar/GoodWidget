@@ -18,6 +18,7 @@ const DEFAULT_CHAINLIST_RPCS_URL = 'https://chainlist.org/rpcs.json'
 const DEFAULT_CACHE_KEY = 'goodwidget:viem-rpcs'
 const DEFAULT_REFRESH_INTERVAL_MS = 24 * 60 * 60 * 1000
 const DEFAULT_FETCH_TIMEOUT_MS = 10_000
+const DEFAULT_REFRESH_RETRY_MS = 60_000
 
 type MaybePromise<T> = T | Promise<T>
 
@@ -32,6 +33,17 @@ export interface ViemFallbackClientOptions {
   cacheKey?: string
   chainlistRpcsUrl?: string
   refreshIntervalMs?: number
+  /**
+   * How long to wait before retrying after a failed Chainlist refresh. Defaults to 1 minute.
+   */
+  refreshRetryMs?: number
+  /**
+   * Chain IDs to persist RPC URLs for. Chainlist returns every known chain, which is far too
+   * large for storage backends like `localStorage`, so only the chains listed here — plus any
+   * chain the client is actually asked about, and any chain already present in the cache — are
+   * written back to storage.
+   */
+  chainIds?: number[]
   fetchTimeoutMs?: number
   fetch?: typeof fetch
   onError?: (error: unknown) => void
@@ -90,6 +102,7 @@ export function createViemFallbackClient(
   const cacheKey = options.cacheKey ?? DEFAULT_CACHE_KEY
   const chainlistRpcsUrl = options.chainlistRpcsUrl ?? DEFAULT_CHAINLIST_RPCS_URL
   const refreshIntervalMs = options.refreshIntervalMs ?? DEFAULT_REFRESH_INTERVAL_MS
+  const refreshRetryMs = options.refreshRetryMs ?? DEFAULT_REFRESH_RETRY_MS
   const fetchTimeoutMs = options.fetchTimeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS
   const fetchImpl = options.fetch ?? globalThis.fetch?.bind(globalThis)
 
@@ -103,8 +116,16 @@ export function createViemFallbackClient(
       }
     : false
 
+  // Chains whose RPC URLs are worth persisting. Seeded from `options.chainIds`, then grown by
+  // whatever the caller asks for and by whatever the existing cache already holds.
+  const trackedChainIds = new Set<number>(options.chainIds ?? [])
+
   let cache: ViemRpcCacheEntry | null = null
   let refreshPromise: Promise<void> | null = null
+  let lastFailureAt = 0
+  // The payload covers every chain, so one successful refresh answers for all of them: a chain
+  // still missing afterwards is a chain Chainlist does not know about, not a stale cache.
+  let hasRefreshed = false
 
   const refreshRpcs = async (): Promise<void> => {
     if (!fetchImpl) throw new Error('fetch is not available')
@@ -129,25 +150,61 @@ export function createViemFallbackClient(
         fetchedAt: new Date().toISOString(),
       }
 
-      if (nextCache.rpcs.length === 0) return
+      if (nextCache.rpcs.length === 0) {
+        throw new Error('Chainlist returned no usable RPC URLs')
+      }
 
       cache = nextCache
-      await writeCache(storage, cacheKey, nextCache)
+      hasRefreshed = true
+      await persistCache()
     } finally {
       clearTimeout(timeout)
     }
   }
 
-  const startRefresh = (): Promise<void> => {
-    if (!refreshPromise) {
-      refreshPromise = refreshRpcs()
-        .catch((error) => {
-          options.onError?.(error)
-        })
-        .finally(() => {
-          refreshPromise = null
-        })
+  /**
+   * Writes the tracked subset of the in-memory cache. Storage failures (quota, private mode)
+   * are reported but never reject, so a full disk cannot break RPC resolution.
+   */
+  const persistCache = async (): Promise<void> => {
+    if (!cache || trackedChainIds.size === 0) return
+
+    const rpcs = cache.rpcs.filter((entry) => trackedChainIds.has(entry.chainId))
+    if (rpcs.length === 0) return
+
+    try {
+      await writeCache(storage, cacheKey, { fetchedAt: cache.fetchedAt, rpcs })
+    } catch (error) {
+      options.onError?.(error)
     }
+  }
+
+  const trackChain = (chainId: number): void => {
+    if (trackedChainIds.has(chainId)) return
+
+    trackedChainIds.add(chainId)
+    void persistCache()
+  }
+
+  const canRetryRefresh = (): boolean =>
+    lastFailureAt === 0 || Date.now() - lastFailureAt >= refreshRetryMs
+
+  const startRefresh = (): Promise<void> => {
+    if (refreshPromise) return refreshPromise
+    // A failed refresh must stay retryable, but not on every single call.
+    if (!canRetryRefresh()) return Promise.resolve()
+
+    refreshPromise = refreshRpcs()
+      .then(() => {
+        lastFailureAt = 0
+      })
+      .catch((error) => {
+        lastFailureAt = Date.now()
+        options.onError?.(error)
+      })
+      .finally(() => {
+        refreshPromise = null
+      })
 
     return refreshPromise
   }
@@ -155,6 +212,9 @@ export function createViemFallbackClient(
   const ready = readCache(storage, cacheKey)
     .then((cached) => {
       cache = cached
+      // Keep persisting the chains an earlier session cared about, not just this session's.
+      for (const entry of cached?.rpcs ?? []) trackedChainIds.add(entry.chainId)
+
       if (!cached || isStale(cached, refreshIntervalMs)) {
         void startRefresh()
       }
@@ -167,9 +227,20 @@ export function createViemFallbackClient(
   const getRpcUrls = async (chain: Chain, fallbackRpcs: string[] = []): Promise<string[]> => {
     await ready
 
-    const cachedUrls = getCachedRpcUrls(cache, chain.id)
-    if (cachedUrls.length === 0 && refreshPromise) {
-      await refreshPromise
+    trackChain(chain.id)
+
+    if (getCachedRpcUrls(cache, chain.id).length === 0) {
+      // Nothing cached for this chain: wait on any in-flight refresh, and start one if no
+      // refresh has ever succeeded — which covers a first run as well as a boot-time failure
+      // that would otherwise leave the client with no Chainlist URLs for the whole session.
+      if (refreshPromise) await refreshPromise
+      if (!hasRefreshed && getCachedRpcUrls(cache, chain.id).length === 0) {
+        await startRefresh()
+      }
+    } else if (!cache || isStale(cache, refreshIntervalMs)) {
+      // Serve the cached URLs immediately and refresh behind them, so a long-lived client does
+      // not keep using a cache that went stale after construction.
+      void startRefresh()
     }
 
     // Prefer integrator-supplied RPCs and chain defaults before discovered Chainlist
