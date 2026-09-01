@@ -6,13 +6,24 @@ import type { BuyerOperatorStatus, OperatorConsentPayloadResponse } from '../ope
 import type { AiCreditsQuote } from '../widgetRuntimeContract'
 
 const mockOperatorAcceptedBuyers = new Set<string>()
+// Revocation has to outrank the constructor's `operatorAccepted`, otherwise a mock seeded
+// as consented could never report the withdrawal and waitForOperatorRevoke would spin.
+const mockOperatorRevokedBuyers = new Set<string>()
 
 function normalizeAddress(address: string): string {
   return address.toLowerCase()
 }
 
 export function markMockOperatorConsent(buyer: string): void {
-  mockOperatorAcceptedBuyers.add(normalizeAddress(buyer))
+  const normalized = normalizeAddress(buyer)
+  mockOperatorRevokedBuyers.delete(normalized)
+  mockOperatorAcceptedBuyers.add(normalized)
+}
+
+export function clearMockOperatorConsent(buyer: string): void {
+  const normalized = normalizeAddress(buyer)
+  mockOperatorAcceptedBuyers.delete(normalized)
+  mockOperatorRevokedBuyers.add(normalized)
 }
 
 export class MockAiCreditsChainClient implements AiCreditsChainClient {
@@ -44,7 +55,9 @@ export class MockAiCreditsChainClient implements AiCreditsChainClient {
     const payer = normalizeAddress(ref.payer)
     const buyer = normalizeAddress(ref.buyer)
     const operatorAddress = '0x0000000000000000000000000000000000000004'
-    const operatorAccepted = this.operatorAccepted || mockOperatorAcceptedBuyers.has(buyer)
+    const operatorAccepted =
+      !mockOperatorRevokedBuyers.has(buyer) &&
+      (this.operatorAccepted || mockOperatorAcceptedBuyers.has(buyer))
     return {
       enabled: true,
       account: payer,

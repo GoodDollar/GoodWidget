@@ -1311,6 +1311,9 @@ export function useAiCreditsAdapter({
         nonce: nonce,
       })
 
+      // No confirmation poll here: the backend's operator-revoke handler awaits the Base
+      // receipt before responding, so a resolved request already means the tx mined — and
+      // ethers surfaces a revert as a throw, which reaches us as a non-2xx.
       await backendClient.revokeOperatorConsent(ref.buyer, { nonce: nonce.toString(), signature })
 
       setBuyerOperatorConsented(currentState.address, currentState.buyerPubKey, false)

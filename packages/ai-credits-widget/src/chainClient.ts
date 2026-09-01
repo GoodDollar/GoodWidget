@@ -222,7 +222,11 @@ export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
   }
 
   async getBuyerAuthNonce(buyer: string): Promise<bigint> {
-    if (!this.fundingVaultAddress) return 0n
+    // Never fall back to a default: the nonce is signed over, so a wrong one produces a
+    // valid signature the vault will reject — or worse, replay-protect the wrong slot.
+    if (!this.fundingVaultAddress) {
+      throw new Error('Funding vault address is not configured')
+    }
     return this.baseClient.readContract({
       address: this.fundingVaultAddress,
       abi: FUNDING_VAULT_ABI,
