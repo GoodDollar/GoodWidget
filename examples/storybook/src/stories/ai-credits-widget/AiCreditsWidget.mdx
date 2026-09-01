@@ -74,19 +74,19 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
     <DocsGrid>
       <DocsCard title="GET …/profile">Credits profile for the payer wallet.</DocsCard>
       <DocsCard title="GET …/credit-history">
-        Newest-first funding history (`items[].buyerAddress` is used to recover the buyer).
+        Newest-first funding history (`items[].signerAddress` is used to recover the signer).
       </DocsCard>
       <DocsCard title="GET …/outstanding">Pending or failed Base funding entries.</DocsCard>
       <DocsCard title="POST …/celo/events/record">Notify `{ txHash }` after a successful Celo payment.</DocsCard>
-      <DocsCard title="POST …/accounts/:buyer/operator-consent">
-        Buyer-signed SetOperator relay — backend submits `acceptBuyerOperator` on Base (no buyer gas).
+      <DocsCard title="POST …/accounts/:signer/operator-consent">
+        Signer-signed SetOperator relay — backend submits `acceptSignerOperator` on Base (no signer gas).
       </DocsCard>
-      <DocsCard title="POST …/channels/:channelId/close">Buyer-signed channel close from credits management.</DocsCard>
-      <DocsCard title="POST …/accounts/:buyer/withdraw">Buyer-signed principal withdraw to the payer wallet.</DocsCard>
+      <DocsCard title="POST …/channels/:channelId/close">Signer-signed channel close from credits management.</DocsCard>
+      <DocsCard title="POST …/accounts/:signer/withdraw">Signer-signed principal withdraw to the payer wallet.</DocsCard>
     </DocsGrid>
     <DocsCallout title="On-chain (not backend)" tone="info">
       Vault minimum reads, quotes, withdrawable principal, and Celo deposit/stream transactions are
-      handled on-chain via RPC. Buyer EIP-712 signing for wallet authorization, close, and withdraw
+      handled on-chain via RPC. Signer EIP-712 signing for wallet authorization, close, and withdraw
       happens in the widget; only the Base submission is relayed by the worker. There is no
       channel-list API — paste the channel ID manually.
     </DocsCallout>
@@ -96,9 +96,9 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
     title="Known limitations"
     description="Features that still need operator care in production."
   >
-    <DocsCallout title="Buyer private key session" tone="warning">
-      Close channel and withdraw require the buyer private key in the current browser session. Use
-      Sign &amp; Generate in Buyer &amp; Operator on the credits management screen if the key was
+    <DocsCallout title="Signer private key session" tone="warning">
+      Close channel and withdraw require the signer private key in the current browser session. Use
+      Sign &amp; Generate in Signer &amp; Operator on the credits management screen if the key was
       lost after refresh.
     </DocsCallout>
     <DocsCallout title="Vault minimums" tone="info">

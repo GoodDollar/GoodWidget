@@ -25,7 +25,7 @@ export interface AiCreditsQuote {
   streamAmountG: string
 }
 /** Re-export for consumers that don't want to import from payerSession directly. */
-export type { BuyerKeyEntry } from './payerSession'
+export type { SignerKeyEntry } from './payerSession'
 
 export interface AiCreditsWidgetAdapterState {
   status: AiCreditsWidgetStatus
@@ -35,11 +35,11 @@ export interface AiCreditsWidgetAdapterState {
   gdUsdPerToken: number | null
   totalCreditUsd: string | null
   isGoodIdVerified: boolean
-  /** Active buyer public address. */
-  buyerPubKey: string | null
-  /** Active buyer private key from the local per-payer key map. */
-  buyerPrvKey: string | null
-  /** Active buyer deep-link operator signature, if present. */
+  /** Active signer public address. */
+  signerPubKey: string | null
+  /** Active signer private key from the local per-payer key map. */
+  signerPrvKey: string | null
+  /** Active signer deep-link operator signature, if present. */
   operatorSignature: string | null
   operatorConsented: boolean
   /** True while submitting / waiting for on-chain operator consent. */
@@ -58,39 +58,39 @@ export interface AiCreditsWidgetAdapterState {
   streamBonusPercent: number
   error: string | null
   activeTab: AiCreditsWidgetTab
-  buyers: string[]
-  /** Deterministic buyer derived from the payer wallet Sign & Generate path. */
-  derivedBuyerAddress: string | null
+  signers: string[]
+  /** Deterministic signer derived from the payer wallet Sign & Generate path. */
+  derivedSignerAddress: string | null
 }
 
 export interface AiCreditsWidgetAdapterActions {
   connect: () => Promise<void>
   switchChain: () => Promise<void>
   /**
-   * Creates or restores the single deterministic buyer for this payer wallet.
-   * If a derived key already exists locally, selects that buyer without re-signing.
+   * Creates or restores the single deterministic signer for this payer wallet.
+   * If a derived key already exists locally, selects that signer without re-signing.
    */
-  generateBuyerKey: () => Promise<void>
+  generateSignerKey: () => Promise<void>
   /**
-   * Switches the active buyer and reloads that buyer's account view.
-   * Address should be in `state.buyers`.
+   * Switches the active signer and reloads that signer's account view.
+   * Address should be in `state.signers`.
    */
-  selectBuyer: (address: string) => Promise<void>
-  discoverBuyers: (addresses: string[]) => void
+  selectSigner: (address: string) => Promise<void>
+  discoverSigners: (addresses: string[]) => void
   /**
-   * Imports a signer key, stores it and selects it as the active buyer.
-   * Resolves with the imported buyer address, or `null` when the key could
+   * Imports a signer key, stores it and selects it as the active signer.
+   * Resolves with the imported Signer Address, or `null` when the key could
    * not be imported — callers use that to report the outcome of *this* import
-   * rather than the state of whichever buyer happened to be active.
+   * rather than the state of whichever signer happened to be active.
    */
-  importBuyerFromPrivateKey: (privateKey: string) => Promise<string | null>
+  importSignerFromPrivateKey: (privateKey: string) => Promise<string | null>
   /**
-   * Applies an NCDI deep-link buyer assignment from URL GET parameters
-   * (`buyerAddress` + `operatorSignature`). Selects the buyer immediately,
+   * Applies an NCDI deep-link signer assignment from URL GET parameters
+   * (`signerAddress` + `operatorSignature`). Selects the signer immediately,
    * submits the pre-signed operator approval token, and starts the buy flow.
-   * Never accepts a buyer private key.
+   * Never accepts a signer private key.
    */
-  applyDeepLinkBuyer: (address: string, operatorSignature: string) => Promise<void>
+  applyDeepLinkSigner: (address: string, operatorSignature: string) => Promise<void>
   signOperatorConsent: () => Promise<void>
   revokeOperatorConsent: () => Promise<void>
   syncOperatorConsentFromChain: () => Promise<void>
@@ -130,7 +130,7 @@ export interface AiCreditsPaySuccessDetail {
   address: string
   chainId: number
   transactionHash: string
-  buyerPubKey: string
+  signerPubKey: string
   creditUsdMicro: string
 }
 

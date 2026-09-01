@@ -14,7 +14,7 @@ import {
 import { truncateAddress, compactButtonProps, monospaceSingleLineStyle } from '../shared/styles'
 
 interface RevokeConsentStepProps {
-  buyerPubKey: string | null
+  signerPubKey: string | null
   operatorConsentPending?: boolean
   /** Surfaced only after a confirm attempt, so a stale widget error stays out of this sheet. */
   error?: string | null
@@ -28,7 +28,7 @@ interface RevokeConsentStepProps {
  * withdrawal read as two sides of the same permission.
  */
 export function RevokeConsentStep({
-  buyerPubKey,
+  signerPubKey,
   operatorConsentPending = false,
   error = null,
   onConfirm,
@@ -53,11 +53,11 @@ export function RevokeConsentStep({
         any time.
       </Text>
 
-      {buyerPubKey && (
+      {signerPubKey && (
         <Text fontSize="$2" lineHeight="$2">
-          Buyer address:{' '}
+          Signer Address:{' '}
           <Text fontSize="$2" style={monospaceSingleLineStyle}>
-            {truncateAddress(buyerPubKey)}
+            {truncateAddress(signerPubKey)}
           </Text>
         </Text>
       )}

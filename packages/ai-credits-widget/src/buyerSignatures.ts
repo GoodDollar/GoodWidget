@@ -3,13 +3,13 @@ import type { Address, Hex } from 'viem'
 import { BASE_CHAIN_ID } from './chainClient'
 
 export const ANTSEED_BUYER_OPERATOR_DOMAIN = {
-  name: 'AntseedBuyerOperator',
+  name: 'AntseedSignerOperator',
   version: '1',
 } as const
 
 const WITHDRAW_PRINCIPAL_TYPES = {
   WithdrawPrincipal: [
-    { name: 'buyer', type: 'address' },
+    { name: 'signer', type: 'address' },
     { name: 'amount', type: 'uint256' },
     { name: 'recipient', type: 'address' },
     { name: 'nonce', type: 'uint256' },
@@ -25,7 +25,7 @@ const REQUEST_CLOSE_TYPES = {
 
 const REVOKE_OPERATOR_TYPES = {
   RevokeOperator: [
-    { name: 'buyer', type: 'address' },
+    { name: 'signer', type: 'address' },
     { name: 'nonce', type: 'uint256' },
   ],
 } as const
@@ -37,14 +37,14 @@ export function normalizeChannelId(channelId: string): Hex | null {
 }
 
 export async function signWithdrawPrincipal(params: {
-  buyerPrivateKey: Hex
+  signerPrivateKey: Hex
   fundingVaultAddress: Address
-  buyer: Address
+  signer: Address
   amountMicro: bigint
   recipient: Address
   nonce: bigint
 }): Promise<Hex> {
-  const account = privateKeyToAccount(params.buyerPrivateKey)
+  const account = privateKeyToAccount(params.signerPrivateKey)
   return account.signTypedData({
     domain: {
       name: ANTSEED_BUYER_OPERATOR_DOMAIN.name,
@@ -55,7 +55,7 @@ export async function signWithdrawPrincipal(params: {
     types: WITHDRAW_PRINCIPAL_TYPES,
     primaryType: 'WithdrawPrincipal',
     message: {
-      buyer: params.buyer,
+      signer: params.signer,
       amount: params.amountMicro,
       recipient: params.recipient,
       nonce: params.nonce,
@@ -64,12 +64,12 @@ export async function signWithdrawPrincipal(params: {
 }
 
 export async function signRequestClose(params: {
-  buyerPrivateKey: Hex
+  signerPrivateKey: Hex
   fundingVaultAddress: Address
   channelId: Hex
   nonce: bigint
 }): Promise<Hex> {
-  const account = privateKeyToAccount(params.buyerPrivateKey)
+  const account = privateKeyToAccount(params.signerPrivateKey)
   return account.signTypedData({
     domain: {
       name: ANTSEED_BUYER_OPERATOR_DOMAIN.name,
@@ -87,12 +87,12 @@ export async function signRequestClose(params: {
 }
 
 export async function signRevokeOperator(params: {
-  buyerPrivateKey: Hex
+  signerPrivateKey: Hex
   fundingVaultAddress: Address
-  buyer: Address
+  signer: Address
   nonce: bigint
 }): Promise<Hex> {
-  const account = privateKeyToAccount(params.buyerPrivateKey)
+  const account = privateKeyToAccount(params.signerPrivateKey)
   return account.signTypedData({
     domain: {
       name: ANTSEED_BUYER_OPERATOR_DOMAIN.name,
@@ -103,7 +103,7 @@ export async function signRevokeOperator(params: {
     types: REVOKE_OPERATOR_TYPES,
     primaryType: 'RevokeOperator',
     message: {
-      buyer: params.buyer,
+      signer: params.signer,
       nonce: params.nonce,
     },
   })

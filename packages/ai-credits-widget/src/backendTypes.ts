@@ -1,8 +1,8 @@
-import type { BuyerOperatorStatus } from './operatorConsent'
+import type { SignerOperatorStatus } from './operatorConsent'
 
 export type AccountRef = {
   payer: string
-  buyer: string
+  signer: string
 }
 
 export type UserCreditProfile = {
@@ -35,7 +35,7 @@ export type GdCreditEntry = {
   logIndex?: number
   createdAt: string
   streamUpdateMonth: string
-  buyerAddress?: string
+  signerAddress?: string
 }
 
 export type AccountCreditResponse = {
@@ -63,14 +63,14 @@ export type CreditHistoryQuery = {
 
 export type AccountView = {
   account: string
-  buyer: string | null
+  signer: string | null
   profile: UserCreditProfile
   /**
    * Null when the operator read did not answer. Distinct from a read that came
    * back saying "no operator": callers must not present an unread status as
    * "not authorized", or an already-authorized account looks unconfigured.
    */
-  operator: BuyerOperatorStatus | null
+  operator: SignerOperatorStatus | null
   /** Null when the withdrawable read did not answer. */
   withdrawableUsd: string | null
   outstandingFundingUsd: string

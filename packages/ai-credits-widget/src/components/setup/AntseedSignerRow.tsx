@@ -19,7 +19,7 @@ interface AntseedSignerRowProps {
  * The image shows both arrow buttons because that is what the user will
  * actually see; the caption below names the one to press. Deliberately one
  * action per flow — an earlier version also told the user to back up first,
- * which duplicated the warning rendered just above this in BuyerKeyPanel and
+ * which duplicated the warning rendered just above this in SignerKeyPanel and
  * left two different keys to keep straight in a single sentence. Backing up
  * belongs to that warning; this line only answers "which arrow".
  */

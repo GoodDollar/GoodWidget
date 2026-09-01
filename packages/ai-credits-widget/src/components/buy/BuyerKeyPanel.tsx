@@ -5,23 +5,23 @@ import { AntseedSignerRow } from '../setup/AntseedSignerRow'
 import { monospaceSingleLineStyle, compactButtonProps } from '../shared/styles'
 import { useCopyFeedback } from '../shared/useCopyFeedback'
 
-interface BuyerKeyPanelProps {
-  buyerPubKey: string | null
-  buyerPrvKey: string | null
-  buyerPubKeySaved: boolean
+interface SignerKeyPanelProps {
+  signerPubKey: string | null
+  signerPrvKey: string | null
+  signerPubKeySaved: boolean
   onGenerate: () => void | Promise<void>
   onConfirm: () => void
   embedded?: boolean
 }
 
-export function BuyerKeyPanel({
-  buyerPubKey,
-  buyerPrvKey,
-  buyerPubKeySaved,
+export function SignerKeyPanel({
+  signerPubKey,
+  signerPrvKey,
+  signerPubKeySaved,
   onGenerate,
   onConfirm,
   embedded = false,
-}: BuyerKeyPanelProps) {
+}: SignerKeyPanelProps) {
   const { copied: copiedAddress, copy: copyAddress } = useCopyFeedback()
   const { copied: copiedPrivate, copy: copyPrivate } = useCopyFeedback()
   const [isPrivateKeyVisible, setIsPrivateKeyVisible] = useState(false)
@@ -42,8 +42,7 @@ export function BuyerKeyPanel({
     <Shell gap="$3">
       <Heading level={5}>Signer Key</Heading>
       <Text>
-        Sign a message with your payer wallet to derive a dedicated AntSeed signer key. Save the
-        private key — you will need it to authenticate from your developer tools.
+        Sign a message with your wallet to generate your Antseed Signer Key. Save the private key — you’ll need it to use your AI credits.
       </Text>
 
       <YStack gap="$3">
@@ -51,15 +50,15 @@ export function BuyerKeyPanel({
           size="sm"
           {...compactButtonProps}
           onPress={handleGenerate}
-          disabled={isGenerating || Boolean(buyerPrvKey)}
+          disabled={isGenerating || Boolean(signerPrvKey)}
         >
           <ButtonText>{isGenerating ? 'Waiting for signature…' : 'Sign & Generate Key'}</ButtonText>
         </Button>
 
-        {buyerPubKey && (
+        {signerPubKey && (
           <YStack gap="$2">
             <Text variant="label" tone="soft">
-              Address (registered on-chain)
+              Signer Address
             </Text>
             <XStack
               backgroundColor="$backgroundSurface"
@@ -69,9 +68,9 @@ export function BuyerKeyPanel({
               alignItems="center"
             >
               <Text fontSize="$2" style={monospaceSingleLineStyle} flex={1} numberOfLines={1}>
-                {buyerPubKey}
+                {signerPubKey}
               </Text>
-              <Button size="sm" variant="ghost" iconSize="sm" onPress={() => void copyAddress(buyerPubKey)}>
+              <Button size="sm" variant="ghost" iconSize="sm" onPress={() => void copyAddress(signerPubKey)}>
                 <Icon
                   name={copiedAddress ? 'check' : 'copy'}
                   size="xs"
@@ -80,7 +79,7 @@ export function BuyerKeyPanel({
               </Button>
             </XStack>
 
-            {buyerPrvKey && (
+            {signerPrvKey && (
               <>
                 <AiCreditsStatusNotice borderColor="$warning">
                   <Text color="$warning" fontSize="$2">
@@ -90,7 +89,7 @@ export function BuyerKeyPanel({
                 </AiCreditsStatusNotice>
                 <XStack justifyContent="space-between" alignItems="center">
                   <Text variant="label" tone="soft">
-                    Private Key — save this securely
+                    Signer Private Key — save this securely
                   </Text>
                   <Button
                     variant="text"
@@ -117,14 +116,14 @@ export function BuyerKeyPanel({
                 >
                   <Text fontSize="$2" style={monospaceSingleLineStyle} flex={1} numberOfLines={1}>
                     {isPrivateKeyVisible
-                      ? buyerPrvKey
-                      : '•'.repeat(Math.min(48, buyerPrvKey.length))}
+                      ? signerPrvKey
+                      : '•'.repeat(Math.min(48, signerPrvKey.length))}
                   </Text>
                   <Button
                     size="sm"
                     variant="ghost"
                     iconSize="sm"
-                    onPress={() => void copyPrivate(buyerPrvKey)}
+                    onPress={() => void copyPrivate(signerPrvKey)}
                   >
                     <Icon
                       name={copiedPrivate ? 'check' : 'copy'}
@@ -140,13 +139,13 @@ export function BuyerKeyPanel({
               </>
             )}
 
-            {buyerPrvKey && !buyerPubKeySaved && (
+            {signerPrvKey && !signerPubKeySaved && (
               <Button size="sm" {...compactButtonProps} onPress={onConfirm}>
                 <ButtonText>I've Saved My Private Key</ButtonText>
               </Button>
             )}
 
-            {buyerPubKeySaved && (
+            {signerPubKeySaved && (
               <XStack gap="$2" alignItems="center">
                 <Icon name="check" size="sm" color="success" />
                 <Text color="$success" fontSize="$2">

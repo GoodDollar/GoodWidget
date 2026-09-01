@@ -24,11 +24,11 @@ function buildSetupSnippet(): string {
   return [
     'npm install -g @antseed/cli',
     '',
-    'export ANTSEED_IDENTITY_HEX=<buyer-private-key-hex>',
+    'export ANTSEED_IDENTITY_HEX=<signer-private-key-hex>',
     '',
-    'antseed buyer start',
+    'antseed signer start',
     'antseed network browse',
-    'antseed buyer connection set --peer <peer-id>',
+    'antseed signer connection set --peer <peer-id>',
   ].join('\n')
 }
 

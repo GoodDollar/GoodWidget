@@ -21,7 +21,7 @@ import { RevokeConsentStep } from './RevokeConsentStep'
 import { monospaceSingleLineStyle, compactButtonProps, truncateAddress } from '../shared/styles'
 import { useCopyFeedback } from '../shared/useCopyFeedback'
 
-interface BuyerOperatorCardProps {
+interface SignerOperatorCardProps {
   state: AiCreditsWidgetAdapterState
   actions: AiCreditsWidgetAdapterActions
 }
@@ -95,22 +95,22 @@ function SignerStatus({ consented, size = '$1' }: { consented: boolean; size?: '
   )
 }
 
-function BuyerSelector({
-  buyers,
-  activeBuyerAddress,
+function SignerSelector({
+  signers,
+  activeSignerAddress,
   onSelect,
 }: {
-  buyers: string[]
-  activeBuyerAddress: string | null
+  signers: string[]
+  activeSignerAddress: string | null
   onSelect: (address: string) => void
 }) {
   return (
     <YStack gap="$1">
-      {buyers.map((buyer) => {
-        const isActive = buyer.toLowerCase() === activeBuyerAddress?.toLowerCase()
+      {signers.map((signer) => {
+        const isActive = signer.toLowerCase() === activeSignerAddress?.toLowerCase()
         return (
           <XStack
-            key={buyer}
+            key={signer}
             tag="button"
             role="option"
             aria-selected={isActive}
@@ -126,7 +126,7 @@ function BuyerSelector({
             cursor={isActive ? 'default' : 'pointer'}
             hoverStyle={isActive ? {} : { backgroundColor: '$backgroundPress' }}
             onPress={() => {
-              if (!isActive) void onSelect(buyer)
+              if (!isActive) void onSelect(signer)
             }}
           >
             <Text
@@ -137,7 +137,7 @@ function BuyerSelector({
               flex={1}
               style={monospaceSingleLineStyle}
             >
-              {shortAddress(buyer)}
+              {shortAddress(signer)}
             </Text>
             {isActive ? (
               <XStack gap="$1" alignItems="center">
@@ -163,14 +163,14 @@ function BuyerSelector({
  * Manage stays focused on credits. Generate/Import reuse the Set up tab's SignerKeyPanel
  * so there is a single implementation of that flow.
  */
-export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
+export function SignerOperatorCard({ state, actions }: SignerOperatorCardProps) {
   const {
-    buyerPubKey,
-    buyerPrvKey,
+    signerPubKey,
+    signerPrvKey,
     operatorSignature,
     operatorConsented,
     operatorConsentPending,
-    buyers,
+    signers,
   } = state
 
   const [isExpanded, setIsExpanded] = useState(false)
@@ -184,10 +184,10 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
   // Keeps a pre-existing widget error out of the sheet until this flow produces one.
   const [revokeAttempted, setRevokeAttempted] = useState(false)
 
-  const buyerCanSign = Boolean(buyerPrvKey || operatorSignature)
-  // Revoking is signed locally by the signer key, so a deep-link buyer that only carries
+  const signerCanSign = Boolean(signerPrvKey || operatorSignature)
+  // Revoking is signed locally by the signer key, so a deep-link signer that only carries
   // an operator signature cannot revoke even though it can consent.
-  const buyerCanRevoke = Boolean(buyerPrvKey)
+  const signerCanRevoke = Boolean(signerPrvKey)
 
   // revokeOperatorConsent reports failure through state.error rather than by rejecting,
   // so the sheet closes on consent actually dropping — not on the promise settling.
@@ -219,12 +219,12 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
       >
         <YStack gap="$1" flex={1} minWidth={0} alignItems="flex-start">
           <Heading level={6}>Signer Key</Heading>
-          {buyerPubKey ? (
+          {signerPubKey ? (
             <XStack alignItems="center" flexWrap="wrap">
               {/* Separators carry their own spacing: adjacent Text renders inline, so
                   the flex gap between two of them collapses. */}
               <Text fontSize="$1" tone="soft" style={monospaceSingleLineStyle}>
-                {`${truncateAddress(buyerPubKey)}  ·  `}
+                {`${truncateAddress(signerPubKey)}  ·  `}
               </Text>
               <SignerStatus consented={operatorConsented} />
             </XStack>
@@ -239,7 +239,7 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
 
       {isExpanded && (
         <YStack gap="$4">
-          {buyerPubKey && (
+          {signerPubKey && (
             <YStack gap="$2">
               <Text variant="label" tone="soft">
                 Active signer
@@ -252,13 +252,13 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
                 padding="$2"
                 gap="$2"
               >
-                <CopyableValue value={buyerPubKey} display={truncateAddress(buyerPubKey)} />
+                <CopyableValue value={signerPubKey} display={truncateAddress(signerPubKey)} />
                 <SignerStatus consented={operatorConsented} size="$2" />
                 {!operatorConsented && (
                   <Button
                     size="sm"
                     {...compactButtonProps}
-                    disabled={operatorConsentPending || !buyerCanSign}
+                    disabled={operatorConsentPending || !signerCanSign}
                     onPress={() => {
                       void Promise.resolve(actions.signOperatorConsent())
                     }}
@@ -270,7 +270,7 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
                     )}
                   </Button>
                 )}
-                {operatorConsented && buyerCanRevoke && (
+                {operatorConsented && signerCanRevoke && (
                   <Button
                     size="sm"
                     variant="outline"
@@ -293,45 +293,45 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
             </YStack>
           )}
 
-          {buyers.length > 1 && (
+          {signers.length > 1 && (
             <YStack gap="$2">
               <DisclosureToggle
                 open={showSwitcher}
-                label={`Switch signer (${buyers.length})`}
+                label={`Switch signer (${signers.length})`}
                 onPress={() => setShowSwitcher((prev) => !prev)}
               />
               {showSwitcher && (
-                <BuyerSelector
-                  buyers={buyers}
-                  activeBuyerAddress={buyerPubKey}
-                  onSelect={actions.selectBuyer}
+                <SignerSelector
+                  signers={signers}
+                  activeSignerAddress={signerPubKey}
+                  onSelect={actions.selectSigner}
                 />
               )}
             </YStack>
           )}
 
           <YStack gap="$2">
-            {buyerPubKey ? (
+            {signerPubKey ? (
               <DisclosureToggle
                 open={showReplacePanel}
                 label="Replace signer key"
                 onPress={() => setShowReplacePanel((prev) => !prev)}
               />
             ) : null}
-            {(showReplacePanel || !buyerPubKey) && (
+            {(showReplacePanel || !signerPubKey) && (
               <SignerKeyPanel
                 key={panelInstance}
                 state={state}
                 actions={actions}
                 showHeading={false}
-                compact={Boolean(buyerPubKey)}
+                compact={Boolean(signerPubKey)}
                 proceedLabel="Done"
                 onProceed={() => setPanelInstance((prev) => prev + 1)}
               />
             )}
           </YStack>
 
-          {buyerPrvKey && (
+          {signerPrvKey && (
             <YStack gap="$2">
               <XStack justifyContent="space-between" alignItems="center" gap="$2">
                 <Text variant="label" tone="soft">
@@ -348,9 +348,9 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
                 </Button>
               </XStack>
               <CopyableValue
-                value={buyerPrvKey}
+                value={signerPrvKey}
                 display={
-                  showPrivateKey ? buyerPrvKey : '•'.repeat(Math.min(48, buyerPrvKey.length))
+                  showPrivateKey ? signerPrvKey : '•'.repeat(Math.min(48, signerPrvKey.length))
                 }
               />
               <Text fontSize="$1" color="$warning">
@@ -365,7 +365,7 @@ export function BuyerOperatorCard({ state, actions }: BuyerOperatorCardProps) {
         <ScrollArea width="100%">
           <YStack gap="$3" paddingBottom="$4" width="100%">
             <RevokeConsentStep
-              buyerPubKey={buyerPubKey}
+              signerPubKey={signerPubKey}
               operatorConsentPending={operatorConsentPending}
               error={revokeAttempted ? (state.error ?? null) : null}
               onConfirm={handleConfirmRevoke}

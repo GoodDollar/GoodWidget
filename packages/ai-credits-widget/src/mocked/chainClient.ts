@@ -2,28 +2,28 @@ import type { AccountRef } from '../backendTypes'
 import { BASE_CHAIN_ID, type AiCreditsChainClient } from '../chainClient'
 import { ANTSEED_DEPOSITS_BASE_ADDRESS, buildSetOperatorPayload } from '../operatorConsent'
 import { buildQuoteAmounts } from '../quoteMath'
-import type { BuyerOperatorStatus, OperatorConsentPayloadResponse } from '../operatorConsent'
+import type { SignerOperatorStatus, OperatorConsentPayloadResponse } from '../operatorConsent'
 import type { AiCreditsQuote } from '../widgetRuntimeContract'
 
-const mockOperatorAcceptedBuyers = new Set<string>()
+const mockOperatorAcceptedSigners = new Set<string>()
 // Revocation has to outrank the constructor's `operatorAccepted`, otherwise a mock seeded
 // as consented could never report the withdrawal and waitForOperatorRevoke would spin.
-const mockOperatorRevokedBuyers = new Set<string>()
+const mockOperatorRevokedSigners = new Set<string>()
 
 function normalizeAddress(address: string): string {
   return address.toLowerCase()
 }
 
-export function markMockOperatorConsent(buyer: string): void {
-  const normalized = normalizeAddress(buyer)
-  mockOperatorRevokedBuyers.delete(normalized)
-  mockOperatorAcceptedBuyers.add(normalized)
+export function markMockOperatorConsent(signer: string): void {
+  const normalized = normalizeAddress(signer)
+  mockOperatorRevokedSigners.delete(normalized)
+  mockOperatorAcceptedSigners.add(normalized)
 }
 
-export function clearMockOperatorConsent(buyer: string): void {
-  const normalized = normalizeAddress(buyer)
-  mockOperatorAcceptedBuyers.delete(normalized)
-  mockOperatorRevokedBuyers.add(normalized)
+export function clearMockOperatorConsent(signer: string): void {
+  const normalized = normalizeAddress(signer)
+  mockOperatorAcceptedSigners.delete(normalized)
+  mockOperatorRevokedSigners.add(normalized)
 }
 
 export class MockAiCreditsChainClient implements AiCreditsChainClient {
@@ -51,17 +51,17 @@ export class MockAiCreditsChainClient implements AiCreditsChainClient {
     return buildQuoteAmounts(depositG, streamG)
   }
 
-  async getBuyerOperatorStatus(ref: AccountRef): Promise<BuyerOperatorStatus> {
+  async getSignerOperatorStatus(ref: AccountRef): Promise<SignerOperatorStatus> {
     const payer = normalizeAddress(ref.payer)
-    const buyer = normalizeAddress(ref.buyer)
+    const signer = normalizeAddress(ref.signer)
     const operatorAddress = '0x0000000000000000000000000000000000000004'
     const operatorAccepted =
-      !mockOperatorRevokedBuyers.has(buyer) &&
-      (this.operatorAccepted || mockOperatorAcceptedBuyers.has(buyer))
+      !mockOperatorRevokedSigners.has(signer) &&
+      (this.operatorAccepted || mockOperatorAcceptedSigners.has(signer))
     return {
       enabled: true,
       account: payer,
-      buyerAddress: buyer,
+      signerAddress: signer,
       operatorAddress,
       currentOperator: operatorAccepted ? operatorAddress : '0x0000000000000000000000000000000000000000',
       operatorAccepted,
@@ -71,20 +71,20 @@ export class MockAiCreditsChainClient implements AiCreditsChainClient {
 
   async buildOperatorConsentPayload(
     ref: AccountRef,
-    operatorStatus?: BuyerOperatorStatus,
+    operatorStatus?: SignerOperatorStatus,
   ): Promise<OperatorConsentPayloadResponse> {
-    const status = operatorStatus ?? (await this.getBuyerOperatorStatus(ref))
+    const status = operatorStatus ?? (await this.getSignerOperatorStatus(ref))
     if (!status.enabled || !status.operatorAddress) {
       return {
         enabled: false,
         account: normalizeAddress(ref.payer),
-        buyerAddress: normalizeAddress(ref.buyer),
+        signerAddress: normalizeAddress(ref.signer),
       }
     }
     return {
       enabled: true,
       account: normalizeAddress(ref.payer),
-      buyerAddress: normalizeAddress(ref.buyer),
+      signerAddress: normalizeAddress(ref.signer),
       typedData: buildSetOperatorPayload(
         BASE_CHAIN_ID,
         ANTSEED_DEPOSITS_BASE_ADDRESS,
@@ -99,7 +99,7 @@ export class MockAiCreditsChainClient implements AiCreditsChainClient {
     return '0'
   }
 
-  async getBuyerAuthNonce(): Promise<bigint> {
+  async getSignerAuthNonce(): Promise<bigint> {
     return 0n
   }
 }

@@ -27,7 +27,7 @@ import {
   AiCreditsPurchaseFlow,
   AiCreditsStatusNotice,
   CreditsManagementCard,
-  BuyerOperatorCard,
+  SignerOperatorCard,
   SetupSnippet,
   HistoryTab,
   SetupGuidanceCard,
@@ -219,14 +219,13 @@ function DesktopRequiredNotice() {
           <Text fontSize="$2" fontWeight="700">
             Please note:
           </Text>{' '}
-          setup requires a computer.
+          Using your AI credits requires a desktop computer.
         </Text>
         <Icon name={expanded ? 'chevron-up' : 'chevron-down'} size="xs" color="muted" />
       </XStack>
       {expanded && (
         <Text fontSize="$2" lineHeight="$3" tone="soft" paddingLeft="$6">
-          You can buy credits from your phone anytime. Antseed, the app that manages your credits,
-          only runs on a desktop.
+          You can buy credits and set up your Signer Key from your phone. To use your AI credits, you’ll need a desktop computer.
         </Text>
       )}
     </AiCreditsStatusNotice>
@@ -384,7 +383,7 @@ function ManagePanel({
 
       <CreditsManagementCard state={state} actions={actions} />
 
-      <BuyerOperatorCard state={state} actions={actions} />
+      <SignerOperatorCard state={state} actions={actions} />
 
       <SetupSnippet />
 
@@ -450,19 +449,19 @@ function AiCreditsInner({
   const activeAdapter = factoryAdapter ?? defaultAdapter
 
   const { state, actions } = activeAdapter
-  const onBuyersDiscoveredRef = React.useRef(actions.discoverBuyers)
-  onBuyersDiscoveredRef.current = actions.discoverBuyers
-  const onBuyersDiscovered = useCallback((addresses: string[]) => {
-    onBuyersDiscoveredRef.current(addresses)
+  const onSignersDiscoveredRef = React.useRef(actions.discoverSigners)
+  onSignersDiscoveredRef.current = actions.discoverSigners
+  const onSignersDiscovered = useCallback((addresses: string[]) => {
+    onSignersDiscoveredRef.current(addresses)
   }, [])
 
   const history = useAiCreditsHistory({
     address: state.address,
     backendUrl,
-    defaultBuyerFilter: state.buyerPubKey ?? 'all',
+    defaultSignerFilter: state.signerPubKey ?? 'all',
     environment,
     backendClient: adapterOptions?.backendClient,
-    onBuyersDiscovered,
+    onSignersDiscovered,
   })
 
   const handlePay = useCallback(
@@ -581,7 +580,7 @@ function AiCreditsInner({
         <HistoryTab
           state={history.state}
           actions={history.actions}
-          knownBuyers={state.buyers.map((address) => ({ address }))}
+          knownSigners={state.signers.map((address) => ({ address }))}
         />
       ) : (
         <BuyCreditsPanel

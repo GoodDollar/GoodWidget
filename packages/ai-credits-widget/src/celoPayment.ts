@@ -58,7 +58,7 @@ export interface CeloPaymentParams {
   walletClient: WalletClient
   publicClient: PublicClient
   payer: Address
-  buyer: Address
+  signer: Address
   vault: Address
   depositAmountG: string
   streamAmountG: string
@@ -82,8 +82,8 @@ function monthlyToFlowRate(monthlyAmountG: string): bigint {
   return monthlyWei / SECONDS_PER_MONTH
 }
 
-function encodeBuyerUserData(buyer: Address): Hex {
-  return encodeAbiParameters([{ type: 'address' }], [buyer])
+function encodeSignerUserData(signer: Address): Hex {
+  return encodeAbiParameters([{ type: 'address' }], [signer])
 }
 
 function buildApproveOperation(vault: Address, depositWei: bigint): BatchOperation {
@@ -96,13 +96,13 @@ function buildApproveOperation(vault: Address, depositWei: bigint): BatchOperati
 
 function buildDepositFromActionOperation(
   vault: Address,
-  buyer: Address,
+  signer: Address,
   depositWei: bigint,
 ): BatchOperation {
   const callData = encodeFunctionData({
     abi: VAULT_ABI,
     functionName: 'depositFromAction',
-    args: [depositWei, encodeBuyerUserData(buyer), '0x'],
+    args: [depositWei, encodeSignerUserData(signer), '0x'],
   })
   return {
     operationType: OPERATION_TYPE_CALL_APP_ACTION,
@@ -114,12 +114,12 @@ function buildDepositFromActionOperation(
 async function buildStreamOperation(
   publicClient: PublicClient,
   payer: Address,
-  buyer: Address,
+  signer: Address,
   vault: Address,
   streamAmountG: string,
 ): Promise<BatchOperation> {
   const flowRatePerSecond = monthlyToFlowRate(streamAmountG)
-  const userData = encodeBuyerUserData(buyer)
+  const userData = encodeSignerUserData(signer)
   const flowInfo = (await publicClient.readContract({
     address: CFA_V1_FORWARDER_ADDRESS,
     abi: CFA_FORWARDER_ABI,
@@ -174,7 +174,7 @@ export async function executeCeloPayment(params: CeloPaymentParams): Promise<Cel
     walletClient,
     publicClient,
     payer,
-    buyer,
+    signer,
     vault,
     depositAmountG,
     streamAmountG,
@@ -195,11 +195,11 @@ export async function executeCeloPayment(params: CeloPaymentParams): Promise<Cel
   }
 
   if (streamChanged) {
-    operations.push(await buildStreamOperation(publicClient, payer, buyer, vault, streamAmountG))
+    operations.push(await buildStreamOperation(publicClient, payer, signer, vault, streamAmountG))
   }
 
   if (hasDeposit) {
-    operations.push(buildDepositFromActionOperation(vault, buyer, depositWei))
+    operations.push(buildDepositFromActionOperation(vault, signer, depositWei))
   }
 
   const txHash = await walletClient.writeContract({

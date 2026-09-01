@@ -284,27 +284,27 @@ test('AiCreditsWidget appkit connect wallet opens modal', async ({ page }) => {
 })
 
 // ---------------------------------------------------------------------------
-// Multi-buyer tests
+// Multi-signer tests
 // ---------------------------------------------------------------------------
 
 const MULTI_BUYER_STORY_IDS = {
-  multiBuyerManage:
-    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--multi-buyer-manage&viewMode=story',
-  deepLinkBuyer:
-    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--deep-link-buyer&viewMode=story',
+  multiSignerManage:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--multi-signer-manage&viewMode=story',
+  deepLinkSigner:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--deep-link-signer&viewMode=story',
   deepLinkConsentPending:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--deep-link-consent-pending&viewMode=story',
-  multiBuyerHistory:
-    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--multi-buyer-history&viewMode=story',
+  multiSignerHistory:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--multi-signer-history&viewMode=story',
   walletControls:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--wallet-controls&viewMode=story',
   walletControlsHidden:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--wallet-controls-hidden&viewMode=story',
 } as const
 
-test('AiCreditsWidget multi-buyer manage: buyer selector is visible', async ({ page }) => {
-  await gotoStory(page, MULTI_BUYER_STORY_IDS.multiBuyerManage)
-  const root = widget(page, 'AiCreditsWidget-multi-buyer-manage')
+test('AiCreditsWidget multi-signer manage: signer selector is visible', async ({ page }) => {
+  await gotoStory(page, MULTI_BUYER_STORY_IDS.multiSignerManage)
+  const root = widget(page, 'AiCreditsWidget-multi-signer-manage')
   await expect(root).toBeVisible()
 
   // Collapsed by default: the header reports the active signer and its authorization,
@@ -336,7 +336,7 @@ test('AiCreditsWidget multi-buyer manage: buyer selector is visible', async ({ p
   await expect(root.getByTestId('signer-key-card').getByText(/^0x[0-9a-f]{64}$/i)).toBeVisible()
 
   await page.screenshot({
-    path: 'tests/widgets/ai-credits-widget/test-results/acw-15-multi-buyer-manage.png',
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-15-multi-signer-manage.png',
     fullPage: true,
   })
 })
@@ -379,11 +379,11 @@ test('AiCreditsWidget wallet controls: hidden by default for wallet hosts', asyn
   })
 })
 
-test('AiCreditsWidget deep-link buyer: Sign Consent enabled via operatorSignature', async ({
+test('AiCreditsWidget deep-link signer: Sign Consent enabled via operatorSignature', async ({
   page,
 }) => {
-  await gotoStory(page, MULTI_BUYER_STORY_IDS.deepLinkBuyer)
-  const root = widget(page, 'AiCreditsWidget-deep-link-buyer')
+  await gotoStory(page, MULTI_BUYER_STORY_IDS.deepLinkSigner)
+  const root = widget(page, 'AiCreditsWidget-deep-link-signer')
   await expect(root).toBeVisible()
 
   // A pre-signed operatorSignature is enough to authorize, even without a private key.
@@ -394,7 +394,7 @@ test('AiCreditsWidget deep-link buyer: Sign Consent enabled via operatorSignatur
   await expect(authorizeButton).toBeEnabled()
 
   await page.screenshot({
-    path: 'tests/widgets/ai-credits-widget/test-results/acw-16-deep-link-buyer.png',
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-16-deep-link-signer.png',
     fullPage: true,
   })
 })
@@ -427,22 +427,22 @@ test('AiCreditsWidget deep-link authorization pending: Authorize Wallet requires
   })
 })
 
-test('AiCreditsWidget multi-buyer history: buyer filter dropdown is visible', async ({ page }) => {
-  await gotoStory(page, MULTI_BUYER_STORY_IDS.multiBuyerHistory)
-  const root = widget(page, 'AiCreditsWidget-multi-buyer-history')
+test('AiCreditsWidget multi-signer history: signer filter dropdown is visible', async ({ page }) => {
+  await gotoStory(page, MULTI_BUYER_STORY_IDS.multiSignerHistory)
+  const root = widget(page, 'AiCreditsWidget-multi-signer-history')
   await expect(root).toBeVisible()
 
-  await expect(root.getByText(/Buyer:/i)).toBeVisible()
+  await expect(root.getByText(/Signer:/i)).toBeVisible()
 
   await page.screenshot({
-    path: 'tests/widgets/ai-credits-widget/test-results/acw-17-multi-buyer-history.png',
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-17-multi-signer-history.png',
     fullPage: true,
   })
 })
 
-test('AiCreditsWidget multi-buyer: signer key import is reachable', async ({ page }) => {
-  await gotoStory(page, MULTI_BUYER_STORY_IDS.multiBuyerManage)
-  const root = widget(page, 'AiCreditsWidget-multi-buyer-manage')
+test('AiCreditsWidget multi-signer: signer key import is reachable', async ({ page }) => {
+  await gotoStory(page, MULTI_BUYER_STORY_IDS.multiSignerManage)
+  const root = widget(page, 'AiCreditsWidget-multi-signer-manage')
   await expect(root).toBeVisible()
 
   await root.getByTestId('signer-key-toggle').click()

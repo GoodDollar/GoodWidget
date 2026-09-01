@@ -76,11 +76,11 @@ export function SetupBonusHighlight({
           <Text fontSize="$2" tone="soft" lineHeight="$3">
             {isGoodIdVerified ? (
               <>
-                Your wallet is{' '}
+                If your wallet is{' '}
                 <Text fontSize="$2" fontWeight="700">
                   GoodID verified
                 </Text>
-                , so the bonus is applied automatically to deposits and streams.
+                , the bonus is applied automatically. If not, you can verify to receive the bonus.
               </>
             ) : (
               <>

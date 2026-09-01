@@ -1,11 +1,11 @@
 export type DeepLinkParams = {
-  buyerAddress: string
+  signerAddress: string
   operatorSignature: string
 }
 
 export type DeepLinkParseResult =
   | { status: 'absent' }
-  | { status: 'partial'; present: 'buyerAddress' | 'operatorSignature' }
+  | { status: 'partial'; present: 'signerAddress' | 'operatorSignature' }
   | { status: 'invalid'; reason: string }
   | { status: 'complete'; value: DeepLinkParams; source: 'url' | 'storage' }
 
@@ -16,7 +16,7 @@ const DEEP_LINK_STORAGE_KEY = 'goodwidget.ai-credits.deepLink'
 export const DEEP_LINK_MANUAL_FALLBACK_HINT =
   'Generate or import a signer key manually to continue.'
 
-export function isValidBuyerAddress(value: string): boolean {
+export function isValidSignerAddress(value: string): boolean {
   return BUYER_ADDRESS_RE.test(value.trim())
 }
 
@@ -38,14 +38,14 @@ export function readStoredDeepLinkParams(): DeepLinkParams | null {
     const raw = window.localStorage.getItem(DEEP_LINK_STORAGE_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as Partial<DeepLinkParams>
-    const buyerAddress = typeof parsed.buyerAddress === 'string' ? parsed.buyerAddress.trim() : ''
+    const signerAddress = typeof parsed.signerAddress === 'string' ? parsed.signerAddress.trim() : ''
     const operatorSignature =
       typeof parsed.operatorSignature === 'string' ? parsed.operatorSignature.trim() : ''
-    if (!isValidBuyerAddress(buyerAddress) || !isValidOperatorSignature(operatorSignature)) {
+    if (!isValidSignerAddress(signerAddress) || !isValidOperatorSignature(operatorSignature)) {
       clearStoredDeepLinkParams()
       return null
     }
-    return { buyerAddress, operatorSignature }
+    return { signerAddress, operatorSignature }
   } catch {
     clearStoredDeepLinkParams()
     return null
@@ -58,7 +58,7 @@ export function storeDeepLinkParams(value: DeepLinkParams): void {
     window.localStorage.setItem(
       DEEP_LINK_STORAGE_KEY,
       JSON.stringify({
-        buyerAddress: value.buyerAddress.trim(),
+        signerAddress: value.signerAddress.trim(),
         operatorSignature: value.operatorSignature.trim(),
       }),
     )
@@ -80,18 +80,18 @@ export function parseDeepLinkParams(
   search: string | URLSearchParams = typeof window !== 'undefined' ? window.location.search : '',
 ): DeepLinkParseResult {
   const params = typeof search === 'string' ? new URLSearchParams(search) : search
-  const buyerAddress = params.get('buyerAddress')?.trim() ?? ''
+  const signerAddress = params.get('signerAddress')?.trim() ?? ''
   const operatorSignature = params.get('operatorSignature')?.trim() ?? ''
 
-  const hasBuyer = buyerAddress.length > 0
+  const hasSigner = signerAddress.length > 0
   const hasSignature = operatorSignature.length > 0
 
-  if (!hasBuyer && !hasSignature) return { status: 'absent' }
-  if (hasBuyer && !hasSignature) return { status: 'partial', present: 'buyerAddress' }
-  if (!hasBuyer && hasSignature) return { status: 'partial', present: 'operatorSignature' }
+  if (!hasSigner && !hasSignature) return { status: 'absent' }
+  if (hasSigner && !hasSignature) return { status: 'partial', present: 'signerAddress' }
+  if (!hasSigner && hasSignature) return { status: 'partial', present: 'operatorSignature' }
 
-  if (!isValidBuyerAddress(buyerAddress)) {
-    return { status: 'invalid', reason: 'Deep-link buyerAddress is invalid' }
+  if (!isValidSignerAddress(signerAddress)) {
+    return { status: 'invalid', reason: 'Deep-link signerAddress is invalid' }
   }
   if (!isValidOperatorSignature(operatorSignature)) {
     return {
@@ -104,7 +104,7 @@ export function parseDeepLinkParams(
     status: 'complete',
     source: 'url',
     value: {
-      buyerAddress,
+      signerAddress,
       operatorSignature,
     },
   }
@@ -134,10 +134,10 @@ export function resolveDeepLinkParams(
 export function stripDeepLinkParamsFromUrl(): void {
   if (typeof window === 'undefined') return
   const url = new URL(window.location.href)
-  if (!url.searchParams.has('buyerAddress') && !url.searchParams.has('operatorSignature')) {
+  if (!url.searchParams.has('signerAddress') && !url.searchParams.has('operatorSignature')) {
     return
   }
-  url.searchParams.delete('buyerAddress')
+  url.searchParams.delete('signerAddress')
   url.searchParams.delete('operatorSignature')
   const next = `${url.pathname}${url.search}${url.hash}`
   window.history.replaceState(window.history.state, '', next)

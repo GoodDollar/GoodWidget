@@ -21,7 +21,7 @@ interface AiCreditsPurchaseFlowProps {
  * the amounts explorable in the meantime.
  */
 function getPayBlockedReason(state: AiCreditsWidgetAdapterState): string | null {
-  if (!state.buyerPubKey) {
+  if (!state.signerPubKey) {
     return 'Generate or import your signer key in the Set Up tab before buying.'
   }
   if (!state.operatorConsented) {
@@ -44,16 +44,16 @@ export function AiCreditsPurchaseFlow({
 }: AiCreditsPurchaseFlowProps) {
   // Consent may have been granted on another device or in an earlier session,
   // so reconcile against the chain rather than trusting local state alone. Keyed
-  // on payer+buyer because `actions` is rebuilt on every state change.
+  // on payer+signer because `actions` is rebuilt on every state change.
   const syncedConsentForRef = useRef<string | null>(null)
   useEffect(() => {
     if (state.operatorConsented) return
-    if (!state.address || !state.buyerPubKey) return
-    const key = `${state.address}:${state.buyerPubKey}`.toLowerCase()
+    if (!state.address || !state.signerPubKey) return
+    const key = `${state.address}:${state.signerPubKey}`.toLowerCase()
     if (syncedConsentForRef.current === key) return
     syncedConsentForRef.current = key
     void actions.syncOperatorConsentFromChain()
-  }, [state.operatorConsented, state.address, state.buyerPubKey, actions])
+  }, [state.operatorConsented, state.address, state.signerPubKey, actions])
 
   const handleVerifyGoodId = useCallback(async () => {
     await actions.verifyGoodId()

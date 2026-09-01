@@ -18,7 +18,7 @@ import { compactButtonProps } from '../shared/styles'
 import type {
   AiCreditsHistoryActions,
   AiCreditsHistoryState,
-  BuyerAddressFilter,
+  SignerAddressFilter,
   CreditHistorySource,
   CreditHistoryStatusFilter,
 } from '../../useAiCreditsHistory'
@@ -44,8 +44,8 @@ const SOURCE_PILL_OPTIONS: { id: CreditHistorySource; label: string }[] = [
 export interface HistoryTabProps {
   state: AiCreditsHistoryState
   actions: AiCreditsHistoryActions
-  /** Known buyer records to populate the buyer filter dropdown. */
-  knownBuyers?: { address: string; label?: string }[]
+  /** Known signer records to populate the signer filter dropdown. */
+  knownSigners?: { address: string; label?: string }[]
 }
 
 function sourceLabel(source: CreditHistorySource): string {
@@ -452,24 +452,24 @@ function StatusFilterSelect({
   )
 }
 
-/** Dropdown for filtering history entries by buyer address. */
-function BuyerFilterSelect({
+/** Dropdown for filtering history entries by Signer Address. */
+function SignerFilterSelect({
   value,
-  buyers,
+  signers,
   onValueChange,
 }: {
-  value: BuyerAddressFilter
-  buyers: { address: string; label?: string }[]
-  onValueChange: (value: BuyerAddressFilter) => void
+  value: SignerAddressFilter
+  signers: { address: string; label?: string }[]
+  onValueChange: (value: SignerAddressFilter) => void
 }) {
   const [open, setOpen] = useState(false)
 
-  // Only render when there are known buyers to filter by
-  if (buyers.length === 0) return null
+  // Only render when there are known signers to filter by
+  if (signers.length === 0) return null
 
   const options = [
-    { value: BUYER_FILTER_ALL, label: 'All buyers' },
-    ...buyers.map((b) => ({
+    { value: BUYER_FILTER_ALL, label: 'All signers' },
+    ...signers.map((b) => ({
       value: b.address,
       label: b.label ?? `${b.address.slice(0, 6)}…${b.address.slice(-4)}`,
     })),
@@ -495,7 +495,7 @@ function BuyerFilterSelect({
         onPress={() => setOpen((current) => !current)}
       >
         <Text fontSize="$2" color="$placeholderColor" numberOfLines={1} flex={1}>
-          Buyer: {selected?.label ?? 'All buyers'}
+          Signer: {selected?.label ?? 'All signers'}
         </Text>
         <Icon name={open ? 'chevron-up' : 'chevron-down'} size="xs" color="muted" />
       </XStack>
@@ -544,11 +544,11 @@ function BuyerFilterSelect({
   )
 }
 
-export function HistoryTab({ state, actions, knownBuyers = [] }: HistoryTabProps) {
+export function HistoryTab({ state, actions, knownSigners = [] }: HistoryTabProps) {
   const {
     selectedSources,
     statusFilter,
-    buyerAddressFilter,
+    signerAddressFilter,
     fromDate,
     toDate,
     entries,
@@ -609,10 +609,10 @@ export function HistoryTab({ state, actions, knownBuyers = [] }: HistoryTabProps
           value={statusFilter}
           onValueChange={actions.setStatusFilter}
         />
-        <BuyerFilterSelect
-          value={buyerAddressFilter}
-          buyers={knownBuyers}
-          onValueChange={actions.setBuyerAddressFilter}
+        <SignerFilterSelect
+          value={signerAddressFilter}
+          signers={knownSigners}
+          onValueChange={actions.setSignerAddressFilter}
         />
       </XStack>
 

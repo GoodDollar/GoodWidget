@@ -12,7 +12,7 @@ import type {
   TransactionsResponse,
   UserCreditProfile,
 } from './backendTypes'
-import type { BuyerOperatorStatus } from './operatorConsent'
+import type { SignerOperatorStatus } from './operatorConsent'
 import type { AiCreditsChainClient } from './chainClient'
 import {
   flowRateWeiToMonthlyG,
@@ -84,7 +84,7 @@ export type OperatorConsentRequest = {
 }
 
 export type OperatorConsentResponse = {
-  buyer: string
+  signer: string
   bridge: BridgeResponse
 }
 
@@ -133,21 +133,21 @@ function clampHistoryLimit(limit: number | undefined): number {
   return Math.min(Math.max(1, Math.floor(limit)), MAX_HISTORY_LIMIT)
 }
 
-export function resolveBuyerAddress(entries: GdCreditEntry[]): string | null {
+export function resolveSignerAddress(entries: GdCreditEntry[]): string | null {
   for (const entry of entries) {
-    if (entry.buyerAddress && isAddress(entry.buyerAddress)) {
-      return normalizeAddress(entry.buyerAddress)
+    if (entry.signerAddress && isAddress(entry.signerAddress)) {
+      return normalizeAddress(entry.signerAddress)
     }
   }
   return null
 }
 
-export function collectBuyerAddressesFromEntries(entries: GdCreditEntry[]): string[] {
+export function collectSignerAddressesFromEntries(entries: GdCreditEntry[]): string[] {
   const seen = new Set<string>()
   const result: string[] = []
   for (const entry of entries) {
-    if (!entry.buyerAddress || !isAddress(entry.buyerAddress)) continue
-    const key = normalizeAddress(entry.buyerAddress)
+    if (!entry.signerAddress || !isAddress(entry.signerAddress)) continue
+    const key = normalizeAddress(entry.signerAddress)
     if (seen.has(key)) continue
     seen.add(key)
     result.push(key)
@@ -155,12 +155,12 @@ export function collectBuyerAddressesFromEntries(entries: GdCreditEntry[]): stri
   return result
 }
 
-function defaultOperatorStatus(payer: string): BuyerOperatorStatus {
+function defaultOperatorStatus(payer: string): SignerOperatorStatus {
   const account = normalizeAddress(payer)
   return {
     enabled: false,
     account,
-    buyerAddress: account,
+    signerAddress: account,
     currentOperator: '0x0000000000000000000000000000000000000000',
     operatorAccepted: false,
     consentNonce: '0',
@@ -188,7 +188,7 @@ export type AccountEnrichment = {
 }
 
 export type BuildAccountViewOptions = {
-  buyerAddress?: string | null
+  signerAddress?: string | null
 }
 
 /**
@@ -228,15 +228,15 @@ export interface AiCreditsBackendClient {
     body?: ChannelOperationRequest,
   ): Promise<ChannelOperationResponse>
   withdrawCredits(
-    buyer: string,
+    signer: string,
     body: WithdrawPrincipalRequest,
   ): Promise<WithdrawPrincipalResponse>
   submitOperatorConsent(
-    buyer: string,
+    signer: string,
     body: OperatorConsentRequest,
   ): Promise<OperatorConsentResponse>
   revokeOperatorConsent(
-    buyer: string,
+    signer: string,
     body: OperatorRevokeRequest,
   ): Promise<OperatorRevokeResponse>
 }
@@ -409,23 +409,23 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
   }
 
   async withdrawCredits(
-    buyer: string,
+    signer: string,
     body: WithdrawPrincipalRequest,
   ): Promise<WithdrawPrincipalResponse> {
-    const response = await fetch(`${this.accountBase(buyer)}/withdraw`, {
+    const response = await fetch(`${this.accountBase(signer)}/withdraw`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })
     const bridge = await parseBridgeResponse(response, 'Withdraw')
-    return { account: normalizeAddress(buyer), amountUsd: body.amount, bridge }
+    return { account: normalizeAddress(signer), amountUsd: body.amount, bridge }
   }
 
   async submitOperatorConsent(
-    buyer: string,
+    signer: string,
     body: OperatorConsentRequest,
   ): Promise<OperatorConsentResponse> {
-    const response = await fetch(`${this.accountBase(buyer)}/operator-consent`, {
+    const response = await fetch(`${this.accountBase(signer)}/operator-consent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -435,16 +435,16 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
     })
     const payload = await readBridgeResponseBody<OperatorConsentResponse>(response, 'Operator consent')
     return {
-      buyer: normalizeAddress(payload.buyer ?? buyer),
+      signer: normalizeAddress(payload.signer ?? signer),
       bridge: payload.bridge,
     }
   }
 
   async revokeOperatorConsent(
-    buyer: string,
+    signer: string,
     body: OperatorRevokeRequest,
   ): Promise<OperatorRevokeResponse> {
-    const response = await fetch(`${this.accountBase(buyer)}/operator-revoke`, {
+    const response = await fetch(`${this.accountBase(signer)}/operator-revoke`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -454,7 +454,7 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
     })
     const payload = await readBridgeResponseBody<OperatorRevokeResponse>(response, 'Operator revoke')
     return {
-      buyer: normalizeAddress(payload.buyer ?? buyer),
+      signer: normalizeAddress(payload.signer ?? signer),
       bridge: payload.bridge,
     }
   }
@@ -525,7 +525,7 @@ export async function waitForOperatorConsent(
 ): Promise<void> {
   for (let attempt = 0; attempt < BRIDGE_POLL_MAX_ATTEMPTS; attempt++) {
     if (attempt > 0) await sleep(BRIDGE_POLL_INTERVAL_MS)
-    const status = await chain.getBuyerOperatorStatus(ref)
+    const status = await chain.getSignerOperatorStatus(ref)
     if (status.operatorAccepted) return
   }
 
@@ -539,9 +539,9 @@ export async function buildAccountView(
   options: BuildAccountViewOptions = {},
 ): Promise<AccountView> {
   const normalizedPayer = normalizeAddress(payer)
-  const buyer =
-    options.buyerAddress && isAddress(options.buyerAddress)
-      ? normalizeAddress(options.buyerAddress)
+  const signer =
+    options.signerAddress && isAddress(options.signerAddress)
+      ? normalizeAddress(options.signerAddress)
       : null
 
   // These four reads are independent of one another and span two networks (the
@@ -551,15 +551,15 @@ export async function buildAccountView(
   const [credit, outstanding, operator, withdrawableUsd] = await Promise.all([
     backend.getAccountCredit(payer),
     backend.getOutstanding(payer).catch(() => null),
-    buyer
-      ? chain.getBuyerOperatorStatus({ payer: normalizedPayer, buyer }).catch(() => null)
+    signer
+      ? chain.getSignerOperatorStatus({ payer: normalizedPayer, signer }).catch(() => null)
       : Promise.resolve(defaultOperatorStatus(normalizedPayer)),
-    buyer ? chain.getWithdrawableUsd(buyer).catch(() => null) : Promise.resolve('0'),
+    signer ? chain.getWithdrawableUsd(signer).catch(() => null) : Promise.resolve('0'),
   ])
 
   return {
     account: normalizedPayer,
-    buyer,
+    signer,
     profile: credit.profile,
     operator,
     withdrawableUsd,

@@ -1,23 +1,23 @@
-export type BuyerKeyEntry = {
+export type SignerKeyEntry = {
   privateKey?: string
   operatorSignature?: string
   operatorConsented?: boolean
 }
 
 export type PayerWalletSession = {
-  buyerKeys: Record<string, BuyerKeyEntry>
-  knownBuyers: string[]
-  activeBuyerAddress: string | null
-  derivedBuyerAddress: string | null
+  signerKeys: Record<string, SignerKeyEntry>
+  knownSigners: string[]
+  activeSignerAddress: string | null
+  derivedSignerAddress: string | null
 }
 
-export type BuyerStateFields = {
-  buyers: string[]
-  buyerPubKey: string | null
-  buyerPrvKey: string | null
+export type SignerStateFields = {
+  signers: string[]
+  signerPubKey: string | null
+  signerPrvKey: string | null
   operatorSignature: string | null
   operatorConsented: boolean
-  derivedBuyerAddress: string | null
+  derivedSignerAddress: string | null
 }
 
 const STORAGE_KEY_PREFIX = 'goodwidget.ai-credits.payerSession.'
@@ -26,7 +26,7 @@ function payerSessionKey(address: string): string {
   return address.toLowerCase()
 }
 
-function normalizeBuyerAddress(address: string): string {
+function normalizeSignerAddress(address: string): string {
   return address.toLowerCase()
 }
 
@@ -34,21 +34,21 @@ function canUseLocalStorage(): boolean {
   return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
 }
 
-function formatBuyerAddress(address: string): string {
-  const key = normalizeBuyerAddress(address)
+function formatSignerAddress(address: string): string {
+  const key = normalizeSignerAddress(address)
   return key.startsWith('0x') ? `0x${key.slice(2)}` : key
 }
 
 function emptySession(): PayerWalletSession {
   return {
-    buyerKeys: {},
-    knownBuyers: [],
-    activeBuyerAddress: null,
-    derivedBuyerAddress: null,
+    signerKeys: {},
+    knownSigners: [],
+    activeSignerAddress: null,
+    derivedSignerAddress: null,
   }
 }
 
-function isBuyerKeyEntry(value: unknown): value is BuyerKeyEntry {
+function isSignerKeyEntry(value: unknown): value is SignerKeyEntry {
   if (!value || typeof value !== 'object') return false
   const entry = value as Record<string, unknown>
   return (
@@ -64,95 +64,95 @@ function migrateLegacySession(raw: Record<string, unknown>): PayerWalletSession 
 
   const trackKnown = (address: string | null | undefined) => {
     if (!address) return
-    known.add(normalizeBuyerAddress(address))
+    known.add(normalizeSignerAddress(address))
   }
 
-  if (typeof raw.buyerPubKey === 'string' && raw.buyerPubKey) {
-    const address = normalizeBuyerAddress(raw.buyerPubKey)
-    session.activeBuyerAddress = address
-    session.derivedBuyerAddress = address
+  if (typeof raw.signerPubKey === 'string' && raw.signerPubKey) {
+    const address = normalizeSignerAddress(raw.signerPubKey)
+    session.activeSignerAddress = address
+    session.derivedSignerAddress = address
     trackKnown(address)
-    if (typeof raw.buyerPrvKey === 'string' && raw.buyerPrvKey) {
-      session.buyerKeys[address] = { privateKey: raw.buyerPrvKey }
+    if (typeof raw.signerPrvKey === 'string' && raw.signerPrvKey) {
+      session.signerKeys[address] = { privateKey: raw.signerPrvKey }
     }
   }
 
-  if (Array.isArray(raw.buyers)) {
-    for (const item of raw.buyers) {
+  if (Array.isArray(raw.signers)) {
+    for (const item of raw.signers) {
       if (typeof item === 'string' && item) {
         trackKnown(item)
         continue
       }
       if (!item || typeof item !== 'object') continue
-      const buyer = item as Record<string, unknown>
-      if (typeof buyer.address !== 'string' || !buyer.address) continue
-      const address = normalizeBuyerAddress(buyer.address)
+      const signer = item as Record<string, unknown>
+      if (typeof signer.address !== 'string' || !signer.address) continue
+      const address = normalizeSignerAddress(signer.address)
       trackKnown(address)
-      const entry: BuyerKeyEntry = {}
-      if (typeof buyer.privateKey === 'string' && buyer.privateKey) {
-        entry.privateKey = buyer.privateKey
+      const entry: SignerKeyEntry = {}
+      if (typeof signer.privateKey === 'string' && signer.privateKey) {
+        entry.privateKey = signer.privateKey
       }
-      if (typeof buyer.operatorSignature === 'string' && buyer.operatorSignature) {
-        entry.operatorSignature = buyer.operatorSignature
+      if (typeof signer.operatorSignature === 'string' && signer.operatorSignature) {
+        entry.operatorSignature = signer.operatorSignature
       }
-      if (typeof buyer.operatorConsented === 'boolean') {
-        entry.operatorConsented = buyer.operatorConsented
+      if (typeof signer.operatorConsented === 'boolean') {
+        entry.operatorConsented = signer.operatorConsented
       }
       if (entry.privateKey || entry.operatorSignature || entry.operatorConsented !== undefined) {
-        session.buyerKeys[address] = {
-          ...session.buyerKeys[address],
+        session.signerKeys[address] = {
+          ...session.signerKeys[address],
           ...entry,
         }
       }
-      if (buyer.type === 'derived' && entry.privateKey) {
-        session.derivedBuyerAddress = address
+      if (signer.type === 'derived' && entry.privateKey) {
+        session.derivedSignerAddress = address
       }
     }
   }
 
-  if (Array.isArray(raw.knownBuyers)) {
-    for (const item of raw.knownBuyers) {
+  if (Array.isArray(raw.knownSigners)) {
+    for (const item of raw.knownSigners) {
       if (typeof item === 'string' && item) trackKnown(item)
     }
   }
 
-  if (typeof raw.activeBuyerAddress === 'string' && raw.activeBuyerAddress) {
-    session.activeBuyerAddress = normalizeBuyerAddress(raw.activeBuyerAddress)
-    trackKnown(session.activeBuyerAddress)
+  if (typeof raw.activeSignerAddress === 'string' && raw.activeSignerAddress) {
+    session.activeSignerAddress = normalizeSignerAddress(raw.activeSignerAddress)
+    trackKnown(session.activeSignerAddress)
   }
-  if (typeof raw.derivedBuyerAddress === 'string' && raw.derivedBuyerAddress) {
-    session.derivedBuyerAddress = normalizeBuyerAddress(raw.derivedBuyerAddress)
-    trackKnown(session.derivedBuyerAddress)
+  if (typeof raw.derivedSignerAddress === 'string' && raw.derivedSignerAddress) {
+    session.derivedSignerAddress = normalizeSignerAddress(raw.derivedSignerAddress)
+    trackKnown(session.derivedSignerAddress)
   }
-  if (typeof raw.operatorSignature === 'string' && raw.operatorSignature && session.activeBuyerAddress) {
-    const active = session.activeBuyerAddress
-    session.buyerKeys[active] = {
-      ...session.buyerKeys[active],
+  if (typeof raw.operatorSignature === 'string' && raw.operatorSignature && session.activeSignerAddress) {
+    const active = session.activeSignerAddress
+    session.signerKeys[active] = {
+      ...session.signerKeys[active],
       operatorSignature: raw.operatorSignature,
     }
   }
 
-  if (raw.buyerKeys && typeof raw.buyerKeys === 'object') {
-    for (const [address, entry] of Object.entries(raw.buyerKeys as Record<string, unknown>)) {
-      if (!isBuyerKeyEntry(entry)) continue
-      const key = normalizeBuyerAddress(address)
+  if (raw.signerKeys && typeof raw.signerKeys === 'object') {
+    for (const [address, entry] of Object.entries(raw.signerKeys as Record<string, unknown>)) {
+      if (!isSignerKeyEntry(entry)) continue
+      const key = normalizeSignerAddress(address)
       trackKnown(key)
-      session.buyerKeys[key] = {
-        ...session.buyerKeys[key],
+      session.signerKeys[key] = {
+        ...session.signerKeys[key],
         ...entry,
       }
     }
   }
 
-  if (typeof raw.operatorConsented === 'boolean' && raw.operatorConsented && session.activeBuyerAddress) {
-    const active = session.activeBuyerAddress
-    session.buyerKeys[active] = {
-      ...session.buyerKeys[active],
+  if (typeof raw.operatorConsented === 'boolean' && raw.operatorConsented && session.activeSignerAddress) {
+    const active = session.activeSignerAddress
+    session.signerKeys[active] = {
+      ...session.signerKeys[active],
       operatorConsented: true,
     }
   }
 
-  session.knownBuyers = [...known].map((key) => formatBuyerAddress(key))
+  session.knownSigners = [...known].map((key) => formatSignerAddress(key))
   return session
 }
 
@@ -195,40 +195,40 @@ export function patchPayerSession(address: string, patch: Partial<PayerWalletSes
   persistSession(address, {
     ...existing,
     ...patch,
-    buyerKeys: patch.buyerKeys ?? existing.buyerKeys,
-    knownBuyers: patch.knownBuyers ?? existing.knownBuyers,
+    signerKeys: patch.signerKeys ?? existing.signerKeys,
+    knownSigners: patch.knownSigners ?? existing.knownSigners,
   })
 }
 
-export function getBuyerKeyEntry(payer: string, buyerAddress: string): BuyerKeyEntry | null {
+export function getSignerKeyEntry(payer: string, signerAddress: string): SignerKeyEntry | null {
   const session = readPayerSession(payer)
   if (!session) return null
-  return session.buyerKeys[normalizeBuyerAddress(buyerAddress)] ?? null
+  return session.signerKeys[normalizeSignerAddress(signerAddress)] ?? null
 }
 
-export function setBuyerOperatorConsented(
+export function setSignerOperatorConsented(
   payer: string,
-  buyerAddress: string,
+  signerAddress: string,
   operatorConsented: boolean,
 ): void {
-  upsertBuyerKey(payer, buyerAddress, { operatorConsented }, { setActive: false })
+  upsertSignerKey(payer, signerAddress, { operatorConsented }, { setActive: false })
 }
 
-export function upsertBuyerKey(
+export function upsertSignerKey(
   payer: string,
-  buyerAddress: string,
-  entry: BuyerKeyEntry,
+  signerAddress: string,
+  entry: SignerKeyEntry,
   options?: { setActive?: boolean; setDerived?: boolean },
 ): PayerWalletSession {
   const existing = readPayerSession(payer) ?? emptySession()
-  const key = normalizeBuyerAddress(buyerAddress)
-  const previous = existing.buyerKeys[key] ?? {}
-  const knownBuyers = mergeBuyerAddressList(existing.knownBuyers, key)
+  const key = normalizeSignerAddress(signerAddress)
+  const previous = existing.signerKeys[key] ?? {}
+  const knownSigners = mergeSignerAddressList(existing.knownSigners, key)
   const next: PayerWalletSession = {
     ...existing,
-    knownBuyers,
-    buyerKeys: {
-      ...existing.buyerKeys,
+    knownSigners,
+    signerKeys: {
+      ...existing.signerKeys,
       [key]: {
         privateKey: entry.privateKey ?? previous.privateKey,
         operatorSignature: entry.operatorSignature ?? previous.operatorSignature,
@@ -238,138 +238,138 @@ export function upsertBuyerKey(
             : previous.operatorConsented,
       },
     },
-    activeBuyerAddress: options?.setActive === false ? existing.activeBuyerAddress : key,
-    derivedBuyerAddress: options?.setDerived ? key : existing.derivedBuyerAddress,
+    activeSignerAddress: options?.setActive === false ? existing.activeSignerAddress : key,
+    derivedSignerAddress: options?.setDerived ? key : existing.derivedSignerAddress,
   }
   persistSession(payer, next)
   return next
 }
 
-export function setActiveBuyerAddress(payer: string, buyerAddress: string | null): PayerWalletSession {
+export function setActiveSignerAddress(payer: string, signerAddress: string | null): PayerWalletSession {
   const existing = readPayerSession(payer) ?? emptySession()
-  const normalized = buyerAddress ? normalizeBuyerAddress(buyerAddress) : null
+  const normalized = signerAddress ? normalizeSignerAddress(signerAddress) : null
   const next: PayerWalletSession = {
     ...existing,
-    knownBuyers: normalized
-      ? mergeBuyerAddressList(existing.knownBuyers, normalized)
-      : existing.knownBuyers,
-    activeBuyerAddress: normalized,
+    knownSigners: normalized
+      ? mergeSignerAddressList(existing.knownSigners, normalized)
+      : existing.knownSigners,
+    activeSignerAddress: normalized,
   }
   persistSession(payer, next)
   return next
 }
 
-export function mergeBuyerAddressList(
-  existingBuyers: string[],
+export function mergeSignerAddressList(
+  existingSigners: string[],
   ...extras: Array<string | null | undefined>
 ): string[] {
   const seen = new Set<string>()
   const result: string[] = []
 
-  for (const address of [...existingBuyers, ...extras]) {
+  for (const address of [...existingSigners, ...extras]) {
     if (!address) continue
-    const key = normalizeBuyerAddress(address)
+    const key = normalizeSignerAddress(address)
     if (seen.has(key)) continue
     seen.add(key)
-    result.push(formatBuyerAddress(key))
+    result.push(formatSignerAddress(key))
   }
 
   return result
 }
 
-export function normalizeBuyerAddressList(
-  buyers: Array<string | { address: string }> | undefined | null,
+export function normalizeSignerAddressList(
+  signers: Array<string | { address: string }> | undefined | null,
 ): string[] {
-  if (!buyers || buyers.length === 0) return []
+  if (!signers || signers.length === 0) return []
   const seen = new Set<string>()
   const result: string[] = []
-  for (const item of buyers) {
+  for (const item of signers) {
     const address = typeof item === 'string' ? item : item.address
     if (!address) continue
-    const key = normalizeBuyerAddress(address)
+    const key = normalizeSignerAddress(address)
     if (seen.has(key)) continue
     seen.add(key)
-    result.push(formatBuyerAddress(key))
+    result.push(formatSignerAddress(key))
   }
   return result
 }
 
-export function listKnownBuyerAddresses(payer: string): string[] {
+export function listKnownSignerAddresses(payer: string): string[] {
   const session = readPayerSession(payer)
   if (!session) return []
-  return mergeBuyerAddressList(
-    session.knownBuyers,
-    ...Object.keys(session.buyerKeys),
-    session.activeBuyerAddress,
-    session.derivedBuyerAddress,
+  return mergeSignerAddressList(
+    session.knownSigners,
+    ...Object.keys(session.signerKeys),
+    session.activeSignerAddress,
+    session.derivedSignerAddress,
   )
 }
 
-export function rememberBuyerAddresses(
+export function rememberSignerAddresses(
   payer: string,
   addresses: Array<string | null | undefined>,
 ): string[] {
   const existing = readPayerSession(payer) ?? emptySession()
-  const knownBuyers = mergeBuyerAddressList(existing.knownBuyers, ...addresses)
+  const knownSigners = mergeSignerAddressList(existing.knownSigners, ...addresses)
   if (
-    knownBuyers.length === existing.knownBuyers.length &&
-    knownBuyers.every(
-      (address, index) => address.toLowerCase() === existing.knownBuyers[index]?.toLowerCase(),
+    knownSigners.length === existing.knownSigners.length &&
+    knownSigners.every(
+      (address, index) => address.toLowerCase() === existing.knownSigners[index]?.toLowerCase(),
     )
   ) {
-    return listKnownBuyerAddresses(payer)
+    return listKnownSignerAddresses(payer)
   }
-  persistSession(payer, { ...existing, knownBuyers })
-  return listKnownBuyerAddresses(payer)
+  persistSession(payer, { ...existing, knownSigners })
+  return listKnownSignerAddresses(payer)
 }
 
-export function buildBuyerStateFields(
+export function buildSignerStateFields(
   payer: string,
-  buyers: string[],
+  signers: string[],
   selectedAddress: string | null,
-): BuyerStateFields {
+): SignerStateFields {
   const session = readPayerSession(payer)
-  const entry = selectedAddress ? getBuyerKeyEntry(payer, selectedAddress) : null
+  const entry = selectedAddress ? getSignerKeyEntry(payer, selectedAddress) : null
   return {
-    buyers,
-    buyerPubKey: selectedAddress,
-    buyerPrvKey: entry?.privateKey ?? null,
+    signers,
+    signerPubKey: selectedAddress,
+    signerPrvKey: entry?.privateKey ?? null,
     operatorSignature: entry?.operatorSignature ?? null,
     operatorConsented: Boolean(entry?.operatorConsented),
-    derivedBuyerAddress: session?.derivedBuyerAddress ?? null,
+    derivedSignerAddress: session?.derivedSignerAddress ?? null,
   }
 }
 
 export function patchPayerSessionFields(address: string | null): {
-  buyerPubKey: string | null
-  buyerPrvKey: string | null
+  signerPubKey: string | null
+  signerPrvKey: string | null
   operatorSignature: string | null
   operatorConsented: boolean
-  activeBuyerAddress: string | null
-  derivedBuyerAddress: string | null
+  activeSignerAddress: string | null
+  derivedSignerAddress: string | null
 } {
   const session = readPayerSession(address)
   if (!session) {
     return {
-      buyerPubKey: null,
-      buyerPrvKey: null,
+      signerPubKey: null,
+      signerPrvKey: null,
       operatorSignature: null,
       operatorConsented: false,
-      activeBuyerAddress: null,
-      derivedBuyerAddress: null,
+      activeSignerAddress: null,
+      derivedSignerAddress: null,
     }
   }
 
-  const active = session.activeBuyerAddress
-  const entry = active ? session.buyerKeys[normalizeBuyerAddress(active)] : undefined
+  const active = session.activeSignerAddress
+  const entry = active ? session.signerKeys[normalizeSignerAddress(active)] : undefined
 
   return {
-    buyerPubKey: active,
-    buyerPrvKey: entry?.privateKey ?? null,
+    signerPubKey: active,
+    signerPrvKey: entry?.privateKey ?? null,
     operatorSignature: entry?.operatorSignature ?? null,
     operatorConsented: Boolean(entry?.operatorConsented),
-    activeBuyerAddress: active,
-    derivedBuyerAddress: session.derivedBuyerAddress,
+    activeSignerAddress: active,
+    derivedSignerAddress: session.derivedSignerAddress,
   }
 }
 

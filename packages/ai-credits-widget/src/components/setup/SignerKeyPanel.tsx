@@ -15,7 +15,7 @@ import type {
   AiCreditsWidgetAdapterActions,
   AiCreditsWidgetAdapterState,
 } from '../../widgetRuntimeContract'
-import { BuyerKeyPanel } from '../buy/BuyerKeyPanel'
+import { SignerKeyPanel } from '../buy/SignerKeyPanel'
 import { AntseedSignerRow } from './AntseedSignerRow'
 import { compactButtonProps, truncateAddress } from '../shared/styles'
 
@@ -80,12 +80,12 @@ export function SignerKeyPanel({
           <Icon name="arrow-left" size="xs" color="primary" />
           <ButtonText>Back to Generate / Import</ButtonText>
         </Button>
-        <BuyerKeyPanel
+        <SignerKeyPanel
           embedded
-          buyerPubKey={state.buyerPubKey}
-          buyerPrvKey={state.buyerPrvKey}
-          buyerPubKeySaved={keyConfirmed}
-          onGenerate={actions.generateBuyerKey}
+          signerPubKey={state.signerPubKey}
+          signerPrvKey={state.signerPrvKey}
+          signerPubKeySaved={keyConfirmed}
+          onGenerate={actions.generateSignerKey}
           onConfirm={() => setKeyConfirmed(true)}
         />
         {keyConfirmed && (
@@ -103,7 +103,7 @@ export function SignerKeyPanel({
     const importedSigner =
       !isImporting &&
       Boolean(importedAddress) &&
-      state.buyerPubKey?.toLowerCase() === importedAddress?.toLowerCase()
+      state.signerPubKey?.toLowerCase() === importedAddress?.toLowerCase()
     const importedSignerBlocked = importedSigner && hasDifferentOperator
 
     return (
@@ -134,8 +134,8 @@ export function SignerKeyPanel({
             setIsImporting(true)
             setImportedAddress(null)
             void actions
-              .importBuyerFromPrivateKey(privateKey.trim())
-              .then((buyerAddress) => setImportedAddress(buyerAddress))
+              .importSignerFromPrivateKey(privateKey.trim())
+              .then((signerAddress) => setImportedAddress(signerAddress))
               .catch(() => setImportedAddress(null))
               .finally(() => setIsImporting(false))
           }}
@@ -158,7 +158,7 @@ export function SignerKeyPanel({
               Signer imported
             </Text>
             <Text tone="soft">
-              {truncateAddress(state.buyerPubKey ?? '')} is now your active signer.
+              {truncateAddress(state.signerPubKey ?? '')} is now your active signer.
             </Text>
             <Text tone="soft">
               {state.operatorConsented
@@ -210,14 +210,13 @@ export function SignerKeyPanel({
       {showHeading && <Heading level={5}>Signer Key</Heading>}
       {!compact && (
         <Text tone="soft">
-          A dedicated identity used only to buy and spend AI credits — separate from your wallet.
+          A separate wallet used to hold and use your AI credits, separate from your connected wallet.
         </Text>
       )}
       {compact ? <YStack gap="$2">{choices}</YStack> : <XStack gap="$3">{choices}</XStack>}
       {!compact && (
         <Text fontSize="$2" tone="soft">
-          Generate is recommended for a fresh signer. Either direction uses the same key once it is
-          set up in AntSeed.
+          First time using Antseed? Generate a new Signer Key. Already have one? Import it.
         </Text>
       )}
     </YStack>

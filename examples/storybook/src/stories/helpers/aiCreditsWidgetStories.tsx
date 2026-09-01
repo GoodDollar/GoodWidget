@@ -37,8 +37,8 @@ function createMockState(
     totalCreditUsd: null,
     totalBonusUsd: null,
     isGoodIdVerified: false,
-    buyerPubKey: null,
-    buyerPrvKey: null,
+    signerPubKey: null,
+    signerPrvKey: null,
     operatorSignature: null,
     operatorConsented: false,
     operatorConsentPending: false,
@@ -53,8 +53,8 @@ function createMockState(
     streamBonusPercent: 20,
     error: null,
     activeTab: 'buy',
-    buyers: [],
-    derivedBuyerAddress: null,
+    signers: [],
+    derivedSignerAddress: null,
   }
   return { ...base, ...overrides }
 }
@@ -68,11 +68,11 @@ function createAdapterFactory(
     actions: {
       connect: async () => {},
       switchChain: async () => {},
-      generateBuyerKey: async () => {},
-      selectBuyer: async () => {},
-      discoverBuyers: () => {},
-      importBuyerFromPrivateKey: async () => overrides.buyerPubKey ?? null,
-      applyDeepLinkBuyer: async () => {},
+      generateSignerKey: async () => {},
+      selectSigner: async () => {},
+      discoverSigners: () => {},
+      importSignerFromPrivateKey: async () => overrides.signerPubKey ?? null,
+      applyDeepLinkSigner: async () => {},
       signOperatorConsent: async () => {},
       revokeOperatorConsent: async () => {},
       syncOperatorConsentFromChain: async () => {},
@@ -212,7 +212,7 @@ export function QuoteReadyStory() {
     <MockStoryShell
       dataTestId="AiCreditsWidget-quote-ready"
       adapterFactory={createAdapterFactory('quote_ready', {
-        buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
+        signerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
         operatorConsented: true,
         gdUsdPerToken: 0.0015,
       })}
@@ -226,7 +226,7 @@ export function QuoteReadyGoodIdStory() {
       dataTestId="AiCreditsWidget-quote-ready-goodid"
       adapterFactory={createAdapterFactory('quote_ready', {
         isGoodIdVerified: true,
-        buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
+        signerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
         operatorConsented: true,
         gdUsdPerToken: 0.0015,
       })}
@@ -239,7 +239,7 @@ export function PaymentPendingStory() {
     <MockStoryShell
       dataTestId="AiCreditsWidget-payment-pending"
       adapterFactory={createAdapterFactory('payment_pending', {
-        buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
+        signerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
         operatorConsented: true,
       })}
     />
@@ -251,7 +251,7 @@ export function PaymentConfirmedStory() {
     <MockStoryShell
       dataTestId="AiCreditsWidget-payment-confirmed"
       adapterFactory={createAdapterFactory('payment_confirmed', {
-        buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
+        signerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
         operatorConsented: true,
       })}
     />
@@ -265,10 +265,10 @@ export function ManageTabStory() {
       adapterFactory={createAdapterFactory('quote_ready', {
         totalCreditUsd: '110000000',
         totalBonusUsd: '10000000',
-        buyerPubKey: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a',
+        signerPubKey: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a',
         // Unauthorizing is signed locally, so the Manage story needs the signer key
         // for the Signer Key card to offer it.
-        buyerPrvKey: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+        signerPrvKey: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
         operatorConsented: true,
         operatorAddress: '0x0000000000000000000000000000000000000004',
         totalGdDepositedG: '50.00',
@@ -287,7 +287,7 @@ export function HistoryTabStory() {
       adapterFactory={createAdapterFactory('quote_ready', {
         totalCreditUsd: '110000000',
         totalBonusUsd: '10000000',
-        buyerPubKey: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a',
+        signerPubKey: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a',
         operatorConsented: true,
         operatorAddress: '0x0000000000000000000000000000000000000004',
         totalGdDepositedG: '50.00',
@@ -317,8 +317,8 @@ export function SignerKeyGeneratedStory() {
       dataTestId="AiCreditsWidget-signer-key-generated"
       adapterFactory={createAdapterFactory('purchase_setup', {
         activeTab: 'setup',
-        buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
-        buyerPrvKey: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+        signerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
+        signerPrvKey: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
       })}
     />
   )
@@ -331,8 +331,8 @@ export function SetupAuthorizeWalletStory() {
       dataTestId="AiCreditsWidget-setup-authorize-wallet"
       adapterFactory={createAdapterFactory('purchase_setup', {
         activeTab: 'setup',
-        buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
-        buyerPrvKey: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+        signerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
+        signerPrvKey: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
       })}
     />
   )
@@ -344,8 +344,8 @@ export function SignerKeyIncompatibleOperatorStory() {
       dataTestId="AiCreditsWidget-signer-key-incompatible"
       adapterFactory={createAdapterFactory('purchase_setup', {
         activeTab: 'setup',
-        buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
-        buyerPrvKey: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+        signerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
+        signerPrvKey: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
         operatorAddress: '0x0000000000000000000000000000000000000004',
         currentOperator: '0x0000000000000000000000000000000000000005',
       })}
@@ -373,7 +373,7 @@ export function BuyTabErrorStory() {
     <MockStoryShell
       dataTestId="AiCreditsWidget-buy-tab-error"
       adapterFactory={createAdapterFactory('quote_ready', {
-        buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
+        signerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
         operatorConsented: true,
         error: 'Network request failed. Please try again.',
       })}
@@ -386,7 +386,7 @@ export function PaymentFailedStory() {
     <MockStoryShell
       dataTestId="AiCreditsWidget-payment-failed"
       adapterFactory={createAdapterFactory('payment_failed', {
-        buyerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
+        signerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
         operatorConsented: true,
         error: 'Payment failed. Try again.',
       })}
@@ -598,7 +598,7 @@ export function InjectedWalletStory() {
 }
 
 // ---------------------------------------------------------------------------
-// Multi-buyer fixture stories
+// Multi-signer fixture stories
 // ---------------------------------------------------------------------------
 
 const BUYER_WALLET = {
@@ -617,24 +617,24 @@ const BUYER_PARTNER = {
     '0x1111111111111111111111111111111111111111111111111111111111111111222222222222222222222222222222222222222222222222222222222222222200' as const,
 }
 
-/** Multi-buyer manage: backend address list with one selected buyer that has a local key. */
-export function MultiBuyerManageStory() {
+/** Multi-signer manage: backend address list with one selected signer that has a local key. */
+export function MultiSignerManageStory() {
   return (
     <MockStoryShell
-      dataTestId="AiCreditsWidget-multi-buyer-manage"
+      dataTestId="AiCreditsWidget-multi-signer-manage"
       adapterFactory={createAdapterFactory('quote_ready', {
         totalCreditUsd: '110000000',
         totalBonusUsd: '10000000',
-        buyerPubKey: BUYER_WALLET.address,
-        buyerPrvKey: BUYER_WALLET.privateKey,
+        signerPubKey: BUYER_WALLET.address,
+        signerPrvKey: BUYER_WALLET.privateKey,
         operatorConsented: true,
         operatorAddress: '0x0000000000000000000000000000000000000004',
         totalGdDepositedG: '50.00',
         monthlyStreamG: '5.00',
         gBalance: '42.50',
         activeTab: 'manage',
-        buyers: [BUYER_WALLET.address, BUYER_IMPORTED.address, BUYER_PARTNER.address],
-        derivedBuyerAddress: BUYER_WALLET.address,
+        signers: [BUYER_WALLET.address, BUYER_IMPORTED.address, BUYER_PARTNER.address],
+        derivedSignerAddress: BUYER_WALLET.address,
       })}
     />
   )
@@ -653,12 +653,12 @@ export function WalletControlsStory() {
       adapterFactory={createAdapterFactory('quote_ready', {
         totalCreditUsd: '110000000',
         totalBonusUsd: '10000000',
-        buyerPubKey: BUYER_WALLET.address,
-        buyerPrvKey: BUYER_WALLET.privateKey,
+        signerPubKey: BUYER_WALLET.address,
+        signerPrvKey: BUYER_WALLET.privateKey,
         operatorConsented: true,
         gBalance: '42.50',
         activeTab: 'manage',
-        buyers: [BUYER_WALLET.address],
+        signers: [BUYER_WALLET.address],
       })}
     />
   )
@@ -675,37 +675,37 @@ export function WalletControlsHiddenStory() {
       adapterFactory={createAdapterFactory('quote_ready', {
         totalCreditUsd: '110000000',
         totalBonusUsd: '10000000',
-        buyerPubKey: BUYER_WALLET.address,
-        buyerPrvKey: BUYER_WALLET.privateKey,
+        signerPubKey: BUYER_WALLET.address,
+        signerPrvKey: BUYER_WALLET.privateKey,
         operatorConsented: true,
         gBalance: '42.50',
         activeTab: 'manage',
-        buyers: [BUYER_WALLET.address],
+        signers: [BUYER_WALLET.address],
       })}
     />
   )
 }
 
-/** Deep-link partner buyer: consent uses pre-signed operatorSignature (no private key). */
-export function DeepLinkBuyerStory() {
+/** Deep-link partner signer: consent uses pre-signed operatorSignature (no private key). */
+export function DeepLinkSignerStory() {
   return (
     <MockStoryShell
-      dataTestId="AiCreditsWidget-deep-link-buyer"
+      dataTestId="AiCreditsWidget-deep-link-signer"
       adapterFactory={createAdapterFactory('purchase_setup', {
-        buyerPubKey: BUYER_PARTNER.address,
-        buyerPrvKey: null,
+        signerPubKey: BUYER_PARTNER.address,
+        signerPrvKey: null,
         operatorSignature: BUYER_PARTNER.operatorSignature,
         operatorConsented: false,
         gBalance: '42.50',
         activeTab: 'manage',
-        buyers: [BUYER_PARTNER.address],
+        signers: [BUYER_PARTNER.address],
       })}
     />
   )
 }
 
 /**
- * Deep-link partner buyer reaching the buy-flow consent step: a pre-signed
+ * Deep-link partner signer reaching the buy-flow consent step: a pre-signed
  * operatorSignature is prefilled but operatorConsented is still false, so the
  * explicit "Sign Operator Consent" gate must render instead of auto-advancing.
  */
@@ -714,32 +714,32 @@ export function DeepLinkConsentPendingStory() {
     <MockStoryShell
       dataTestId="AiCreditsWidget-deep-link-consent-pending"
       adapterFactory={createAdapterFactory('purchase_setup', {
-        buyerPubKey: BUYER_PARTNER.address,
-        buyerPrvKey: null,
+        signerPubKey: BUYER_PARTNER.address,
+        signerPrvKey: null,
         operatorSignature: BUYER_PARTNER.operatorSignature,
         operatorConsented: false,
         activeTab: 'buy',
-        buyers: [BUYER_PARTNER.address],
+        signers: [BUYER_PARTNER.address],
       })}
     />
   )
 }
 
-/** History tab with multi-buyer filter options available. */
-export function MultiBuyerHistoryStory() {
+/** History tab with multi-signer filter options available. */
+export function MultiSignerHistoryStory() {
   return (
     <MockStoryShell
-      dataTestId="AiCreditsWidget-multi-buyer-history"
+      dataTestId="AiCreditsWidget-multi-signer-history"
       adapterFactory={createAdapterFactory('quote_ready', {
         totalCreditUsd: '110000000',
         totalBonusUsd: '10000000',
-        buyerPubKey: BUYER_WALLET.address,
-        buyerPrvKey: BUYER_WALLET.privateKey,
+        signerPubKey: BUYER_WALLET.address,
+        signerPrvKey: BUYER_WALLET.privateKey,
         operatorConsented: true,
         gBalance: '42.50',
         activeTab: 'history',
-        buyers: [BUYER_WALLET.address, BUYER_IMPORTED.address],
-        derivedBuyerAddress: BUYER_WALLET.address,
+        signers: [BUYER_WALLET.address, BUYER_IMPORTED.address],
+        derivedSignerAddress: BUYER_WALLET.address,
       })}
     />
   )

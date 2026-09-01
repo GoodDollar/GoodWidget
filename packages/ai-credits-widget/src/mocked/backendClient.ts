@@ -70,25 +70,25 @@ function createDemoHistory(account: string): GdCreditEntry[] {
       id: 'demo-deposit-1', account: normalized, rootAccount: normalized, source: 'deposit',
       gdAmountWei: '440000000000000000000', totalCreditUsd: '6600', principalUsd: '6000',
       bonusUsd: '600', fundingStatus: 'funded', txHash: '0xdemo01', logIndex: 0,
-      createdAt: '2026-06-25T14:30:00.000Z', streamUpdateMonth: '2026-06', buyerAddress: normalized,
+      createdAt: '2026-06-25T14:30:00.000Z', streamUpdateMonth: '2026-06', signerAddress: normalized,
     },
     {
       id: 'demo-stream-update-1', account: normalized, rootAccount: normalized, source: 'streamUpdate',
       gdAmountWei: '10000000000000000000', totalCreditUsd: '0', principalUsd: '0',
       bonusUsd: '0', fundingStatus: 'funded', txHash: '0xdemo02', logIndex: 0,
-      createdAt: '2026-06-24T12:00:00.000Z', streamUpdateMonth: '2026-06', buyerAddress: normalized,
+      createdAt: '2026-06-24T12:00:00.000Z', streamUpdateMonth: '2026-06', signerAddress: normalized,
     },
     {
       id: 'demo-stream-request-1', account: normalized, rootAccount: normalized, source: 'streamRequest',
       gdAmountWei: '8000000000000000000', totalCreditUsd: '1200', principalUsd: '1000',
       bonusUsd: '200', fundingStatus: 'pending', txHash: '0xdemo03', logIndex: 0,
-      createdAt: '2026-06-23T09:15:00.000Z', streamUpdateMonth: '2026-06', buyerAddress: normalized,
+      createdAt: '2026-06-23T09:15:00.000Z', streamUpdateMonth: '2026-06', signerAddress: normalized,
     },
     {
       id: 'demo-stream-cron-1', account: normalized, rootAccount: normalized, source: 'streamCron',
       gdAmountWei: '5000000000000000000', totalCreditUsd: '900', principalUsd: '750',
       bonusUsd: '150', fundingStatus: 'funded', createdAt: '2026-06-22T08:00:00.000Z',
-      streamUpdateMonth: '2026-06', buyerAddress: normalized,
+      streamUpdateMonth: '2026-06', signerAddress: normalized,
     },
   ]
 }
@@ -171,7 +171,7 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
   }
 
   prepareSettlement(ref: AccountRef, creditUsd: bigint): void {
-    this.activeRef = { payer: normalizeAddress(ref.payer), buyer: normalizeAddress(ref.buyer) }
+    this.activeRef = { payer: normalizeAddress(ref.payer), signer: normalizeAddress(ref.signer) }
     this.lastCreditUsd = creditUsd
   }
 
@@ -184,7 +184,7 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
       id: `${txHash}:0`, account: ref.payer, rootAccount: ref.payer, source: 'deposit',
       gdAmountWei: '0', totalCreditUsd: this.lastCreditUsd.toString(), principalUsd: this.lastCreditUsd.toString(),
       bonusUsd: '0', fundingStatus: 'pending', txHash, logIndex: 0, createdAt: now,
-      streamUpdateMonth: now.slice(0, 7), buyerAddress: ref.buyer,
+      streamUpdateMonth: now.slice(0, 7), signerAddress: ref.signer,
     }
     const state = this.getState(ref.payer)
     if (!state.transactions.find((item) => item.id === entry.id)) state.transactions.unshift(entry)
@@ -208,33 +208,33 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
     return { channelId, action: 'close', bridge: { enabled: true, txHash: '0xmock' } }
   }
 
-  async withdrawCredits(buyer: string, body: WithdrawPrincipalRequest): Promise<WithdrawPrincipalResponse> {
+  async withdrawCredits(signer: string, body: WithdrawPrincipalRequest): Promise<WithdrawPrincipalResponse> {
     await sleep(MOCK_DELAY_MS)
-    return { account: buyer, amountUsd: body.amount, bridge: { enabled: true, txHash: '0xmock' } }
+    return { account: signer, amountUsd: body.amount, bridge: { enabled: true, txHash: '0xmock' } }
   }
 
   async submitOperatorConsent(
-    buyer: string,
+    signer: string,
     {}: { nonce: string; signature: string },
   ): Promise<OperatorConsentResponse> {
     await sleep(MOCK_DELAY_MS)
-    const normalizedBuyer = normalizeAddress(buyer)
-    markMockOperatorConsent(normalizedBuyer)
+    const normalizedSigner = normalizeAddress(signer)
+    markMockOperatorConsent(normalizedSigner)
     return {
-      buyer: normalizedBuyer,
+      signer: normalizedSigner,
       bridge: { enabled: true, txHash: '0xmock' },
     }
   }
 
   async revokeOperatorConsent(
-    buyer: string,
+    signer: string,
     {}: { nonce: string; signature: string },
   ): Promise<OperatorRevokeResponse> {
     await sleep(MOCK_DELAY_MS)
     // Mirrors submitOperatorConsent: the chain mock is what waitForOperatorRevoke polls.
-    clearMockOperatorConsent(normalizeAddress(buyer))
+    clearMockOperatorConsent(normalizeAddress(signer))
     return {
-      buyer: normalizeAddress(buyer),
+      signer: normalizeAddress(signer),
       bridge: { enabled: true, txHash: '0xmock' },
     }
   }

@@ -79,7 +79,7 @@ export function SetupGuidanceCard({
               Get G${' '}
             </Text>
             <Text fontSize="$2" tone="soft">
-              — claim UBI via GoodWallet, or buy G$ with your wallet of choice
+              — claim G$ UBI or buy G$ on celo to purchase AI credits.
             </Text>
           </Text>
         </XStack>
@@ -102,10 +102,36 @@ export function SetupGuidanceCard({
           </YStack>
           <Text fontSize="$2" flex={1} lineHeight="$3">
             <Text fontSize="$2" fontWeight="700">
-              Download Antseed{' '}
+              Set up your Signer Key{' '}
             </Text>
             <Text fontSize="$2" tone="soft">
-              — the free desktop app that runs your credits locally
+              — create or import the signer that receives your AI credits and lets you use them with Antseed.
+            </Text>
+          </Text>
+        </XStack>
+
+        {/* Step 3 */}
+        <XStack gap="$3" alignItems="flex-start">
+          <YStack
+            width={22}
+            height={22}
+            borderRadius="$full"
+            backgroundColor="$backgroundHover"
+            alignItems="center"
+            justifyContent="center"
+            flexShrink={0}
+            marginTop={2}
+          >
+            <Text fontSize="$1" fontWeight="700" color="$secondary">
+              3
+            </Text>
+          </YStack>
+          <Text fontSize="$2" flex={1} lineHeight="$3">
+            <Text fontSize="$2" fontWeight="700">
+              Use your AI credits{' '}
+            </Text>
+            <Text fontSize="$2" tone="soft">
+              — with Antseed Desktop, or through API Setup if you’re an advanced user.
             </Text>
           </Text>
         </XStack>

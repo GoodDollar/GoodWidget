@@ -258,7 +258,7 @@ function SecurityDetails() {
     <YStack gap="$7" paddingTop="$3" $sm={{ gap: "$5" }}>
       <XStack gap="$7" alignItems="flex-start" $md={{ flexDirection: 'column' }}>
         <TrustItem icon={<Network size={24} color="$primary" />} title="Local, explicit routing">
-          The buyer proxy runs locally. It will not auto-select a peer: browse the network, inspect
+          The signer proxy runs locally. It will not auto-select a peer: browse the network, inspect
           the services and pricing, then pin the peer you choose.
         </TrustItem>
         <TrustItem
@@ -272,7 +272,7 @@ function SecurityDetails() {
 
       <XStack gap="$7" alignItems="flex-start" $md={{ flexDirection: 'column' }}>
         <TrustItem icon={<KeyRound size={24} color="$primary" />} title="Separated identity">
-          The buyer signing identity is separate from the funding wallet. A compromised buyer
+          The signer signing identity is separate from the funding wallet. A compromised signer
           identity cannot access that wallet, and its exposure is bounded by deposited credits.
         </TrustItem>
         <TrustItem icon={<ShieldCheck size={24} color="$primary" />} title="Keys are secrets">

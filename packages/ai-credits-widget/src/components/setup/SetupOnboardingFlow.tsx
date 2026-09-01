@@ -22,7 +22,7 @@ export function SetupOnboardingFlow({ state, actions }: SetupOnboardingFlowProps
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [drawerStep, setDrawerStep] = useState<SetupDrawerStep | null>(null)
 
-  const hasSignerKey = Boolean(state.buyerPubKey)
+  const hasSignerKey = Boolean(state.signerPubKey)
   const downloadCompleted = downloadOpened || hasSignerKey
 
   // Authorization lives on chain, not in this browser. Someone arriving on a new
@@ -33,12 +33,12 @@ export function SetupOnboardingFlow({ state, actions }: SetupOnboardingFlowProps
   // it actually depends on; without that it would re-read the chain each render.
   const syncedConsentForRef = useRef<string | null>(null)
   useEffect(() => {
-    if (!state.address || !state.buyerPubKey || state.operatorConsented) return
-    const key = `${state.address}:${state.buyerPubKey}`.toLowerCase()
+    if (!state.address || !state.signerPubKey || state.operatorConsented) return
+    const key = `${state.address}:${state.signerPubKey}`.toLowerCase()
     if (syncedConsentForRef.current === key) return
     syncedConsentForRef.current = key
     void actions.syncOperatorConsentFromChain()
-  }, [state.address, state.buyerPubKey, state.operatorConsented, actions])
+  }, [state.address, state.signerPubKey, state.operatorConsented, actions])
 
   // None of these gate the widget: every step stays open so a first-time
   // visitor can read through the flow, skip it, and come back later. Steps that
@@ -137,14 +137,14 @@ export function SetupOnboardingFlow({ state, actions }: SetupOnboardingFlowProps
             {drawerStep === 'authorize' ? (
               <OperatorConsentStep
                 embedded
-                buyerPubKey={state.buyerPubKey}
-                buyerPrvKey={state.buyerPrvKey ?? null}
+                signerPubKey={state.signerPubKey}
+                signerPrvKey={state.signerPrvKey ?? null}
                 operatorSignature={state.operatorSignature ?? null}
                 operatorConsented={state.operatorConsented}
                 operatorConsentPending={state.operatorConsentPending}
                 onSign={actions.signOperatorConsent}
-                derivedBuyerAddress={state.derivedBuyerAddress}
-                onRestoreKey={actions.generateBuyerKey}
+                derivedSignerAddress={state.derivedSignerAddress}
+                onRestoreKey={actions.generateSignerKey}
               />
             ) : null}
           </YStack>

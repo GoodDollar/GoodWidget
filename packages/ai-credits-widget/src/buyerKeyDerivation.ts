@@ -3,11 +3,11 @@ import { privateKeyToAccount } from 'viem/accounts'
 
 const SECP256K1_ORDER = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141n
 
-export function buildBuyerKeyMessage(payerAddress: string): string {
+export function buildSignerKeyMessage(payerAddress: string): string {
   return `Generate a key for G$ credits from payer wallet of '${payerAddress.toLowerCase()}'`
 }
 
-export function deriveBuyerPrivateKeyFromSignature(signature: Hex): `0x${string}` {
+export function deriveSignerPrivateKeyFromSignature(signature: Hex): `0x${string}` {
   for (let counter = 0; counter < 256; counter++) {
     const hash =
       counter === 0 ? keccak256(signature) : keccak256(toBytes(`${signature}:${counter}`))
