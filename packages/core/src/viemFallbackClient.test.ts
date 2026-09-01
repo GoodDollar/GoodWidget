@@ -224,3 +224,35 @@ test('does not refetch for a chain Chainlist does not know about', async () => {
   assert.deepEqual(await client.getRpcUrls(unknownChain), [])
   assert.equal(attempts, 1)
 })
+
+test('skips malformed Chainlist rows instead of discarding the payload', async () => {
+  const client = createViemFallbackClient(createStorage(), {
+    rank: false,
+    fetch: async () =>
+      new Response(
+        JSON.stringify([
+          null,
+          'not-a-chain',
+          { chainId: 'nope', rpc: ['https://bad-id.example'] },
+          { chainId: celo.id, rpc: null },
+          {
+            chainId: celo.id,
+            rpc: [
+              null,
+              42,
+              'http://insecure.example',
+              'https://templated.example/${KEY}',
+              { url: 'https://object-form.example' },
+              'https://string-form.example',
+            ],
+          },
+        ]),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      ),
+  })
+
+  assert.deepEqual(await client.getRpcUrls(createChain([])), [
+    'https://object-form.example',
+    'https://string-form.example',
+  ])
+})

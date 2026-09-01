@@ -335,9 +335,31 @@ async function writeCache(
   await storage.setItem?.(key, serialized)
 }
 
-function parseCacheEntry(value: unknown): ViemRpcCacheEntry | null {
-  if (!value) return null
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
 
+function isPresent<T>(value: T | null): value is T {
+  return value !== null
+}
+
+/** Chainlist lists an RPC as either a bare URL or a `{ url }` object; the cache only ever
+ * holds bare URLs. Anything else collapses to '', which `sanitizeRpcUrls` drops. */
+function toRpcUrl(entry: unknown): string {
+  if (typeof entry === 'string') return entry
+  if (isRecord(entry) && typeof entry.url === 'string') return entry.url
+  return ''
+}
+
+/** Builds one cache row, or null when the chain id or its RPC list is unusable. */
+function toChainRpcs(chainId: unknown, urls: unknown): CachedChainRpcs | null {
+  if (typeof chainId !== 'number' || !Number.isInteger(chainId)) return null
+
+  const rpcs = sanitizeRpcUrls(Array.isArray(urls) ? urls.map(toRpcUrl) : [])
+  return rpcs.length > 0 ? { chainId, rpcs } : null
+}
+
+function parseCacheEntry(value: unknown): ViemRpcCacheEntry | null {
   if (typeof value === 'string') {
     try {
       return parseCacheEntry(JSON.parse(value))
@@ -346,26 +368,17 @@ function parseCacheEntry(value: unknown): ViemRpcCacheEntry | null {
     }
   }
 
-  if (typeof value !== 'object') return null
+  if (!isRecord(value)) return null
 
-  const candidate = value as Partial<ViemRpcCacheEntry>
-  if (typeof candidate.fetchedAt !== 'string' || !Array.isArray(candidate.rpcs)) return null
-
-  const rpcs = candidate.rpcs
-    .filter((entry): entry is CachedChainRpcs => Boolean(entry) && typeof entry === 'object')
-    .map((entry) => ({
-      chainId: typeof entry.chainId === 'number' ? entry.chainId : Number.NaN,
-      rpcs: Array.isArray(entry.rpcs)
-        ? sanitizeRpcUrls(
-            entry.rpcs.filter((rpcUrl): rpcUrl is string => typeof rpcUrl === 'string'),
-          )
-        : [],
-    }))
-    .filter((entry) => Number.isInteger(entry.chainId) && entry.rpcs.length > 0)
+  const { fetchedAt, rpcs } = value
+  if (typeof fetchedAt !== 'string' || !Array.isArray(rpcs)) return null
 
   return {
-    fetchedAt: candidate.fetchedAt,
-    rpcs,
+    fetchedAt,
+    rpcs: rpcs
+      .filter(isRecord)
+      .map((entry) => toChainRpcs(entry.chainId, entry.rpcs))
+      .filter(isPresent),
   }
 }
 
@@ -373,27 +386,9 @@ function normalizeChainlistPayload(payload: unknown): CachedChainRpcs[] {
   if (!Array.isArray(payload)) return []
 
   return payload
-    .filter((entry) => Boolean(entry) && typeof entry === 'object')
-    .map((entry) => {
-      const candidate = entry as { chainId?: unknown; rpc?: unknown }
-      const rpcEntries = Array.isArray(candidate.rpc) ? candidate.rpc : []
-      const urls = rpcEntries
-        .map((rpcEntry) => {
-          if (typeof rpcEntry === 'string') return rpcEntry
-          if (rpcEntry && typeof rpcEntry === 'object' && 'url' in rpcEntry) {
-            const url = (rpcEntry as { url?: unknown }).url
-            return typeof url === 'string' ? url : ''
-          }
-          return ''
-        })
-        .filter((url) => url.length > 0)
-
-      return {
-        chainId: typeof candidate.chainId === 'number' ? candidate.chainId : Number.NaN,
-        rpcs: sanitizeRpcUrls(urls),
-      }
-    })
-    .filter((entry) => Number.isInteger(entry.chainId) && entry.rpcs.length > 0)
+    .filter(isRecord)
+    .map((entry) => toChainRpcs(entry.chainId, entry.rpc))
+    .filter(isPresent)
 }
 
 function getCachedRpcUrls(cache: ViemRpcCacheEntry | null, chainId: number): string[] {
