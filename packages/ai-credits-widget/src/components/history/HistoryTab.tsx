@@ -13,7 +13,8 @@ import {
 } from '@goodwidget/ui'
 import type { IconName } from '@goodwidget/ui'
 import type { GdCreditEntry } from '../../backendTypes'
-import { formatUsdMicro, weiToG } from '../../quoteMath'
+import { formatUsdMicro } from '../../quoteMath'
+import { formatGAmount, formatGWeiAmount, formatUsdMicroAmount } from '../../format'
 import { compactButtonProps } from '../shared/styles'
 import type {
   AiCreditsHistoryActions,
@@ -64,11 +65,11 @@ function formatEntryDate(createdAt: string): string {
   })
 }
 
-function formatGAmount(gdAmountWei: string): string | null {
+function formatEntryGAmount(gdAmountWei: string): string | null {
   try {
     const amountWei = BigInt(gdAmountWei || '0')
     if (amountWei <= 0n) return null
-    return `${weiToG(amountWei)} G$`
+    return formatGWeiAmount(amountWei)
   } catch {
     return null
   }
@@ -78,18 +79,18 @@ function formatUsdCredit(usdMicro: string): string | null {
   try {
     const micro = BigInt(usdMicro || '0')
     if (micro <= 0n) return null
-    return `+$${formatUsdMicro(usdMicro)}`
+    return formatUsdMicroAmount(usdMicro, { signed: true })
   } catch {
     return null
   }
 }
 
 function formatUsdValue(usdMicro: string): string {
-  return `$${formatUsdMicro(usdMicro || '0')}`
+  return formatUsdMicroAmount(usdMicro || '0')
 }
 
 function amountLines(entry: GdCreditEntry): { primary: string; secondary?: string } | null {
-  const gAmount = formatGAmount(entry.gdAmountWei)
+  const gAmount = formatEntryGAmount(entry.gdAmountWei)
   const usdCredit = formatUsdCredit(entry.totalCreditUsd)
 
   if (entry.source === 'streamUpdate') {
@@ -184,12 +185,7 @@ function sumFilteredGdWei(entries: GdCreditEntry[]): bigint {
 }
 
 function formatAccumulatedG(amountWei: bigint): string {
-  const value = Number(amountWei) / 1e18
-  if (!Number.isFinite(value) || value < 0) return '0.00 G$'
-  return `${new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value)} G$`
+  return formatGAmount(Number(amountWei) / 1e18)
 }
 
 function formatShortDate(dateValue: string): string {

@@ -46,6 +46,11 @@ const TokenAmountText = createComponent(TamaguiText, {
 
 interface TokenAmountProps {
   amount: string | number
+  /**
+   * Pre-formatted amount to render verbatim, for callers that own their own
+   * number formatting. Takes precedence over `amount` and `useAbbreviations`.
+   */
+  formattedAmount?: string
   token: string
   size?: 'sm' | 'md' | 'lg' | 'xl'
   decimals?: number
@@ -68,6 +73,7 @@ const getDecimals = (value: number): number => {
 
 export function TokenAmount({
   amount,
+  formattedAmount,
   token,
   size = 'md',
   decimals = 2,
@@ -77,7 +83,7 @@ export function TokenAmount({
   const fontSize = { sm: '$3', md: '$5', lg: '$7', xl: '$9' } as const
 
   const amountNumber = typeof amount === 'number' ? amount : parseFloat(amount)
-  const formatted = useAbbreviations
+  const formatted = formattedAmount ?? (useAbbreviations
     ? new Intl.NumberFormat('en-US', {
         style: 'decimal',
         minimumFractionDigits: 0,
@@ -85,7 +91,7 @@ export function TokenAmount({
         useGrouping: true,
         notation: 'compact',
       }).format(amountNumber)
-    : amountNumber.toFixed(decimals)
+    : amountNumber.toFixed(decimals))
 
   return (
     <TokenAmountFrame size={size}>

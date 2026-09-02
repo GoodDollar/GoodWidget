@@ -14,7 +14,13 @@ import type {
   AiCreditsWidgetAdapterActions,
   AiCreditsWidgetAdapterState,
 } from '../../widgetRuntimeContract'
-import { formatUsdMicro, quoteTotalUsdMicro } from '../../quoteMath'
+import { quoteTotalUsdMicro } from '../../quoteMath'
+import {
+  formatExactGAmount,
+  formatGValue,
+  formatUsdMicroValue,
+  isGValueCompacted,
+} from '../../format'
 import {
   BUYER_KEY_REQUIRED_CLOSE_TOOLTIP,
   BUYER_KEY_REQUIRED_WITHDRAW_TOOLTIP,
@@ -65,33 +71,13 @@ function StatValueText({
   )
 }
 
-function formatCompactAmount(amount: string): string {
-  const value = Number.parseFloat(amount)
-  if (!Number.isFinite(value) || value < 0) return '0'
-  return new Intl.NumberFormat('en-US', {
-    notation: 'compact',
-    maximumFractionDigits: 2,
-  }).format(value)
-}
-
-function formatExactGAmount(amount: string): string {
-  const value = Number.parseFloat(amount)
-  if (!Number.isFinite(value) || value < 0) return '0 G$'
-  return `${new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value)} G$`
-}
-
 function CompactGStatValue({ amount }: { amount: string }) {
   const [open, setOpen] = useState(false)
-  const value = Number.parseFloat(amount)
-  const compact = formatCompactAmount(amount)
+  const display = formatGValue(amount)
   const exact = formatExactGAmount(amount)
-  const needsExact = Number.isFinite(value) && value >= 1000
-
-  if (!needsExact) {
-    return <StatValueText>{compact}</StatValueText>
+  // Only abbreviated amounts hide digits, so only those need the exact value.
+  if (!isGValueCompacted(amount)) {
+    return <StatValueText>{display}</StatValueText>
   }
 
   return (
@@ -107,7 +93,7 @@ function CompactGStatValue({ amount }: { amount: string }) {
       onBlur={() => setOpen(false)}
       onPress={() => setOpen((prev) => !prev)}
     >
-      <StatValueText>{compact}</StatValueText>
+      <StatValueText>{display}</StatValueText>
       {open && (
         <YStack
           position="absolute"
@@ -131,13 +117,9 @@ function CompactGStatValue({ amount }: { amount: string }) {
   )
 }
 
+/** Stat cells carry the currency in their label, so the value stays bare. */
 function formatUsdAmount(usdMicro: string): string {
-  const value = Number.parseFloat(formatUsdMicro(usdMicro))
-  if (!Number.isFinite(value) || value < 0) return '0.0000'
-  return new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 4,
-    maximumFractionDigits: 4,
-  }).format(value)
+  return formatUsdMicroValue(usdMicro)
 }
 
 export function CreditsManagementCard({ state, actions }: CreditsManagementCardProps) {
