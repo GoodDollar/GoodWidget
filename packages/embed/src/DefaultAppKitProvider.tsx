@@ -30,8 +30,12 @@ export interface AppKitMetadata {
 const DEFAULT_METADATA: Omit<AppKitMetadata, 'url'> = {
   name: 'GoodDollar',
   description: 'GoodDollar widgets',
-  // No brand asset ships in this repo yet; integrators supply an absolute URL.
-  icons: [],
+  // Fixed rather than origin-relative on purpose. Wallets do not always load
+  // this in the browser: GoodWallet proxies it through Next's image optimizer,
+  // which fetches server-side and only accepts hosts on its allowlist. A
+  // gooddollar.org URL passes that check from any embedding origin; a preview
+  // or vercel.app origin does not.
+  icons: ['https://aicredits.gooddollar.org/gooddollar-icon.png'],
 }
 
 type DefaultAppKitProviderProps = Omit<
