@@ -537,8 +537,10 @@ export function AppKitConnectWalletStory() {
       <div data-testid="AiCreditsWidget-appkit-no-config" style={{ width: 380 }}>
         <strong>AppKit not configured</strong>
         <span>
-          Set <code>VITE_REOWN_PROJECT_ID</code> in <code>examples/storybook/.env.local</code> to
-          enable AppKit wallet connect.
+          Set <code>VITE_REOWN_PROJECT_ID</code> to enable AppKit wallet connect. Locally that
+          means <code>examples/storybook/.env.local</code>; for a hosted Storybook it must be set
+          as an environment variable in the deployment (Vercel project settings), since{' '}
+          <code>.env.local</code> is never committed.
         </span>
       </div>
     )
