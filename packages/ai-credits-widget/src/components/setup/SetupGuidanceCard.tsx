@@ -5,6 +5,9 @@ import { SetupBonusHighlight } from './SetupBonusHighlight'
 /** URL for the AntSeed website, opened in a new browser tab. */
 const ANTSEED_SITE_URL = 'https://antseed.com'
 
+/** GoodReserve swap page — where G$ is bought directly from the reserve on Celo. */
+const GOODDAPP_RESERVE_URL = 'https://gooddapp.org/#/swap/goodReserve'
+
 interface SetupGuidanceCardProps {
   /** Callback to display the How to use guide inside the widget. */
   onHowToUse: () => void
@@ -79,7 +82,18 @@ export function SetupGuidanceCard({
               Get G${' '}
             </Text>
             <Text fontSize="$2" tone="soft">
-              — claim G$ UBI or buy G$ on celo to purchase AI credits.
+              — claim G$ UBI or{' '}
+            </Text>
+            {/* Anchor styles itself at $3, so the nested Text pins it to the
+                surrounding $2 and carries the link colour. */}
+            <Anchor href={GOODDAPP_RESERVE_URL}>
+              <Text fontSize="$2" color="$primary" textDecorationLine="underline">
+                buy G$
+              </Text>
+            </Anchor>
+            <Text fontSize="$2" tone="soft">
+              {' '}
+              on celo to purchase AI credits.
             </Text>
           </Text>
         </XStack>
