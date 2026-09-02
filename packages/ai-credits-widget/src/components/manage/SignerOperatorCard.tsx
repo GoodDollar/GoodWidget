@@ -266,7 +266,7 @@ export function SignerOperatorCard({ state, actions }: SignerOperatorCardProps) 
                     {operatorConsentPending ? (
                       <Spinner size="sm" />
                     ) : (
-                      <ButtonText>Authorize GoodDollar</ButtonText>
+                      <ButtonText>Authorize Credit Management</ButtonText>
                     )}
                   </Button>
                 )}

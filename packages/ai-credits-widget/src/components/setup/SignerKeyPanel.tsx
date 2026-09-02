@@ -163,7 +163,7 @@ export function SignerKeyPanel({
               {state.operatorConsented
                 ? 'GoodDollar is already configured as the operator.'
                 : currentOperator === ZERO_OPERATOR
-                  ? 'No operator is configured yet. Continue to authorize GoodDollar.'
+                  ? 'No operator is configured yet. Continue to Authorize Credit Management.'
                   : 'The configured operator is being checked.'}
             </Text>
             <Button size="sm" {...compactButtonProps} onPress={onProceed}>

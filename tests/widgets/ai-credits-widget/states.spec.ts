@@ -390,7 +390,7 @@ test('AiCreditsWidget deep-link signer: Sign Consent enabled via operatorSignatu
   await root.getByTestId('signer-key-toggle').click()
 
   await expect(root.getByText('Not authorized').first()).toBeVisible()
-  const authorizeButton = root.getByRole('button', { name: 'Authorize GoodDollar' })
+  const authorizeButton = root.getByRole('button', { name: 'Authorize Credit Management' })
   await expect(authorizeButton).toBeEnabled()
 
   await page.screenshot({
