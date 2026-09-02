@@ -330,7 +330,6 @@ function LandingPage() {
   const { depositBonusPercent, streamBonusPercent } = useDiscountConfig(
     import.meta.env.VITE_AI_CREDITS_BACKEND_URL,
   )
-  const maxBonusPercent = Math.max(depositBonusPercent, streamBonusPercent)
 
   return (
     <YStack
