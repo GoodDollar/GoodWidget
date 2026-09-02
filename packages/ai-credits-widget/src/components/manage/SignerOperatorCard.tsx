@@ -242,7 +242,7 @@ export function SignerOperatorCard({ state, actions }: SignerOperatorCardProps) 
           {signerPubKey && (
             <YStack gap="$2">
               <Text variant="label" tone="soft">
-                Active Signer Key
+                Active Signer Address
               </Text>
               <YStack
                 backgroundColor="$background"
@@ -310,27 +310,6 @@ export function SignerOperatorCard({ state, actions }: SignerOperatorCardProps) 
             </YStack>
           )}
 
-          <YStack gap="$2">
-            {signerPubKey ? (
-              <DisclosureToggle
-                open={showReplacePanel}
-                label="New Signer Key"
-                onPress={() => setShowReplacePanel((prev) => !prev)}
-              />
-            ) : null}
-            {(showReplacePanel || !signerPubKey) && (
-              <SignerKeyPanel
-                key={panelInstance}
-                state={state}
-                actions={actions}
-                showHeading={false}
-                compact={Boolean(signerPubKey)}
-                proceedLabel="Done"
-                onProceed={() => setPanelInstance((prev) => prev + 1)}
-              />
-            )}
-          </YStack>
-
           {signerPrvKey && (
             <YStack gap="$2">
               <XStack justifyContent="space-between" alignItems="center" gap="$2">
@@ -358,6 +337,28 @@ export function SignerOperatorCard({ state, actions }: SignerOperatorCardProps) 
               </Text>
             </YStack>
           )}
+
+          <YStack gap="$2">
+            {signerPubKey ? (
+              <DisclosureToggle
+                open={showReplacePanel}
+                label="New Signer Key"
+                onPress={() => setShowReplacePanel((prev) => !prev)}
+              />
+            ) : null}
+            {(showReplacePanel || !signerPubKey) && (
+              <SignerKeyPanel
+                key={panelInstance}
+                state={state}
+                actions={actions}
+                showHeading={false}
+                compact={Boolean(signerPubKey)}
+                proceedLabel="Done"
+                onProceed={() => setPanelInstance((prev) => prev + 1)}
+              />
+            )}
+          </YStack>
+
         </YStack>
       )}
 
