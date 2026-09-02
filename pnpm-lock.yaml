@@ -509,7 +509,7 @@ importers:
         version: link:../ui
       tamagui:
         specifier: 1.121.0
-        version: 1.121.0(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react-native@0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)
+        version: 1.121.0(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react-native@0.76.9(@babel/core@7.29.7)(@babel/preset-env@7.29.2(@babel/core@7.29.7))(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)
       viem:
         specifier: ^2.0.0
         version: 2.48.4(typescript@5.9.3)(zod@4.1.11)
@@ -525,7 +525,7 @@ importers:
         version: 18.3.1
       react-native:
         specifier: 0.76.9
-        version: 0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1)
+        version: 0.76.9(@babel/core@7.29.7)(@babel/preset-env@7.29.2(@babel/core@7.29.7))(@types/react@18.3.28)(react@18.3.1)
       tsup:
         specifier: ^8.4.0
         version: 8.5.1(@swc/core@1.15.30)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0)
@@ -730,8 +730,8 @@ importers:
   packages/streaming-widget:
     dependencies:
       '@goodsdks/streaming-sdk':
-        specifier: 1.0.0
-        version: 1.0.0(react@18.3.1)(viem@2.48.4(typescript@5.9.3)(zod@4.1.11))
+        specifier: 1.1.0
+        version: 1.1.0(react@18.3.1)(viem@2.48.4(typescript@5.9.3)(zod@4.1.11))
       '@goodwidget/core':
         specifier: workspace:*
         version: link:../core
@@ -805,7 +805,7 @@ importers:
     dependencies:
       '@react-native-clipboard/clipboard':
         specifier: '>=1.14.0'
-        version: 1.16.3(react-native@0.76.9(@babel/core@7.29.7)(@babel/preset-env@7.29.2(@babel/core@7.29.7))(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)
+        version: 1.16.3(react-native@0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)
       '@tamagui/animations-react-native':
         specifier: ^1.121.0
         version: 1.121.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -814,13 +814,13 @@ importers:
         version: 1.121.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tamagui/lucide-icons':
         specifier: 1.121.0
-        version: 1.121.0(react-dom@18.3.1(react@18.3.1))(react-native-svg@15.15.5(react-native@0.76.9(@babel/core@7.29.7)(@babel/preset-env@7.29.2(@babel/core@7.29.7))(@types/react@18.3.28)(react@18.3.1))(react@18.3.1))(react@18.3.1)
+        version: 1.121.0(react-dom@18.3.1(react@18.3.1))(react-native-svg@15.15.5(react-native@0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1))(react@18.3.1))(react@18.3.1)
       '@tamagui/themes':
         specifier: 1.121.0
         version: 1.121.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       tamagui:
         specifier: 1.121.0
-        version: 1.121.0(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react-native@0.76.9(@babel/core@7.29.7)(@babel/preset-env@7.29.2(@babel/core@7.29.7))(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)
+        version: 1.121.0(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react-native@0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)
     devDependencies:
       '@types/react':
         specifier: ^18.3.0
@@ -830,10 +830,10 @@ importers:
         version: 18.3.1
       react-native:
         specifier: 0.76.9
-        version: 0.76.9(@babel/core@7.29.7)(@babel/preset-env@7.29.2(@babel/core@7.29.7))(@types/react@18.3.28)(react@18.3.1)
+        version: 0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1)
       react-native-svg:
         specifier: 15.15.5
-        version: 15.15.5(react-native@0.76.9(@babel/core@7.29.7)(@babel/preset-env@7.29.2(@babel/core@7.29.7))(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)
+        version: 15.15.5(react-native@0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)
       react-native-web:
         specifier: ^0.19.13
         version: 0.19.13(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -2806,8 +2806,8 @@ packages:
     peerDependencies:
       viem: '*'
 
-  '@goodsdks/streaming-sdk@1.0.0':
-    resolution: {integrity: sha512-g9+PRkBhrXg/ZK2i+piYVBny7B13AW4RB5Vd5CRCxZQhAy/KH7i/En1CgnJQVzTuTWKH3+QU9l7jhzOvbaRb2A==}
+  '@goodsdks/streaming-sdk@1.1.0':
+    resolution: {integrity: sha512-l700VzwsOiDZ3Gqquaau/BawaTGNGqrujcim3dY4GkV/gfTcN5ojCSJMs/5fuAzDBwMUHuNbkRkdJHoQSIojew==}
     peerDependencies:
       viem: '*'
 
@@ -13780,7 +13780,7 @@ snapshots:
       - typescript
       - yaml
 
-  '@goodsdks/streaming-sdk@1.0.0(react@18.3.1)(viem@2.48.4(typescript@5.9.3)(zod@4.1.11))':
+  '@goodsdks/streaming-sdk@1.1.0(react@18.3.1)(viem@2.48.4(typescript@5.9.3)(zod@4.1.11))':
     dependencies:
       '@sfpro/sdk': 0.1.9(react@18.3.1)(viem@2.48.4(typescript@5.9.3)(zod@4.1.11))
       graphql: 16.14.0
@@ -14326,10 +14326,10 @@ snapshots:
       '@radix-ui/react-compose-refs': 1.0.0(react@18.3.1)
       react: 18.3.1
 
-  '@react-native-clipboard/clipboard@1.16.3(react-native@0.76.9(@babel/core@7.29.7)(@babel/preset-env@7.29.2(@babel/core@7.29.7))(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)':
+  '@react-native-clipboard/clipboard@1.16.3(react-native@0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)':
     dependencies:
       react: 18.3.1
-      react-native: 0.76.9(@babel/core@7.29.7)(@babel/preset-env@7.29.2(@babel/core@7.29.7))(@types/react@18.3.28)(react@18.3.1)
+      react-native: 0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1)
 
   '@react-native/assets-registry@0.76.9': {}
 
