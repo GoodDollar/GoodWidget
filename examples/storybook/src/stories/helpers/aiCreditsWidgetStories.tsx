@@ -544,7 +544,16 @@ export function AppKitConnectWalletStory() {
     )
   }
   return (
-    <DefaultAppKitProvider projectId={projectId}>
+    <DefaultAppKitProvider
+      projectId={projectId}
+      metadata={{
+        name: 'GoodDollar AI Credits',
+        description: 'Buy AI credits with G$ and use them through Antseed.',
+        // Matches the app. A wallet on a phone still cannot fetch a localhost
+        // URL, so the icon only renders once this is served from a real origin.
+        icons: [`${window.location.origin}/gooddollar-icon.png`],
+      }}
+    >
       <AppKitConnectShell />
     </DefaultAppKitProvider>
   )

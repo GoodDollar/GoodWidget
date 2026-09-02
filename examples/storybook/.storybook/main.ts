@@ -9,6 +9,7 @@ import type { StorybookConfig } from '@storybook/react-vite'
 
 const config: StorybookConfig = {
   stories: ['../src/**/*.mdx', '../src/**/*.stories.@(ts|tsx)'],
+  staticDirs: ['../public'],
   addons: ['@storybook/addon-essentials', '@storybook/addon-interactions'],
   tags: {
     manual: {

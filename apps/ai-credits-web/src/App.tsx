@@ -231,7 +231,17 @@ function PurchaseFrame() {
       data-testid="purchase-frame"
     >
       {projectId ? (
-        <DefaultAppKitProvider enableWallets enableInjected>
+        <DefaultAppKitProvider
+          enableWallets
+          enableInjected
+          metadata={{
+            name: 'GoodDollar AI Credits',
+            description: 'Buy AI credits with G$ and use them through Antseed.',
+            // Absolute, and served from this deployment: the wallet fetches it
+            // from the phone, so a relative path or localhost resolves to nothing.
+            icons: [`${window.location.origin}/gooddollar-icon.png`],
+          }}
+        >
           <ReownAiCreditsWidget />
         </DefaultAppKitProvider>
       ) : (

@@ -10,18 +10,52 @@ export const DEFAULT_APPKIT_NETWORKS = [xdc, mainnet, base, fuse, celo] as [
   ...AppKitNetwork[],
 ]
 
+/**
+ * Identity shown to the wallet in a WalletConnect session request.
+ *
+ * Without this, AppKit falls back to scraping the host page, which is how a
+ * wallet ends up displaying a Storybook story id — or a bare "?" where the app
+ * icon belongs — on the approve/reject screen someone is being asked to trust.
+ *
+ * `icons` must be absolute and publicly reachable: the wallet fetches them from
+ * the phone, so a localhost URL or a relative path resolves to nothing.
+ */
+export interface AppKitMetadata {
+  name: string
+  description: string
+  url: string
+  icons: string[]
+}
+
+const DEFAULT_METADATA: Omit<AppKitMetadata, 'url'> = {
+  name: 'GoodDollar',
+  description: 'GoodDollar widgets',
+  // No brand asset ships in this repo yet; integrators supply an absolute URL.
+  icons: [],
+}
+
 type DefaultAppKitProviderProps = Omit<
   React.ComponentProps<typeof AppKitProvider>,
-  'projectId' | 'networks'
+  'projectId' | 'networks' | 'metadata'
 > & {
   projectId?: string
   networks?: [AppKitNetwork, ...AppKitNetwork[]]
+  /** Overrides the identity shown in the wallet's approval sheet. */
+  metadata?: Partial<AppKitMetadata>
 }
 export function DefaultAppKitProvider({ children, ...appKitProps }: DefaultAppKitProviderProps) {
-  const { networks: propNetworks, projectId: propProjectId, ...rest } = appKitProps
+  const { networks: propNetworks, projectId: propProjectId, metadata: propMetadata, ...rest } =
+    appKitProps
   const finalProjectId =
     (import.meta.env['VITE_REOWN_PROJECT_ID'] as string | undefined) ?? propProjectId
   const finalNetworks = propNetworks ?? DEFAULT_APPKIT_NETWORKS
+  const finalMetadata: AppKitMetadata = {
+    ...DEFAULT_METADATA,
+    // Origin is only knowable at runtime, and must match the connecting page or
+    // wallets flag the session as mismatched.
+    url: typeof window !== 'undefined' ? window.location.origin : '',
+    ...propMetadata,
+  }
 
   const wagmiAdapter = useMemo(
     () => (finalProjectId ? new WagmiAdapter({ projectId: finalProjectId, networks: finalNetworks }) : null),
@@ -37,6 +71,7 @@ export function DefaultAppKitProvider({ children, ...appKitProps }: DefaultAppKi
       adapters={[wagmiAdapter]}
       projectId={finalProjectId}
       networks={finalNetworks}
+      metadata={finalMetadata}
       {...rest}
     >
       {children}
