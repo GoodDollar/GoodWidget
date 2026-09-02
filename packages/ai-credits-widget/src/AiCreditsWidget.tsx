@@ -28,7 +28,6 @@ import {
   AiCreditsStatusNotice,
   CreditsManagementCard,
   SignerOperatorCard,
-  SetupSnippet,
   HistoryTab,
   SetupGuidanceCard,
   HowToUseView,
@@ -384,8 +383,6 @@ function ManagePanel({
       <CreditsManagementCard state={state} actions={actions} />
 
       <SignerOperatorCard state={state} actions={actions} />
-
-      <SetupSnippet />
 
       <YStack gap="$2" width="100%" alignItems="center">
         {state.error && (
