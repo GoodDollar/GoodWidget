@@ -64,7 +64,7 @@ const QUICK_SUMMARY_STEPS: SummaryStep[] = [
     title: 'Manage and track',
     tabLabel: 'Manage History',
     description:
-      'Check your Signer Address and balance under Manage, and view or export your credit history under History.',
+      'Check your Signer Key and balance under Manage, and view or export your credit history under History.',
   },
 ]
 
