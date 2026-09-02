@@ -209,7 +209,7 @@ export function SignerKeyPanel({
       {showHeading && <Heading level={5}>Signer Key</Heading>}
       {!compact && (
         <Text tone="soft">
-          A separate wallet used to hold and use your AI credits, separate from your connected wallet.
+          Used to access and manage your AI credits, separately from your connected wallet.
         </Text>
       )}
       {compact ? <YStack gap="$2">{choices}</YStack> : <XStack gap="$3">{choices}</XStack>}
