@@ -84,12 +84,12 @@ export function SetupBonusHighlight({
               </>
             ) : (
               <>
-                Bonus applies to{' '}
+                If your wallet is{' '}
                 <Text fontSize="$2" fontWeight="700">
-                  verified GoodDollar wallets
+                  GoodDollar-verified
                 </Text>{' '}
-                only. Not verified? Claim UBI first via GoodWallet or GoodDapp — takes a minute,
-                then this kicks in automatically.
+                , the bonus is applied automatically. 
+                If not, you can verify to receive the bonus.
               </>
             )}
           </Text>
