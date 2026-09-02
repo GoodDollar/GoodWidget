@@ -40,7 +40,7 @@ const SETUP_FAQ_ITEMS = [
     question: 'Do I need to know how to code?',
     answer:
       'No. The whole flow — wallet connect, signer key, credit purchase — is done in this widget. ' +
-      'After that, Antseed provides a desktop app that handles the rest without any command-line steps.',
+      'After that, Antseed provides a Antseed Desktop App that handles the rest without any command-line steps.',
   },
   {
     id: 'unused-credits',
@@ -54,7 +54,7 @@ const SETUP_FAQ_ITEMS = [
     question: 'Which tools can I actually use my credits with?',
     answer:
       'Any tool that supports AntSeed-compatible AI credits, including Claude Code, Codex, and other ' +
-      'AI coding assistants. The Antseed desktop app integrates them without extra configuration.',
+      'AI coding assistants. The Antseed Antseed Desktop App integrates them without extra configuration.',
   },
   {
     id: 'antseed-safe',

@@ -46,7 +46,7 @@ export function SetupOnboardingFlow({ state, actions }: SetupOnboardingFlowProps
     {
       id: 'download',
       title: 'Set up Antseed',
-      description: 'Desktop app or API — choose either',
+      description: 'Antseed Desktop App or API — choose either',
       status: downloadCompleted ? 'completed' : 'ready',
     },
     {
@@ -73,6 +73,11 @@ export function SetupOnboardingFlow({ state, actions }: SetupOnboardingFlowProps
   // A settled signer leaves exactly one step open: authorizing the wallet. Move
   // the drawer there instead of dropping the user back on the stepper — unless
   // the signer already carries consent, in which case setup is done.
+  const handleAntseedReady = useCallback(() => {
+    setDownloadOpened(true)
+    setDrawerStep('signer')
+  }, [])
+
   const handleSignerReady = useCallback(() => {
     if (state.operatorConsented) {
       setDrawerOpen(false)
@@ -129,7 +134,7 @@ export function SetupOnboardingFlow({ state, actions }: SetupOnboardingFlowProps
         <ScrollArea width="100%">
           <YStack gap="$3" paddingBottom="$4" width="100%">
             {drawerStep === 'antseed' ? (
-              <AntseedSetupPanel onRouteTaken={() => setDownloadOpened(true)} />
+              <AntseedSetupPanel onProceed={handleAntseedReady} />
             ) : null}
             {drawerStep === 'signer' ? (
               <SignerKeyPanel state={state} actions={actions} onProceed={handleSignerReady} />

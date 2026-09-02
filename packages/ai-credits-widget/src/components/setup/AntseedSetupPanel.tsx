@@ -40,11 +40,14 @@ type SetupChoice = 'desktop' | 'api'
 
 interface AntseedSetupPanelProps {
   /**
-   * Marks the step done. Fires when either route is actually taken — opening
-   * the download or copying the snippet — so someone who only ever uses the
-   * CLI still sees the step complete.
+   * Advances to the signer key step and marks this one done.
+   *
+   * Driven by an explicit press, never by opening the download or copying the
+   * snippet: neither proves anything — we cannot see an install, and a copy is
+   * not a setup — and completing a step behind the user's back is how the
+   * stepper ends up claiming work nobody did.
    */
-  onRouteTaken: () => void
+  onProceed: () => void
 }
 
 function BackToChoices({ onPress }: { onPress: () => void }) {
@@ -59,11 +62,11 @@ function BackToChoices({ onPress }: { onPress: () => void }) {
 /**
  * First setup step: how the user intends to run their credits.
  *
- * Two routes, because the desktop app and the CLI are alternatives rather than
+ * Two routes, because the Antseed Desktop App and the CLI are alternatives rather than
  * sequential steps. Mirrors SignerKeyPanel's generate/import choice so both
  * steps in this stepper open the same shape of drawer.
  */
-export function AntseedSetupPanel({ onRouteTaken }: AntseedSetupPanelProps) {
+export function AntseedSetupPanel({ onProceed }: AntseedSetupPanelProps) {
   const [choice, setChoice] = useState<SetupChoice | null>(null)
   const [copied, setCopied] = useState(false)
 
@@ -71,7 +74,6 @@ export function AntseedSetupPanel({ onRouteTaken }: AntseedSetupPanelProps) {
     if (typeof window !== 'undefined') {
       window.open(ANTSEED_DOWNLOAD_URL, '_blank', 'noopener,noreferrer')
     }
-    onRouteTaken()
   }
 
   const handleCopy = async () => {
@@ -79,16 +81,15 @@ export function AntseedSetupPanel({ onRouteTaken }: AntseedSetupPanelProps) {
     if (!didCopy) return
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
-    onRouteTaken()
   }
 
   if (choice === 'desktop') {
     return (
       <YStack gap="$3">
         <BackToChoices onPress={() => setChoice(null)} />
-        <Heading level={5}>Desktop app</Heading>
+        <Heading level={5}>Antseed Desktop App</Heading>
         <Text fontSize="$2" tone="soft" lineHeight="$3">
-          The free app that runs your credits locally. Install it, then come back for your signer
+          The free desktop app that runs your credits locally. Install it, then come back for your signer
           key.
         </Text>
         <Button size="sm" {...compactButtonProps} onPress={handleDownload}>
@@ -98,6 +99,9 @@ export function AntseedSetupPanel({ onRouteTaken }: AntseedSetupPanelProps) {
         <Text fontSize="$1" tone="soft">
           Opens antseed.com in a new tab.
         </Text>
+        <Button size="sm" {...compactButtonProps} onPress={onProceed}>
+          <ButtonText>Continue to Signer key</ButtonText>
+        </Button>
       </YStack>
     )
   }
@@ -113,7 +117,7 @@ export function AntseedSetupPanel({ onRouteTaken }: AntseedSetupPanelProps) {
           </Button>
         </XStack>
         <Text fontSize="$2" tone="soft" lineHeight="$3">
-          Run credits from your own tooling instead of the desktop app.
+          Run credits from your own terminal instead of the Antseed Desktop App.
         </Text>
         <YStack backgroundColor="$backgroundSurface" borderRadius="$2" padding="$3" gap="$1">
           {SETUP_SNIPPET.split('\n').map((line, index) => (
@@ -123,13 +127,14 @@ export function AntseedSetupPanel({ onRouteTaken }: AntseedSetupPanelProps) {
           ))}
         </YStack>
         <Text fontSize="$1" tone="soft" lineHeight="$3">
-          Your signer key goes in <Text fontSize="$1" fontWeight="700">ANTSEED_IDENTITY_HEX</Text> —
-          generate or import it in the next step, then copy it from there. See the{' '}
           <Anchor href={ANTSEED_API_DOCS_URL} target="_blank">
             AntSeed API guide
           </Anchor>
           .
         </Text>
+        <Button size="sm" {...compactButtonProps} onPress={onProceed}>
+          <ButtonText>Continue to Signer key</ButtonText>
+        </Button>
       </YStack>
     )
   }
@@ -138,7 +143,7 @@ export function AntseedSetupPanel({ onRouteTaken }: AntseedSetupPanelProps) {
     <YStack gap="$3">
       <Heading level={5}>Set up Antseed</Heading>
       <Text fontSize="$2" tone="soft" lineHeight="$3">
-        Antseed runs your credits. Use the desktop app, or wire it into your own tooling.
+        Antseed runs your credits. Use the Antseed Desktop App, or wire it into your own terminal.
       </Text>
       <XStack gap="$2" width="100%" alignItems="stretch">
         <Button
@@ -151,7 +156,7 @@ export function AntseedSetupPanel({ onRouteTaken }: AntseedSetupPanelProps) {
           <Badge type="success">
             <BadgeText>Recommended</BadgeText>
           </Badge>
-          <ButtonText>Desktop app</ButtonText>
+          <ButtonText>Antseed Desktop App</ButtonText>
         </Button>
         <Button
           flexGrow={1}
@@ -164,6 +169,9 @@ export function AntseedSetupPanel({ onRouteTaken }: AntseedSetupPanelProps) {
           <ButtonText>API setup</ButtonText>
         </Button>
       </XStack>
+      <Button size="sm" {...compactButtonProps} onPress={onProceed}>
+        <ButtonText>Continue to Signer key</ButtonText>
+      </Button>
     </YStack>
   )
 }
