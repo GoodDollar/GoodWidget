@@ -79,7 +79,7 @@ test('AiCreditsWidget Setup tab — onboarding steps visible', async ({ page }) 
   await expect(root).toBeVisible()
   await expect(root.getByText('Your G$ Balance')).toBeVisible()
   await expect(root.getByText(/One-time setup required before buying credits. Set up your Signer Key first, then authorize it/)).toBeVisible()
-  await expect(root.getByText('Download Antseed', { exact: true }).first()).toBeVisible()
+  await expect(root.getByText('Set up Antseed', { exact: true })).toBeVisible()
   await expect(root.getByText('Signer key', { exact: true })).toBeVisible()
   await expect(root.getByText('Authorize Credits Management', { exact: true })).toBeVisible()
   await expect(root.getByText('Set Up', { exact: true })).toBeVisible()
@@ -162,10 +162,10 @@ test('AiCreditsWidget manage tab', async ({ page }) => {
   await expect(
     page.getByText(/removes the operator's ability to act on your behalf/i),
   ).toBeVisible()
-  await expect(page.getByText(/your bonus balance/i)).toBeVisible()
+  await expect(page.getByText(/Your credits and your signer key stay where they are/i)).toBeVisible()
 
   await page.getByRole('button', { name: 'Cancel' }).click()
-  await expect(revokeSheetTitle).not.toBeVisible()
+  await expect(revokeSheetTitle).not.toBeInViewport()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-07-credits-management.png',
     fullPage: true,
@@ -325,7 +325,7 @@ test('AiCreditsWidget multi-signer manage: signer selector is visible', async ({
 
   // Replacing a signer is a secondary action: it stays behind its own disclosure.
   await expect(root.getByRole('button', { name: 'Generate Signer Key' })).toHaveCount(0)
-  await root.getByRole('button', { name: 'Replace signer key' }).click()
+  await root.getByRole('button', { name: 'New Signer Key' }).click()
   await expect(root.getByRole('button', { name: 'Generate Signer Key' })).toBeVisible()
   await expect(root.getByRole('button', { name: 'Import Signer Key' })).toBeVisible()
 
@@ -446,7 +446,7 @@ test('AiCreditsWidget multi-signer: signer key import is reachable', async ({ pa
   await expect(root).toBeVisible()
 
   await root.getByTestId('signer-key-toggle').click()
-  await root.getByRole('button', { name: 'Replace signer key' }).click()
+  await root.getByRole('button', { name: 'New Signer Key' }).click()
   await root.getByRole('button', { name: 'Import Signer Key' }).click()
 
   await expect(
@@ -481,7 +481,7 @@ test('AiCreditsWidget guidance card: renders above tab navigation', async ({ pag
   // Guidance card content is visible
   await expect(root.getByText("WHAT'S INVOLVED:")).toBeVisible()
   await expect(root.getByText(/Get G\$/)).toBeVisible()
-  await expect(root.getByText(/Download Antseed/)).toBeVisible()
+  await expect(root.getByText(/Use your AI credits/)).toBeVisible()
 
   // All three action buttons are present
   await expect(root.getByRole('button', { name: /how to use/i })).toBeVisible()
@@ -599,12 +599,13 @@ test('AiCreditsWidget Setup — Download AntSeed step is first and shows Start l
   const root = page.getByTestId('AiCreditsWidget-download-antseed-step')
   await expect(root).toBeVisible()
 
-  await expect(root.getByText('Download Antseed', { exact: true }).first()).toBeVisible()
+  await expect(root.getByText('Set up Antseed', { exact: true })).toBeVisible()
   await expect(root.getByText('Signer key', { exact: true })).toBeVisible()
   await expect(root.getByText('Authorize Credits Management', { exact: true })).toBeVisible()
   await expect(root.getByText('Ready', { exact: true })).toBeVisible()
-  // Later steps are skippable rather than locked, so they read as Optional.
-  await expect(root.getByText('Optional').first()).toBeVisible()
+  // Later steps are skippable rather than locked: they carry no status label at
+  // all, where a locked step would read "Pending".
+  await expect(root.getByText('Pending')).toHaveCount(0)
 
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-25-download-antseed-step.png',

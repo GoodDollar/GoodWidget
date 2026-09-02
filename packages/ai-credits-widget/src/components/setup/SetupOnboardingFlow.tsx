@@ -5,12 +5,11 @@ import type {
   AiCreditsWidgetAdapterActions,
   AiCreditsWidgetAdapterState,
 } from '../../widgetRuntimeContract'
+import { AntseedSetupPanel } from './AntseedSetupPanel'
 import { SignerKeyPanel } from './SignerKeyPanel'
 import { OperatorConsentStep } from '../buy/OperatorConsentStep'
 
-const ANTSEED_DOWNLOAD_URL = 'https://antseed.com'
-
-type SetupDrawerStep = 'signer' | 'authorize'
+type SetupDrawerStep = 'antseed' | 'signer' | 'authorize'
 
 interface SetupOnboardingFlowProps {
   state: AiCreditsWidgetAdapterState
@@ -46,8 +45,8 @@ export function SetupOnboardingFlow({ state, actions }: SetupOnboardingFlowProps
   const steps: StepperStepItem[] = [
     {
       id: 'download',
-      title: 'Download Antseed',
-      description: 'Use your AI credits with the Antseed Desktop app',
+      title: 'Set up Antseed',
+      description: 'Antseed Desktop App or API — choose either',
       status: downloadCompleted ? 'completed' : 'ready',
     },
     {
@@ -74,6 +73,11 @@ export function SetupOnboardingFlow({ state, actions }: SetupOnboardingFlowProps
   // A settled signer leaves exactly one step open: authorizing the wallet. Move
   // the drawer there instead of dropping the user back on the stepper — unless
   // the signer already carries consent, in which case setup is done.
+  const handleAntseedReady = useCallback(() => {
+    setDownloadOpened(true)
+    setDrawerStep('signer')
+  }, [])
+
   const handleSignerReady = useCallback(() => {
     if (state.operatorConsented) {
       setDrawerOpen(false)
@@ -86,10 +90,8 @@ export function SetupOnboardingFlow({ state, actions }: SetupOnboardingFlowProps
   const handleStepPress = useCallback(
     (stepId: string) => {
       if (stepId === 'download') {
-        if (typeof window !== 'undefined') {
-          window.open(ANTSEED_DOWNLOAD_URL, '_blank', 'noopener,noreferrer')
-        }
-        setDownloadOpened(true)
+        setDrawerStep('antseed')
+        setDrawerOpen(true)
         return
       }
 
@@ -131,6 +133,9 @@ export function SetupOnboardingFlow({ state, actions }: SetupOnboardingFlowProps
       >
         <ScrollArea width="100%">
           <YStack gap="$3" paddingBottom="$4" width="100%">
+            {drawerStep === 'antseed' ? (
+              <AntseedSetupPanel onProceed={handleAntseedReady} />
+            ) : null}
             {drawerStep === 'signer' ? (
               <SignerKeyPanel state={state} actions={actions} onProceed={handleSignerReady} />
             ) : null}
