@@ -24,6 +24,8 @@ interface SignerKeyPanelProps {
   actions: AiCreditsWidgetAdapterActions
   /** Called once a signer is generated-and-confirmed or imported successfully. */
   onProceed: () => void
+  /** Opens the API setup route; omitted where that step is not reachable. */
+  onOpenApiSetup?: () => void
   /** Hide the panel heading when the host section already carries one (Manage tab). */
   showHeading?: boolean
   /** Overrides the label of the button offered once a signer is settled. */
@@ -41,6 +43,7 @@ export function SignerKeyPanel({
   state,
   actions,
   onProceed,
+  onOpenApiSetup,
   showHeading = true,
   proceedLabel: proceedLabelOverride,
   compact = false,
@@ -76,9 +79,15 @@ export function SignerKeyPanel({
   if (choice === 'generate') {
     return (
       <YStack gap="$3">
-        <Button variant="text" alignSelf="flex-start" onPress={leaveChoice}>
+        <Button
+          variant="text"
+          alignSelf="flex-start"
+          onPress={keyConfirmed ? () => setKeyConfirmed(false) : leaveChoice}
+        >
           <Icon name="arrow-left" size="xs" color="primary" />
-          <ButtonText>Back to Generate / Import</ButtonText>
+          <ButtonText>
+            {keyConfirmed ? 'Back to Signer Key Generation' : 'Back to Generate / Import'}
+          </ButtonText>
         </Button>
         <GenerateSignerKeyPanel
           embedded
@@ -87,12 +96,10 @@ export function SignerKeyPanel({
           signerPubKeySaved={keyConfirmed}
           onGenerate={actions.generateSignerKey}
           onConfirm={() => setKeyConfirmed(true)}
+          onProceed={onProceed}
+          proceedLabel={proceedLabel}
+          onOpenApiSetup={onOpenApiSetup}
         />
-        {keyConfirmed && (
-          <Button size="sm" {...compactButtonProps} onPress={onProceed}>
-            <ButtonText>{proceedLabel}</ButtonText>
-          </Button>
-        )}
       </YStack>
     )
   }

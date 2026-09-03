@@ -48,6 +48,8 @@ interface AntseedSetupPanelProps {
    * stepper ends up claiming work nobody did.
    */
   onProceed: () => void
+  /** Skips the chooser — used when arriving from the signer key guide's API link. */
+  initialChoice?: SetupChoice | null
 }
 
 function BackToChoices({ onPress }: { onPress: () => void }) {
@@ -66,8 +68,8 @@ function BackToChoices({ onPress }: { onPress: () => void }) {
  * sequential steps. Mirrors SignerKeyPanel's generate/import choice so both
  * steps in this stepper open the same shape of drawer.
  */
-export function AntseedSetupPanel({ onProceed }: AntseedSetupPanelProps) {
-  const [choice, setChoice] = useState<SetupChoice | null>(null)
+export function AntseedSetupPanel({ onProceed, initialChoice = null }: AntseedSetupPanelProps) {
+  const [choice, setChoice] = useState<SetupChoice | null>(initialChoice)
   const [copied, setCopied] = useState(false)
 
   const handleDownload = () => {
