@@ -531,7 +531,7 @@ function AiCreditsInner({
     )
 
   return (
-    <YStack gap="$3" padding="$3" width="100%">
+    <YStack gap="$2" padding="$3" width="100%">
       <XStack justifyContent="space-between" alignItems="center" gap="$2" paddingHorizontal="$1">
         <Heading level={4}>GoodDollar</Heading>
         <XStack gap="$2" alignItems="center" flexShrink={1} minWidth={0}>

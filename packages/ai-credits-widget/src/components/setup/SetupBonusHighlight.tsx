@@ -26,9 +26,9 @@ export function SetupBonusHighlight({
   if (maxBonusPercent <= 0) return null
 
   return (
-    <Card gap="$2" padding="$1">
+    <Card gap="$1" padding="$1">
       <XStack
-        gap="$3"
+        gap="$2"
         alignItems="center"
         cursor="pointer"
         accessibilityRole="button"
@@ -46,7 +46,7 @@ export function SetupBonusHighlight({
           <Icon name="party-popper" size="sm" color="primary" />
         </YStack>
 
-        <YStack flex={1} gap={2} backgroundColor="$background" padding="$3">
+        <YStack flex={1} gap={3} backgroundColor="$background" padding="$3">
           <Text fontSize="$3" fontWeight="700">
             Up to {maxBonusPercent}% more AI credits
           </Text>
