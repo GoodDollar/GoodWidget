@@ -104,23 +104,8 @@ function SetupTabPanel({
 
   return (
     <YStack gap="$4" width="100%">
-      <AiCreditsHero gBalance={state.gBalance} isGoodIdVerified={state.isGoodIdVerified} />
       <Text tone="soft" fontSize="$2">
-        <Text tone="soft" fontSize="$2" fontWeight="700">
-          One-time setup required before buying AI Credits.
-        </Text>{' '}
-        To buy credits, you’ll need to{' '}
-        <Text tone="soft" fontSize="$2" fontWeight="700">
-          set up your Signer Key
-        </Text>
-        . To use your credits, you’ll need to{' '}
-        <Text tone="soft" fontSize="$2" fontWeight="700">
-          get Antseed
-        </Text>{' '}
-        and{' '}
-        <Text tone="soft" fontSize="$2" fontWeight="700">
-          Authorize Credits Management
-        </Text>
+        One-time setup required before buying AI Credits.
       </Text>
       <SetupOnboardingFlow state={state} actions={actions} />
     </YStack>

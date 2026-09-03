@@ -26,7 +26,7 @@ export function SetupBonusHighlight({
   if (maxBonusPercent <= 0) return null
 
   return (
-    <Card gap="$2" padding="$3">
+    <Card gap="$2" padding="$1">
       <XStack
         gap="$3"
         alignItems="center"

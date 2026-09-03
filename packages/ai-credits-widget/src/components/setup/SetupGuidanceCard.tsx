@@ -44,7 +44,7 @@ export function SetupGuidanceCard({
     <YStack gap="$3" paddingHorizontal="$1">
       {/* Tagline */}
       <Text fontSize="$3" tone="soft" lineHeight="$4">
-        Buy AI credits with G$ for Claude Code, Codex, chat &amp; other AI tools.
+        GoodDollar supports buying Antseed AI credits with G$. Use them in Antseed to access supported AI tools such as Claude Code and Codex.
       </Text>
 
       <SetupBonusHighlight
@@ -116,36 +116,10 @@ export function SetupGuidanceCard({
           </YStack>
           <Text fontSize="$2" flex={1} lineHeight="$3">
             <Text fontSize="$2" fontWeight="700">
-              Set up your Signer Key{' '}
+              Get Antseed{' '}
             </Text>
             <Text fontSize="$2" tone="soft">
-              — create or import the signer that receives your AI credits and lets you use them with Antseed.
-            </Text>
-          </Text>
-        </XStack>
-
-        {/* Step 3 */}
-        <XStack gap="$3" alignItems="flex-start">
-          <YStack
-            width={22}
-            height={22}
-            borderRadius="$full"
-            backgroundColor="$backgroundHover"
-            alignItems="center"
-            justifyContent="center"
-            flexShrink={0}
-            marginTop={2}
-          >
-            <Text fontSize="$1" fontWeight="700" color="$secondary">
-              3
-            </Text>
-          </YStack>
-          <Text fontSize="$2" flex={1} lineHeight="$3">
-            <Text fontSize="$2" fontWeight="700">
-              Use your AI credits{' '}
-            </Text>
-            <Text fontSize="$2" tone="soft">
-              — with Antseed Desktop, or through API Setup if you’re an advanced user.
+              —  Use Antseed to use your AI credits.
             </Text>
           </Text>
         </XStack>
