@@ -1,11 +1,10 @@
 import {
-  createPublicClient,
-  http,
   parseAbi,
   type Address,
   type Chain,
   type PublicClient,
 } from 'viem'
+import { createViemFallbackClient, type ViemFallbackStorage } from '@goodwidget/core'
 import type { AiCreditsQuote } from './widgetRuntimeContract'
 import type { SignerOperatorStatus, OperatorConsentPayloadResponse } from './operatorConsent'
 import { ANTSEED_DEPOSITS_BASE_ADDRESS, buildSetOperatorPayload } from './operatorConsent'
@@ -62,6 +61,36 @@ function normalizeAddress(address: string): string {
   return address.toLowerCase()
 }
 
+/**
+ * Persists the discovered RPC list between sessions. Falls back to no storage
+ * when localStorage is unavailable (SSR, private mode) — resolution still
+ * works, it just refetches Chainlist rather than reading a cache.
+ */
+function getRpcCacheStorage(): ViemFallbackStorage {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) return window.localStorage
+  } catch {
+    // Access itself throws in some privacy modes.
+  }
+  return {}
+}
+
+/**
+ * Shared Chainlist-backed RPC resolver.
+ *
+ * Ranking is off: it would start a repeating background ping against every
+ * discovered endpoint for the lifetime of the client, and this widget embeds
+ * into other people's pages. Without it viem walks the caller-controlled order
+ * built by `getRpcUrls` — integrator URLs, then chain defaults, then Chainlist —
+ * and simply skips endpoints that fail a real request.
+ */
+export function createAiCreditsFallbackClient() {
+  return createViemFallbackClient(getRpcCacheStorage(), {
+    chainIds: [BASE_CHAIN.id, CELO_CHAIN.id],
+    rank: false,
+  })
+}
+
 export type AiCreditsChainClientOptions = {
   baseRpcUrl?: string
   fundingVaultAddress?: Address
@@ -86,24 +115,29 @@ export interface AiCreditsChainClient {
 }
 
 export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
-  private readonly baseClient: PublicClient
-  private readonly celoClient: PublicClient | null
+  private readonly baseClient: Promise<PublicClient>
+  private readonly celoClient: Promise<PublicClient> | null
   private readonly fundingVaultAddress?: Address
   private readonly celoVaultAddress?: Address
   private readonly celoGoodIdAddress?: Address
   private readonly depositsAddress: Address
 
   constructor(options: AiCreditsChainClientOptions = {}) {
+    const rpcClient = createAiCreditsFallbackClient()
+    // Integrator URLs lead the fallback order; Chainlist supplies the rest.
     const baseRpcUrl = options.baseRpcUrl ?? DEFAULT_BASE_RPC_URL
     const celoRpcUrl = options.celoRpcUrl ?? DEFAULT_CELO_RPC_URL
-    this.baseClient = createPublicClient({ chain: BASE_CHAIN, transport: http(baseRpcUrl) })
+    this.baseClient = rpcClient.createPublicClient({
+      chain: BASE_CHAIN,
+      fallbackRpcs: [baseRpcUrl],
+    })
     this.fundingVaultAddress = options.fundingVaultAddress
     this.celoVaultAddress = options.celoVaultAddress
     this.celoGoodIdAddress = options.celoGoodIdAddress ?? CELO_GOODID_ADDRESS
     this.depositsAddress = options.depositsAddress ?? ANTSEED_DEPOSITS_BASE_ADDRESS
     this.celoClient =
       this.celoVaultAddress || this.celoGoodIdAddress
-        ? createPublicClient({ chain: CELO_CHAIN, transport: http(celoRpcUrl) })
+        ? rpcClient.createPublicClient({ chain: CELO_CHAIN, fallbackRpcs: [celoRpcUrl] })
         : null
   }
 
@@ -119,7 +153,8 @@ export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
     if (!this.celoClient || !this.celoGoodIdAddress) {
       throw new Error('GoodID contract is not configured')
     }
-    const root = await this.celoClient.readContract({
+    const celoClient = await this.celoClient
+    const root = await celoClient.readContract({
       address: this.celoGoodIdAddress,
       abi: GOODID_ABI,
       functionName: 'getWhitelistedRoot',
@@ -131,7 +166,8 @@ export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
 
   async fetchGdUsdPerToken(): Promise<number> {
     if (!this.celoClient || !this.celoVaultAddress) return 0.0015
-    const usd18 = await this.celoClient.readContract({
+    const celoClient = await this.celoClient
+    const usd18 = await celoClient.readContract({
       address: this.celoVaultAddress,
       abi: CELO_VAULT_ABI,
       functionName: 'gdUsdPerToken',
@@ -161,7 +197,7 @@ export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
     }
 
     const [currentOperator, consentNonce] = await Promise.all([
-      this.baseClient.readContract({
+      (await this.baseClient).readContract({
         address: this.depositsAddress,
         abi: DEPOSITS_ABI,
         functionName: 'getOperator',
@@ -212,7 +248,7 @@ export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
 
   async getWithdrawableUsd(signer: string): Promise<string> {
     if (!this.fundingVaultAddress) return '0'
-    const amount = await this.baseClient.readContract({
+    const amount = await (await this.baseClient).readContract({
       address: this.fundingVaultAddress,
       abi: FUNDING_VAULT_ABI,
       functionName: 'withdrawablePrincipal',
@@ -227,7 +263,7 @@ export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
     if (!this.fundingVaultAddress) {
       throw new Error('Funding vault address is not configured')
     }
-    return this.baseClient.readContract({
+    return (await this.baseClient).readContract({
       address: this.fundingVaultAddress,
       abi: FUNDING_VAULT_ABI,
       functionName: 'usedNonces',
@@ -236,7 +272,7 @@ export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
   }
 
   private async readOperatorNonce(signer: Address): Promise<bigint> {
-    return this.baseClient.readContract({
+    return (await this.baseClient).readContract({
       address: this.depositsAddress,
       abi: DEPOSITS_ABI,
       functionName: 'getOperatorNonce',
@@ -246,7 +282,7 @@ export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
 
   private async readDepositsDomain(): Promise<{ name: string; version: string }> {
     try {
-      const domain = await this.baseClient.readContract({
+      const domain = await (await this.baseClient).readContract({
         address: this.depositsAddress,
         abi: DEPOSITS_ABI,
         functionName: 'eip712Domain',

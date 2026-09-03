@@ -2,11 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useWallet } from '@goodwidget/core'
 import type { EIP1193Provider } from '@goodwidget/core'
 import {
-  createPublicClient,
   createWalletClient,
   custom,
   formatUnits,
-  http,
   parseAbi,
   type Address,
   type Chain,
@@ -32,6 +30,7 @@ import {
 import type { AccountEnrichment, AiCreditsBackendClient } from './backendClient'
 import type { AccountRef, AccountView } from './backendTypes'
 import {
+  createAiCreditsFallbackClient,
   createChainClient,
   CELO_GD_ANTSEED_VAULT_ADDRESS,
   CELO_GOODID_ADDRESS,
@@ -453,10 +452,19 @@ export function useAiCreditsAdapter({
   const deepLinkApplyInFlightRef = useRef(false)
 
   const celoVault = vaultAddress ?? CELO_GD_ANTSEED_VAULT_FALLBACK
-  const celoPublicClient = useMemo(
-    () => createPublicClient({ chain: CELO_CHAIN, transport: http() }),
-    [],
-  )
+  // Promise, not a client: the fallback resolver may await a cached RPC list or
+  // a Chainlist refresh before it can build a transport. Every use below is
+  // already inside async code, so this only costs an await.
+  //
+  // These reads previously called bare `http()`, which ignored `celoRpcUrl` and
+  // silently used viem's built-in default for the chain.
+  const celoPublicClient = useMemo(() => {
+    const rpcClient = createAiCreditsFallbackClient()
+    return rpcClient.createPublicClient({
+      chain: CELO_CHAIN,
+      fallbackRpcs: celoRpcUrl ? [celoRpcUrl] : [],
+    })
+  }, [celoRpcUrl])
 
   const backendClient = useMemo<AiCreditsBackendClient>(
     () => backendClientOverride ?? createBackendClient(backendUrl),
@@ -554,7 +562,7 @@ export function useAiCreditsAdapter({
     })
 
     async function loadWalletData() {
-      const publicClient = celoPublicClient
+      const publicClient = await celoPublicClient
       // Guarded like every other member of the load batch: a forno hiccup on the
       // balance read used to reject the whole batch and drop the account view,
       // minimums, price, discount config and signer list along with it.
@@ -1410,7 +1418,7 @@ export function useAiCreditsAdapter({
 
       if (!skipVaultPaymentValidation) {
         try {
-          const publicClient = createPublicClient({ chain: CELO_CHAIN, transport: http() })
+          const publicClient = await celoPublicClient
           await validateVaultPaymentAmounts({
             publicClient,
             vault: celoVault,
@@ -1448,7 +1456,7 @@ export function useAiCreditsAdapter({
         const payerAddress = currentState.address as Address
         const signerAddress = currentState.signerPubKey as Address
 
-        const publicClient = createPublicClient({ chain: CELO_CHAIN, transport: http() })
+        const publicClient = await celoPublicClient
         const walletClient = createWalletClient({
           account: payerAddress,
           chain: CELO_CHAIN,
@@ -1583,7 +1591,9 @@ export function useAiCreditsAdapter({
             .then((view) => ({ view, enriched: enrichAccountView(view) }))
             .catch(() => null),
           backendClient.getDiscountConfig().catch(() => null),
-          readGBalance(celoPublicClient, currentState.address).catch(() => null),
+          celoPublicClient
+            .then((client) => readGBalance(client, currentState.address!))
+            .catch(() => null),
         ])
 
         const accountPatch = account
