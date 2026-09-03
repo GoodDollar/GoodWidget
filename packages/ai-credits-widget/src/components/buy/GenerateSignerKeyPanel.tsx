@@ -84,7 +84,7 @@ export function GenerateSignerKeyPanel({
     return (
       <Shell gap="$3">
         <Heading level={5}>Add your Signer Key to Antseed</Heading>
-        <Text fontSize="$2" tone="soft" lineHeight="$3">
+        <Text>
           You&apos;ll need to do this to use your AI credits. If you haven&apos;t downloaded Antseed
           Desktop yet, you can do this later.
         </Text>

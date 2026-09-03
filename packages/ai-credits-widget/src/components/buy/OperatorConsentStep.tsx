@@ -82,7 +82,7 @@ export function OperatorConsentStep({
   return (
     <Shell gap="$3" {...(!embedded ? { backgroundColor: '$backgroundHover' } : {})}>
       <Heading level={5}>Authorize Credits Management</Heading>
-      <Text fontSize="$2" lineHeight="$3">
+      <Text>
         A one-time, on-chain approval — not a payment. Here&apos;s exactly what it does and
         doesn&apos;t allow:
       </Text>

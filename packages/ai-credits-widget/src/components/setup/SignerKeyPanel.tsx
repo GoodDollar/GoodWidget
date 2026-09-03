@@ -215,7 +215,7 @@ export function SignerKeyPanel({
     <YStack gap="$3">
       {showHeading && <Heading level={5}>Signer Key</Heading>}
       {!compact && (
-        <Text tone="soft">
+        <Text>
           Used to access and manage your AI credits, separately from your connected wallet.
         </Text>
       )}

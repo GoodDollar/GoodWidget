@@ -76,7 +76,7 @@ export function AntseedSetupPanel({ onProceed, expandApiSetup = false }: Antseed
   return (
     <YStack gap="$3">
       <Heading level={5}>Get Antseed</Heading>
-      <Text fontSize="$2" tone="soft" lineHeight="$3">
+      <Text>
         Download the free Antseed Desktop app to use your AI credits.
       </Text>
 
