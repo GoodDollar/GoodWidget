@@ -1,73 +1,157 @@
 import React, { useState } from 'react'
-import { Button, ButtonText, Card, Icon, Separator, Text, XStack, YStack } from '@goodwidget/ui'
+import {
+  Anchor,
+  Button,
+  ButtonText,
+  Card,
+  Icon,
+  Separator,
+  Text,
+  XStack,
+  YStack,
+} from '@goodwidget/ui'
+
+/** AntSeed website — same short link used on the setup guidance card. */
+const ANTSEED_SITE_URL = 'https://ubi.gd/46pjeqF'
+
+/**
+ * Matches the two inline markups an answer paragraph may carry: `**bold**` for
+ * emphasised terms and `[label](href)` for inline links.
+ */
+const INLINE_MARKUP = /\*\*([^*]+)\*\*|\[([^\]]+)\]\(([^)]+)\)/g
+
+/**
+ * Splits a paragraph into plain text, bold, and link runs. Answers are authored
+ * copy — not user input — so a tiny markup subset beats threading arrays of
+ * styled fragments through every FAQ entry.
+ */
+function renderInlineRuns(paragraph: string): React.ReactNode[] {
+  const runs: React.ReactNode[] = []
+  let cursor = 0
+
+  for (const match of paragraph.matchAll(INLINE_MARKUP)) {
+    const start = match.index ?? 0
+    if (start > cursor) runs.push(paragraph.slice(cursor, start))
+
+    const [, boldText, linkLabel, linkHref] = match
+    if (boldText) {
+      runs.push(
+        <Text key={`b-${start}`} fontWeight="600">
+          {boldText}
+        </Text>,
+      )
+    } else {
+      runs.push(
+        <Anchor key={`a-${start}`} href={linkHref} target="_blank">
+          <Text color="$primary" textDecorationLine="underline">
+            {linkLabel}
+          </Text>
+        </Anchor>,
+      )
+    }
+    cursor = start + match[0].length
+  }
+
+  if (cursor < paragraph.length) runs.push(paragraph.slice(cursor))
+  return runs
+}
 
 /**
  * FAQ items focused on the AntSeed setup and onboarding experience.
  * These are distinct from the purchase-flow FAQ in BuyCreditsFaq.tsx.
+ *
+ * `answer` is a list of paragraphs so longer entries can breathe. Paragraphs
+ * may use `**bold**` and `[label](href)` — see renderInlineRuns.
  */
 const SETUP_FAQ_ITEMS = [
   {
     id: 'goodwallet-only',
-    question: 'I only claim UBI with GoodWallet — can I still use this?',
-    answer:
-      'Yes. Any wallet that holds G$ on Celo works. Connect your wallet here, generate a signer key, ' +
-      'and you can buy credits just like any other G$ holder.',
+    question: 'I only claim G$ UBI — can I still use this?',
+    answer: [
+      'Yes. If your connected wallet holds G$ on Celo and meets the minimum amount, you can use it ' +
+        'to buy AI credits.',
+    ],
   },
   {
-    id: 'ubi-savings',
-    question: 'Will this ever touch my daily UBI savings?',
-    answer:
-      'No. Only the G$ amount you explicitly deposit or stream is used. Your UBI balance and savings ' +
-      'remain untouched unless you choose to spend them.',
+    id: 'what-is-antseed',
+    question: 'What is Antseed?',
+    answer: [
+      'Antseed is a free, open-source desktop application that lets you use your AI credits with ' +
+        'supported AI tools.',
+      'Your connected wallet private key is never shared with Antseed. Antseed uses your separate ' +
+        '**Signer Private Key** to access your AI credits. You can ' +
+        `[learn more about Antseed here](${ANTSEED_SITE_URL}).`,
+    ],
   },
   {
-    id: 'deposit-vs-stream',
-    question: 'Deposit or stream — which should I pick?',
-    answer:
-      'A one-time deposit gives you credits immediately (+10% bonus with GoodID). ' +
-      'A monthly stream drips G$ over time and earns a higher +20% bonus — ideal if you use AI tools regularly. ' +
-      'You can combine both.',
+    id: 'why-credit-management',
+    question: 'Why do I need to enable Credit Management?',
+    answer: [
+      'Enabling Credit Management allows you to use G$ for AI credits on Antseed.',
+      'It authorizes the GoodDollar operator to manage the AI credits associated with your Signer, ' +
+        'so you can deposit or subscribe with G$ and use those credits through Antseed.',
+      'This only applies to your AI credits and does not give access to your connected wallet or ' +
+        'its private key.',
+    ],
   },
   {
-    id: 'lost-signer-key',
-    question: 'What if I lose my signer key?',
-    answer:
-      'Re-connect your payer wallet and click "Sign & Generate Key" again — it derives the same key deterministically. ' +
-      'You can also import a backup private key in the Manage tab.',
+    id: 'deposit-vs-subscription',
+    question: 'Deposit or subscribe — which should I pick?',
+    answer: [
+      'A **deposit** is a one-time purchase that gives you credits immediately (+10% bonus with GoodID).',
+      'A **subscription** uses a monthly G$ stream and earns a higher +20% bonus — ideal if you use AI ' +
+        'tools regularly.',
+      'You can use both.',
+    ],
   },
   {
     id: 'no-code',
     question: 'Do I need to know how to code?',
-    answer:
-      'No. The whole flow — wallet connect, signer key, credit purchase — is done in this widget. ' +
-      'After that, Antseed provides a Antseed Desktop App that handles the rest without any command-line steps.',
+    answer: [
+      'No. You can set up your Signer Key and buy credits directly in this widget. Then use your ' +
+        '**Signer Private Key** in the Antseed Desktop App to access your credits.',
+      'Advanced users can also use the API.',
+    ],
+  },
+  {
+    id: 'compatible-tools',
+    question: 'Which tools can I use my credits with?',
+    answer: [
+      'You can use your credits with AI tools supported through Antseed, including Claude Code, ' +
+        'Codex, and other supported AI tools.',
+    ],
+  },
+  {
+    id: 'lost-signer-key',
+    question: 'What if I lose my Signer Private Key?',
+    answer: [
+      "If you're using the same device, you can view your Signer Private Key again from the " +
+        '**Manage** section.',
+      'If you no longer have access to it, reconnect your connected wallet and select ' +
+        '**Generate Signer Key** again. Your Signer Key is generated deterministically, so you’ll get the same ' +
+        'key again.',
+      'You can also import a backed-up Signer Private Key.',
+    ],
   },
   {
     id: 'unused-credits',
     question: 'Can I get unused credits back?',
-    answer:
-      'Yes. The Withdrawable amount shown in the Manage tab can be reclaimed to your payer wallet. ' +
-      'Bonus credits (from GoodID) are not withdrawable — they are for AI usage only.',
+    answer: [
+      'Yes. The **Withdrawable** amount shown in the Manage section can be withdrawn back to your ' +
+        'connected wallet.',
+      'Bonus credits received through GoodID are not withdrawable and can only be used for AI usage.',
+    ],
   },
   {
-    id: 'compatible-tools',
-    question: 'Which tools can I actually use my credits with?',
-    answer:
-      'Any tool that supports AntSeed-compatible AI credits, including Claude Code, Codex, and other ' +
-      'AI coding assistants. The Antseed Antseed Desktop App integrates them without extra configuration.',
-  },
-  {
-    id: 'antseed-safe',
-    question: 'Is Antseed safe? Can I check it myself?',
-    answer:
-      'Antseed is an open-source desktop application. Your G$ wallet private key is never shared with it — ' +
-      'only the scoped signer key is exposed. You can audit the source code on the AntSeed GitHub repository.',
+    id: 'gd-usage',
+    question: 'How much G$ will be used?',
+    answer: ['Only the amount you choose to deposit or stream through a subscription.'],
   },
 ] as const
 
 interface FaqItemProps {
   question: string
-  answer: string
+  answer: readonly string[]
   expanded: boolean
   onToggle: () => void
 }
@@ -88,9 +172,13 @@ function FaqItem({ question, answer, expanded, onToggle }: FaqItemProps) {
         <Icon name={expanded ? 'chevron-up' : 'chevron-down'} size="xs" color="muted" />
       </XStack>
       {expanded && (
-        <Text fontSize="$2" tone="soft" lineHeight="$3">
-          {answer}
-        </Text>
+        <YStack gap="$2">
+          {answer.map((paragraph) => (
+            <Text key={paragraph} fontSize="$2" tone="soft" lineHeight="$3">
+              {renderInlineRuns(paragraph)}
+            </Text>
+          ))}
+        </YStack>
       )}
     </YStack>
   )
