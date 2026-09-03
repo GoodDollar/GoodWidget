@@ -1,6 +1,8 @@
 import React from 'react'
 import type { ReactNode } from 'react'
 import { Sheet, Stack, useTheme } from 'tamagui'
+import { Button } from './Button'
+import { Icon } from './Icon'
 import { createComponent } from '../createComponent'
 
 // Sheet owns drawer behavior. We wrap its themed sub-parts so they remain
@@ -53,14 +55,40 @@ const DrawerHandle = createComponent(Sheet.Handle as any, {
   marginBottom: '$2',
 })
 
+/**
+ * Absolute so the drawer's own content lays out as if it were not there — the
+ * button overlays the top-right corner rather than reserving a row and pushing
+ * every existing panel down.
+ */
+const DrawerCloseButton = createComponent(Stack, {
+  name: 'DrawerCloseButton',
+  position: 'absolute',
+  top: '$3',
+  right: '$3',
+  zIndex: 2,
+})
+
 interface DrawerProps {
   open: boolean
   onClose: () => void
   children?: ReactNode
   height?: 'half' | 'full'
+  /**
+   * Hides the corner close button. Only for a drawer whose content already
+   * renders its own — dismissing by pressing outside is a thin target on a
+   * phone, where the sheet covers most of the screen, so every drawer should
+   * offer a visible way out.
+   */
+  hideCloseButton?: boolean
 }
 
-export function Drawer({ open, onClose, children, height = 'half' }: DrawerProps) {
+export function Drawer({
+  open,
+  onClose,
+  children,
+  height = 'half',
+  hideCloseButton = false,
+}: DrawerProps) {
   const theme = useTheme()
   const snapPoints = height === 'half' ? [50] : [80]
 
@@ -83,6 +111,19 @@ export function Drawer({ open, onClose, children, height = 'half' }: DrawerProps
       <DrawerOverlay style={{ backdropFilter: 'blur(2px)' }} />
       <DrawerFrame>
         <DrawerHandle />
+        {!hideCloseButton && (
+          <DrawerCloseButton>
+            <Button
+              size="sm"
+              variant="ghost"
+              iconSize="sm"
+              onPress={onClose}
+              aria-label="Close"
+            >
+              <Icon name="x" size="sm" />
+            </Button>
+          </DrawerCloseButton>
+        )}
         <Stack flex={1} width="100%" minHeight={0}>
           {children}
         </Stack>
