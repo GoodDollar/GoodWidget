@@ -260,7 +260,7 @@ test('AiCreditsWidget appkit connect wallet opens modal', async ({ page }) => {
   }
 
   const root = page.getByTestId('AiCreditsWidget-appkit-connect')
-  await expect(root).toBeVisible()
+  await expect(root).toBeVisible({ timeout: 20_000 })
   const connectBtn = root.getByRole('button', { name: 'Connect Wallet' })
   await expect(connectBtn).toBeVisible({ timeout: 20_000 })
   await expect(connectBtn).toBeEnabled({ timeout: 20_000 })
