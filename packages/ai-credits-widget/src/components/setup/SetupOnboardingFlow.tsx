@@ -20,9 +20,9 @@ export function SetupOnboardingFlow({ state, actions }: SetupOnboardingFlowProps
   const [downloadOpened, setDownloadOpened] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [drawerStep, setDrawerStep] = useState<SetupDrawerStep | null>(null)
-  // Lets the signer key guide's "API Setup" link land on that route directly
-  // rather than dropping the user on the Desktop/API chooser.
-  const [antseedChoice, setAntseedChoice] = useState<'desktop' | 'api' | null>(null)
+  // Lets the signer key guide's "API Setup" link open the step with that
+  // section already expanded.
+  const [expandApiSetup, setExpandApiSetup] = useState(false)
 
   const hasSignerKey = Boolean(state.signerPubKey)
   const downloadCompleted = downloadOpened || hasSignerKey
@@ -93,7 +93,7 @@ export function SetupOnboardingFlow({ state, actions }: SetupOnboardingFlowProps
   const handleStepPress = useCallback(
     (stepId: string) => {
       if (stepId === 'download') {
-        setAntseedChoice(null)
+        setExpandApiSetup(false)
         setDrawerStep('antseed')
         setDrawerOpen(true)
         return
@@ -138,7 +138,7 @@ export function SetupOnboardingFlow({ state, actions }: SetupOnboardingFlowProps
         <ScrollArea width="100%">
           <YStack gap="$3" paddingBottom="$4" width="100%">
             {drawerStep === 'antseed' ? (
-              <AntseedSetupPanel onProceed={handleAntseedReady} initialChoice={antseedChoice} />
+              <AntseedSetupPanel onProceed={handleAntseedReady} expandApiSetup={expandApiSetup} />
             ) : null}
             {drawerStep === 'signer' ? (
               <SignerKeyPanel
@@ -146,7 +146,7 @@ export function SetupOnboardingFlow({ state, actions }: SetupOnboardingFlowProps
                 actions={actions}
                 onProceed={handleSignerReady}
                 onOpenApiSetup={() => {
-                  setAntseedChoice('api')
+                  setExpandApiSetup(true)
                   setDrawerStep('antseed')
                 }}
               />

@@ -1,8 +1,6 @@
 import React, { useState } from 'react'
 import {
   Anchor,
-  Badge,
-  BadgeText,
   Button,
   ButtonText,
   Heading,
@@ -25,7 +23,7 @@ const snippetLineStyle: React.CSSProperties = {
   overflowWrap: 'anywhere',
 }
 
-/** Placeholder, not the real key: at this step the signer key may not exist yet. */
+/** Placeholder, not the real key: the signer key may not exist at this step. */
 const SETUP_SNIPPET = [
   'npm install -g @antseed/cli',
   '',
@@ -35,8 +33,6 @@ const SETUP_SNIPPET = [
   'antseed network browse',
   'antseed signer connection set --peer <peer-id>',
 ].join('\n')
-
-type SetupChoice = 'desktop' | 'api'
 
 interface AntseedSetupPanelProps {
   /**
@@ -48,28 +44,20 @@ interface AntseedSetupPanelProps {
    * stepper ends up claiming work nobody did.
    */
   onProceed: () => void
-  /** Skips the chooser — used when arriving from the signer key guide's API link. */
-  initialChoice?: SetupChoice | null
-}
-
-function BackToChoices({ onPress }: { onPress: () => void }) {
-  return (
-    <Button variant="text" alignSelf="flex-start" onPress={onPress}>
-      <Icon name="arrow-left" size="xs" color="primary" />
-      <ButtonText>Back to Desktop / API</ButtonText>
-    </Button>
-  )
+  /** Opens with the API section already expanded, for arrivals from the signer key guide. */
+  expandApiSetup?: boolean
 }
 
 /**
- * First setup step: how the user intends to run their credits.
+ * First setup step: getting Antseed.
  *
- * Two routes, because the Antseed Desktop App and the CLI are alternatives rather than
- * sequential steps. Mirrors SignerKeyPanel's generate/import choice so both
- * steps in this stepper open the same shape of drawer.
+ * One screen. The desktop download is the primary path and the API route is a
+ * secondary disclosure on the same screen rather than a separate view — this
+ * step covers getting Antseed and nothing else, so signer key guidance lives in
+ * the signer key step where it belongs.
  */
-export function AntseedSetupPanel({ onProceed, initialChoice = null }: AntseedSetupPanelProps) {
-  const [choice, setChoice] = useState<SetupChoice | null>(initialChoice)
+export function AntseedSetupPanel({ onProceed, expandApiSetup = false }: AntseedSetupPanelProps) {
+  const [apiExpanded, setApiExpanded] = useState(expandApiSetup)
   const [copied, setCopied] = useState(false)
 
   const handleDownload = () => {
@@ -85,94 +73,73 @@ export function AntseedSetupPanel({ onProceed, initialChoice = null }: AntseedSe
     setTimeout(() => setCopied(false), 2000)
   }
 
-  if (choice === 'desktop') {
-    return (
-      <YStack gap="$3">
-        <BackToChoices onPress={() => setChoice(null)} />
-        <Heading level={5}>Antseed Desktop App</Heading>
-        <Text fontSize="$2" tone="soft" lineHeight="$3">
-          The free desktop app that runs your credits locally. Install it, then come back for your signer
-          key.
-        </Text>
-        <Button size="sm" {...compactButtonProps} onPress={handleDownload}>
-          <ButtonText>Download Antseed</ButtonText>
-          <Icon name="external-link" size="xs" color="inherit" />
-        </Button>
-        <Text fontSize="$1" tone="soft">
-          Opens antseed.com in a new tab.
-        </Text>
-        <Button size="sm" {...compactButtonProps} onPress={onProceed}>
-          <ButtonText>Continue to Signer key</ButtonText>
-        </Button>
-      </YStack>
-    )
-  }
-
-  if (choice === 'api') {
-    return (
-      <YStack gap="$3">
-        <BackToChoices onPress={() => setChoice(null)} />
-        <XStack justifyContent="space-between" alignItems="center">
-          <Heading level={5}>API setup</Heading>
-          <Button size="sm" variant="ghost" iconSize="sm" onPress={() => void handleCopy()}>
-            <Icon name={copied ? 'check' : 'copy'} size="xs" color={copied ? 'success' : 'text'} />
-          </Button>
-        </XStack>
-        <Text fontSize="$2" tone="soft" lineHeight="$3">
-          Run credits from your own terminal instead of the Antseed Desktop App.
-        </Text>
-        <YStack backgroundColor="$backgroundSurface" borderRadius="$2" padding="$3" gap="$1">
-          {SETUP_SNIPPET.split('\n').map((line, index) => (
-            <Text key={index} style={snippetLineStyle}>
-              {line.length > 0 ? line : ' '}
-            </Text>
-          ))}
-        </YStack>
-        <Text fontSize="$1" tone="soft" lineHeight="$3">
-          <Anchor href={ANTSEED_API_DOCS_URL} target="_blank">
-            AntSeed API guide
-          </Anchor>
-          .
-        </Text>
-        <Button size="sm" {...compactButtonProps} onPress={onProceed}>
-          <ButtonText>Continue to Signer key</ButtonText>
-        </Button>
-      </YStack>
-    )
-  }
-
   return (
     <YStack gap="$3">
       <Heading level={5}>Get Antseed</Heading>
       <Text fontSize="$2" tone="soft" lineHeight="$3">
-        Download Antseed Desktop, or use API Setup if you’re an advanced user.
+        Download the free Antseed Desktop app to use your AI credits.
       </Text>
-      <XStack gap="$2" width="100%" alignItems="stretch">
-        <Button
-          flexGrow={1}
-          flexBasis={0}
-          size="lg"
-          {...compactButtonProps}
-          onPress={() => setChoice('desktop')}
+
+      <Button size="sm" {...compactButtonProps} onPress={handleDownload}>
+        <ButtonText>Download Antseed</ButtonText>
+        <Icon name="external-link" size="xs" color="inherit" />
+      </Button>
+
+      {/* Secondary route, collapsed by default: the desktop app is the primary
+          experience and this only concerns advanced users. */}
+      <YStack gap="$2">
+        <XStack
+          alignItems="center"
+          gap="$2"
+          cursor="pointer"
+          aria-expanded={apiExpanded}
+          onPress={() => setApiExpanded((open) => !open)}
         >
-          <Badge type="success">
-            <BadgeText>Recommended</BadgeText>
-          </Badge>
-          <ButtonText>Antseed Desktop App</ButtonText>
-        </Button>
-        <Button
-          flexGrow={1}
-          flexBasis={0}
-          size="lg"
-          variant="outline"
-          {...compactButtonProps}
-          onPress={() => setChoice('api')}
-        >
-          <ButtonText>API setup</ButtonText>
-        </Button>
-      </XStack>
+          <Text fontSize="$2" tone="soft" flex={1} lineHeight="$3">
+            Advanced user? Use API Setup to use your AI credits through your terminal.
+          </Text>
+          <Text fontSize="$2" color="$primary">
+            API Setup
+          </Text>
+          <Icon name={apiExpanded ? 'chevron-up' : 'chevron-down'} size="xs" color="muted" />
+        </XStack>
+
+        {apiExpanded && (
+          <YStack gap="$2">
+            <XStack justifyContent="flex-end">
+              <Button size="sm" variant="ghost" iconSize="sm" onPress={() => void handleCopy()}>
+                <Icon
+                  name={copied ? 'check' : 'copy'}
+                  size="xs"
+                  color={copied ? 'success' : 'text'}
+                />
+              </Button>
+            </XStack>
+            <YStack backgroundColor="$backgroundSurface" borderRadius="$2" padding="$3" gap="$1">
+              {SETUP_SNIPPET.split('\n').map((line, index) => (
+                <Text key={index} style={snippetLineStyle}>
+                  {line.length > 0 ? line : ' '}
+                </Text>
+              ))}
+            </YStack>
+            <Text fontSize="$1" tone="soft" lineHeight="$3">
+              Your signer key goes in{' '}
+              <Text fontSize="$1" fontWeight="700">
+                ANTSEED_IDENTITY_HEX
+              </Text>{' '}
+              — generate or import it in the next step, then copy it from there. See the{' '}
+              <Anchor href={ANTSEED_API_DOCS_URL} target="_blank">
+                AntSeed API guide
+              </Anchor>
+              .
+            </Text>
+          </YStack>
+        )}
+      </YStack>
+
       <Button size="sm" {...compactButtonProps} onPress={onProceed}>
-        <ButtonText>Continue to Signer key</ButtonText>
+        <ButtonText>Continue to Signer Key</ButtonText>
+        <Icon name="arrow-right" size="xs" color="inherit" />
       </Button>
     </YStack>
   )
