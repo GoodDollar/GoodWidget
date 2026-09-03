@@ -36,7 +36,7 @@ function renderInlineRuns(paragraph: string): React.ReactNode[] {
     const [, boldText, linkLabel, linkHref] = match
     if (boldText) {
       runs.push(
-        <Text key={`b-${start}`} fontWeight="600">
+        <Text fontSize="$2" key={`b-${start}`} fontWeight="600">
           {boldText}
         </Text>,
       )
@@ -166,7 +166,7 @@ function FaqItem({ question, answer, expanded, onToggle }: FaqItemProps) {
         onPress={onToggle}
         cursor="pointer"
       >
-        <Text fontSize="$2" fontWeight="600" flex={1}>
+        <Text fontWeight="600" flex={1}>
           {question}
         </Text>
         <Icon name={expanded ? 'chevron-up' : 'chevron-down'} size="xs" color="muted" />
