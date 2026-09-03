@@ -3,7 +3,9 @@ import type { Address, Hex } from 'viem'
 import { BASE_CHAIN_ID } from './chainClient'
 
 export const ANTSEED_BUYER_OPERATOR_DOMAIN = {
-  name: 'AntseedSignerOperator',
+  // Must match AntseedBuyerOperator's DOMAIN_SEPARATOR verbatim. Do not rename
+  // with the widget's signer terminology — the contract hashes this string.
+  name: 'AntseedBuyerOperator',
   version: '1',
 } as const
 
@@ -25,7 +27,8 @@ const REQUEST_CLOSE_TYPES = {
 
 const REVOKE_OPERATOR_TYPES = {
   RevokeOperator: [
-    { name: 'signer', type: 'address' },
+    // `buyer` is the contract's field name; the value is our signer address.
+    { name: 'buyer', type: 'address' },
     { name: 'nonce', type: 'uint256' },
   ],
 } as const
@@ -103,7 +106,7 @@ export async function signRevokeOperator(params: {
     types: REVOKE_OPERATOR_TYPES,
     primaryType: 'RevokeOperator',
     message: {
-      signer: params.signer,
+      buyer: params.signer,
       nonce: params.nonce,
     },
   })
