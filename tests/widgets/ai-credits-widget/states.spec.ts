@@ -77,8 +77,9 @@ test('AiCreditsWidget Setup tab — onboarding steps visible', async ({ page }) 
   await gotoStory(page, STORY_IDS.setupTab)
   const root = page.getByTestId('AiCreditsWidget-setup-tab')
   await expect(root).toBeVisible()
-  await expect(root.getByText('Your G$ Balance')).toBeVisible()
-  await expect(root.getByText('Get Antseed', { exact: true })).toBeVisible()
+  await expect(root.getByText(/One-time setup required before buying AI Credits/)).toBeVisible()
+  // "Get Antseed" is both a guidance-card bullet and the first step; the step is last.
+  await expect(root.getByText('Get Antseed', { exact: true }).last()).toBeVisible()
   await expect(root.getByText('Signer key', { exact: true })).toBeVisible()
   await expect(root.getByText('Authorize Credits Management', { exact: true }).last()).toBeVisible()
   await expect(root.getByText('Set Up', { exact: true })).toBeVisible()
@@ -480,7 +481,7 @@ test('AiCreditsWidget guidance card: renders above tab navigation', async ({ pag
   // Guidance card content is visible
   await expect(root.getByText("WHAT'S INVOLVED:")).toBeVisible()
   await expect(root.getByText(/Get G\$/)).toBeVisible()
-  await expect(root.getByText(/Use your AI credits/)).toBeVisible()
+  await expect(root.getByText(/Get Antseed/).first()).toBeVisible()
 
   // All three action buttons are present
   await expect(root.getByRole('button', { name: /how to use/i })).toBeVisible()
@@ -598,7 +599,7 @@ test('AiCreditsWidget Setup — Download AntSeed step is first and shows Start l
   const root = page.getByTestId('AiCreditsWidget-download-antseed-step')
   await expect(root).toBeVisible()
 
-  await expect(root.getByText('Get Antseed', { exact: true })).toBeVisible()
+  await expect(root.getByText('Get Antseed', { exact: true }).last()).toBeVisible()
   await expect(root.getByText('Signer key', { exact: true })).toBeVisible()
   await expect(root.getByText('Authorize Credits Management', { exact: true }).last()).toBeVisible()
   await expect(root.getByText('Ready', { exact: true })).toBeVisible()

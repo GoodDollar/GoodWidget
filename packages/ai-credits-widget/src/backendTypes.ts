@@ -35,7 +35,7 @@ export type GdCreditEntry = {
   logIndex?: number
   createdAt: string
   streamUpdateMonth: string
-  signerAddress?: string
+  buyerAddress?: string
 }
 
 export type AccountCreditResponse = {
