@@ -310,7 +310,17 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
 
     const response = await fetch(`${this.accountBase(payer)}/credit-history?${params.toString()}`)
     if (!response.ok) throw new Error(`Credit history request failed: ${response.status}`)
-    return response.json() as Promise<CreditHistoryResponse>
+    // The backend still calls this `buyerAddress`; the widget speaks in signers.
+    const payload = (await response.json()) as Omit<CreditHistoryResponse, 'items'> & {
+      items?: Array<GdCreditEntry & { buyerAddress?: string }>
+    }
+    return {
+      ...payload,
+      items: (payload.items ?? []).map(({ buyerAddress, ...entry }) => ({
+        ...entry,
+        signerAddress: entry.signerAddress ?? buyerAddress,
+      })),
+    }
   }
 
   async getOutstanding(payer: string): Promise<{ outstandingFundingUsd: string; count: number }> {

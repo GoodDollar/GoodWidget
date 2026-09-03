@@ -61,7 +61,7 @@ function toIsoEndOfDay(dateValue: string): string | undefined {
 
 function matchesSignerFilter(entry: GdCreditEntry, filter: SignerAddressFilter): boolean {
   if (filter === BUYER_FILTER_ALL) return true
-  return entry.buyerAddress?.toLowerCase() === filter.toLowerCase()
+  return entry.signerAddress?.toLowerCase() === filter.toLowerCase()
 }
 
 export interface AiCreditsHistoryState {
@@ -190,7 +190,7 @@ export function useAiCreditsHistory(options: {
               : response.items.filter((entry) => selectedSources[entry.source])
 
           const discoveredSigners = sourceFiltered
-            .map((entry) => entry.buyerAddress)
+            .map((entry) => entry.signerAddress)
             .filter((value): value is string => Boolean(value))
           if (discoveredSigners.length > 0) {
             onSignersDiscovered?.(discoveredSigners)

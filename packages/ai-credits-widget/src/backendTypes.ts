@@ -35,7 +35,13 @@ export type GdCreditEntry = {
   logIndex?: number
   createdAt: string
   streamUpdateMonth: string
-  buyerAddress?: string
+  /**
+   * Renamed from the wire's `buyerAddress` in `getCreditHistory`. Keep the
+   * mapping there: reading the wire name directly leaves this undefined, and an
+   * entry with no signer address matches no signer filter — it only ever shows
+   * under "All signers".
+   */
+  signerAddress?: string
 }
 
 export type AccountCreditResponse = {
