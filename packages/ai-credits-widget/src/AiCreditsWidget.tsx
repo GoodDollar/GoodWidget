@@ -106,8 +106,21 @@ function SetupTabPanel({
     <YStack gap="$4" width="100%">
       <AiCreditsHero gBalance={state.gBalance} isGoodIdVerified={state.isGoodIdVerified} />
       <Text tone="soft" fontSize="$2">
-        One-time setup required before buying credits. Set up your Signer Key first, then authorize it. Take the steps in any order, or skip ahead and come back
-        when you are ready to buy.
+        <Text tone="soft" fontSize="$2" fontWeight="700">
+          One-time setup required before buying AI Credits.
+        </Text>{' '}
+        To buy credits, you’ll need to{' '}
+        <Text tone="soft" fontSize="$2" fontWeight="700">
+          set up your Signer Key
+        </Text>
+        . To use your credits, you’ll need to{' '}
+        <Text tone="soft" fontSize="$2" fontWeight="700">
+          get Antseed
+        </Text>{' '}
+        and{' '}
+        <Text tone="soft" fontSize="$2" fontWeight="700">
+          Authorize Credits Management
+        </Text>
       </Text>
       <SetupOnboardingFlow state={state} actions={actions} />
     </YStack>

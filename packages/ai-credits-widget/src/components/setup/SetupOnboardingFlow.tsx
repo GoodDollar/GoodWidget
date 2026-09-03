@@ -45,7 +45,7 @@ export function SetupOnboardingFlow({ state, actions }: SetupOnboardingFlowProps
   const steps: StepperStepItem[] = [
     {
       id: 'download',
-      title: 'Set up Antseed',
+      title: 'Get Antseed',
       description: 'Antseed Desktop App or API — choose either',
       status: downloadCompleted ? 'completed' : 'ready',
     },

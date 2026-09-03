@@ -141,9 +141,9 @@ export function AntseedSetupPanel({ onProceed }: AntseedSetupPanelProps) {
 
   return (
     <YStack gap="$3">
-      <Heading level={5}>Set up Antseed</Heading>
+      <Heading level={5}>Get Antseed</Heading>
       <Text fontSize="$2" tone="soft" lineHeight="$3">
-        Antseed runs your credits. Use the Antseed Desktop App, or wire it into your own terminal.
+        Download Antseed Desktop, or use API Setup if you’re an advanced user.
       </Text>
       <XStack gap="$2" width="100%" alignItems="stretch">
         <Button
