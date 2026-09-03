@@ -63,8 +63,8 @@ const DrawerHandle = createComponent(Sheet.Handle as any, {
 const DrawerCloseButton = createComponent(Stack, {
   name: 'DrawerCloseButton',
   position: 'absolute',
-  top: '$3',
-  right: '$3',
+  top: '$5',
+  right: '$5',
   zIndex: 2,
 })
 

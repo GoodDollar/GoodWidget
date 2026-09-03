@@ -80,7 +80,7 @@ test('AiCreditsWidget Setup tab — onboarding steps visible', async ({ page }) 
   await expect(root.getByText('Your G$ Balance')).toBeVisible()
   await expect(root.getByText('Get Antseed', { exact: true })).toBeVisible()
   await expect(root.getByText('Signer key', { exact: true })).toBeVisible()
-  await expect(root.getByText('Authorize Credits Management', { exact: true })).toBeVisible()
+  await expect(root.getByText('Authorize Credits Management', { exact: true }).last()).toBeVisible()
   await expect(root.getByText('Set Up', { exact: true })).toBeVisible()
   await expect(root.getByText('Buy Credits', { exact: true })).toBeVisible()
   await page.screenshot({
@@ -409,7 +409,7 @@ test('AiCreditsWidget deep-link authorization pending: Authorize Credits Managem
   // authorization gate must render before any permission is granted. The step
   // lives on Set Up now that Buy is purchase-only.
   await root.getByText('Set Up', { exact: true }).click()
-  await root.getByText('Authorize Credits Management', { exact: true }).first().click()
+  await root.getByText('Authorize Credits Management', { exact: true }).last().click()
 
   // The Drawer renders via a Tamagui Sheet portal outside the widget's root DOM
   // subtree, so its content must be queried at the page level, not scoped to `root`.
@@ -600,7 +600,7 @@ test('AiCreditsWidget Setup — Download AntSeed step is first and shows Start l
 
   await expect(root.getByText('Get Antseed', { exact: true })).toBeVisible()
   await expect(root.getByText('Signer key', { exact: true })).toBeVisible()
-  await expect(root.getByText('Authorize Credits Management', { exact: true })).toBeVisible()
+  await expect(root.getByText('Authorize Credits Management', { exact: true }).last()).toBeVisible()
   await expect(root.getByText('Ready', { exact: true })).toBeVisible()
   // Later steps are skippable rather than locked: they carry no status label at
   // all, where a locked step would read "Pending".
