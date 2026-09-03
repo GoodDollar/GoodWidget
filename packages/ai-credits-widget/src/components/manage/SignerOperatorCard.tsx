@@ -285,7 +285,7 @@ export function SignerOperatorCard({ state, actions }: SignerOperatorCardProps) 
                     {operatorConsentPending ? (
                       <Spinner size="sm" />
                     ) : (
-                      <ButtonText color="$error">Unauthorize Wallet</ButtonText>
+                      <ButtonText color="$error">Unauthorize Credit Management</ButtonText>
                     )}
                   </Button>
                 )}

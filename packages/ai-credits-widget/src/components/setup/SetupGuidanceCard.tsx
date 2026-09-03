@@ -3,10 +3,10 @@ import { Anchor, Button, ButtonText, Icon, Separator, Text, XStack, YStack } fro
 import { SetupBonusHighlight } from './SetupBonusHighlight'
 
 /** URL for the AntSeed website, opened in a new browser tab. */
-const ANTSEED_SITE_URL = 'https://antseed.com'
+const ANTSEED_SITE_URL = 'https://ubi.gd/46pjeqF'
 
 /** GoodReserve swap page — where G$ is bought directly from the reserve on Celo. */
-const GOODDAPP_RESERVE_URL = 'https://gooddapp.org/#/swap/goodReserve'
+const GOODDAPP_RESERVE_URL = 'https://ubi.gd/4xcXfOt'
 
 interface SetupGuidanceCardProps {
   /** Callback to display the How to use guide inside the widget. */

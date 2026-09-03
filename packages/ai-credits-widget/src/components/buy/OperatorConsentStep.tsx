@@ -119,7 +119,7 @@ export function OperatorConsentStep({
       {operatorConsented ? (
         <XStack gap="$2" alignItems="center">
           <Icon name="check" size="sm" color="success" />
-          <Text color="$success">Wallet authorized — ready to pay</Text>
+          <Text color="$success">Credits management authorized</Text>
         </XStack>
       ) : derivesDifferentKey ? (
         <Text fontSize="$2" color="$warning" lineHeight="$3">

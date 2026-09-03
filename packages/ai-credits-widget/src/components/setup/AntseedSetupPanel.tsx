@@ -12,7 +12,7 @@ import {
 } from '@goodwidget/ui'
 import { compactButtonProps } from '../shared/styles'
 
-const ANTSEED_DOWNLOAD_URL = 'https://antseed.com'
+const ANTSEED_DOWNLOAD_URL = 'https://ubi.gd/3UzJBr9'
 const ANTSEED_API_DOCS_URL = 'https://antseed.com/docs/guides/using-the-api'
 
 const snippetLineStyle: React.CSSProperties = {

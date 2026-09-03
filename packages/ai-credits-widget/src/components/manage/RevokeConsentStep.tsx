@@ -36,7 +36,7 @@ export function RevokeConsentStep({
 }: RevokeConsentStepProps) {
   return (
     <YStack gap="$3">
-      <Heading level={5}>Unauthorize Wallet?</Heading>
+      <Heading level={5}>Unauthorize Credit Management?</Heading>
       <Text fontSize="$2" lineHeight="$3">
         This removes the operator&apos;s ability to act on your behalf. It is an on-chain change,
         not a payment.
@@ -86,7 +86,7 @@ export function RevokeConsentStep({
               <Spinner size="sm" />
             </XStack>
           ) : (
-            <ButtonText color="$error">Unauthorize Wallet</ButtonText>
+            <ButtonText color="$error">Unauthorize Credit Management</ButtonText>
           )}
         </Button>
         <Button
