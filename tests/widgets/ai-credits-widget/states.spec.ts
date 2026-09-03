@@ -261,9 +261,10 @@ test('AiCreditsWidget appkit connect wallet opens modal', async ({ page }) => {
 
   const root = page.getByTestId('AiCreditsWidget-appkit-connect')
   await expect(root).toBeVisible()
-  const connectBtn = root.getByRole('button', { name: 'Connect Wallet' })
+  // The story's own play() clicks Connect, so the button may already have
+  // flipped to its disabled "Connecting..." state before we look at it.
+  const connectBtn = root.getByRole('button', { name: /connect wallet|connecting/i })
   await expect(connectBtn).toBeVisible({ timeout: 20_000 })
-  await expect(connectBtn).toBeEnabled({ timeout: 20_000 })
 
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-14-appkit-connect-before.png',
@@ -271,7 +272,7 @@ test('AiCreditsWidget appkit connect wallet opens modal', async ({ page }) => {
   })
 
   const openModal = page.locator('w3m-modal.open')
-  if (!(await openModal.isVisible().catch(() => false))) {
+  if (!(await openModal.isVisible().catch(() => false)) && (await connectBtn.isEnabled())) {
     await connectBtn.click({ timeout: 15_000 })
   }
 
@@ -552,8 +553,8 @@ test('AiCreditsWidget guidance card: FAQs opens in-widget FAQ', async ({ page })
 
   // FAQ content appears inside the buy tab area
   await expect(root.getByText(/Back to Set Up/i)).toBeVisible()
-  await expect(root.getByText(/I only claim UBI with GoodWallet/i)).toBeVisible()
-  await expect(root.getByText(/Deposit or stream/i)).toBeVisible()
+  await expect(root.getByText(/I only claim G\$ UBI/i)).toBeVisible()
+  await expect(root.getByText(/Deposit or subscribe/i)).toBeVisible()
 
   // Tab navigation remains visible
   await expect(root.getByText('Buy Credits').first()).toBeVisible()
