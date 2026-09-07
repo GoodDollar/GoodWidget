@@ -62,9 +62,19 @@ const FIXED_ANALYTICS_RESPONSE: AnalyticsResponse = {
 }
 
 /** Wraps the dashboard in the same bare TamaguiProvider the thin-host app uses (no GoodWidgetProvider — this widget has no wallet/connect concerns). */
-function GoodDataWidgetStoryShell({ dataTestId, children }: { dataTestId: string; children: React.ReactNode }) {
+interface ThemeArgs {
+  defaultTheme?: 'light' | 'dark'
+  themeOverrides?: any
+}
+
+function GoodDataWidgetStoryShell({
+  dataTestId,
+  children,
+  defaultTheme = 'dark',
+  themeOverrides,
+}: { dataTestId: string; children: React.ReactNode } & ThemeArgs) {
   return (
-    <TamaguiProvider config={defaultConfig} defaultTheme="dark">
+    <TamaguiProvider config={defaultConfig} defaultTheme={defaultTheme}>
       <div data-testid={dataTestId}>{children}</div>
     </TamaguiProvider>
   )
@@ -86,10 +96,18 @@ export function AiCreditsDashboardLiveStory() {
   )
 }
 
-export function AiCreditsDashboardDemoStory() {
+export function AiCreditsDashboardDemoStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   return (
-    <GoodDataWidgetStoryShell dataTestId="GoodDataWidget-demo">
-      <AiCreditsDashboard mockState={{ kind: 'demo', response: FIXED_ANALYTICS_RESPONSE }} />
+    <GoodDataWidgetStoryShell
+      dataTestId="GoodDataWidget-demo"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    >
+      <AiCreditsDashboard
+        mockState={{ kind: 'demo', response: FIXED_ANALYTICS_RESPONSE }}
+        defaultTheme={defaultTheme}
+        themeOverrides={themeOverrides}
+      />
     </GoodDataWidgetStoryShell>
   )
 }

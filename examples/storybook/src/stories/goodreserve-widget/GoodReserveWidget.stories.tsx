@@ -21,13 +21,14 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 // Renders one deterministic reserve state per story for CI-safe widget coverage.
-const renderStory = (
+export const renderStory = (
   mockState: Story['args']['mockState'],
   dataTestId: string,
   defaultTheme?: 'light' | 'dark',
+  themeOverrides?: any
 ) => (
   // <div data-testid={dataTestId} style={{ width: 390 }}>
-  <GoodReserveWidget provider={provider} mockState={mockState} defaultTheme={defaultTheme} />
+  <GoodReserveWidget provider={provider} mockState={mockState} defaultTheme={defaultTheme} themeOverrides={themeOverrides} />
   // </div>
 )
 

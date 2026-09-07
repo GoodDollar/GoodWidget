@@ -416,7 +416,12 @@ export function UnsupportedChainStory() {
   )
 }
 
-export function MockBackendStory() {
+interface ThemeArgs {
+  defaultTheme?: 'light' | 'dark'
+  themeOverrides?: any
+}
+
+export function MockBackendStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   const injectedProvider = getInjectedEip1193Provider()
 
   if (!isInjectedProviderUsable(injectedProvider)) {
@@ -433,7 +438,12 @@ export function MockBackendStory() {
 
   return (
     <YStack data-testid="AiCreditsWidget-mock-backend" style={{ width: 380 }}>
-      <MockAiCreditsWidget provider={injectedProvider} showWalletControls />
+      <MockAiCreditsWidget
+        provider={injectedProvider}
+        showWalletControls
+        defaultTheme={defaultTheme}
+        themeOverrides={themeOverrides}
+      />
     </YStack>
   )
 }
