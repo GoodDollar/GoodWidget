@@ -30,6 +30,8 @@ function StoryShell({ children, dataTestId }: { children: React.ReactNode; dataT
 }
 
 interface MockStoryProps {
+  defaultTheme?: 'light' | 'dark'
+  themeOverrides?: import('@goodwidget/core').GoodWidgetThemeOverrides
   initialView?: SuperfluidCampaignView
   leaderboardScenario?: MockLeaderboardScenario
   programSupTotalsScenario?: MockProgramSupTotalsScenario

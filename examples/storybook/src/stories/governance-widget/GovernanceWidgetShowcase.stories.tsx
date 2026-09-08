@@ -24,8 +24,15 @@ import {
 const DEV_CELO_HOUSES_ADDRESS = '0x4Bc3Cdc036f21b68E034C0f1d90775fc3D725735' as const
 const DEV_CELO_G_TOKEN_ADDRESS = '0xFa51eFDc0910CCdA91732e6806912Fa12e2FD475' as const
 
+import {
+  BRAND_PRESET_OPTIONS,
+  brandPresetOverrides,
+  type BrandPreset,
+} from '../helpers/themeOverridePresets'
+
 interface GovernanceWidgetStoryArgs {
   defaultTheme: 'light' | 'dark'
+  brandPreset: BrandPreset
 }
 
 const meta: Meta<GovernanceWidgetStoryArgs> = {
@@ -39,16 +46,22 @@ const meta: Meta<GovernanceWidgetStoryArgs> = {
       options: ['dark', 'light'],
       description: 'Base theme applied via the widget’s own defaultTheme prop.',
     },
+    brandPreset: {
+      control: 'select',
+      options: BRAND_PRESET_OPTIONS,
+      description: 'Sample host-branding themeOverrides preset.',
+    },
   },
   args: {
     defaultTheme: 'light',
+    brandPreset: 'None',
   },
 }
 
 export default meta
 type Story = StoryObj<GovernanceWidgetStoryArgs>
 
-function InjectedWalletStory({ defaultTheme }: GovernanceWidgetStoryArgs) {
+function InjectedWalletStory({ defaultTheme, brandPreset }: GovernanceWidgetStoryArgs) {
   const injectedProvider = getInjectedEip1193Provider()
 
   if (!isInjectedProviderUsable(injectedProvider)) {
@@ -68,6 +81,7 @@ function InjectedWalletStory({ defaultTheme }: GovernanceWidgetStoryArgs) {
     <GovernanceWidget
       provider={injectedProvider}
       defaultTheme={defaultTheme}
+      themeOverrides={brandPresetOverrides(brandPreset)}
       addresses={{
         housesAddress: DEV_CELO_HOUSES_ADDRESS,
         gTokenAddress: DEV_CELO_G_TOKEN_ADDRESS,
@@ -77,7 +91,7 @@ function InjectedWalletStory({ defaultTheme }: GovernanceWidgetStoryArgs) {
   )
 }
 
-function CustodialWalletStory({ defaultTheme }: GovernanceWidgetStoryArgs) {
+function CustodialWalletStory({ defaultTheme, brandPreset }: GovernanceWidgetStoryArgs) {
   try {
     const provider = createCustodialEip1193Provider()
 
@@ -85,6 +99,7 @@ function CustodialWalletStory({ defaultTheme }: GovernanceWidgetStoryArgs) {
       <GovernanceWidget
         provider={provider}
         defaultTheme={defaultTheme}
+        themeOverrides={brandPresetOverrides(brandPreset)}
         addresses={{
           housesAddress: DEV_CELO_HOUSES_ADDRESS,
           gTokenAddress: DEV_CELO_G_TOKEN_ADDRESS,
@@ -155,7 +170,7 @@ const previousDemoVote: GovernanceWidgetAdapterState['dashboard']['alignmentVoti
   disabledReason: 'This vote has already been executed.',
 }
 
-function DemoGovernanceWidget({ defaultTheme }: GovernanceWidgetStoryArgs) {
+function DemoGovernanceWidget({ defaultTheme, brandPreset }: GovernanceWidgetStoryArgs) {
   const initialState = useMemo(
     () => createState('active_alignment', {
       dashboard: createDashboard({
@@ -206,20 +221,20 @@ function DemoGovernanceWidget({ defaultTheme }: GovernanceWidgetStoryArgs) {
 
   const adapterFactory = useCallback(() => ({ state, actions }), [actions, state])
 
-  return <GovernanceWidget defaultTheme={defaultTheme} adapterFactory={adapterFactory} testId="GovernanceWidget-showcase-demo" />
+  return <GovernanceWidget defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} adapterFactory={adapterFactory} testId="GovernanceWidget-showcase-demo" />
 }
 
 // Real wallet, real dev-celo GoodDaoHouses contract, no mocked reads or writes — this is the
 // live integrator-facing surface, deliberately kept separate from the QA fixtures/mocked flow.
 export const InjectedWallet: Story = {
-  render: ({ defaultTheme }) => <InjectedWalletStory defaultTheme={defaultTheme} />,
+  render: ({ defaultTheme, brandPreset }) => <InjectedWalletStory defaultTheme={defaultTheme} brandPreset={brandPreset} />,
 }
 
 export const CustodialWallet: Story = {
   tags: ['!dev'],
-  render: ({ defaultTheme }) => <CustodialWalletStory defaultTheme={defaultTheme} />,
+  render: ({ defaultTheme, brandPreset }) => <CustodialWalletStory defaultTheme={defaultTheme} brandPreset={brandPreset} />,
 }
 
 export const Demo: Story = {
-  render: ({ defaultTheme }) => <DemoGovernanceWidget defaultTheme={defaultTheme} />,
+  render: ({ defaultTheme, brandPreset }) => <DemoGovernanceWidget defaultTheme={defaultTheme} brandPreset={brandPreset} />,
 }

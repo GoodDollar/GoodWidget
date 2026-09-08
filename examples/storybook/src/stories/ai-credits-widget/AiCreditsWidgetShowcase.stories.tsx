@@ -6,7 +6,18 @@ import {
   AppKitConnectWalletStory,
 } from '../helpers/aiCreditsWidgetStories'
 
-const meta: Meta<typeof AiCreditsWidget> = {
+import {
+  BRAND_PRESET_OPTIONS,
+  brandPresetOverrides,
+  type BrandPreset,
+} from '../helpers/themeOverridePresets'
+
+interface AiCreditsWidgetStoryArgs {
+  defaultTheme: 'light' | 'dark'
+  brandPreset: BrandPreset
+}
+
+const meta: Meta<AiCreditsWidgetStoryArgs> = {
   title: 'Widgets/AiCreditsWidget/Showcase',
   component: AiCreditsWidget,
   tags: ['integrator', 'manual', 'showcase'],
@@ -17,22 +28,53 @@ const meta: Meta<typeof AiCreditsWidget> = {
       useShell: false,
     },
   },
+  argTypes: {
+    defaultTheme: {
+      control: 'radio',
+      options: ['dark', 'light'],
+      description: "Base theme applied via the widget's own defaultTheme prop.",
+    },
+    brandPreset: {
+      control: 'select',
+      options: BRAND_PRESET_OPTIONS,
+      description: 'Sample host-branding themeOverrides preset.',
+    },
+  },
+  args: {
+    defaultTheme: 'dark',
+    brandPreset: 'None',
+  },
 }
 
 export default meta
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<AiCreditsWidgetStoryArgs>
 
 export const MockBackend: Story = {
   name: 'Mock Backend (browser wallet)',
-  render: () => <MockBackendStory />,
+  render: ({ defaultTheme, brandPreset }) => (
+    <MockBackendStory
+      defaultTheme={defaultTheme}
+      themeOverrides={brandPresetOverrides(brandPreset)}
+    />
+  ),
 }
 
 export const InjectedWallet: Story = {
   name: 'Injected Wallet',
-  render: () => <InjectedWalletStory />,
+  render: ({ defaultTheme, brandPreset }) => (
+    <InjectedWalletStory
+      defaultTheme={defaultTheme}
+      themeOverrides={brandPresetOverrides(brandPreset)}
+    />
+  ),
 }
 
 export const WalletConnect: Story = {
   name: 'WalletConnect',
-  render: () => <AppKitConnectWalletStory />,
+  render: ({ defaultTheme, brandPreset }) => (
+    <AppKitConnectWalletStory
+      defaultTheme={defaultTheme}
+      themeOverrides={brandPresetOverrides(brandPreset)}
+    />
+  ),
 }

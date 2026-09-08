@@ -18,7 +18,18 @@ import {
   createState,
 } from '../helpers/governanceWidgetStories'
 
-const meta: Meta<typeof GovernanceWidget> = {
+import {
+  BRAND_PRESET_OPTIONS,
+  brandPresetOverrides,
+  type BrandPreset,
+} from '../helpers/themeOverridePresets'
+
+interface GovernanceWidgetQAStoryArgs {
+  defaultTheme: 'light' | 'dark'
+  brandPreset: BrandPreset
+}
+
+const meta: Meta<GovernanceWidgetQAStoryArgs> = {
   title: 'QA/GovernanceWidget/Runtime Fixtures',
   component: GovernanceWidget,
   tags: ['autodocs', 'qa'],
@@ -26,19 +37,35 @@ const meta: Meta<typeof GovernanceWidget> = {
     layout: 'padded',
     goodWidgetProvider: { useShell: false, useProvider: false },
   },
+  argTypes: {
+    defaultTheme: {
+      control: 'radio',
+      options: ['dark', 'light'],
+    },
+    brandPreset: {
+      control: 'select',
+      options: BRAND_PRESET_OPTIONS,
+    },
+  },
+  args: {
+    defaultTheme: 'light',
+    brandPreset: 'None',
+  },
 }
 
 export default meta
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<GovernanceWidgetQAStoryArgs>
 
 function RuntimeStory({
   state,
   defaultTheme = 'light',
   useInjectedProvider = false,
+  themeOverrides,
 }: {
   state: GovernanceWidgetAdapterState
   defaultTheme?: 'light' | 'dark'
   useInjectedProvider?: boolean
+  themeOverrides?: import('@goodwidget/core').GoodWidgetThemeOverrides
 }) {
   const injectedProvider = getInjectedEip1193Provider()
 
@@ -59,6 +86,7 @@ function RuntimeStory({
     <GovernanceWidget
       provider={provider}
       defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
       adapterFactory={createAdapterFactory(state)}
       testId={`GovernanceWidget-${state.status}`}
     />
@@ -90,16 +118,16 @@ function LiveMockedDataFlowStory() {
 }
 
 export const DisconnectedDashboard: Story = {
-  render: () => <RuntimeStory state={createState('disconnected')} />,
+  render: (args) => <RuntimeStory defaultTheme={args.defaultTheme} themeOverrides={brandPresetOverrides(args.brandPreset)} state={createState('disconnected')} />,
 }
 
 export const LoadingConnected: Story = {
-  render: () => <RuntimeStory state={createState('loading')} />,
+  render: (args) => <RuntimeStory defaultTheme={args.defaultTheme} themeOverrides={brandPresetOverrides(args.brandPreset)} state={createState('loading')} />,
 }
 
 export const OnboardingHouseSelection: Story = {
-  render: () => (
-    <RuntimeStory
+  render: (args) => (
+    <RuntimeStory defaultTheme={args.defaultTheme} themeOverrides={brandPresetOverrides(args.brandPreset)}
       state={createState('onboarding_required', {
         onboardingStepId: 'house',
         identityStatus: 'verified',
@@ -109,16 +137,16 @@ export const OnboardingHouseSelection: Story = {
 }
 
 export const PendingAlignment: Story = {
-  render: () => <RuntimeStory state={createState('pending_alignment')} />,
+  render: (args) => <RuntimeStory defaultTheme={args.defaultTheme} themeOverrides={brandPresetOverrides(args.brandPreset)} state={createState('pending_alignment')} />,
 }
 
 export const ActiveCitizenship: Story = {
-  render: () => <RuntimeStory state={createState('active_citizenship')} />,
+  render: (args) => <RuntimeStory defaultTheme={args.defaultTheme} themeOverrides={brandPresetOverrides(args.brandPreset)} state={createState('active_citizenship')} />,
 }
 
 export const UpcomingVote: Story = {
-  render: () => (
-    <RuntimeStory
+  render: (args) => (
+    <RuntimeStory defaultTheme={args.defaultTheme} themeOverrides={brandPresetOverrides(args.brandPreset)}
       state={createState('active_citizenship', {
         dashboard: createDashboard({
           alignmentVoting: {
@@ -136,8 +164,8 @@ export const UpcomingVote: Story = {
 }
 
 export const ActiveAlignmentInjected: Story = {
-  render: () => (
-    <RuntimeStory
+  render: (args) => (
+    <RuntimeStory defaultTheme={args.defaultTheme} themeOverrides={brandPresetOverrides(args.brandPreset)}
       useInjectedProvider
       defaultTheme="light"
       state={createState('active_alignment', {
@@ -154,8 +182,8 @@ export const ActiveAlignmentInjected: Story = {
 }
 
 export const VoteDetailOpen: Story = {
-  render: () => (
-    <RuntimeStory
+  render: (args) => (
+    <RuntimeStory defaultTheme={args.defaultTheme} themeOverrides={brandPresetOverrides(args.brandPreset)}
       state={createState('vote_detail', {
         member: createState('active_alignment').member,
         dashboard: createDashboard({
@@ -171,8 +199,8 @@ export const VoteDetailOpen: Story = {
 }
 
 export const AlreadyVoted: Story = {
-  render: () => (
-    <RuntimeStory
+  render: (args) => (
+    <RuntimeStory defaultTheme={args.defaultTheme} themeOverrides={brandPresetOverrides(args.brandPreset)}
       state={createState('active_alignment', {
         dashboard: createDashboard({
           alignmentVoting: {
@@ -188,8 +216,8 @@ export const AlreadyVoted: Story = {
 }
 
 export const VoteClosedExecuted: Story = {
-  render: () => (
-    <RuntimeStory
+  render: (args) => (
+    <RuntimeStory defaultTheme={args.defaultTheme} themeOverrides={brandPresetOverrides(args.brandPreset)}
       state={createState('active_alignment', {
         dashboard: createDashboard({
           alignmentVoting: {
@@ -212,8 +240,8 @@ export const VoteClosedExecuted: Story = {
 }
 
 export const EmptyRecipients: Story = {
-  render: () => (
-    <RuntimeStory
+  render: (args) => (
+    <RuntimeStory defaultTheme={args.defaultTheme} themeOverrides={brandPresetOverrides(args.brandPreset)}
       state={createState('active_alignment', {
         dashboard: createDashboard({
           alignmentVoting: {
@@ -230,8 +258,8 @@ export const EmptyRecipients: Story = {
 }
 
 export const PoolUnavailableMocked: Story = {
-  render: () => (
-    <RuntimeStory
+  render: (args) => (
+    <RuntimeStory defaultTheme={args.defaultTheme} themeOverrides={brandPresetOverrides(args.brandPreset)}
       state={createState('active_citizenship', {
         dashboard: createDashboard({
           fundingDistribution: {
@@ -247,12 +275,12 @@ export const PoolUnavailableMocked: Story = {
 }
 
 export const UnsupportedChain: Story = {
-  render: () => <RuntimeStory state={createState('unsupported_chain')} />,
+  render: (args) => <RuntimeStory defaultTheme={args.defaultTheme} themeOverrides={brandPresetOverrides(args.brandPreset)} state={createState('unsupported_chain')} />,
 }
 
 export const ActiveMembershipUnstakeReady: Story = {
-  render: () => (
-    <RuntimeStory
+  render: (args) => (
+    <RuntimeStory defaultTheme={args.defaultTheme} themeOverrides={brandPresetOverrides(args.brandPreset)}
       state={createState('active_citizenship', {
         unstakeAvailability: {
           canUnstake: true,
@@ -264,8 +292,8 @@ export const ActiveMembershipUnstakeReady: Story = {
 }
 
 export const UnstakeWalletConfirmation: Story = {
-  render: () => (
-    <RuntimeStory
+  render: (args) => (
+    <RuntimeStory defaultTheme={args.defaultTheme} themeOverrides={brandPresetOverrides(args.brandPreset)}
       state={createState('active_alignment', {
         transaction: {
           kind: 'unstake',
@@ -280,8 +308,8 @@ export const UnstakeWalletConfirmation: Story = {
 }
 
 export const UnstakeSubmitted: Story = {
-  render: () => (
-    <RuntimeStory
+  render: (args) => (
+    <RuntimeStory defaultTheme={args.defaultTheme} themeOverrides={brandPresetOverrides(args.brandPreset)}
       state={createState('active_alignment', {
         transaction: {
           kind: 'unstake',
@@ -296,8 +324,8 @@ export const UnstakeSubmitted: Story = {
 }
 
 export const UnstakeRejected: Story = {
-  render: () => (
-    <RuntimeStory
+  render: (args) => (
+    <RuntimeStory defaultTheme={args.defaultTheme} themeOverrides={brandPresetOverrides(args.brandPreset)}
       state={createState('active_citizenship', {
         transaction: {
           kind: 'unstake',
@@ -312,8 +340,8 @@ export const UnstakeRejected: Story = {
 }
 
 export const UnstakeReverted: Story = {
-  render: () => (
-    <RuntimeStory
+  render: (args) => (
+    <RuntimeStory defaultTheme={args.defaultTheme} themeOverrides={brandPresetOverrides(args.brandPreset)}
       state={createState('active_citizenship', {
         transaction: {
           kind: 'unstake',
@@ -328,8 +356,8 @@ export const UnstakeReverted: Story = {
 }
 
 export const UnstakedReturnsToOnboarding: Story = {
-  render: () => (
-    <RuntimeStory
+  render: (args) => (
+    <RuntimeStory defaultTheme={args.defaultTheme} themeOverrides={brandPresetOverrides(args.brandPreset)}
       state={createState('onboarding_required', {
         identityStatus: 'verified',
         lifecycleNotice: 'Membership unstaked successfully. You can now join a governance house again.',
@@ -339,12 +367,12 @@ export const UnstakedReturnsToOnboarding: Story = {
 }
 
 export const RevokedMembership: Story = {
-  render: () => <RuntimeStory state={createState('revoked')} />,
+  render: (args) => <RuntimeStory defaultTheme={args.defaultTheme} themeOverrides={brandPresetOverrides(args.brandPreset)} state={createState('revoked')} />,
 }
 
 export const FriendlyContractError: Story = {
-  render: () => (
-    <RuntimeStory
+  render: (args) => (
+    <RuntimeStory defaultTheme={args.defaultTheme} themeOverrides={brandPresetOverrides(args.brandPreset)}
       state={createState('friendly_error', {
         error: 'The governance contract rejected this action. Review your details and try again.',
       })}

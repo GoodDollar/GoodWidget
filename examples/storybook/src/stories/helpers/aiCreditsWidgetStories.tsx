@@ -108,12 +108,16 @@ function MockStoryShell({
   provider,
   showWalletControls,
   disconnectOverride,
+  defaultTheme,
+  themeOverrides,
 }: {
   adapterFactory: AiCreditsWidgetAdapterFactory
   dataTestId: string
   provider?: EIP1193Provider
   showWalletControls?: boolean
   disconnectOverride?: () => Promise<void>
+  defaultTheme?: 'light' | 'dark'
+  themeOverrides?: import('@goodwidget/core').GoodWidgetThemeOverrides
 }) {
   const resolvedProviderRef = useRef<EIP1193Provider | null>(provider ?? null)
   const configErrorRef = useRef<unknown>(null)
@@ -160,6 +164,8 @@ function MockStoryShell({
         adapterFactory={statefulAdapterFactory}
         showWalletControls={showWalletControls}
         disconnectOverride={disconnectOverride}
+        defaultTheme={defaultTheme}
+        themeOverrides={themeOverrides}
       />
     </div>
   )
@@ -416,7 +422,13 @@ export function UnsupportedChainStory() {
   )
 }
 
-export function MockBackendStory() {
+export function MockBackendStory({
+  defaultTheme,
+  themeOverrides,
+}: {
+  defaultTheme?: 'light' | 'dark'
+  themeOverrides?: import('@goodwidget/core').GoodWidgetThemeOverrides
+} = {}) {
   const injectedProvider = getInjectedEip1193Provider()
 
   if (!isInjectedProviderUsable(injectedProvider)) {
@@ -433,7 +445,7 @@ export function MockBackendStory() {
 
   return (
     <YStack data-testid="AiCreditsWidget-mock-backend" style={{ width: 380 }}>
-      <MockAiCreditsWidget provider={injectedProvider} showWalletControls />
+      <MockAiCreditsWidget provider={injectedProvider} showWalletControls defaultTheme={defaultTheme} themeOverrides={themeOverrides} />
     </YStack>
   )
 }
@@ -442,7 +454,13 @@ export function MockBackendStory() {
  * Inner component that calls useAppKit() – must be rendered inside DefaultAppKitProvider.
  * Passes the AppKit open() as connectOverride so Connect Wallet triggers the real modal.
  */
-function AppKitConnectShell() {
+function AppKitConnectShell({
+  defaultTheme,
+  themeOverrides,
+}: {
+  defaultTheme?: 'light' | 'dark'
+  themeOverrides?: import('@goodwidget/core').GoodWidgetThemeOverrides
+}) {
   const { open } = useAppKit()
   const { disconnect } = useDisconnect()
   const { address: appKitAddress, status: accountStatus } = useAppKitAccount()
@@ -519,6 +537,8 @@ function AppKitConnectShell() {
         fundingVaultAddress={fundingVaultAddress}
         vaultAddress={vaultAddress}
         goodIdAddress={goodIdAddress}
+        defaultTheme={defaultTheme}
+        themeOverrides={themeOverrides}
       />
     </div>
   )
@@ -529,7 +549,13 @@ function AppKitConnectShell() {
  * Pressing Connect Wallet triggers the real AppKit modal via the provider-level connect override.
  * Requires VITE_REOWN_PROJECT_ID to be set in examples/storybook/.env.local.
  */
-export function AppKitConnectWalletStory() {
+export function AppKitConnectWalletStory({
+  defaultTheme,
+  themeOverrides,
+}: {
+  defaultTheme?: 'light' | 'dark'
+  themeOverrides?: import('@goodwidget/core').GoodWidgetThemeOverrides
+} = {}) {
   const projectId = import.meta.env.VITE_REOWN_PROJECT_ID as string | undefined
 
   if (!projectId) {
@@ -553,12 +579,18 @@ export function AppKitConnectWalletStory() {
         description: 'Buy AI credits with G$ and use them through Antseed.',
       }}
     >
-      <AppKitConnectShell />
+      <AppKitConnectShell defaultTheme={defaultTheme} themeOverrides={themeOverrides} />
     </DefaultAppKitProvider>
   )
 }
 
-export function InjectedWalletStory() {
+export function InjectedWalletStory({
+  defaultTheme,
+  themeOverrides,
+}: {
+  defaultTheme?: 'light' | 'dark'
+  themeOverrides?: import('@goodwidget/core').GoodWidgetThemeOverrides
+} = {}) {
   const injectedProvider = getInjectedEip1193Provider()
   const backendUrl = import.meta.env.VITE_AI_CREDITS_BACKEND_URL
   const baseRpcUrl = import.meta.env.VITE_AI_CREDITS_BASE_RPC_URL
@@ -592,6 +624,8 @@ export function InjectedWalletStory() {
         fundingVaultAddress={fundingVaultAddress}
         vaultAddress={vaultAddress}
         goodIdAddress={goodIdAddress}
+        defaultTheme={defaultTheme}
+        themeOverrides={themeOverrides}
       />
       {!backendUrl && (
         <YStack marginTop="$3">

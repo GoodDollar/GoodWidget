@@ -1,5 +1,6 @@
 import React from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
+import { BRAND_PRESET_OPTIONS, brandPresetOverrides, type BrandPreset } from '../helpers/themeOverridePresets'
 import { GoodReserveWidget } from '@goodwidget/goodreserve-widget'
 import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
 import {
@@ -10,122 +11,114 @@ import { reserveWidgetMockStates } from '../../fixtures/goodReserveWidgetMock'
 
 const provider = createCustodialEip1193Provider()
 
-const meta: Meta<typeof GoodReserveWidget> = {
+interface GoodReserveWidgetStoryArgs {
+  defaultTheme: 'light' | 'dark'
+  brandPreset: BrandPreset
+}
+
+const meta: Meta<GoodReserveWidgetStoryArgs> = {
   title: 'Widgets/GoodReserveWidget',
   component: GoodReserveWidget,
   tags: ['autodocs'],
   parameters: { layout: 'padded' },
+  argTypes: {
+    defaultTheme: { control: 'radio', options: ['dark', 'light'] },
+    brandPreset: { control: 'select', options: BRAND_PRESET_OPTIONS },
+  },
+  args: {
+    defaultTheme: 'dark',
+    brandPreset: 'None',
+  },
 }
 
 export default meta
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<GoodReserveWidgetStoryArgs>
 
 // Renders one deterministic reserve state per story for CI-safe widget coverage.
 const renderStory = (
-  mockState: Story['args']['mockState'],
+  mockState: any,
   dataTestId: string,
   defaultTheme?: 'light' | 'dark',
+  themeOverrides?: import('@goodwidget/core').GoodWidgetThemeOverrides
 ) => (
-  // <div data-testid={dataTestId} style={{ width: 390 }}>
-  <GoodReserveWidget provider={provider} mockState={mockState} defaultTheme={defaultTheme} />
-  // </div>
+  <GoodReserveWidget provider={provider} mockState={mockState} defaultTheme={defaultTheme} themeOverrides={themeOverrides} />
 )
 
 export const NoProvider: Story = {
-  render: () => renderStory(reserveWidgetMockStates.noProvider, 'GoodReserveWidget-no-provider'),
+  render: (args) => renderStory(reserveWidgetMockStates.noProvider, 'GoodReserveWidget-no-provider', args.defaultTheme, brandPresetOverrides(args.brandPreset)),
 }
 
 export const SdkInitializing: Story = {
-  render: () =>
-    renderStory(reserveWidgetMockStates.sdkInitializing, 'GoodReserveWidget-sdk-initializing'),
+  render: (args) => renderStory(reserveWidgetMockStates.sdkInitializing, 'GoodReserveWidget-sdk-initializing', args.defaultTheme, brandPresetOverrides(args.brandPreset)),
 }
 
 export const UnsupportedChain: Story = {
-  render: () =>
-    renderStory(reserveWidgetMockStates.unsupportedChain, 'GoodReserveWidget-unsupported-chain'),
+  render: (args) => renderStory(reserveWidgetMockStates.unsupportedChain, 'GoodReserveWidget-unsupported-chain', args.defaultTheme, brandPresetOverrides(args.brandPreset)),
 }
 
 export const IdleBuy: Story = {
-  render: () => renderStory(reserveWidgetMockStates.idleBuy, 'GoodReserveWidget-idle-buy'),
+  render: (args) => renderStory(reserveWidgetMockStates.idleBuy, 'GoodReserveWidget-idle-buy', args.defaultTheme, brandPresetOverrides(args.brandPreset)),
 }
 
 export const AmountEditing: Story = {
-  render: () =>
-    renderStory(reserveWidgetMockStates.amountEditing, 'GoodReserveWidget-amount-editing'),
+  render: (args) => renderStory(reserveWidgetMockStates.amountEditing, 'GoodReserveWidget-amount-editing', args.defaultTheme, brandPresetOverrides(args.brandPreset)),
 }
 
 export const QuoteLoading: Story = {
-  render: () =>
-    renderStory(reserveWidgetMockStates.quoteLoading, 'GoodReserveWidget-quote-loading'),
+  render: (args) => renderStory(reserveWidgetMockStates.quoteLoading, 'GoodReserveWidget-quote-loading', args.defaultTheme, brandPresetOverrides(args.brandPreset)),
 }
 
 export const QuoteReadyBuy: Story = {
-  render: () =>
-    renderStory(reserveWidgetMockStates.quoteReady, 'GoodReserveWidget-quote-ready-buy'),
+  render: (args) => renderStory(reserveWidgetMockStates.quoteReady, 'GoodReserveWidget-quote-ready-buy', args.defaultTheme, brandPresetOverrides(args.brandPreset)),
 }
 
 export const QuoteReadyBuyLightTheme: Story = {
-  render: () =>
-    renderStory(
-      reserveWidgetMockStates.quoteReady,
-      'GoodReserveWidget-quote-ready-buy-light',
-      'light',
-    ),
+  render: (args) => renderStory(reserveWidgetMockStates.quoteReady, 'GoodReserveWidget-quote-ready-buy-light', 'light', brandPresetOverrides(args.brandPreset)),
 }
 
 export const QuoteReadySell: Story = {
-  render: () =>
-    renderStory(reserveWidgetMockStates.sellQuoteReady, 'GoodReserveWidget-quote-ready-sell'),
+  render: (args) => renderStory(reserveWidgetMockStates.sellQuoteReady, 'GoodReserveWidget-quote-ready-sell', args.defaultTheme, brandPresetOverrides(args.brandPreset)),
 }
 
 export const QuoteReadyXdc: Story = {
-  render: () =>
-    renderStory(reserveWidgetMockStates.xdcQuoteReady, 'GoodReserveWidget-quote-ready-xdc'),
+  render: (args) => renderStory(reserveWidgetMockStates.xdcQuoteReady, 'GoodReserveWidget-quote-ready-xdc', args.defaultTheme, brandPresetOverrides(args.brandPreset)),
 }
 
 export const QuoteError: Story = {
-  render: () => renderStory(reserveWidgetMockStates.quoteError, 'GoodReserveWidget-quote-error'),
+  render: (args) => renderStory(reserveWidgetMockStates.quoteError, 'GoodReserveWidget-quote-error', args.defaultTheme, brandPresetOverrides(args.brandPreset)),
 }
 
 // Stale-quote recovery: re-quoting automatically with the notice still visible.
 export const QuoteRefreshing: Story = {
-  render: () =>
-    renderStory(reserveWidgetMockStates.quoteRefreshing, 'GoodReserveWidget-quote-refreshing'),
+  render: (args) => renderStory(reserveWidgetMockStates.quoteRefreshing, 'GoodReserveWidget-quote-refreshing', args.defaultTheme, brandPresetOverrides(args.brandPreset)),
 }
 
 export const InsufficientBalance: Story = {
-  render: () =>
-    renderStory(
-      reserveWidgetMockStates.insufficientBalance,
-      'GoodReserveWidget-insufficient-balance',
-    ),
+  render: (args) => renderStory(reserveWidgetMockStates.insufficientBalance, 'GoodReserveWidget-insufficient-balance', args.defaultTheme, brandPresetOverrides(args.brandPreset)),
 }
 
 export const SlippageSelection: Story = {
-  render: () =>
-    renderStory(reserveWidgetMockStates.slippageSelection, 'GoodReserveWidget-slippage-selection'),
+  render: (args) => renderStory(reserveWidgetMockStates.slippageSelection, 'GoodReserveWidget-slippage-selection', args.defaultTheme, brandPresetOverrides(args.brandPreset)),
 }
 
 export const ConfirmDialog: Story = {
-  render: () =>
-    renderStory(reserveWidgetMockStates.confirmDialog, 'GoodReserveWidget-confirm-dialog'),
+  render: (args) => renderStory(reserveWidgetMockStates.confirmDialog, 'GoodReserveWidget-confirm-dialog', args.defaultTheme, brandPresetOverrides(args.brandPreset)),
 }
 
 export const ApprovalPending: Story = {
-  render: () =>
-    renderStory(reserveWidgetMockStates.approvalPending, 'GoodReserveWidget-approval-pending'),
+  render: (args) => renderStory(reserveWidgetMockStates.approvalPending, 'GoodReserveWidget-approval-pending', args.defaultTheme, brandPresetOverrides(args.brandPreset)),
 }
 
 export const SwapPending: Story = {
-  render: () => renderStory(reserveWidgetMockStates.swapPending, 'GoodReserveWidget-swap-pending'),
+  render: (args) => renderStory(reserveWidgetMockStates.swapPending, 'GoodReserveWidget-swap-pending', args.defaultTheme, brandPresetOverrides(args.brandPreset)),
 }
 
 export const SwapSuccess: Story = {
-  render: () => renderStory(reserveWidgetMockStates.swapSuccess, 'GoodReserveWidget-swap-success'),
+  render: (args) => renderStory(reserveWidgetMockStates.swapSuccess, 'GoodReserveWidget-swap-success', args.defaultTheme, brandPresetOverrides(args.brandPreset)),
 }
 
 export const SwapError: Story = {
-  render: () => renderStory(reserveWidgetMockStates.swapError, 'GoodReserveWidget-swap-error'),
+  render: (args) => renderStory(reserveWidgetMockStates.swapError, 'GoodReserveWidget-swap-error', args.defaultTheme, brandPresetOverrides(args.brandPreset)),
 }
 
 // Live adapter (no mockState) so the real amount-input wiring is exercised.
@@ -133,16 +126,16 @@ export const SwapError: Story = {
 // statically imported and reaches the real getReserveStats/getBuyQuote path
 // against a connected wallet provider.
 export const Interactive: Story = {
-  render: () => (
+  render: ({ defaultTheme, brandPreset }) => (
     <div data-testid="GoodReserveWidget-interactive" style={{ width: 390 }}>
-      <GoodReserveWidget provider={provider} />
+      <GoodReserveWidget provider={provider} defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
     </div>
   ),
 }
 
 // Injected wallet story — uses the browser's EIP-1193 provider (MetaMask, Rabby, etc).
 // Matches the citizen-claim-widget InjectedWallet pattern. NOT for CI.
-function InjectedWalletStory() {
+function InjectedWalletStory({ defaultTheme, brandPreset }: { defaultTheme?: 'light' | 'dark'; brandPreset?: BrandPreset }) {
   const injectedProvider = getInjectedEip1193Provider()
   const usableProvider = isInjectedProviderUsable(injectedProvider)
 
@@ -160,20 +153,20 @@ function InjectedWalletStory() {
 
   return (
     <div data-testid="GoodReserveWidget-injected-wallet" style={{ width: 390 }}>
-      <GoodReserveWidget provider={injectedProvider} />
+      <GoodReserveWidget provider={injectedProvider} defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
     </div>
   )
 }
 
 export const InjectedWallet: Story = {
-  render: () => <InjectedWalletStory />,
+  render: ({ defaultTheme, brandPreset }) => <InjectedWalletStory defaultTheme={defaultTheme} brandPreset={brandPreset} />,
 }
 
 // Live wallet test — uses real MetaMask/wallet extension for end-to-end testing.
 // This story requires a browser wallet extension (MetaMask, etc.) to be installed.
 // NOT for CI — requires manual testing with real wallet connection.
 export const LiveWallet: Story = {
-  render: () => {
+  render: ({ defaultTheme, brandPreset }) => {
     if (typeof window === 'undefined' || !(window as any).ethereum) {
       return (
         <div style={{ padding: '20px', maxWidth: '400px' }}>
@@ -223,7 +216,7 @@ export const LiveWallet: Story = {
           <br />
           <small>Test the full swap flow: quote - confirm - execute - success</small>
         </div>
-        <GoodReserveWidget provider={walletProvider} />
+        <GoodReserveWidget provider={walletProvider} defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
       </div>
     )
   },
