@@ -61,34 +61,44 @@ const FIXED_ANALYTICS_RESPONSE: AnalyticsResponse = {
   },
 }
 
-/** Wraps the dashboard in the same bare TamaguiProvider the thin-host app uses (no GoodWidgetProvider — this widget has no wallet/connect concerns). */
-function GoodDataWidgetStoryShell({ dataTestId, children }: { dataTestId: string; children: React.ReactNode }) {
+import { GoodWidgetProvider, type GoodWidgetThemeOverrides } from '@goodwidget/core'
+
+/** Wraps the dashboard in the same bare TamaguiProvider the thin-host app uses (no GoodWidgetProvider — this widget has no wallet/connect concerns), but for ThemeOverrides we use GoodWidgetProvider to inject themes. */
+function GoodDataWidgetStoryShell({
+  dataTestId,
+  children,
+  themeOverrides,
+}: {
+  dataTestId: string
+  children: React.ReactNode
+  themeOverrides?: GoodWidgetThemeOverrides
+}) {
   return (
-    <TamaguiProvider config={defaultConfig} defaultTheme="dark">
+    <GoodWidgetProvider provider={undefined} defaultTheme="dark" themeOverrides={themeOverrides}>
       <div data-testid={dataTestId}>{children}</div>
-    </TamaguiProvider>
+    </GoodWidgetProvider>
   )
 }
 
-export function AiCreditsDashboardLoadingStory() {
+export function AiCreditsDashboardLoadingStory({ themeOverrides }: { themeOverrides?: GoodWidgetThemeOverrides } = {}) {
   return (
-    <GoodDataWidgetStoryShell dataTestId="GoodDataWidget-loading">
+    <GoodDataWidgetStoryShell dataTestId="GoodDataWidget-loading" themeOverrides={themeOverrides}>
       <AiCreditsDashboard mockState={{ kind: 'loading' }} />
     </GoodDataWidgetStoryShell>
   )
 }
 
-export function AiCreditsDashboardLiveStory() {
+export function AiCreditsDashboardLiveStory({ themeOverrides }: { themeOverrides?: GoodWidgetThemeOverrides } = {}) {
   return (
-    <GoodDataWidgetStoryShell dataTestId="GoodDataWidget-live">
+    <GoodDataWidgetStoryShell dataTestId="GoodDataWidget-live" themeOverrides={themeOverrides}>
       <AiCreditsDashboard mockState={{ kind: 'live', response: FIXED_ANALYTICS_RESPONSE }} />
     </GoodDataWidgetStoryShell>
   )
 }
 
-export function AiCreditsDashboardDemoStory() {
+export function AiCreditsDashboardDemoStory({ themeOverrides }: { themeOverrides?: GoodWidgetThemeOverrides } = {}) {
   return (
-    <GoodDataWidgetStoryShell dataTestId="GoodDataWidget-demo">
+    <GoodDataWidgetStoryShell dataTestId="GoodDataWidget-demo" themeOverrides={themeOverrides}>
       <AiCreditsDashboard mockState={{ kind: 'demo', response: FIXED_ANALYTICS_RESPONSE }} />
     </GoodDataWidgetStoryShell>
   )

@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react'
-import type { EIP1193Provider } from '@goodwidget/core'
+import type { EIP1193Provider, GoodWidgetThemeOverrides } from '@goodwidget/core'
 import { YStack } from '@goodwidget/ui'
 import {
   AiCreditsWidget,
@@ -108,12 +108,14 @@ function MockStoryShell({
   provider,
   showWalletControls,
   disconnectOverride,
+  themeOverrides,
 }: {
   adapterFactory: AiCreditsWidgetAdapterFactory
   dataTestId: string
   provider?: EIP1193Provider
   showWalletControls?: boolean
   disconnectOverride?: () => Promise<void>
+  themeOverrides?: GoodWidgetThemeOverrides
 }) {
   const resolvedProviderRef = useRef<EIP1193Provider | null>(provider ?? null)
   const configErrorRef = useRef<unknown>(null)
@@ -754,7 +756,7 @@ export function MultiSignerHistoryStory() {
 }
 
 /** Buy tab with the guidance card visible (default state). */
-export function GuidanceCardDefaultStory() {
+export function GuidanceCardDefaultStory({ themeOverrides }: { themeOverrides?: GoodWidgetThemeOverrides } = {}) {
   return (
     <MockStoryShell
       dataTestId="AiCreditsWidget-guidance-card"
@@ -762,6 +764,7 @@ export function GuidanceCardDefaultStory() {
         gBalance: '42.50',
         activeTab: 'buy',
       })}
+      themeOverrides={themeOverrides}
     />
   )
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { GoodWidgetProvider } from '@goodwidget/core'
+import { GoodWidgetProvider, type GoodWidgetThemeOverrides } from '@goodwidget/core'
 import { YStack } from '@goodwidget/ui'
 import {
   CitizenClaimWidget,
@@ -246,9 +246,9 @@ function CustodialExecutionClaimAllHarness() {
   )
 }
 
-export function CustodialClaimExecutionClaimAllStory() {
+export function CustodialClaimExecutionClaimAllStory({ themeOverrides }: { themeOverrides?: GoodWidgetThemeOverrides } = {}) {
   return (
-    <GoodWidgetProvider provider={undefined} defaultTheme="dark">
+    <GoodWidgetProvider provider={undefined} defaultTheme="dark" themeOverrides={themeOverrides}>
       <CustodialExecutionClaimAllHarness />
     </GoodWidgetProvider>
   )
