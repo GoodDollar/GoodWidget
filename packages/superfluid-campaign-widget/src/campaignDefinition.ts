@@ -77,6 +77,13 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
       id: 'ecosystem-funding-actions',
       campaignId: 614,
       label: 'Ecosystem actions',
+      // Ecosystem Action points are temporarily paused; existing SUP reward
+      // streams are unaffected and keep running on points earned to date.
+      notice: {
+        title: 'Ecosystem action points are temporarily on hold',
+        message:
+          'New points for Ecosystem actions are not being allocated at this time. Existing SUP reward streams continue as normal based on points earned up to September 7, 2026.',
+      },
       actions: [
         {
           activity: 'flow-state-funding',
@@ -85,9 +92,9 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
           source: 'Flow State',
           description: 'Start a stream to the GoodBuilders Season 4 pool.',
           pointsLabel: '2 PTS PER 1K G$ (≈ $0.1)',
-          ctaLabel: 'Fund',
+          ctaLabel: 'On Hold',
           ctaKind: 'external-link',
-          href: 'https://flowstate.network/flow-councils/42220/0x582e3314d4ef56c18930acb10bb64313525e7820',
+          disabled: true,
         },
         {
           activity: 'gardens-donation',
@@ -96,9 +103,9 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
           source: 'Gardens',
           description: 'Donate to an eligible Community Pool.',
           pointsLabel: '1 PT PER 1K G$ (≈ $0.1)',
-          ctaLabel: 'Donate',
+          ctaLabel: 'On Hold',
           ctaKind: 'external-link',
-          href: 'https://app.gardens.fund/gardens/42220/0xf42c9ca2b10010142e2bac34ebdddb0b82177684',
+          disabled: true,
         },
         {
           activity: 'gardens-funding',
@@ -107,9 +114,9 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
           source: 'Gardens',
           description: 'Start a stream to an eligible Community Pool.',
           pointsLabel: '2 PTS PER 1K G$ (≈ $0.1)',
-          ctaLabel: 'Fund',
+          ctaLabel: 'On Hold',
           ctaKind: 'external-link',
-          href: 'https://app.gardens.fund/gardens/42220/0xf42c9ca2b10010142e2bac34ebdddb0b82177684',
+          disabled: true,
         },
       ],
     },
@@ -207,6 +214,25 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
       question: 'What should I do if the gas transaction fails?',
       answer:
         'Wait a few minutes, then check BaseScan (basescan.org) to confirm a non-zero ETH balance on Base. Check/update the gas fee suggestion in your wallet (e.g. MetaMask) and retry. If it persists, contact the GoodDollar Telegram support group (t.me/GoodDollarX).',
+    },
+    {
+      question: 'Are Ecosystem actions still earning points?',
+      answer: [
+        [
+          'New Ecosystem Action points are temporarily on hold. Points already earned remain unchanged, and existing SUP reward streams continue based on those points.',
+        ],
+        ['This page will be updated when new Ecosystem Action points resume.'],
+      ],
+    },
+    {
+      question: 'What happens to points I already earned?',
+      answer:
+        'Points earned up to September 7, 2026 remain valid and continue to count toward your SUP reward stream. GoodDollar Actions continue to earn points as normal.',
+    },
+    {
+      question: 'Will my SUP reward stream continue while Ecosystem Action points are on hold?',
+      answer:
+        'Yes. Existing SUP reward streams continue based on points earned up to September 7, 2026. The temporary hold on new Ecosystem Action points does not affect existing SUP reward streams.',
     },
   ],
 }
