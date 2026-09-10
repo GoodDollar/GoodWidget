@@ -21,12 +21,6 @@ on:
     paths:
       - 'apps/superfluid-campaign-web/**'
       - 'packages/superfluid-campaign-widget/**'
-      - 'packages/citizen-claim-widget/**'
-      - 'packages/core/**'
-      - 'packages/ui/**'
-      - 'packages/embed/**'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
 
 concurrency:
   group: deploy-superfluid-campaign-web-${{ github.event.pull_request.number || github.ref }}

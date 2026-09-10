@@ -652,7 +652,10 @@ export function useCitizenClaimAdapter(
   // Transitions: eligible → claiming → success | error
   // ---------------------------------------------------------------------------
   const claimOnChain = useCallback(
-    async (targetChainId: number): Promise<unknown> => {
+    async (
+      targetChainId: number,
+      onTransactionSubmitted?: (chainId: number) => void,
+    ): Promise<unknown> => {
       if (!isCustodialExecution && !provider) {
         throw new CitizenClaimAdapterError('No wallet provider available')
       }
@@ -694,7 +697,14 @@ export function useCitizenClaimAdapter(
         )
       }
 
-      return sdk.claimSDK.claim()
+      // Pass onTransactionSubmitted as the second argument to claim() so it fires
+      // immediately after the wallet signs and the tx hash is returned, before the
+      // receipt is awaited. The citizen-sdk ClaimSDK.submitAndWait already accepts
+      // an onHash callback; claim() will be updated to thread it through in
+      // GoodDollar/GoodSDKs (see companion PR). Until that SDK release lands,
+      // the cast below prevents a compile error.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (sdk.claimSDK as any).claim(undefined, () => onTransactionSubmitted?.(targetChainId))
     },
     [address, availableChainIds, createSdkInstancesForChain, isCustodialExecution, provider, switchChain],
   )
@@ -726,14 +736,17 @@ export function useCitizenClaimAdapter(
   )
 
   const claimAll = useCallback(
-    async (targetChainIds: number[]): Promise<CitizenClaimWidgetChainClaimResult[]> => {
+    async (
+      targetChainIds: number[],
+      onTransactionSubmitted?: (chainId: number) => void,
+    ): Promise<CitizenClaimWidgetChainClaimResult[]> => {
       const chainIdsToClaim = [...new Set(targetChainIds)]
 
       if (isCustodialExecution) {
         const settled = await Promise.allSettled(
           chainIdsToClaim.map(async (targetChainId) => ({
             chainId: targetChainId,
-            receipt: await claimOnChain(targetChainId),
+            receipt: await claimOnChain(targetChainId, () => onTransactionSubmitted?.(targetChainId)),
           })),
         )
 
@@ -758,7 +771,7 @@ export function useCitizenClaimAdapter(
           results.push({
             chainId: targetChainId,
             status: 'fulfilled',
-            receipt: await claimOnChain(targetChainId),
+            receipt: await claimOnChain(targetChainId, () => onTransactionSubmitted?.(targetChainId)),
           })
         } catch (claimError: unknown) {
           results.push({
@@ -773,24 +786,27 @@ export function useCitizenClaimAdapter(
     [claimOnChain, isCustodialExecution],
   )
 
-  const handleClaim = useCallback(async (): Promise<unknown> => {
-    if (!chainId) throw new Error('No active chain selected')
+  const handleClaim = useCallback(
+    async (onTransactionSubmitted?: (chainId: number) => void): Promise<unknown> => {
+      if (!chainId) throw new Error('No active chain selected')
 
-    setStatus('claiming')
-    setError(null)
+      setStatus('claiming')
+      setError(null)
 
-    try {
-      const receipt = await claimOnChain(chainId)
-      if (!mountedRef.current) return receipt
-      await loadClaimStatus()
-      return receipt
-    } catch (err: unknown) {
-      if (!mountedRef.current) throw err
-      setStatus('error')
-      setError(humanReadableError(err))
-      throw err
-    }
-  }, [chainId, claimOnChain, loadClaimStatus])
+      try {
+        const receipt = await claimOnChain(chainId, onTransactionSubmitted)
+        if (!mountedRef.current) return receipt
+        await loadClaimStatus()
+        return receipt
+      } catch (err: unknown) {
+        if (!mountedRef.current) throw err
+        setStatus('error')
+        setError(humanReadableError(err))
+        throw err
+      }
+    },
+    [chainId, claimOnChain, loadClaimStatus],
+  )
 
   // ---------------------------------------------------------------------------
   // handleVerify — initiates the GoodID face-verification flow.
