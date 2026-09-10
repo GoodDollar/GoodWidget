@@ -6,6 +6,7 @@ import {
   AiCreditsDashboardDemoStory,
   AiCreditsDashboardLiveUnavailableStory,
   AiCreditsDashboardEmptyStory,
+  AiCreditsDashboardRealisticVolumeStory,
 } from '../helpers/goodDataWidgetStories'
 
 const meta: Meta<typeof AiCreditsDashboard> = {
@@ -31,6 +32,11 @@ export const Live: Story = {
 
 export const Demo: Story = {
   render: () => <AiCreditsDashboardDemoStory />,
+}
+
+/** 30-day fixture shaped after real production magnitudes (sparse large deposit spikes vs a narrow, independently-moving streamed band) — exercises the G$ Volume chart's secondaryYAxis beyond the smooth demo ramp. */
+export const RealisticVolume: Story = {
+  render: () => <AiCreditsDashboardRealisticVolumeStory />,
 }
 
 export const LiveUnavailable: Story = {
