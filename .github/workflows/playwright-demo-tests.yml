@@ -69,3 +69,4 @@ jobs:
           path: |
             playwright-report
             test-results
+            tests/**/test-results
