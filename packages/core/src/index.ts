@@ -3,6 +3,16 @@ export type { WalletContextValue, HostContextValue, GoodWidgetContextValue } fro
 export { DISCONNECT_UNAVAILABLE_ERROR } from './provider'
 export { useWallet, useHost, useGoodWidget } from './hooks'
 export { detectHost } from './detect'
+export { createViemFallbackClient } from './viemFallbackClient'
+export type {
+  CachedChainRpcs,
+  ViemFallbackClient,
+  ViemFallbackClientOptions,
+  ViemFallbackPublicClientParameters,
+  ViemFallbackStorage,
+  ViemFallbackWalletClientParameters,
+  ViemRpcCacheEntry,
+} from './viemFallbackClient'
 export { WalletControls } from './WalletControls'
 export type { WalletControlsProps } from './WalletControls'
 

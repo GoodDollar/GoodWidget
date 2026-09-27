@@ -14,13 +14,13 @@ export type {
   AiCreditsPaySuccessDetail,
   AiCreditsPayErrorDetail,
   AiCreditsQuote,
-  BuyerKeyEntry,
+  SignerKeyEntry,
 } from './widgetRuntimeContract'
 
 export {
   parseDeepLinkParams,
   resolveDeepLinkParams,
-  isValidBuyerAddress,
+  isValidSignerAddress,
   isValidOperatorSignature,
   storeDeepLinkParams,
   readStoredDeepLinkParams,
@@ -51,7 +51,7 @@ export {
   usdToCredits,
   DEFAULT_DISCOUNT_CONFIG,
 } from './backendClient'
-export type { BuyerOperatorStatus, Eip712SigningPayload } from './operatorConsent'
+export type { SignerOperatorStatus, Eip712SigningPayload } from './operatorConsent'
 export type { AiCreditsChainClient } from './chainClient'
 export { createChainClient, DEFAULT_BASE_RPC_URL, CELO_GOODID_ADDRESS, DEFAULT_CELO_RPC_URL } from './chainClient'
 

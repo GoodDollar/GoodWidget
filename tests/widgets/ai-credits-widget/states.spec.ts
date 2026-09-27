@@ -14,14 +14,11 @@ const STORY_IDS = {
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--payment-confirmed&viewMode=story',
   creditsManagement:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--credits-management&viewMode=story',
-  historyTab:
-    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--history-tab&viewMode=story',
-  setupTab:
-    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--setup-tab&viewMode=story',
+  historyTab: '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--history-tab&viewMode=story',
+  setupTab: '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--setup-tab&viewMode=story',
   insufficientBalance:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--insufficient-g-balance&viewMode=story',
-  buyTabError:
-    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--buy-tab-error&viewMode=story',
+  buyTabError: '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--buy-tab-error&viewMode=story',
   paymentFailed:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--payment-failed&viewMode=story',
   backendUnavailable:
@@ -80,11 +77,11 @@ test('AiCreditsWidget Setup tab — onboarding steps visible', async ({ page }) 
   await gotoStory(page, STORY_IDS.setupTab)
   const root = page.getByTestId('AiCreditsWidget-setup-tab')
   await expect(root).toBeVisible()
-  await expect(root.getByText('Your G$ Balance')).toBeVisible()
-  await expect(root.getByText(/One-time setup — optional for now/)).toBeVisible()
-  await expect(root.getByText('Download Antseed', { exact: true }).first()).toBeVisible()
+  await expect(root.getByText(/One-time setup required before buying AI Credits/)).toBeVisible()
+  // "Get Antseed" is both a guidance-card bullet and the first step; the step is last.
+  await expect(root.getByText('Get Antseed', { exact: true }).last()).toBeVisible()
   await expect(root.getByText('Signer key', { exact: true })).toBeVisible()
-  await expect(root.getByText('Authorize Wallet', { exact: true })).toBeVisible()
+  await expect(root.getByText('Authorize Credits Management', { exact: true }).last()).toBeVisible()
   await expect(root.getByText('Set Up', { exact: true })).toBeVisible()
   await expect(root.getByText('Buy Credits', { exact: true })).toBeVisible()
   await page.screenshot({
@@ -147,13 +144,28 @@ test('AiCreditsWidget payment_confirmed', async ({ page }) => {
 test('AiCreditsWidget manage tab', async ({ page }) => {
   await gotoStory(page, STORY_IDS.creditsManagement)
   const root = page.getByTestId('AiCreditsWidget-manage-tab')
-  await expect(root).toBeVisible()
+  await expect(root).toBeVisible({ timeout: 10_000 })
   await expect(root.getByText('Set Up', { exact: true })).toBeVisible()
   await expect(root.getByText('Buy Credits', { exact: true })).toBeVisible()
   await expect(root.getByText('Manage', { exact: true })).toBeVisible()
   await expect(root.getByText('History', { exact: true })).toBeVisible()
   await expect(page.getByText('110.00')).toBeVisible()
   await expect(page.getByText('Credit History')).not.toBeVisible()
+  // The Signer Key card is collapsed at rest; unauthorize lives inside it.
+  await root.getByTestId('signer-key-toggle').click()
+  await root.getByRole('button', { name: 'Unauthorize Credit Management' }).click()
+
+  // Like the Set Up authorization sheet, the Drawer renders through a Tamagui Sheet
+  // portal outside the widget root, so its content is queried at the page level.
+  const revokeSheetTitle = page.getByText('Unauthorize Credit Management?', { exact: true })
+  await expect(revokeSheetTitle).toBeVisible()
+  await expect(
+    page.getByText(/removes the operator's ability to act on your behalf/i),
+  ).toBeVisible()
+  await expect(page.getByText(/Your credits and your signer key stay where they are/i)).toBeVisible()
+
+  await page.getByRole('button', { name: 'Cancel' }).click()
+  await expect(revokeSheetTitle).not.toBeInViewport()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-07-credits-management.png',
     fullPage: true,
@@ -189,7 +201,9 @@ test('AiCreditsWidget buy tab with error', async ({ page }) => {
   const root = page.getByTestId('AiCreditsWidget-buy-tab-error')
   await expect(root).toBeVisible()
   await expect(root.getByText('Request Failed', { exact: true })).toBeVisible()
-  await expect(root.getByText('Network request failed. Please try again.', { exact: true }).first()).toBeVisible()
+  await expect(
+    root.getByText('Network request failed. Please try again.', { exact: true }).first(),
+  ).toBeVisible()
   await expect(root.getByRole('button', { name: 'Buy AI Credits' })).toBeVisible()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-15-buy-tab-error.png',
@@ -246,10 +260,11 @@ test('AiCreditsWidget appkit connect wallet opens modal', async ({ page }) => {
   }
 
   const root = page.getByTestId('AiCreditsWidget-appkit-connect')
-  await expect(root).toBeVisible({ timeout: 20_000 })
-  const connectBtn = root.getByRole('button', { name: 'Connect Wallet' })
+  await expect(root).toBeVisible()
+  // The story's own play() clicks Connect, so the button may already have
+  // flipped to its disabled "Connecting..." state before we look at it.
+  const connectBtn = root.getByRole('button', { name: /connect wallet|connecting/i })
   await expect(connectBtn).toBeVisible({ timeout: 20_000 })
-  await expect(connectBtn).toBeEnabled({ timeout: 20_000 })
 
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-14-appkit-connect-before.png',
@@ -257,7 +272,7 @@ test('AiCreditsWidget appkit connect wallet opens modal', async ({ page }) => {
   })
 
   const openModal = page.locator('w3m-modal.open')
-  if (!(await openModal.isVisible().catch(() => false))) {
+  if (!(await openModal.isVisible().catch(() => false)) && (await connectBtn.isEnabled())) {
     await connectBtn.click({ timeout: 15_000 })
   }
 
@@ -270,27 +285,27 @@ test('AiCreditsWidget appkit connect wallet opens modal', async ({ page }) => {
 })
 
 // ---------------------------------------------------------------------------
-// Multi-buyer tests
+// Multi-signer tests
 // ---------------------------------------------------------------------------
 
 const MULTI_BUYER_STORY_IDS = {
-  multiBuyerManage:
-    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--multi-buyer-manage&viewMode=story',
-  deepLinkBuyer:
-    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--deep-link-buyer&viewMode=story',
+  multiSignerManage:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--multi-signer-manage&viewMode=story',
+  deepLinkSigner:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--deep-link-signer&viewMode=story',
   deepLinkConsentPending:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--deep-link-consent-pending&viewMode=story',
-  multiBuyerHistory:
-    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--multi-buyer-history&viewMode=story',
+  multiSignerHistory:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--multi-signer-history&viewMode=story',
   walletControls:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--wallet-controls&viewMode=story',
   walletControlsHidden:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--wallet-controls-hidden&viewMode=story',
 } as const
 
-test('AiCreditsWidget multi-buyer manage: buyer selector is visible', async ({ page }) => {
-  await gotoStory(page, MULTI_BUYER_STORY_IDS.multiBuyerManage)
-  const root = widget(page, 'AiCreditsWidget-multi-buyer-manage')
+test('AiCreditsWidget multi-signer manage: signer selector is visible', async ({ page }) => {
+  await gotoStory(page, MULTI_BUYER_STORY_IDS.multiSignerManage)
+  const root = widget(page, 'AiCreditsWidget-multi-signer-manage')
   await expect(root).toBeVisible()
 
   // Collapsed by default: the header reports the active signer and its authorization,
@@ -311,7 +326,7 @@ test('AiCreditsWidget multi-buyer manage: buyer selector is visible', async ({ p
 
   // Replacing a signer is a secondary action: it stays behind its own disclosure.
   await expect(root.getByRole('button', { name: 'Generate Signer Key' })).toHaveCount(0)
-  await root.getByRole('button', { name: 'Replace signer key' }).click()
+  await root.getByRole('button', { name: 'New Signer Key' }).click()
   await expect(root.getByRole('button', { name: 'Generate Signer Key' })).toBeVisible()
   await expect(root.getByRole('button', { name: 'Import Signer Key' })).toBeVisible()
 
@@ -322,7 +337,7 @@ test('AiCreditsWidget multi-buyer manage: buyer selector is visible', async ({ p
   await expect(root.getByTestId('signer-key-card').getByText(/^0x[0-9a-f]{64}$/i)).toBeVisible()
 
   await page.screenshot({
-    path: 'tests/widgets/ai-credits-widget/test-results/acw-15-multi-buyer-manage.png',
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-15-multi-signer-manage.png',
     fullPage: true,
   })
 })
@@ -365,27 +380,27 @@ test('AiCreditsWidget wallet controls: hidden by default for wallet hosts', asyn
   })
 })
 
-test('AiCreditsWidget deep-link buyer: Sign Consent enabled via operatorSignature', async ({
+test('AiCreditsWidget deep-link signer: Sign Consent enabled via operatorSignature', async ({
   page,
 }) => {
-  await gotoStory(page, MULTI_BUYER_STORY_IDS.deepLinkBuyer)
-  const root = widget(page, 'AiCreditsWidget-deep-link-buyer')
+  await gotoStory(page, MULTI_BUYER_STORY_IDS.deepLinkSigner)
+  const root = widget(page, 'AiCreditsWidget-deep-link-signer')
   await expect(root).toBeVisible()
 
   // A pre-signed operatorSignature is enough to authorize, even without a private key.
   await root.getByTestId('signer-key-toggle').click()
 
   await expect(root.getByText('Not authorized').first()).toBeVisible()
-  const authorizeButton = root.getByRole('button', { name: 'Authorize GoodDollar' })
+  const authorizeButton = root.getByRole('button', { name: 'Authorize Credit Management' })
   await expect(authorizeButton).toBeEnabled()
 
   await page.screenshot({
-    path: 'tests/widgets/ai-credits-widget/test-results/acw-16-deep-link-buyer.png',
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-16-deep-link-signer.png',
     fullPage: true,
   })
 })
 
-test('AiCreditsWidget deep-link authorization pending: Authorize Wallet requires an explicit click', async ({
+test('AiCreditsWidget deep-link authorization pending: Authorize Credits Management requires an explicit click', async ({
   page,
 }) => {
   await gotoStory(page, MULTI_BUYER_STORY_IDS.deepLinkConsentPending)
@@ -396,17 +411,15 @@ test('AiCreditsWidget deep-link authorization pending: Authorize Wallet requires
   // authorization gate must render before any permission is granted. The step
   // lives on Set Up now that Buy is purchase-only.
   await root.getByText('Set Up', { exact: true }).click()
-  await root.getByText('Authorize Wallet', { exact: true }).first().click()
+  await root.getByText('Authorize Credits Management', { exact: true }).last().click()
 
   // The Drawer renders via a Tamagui Sheet portal outside the widget's root DOM
   // subtree, so its content must be queried at the page level, not scoped to `root`.
-  await expect(
-    page.getByText(/A one-time, on-chain approval — not a payment/i),
-  ).toBeVisible()
+  await expect(page.getByText(/A one-time, on-chain approval — not a payment/i)).toBeVisible()
   await expect(page.getByText(/you can revoke it at any time/i)).toBeVisible()
   await expect(page.getByText('Wallet authorized')).not.toBeVisible()
 
-  const authorizeWalletButton = page.getByRole('button', { name: 'Authorize Wallet' })
+  const authorizeWalletButton = page.getByRole('button', { name: 'Authorize Credits Management' })
   await expect(authorizeWalletButton).toBeEnabled()
 
   await page.screenshot({
@@ -415,26 +428,26 @@ test('AiCreditsWidget deep-link authorization pending: Authorize Wallet requires
   })
 })
 
-test('AiCreditsWidget multi-buyer history: buyer filter dropdown is visible', async ({ page }) => {
-  await gotoStory(page, MULTI_BUYER_STORY_IDS.multiBuyerHistory)
-  const root = widget(page, 'AiCreditsWidget-multi-buyer-history')
+test('AiCreditsWidget multi-signer history: signer filter dropdown is visible', async ({ page }) => {
+  await gotoStory(page, MULTI_BUYER_STORY_IDS.multiSignerHistory)
+  const root = widget(page, 'AiCreditsWidget-multi-signer-history')
   await expect(root).toBeVisible()
 
-  await expect(root.getByText(/Buyer:/i)).toBeVisible()
+  await expect(root.getByText(/Signer:/i)).toBeVisible()
 
   await page.screenshot({
-    path: 'tests/widgets/ai-credits-widget/test-results/acw-17-multi-buyer-history.png',
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-17-multi-signer-history.png',
     fullPage: true,
   })
 })
 
-test('AiCreditsWidget multi-buyer: signer key import is reachable', async ({ page }) => {
-  await gotoStory(page, MULTI_BUYER_STORY_IDS.multiBuyerManage)
-  const root = widget(page, 'AiCreditsWidget-multi-buyer-manage')
+test('AiCreditsWidget multi-signer: signer key import is reachable', async ({ page }) => {
+  await gotoStory(page, MULTI_BUYER_STORY_IDS.multiSignerManage)
+  const root = widget(page, 'AiCreditsWidget-multi-signer-manage')
   await expect(root).toBeVisible()
 
   await root.getByTestId('signer-key-toggle').click()
-  await root.getByRole('button', { name: 'Replace signer key' }).click()
+  await root.getByRole('button', { name: 'New Signer Key' }).click()
   await root.getByRole('button', { name: 'Import Signer Key' }).click()
 
   await expect(
@@ -447,7 +460,6 @@ test('AiCreditsWidget multi-buyer: signer key import is reachable', async ({ pag
     fullPage: true,
   })
 })
-
 
 // ---------------------------------------------------------------------------
 // Setup guidance card tests
@@ -470,7 +482,7 @@ test('AiCreditsWidget guidance card: renders above tab navigation', async ({ pag
   // Guidance card content is visible
   await expect(root.getByText("WHAT'S INVOLVED:")).toBeVisible()
   await expect(root.getByText(/Get G\$/)).toBeVisible()
-  await expect(root.getByText(/Download Antseed/)).toBeVisible()
+  await expect(root.getByText(/Get Antseed/).first()).toBeVisible()
 
   // All three action buttons are present
   await expect(root.getByRole('button', { name: /how to use/i })).toBeVisible()
@@ -541,8 +553,8 @@ test('AiCreditsWidget guidance card: FAQs opens in-widget FAQ', async ({ page })
 
   // FAQ content appears inside the buy tab area
   await expect(root.getByText(/Back to Set Up/i)).toBeVisible()
-  await expect(root.getByText(/I only claim UBI with GoodWallet/i)).toBeVisible()
-  await expect(root.getByText(/Deposit or stream/i)).toBeVisible()
+  await expect(root.getByText(/I only claim G\$ UBI/i)).toBeVisible()
+  await expect(root.getByText(/Deposit or subscribe/i)).toBeVisible()
 
   // Tab navigation remains visible
   await expect(root.getByText('Buy Credits').first()).toBeVisible()
@@ -588,12 +600,13 @@ test('AiCreditsWidget Setup — Download AntSeed step is first and shows Start l
   const root = page.getByTestId('AiCreditsWidget-download-antseed-step')
   await expect(root).toBeVisible()
 
-  await expect(root.getByText('Download Antseed', { exact: true }).first()).toBeVisible()
+  await expect(root.getByText('Get Antseed', { exact: true }).last()).toBeVisible()
   await expect(root.getByText('Signer key', { exact: true })).toBeVisible()
-  await expect(root.getByText('Authorize Wallet', { exact: true })).toBeVisible()
+  await expect(root.getByText('Authorize Credits Management', { exact: true }).last()).toBeVisible()
   await expect(root.getByText('Ready', { exact: true })).toBeVisible()
-  // Later steps are skippable rather than locked, so they read as Optional.
-  await expect(root.getByText('Optional').first()).toBeVisible()
+  // Later steps are skippable rather than locked: they carry no status label at
+  // all, where a locked step would read "Pending".
+  await expect(root.getByText('Pending')).toHaveCount(0)
 
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-25-download-antseed-step.png',

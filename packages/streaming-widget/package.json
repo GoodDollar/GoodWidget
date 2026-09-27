@@ -39,7 +39,7 @@
     "react-dom": ">=18.0.0"
   },
   "dependencies": {
-    "@goodsdks/streaming-sdk": "1.0.0",
+    "@goodsdks/streaming-sdk": "1.1.0",
     "@goodwidget/core": "workspace:*",
     "@goodwidget/embed": "workspace:*",
     "@goodwidget/ui": "workspace:*",

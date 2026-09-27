@@ -12,7 +12,7 @@ import type {
   TransactionsResponse,
   UserCreditProfile,
 } from './backendTypes'
-import type { BuyerOperatorStatus } from './operatorConsent'
+import type { SignerOperatorStatus } from './operatorConsent'
 import type { AiCreditsChainClient } from './chainClient'
 import {
   flowRateWeiToMonthlyG,
@@ -52,12 +52,12 @@ function normalizeAddress(address: string): string {
 export type WithdrawPrincipalRequest = {
   amount: string
   recipient: string
-  timestamp: number
+  nonce: string
   signature: string
 }
 
 export type ChannelOperationRequest = {
-  timestamp?: number
+  nonce?: string
   signature?: string
 }
 
@@ -84,9 +84,16 @@ export type OperatorConsentRequest = {
 }
 
 export type OperatorConsentResponse = {
-  buyer: string
+  signer: string
   bridge: BridgeResponse
 }
+
+export type OperatorRevokeRequest = {
+  nonce: string
+  signature: string
+}
+
+export type OperatorRevokeResponse = OperatorConsentResponse
 
 async function readBridgeResponseBody<T extends { bridge?: BridgeResponse }>(
   response: Response,
@@ -126,21 +133,21 @@ function clampHistoryLimit(limit: number | undefined): number {
   return Math.min(Math.max(1, Math.floor(limit)), MAX_HISTORY_LIMIT)
 }
 
-export function resolveBuyerAddress(entries: GdCreditEntry[]): string | null {
+export function resolveSignerAddress(entries: GdCreditEntry[]): string | null {
   for (const entry of entries) {
-    if (entry.buyerAddress && isAddress(entry.buyerAddress)) {
-      return normalizeAddress(entry.buyerAddress)
+    if (entry.signerAddress && isAddress(entry.signerAddress)) {
+      return normalizeAddress(entry.signerAddress)
     }
   }
   return null
 }
 
-export function collectBuyerAddressesFromEntries(entries: GdCreditEntry[]): string[] {
+export function collectSignerAddressesFromEntries(entries: GdCreditEntry[]): string[] {
   const seen = new Set<string>()
   const result: string[] = []
   for (const entry of entries) {
-    if (!entry.buyerAddress || !isAddress(entry.buyerAddress)) continue
-    const key = normalizeAddress(entry.buyerAddress)
+    if (!entry.signerAddress || !isAddress(entry.signerAddress)) continue
+    const key = normalizeAddress(entry.signerAddress)
     if (seen.has(key)) continue
     seen.add(key)
     result.push(key)
@@ -148,12 +155,12 @@ export function collectBuyerAddressesFromEntries(entries: GdCreditEntry[]): stri
   return result
 }
 
-function defaultOperatorStatus(payer: string): BuyerOperatorStatus {
+function defaultOperatorStatus(payer: string): SignerOperatorStatus {
   const account = normalizeAddress(payer)
   return {
     enabled: false,
     account,
-    buyerAddress: account,
+    signerAddress: account,
     currentOperator: '0x0000000000000000000000000000000000000000',
     operatorAccepted: false,
     consentNonce: '0',
@@ -176,26 +183,27 @@ export function totalCreditUsdFromStatus(status: {
 
 export type AccountEnrichment = {
   totalCreditUsd: string
-  goodIdVerified: boolean
   totalGdDepositedG: string
   monthlyStreamG: string
 }
 
 export type BuildAccountViewOptions = {
-  buyerAddress?: string | null
+  signerAddress?: string | null
 }
 
-export async function enrichAccountView(
-  view: AccountView,
-  chain: AiCreditsChainClient,
-): Promise<AccountEnrichment> {
+/**
+ * Derives the display fields that need no further network access.
+ *
+ * GoodID verification is deliberately not read here. Chaining it to the backend
+ * credit fetch meant any backend error also cleared the verified flag, and it
+ * re-ran on every refresh; the adapter resolves it once per account instead.
+ */
+export function enrichAccountView(view: AccountView): AccountEnrichment {
   const { profile } = view
-  const goodIdVerified = await chain.isGoodIdVerified(view.account)
   const monthlyStreamG = flowRateWeiToMonthlyG(profile.streamFlowRateWeiPerSecond)
   const depositedWei = BigInt(profile.totalGdDepositedWei)
   return {
     totalCreditUsd: totalCreditUsdFromProfile(profile),
-    goodIdVerified,
     totalGdDepositedG: depositedWei > 0n ? weiToG(depositedWei) : '0.00',
     monthlyStreamG,
   }
@@ -220,13 +228,17 @@ export interface AiCreditsBackendClient {
     body?: ChannelOperationRequest,
   ): Promise<ChannelOperationResponse>
   withdrawCredits(
-    buyer: string,
+    signer: string,
     body: WithdrawPrincipalRequest,
   ): Promise<WithdrawPrincipalResponse>
   submitOperatorConsent(
-    buyer: string,
+    signer: string,
     body: OperatorConsentRequest,
   ): Promise<OperatorConsentResponse>
+  revokeOperatorConsent(
+    signer: string,
+    body: OperatorRevokeRequest,
+  ): Promise<OperatorRevokeResponse>
 }
 
 const BPS_PER_PERCENT = 100
@@ -298,7 +310,17 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
 
     const response = await fetch(`${this.accountBase(payer)}/credit-history?${params.toString()}`)
     if (!response.ok) throw new Error(`Credit history request failed: ${response.status}`)
-    return response.json() as Promise<CreditHistoryResponse>
+    // The backend still calls this `buyerAddress`; the widget speaks in signers.
+    const payload = (await response.json()) as Omit<CreditHistoryResponse, 'items'> & {
+      items?: Array<GdCreditEntry & { buyerAddress?: string }>
+    }
+    return {
+      ...payload,
+      items: (payload.items ?? []).map(({ buyerAddress, ...entry }) => ({
+        ...entry,
+        signerAddress: entry.signerAddress ?? buyerAddress,
+      })),
+    }
   }
 
   async getOutstanding(payer: string): Promise<{ outstandingFundingUsd: string; count: number }> {
@@ -397,23 +419,23 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
   }
 
   async withdrawCredits(
-    buyer: string,
+    signer: string,
     body: WithdrawPrincipalRequest,
   ): Promise<WithdrawPrincipalResponse> {
-    const response = await fetch(`${this.accountBase(buyer)}/withdraw`, {
+    const response = await fetch(`${this.accountBase(signer)}/withdraw`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })
     const bridge = await parseBridgeResponse(response, 'Withdraw')
-    return { account: normalizeAddress(buyer), amountUsd: body.amount, bridge }
+    return { account: normalizeAddress(signer), amountUsd: body.amount, bridge }
   }
 
   async submitOperatorConsent(
-    buyer: string,
+    signer: string,
     body: OperatorConsentRequest,
   ): Promise<OperatorConsentResponse> {
-    const response = await fetch(`${this.accountBase(buyer)}/operator-consent`, {
+    const response = await fetch(`${this.accountBase(signer)}/operator-consent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -423,7 +445,26 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
     })
     const payload = await readBridgeResponseBody<OperatorConsentResponse>(response, 'Operator consent')
     return {
-      buyer: normalizeAddress(payload.buyer ?? buyer),
+      signer: normalizeAddress(payload.signer ?? signer),
+      bridge: payload.bridge,
+    }
+  }
+
+  async revokeOperatorConsent(
+    signer: string,
+    body: OperatorRevokeRequest,
+  ): Promise<OperatorRevokeResponse> {
+    const response = await fetch(`${this.accountBase(signer)}/operator-revoke`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nonce: body.nonce,
+        signature: body.signature,
+      }),
+    })
+    const payload = await readBridgeResponseBody<OperatorRevokeResponse>(response, 'Operator revoke')
+    return {
+      signer: normalizeAddress(payload.signer ?? signer),
       bridge: payload.bridge,
     }
   }
@@ -473,6 +514,10 @@ export class UnavailableAiCreditsBackendClient implements AiCreditsBackendClient
   async submitOperatorConsent() {
     return this.unavailable()
   }
+
+  async revokeOperatorConsent() {
+    return this.unavailable()
+  }
 }
 
 export function createBackendClient(
@@ -490,7 +535,7 @@ export async function waitForOperatorConsent(
 ): Promise<void> {
   for (let attempt = 0; attempt < BRIDGE_POLL_MAX_ATTEMPTS; attempt++) {
     if (attempt > 0) await sleep(BRIDGE_POLL_INTERVAL_MS)
-    const status = await chain.getBuyerOperatorStatus(ref)
+    const status = await chain.getSignerOperatorStatus(ref)
     if (status.operatorAccepted) return
   }
 
@@ -504,27 +549,33 @@ export async function buildAccountView(
   options: BuildAccountViewOptions = {},
 ): Promise<AccountView> {
   const normalizedPayer = normalizeAddress(payer)
-  const [credit, outstanding] = await Promise.all([
-    backend.getAccountCredit(payer),
-    backend.getOutstanding(payer),
-  ])
-  const buyer =
-    options.buyerAddress && isAddress(options.buyerAddress)
-      ? normalizeAddress(options.buyerAddress)
+  const signer =
+    options.signerAddress && isAddress(options.signerAddress)
+      ? normalizeAddress(options.signerAddress)
       : null
-  const [operator, withdrawableUsd] = buyer
-    ? await Promise.all([
-        chain.getBuyerOperatorStatus({ payer: normalizedPayer, buyer }),
-        chain.getWithdrawableUsd(buyer),
-      ])
-    : [defaultOperatorStatus(normalizedPayer), '0']
+
+  // These four reads are independent of one another and span two networks (the
+  // credit backend and Base). Only the credit profile is load-bearing, so the
+  // rest degrade on their own rather than taking the whole view down with them:
+  // a Base RPC hiccup used to discard a perfectly good credit profile.
+  const [credit, outstanding, operator, withdrawableUsd] = await Promise.all([
+    backend.getAccountCredit(payer),
+    backend.getOutstanding(payer).catch(() => null),
+    signer
+      ? chain.getSignerOperatorStatus({ payer: normalizedPayer, signer }).catch(() => null)
+      : Promise.resolve(defaultOperatorStatus(normalizedPayer)),
+    signer ? chain.getWithdrawableUsd(signer).catch(() => null) : Promise.resolve('0'),
+  ])
+
   return {
     account: normalizedPayer,
-    buyer,
+    signer,
     profile: credit.profile,
     operator,
     withdrawableUsd,
-    outstandingFundingUsd: outstanding.outstandingFundingUsd,
-    outstandingFundingCount: outstanding.count,
+    // Not rendered anywhere today; '0' keeps the shape without inventing a
+    // balance the caller would display.
+    outstandingFundingUsd: outstanding?.outstandingFundingUsd ?? '0',
+    outstandingFundingCount: outstanding?.count ?? 0,
   }
 }

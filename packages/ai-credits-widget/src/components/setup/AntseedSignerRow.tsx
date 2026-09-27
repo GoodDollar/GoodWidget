@@ -11,6 +11,8 @@ interface AntseedSignerRowProps {
    * key they never backed up.
    */
   mode: SignerRowMode
+  /** Hidden when surrounding copy already gives the instructions. */
+  showCaption?: boolean
 }
 
 /**
@@ -19,11 +21,11 @@ interface AntseedSignerRowProps {
  * The image shows both arrow buttons because that is what the user will
  * actually see; the caption below names the one to press. Deliberately one
  * action per flow — an earlier version also told the user to back up first,
- * which duplicated the warning rendered just above this in BuyerKeyPanel and
+ * which duplicated the warning rendered just above this in SignerKeyPanel and
  * left two different keys to keep straight in a single sentence. Backing up
  * belongs to that warning; this line only answers "which arrow".
  */
-export function AntseedSignerRow({ mode }: AntseedSignerRowProps) {
+export function AntseedSignerRow({ mode, showCaption = true }: AntseedSignerRowProps) {
   const isGenerate = mode === 'generate'
 
   return (
@@ -34,6 +36,7 @@ export function AntseedSignerRow({ mode }: AntseedSignerRowProps) {
         style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 8 }}
       />
 
+      {showCaption ? (
       <Text fontSize="$2" tone="soft" textAlign="center" lineHeight="$3">
         {isGenerate ? (
           <>
@@ -53,6 +56,7 @@ export function AntseedSignerRow({ mode }: AntseedSignerRowProps) {
           </>
         )}
       </Text>
+      ) : null}
     </YStack>
   )
 }

@@ -1,5 +1,5 @@
 import { calculateFlowRate } from '@goodsdks/streaming-sdk'
-import type { GDAPool, StreamInfo } from '@goodsdks/streaming-sdk'
+import type { GDAPool, StreamInfo, StreamQueryResult } from '@goodsdks/streaming-sdk'
 import type { Address } from 'viem'
 import { formatUnits, parseUnits } from 'viem'
 import type {
@@ -8,7 +8,6 @@ import type {
   StreamListItem,
   StreamTimeUnit,
 } from '../widgetRuntimeContract'
-import type { StreamQueryRow } from './streamsSubgraph'
 
 const SECONDS_PER_TIME_UNIT: Record<StreamTimeUnit, bigint> = {
   day: 86_400n,
@@ -103,16 +102,15 @@ export function toStreamListItem(stream: StreamInfo, address: Address): StreamLi
 }
 
 /**
- * Subgraph rows carry `currentFlowRate`, which is what tells an ended stream
- * apart from a running one — `getActiveStreams` simply omits ended streams.
+ * Subgraph rows report `isActive` and, for ended streams, the timestamp they
+ * closed at — `getActiveStreams` simply omits ended streams.
  */
 export function toStreamListItemFromQuery(
-  stream: StreamQueryRow,
+  stream: StreamQueryResult,
   address: Address,
 ): StreamListItem {
   const direction =
     stream.sender.toLowerCase() === address.toLowerCase() ? 'outgoing' : 'incoming'
-  const isActive = stream.currentFlowRate > 0n
 
   return {
     id: stream.id,
@@ -125,8 +123,8 @@ export function toStreamListItemFromQuery(
     createdAtTimestamp: stream.createdAtTimestamp,
     updatedAtTimestamp: stream.updatedAtTimestamp,
     direction,
-    isActive,
-    closedAtTimestamp: isActive ? null : stream.updatedAtTimestamp,
+    isActive: stream.isActive,
+    closedAtTimestamp: stream.closedAtTimestamp ?? null,
   }
 }
 

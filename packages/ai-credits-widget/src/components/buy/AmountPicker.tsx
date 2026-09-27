@@ -17,6 +17,7 @@ import {
   getPayDisabledMessage,
   getPaymentAmountValidation,
 } from '../../vaultMinimums'
+import { formatGValue } from '../../format'
 import { AiCreditsStatusNotice, BonusBadgeFrame } from '../theme/cards'
 import { HoverTooltip } from '../shared/tooltips'
 import { compactButtonProps } from '../shared/styles'
@@ -267,7 +268,12 @@ export function AmountPicker({
           Your G$ Balance
         </Text>
         {gBalance !== null ? (
-          <TokenAmount token="G$" amount={gBalance} size="sm" />
+          <TokenAmount
+            token="G$"
+            amount={gBalance}
+            formattedAmount={formatGValue(gBalance)}
+            size="sm"
+          />
         ) : (
           <Spinner size="sm" />
         )}

@@ -18,7 +18,7 @@ export interface DailyAnalyticsRecord {
   gdStreamedWei: string
   gdTotalFlowRateWeiPerSecond: string
   aiCreditsUsedWei: string
-  uniqueGdBuyers: number
+  uniqueGdSigners: number
   uniqueCreditUsers: number
   updatedAt: string
   missing: boolean

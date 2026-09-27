@@ -15,7 +15,7 @@ import type {
   AiCreditsWidgetAdapterActions,
   AiCreditsWidgetAdapterState,
 } from '../../widgetRuntimeContract'
-import { BuyerKeyPanel } from '../buy/BuyerKeyPanel'
+import { GenerateSignerKeyPanel } from '../buy/GenerateSignerKeyPanel'
 import { AntseedSignerRow } from './AntseedSignerRow'
 import { compactButtonProps, truncateAddress } from '../shared/styles'
 
@@ -24,6 +24,8 @@ interface SignerKeyPanelProps {
   actions: AiCreditsWidgetAdapterActions
   /** Called once a signer is generated-and-confirmed or imported successfully. */
   onProceed: () => void
+  /** Opens the API setup route; omitted where that step is not reachable. */
+  onOpenApiSetup?: () => void
   /** Hide the panel heading when the host section already carries one (Manage tab). */
   showHeading?: boolean
   /** Overrides the label of the button offered once a signer is settled. */
@@ -41,6 +43,7 @@ export function SignerKeyPanel({
   state,
   actions,
   onProceed,
+  onOpenApiSetup,
   showHeading = true,
   proceedLabel: proceedLabelOverride,
   compact = false,
@@ -65,7 +68,7 @@ export function SignerKeyPanel({
   // Once the signer is settled the only step left is authorizing the wallet —
   // unless this signer already carries GoodDollar consent, which ends setup.
   const proceedLabel =
-    proceedLabelOverride ?? (state.operatorConsented ? 'Done' : 'Continue to Authorize Wallet')
+    proceedLabelOverride ?? (state.operatorConsented ? 'Done' : 'Continue to Authorize Credits Management')
 
   const hasDifferentOperator =
     Boolean(currentOperator) &&
@@ -76,23 +79,27 @@ export function SignerKeyPanel({
   if (choice === 'generate') {
     return (
       <YStack gap="$3">
-        <Button variant="text" alignSelf="flex-start" onPress={leaveChoice}>
+        <Button
+          variant="text"
+          alignSelf="flex-start"
+          onPress={keyConfirmed ? () => setKeyConfirmed(false) : leaveChoice}
+        >
           <Icon name="arrow-left" size="xs" color="primary" />
-          <ButtonText>Back to Generate / Import</ButtonText>
+          <ButtonText>
+            {keyConfirmed ? 'Back to Signer Key Generation' : 'Back to Generate / Import'}
+          </ButtonText>
         </Button>
-        <BuyerKeyPanel
+        <GenerateSignerKeyPanel
           embedded
-          buyerPubKey={state.buyerPubKey}
-          buyerPrvKey={state.buyerPrvKey}
-          buyerPubKeySaved={keyConfirmed}
-          onGenerate={actions.generateBuyerKey}
+          signerPubKey={state.signerPubKey}
+          signerPrvKey={state.signerPrvKey}
+          signerPubKeySaved={keyConfirmed}
+          onGenerate={actions.generateSignerKey}
           onConfirm={() => setKeyConfirmed(true)}
+          onProceed={onProceed}
+          proceedLabel={proceedLabel}
+          onOpenApiSetup={onOpenApiSetup}
         />
-        {keyConfirmed && (
-          <Button size="sm" {...compactButtonProps} onPress={onProceed}>
-            <ButtonText>{proceedLabel}</ButtonText>
-          </Button>
-        )}
       </YStack>
     )
   }
@@ -103,7 +110,7 @@ export function SignerKeyPanel({
     const importedSigner =
       !isImporting &&
       Boolean(importedAddress) &&
-      state.buyerPubKey?.toLowerCase() === importedAddress?.toLowerCase()
+      state.signerPubKey?.toLowerCase() === importedAddress?.toLowerCase()
     const importedSignerBlocked = importedSigner && hasDifferentOperator
 
     return (
@@ -114,8 +121,7 @@ export function SignerKeyPanel({
         </Button>
         <Heading level={5}>Import Signer Key</Heading>
         <Text>
-          Already have a signer key in Antseed? Export it there and paste it below. It will be
-          checked against the operator configured for this signer before you can continue.
+          Already have a Signer Key in Antseed? Export it there and paste it below.
         </Text>
         <AntseedSignerRow mode="import" />
         <Input
@@ -134,8 +140,8 @@ export function SignerKeyPanel({
             setIsImporting(true)
             setImportedAddress(null)
             void actions
-              .importBuyerFromPrivateKey(privateKey.trim())
-              .then((buyerAddress) => setImportedAddress(buyerAddress))
+              .importSignerFromPrivateKey(privateKey.trim())
+              .then((signerAddress) => setImportedAddress(signerAddress))
               .catch(() => setImportedAddress(null))
               .finally(() => setIsImporting(false))
           }}
@@ -158,13 +164,13 @@ export function SignerKeyPanel({
               Signer imported
             </Text>
             <Text tone="soft">
-              {truncateAddress(state.buyerPubKey ?? '')} is now your active signer.
+              {truncateAddress(state.signerPubKey ?? '')} is now your active signer.
             </Text>
             <Text tone="soft">
               {state.operatorConsented
                 ? 'GoodDollar is already configured as the operator.'
                 : currentOperator === ZERO_OPERATOR
-                  ? 'No operator is configured yet. Continue to authorize GoodDollar.'
+                  ? 'No operator is configured yet. Continue to Authorize Credit Management.'
                   : 'The configured operator is being checked.'}
             </Text>
             <Button size="sm" {...compactButtonProps} onPress={onProceed}>
@@ -209,15 +215,14 @@ export function SignerKeyPanel({
     <YStack gap="$3">
       {showHeading && <Heading level={5}>Signer Key</Heading>}
       {!compact && (
-        <Text tone="soft">
-          A dedicated identity used only to buy and spend AI credits — separate from your wallet.
+        <Text>
+          Used to access and manage your AI credits, separately from your connected wallet.
         </Text>
       )}
       {compact ? <YStack gap="$2">{choices}</YStack> : <XStack gap="$3">{choices}</XStack>}
       {!compact && (
         <Text fontSize="$2" tone="soft">
-          Generate is recommended for a fresh signer. Either direction uses the same key once it is
-          set up in AntSeed.
+          First time using Antseed? Generate a new Signer Key. Already have one? Import it.
         </Text>
       )}
     </YStack>

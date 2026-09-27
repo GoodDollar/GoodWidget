@@ -21,5 +21,5 @@ Grant only these EIP-1193 methods to the injected provider:
 - `eth_accounts` and `eth_chainId` to read the connected wallet.
 - `eth_requestAccounts` when the user selects **Connect Wallet**.
 - `wallet_switchEthereumChain` when the user selects the Celo network switch action.
-- `personal_sign` when the user generates the buyer key.
+- `personal_sign` when the user generates the signer key.
 - `eth_sendTransaction` when the user confirms a Celo payment.

@@ -3,7 +3,10 @@ import { Anchor, Button, ButtonText, Icon, Separator, Text, XStack, YStack } fro
 import { SetupBonusHighlight } from './SetupBonusHighlight'
 
 /** URL for the AntSeed website, opened in a new browser tab. */
-const ANTSEED_SITE_URL = 'https://antseed.com'
+const ANTSEED_SITE_URL = 'https://ubi.gd/46pjeqF'
+
+/** GoodReserve swap page — where G$ is bought directly from the reserve on Celo. */
+const GOODDAPP_RESERVE_URL = 'https://ubi.gd/4xcXfOt'
 
 interface SetupGuidanceCardProps {
   /** Callback to display the How to use guide inside the widget. */
@@ -41,7 +44,7 @@ export function SetupGuidanceCard({
     <YStack gap="$3" paddingHorizontal="$1">
       {/* Tagline */}
       <Text fontSize="$3" tone="soft" lineHeight="$4">
-        Buy AI credits with G$ for Claude Code, Codex, chat &amp; other AI tools.
+        GoodDollar supports buying Antseed AI credits with G$. Use them in Antseed to access supported AI tools such as Claude Code and Codex.
       </Text>
 
       <SetupBonusHighlight
@@ -79,7 +82,18 @@ export function SetupGuidanceCard({
               Get G${' '}
             </Text>
             <Text fontSize="$2" tone="soft">
-              — claim UBI via GoodWallet, or buy G$ with your wallet of choice
+              — claim G$ UBI or{' '}
+            </Text>
+            {/* Anchor styles itself at $3, so the nested Text pins it to the
+                surrounding $2 and carries the link colour. */}
+            <Anchor href={GOODDAPP_RESERVE_URL}>
+              <Text fontSize="$2" color="$primary" textDecorationLine="underline">
+                buy G$
+              </Text>
+            </Anchor>
+            <Text fontSize="$2" tone="soft">
+              {' '}
+              on celo to purchase AI credits.
             </Text>
           </Text>
         </XStack>
@@ -102,10 +116,10 @@ export function SetupGuidanceCard({
           </YStack>
           <Text fontSize="$2" flex={1} lineHeight="$3">
             <Text fontSize="$2" fontWeight="700">
-              Download Antseed{' '}
+              Get Antseed{' '}
             </Text>
             <Text fontSize="$2" tone="soft">
-              — the free desktop app that runs your credits locally
+              —  Use Antseed to use your AI credits.
             </Text>
           </Text>
         </XStack>
@@ -120,7 +134,7 @@ export function SetupGuidanceCard({
           flexGrow={1}
           flexBasis="auto"
           size="sm"
-          variant={activeHelpView === 'how-to-use' ? 'default' : 'outline'}
+          variant={activeHelpView === 'how-to-use' ? 'primary' : 'outline'}
           onPress={onHowToUse}
           borderRadius="$3"
           paddingHorizontal="$2"
@@ -154,7 +168,7 @@ export function SetupGuidanceCard({
           flexGrow={1}
           flexBasis="auto"
           size="sm"
-          variant={activeHelpView === 'faq' ? 'default' : 'outline'}
+          variant={activeHelpView === 'faq' ? 'primary' : 'outline'}
           onPress={onFaq}
           borderRadius="$3"
           paddingHorizontal="$2"

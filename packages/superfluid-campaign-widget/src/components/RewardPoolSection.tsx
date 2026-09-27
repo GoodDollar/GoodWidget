@@ -38,6 +38,10 @@ export function RewardPoolSection({
 
   return (
     <YStack gap="$3" width="100%">
+      {pool.notice && (
+        <Alert type="warning" title={pool.notice.title} message={pool.notice.message} />
+      )}
+
       <YStack gap="$1">
         <Heading level={4}>{pool.label}</Heading>
         <Text variant="caption" tone="secondary">

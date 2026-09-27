@@ -62,16 +62,18 @@ function GovernanceStoryFrame({
   walletLabel: string
   children: ReactNode
   dataTestId: string
-  width?: any
+  width?: number
 }) {
   return (
     <GovernanceWidgetProvider data-testId={dataTestId}>
-      <Card outlined>
-        <Text variant="caption" tone="secondary">
-          {walletLabel}
-        </Text>
-      </Card>
-      {children}
+      <YStack width={width} maxWidth="100%" gap="$3">
+        <Card outlined>
+          <Text variant="caption" tone="secondary">
+            {walletLabel}
+          </Text>
+        </Card>
+        {children}
+      </YStack>
     </GovernanceWidgetProvider>
   )
 }
@@ -197,6 +199,7 @@ function CustodialInteractiveFlowStory() {
       storyProps={{
         identityStatus: 'verified',
         initialStepId: 'welcome',
+        initialHouse: 'citizenship',
         walletAddress: '0x4E5B2D7a45C2e31a8F0d09b4bE1fA11aD3aC9F08',
         dataTestId: 'GovernanceOnboardingWidget-interactive-flow',
         transactionSteps: stepsState,
@@ -274,8 +277,7 @@ export const CustodialAlignmentProfileError: Story = {
         },
         initialFieldErrors: {
           projectWebpage: 'Project webpage is required',
-          missionStatement: 'Mission statement is required',
-          distributionStrategy: 'Distribution strategy is required',
+          missionStatement: 'Discourse link for mission statement and distribution strategy is required',
         },
         dataTestId: 'GovernanceOnboardingWidget-alignment-profile-error',
       }}
@@ -413,8 +415,7 @@ export const CustodialMobileDarkProfile: Story = {
         initialProfileDraft: { name: 'Solar Commons' },
         initialFieldErrors: {
           projectWebpage: 'Project webpage is required',
-          missionStatement: 'Mission statement is required',
-          distributionStrategy: 'Distribution strategy is required',
+          missionStatement: 'Discourse link for mission statement and distribution strategy is required',
         },
       }}
     />

@@ -1,0 +1,108 @@
+import { Canvas, Meta, Source } from '@storybook/blocks';
+import * as ShowcaseStories from './GovernanceWidgetShowcase.stories';
+import * as ThemeOverridesStories from './GovernanceWidgetThemeOverrides.stories';
+import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/DocsLayout';
+
+<Meta of={ShowcaseStories} />
+
+<DocsPage
+  eyebrow="Widget Guide"
+  title="GovernanceWidget"
+  lead="This widget wires GoodDAO membership, staking, and House of Alignment voting to the GoodDaoHouses contract, paired with deterministic QA fixtures and a live-mocked runtime flow for manual testing."
+>
+  <DocsSection
+    title="Manual wallet showcase"
+    description="Use this story when validating the real onboarding -> stake -> vote -> unstake flow in a browser with a real EIP-1193 wallet extension, against the live GoodDaoHouses contract. Use the Controls panel below the canvas to preview `defaultTheme`."
+  >
+    <Canvas of={ShowcaseStories.InjectedWallet} />
+  </DocsSection>
+
+  <DocsSection
+    title="Storybook demo data"
+    description="Preview an active House of Alignment vote, interactive allocation sliders, funding data, and a previous executed round. The wallet and onboarding path above remains the live showcase path."
+  >
+    <Canvas of={ShowcaseStories.Demo} />
+  </DocsSection>
+
+  <DocsSection
+    title="Theme overrides"
+    description="Play around with some of the theme overrides using the controls below (you may have to activate Controls in the addons panel, top-right). The code here can be copied and used directly in your own dapp — it always matches what's rendered. See the callout below the code for additional overridable styles not wired to a control."
+  >
+    <Canvas of={ThemeOverridesStories.Playground} />
+  </DocsSection>
+
+  <DocsSection
+    title="How to mount it"
+    description="Keep the host contract narrow. The widget expects a provider and optional environment/theming inputs."
+  >
+    <Source
+      dark
+      language="tsx"
+      code={`import { GovernanceWidget } from '@goodwidget/governance-widget'
+import { MiniAppShell } from '@goodwidget/ui'
+
+export function GovernancePanel({ provider }: { provider?: unknown }) {
+  return (
+    <MiniAppShell title="GoodDollar">
+      <GovernanceWidget
+        provider={provider}
+        defaultTheme="light"
+      />
+    </MiniAppShell>
+  )
+}`}
+    />
+  </DocsSection>
+
+  <DocsSection
+    title="Live testable flow with mocked data"
+    description="A dedicated QA story runs the real useGovernanceAdapter runtime end-to-end (not a hardcoded fixture) against a browser-native mocked Celo RPC and Superfluid subgraph, so onboarding, voting, and unstaking can be driven by hand in Storybook without a live contract."
+  >
+    <DocsCard
+      title="Open the live mocked-data flow"
+      href="?path=/story/qa-governancewidget-runtime-fixtures--live-mocked-data-flow"
+    >
+      Connects a mock wallet and mock RPC/subgraph directly to the real adapter — the only QA
+      story that exercises the runtime rather than a static state.
+    </DocsCard>
+  </DocsSection>
+
+  <DocsSection
+    title="QA coverage"
+    description="Deterministic dashboard states live in a dedicated QA story file so visual regression, fixture review, and debugging stay reproducible."
+  >
+    <DocsCard
+      title="Open the QA fixture demo"
+      href="?path=/story/qa-governancewidget-runtime-fixtures--disconnected-dashboard"
+    >
+      Disconnected, onboarding, active membership, voting, unstaking, and error states all live in
+      `QA / GovernanceWidget / Runtime Fixtures`.
+    </DocsCard>
+  </DocsSection>
+
+  <DocsSection
+    title="Why this widget is split"
+    description="The live wallet path (real contract, no mocks) is useful for manual, product-facing validation, while the QA fixtures and the mocked-runtime flow are better suited to automation, screenshots, and repeatable review."
+  >
+    <DocsGrid>
+      <DocsCard title="Showcase stories">
+        Real wallet, real GoodDaoHouses contract, no mocked reads or writes.
+      </DocsCard>
+      <DocsCard title="QA stories">
+        Static dashboard fixtures for screenshots and automation, plus one live-mocked-data story
+        for driving the real runtime by hand.
+      </DocsCard>
+    </DocsGrid>
+  </DocsSection>
+
+  <DocsSection
+    title="Workflow guidance"
+    description="Choose the story type based on whether you are reviewing live contract integration or validating deterministic widget states."
+  >
+    <DocsCallout title="Rule of use" tone="info">
+      Use the showcase story for product-facing wallet checks against the real contract. Use the
+      QA fixtures for repeatable screenshots and state coverage, and the live mocked-data flow when
+      you need to manually exercise the real runtime without a live contract.
+    </DocsCallout>
+  </DocsSection>
+</DocsPage>

@@ -112,7 +112,7 @@ function toTableRow(record: DailyAnalyticsRecord): TableRow {
     gdStreamed,
     totalGd: gdDeposited + gdStreamed,
     aiCreditsUsd: weiToUsd(record.aiCreditsUsedWei),
-    walletsGd: record.uniqueGdBuyers,
+    walletsGd: record.uniqueGdSigners,
     walletsAi: record.uniqueCreditUsers,
   }
 }
@@ -257,7 +257,7 @@ function AiCreditsDashboardView({
   }))
 
   const walletsChartData = dailyRecords.flatMap((record) => [
-    { x: record.date, y: record.uniqueGdBuyers, series: 'gdBuyers' },
+    { x: record.date, y: record.uniqueGdSigners, series: 'gdSigners' },
     { x: record.date, y: record.uniqueCreditUsers, series: 'creditUsers' },
   ])
 
@@ -345,7 +345,7 @@ function AiCreditsDashboardView({
               title="Unique Wallets"
               data={walletsChartData}
               series={[
-                { key: 'gdBuyers', label: 'G$ Buyers' },
+                { key: 'gdSigners', label: 'G$ Signers' },
                 { key: 'creditUsers', label: 'Credit Users' },
               ]}
               showArea={false}

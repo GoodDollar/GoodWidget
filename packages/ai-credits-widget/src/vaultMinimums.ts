@@ -1,4 +1,5 @@
 import { gToWei, parseGAmount, formatUsdDisplay, quoteDepositPrincipalUsd, quoteStreamPrincipalUsd } from './quoteMath'
+import { formatGValue } from './format'
 import type { AiCreditsQuote } from './widgetRuntimeContract'
 import { parseAbi, type Address, type PublicClient } from 'viem'
 
@@ -19,20 +20,22 @@ export type VaultPaymentMinimums = {
 export function formatMinGDisplay(amountWei: bigint): string {
   const raw = Number(amountWei) / 1e18
   if (!Number.isFinite(raw) || raw <= 0) return '0'
-  if (raw >= 1000) return Math.ceil(raw).toString()
-  if (raw >= 10) return (Math.ceil(raw * 10) / 10).toFixed(1)
-  return (Math.ceil(raw * 100) / 100).toFixed(2)
+  // Minimums always round up, so the displayed figure is never below the
+  // amount the vault actually accepts.
+  if (raw >= 1000) return formatGValue(Math.ceil(raw))
+  if (raw >= 10) return formatGValue(Math.ceil(raw * 10) / 10)
+  return formatGValue(Math.ceil(raw * 100) / 100)
 }
 
 export function formatMinGDisplayLocale(amountG: string): string {
   const value = parseGAmount(amountG)
   if (value <= 0) return amountG
-  if (value >= 1000) return Math.ceil(value).toLocaleString('en-US')
+  if (value >= 1000) return formatGValue(Math.ceil(value))
   return amountG
 }
 
 export function formatMinUsdDisplay(usd: string): string {
-  return formatUsdDisplay(usd, 2)
+  return formatUsdDisplay(usd)
 }
 
 function parseUsdThreshold(usd: string | null): number {

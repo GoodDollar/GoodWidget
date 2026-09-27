@@ -15,14 +15,14 @@ import {
 import { truncateAddress, compactButtonProps, monospaceSingleLineStyle } from '../shared/styles'
 
 interface OperatorConsentStepProps {
-  buyerPubKey: string | null
-  buyerPrvKey: string | null
+  signerPubKey: string | null
+  signerPrvKey: string | null
   operatorSignature?: string | null
   operatorConsented: boolean
   operatorConsentPending?: boolean
   onSign: () => Promise<void>
   /** Signer key this wallet derives, when the browser already knows it. */
-  derivedBuyerAddress?: string | null
+  derivedSignerAddress?: string | null
   /** Re-derives this wallet's signer key, for a browser that no longer holds it. */
   onRestoreKey?: () => Promise<void>
   embedded?: boolean
@@ -42,29 +42,29 @@ function ConsentBullet({ children }: { children: React.ReactNode }) {
 }
 
 export function OperatorConsentStep({
-  buyerPubKey,
-  buyerPrvKey,
+  signerPubKey,
+  signerPrvKey,
   operatorSignature = null,
   operatorConsented,
   operatorConsentPending = false,
   onSign,
-  derivedBuyerAddress = null,
+  derivedSignerAddress = null,
   onRestoreKey,
   embedded = false,
 }: OperatorConsentStepProps) {
   const [restorePending, setRestorePending] = useState(false)
-  const canSign = Boolean(buyerPubKey && (buyerPrvKey || operatorSignature))
+  const canSign = Boolean(signerPubKey && (signerPrvKey || operatorSignature))
   const isBusy = operatorConsentPending
 
   // Nothing here can be signed without the signer key. Rather than show a button
   // that cannot fire, offer the action that actually unblocks it — unless this
   // wallet derives a different signer key, in which case re-deriving would switch
-  // buyers behind the user's back and importing is the only honest route.
-  const needsKey = Boolean(buyerPubKey) && !canSign && !operatorConsented
+  // signers behind the user's back and importing is the only honest route.
+  const needsKey = Boolean(signerPubKey) && !canSign && !operatorConsented
   const derivesDifferentKey =
     needsKey &&
-    Boolean(derivedBuyerAddress) &&
-    derivedBuyerAddress?.toLowerCase() !== buyerPubKey?.toLowerCase()
+    Boolean(derivedSignerAddress) &&
+    derivedSignerAddress?.toLowerCase() !== signerPubKey?.toLowerCase()
   const canRestoreKey = needsKey && !derivesDifferentKey && Boolean(onRestoreKey)
 
   const Shell = embedded ? YStack : Card
@@ -81,14 +81,14 @@ export function OperatorConsentStep({
 
   return (
     <Shell gap="$3" {...(!embedded ? { backgroundColor: '$backgroundHover' } : {})}>
-      <Heading level={5}>Authorize Wallet</Heading>
-      <Text fontSize="$2" lineHeight="$3">
+      <Heading level={5}>Authorize Credits Management</Heading>
+      <Text>
         A one-time, on-chain approval — not a payment. Here&apos;s exactly what it does and
         doesn&apos;t allow:
       </Text>
 
       {/* Scope confirmed with the AntseedDeposits contract owner: the operator can
-          only fulfil purchases the buyer initiates, withdrawals return to the payer,
+          only fulfil purchases the signer initiates, withdrawals return to the payer,
           and the role carries no ERC-20 allowance and nothing on Celo. Do not widen
           these claims without re-checking. */}
       <PermissionList>
@@ -107,11 +107,11 @@ export function OperatorConsentStep({
         </ConsentBullet>
       </YStack>
 
-      {buyerPubKey && (
+      {signerPubKey && (
         <Text fontSize="$2" lineHeight="$2">
-          Buyer address:{' '}
+          Signer Address:{' '}
           <Text fontSize="$2" style={monospaceSingleLineStyle}>
-            {truncateAddress(buyerPubKey)}
+            {truncateAddress(signerPubKey)}
           </Text>
         </Text>
       )}
@@ -119,7 +119,7 @@ export function OperatorConsentStep({
       {operatorConsented ? (
         <XStack gap="$2" alignItems="center">
           <Icon name="check" size="sm" color="success" />
-          <Text color="$success">Wallet authorized — ready to pay</Text>
+          <Text color="$success">Credits management authorized</Text>
         </XStack>
       ) : derivesDifferentKey ? (
         <Text fontSize="$2" color="$warning" lineHeight="$3">
@@ -165,7 +165,7 @@ export function OperatorConsentStep({
               <Spinner size="sm" />
             </XStack>
           ) : (
-            <ButtonText>Authorize Wallet</ButtonText>
+            <ButtonText>Authorize Credits Management</ButtonText>
           )}
         </Button>
       )}

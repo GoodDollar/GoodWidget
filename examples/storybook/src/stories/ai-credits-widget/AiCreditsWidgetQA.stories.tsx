@@ -18,12 +18,12 @@ import {
   BackendUnavailableStory,
   UnsupportedChainStory,
   AppKitConnectWalletStory,
-  MultiBuyerManageStory,
+  MultiSignerManageStory,
   WalletControlsStory,
   WalletControlsHiddenStory,
-  DeepLinkBuyerStory,
+  DeepLinkSignerStory,
   DeepLinkConsentPendingStory,
-  MultiBuyerHistoryStory,
+  MultiSignerHistoryStory,
   GuidanceCardDefaultStory,
   GuidanceCardHowToUseStory,
   GuidanceCardFaqStory,
@@ -105,9 +105,9 @@ export const UnsupportedChain: Story = {
   render: () => <UnsupportedChainStory />,
 }
 
-/** Multi-buyer manage tab: buyer selector and private-key reveal. */
-export const MultiBuyerManage: Story = {
-  render: () => <MultiBuyerManageStory />,
+/** Multi-signer manage tab: signer selector and private-key reveal. */
+export const MultiSignerManage: Story = {
+  render: () => <MultiSignerManageStory />,
 }
 
 /** Header wallet chip opted in, with a host-supplied disconnect. */
@@ -120,19 +120,19 @@ export const WalletControlsHidden: Story = {
   render: () => <WalletControlsHiddenStory />,
 }
 
-/** Deep-link partner buyer: consent via pre-signed operatorSignature. */
-export const DeepLinkBuyer: Story = {
-  render: () => <DeepLinkBuyerStory />,
+/** Deep-link partner signer: consent via pre-signed operatorSignature. */
+export const DeepLinkSigner: Story = {
+  render: () => <DeepLinkSignerStory />,
 }
 
-/** Deep-link buyer reaching the buy-flow consent gate: signature prefilled, not yet consented. */
+/** Deep-link signer reaching the buy-flow consent gate: signature prefilled, not yet consented. */
 export const DeepLinkConsentPending: Story = {
   render: () => <DeepLinkConsentPendingStory />,
 }
 
-/** History tab with buyer filter dropdown. */
-export const MultiBuyerHistory: Story = {
-  render: () => <MultiBuyerHistoryStory />,
+/** History tab with signer filter dropdown. */
+export const MultiSignerHistory: Story = {
+  render: () => <MultiSignerHistoryStory />,
 }
 
 export const SetupTab: Story = {
@@ -211,14 +211,14 @@ export const SetupAuthorizeWallet: Story = {
   render: () => <SetupAuthorizeWalletStory />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    await userEvent.click(canvas.getByText('Authorize Wallet', { exact: true }))
+    await userEvent.click(canvas.getByText('Authorize Credits Management', { exact: true }))
     await expect(
       within(document.body).getByText(
         /GoodDollar needs this one-time authorization to fund and manage your AI credits/i,
       ),
     ).toBeVisible()
     await expect(
-      within(document.body).getByRole('button', { name: 'Authorize Wallet' }),
+      within(document.body).getByRole('button', { name: 'Authorize Credits Management' }),
     ).toBeEnabled()
   },
 }

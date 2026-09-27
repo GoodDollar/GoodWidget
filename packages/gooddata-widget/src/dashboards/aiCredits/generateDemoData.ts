@@ -33,7 +33,7 @@ function buildDailyRecord(daysAgo: number): DailyAnalyticsRecord {
   const streamedGd = rampedRandomInt(200, 800, ramp)
   const creditsUsd = rampedRandomInt(50, 200, ramp)
   // `|| 1` mirrors the reference: a day with near-zero ramp should still show at least one active wallet, not zero.
-  const uniqueGdBuyers = rampedRandomInt(2, 10, ramp) || 1
+  const uniqueGdSigners = rampedRandomInt(2, 10, ramp) || 1
   const uniqueCreditUsers = rampedRandomInt(1, 6, ramp) || 1
   const flowRatePerSecondGd = Math.floor(streamedGd / SECONDS_PER_DAY)
 
@@ -43,7 +43,7 @@ function buildDailyRecord(daysAgo: number): DailyAnalyticsRecord {
     gdStreamedWei: String(BigInt(streamedGd) * GD_DECIMALS),
     gdTotalFlowRateWeiPerSecond: String(BigInt(flowRatePerSecondGd) * GD_DECIMALS),
     aiCreditsUsedWei: String(BigInt(creditsUsd) * USD_DECIMALS),
-    uniqueGdBuyers,
+    uniqueGdSigners,
     uniqueCreditUsers,
     updatedAt: new Date().toISOString(),
     missing: false,
