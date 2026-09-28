@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - '.github/workflows/playwright-demo-tests.yml'
+      - 'docs/demo-environment.md'
+      - 'docs/qa-guide.md'
       - 'examples/storybook/**'
       - 'packages/**'
       - 'playwright.config.ts'
@@ -18,6 +20,8 @@ on:
       - main
     paths:
       - '.github/workflows/playwright-demo-tests.yml'
+      - 'docs/demo-environment.md'
+      - 'docs/qa-guide.md'
       - 'examples/storybook/**'
       - 'packages/**'
       - 'playwright.config.ts'
@@ -31,6 +35,7 @@ permissions:
 
 jobs:
   playwright-demo:
+    if: secrets.VITE_REOWN_PROJECT_ID != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -58,7 +63,7 @@ jobs:
 
       - name: Run Playwright demo tests
         env:
-          VITE_REOWN_PROJECT_ID: ${{ secrets.VITE_REOWN_PROJECT_ID || 'demo-project-id' }}
+          VITE_REOWN_PROJECT_ID: ${{ secrets.VITE_REOWN_PROJECT_ID }}
         run: pnpm test:demo
 
       - name: Upload Playwright artifacts
