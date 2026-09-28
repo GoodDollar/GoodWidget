@@ -58,7 +58,7 @@ jobs:
 
       - name: Run Playwright demo tests
         env:
-          VITE_REOWN_PROJECT_ID: ${{ secrets.VITE_REOWN_PROJECT_ID }}
+          VITE_REOWN_PROJECT_ID: ${{ secrets.VITE_REOWN_PROJECT_ID || 'demo-project-id' }}
         run: pnpm test:demo
 
       - name: Upload Playwright artifacts
