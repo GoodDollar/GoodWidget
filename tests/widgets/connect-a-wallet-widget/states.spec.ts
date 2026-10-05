@@ -116,12 +116,12 @@ test('ConnectAWalletWidget always shows Connect or Disconnect per row, never hid
 test('ConnectAWalletWidget shows the unsupported-network warning alongside chain rows', async ({ page }) => {
   await gotoStory(page, 'unsupported-network')
 
-  const matched = await waitForText(page, ['Unsupported network', 'Connect or Disconnect Address'])
+  const matched = await waitForText(page, ['Unsupported network', 'Linked address'])
   expect(matched, 'Widget must mount and render before screenshot').toBeTruthy()
   await expectBodyToContain(page, [
     'Unsupported network',
     "Your wallet is on a network this widget doesn't support yet. Connecting or disconnecting a chain below will prompt a network switch automatically.",
-    'Connect or Disconnect Address',
+    'Linked address',
   ])
   await saveScreenshot(page, 'caw-06-unsupported-network')
 })
