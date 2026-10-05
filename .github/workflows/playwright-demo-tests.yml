@@ -15,10 +15,21 @@ on:
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
+  pull_request:
+    types: [opened, synchronize, edited, ready_for_review]
+    paths:
+      - '.github/workflows/playwright-demo-tests.yml'
+      - 'docs/demo-environment.md'
+      - 'docs/qa-guide.md'
+      - 'examples/storybook/**'
+      - 'packages/**'
+      - 'playwright.config.ts'
+      - 'tests/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
   pull_request_target:
     types: [opened, synchronize, edited, ready_for_review]
-    branches:
-      - main
     paths:
       - '.github/workflows/playwright-demo-tests.yml'
       - 'docs/demo-environment.md'
@@ -36,26 +47,44 @@ permissions:
 
 jobs:
   authorize-tests:
-    if: github.event_name == 'pull_request_target'
+    if: github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
-    environment: ${{ github.event.pull_request.head.repo.full_name != github.repository && 'external' || 'internal' }}
+    environment: external
     steps:
       - run: true
 
   playwright-demo:
-    if: ${{ always() && (github.event_name != 'pull_request_target' || needs.authorize-tests.result == 'success') }}
+    if: >-
+      ${{
+        always() && (
+          github.event_name == 'push' ||
+          (github.event_name == 'pull_request' &&
+            github.event.pull_request.head.repo.full_name == github.repository) ||
+          (github.event_name == 'pull_request_target' &&
+            github.event.pull_request.head.repo.full_name != github.repository &&
+            needs.authorize-tests.result == 'success')
+        )
+      }}
     needs: authorize-tests
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout pull request head
+      - name: Checkout approved fork pull request head
         if: github.event_name == 'pull_request_target'
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          allow-unsafe-pr-checkout: true
+          persist-credentials: false
+
+      - name: Checkout pull request head
+        if: github.event_name == 'pull_request'
         uses: actions/checkout@v5
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
 
       - name: Checkout
-        if: github.event_name != 'pull_request_target'
+        if: github.event_name == 'push'
         uses: actions/checkout@v5
         with:
           persist-credentials: false
