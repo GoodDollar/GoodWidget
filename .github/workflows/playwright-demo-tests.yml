@@ -15,7 +15,8 @@ on:
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
-  pull_request:
+  pull_request_target:
+    types: [opened, synchronize, edited, ready_for_review]
     branches:
       - main
     paths:
@@ -34,12 +35,30 @@ permissions:
   contents: read
 
 jobs:
+  authorize-tests:
+    if: github.event_name == 'pull_request_target'
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.pull_request.head.repo.full_name != github.repository && 'external' || 'internal' }}
+    steps:
+      - run: true
+
   playwright-demo:
-    if: secrets.VITE_REOWN_PROJECT_ID != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    if: ${{ always() && (github.event_name != 'pull_request_target' || needs.authorize-tests.result == 'success') }}
+    needs: authorize-tests
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout pull request head
+        if: github.event_name == 'pull_request_target'
         uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Checkout
+        if: github.event_name != 'pull_request_target'
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -61,10 +80,24 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install chromium --with-deps
 
+      - name: Check Playwright demo configuration
+        env:
+          VITE_REOWN_PROJECT_ID: ${{ secrets.VITE_REOWN_PROJECT_ID }}
+        run: |
+          if [ -z "${VITE_REOWN_PROJECT_ID}" ]; then
+            echo "::error title=Missing VITE_REOWN_PROJECT_ID::Set the VITE_REOWN_PROJECT_ID repository secret so the AppKit-backed Playwright stories can run in CI."
+            exit 1
+          fi
+
       - name: Run Playwright demo tests
         env:
           VITE_REOWN_PROJECT_ID: ${{ secrets.VITE_REOWN_PROJECT_ID }}
-        run: pnpm test:demo
+        run: |
+          if [ -z "${VITE_REOWN_PROJECT_ID}" ]; then
+            echo "::error title=Missing VITE_REOWN_PROJECT_ID::Set the VITE_REOWN_PROJECT_ID repository secret so the AppKit-backed Playwright stories can run in CI."
+            exit 1
+          fi
+          pnpm test:demo
 
       - name: Upload Playwright artifacts
         if: failure()
