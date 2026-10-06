@@ -3,6 +3,8 @@ import { GoodWidgetProvider, useWallet } from '@goodwidget/core'
 import type { EIP1193Provider } from '@goodwidget/core'
 import { CitizenClaimWidget } from '@goodwidget/citizen-claim-widget'
 import { Card, Heading, Text, ToastContainer, YStack } from '@goodwidget/ui'
+import packageJson from '../package.json'
+import { WidgetVersion } from '@goodwidget/ui'
 import { CampaignHeader } from './components/CampaignHeader'
 import { FaqAccordion } from './components/FaqAccordion'
 import { LeaderboardSummary } from './components/LeaderboardSummary'
@@ -308,6 +310,7 @@ export function SuperfluidCampaignWidgetWithClient({
         />
       </Card>
       <ToastContainer />
+      <WidgetVersion version={packageJson.version} />
     </GoodWidgetProvider>
   )
 }
