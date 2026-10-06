@@ -419,24 +419,36 @@ function MemberFooter({
     <Card
       outlined
       data-testid="GovernanceWidget-member-footer"
+      data-bounds-width={bounds?.width}
+      data-bounds-left={bounds?.left}
       position="fixed"
       bottom={0}
-      width={bounds?.width ?? '100%'}
+      width={bounds ? undefined : '100%'}
       maxWidth={bounds ? undefined : GOVERNANCE_WIDGET_MAX_WIDTH}
-      left={bounds?.left ?? '50%'}
+      left={bounds ? undefined : '50%'}
       zIndex={10}
       backgroundColor="$background"
       borderTopWidth={1}
-      paddingHorizontal="$4"
+      padding={0}
       // Keep the footer fixed for the widget's content width, rather than
       // stretching it across the host page or Storybook viewport.
       style={{
         pointerEvents: 'none',
-        transform: bounds ? undefined : 'translateX(-50%)',
+        width: bounds ? `${bounds.width}px` : undefined,
+        maxWidth: bounds ? `${bounds.width}px` : undefined,
+        left: bounds ? `${bounds.left}px` : undefined,
+        transform: bounds ? 'none' : 'translateX(-50%)',
         boxSizing: 'border-box',
       } as any}
     >
-      <XStack alignItems="center" justifyContent="space-between" gap="$3" flexWrap="wrap">
+      <XStack
+        alignItems="center"
+        justifyContent="space-between"
+        gap="$3"
+        flexWrap="wrap"
+        paddingHorizontal="$4"
+        paddingVertical="$4"
+      >
         <Text variant="caption" tone="secondary">
           House: {house}
         </Text>
@@ -589,7 +601,8 @@ function GovernanceWidgetView({
   testId?: string
 }) {
   const { state, actions } = adapter
-  const widgetRef = useRef<HTMLDivElement>(null)
+  const resolvedTestId = testId ?? 'GovernanceWidget'
+  const widgetRef = useRef<HTMLDivElement | null>(null)
   const [widgetBounds, setWidgetBounds] = useState<WidgetBounds>()
   useEffect(() => {
     const element = widgetRef.current
@@ -597,6 +610,7 @@ function GovernanceWidgetView({
 
     const updateBounds = () => {
       const { left, width } = element.getBoundingClientRect()
+      element.setAttribute('data-measured-width', `${width}`)
       setWidgetBounds({ left, width })
     }
 
@@ -604,7 +618,7 @@ function GovernanceWidgetView({
     const observer = new ResizeObserver(updateBounds)
     observer.observe(element)
     return () => observer.disconnect()
-  }, [])
+  }, [resolvedTestId])
 
   // Skip is a view-only choice, not membership state: it never touches the
   // contract, so a reload or a wallet reconnect (address change) drops back
@@ -623,83 +637,79 @@ function GovernanceWidgetView({
     (state.status === 'onboarding_required' && isOnboardingSkipped)
 
   return (
-    <YStack
-      ref={widgetRef}
-      gap="$4"
-      width="100%"
-      paddingBottom="$16"
-      data-testid={testId ?? 'GovernanceWidget'}
-    >
-      <GovernanceHeader state={state} actions={actions} />
-      <RuntimeNotice state={state} actions={actions} />
-      {state.error && state.status !== 'friendly_error' && state.transaction.status === 'idle' ? (
-        <Card data-testid="GovernanceWidget-action-error">
-          <YStack gap="$2">
-            <Text color="$error" fontWeight="700">Governance action unavailable</Text>
-            <Text tone="secondary">{state.error}</Text>
+    <div ref={widgetRef} data-testid={resolvedTestId} style={{ width: '100%' }}>
+      <YStack gap="$4" width="100%" paddingBottom="$16">
+        <GovernanceHeader state={state} actions={actions} />
+        <RuntimeNotice state={state} actions={actions} />
+        {state.error && state.status !== 'friendly_error' && state.transaction.status === 'idle' ? (
+          <Card data-testid="GovernanceWidget-action-error">
+            <YStack gap="$2">
+              <Text color="$error" fontWeight="700">Governance action unavailable</Text>
+              <Text tone="secondary">{state.error}</Text>
+            </YStack>
+          </Card>
+        ) : null}
+        {state.status === 'vote_detail' ? <GovernanceVoteDetail state={state} actions={actions} /> : null}
+        {state.status === 'onboarding_required' && isOnboardingSkipped ? (
+          <GovernanceSignupBanner onResume={() => setIsOnboardingSkipped(false)} />
+        ) : null}
+        {state.status === 'onboarding_required' && !isOnboardingSkipped ? (
+          <YStack gap="$4">
+            {state.lifecycleNotice ? (
+              <Card data-testid="GovernanceWidget-lifecycle-notice">
+                <Text color="$success" fontWeight="700">{state.lifecycleNotice}</Text>
+              </Card>
+            ) : null}
+            <GovernanceOnboardingWidget
+              currentStepId={state.onboardingStepId}
+              identityStatus={state.identityStatus}
+              walletAddress={state.address ?? undefined}
+              initialHouse={state.selectedHouse}
+              initialProfileDraft={state.profileDraft}
+              stakeAmountLabel={state.stakeAmountLabel}
+              stakeAmountLabels={{
+                citizenship: formatStakeAmount(state.minimumStakeAmounts.citizenship),
+                alignment: formatStakeAmount(state.minimumStakeAmounts.alignment),
+              }}
+              transactionSteps={state.transactionSteps}
+              dataTestId="GovernanceWidget-onboarding"
+              onHouseChange={actions.selectHouse}
+              onIdentityVerificationPress={() => {
+                void actions.startIdentityVerification()
+              }}
+              onProfileSubmit={(profileDraft) => {
+                void actions.register(profileDraft)
+              }}
+            />
+            <Button
+              variant="secondary"
+              size="sm"
+              alignSelf="center"
+              height={32}
+              paddingHorizontal="$3"
+              borderWidth={1}
+              borderColor="$primary"
+              borderRadius="$2"
+              backgroundColor="$primary"
+              color="$white"
+              hoverStyle={{ backgroundColor: '$primaryDark', borderColor: '$primaryDark', color: '$white' }}
+              pressStyle={{ backgroundColor: '$primaryDark', borderColor: '$primaryDark', color: '$white' }}
+              focusStyle={{ backgroundColor: '$primaryDark', borderColor: '$primaryDark', color: '$white' }}
+              data-testid="GovernanceWidget-skip-onboarding"
+              style={{ scrollMarginBottom: 80 }}
+              onPress={() => setIsOnboardingSkipped(true)}
+            >
+              <ButtonText color="$white">Skip for now</ButtonText>
+            </Button>
           </YStack>
-        </Card>
-      ) : null}
-      {state.status === 'vote_detail' ? <GovernanceVoteDetail state={state} actions={actions} /> : null}
-      {state.status === 'onboarding_required' && isOnboardingSkipped ? (
-        <GovernanceSignupBanner onResume={() => setIsOnboardingSkipped(false)} />
-      ) : null}
-      {state.status === 'onboarding_required' && !isOnboardingSkipped ? (
-        <YStack gap="$4">
-          {state.lifecycleNotice ? (
-            <Card data-testid="GovernanceWidget-lifecycle-notice">
-              <Text color="$success" fontWeight="700">{state.lifecycleNotice}</Text>
-            </Card>
-          ) : null}
-          <GovernanceOnboardingWidget
-            currentStepId={state.onboardingStepId}
-            identityStatus={state.identityStatus}
-            walletAddress={state.address ?? undefined}
-            initialHouse={state.selectedHouse}
-            initialProfileDraft={state.profileDraft}
-            stakeAmountLabel={state.stakeAmountLabel}
-            stakeAmountLabels={{
-              citizenship: formatStakeAmount(state.minimumStakeAmounts.citizenship),
-              alignment: formatStakeAmount(state.minimumStakeAmounts.alignment),
-            }}
-            transactionSteps={state.transactionSteps}
-            dataTestId="GovernanceWidget-onboarding"
-            onHouseChange={actions.selectHouse}
-            onIdentityVerificationPress={() => {
-              void actions.startIdentityVerification()
-            }}
-            onProfileSubmit={(profileDraft) => {
-              void actions.register(profileDraft)
-            }}
-          />
-          <Button
-            variant="secondary"
-            size="sm"
-            alignSelf="center"
-            height={32}
-            paddingHorizontal="$3"
-            borderWidth={1}
-            borderColor="$primary"
-            borderRadius="$2"
-            backgroundColor="$primary"
-            color="$white"
-            hoverStyle={{ backgroundColor: '$primaryDark', borderColor: '$primaryDark', color: '$white' }}
-            pressStyle={{ backgroundColor: '$primaryDark', borderColor: '$primaryDark', color: '$white' }}
-            focusStyle={{ backgroundColor: '$primaryDark', borderColor: '$primaryDark', color: '$white' }}
-            data-testid="GovernanceWidget-skip-onboarding"
-            style={{ scrollMarginBottom: 80 }}
-            onPress={() => setIsOnboardingSkipped(true)}
-          >
-            <ButtonText color="$white">Skip for now</ButtonText>
-          </Button>
-        </YStack>
-      ) : null}
-      {state.status === 'pending_alignment' ? <PendingAlignmentState state={state} /> : null}
-      {state.status === 'revoked' ? <RevokedState state={state} /> : null}
-      {shouldShowDashboard ? <GovernanceDashboard state={state} actions={actions} /> : null}
-      {isActiveStatus(state.status) ? <MembershipExitState state={state} actions={actions} /> : null}
-      <MemberFooter state={state} />
-    </YStack>
+        ) : null}
+        {state.status === 'pending_alignment' ? <PendingAlignmentState state={state} /> : null}
+        {state.status === 'revoked' ? <RevokedState state={state} /> : null}
+        {shouldShowDashboard ? <GovernanceDashboard state={state} actions={actions} /> : null}
+        {isActiveStatus(state.status) ? <MembershipExitState state={state} actions={actions} /> : null}
+        <MemberFooter state={state} bounds={widgetBounds} />
+      </YStack>
+    </div>
   )
 }
 

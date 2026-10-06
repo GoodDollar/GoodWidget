@@ -30,7 +30,10 @@ test('StakingMigrationWidget empty balance summary', async ({ page }) => {
 
 test('StakingMigrationWidget ready summary', async ({ page }) => {
   await gotoStory(page, STORY_IDS.ready)
-  await expect(page.getByText('Amount to migrate')).toBeVisible()
+  await expect(page.getByText('Migrate Fuse staking to Celo savings')).toBeVisible()
+  await expect(page.getByText('2.5K', { exact: true })).toBeVisible()
+  await expect(page.getByText('sG$', { exact: true })).toBeVisible()
+  await expect(page.getByText('Approve the migration from your Fuse wallet.')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Approve & Migrate' })).toBeEnabled()
   await page.screenshot({
     path: 'tests/widgets/staking-migration-widget/test-results/smw-02-ready.png',
@@ -61,8 +64,12 @@ test('StakingMigrationWidget approval pending notice', async ({ page }) => {
 
 test('StakingMigrationWidget migrating timeline', async ({ page }) => {
   await gotoStory(page, STORY_IDS.migrating)
-  await expect(page.getByText('Migration journey')).toBeVisible()
+  await expect(page.getByText('Migrate Fuse staking to Celo savings')).toBeVisible()
+  await expect(page.getByText('Bridge Received is in progress.')).toBeVisible()
   await expect(page.getByText('Bridge Received', { exact: true })).toBeVisible()
+  await expect(page.getByText('Currently in progress.')).toBeVisible()
+  await expect(page.getByText('Stake on Celo', { exact: true })).toBeVisible()
+  await expect(page.getByText('Pending', { exact: true }).last()).toBeVisible()
   await expect(page.getByRole('button', { name: 'Migrating' })).toBeDisabled()
   await page.screenshot({
     path: 'tests/widgets/staking-migration-widget/test-results/smw-05-migrating.png',
