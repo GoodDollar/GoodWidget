@@ -419,8 +419,6 @@ function MemberFooter({
     <Card
       outlined
       data-testid="GovernanceWidget-member-footer"
-      data-bounds-width={bounds?.width}
-      data-bounds-left={bounds?.left}
       position="fixed"
       bottom={0}
       width={bounds ? undefined : '100%'}
@@ -610,7 +608,6 @@ function GovernanceWidgetView({
 
     const updateBounds = () => {
       const { left, width } = element.getBoundingClientRect()
-      element.setAttribute('data-measured-width', `${width}`)
       setWidgetBounds({ left, width })
     }
 
