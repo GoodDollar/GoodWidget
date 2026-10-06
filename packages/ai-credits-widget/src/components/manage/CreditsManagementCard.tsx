@@ -178,7 +178,7 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
       <Heading level={6}>AI Credits</Heading>
 
       <StatRow>
-        <StatCell label="Total Credit (US$)">
+        <StatCell label="Credit balance (US$)">
           {totalCreditDisplay !== null ? (
             <StatValueText fontSize="$5">{totalCreditDisplay}</StatValueText>
           ) : (
@@ -197,7 +197,7 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
       </StatRow>
 
       <StatRow>
-        <StatCell label="Total Deposited (G$)">
+        <StatCell label="Deposited (G$)">
           <CompactGStatValue amount={totalGdDepositedG ?? '0.00'} />
         </StatCell>
         <StatCell label="Monthly Stream (G$)">
@@ -206,7 +206,7 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
       </StatRow>
 
       <StatRow>
-        <StatCell label="Bonus Earned (US$)">
+        <StatCell label="Bonus (US$)">
           {totalBonusDisplay !== null ? (
             <StatValueText>{totalBonusDisplay}</StatValueText>
           ) : (
