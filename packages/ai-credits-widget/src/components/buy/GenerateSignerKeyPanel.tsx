@@ -125,13 +125,6 @@ export function GenerateSignerKeyPanel({
           </Text>
         </AiCreditsStatusNotice>
 
-        <AiCreditsStatusNotice borderColor="$warning">
-          <Text color="$warning" fontSize="$2" lineHeight="$3">
-            Back up any existing AntSeed signer key before importing this one. Importing replaces
-            the signer used by your AntSeed account.
-          </Text>
-        </AiCreditsStatusNotice>
-
         {onOpenApiSetup && (
           <XStack gap="$2" alignItems="center">
             <Icon name="settings" size="xs" color="muted" />
