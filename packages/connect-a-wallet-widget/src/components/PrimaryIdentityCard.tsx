@@ -24,6 +24,7 @@ export function PrimaryIdentityCard({ walletAddress }: PrimaryIdentityCardProps)
     const success = await copyTextToClipboard(walletAddress)
     if (success) {
       setCopied(true)
+      clearTimeout(timeoutRef.current)
       timeoutRef.current = setTimeout(() => setCopied(false), 2000)
     }
   }
