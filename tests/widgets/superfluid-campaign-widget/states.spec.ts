@@ -538,13 +538,65 @@ test('SuperfluidCampaignWidget closed actions render disabled and non-interactiv
     'true',
   )
 
-  // force: true bypasses Playwright's actionability wait, which would otherwise
-  // time out on a deliberately non-interactive (disabled) element.
   const pagesBefore = context.pages().length
-  await voteCard.click({ force: true })
-  await fundingCard.click({ force: true })
+  for (const card of [voteCard, fundingCard]) {
+    await expect(card).not.toHaveAttribute('tabindex')
+    const closedButton = card.getByRole('button', { name: 'Closed' })
+    await expect(closedButton).toBeDisabled()
+
+    await card.evaluate((element) => (element as HTMLElement).focus())
+    await expect(card).not.toBeFocused()
+    await closedButton.evaluate((element) => (element as HTMLElement).focus())
+    await expect(closedButton).not.toBeFocused()
+    await page.keyboard.press('Enter')
+    await page.keyboard.press('Space')
+    await card.click({ force: true })
+    await closedButton.click({ force: true })
+  }
+
+  const tabStops = await page
+    .locator(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    )
+    .count()
+  for (let i = 0; i <= tabStops; i += 1) {
+    await page.keyboard.press('Tab')
+    expect(
+      await page.evaluate(
+        () => document.activeElement?.closest('[aria-label^="Closed:"]') !== null,
+      ),
+    ).toBe(false)
+  }
+
   await page.waitForTimeout(300)
   expect(context.pages().length).toBe(pagesBefore)
+})
+
+test('SuperfluidCampaignWidget Gardens Donate and Fund actions open Gardens', async ({
+  page,
+  context,
+}) => {
+  await gotoStory(page, STORY_IDS.noWalletContent)
+  await context.route('https://app.gardens.fund/**', (route) =>
+    route.fulfill({ status: 200, contentType: 'text/html', body: 'Gardens destination' }),
+  )
+  await page.getByText('Ecosystem actions').click()
+
+  for (const { label, buttonName } of [
+    { label: 'gardens-donation', buttonName: 'Donate' },
+    { label: 'gardens-funding', buttonName: 'Fund' },
+  ]) {
+    const card = page.getByTestId(`ActionCard-layout-${label}`)
+    const [newPage] = await Promise.all([
+      context.waitForEvent('page'),
+      card.getByRole('button', { name: buttonName }).click(),
+    ])
+    await newPage.waitForLoadState('domcontentloaded').catch(() => {})
+    expect(newPage.url()).toBe(
+      'https://app.gardens.fund/gardens/42220/0xf42c9ca2b10010142e2bac34ebdddb0b82177684',
+    )
+    await newPage.close()
+  }
 })
 
 test('SuperfluidCampaignWidget claim keeps the Superfluid header and can be closed', async ({ page }) => {
