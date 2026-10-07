@@ -67,9 +67,9 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
           source: 'Flow State',
           description: 'Vote to help allocate GoodBuilders Season 4 funding.',
           pointsLabel: '5 PTS PER VOTE',
-          ctaLabel: 'Vote',
+          ctaLabel: 'Closed',
           ctaKind: 'external-link',
-          href: 'https://flowstate.network/flow-councils/42220/0x582e3314d4ef56c18930acb10bb64313525e7820',
+          disabled: true,
         },
       ],
     },
@@ -85,9 +85,9 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
           source: 'Flow State',
           description: 'Start a stream to the GoodBuilders Season 4 pool.',
           pointsLabel: '2 PTS PER 1K G$ (≈ $0.1)',
-          ctaLabel: 'Fund',
+          ctaLabel: 'Closed',
           ctaKind: 'external-link',
-          href: 'https://flowstate.network/flow-councils/42220/0x582e3314d4ef56c18930acb10bb64313525e7820',
+          disabled: true,
         },
         {
           activity: 'gardens-donation',
@@ -207,6 +207,20 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
       question: 'What should I do if the gas transaction fails?',
       answer:
         'Wait a few minutes, then check BaseScan (basescan.org) to confirm a non-zero ETH balance on Base. Check/update the gas fee suggestion in your wallet (e.g. MetaMask) and retry. If it persists, contact the GoodDollar Telegram support group (t.me/GoodDollarX).',
+    },
+    {
+      question: 'Why are Vote on Flow State and Funding closed?',
+      answer:
+        'These actions are closed because GoodBuilders Season 4 finished on September 29. All streams for this round have been closed, so no further actions or points are available.',
+    },
+    {
+      question: 'When did Ecosystem action points restart?',
+      answer: 'Ecosystem action points have now restarted for available actions.',
+    },
+    {
+      question: 'Are Ecosystem actions still earning points?',
+      answer:
+        'Yes. Available Ecosystem actions are earning points again. Points earned before the pause remain unchanged, and existing SUP reward streams continued based on those points. Streams related to Flow State Funding have been closed.',
     },
   ],
 }

@@ -479,13 +479,14 @@ test('SuperfluidCampaignWidget entire action card is clickable and triggers the 
   await gotoStory(page, STORY_IDS.noWalletContent)
 
   // Click the card via its title text, away from the CTA button itself, to
-  // confirm the whole card (not just the button) is a click target.
-  const cardTitle = page.getByText('Vote on Flow State').first()
+  // confirm the whole card (not just the button) is a click target. Uses
+  // Invite users since Vote on Flow State is now a closed/disabled action.
+  const cardTitle = page.getByText('Invite users').first()
   await expect(cardTitle).toBeVisible()
 
   const [newPage] = await Promise.all([context.waitForEvent('page'), cardTitle.click()])
   await newPage.waitForLoadState('domcontentloaded').catch(() => {})
-  expect(newPage.url()).toContain('flowstate.network')
+  expect(newPage.url()).toContain('goodwallet.xyz')
   await newPage.close()
 
   await page.screenshot({
@@ -500,19 +501,50 @@ test('SuperfluidCampaignWidget clicking the CTA button directly does not double-
 }) => {
   await gotoStory(page, STORY_IDS.noWalletContent)
 
-  const voteButton = page.getByText('Vote', { exact: true }).first()
-  await expect(voteButton).toBeVisible()
+  const inviteButton = page.getByText('Invite', { exact: true }).first()
+  await expect(inviteButton).toBeVisible()
 
   const pagesBefore = context.pages().length
-  const [newPage] = await Promise.all([context.waitForEvent('page'), voteButton.click()])
+  const [newPage] = await Promise.all([context.waitForEvent('page'), inviteButton.click()])
   await newPage.waitForLoadState('domcontentloaded').catch(() => {})
 
   // Give a duplicate-fire regression a moment to open a second tab before
   // asserting exactly one new page resulted from this single click.
   await page.waitForTimeout(300)
   expect(context.pages().length).toBe(pagesBefore + 1)
-  expect(newPage.url()).toContain('flowstate.network')
+  expect(newPage.url()).toContain('goodwallet.xyz')
   await newPage.close()
+})
+
+test('SuperfluidCampaignWidget closed actions render disabled and non-interactive', async ({
+  page,
+  context,
+}) => {
+  await gotoStory(page, STORY_IDS.noWalletContent)
+
+  const voteCard = page.getByTestId('ActionCard-layout-flow-state-vote')
+  const fundingCard = page.getByTestId('ActionCard-layout-flow-state-funding')
+  await expect(voteCard).toBeVisible()
+  await expect(fundingCard).toBeVisible()
+
+  await expect(voteCard.getByText('Closed', { exact: true })).toBeVisible()
+  await expect(fundingCard.getByText('Closed', { exact: true })).toBeVisible()
+  await expect(page.getByLabel('Closed: Vote on Flow State')).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  )
+  await expect(page.getByLabel('Closed: Fund GoodBuilders Season 4')).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  )
+
+  // force: true bypasses Playwright's actionability wait, which would otherwise
+  // time out on a deliberately non-interactive (disabled) element.
+  const pagesBefore = context.pages().length
+  await voteCard.click({ force: true })
+  await fundingCard.click({ force: true })
+  await page.waitForTimeout(300)
+  expect(context.pages().length).toBe(pagesBefore)
 })
 
 test('SuperfluidCampaignWidget claim keeps the Superfluid header and can be closed', async ({ page }) => {
