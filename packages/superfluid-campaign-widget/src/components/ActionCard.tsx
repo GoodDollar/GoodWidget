@@ -24,8 +24,8 @@ interface ActionCardProps {
  * hidden behind an invisible overlay. The button's own onPress stops
  * propagation so a direct click on it doesn't also fire the card's handler.
  *
- * `action.disabled` (e.g. a temporarily paused activity) renders the card
- * greyed-out with neither the card nor the button clickable or focusable.
+ * `action.disabled` (e.g. a closed activity) renders the card greyed-out
+ * with neither the card nor the button clickable or focusable.
  */
 export function ActionCard({ action, onPressCta }: ActionCardProps) {
   const iconSpec = ACTIVITY_ICON_MAP[action.activity]
