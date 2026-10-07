@@ -19,7 +19,7 @@ import {
   XStack,
   YStack,
 } from '@goodwidget/ui'
-import packageJson from '../package.json'
+import { version } from '../package.json'
 import { WidgetVersion } from '@goodwidget/ui'
 
 const ClaimCard = createComponent(Card, {
@@ -263,7 +263,7 @@ export function ClaimWidget({
       defaultTheme={defaultTheme}
     >
       <ClaimInner />
-      <WidgetVersion version={packageJson.version} />
+      <WidgetVersion version={version} />
     </GoodWidgetProvider>
   )
 }

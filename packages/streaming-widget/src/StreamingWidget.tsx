@@ -2,7 +2,7 @@ import React from 'react'
 import { GoodWidgetProvider } from '@goodwidget/core'
 import type { EIP1193Provider } from '@goodwidget/core'
 import { ToastContainer } from '@goodwidget/ui'
-import packageJson from '../package.json'
+import { version } from '../package.json'
 import { WidgetVersion } from '@goodwidget/ui'
 import { useStreamingAdapter } from './adapter'
 import { StreamingWidgetView } from './components/StreamingWidgetView'
@@ -49,7 +49,7 @@ export function StreamingWidgetPreview({
         initialStreamsFormOpen={initialStreamsFormOpen}
       />
       <ToastContainer />
-      <WidgetVersion version={packageJson.version} />
+      <WidgetVersion version={version} />
     </GoodWidgetProvider>
   )
 }
@@ -71,7 +71,7 @@ export function StreamingWidget({
     >
       <StreamingWidgetRuntime environment={environment} apiKey={apiKey} />
       <ToastContainer />
-      <WidgetVersion version={packageJson.version} />
+      <WidgetVersion version={version} />
     </GoodWidgetProvider>
   )
 }

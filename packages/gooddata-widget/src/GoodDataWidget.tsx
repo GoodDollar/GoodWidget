@@ -11,7 +11,7 @@
 import React from 'react'
 import { BrowserRouter, Link, Route, Routes, useParams } from 'react-router-dom'
 import { Heading, Text, WidgetVersion, YStack } from '@goodwidget/ui'
-import packageJson from '../package.json'
+import { version } from '../package.json'
 import { getDashboard, listDashboards } from './dashboards/registry'
 
 const CONTENT_MAX_WIDTH = 1120
@@ -104,7 +104,7 @@ export function GoodDataWidget({ basename }: GoodDataWidgetProps = {}) {
             <Route path="*" element={<UnknownDashboardPage />} />
           </Routes>
         </BrowserRouter>
-        <WidgetVersion version={packageJson.version} />
+        <WidgetVersion version={version} />
       </YStack>
     </YStack>
   )

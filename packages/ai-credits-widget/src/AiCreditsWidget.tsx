@@ -20,7 +20,7 @@ import {
   createToast,
   updateToast,
 } from '@goodwidget/ui'
-import packageJson from '../package.json'
+import { version } from '../package.json'
 import { WidgetVersion } from '@goodwidget/ui'
 import { needsWalletConnection, useAiCreditsAdapter } from './adapter'
 import { useAiCreditsHistory } from './useAiCreditsHistory'
@@ -651,7 +651,7 @@ export function AiCreditsWidget({
           showWalletControls={showWalletControls}
         />
         <ToastContainer />
-        <WidgetVersion version={packageJson.version} />
+        <WidgetVersion version={version} />
       </YStack>
     </GoodWidgetProvider>
   )

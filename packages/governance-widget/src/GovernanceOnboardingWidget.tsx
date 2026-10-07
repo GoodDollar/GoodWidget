@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { PageWizardProvider, WidgetVersion } from '@goodwidget/ui'
-import packageJson from '../package.json'
+import { version } from '../package.json'
 import { GovernanceOnboardingFlow } from './onboarding/GovernanceOnboardingFlow'
 import { DEFAULT_FINAL_ACTIONS, DEFAULT_TRANSACTION_STEPS, ONBOARDING_STEPS } from './onboarding/constants'
 import { HOUSE_COPY } from './onboarding/copy'
@@ -64,7 +64,7 @@ export function GovernanceOnboardingWidget({
         onFinalActionPress={onFinalActionPress}
         dataTestId={dataTestId}
       />
-      <WidgetVersion version={packageJson.version} />
+      <WidgetVersion version={version} />
     </PageWizardProvider>
   )
 }

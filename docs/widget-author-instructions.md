@@ -306,9 +306,9 @@ last child of the widget's root (inside `GoodWidgetProvider`) so it never overla
 
 ```tsx
 import { WidgetVersion } from '@goodwidget/ui'
-import packageJson from '../package.json'
+import { version } from '../package.json'
 
-<WidgetVersion version={packageJson.version} />
+<WidgetVersion version={version} />
 ```
 
 The widget's `tsconfig.json` and `tsconfig.build.json` must use `"rootDir": "."` and include
@@ -328,7 +328,7 @@ Before requesting review:
 - Light and dark states were checked when the component supports both.
 - Mobile width was checked against the design reference.
 - Storybook screenshots were refreshed when visual states changed.
-- The widget renders `<WidgetVersion version={packageJson.version} />`.
+- The widget renders `<WidgetVersion version={version} />`.
 - Manual visual review was done against Figma/Stitch/reference screenshots.
 
 If a design seems impossible to express through the current system, do not work around it by

@@ -92,7 +92,7 @@ GoodWidget/
 - Treat public component names and theme targets as API surface (renaming is a breaking
   change for integrators).
 - Mirror the issue checklist in the PR body.
-- Render `<WidgetVersion version={packageJson.version} />` (from `@goodwidget/ui`) in every widget; see `docs/widget-author-instructions.md`.
+- Render `<WidgetVersion version={version} />` (from `@goodwidget/ui`) in every widget; see `docs/widget-author-instructions.md`.
 - Preserve existing code comments when refactoring files unless explicitly asked to remove
   them.
 
