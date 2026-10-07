@@ -224,8 +224,16 @@ test('How it works opens in a Drawer, mirroring GoodWallet, rather than showing 
   await expect(page.getByText('Share your code.')).toHaveCount(0)
 
   await page.getByRole('button', { name: 'How it works' }).click()
-  await expect(page.getByText('1. Share your code.')).toBeVisible()
-  await expect(page.getByText(/2\. Your friend joins and claims\./)).toBeVisible()
+  await expect(
+    page.getByText('1. Share your personal invite link with your friends.'),
+  ).toBeVisible()
+  await expect(page.getByText('2. Make sure they sign up and complete 5 claims.')).toBeVisible()
+  await expect(
+    page.getByText('3. After 3 days, the invite reward becomes available for them to claim.'),
+  ).toBeVisible()
+  await expect(
+    page.getByText('4. When they claim it, both of you receive the reward.'),
+  ).toBeVisible()
   const closeButton = page.getByRole('button', { name: 'Close' })
   await expect(closeButton).toBeVisible()
   await page.waitForTimeout(400) // let the sheet's slide-up animation settle

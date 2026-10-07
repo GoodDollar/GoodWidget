@@ -65,6 +65,7 @@ function baseState(overrides: Partial<InviteState> = {}): InviteState {
       [COLLECTABLE_INVITEE]: collectableDetails,
     },
     selfEligibility: { ...collectableDetails, inviterWhitelisted: null },
+    minimums: { minimumDays: 3, minimumClaims: 5 },
     error: null,
     success: null,
     ...overrides,
