@@ -23,15 +23,11 @@ interface ActionCardProps {
  * (mouse and keyboard), while the CTA button stays visible rather than being
  * hidden behind an invisible overlay. The button's own onPress stops
  * propagation so a direct click on it doesn't also fire the card's handler.
- *
- * `action.disabled` (e.g. a temporarily paused activity) renders the card
- * greyed-out with neither the card nor the button clickable or focusable.
  */
 export function ActionCard({ action, onPressCta }: ActionCardProps) {
   const iconSpec = ACTIVITY_ICON_MAP[action.activity]
   const ActivityIconComponent = ACTIVITY_ICON_COMPONENT[action.activity]
   const iconColor = resolveActivityIconColorToken(iconSpec.colorVariant, true)
-  const isDisabled = action.disabled ?? false
 
   const handleCardActivate = () => onPressCta(action)
 
@@ -40,25 +36,19 @@ export function ActionCard({ action, onPressCta }: ActionCardProps) {
       flexDirection="column"
       gap="$3"
       $sm={{ gap: '$2', padding: '$3' }}
-      opacity={isDisabled ? 0.5 : 1}
-      onPress={isDisabled ? undefined : handleCardActivate}
+      onPress={handleCardActivate}
       role="button"
-      tabIndex={isDisabled ? -1 : 0}
-      cursor={isDisabled ? 'not-allowed' : 'pointer'}
-      aria-disabled={isDisabled}
+      tabIndex={0}
+      cursor="pointer"
       aria-label={`${action.ctaLabel}: ${action.title}`}
-      onKeyDown={
-        isDisabled
-          ? undefined
-          : (e: React.KeyboardEvent) => {
-              // Space/Enter activate the card the same way native buttons do, matching
-              // the Accordion header's keyboard pattern elsewhere in this package.
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                handleCardActivate()
-              }
-            }
-      }
+      onKeyDown={(e: React.KeyboardEvent) => {
+        // Space/Enter activate the card the same way native buttons do, matching
+        // the Accordion header's keyboard pattern elsewhere in this package.
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          handleCardActivate()
+        }
+      }}
     >
       {/* On mobile the icon moves beside a dedicated title/source column.
           Keeping the copy in its own flexible column lets long ecosystem
@@ -103,18 +93,13 @@ export function ActionCard({ action, onPressCta }: ActionCardProps) {
             size="sm"
             {...compactButtonProps}
             $sm={{ width: '100%' }}
-            disabled={isDisabled}
-            onPress={
-              isDisabled
-                ? undefined
-                : (e: { stopPropagation: () => void }) => {
-                    // Card itself is now a click target for the same action (see Card's
-                    // onPress above) — stop propagation here so this direct button click
-                    // doesn't also bubble up and fire the card's handler a second time.
-                    e.stopPropagation()
-                    handleCardActivate()
-                  }
-            }
+            onPress={(e: { stopPropagation: () => void }) => {
+              // Card itself is now a click target for the same action (see Card's
+              // onPress above) — stop propagation here so this direct button click
+              // doesn't also bubble up and fire the card's handler a second time.
+              e.stopPropagation()
+              handleCardActivate()
+            }}
           >
             <ButtonText>{action.ctaLabel}</ButtonText>
           </Button>
