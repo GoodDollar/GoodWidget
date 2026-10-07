@@ -85,6 +85,10 @@ export type { IconName, IconSize, IconColor, IconProps } from './components/Icon
 // widget "activity" glyph spec (#127). See components/ActivityIcons.ts.
 export { CalendarDays, UserPlus, Megaphone, Waves, HandCoins } from './components/ActivityIcons'
 
+// Stat icons — re-exported originals from @tamagui/lucide-icons for the glyphs
+// on widget stat cards. See components/StatIcons.ts.
+export { Coins, Repeat, Gift, Wallet, TrendingUp } from './components/StatIcons'
+
 // Dialog — new component backed by imperative store
 export {
   GoodWidgetDialog,
