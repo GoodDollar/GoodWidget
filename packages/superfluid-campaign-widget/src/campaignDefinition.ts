@@ -215,7 +215,7 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
     },
     {
       question: 'When did Ecosystem action points restart?',
-      answer: 'Ecosystem action points have now restarted for available actions.',
+      answer: 'Ecosystem action points restarted on October 4, 2026 for available actions.',
     },
     {
       question: 'Are Ecosystem actions still earning points?',

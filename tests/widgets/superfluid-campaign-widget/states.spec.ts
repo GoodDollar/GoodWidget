@@ -548,10 +548,18 @@ test('SuperfluidCampaignWidget closed actions render disabled and non-interactiv
     await expect(card).not.toBeFocused()
     await closedButton.evaluate((element) => (element as HTMLElement).focus())
     await expect(closedButton).not.toBeFocused()
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
     await page.keyboard.press('Enter')
     await page.keyboard.press('Space')
+    await page.waitForTimeout(100)
+    expect(context.pages().length, 'keyboard activation must not open a page').toBe(pagesBefore)
+
     await card.click({ force: true })
     await closedButton.click({ force: true })
+    await page.waitForTimeout(100)
+    expect(context.pages().length, 'clicking a closed action must not open a page').toBe(
+      pagesBefore,
+    )
   }
 
   const tabStops = await page
@@ -567,9 +575,6 @@ test('SuperfluidCampaignWidget closed actions render disabled and non-interactiv
       ),
     ).toBe(false)
   }
-
-  await page.waitForTimeout(300)
-  expect(context.pages().length).toBe(pagesBefore)
 })
 
 test('SuperfluidCampaignWidget Gardens Donate and Fund actions open Gardens', async ({
