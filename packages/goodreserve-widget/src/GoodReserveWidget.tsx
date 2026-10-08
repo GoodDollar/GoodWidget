@@ -1,6 +1,8 @@
 import React, { useEffect, useRef } from 'react'
 import { GoodWidgetProvider } from '@goodwidget/core'
 import { YStack } from '@goodwidget/ui'
+import { version } from '../package.json'
+import { WidgetVersion } from '@goodwidget/ui'
 import type { EIP1193Provider } from '@goodwidget/core'
 import { ReserveSwapView } from './ReserveSwapView'
 import { useGoodReserveAdapter } from './useGoodReserveAdapter'
@@ -75,6 +77,7 @@ export function GoodReserveWidget({
           mockState={mockState}
           preferredChainId={preferredChainId}
         />
+        <WidgetVersion version={version} />
       </YStack>
     </GoodWidgetProvider>
   )

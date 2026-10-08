@@ -12,6 +12,8 @@ import {
   XStack,
   YStack,
 } from '@goodwidget/ui'
+import { version } from '../package.json'
+import { WidgetVersion } from '@goodwidget/ui'
 import { useTheme } from 'tamagui'
 import { AlignmentVotingProposalCard } from './AlignmentVotingProposalCard'
 import { BalanceCard } from './BalanceCard'
@@ -759,6 +761,7 @@ export function GovernanceWidget({
       ) : (
         <DefaultGovernanceWidgetContent adapterInput={adapterInput} testId={testId} />
       )}
+      <WidgetVersion version={version} />
     </GovernanceWidgetProvider>
   )
 }

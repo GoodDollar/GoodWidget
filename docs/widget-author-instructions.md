@@ -298,6 +298,24 @@ inline. It becomes hard to review and hard to theme correctly.
 
 ---
 
+## Widget Version Label
+
+Every widget must show its own version, read from the widget package's `package.json`, as a
+small muted label in the bottom-right corner. Render the shared `WidgetVersion` primitive as the
+last child of the widget's root (inside `GoodWidgetProvider`) so it never overlaps content:
+
+```tsx
+import { WidgetVersion } from '@goodwidget/ui'
+import { version } from '../package.json'
+
+<WidgetVersion version={version} />
+```
+
+The widget's `tsconfig.json` and `tsconfig.build.json` must use `"rootDir": "."` and include
+`package.json` so the import type-checks.
+
+---
+
 ## Review Checklist
 
 Before requesting review:
@@ -310,6 +328,7 @@ Before requesting review:
 - Light and dark states were checked when the component supports both.
 - Mobile width was checked against the design reference.
 - Storybook screenshots were refreshed when visual states changed.
+- The widget renders `<WidgetVersion version={version} />`.
 - Manual visual review was done against Figma/Stitch/reference screenshots.
 
 If a design seems impossible to express through the current system, do not work around it by

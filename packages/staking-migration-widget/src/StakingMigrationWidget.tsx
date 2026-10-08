@@ -2,6 +2,8 @@ import React, { useCallback, useMemo } from 'react'
 import { GoodWidgetProvider } from '@goodwidget/core'
 import type { EIP1193Provider } from '@goodwidget/core'
 import { Text, ToastContainer, YStack } from '@goodwidget/ui'
+import { version } from '../package.json'
+import { WidgetVersion } from '@goodwidget/ui'
 import { MigrationProgressTimeline } from './MigrationProgressTimeline'
 import { MigrationSummaryCard } from './MigrationSummaryCard'
 import { MigrationSecondaryCard } from './migrationWidgetComponents'
@@ -155,6 +157,7 @@ export function StakingMigrationWidget({
         adapterFactory={adapterFactory}
       />
       <ToastContainer />
+      <WidgetVersion version={version} />
     </GoodWidgetProvider>
   )
 }

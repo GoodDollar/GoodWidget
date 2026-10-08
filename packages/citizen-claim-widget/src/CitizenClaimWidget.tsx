@@ -20,6 +20,8 @@ import {
   YStack,
   WidgetTabs,
 } from '@goodwidget/ui'
+import { version } from '../package.json'
+import { WidgetVersion } from '@goodwidget/ui'
 import { SupportedChains } from '@goodsdks/citizen-sdk'
 import { getChainDisplayName, useCitizenClaimAdapter } from './adapter'
 import type {
@@ -687,6 +689,7 @@ export function CitizenClaimWidget({
         onClaimError={onClaimError}
         initialTab={initialTab}
       />
+      <WidgetVersion version={version} />
     </GoodWidgetProvider>
   )
 }
