@@ -26,7 +26,6 @@ export function BalanceCard({
   return (
     <GovernanceWrapper
       data-testid={testID}
-      maxWidth={compact ? 220 : 268}
       minHeight={compact ? 152 : 176}
     >
       <XStack alignItems="flex-start" gap="$2">

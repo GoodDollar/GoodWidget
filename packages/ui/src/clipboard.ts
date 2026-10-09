@@ -1,7 +1,3 @@
-type NativeClipboardModule = {
-  setString: (text: string) => void
-}
-
 function canUseWebClipboard(): boolean {
   return (
     typeof navigator !== 'undefined' &&

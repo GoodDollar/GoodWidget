@@ -87,6 +87,12 @@ export const QuoteError: Story = {
   render: () => renderStory(reserveWidgetMockStates.quoteError, 'GoodReserveWidget-quote-error'),
 }
 
+// Stale-quote recovery: re-quoting automatically with the notice still visible.
+export const QuoteRefreshing: Story = {
+  render: () =>
+    renderStory(reserveWidgetMockStates.quoteRefreshing, 'GoodReserveWidget-quote-refreshing'),
+}
+
 export const InsufficientBalance: Story = {
   render: () =>
     renderStory(
@@ -103,6 +109,11 @@ export const SlippageSelection: Story = {
 export const ConfirmDialog: Story = {
   render: () =>
     renderStory(reserveWidgetMockStates.confirmDialog, 'GoodReserveWidget-confirm-dialog'),
+}
+
+export const ApprovalPending: Story = {
+  render: () =>
+    renderStory(reserveWidgetMockStates.approvalPending, 'GoodReserveWidget-approval-pending'),
 }
 
 export const SwapPending: Story = {

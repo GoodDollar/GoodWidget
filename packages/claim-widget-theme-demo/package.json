@@ -2,6 +2,11 @@
   "name": "@goodwidget/claim-widget-theme-demo",
   "version": "0.1.0",
   "description": "Sample GoodDollar claim widget — works in React, React Native, and as a Web Component",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GoodDollar/GoodWidget.git",
+    "directory": "packages/claim-widget-theme-demo"
+  },
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

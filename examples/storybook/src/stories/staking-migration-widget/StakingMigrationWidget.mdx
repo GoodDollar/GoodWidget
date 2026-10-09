@@ -1,5 +1,6 @@
-import { Canvas, Meta } from '@storybook/blocks';
+import { Canvas, Meta, Source } from '@storybook/blocks';
 import * as ShowcaseStories from './StakingMigrationWidgetShowcase.stories';
+import * as ThemeOverridesStories from './StakingMigrationWidgetThemeOverrides.stories';
 import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/DocsLayout';
 
 <Meta of={ShowcaseStories} />
@@ -11,9 +12,40 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
 >
   <DocsSection
     title="Manual wallet showcase"
-    description="Use this story when validating the injected-wallet migration flow in a browser with a real EIP-1193 wallet extension."
+    description="Use this story when validating the injected-wallet migration flow in a browser with a real EIP-1193 wallet extension. Use the Controls panel below the canvas to preview `defaultTheme` and a sample `themeOverrides` brand preset."
   >
     <Canvas of={ShowcaseStories.InjectedWallet} />
+  </DocsSection>
+
+  <DocsSection
+    title="Theme overrides"
+    description="Play around with some of the theme overrides using the controls below (you may have to activate Controls in the addons panel, top-right). The code here can be copied and used directly in your own dapp — it always matches what's rendered. See the callout below the code for additional overridable styles not wired to a control."
+  >
+    <Canvas of={ThemeOverridesStories.Playground} />
+  </DocsSection>
+
+  <DocsSection
+    title="How to mount it"
+    description="Keep the host contract narrow. The widget expects a provider and optional theming inputs."
+  >
+    <Source
+      dark
+      language="tsx"
+      code={`import { StakingMigrationWidget } from '@goodwidget/staking-migration-widget'
+import { MiniAppShell } from '@goodwidget/ui'
+
+export function MigrationPanel({ provider }: { provider?: unknown }) {
+  return (
+    <MiniAppShell title="GoodDollar">
+      <StakingMigrationWidget
+        provider={provider}
+        migrationApiBaseUrl={process.env.MIGRATION_API_BASE_URL}
+        defaultTheme="dark"
+      />
+    </MiniAppShell>
+  )
+}`}
+    />
   </DocsSection>
 
   <DocsSection

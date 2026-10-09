@@ -5,7 +5,9 @@ export const AiCreditsStatusNotice = createComponent(Card, {
   extends: 'Card',
   backgroundColor: '$backgroundHover',
   borderWidth: 1,
-  padding: '$3',
+  paddingHorizontal: '$3',
+  paddingVertical: '$2',
+
 })
 
 export const BonusBadgeFrame = createComponent(XStack, {

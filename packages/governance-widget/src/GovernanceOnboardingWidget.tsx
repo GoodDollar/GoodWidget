@@ -2,30 +2,29 @@ import { useMemo } from 'react'
 import { PageWizardProvider } from '@goodwidget/ui'
 import { GovernanceOnboardingFlow } from './onboarding/GovernanceOnboardingFlow'
 import { DEFAULT_FINAL_ACTIONS, DEFAULT_TRANSACTION_STEPS, ONBOARDING_STEPS } from './onboarding/constants'
+import { HOUSE_COPY } from './onboarding/copy'
 import type {
   GovernanceOnboardingStepId,
   GovernanceOnboardingWidgetProps,
   GovernanceWizardData,
 } from './types'
 
-/**
- * GovernanceOnboardingWidget keeps the five onboarding pages UI-only for now.
- * The component owns light/dark-safe visuals, simple local navigation, and a
- * presentational state contract that stories and later runtime integrations can drive.
- */
 export function GovernanceOnboardingWidget({
   currentStepId,
   initialStepId = 'welcome',
   identityStatus = 'verified',
   walletAddress,
   initialHouse,
-  disabledHouseOptions = [],
   initialProfileDraft,
   initialFieldErrors = {},
-  stakeAmountLabel = '250 G$',
+  stakeAmountLabel,
+  stakeAmountLabels,
   transactionSteps = DEFAULT_TRANSACTION_STEPS,
   finalActions = DEFAULT_FINAL_ACTIONS,
   dataTestId,
+  onHouseChange,
+  onIdentityVerificationPress,
+  onProfileSubmit,
   onStepChange,
   onFinalActionPress,
 }: GovernanceOnboardingWidgetProps) {
@@ -36,6 +35,12 @@ export function GovernanceOnboardingWidget({
     }),
     [initialHouse, initialProfileDraft],
   )
+  const resolvedStakeAmountLabels = stakeAmountLabels ?? (stakeAmountLabel
+    ? { citizenship: stakeAmountLabel, alignment: stakeAmountLabel }
+    : {
+        citizenship: HOUSE_COPY.citizenship.defaultStakeAmount,
+        alignment: HOUSE_COPY.alignment.defaultStakeAmount,
+      })
 
   return (
     <PageWizardProvider
@@ -48,11 +53,13 @@ export function GovernanceOnboardingWidget({
       <GovernanceOnboardingFlow
         identityStatus={identityStatus}
         walletAddress={walletAddress}
-        disabledHouseOptions={disabledHouseOptions}
         initialFieldErrors={initialFieldErrors}
-        stakeAmountLabel={stakeAmountLabel}
+        stakeAmountLabels={resolvedStakeAmountLabels}
         transactionSteps={transactionSteps}
         finalActions={finalActions}
+        onHouseChange={onHouseChange}
+        onIdentityVerificationPress={onIdentityVerificationPress}
+        onProfileSubmit={onProfileSubmit}
         onFinalActionPress={onFinalActionPress}
         dataTestId={dataTestId}
       />

@@ -34,6 +34,8 @@ export function PrimaryIdentityCard({ walletAddress }: PrimaryIdentityCardProps)
       data-testid="connect-a-wallet-widget-primary-identity"
       padding="$4"
       borderRadius="$3"
+      shadowOpacity={0.4}
+      shadowRadius={12}
     >
       <XStack alignItems="center" gap="$3" width="100%">
         <YStack

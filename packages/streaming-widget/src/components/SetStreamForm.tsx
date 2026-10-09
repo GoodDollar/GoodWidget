@@ -6,14 +6,17 @@ import type {
   WriteStatus,
 } from '../widgetRuntimeContract'
 import { formatFlowRatePerDay } from './format'
-import { ActionButton, SetStreamFormCard, type SuperTokenSymbol } from './shared'
+import { ActionButton, SetStreamFormCard } from './shared'
 
 interface SetStreamFormProps {
   form: SetStreamFormState
-  token: SuperTokenSymbol
+  /** Symbol of the token being streamed — the edited stream's, or the chain default */
+  token: string
   status: WriteStatus
   error: string | null
   txHash: string | null
+  /** True when the form was prefilled from an existing stream */
+  isEditing?: boolean
   timeUnitOptions: Array<{ value: StreamTimeUnit; label: string }>
   onUpdate: (partial: Partial<SetStreamFormState>) => void
   onSubmit: () => void
@@ -26,6 +29,7 @@ export function SetStreamForm({
   status,
   error,
   txHash,
+  isEditing = false,
   timeUnitOptions,
   onUpdate,
   onSubmit,
@@ -35,7 +39,7 @@ export function SetStreamForm({
 
   return (
     <SetStreamFormCard>
-      <Heading level={4}>Create / Update Stream</Heading>
+      <Heading level={4}>{isEditing ? 'Update Stream' : 'Create / Update Stream'}</Heading>
 
       <YStack gap="$1">
         <Text variant="label">Recipient address</Text>
@@ -102,7 +106,11 @@ export function SetStreamForm({
           disabled={isSubmitting || !!form.validationError || !form.flowRate}
           onPress={onSubmit}
         >
-          {isSubmitting ? <Spinner size="sm" /> : <ButtonText>Set Stream</ButtonText>}
+          {isSubmitting ? (
+            <Spinner size="sm" />
+          ) : (
+            <ButtonText>{isEditing ? 'Update Stream' : 'Set Stream'}</ButtonText>
+          )}
         </ActionButton>
         {(status === 'success' || status === 'error') && (
           <ActionButton onPress={onReset}>

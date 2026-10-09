@@ -2,6 +2,11 @@
   "name": "@goodwidget/staking-migration-widget",
   "version": "0.1.0",
   "description": "Fuse staking migration widget for moving sG$ positions to Celo savings",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GoodDollar/GoodWidget.git",
+    "directory": "packages/staking-migration-widget"
+  },
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

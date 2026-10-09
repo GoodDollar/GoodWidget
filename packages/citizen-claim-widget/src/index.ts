@@ -8,15 +8,21 @@ export type {
   CitizenClaimWidgetAdapterResult,
   CitizenClaimWidgetAdapterState,
   CitizenClaimWidgetClientBundle,
+  CitizenClaimWidgetClientsByChain,
   CitizenClaimWidgetClientFactory,
   CitizenClaimWidgetClientFactoryInput,
+  CitizenClaimWidgetChainClaimResult,
+  CitizenClaimWidgetCustodialExecution,
   CitizenClaimWidgetEnvironment,
   CitizenClaimWidgetErrorDetail,
   CitizenClaimWidgetPrimaryAction,
   CitizenClaimWidgetProps,
   CitizenClaimWidgetStatus,
   CitizenClaimWidgetSuccessDetail,
+  CitizenClaimWidgetWalletClient,
 } from './widgetRuntimeContract'
+
+export { createCitizenClaimWidgetCustodialExecution } from './custodial'
 
 // Adapter hook
 export { useCitizenClaimAdapter } from './adapter'

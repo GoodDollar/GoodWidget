@@ -1,4 +1,4 @@
-import { Badge, BadgeText, Card, Heading, Stepper, Text, XStack, YStack } from '@goodwidget/ui'
+import { Badge, BadgeText, Card, Stepper, Text, XStack, YStack } from '@goodwidget/ui'
 import { resolveStakeSummary } from '../resolveStakeSummary'
 import type { StepperStepItem } from '@goodwidget/ui'
 
@@ -22,20 +22,14 @@ export function StakeStepContent({ stakeAmountLabel, transactionSteps }: StakeSt
     <YStack gap="$3">
       <Card elevated>
         <YStack gap="$3">
-          <YStack gap="$2">
-            <XStack alignItems="flex-start" justifyContent="space-between" gap="$2" flexWrap="wrap">
-              <YStack gap="$1" flex={1} minWidth={0}>
-                <Text variant="caption" tone="secondary">
-                  {`${stakeAmountLabel} locked stake`}
-                </Text>
-                {/* level 5 avoids overflow on narrow mobile cards */}
-                <Heading level={5}>{`Creating profile & staking`}</Heading>
-              </YStack>
-              <Badge type={stakeSummary.badgeType}>
-                <BadgeText>{stakeSummary.title}</BadgeText>
-              </Badge>
-            </XStack>
-          </YStack>
+          <XStack alignItems="center" justifyContent="space-between" gap="$2" flexWrap="wrap">
+            <Text variant="caption" tone="secondary">
+              {`${stakeAmountLabel} locked stake`}
+            </Text>
+            <Badge type={stakeSummary.badgeType}>
+              <BadgeText>{stakeSummary.title}</BadgeText>
+            </Badge>
+          </XStack>
 
           <XStack alignItems="center" gap="$3">
             <YStack flex={1} height={8} borderRadius="$full" backgroundColor="$borderColor" overflow="hidden">

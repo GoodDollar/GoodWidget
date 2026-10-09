@@ -1,41 +1,117 @@
 import React, { useState } from 'react'
-import { Button, ButtonText, Card, Heading, Icon, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
-import { truncateAddress, compactButtonProps } from '../shared/styles'
+import {
+  Button,
+  ButtonText,
+  Card,
+  Heading,
+  Icon,
+  PermissionList,
+  PermissionRow,
+  Spinner,
+  Text,
+  XStack,
+  YStack,
+} from '@goodwidget/ui'
+import { truncateAddress, compactButtonProps, monospaceSingleLineStyle } from '../shared/styles'
 
 interface OperatorConsentStepProps {
-  buyerPubKey: string | null
-  buyerPrvKey: string | null
+  signerPubKey: string | null
+  signerPrvKey: string | null
+  operatorSignature?: string | null
   operatorConsented: boolean
+  operatorConsentPending?: boolean
   onSign: () => Promise<void>
+  /** Signer key this wallet derives, when the browser already knows it. */
+  derivedSignerAddress?: string | null
+  /** Re-derives this wallet's signer key, for a browser that no longer holds it. */
+  onRestoreKey?: () => Promise<void>
   embedded?: boolean
 }
 
+function ConsentBullet({ children }: { children: React.ReactNode }) {
+  return (
+    <XStack gap="$2" alignItems="flex-start">
+      <Text fontSize="$2" tone="soft" lineHeight="$3">
+        •
+      </Text>
+      <Text fontSize="$2" tone="soft" lineHeight="$3" flex={1}>
+        {children}
+      </Text>
+    </XStack>
+  )
+}
+
 export function OperatorConsentStep({
-  buyerPubKey,
-  buyerPrvKey,
+  signerPubKey,
+  signerPrvKey,
+  operatorSignature = null,
   operatorConsented,
+  operatorConsentPending = false,
   onSign,
+  derivedSignerAddress = null,
+  onRestoreKey,
   embedded = false,
 }: OperatorConsentStepProps) {
-  const [isSigning, setIsSigning] = useState(false)
-  const canSign = Boolean(buyerPubKey && buyerPrvKey)
+  const [restorePending, setRestorePending] = useState(false)
+  const canSign = Boolean(signerPubKey && (signerPrvKey || operatorSignature))
+  const isBusy = operatorConsentPending
+
+  // Nothing here can be signed without the signer key. Rather than show a button
+  // that cannot fire, offer the action that actually unblocks it — unless this
+  // wallet derives a different signer key, in which case re-deriving would switch
+  // signers behind the user's back and importing is the only honest route.
+  const needsKey = Boolean(signerPubKey) && !canSign && !operatorConsented
+  const derivesDifferentKey =
+    needsKey &&
+    Boolean(derivedSignerAddress) &&
+    derivedSignerAddress?.toLowerCase() !== signerPubKey?.toLowerCase()
+  const canRestoreKey = needsKey && !derivesDifferentKey && Boolean(onRestoreKey)
 
   const Shell = embedded ? YStack : Card
 
+  const handleRestore = async () => {
+    if (!onRestoreKey) return
+    setRestorePending(true)
+    try {
+      await onRestoreKey()
+    } finally {
+      setRestorePending(false)
+    }
+  }
+
   return (
     <Shell gap="$3" {...(!embedded ? { backgroundColor: '$backgroundHover' } : {})}>
-      <Heading level={5}>Authorize AntSeed Operator</Heading>
-      <Text fontSize="$2" lineHeight="$3">
-        Your buyer key signs an EIP-712 SetOperator message. The backend submits it to
-        AntseedDeposits so the funding vault can act as your operator. No gas is required from
-        you.
+      <Heading level={5}>Authorize Credits Management</Heading>
+      <Text>
+        A one-time, on-chain approval — not a payment. Here&apos;s exactly what it does and
+        doesn&apos;t allow:
       </Text>
 
-      {buyerPubKey && (
+      {/* Scope confirmed with the AntseedDeposits contract owner: the operator can
+          only fulfil purchases the signer initiates, withdrawals return to the payer,
+          and the role carries no ERC-20 allowance and nothing on Celo. Do not widen
+          these claims without re-checking. */}
+      <PermissionList>
+        <PermissionRow tone="can" lead="Can" divided>
+          move funds inside your credit balance, to fulfil purchases you initiate.
+        </PermissionRow>
+        <PermissionRow tone="cannot" lead="Cannot">
+          touch your G$ wallet, your savings, or anything outside this purchase flow.
+        </PermissionRow>
+      </PermissionList>
+
+      <YStack gap="$1.5">
+        <ConsentBullet>It costs no gas and moves no funds.</ConsentBullet>
+        <ConsentBullet>
+          One time only — later purchases reuse it, and you can revoke it at any time.
+        </ConsentBullet>
+      </YStack>
+
+      {signerPubKey && (
         <Text fontSize="$2" lineHeight="$2">
-          Buyer address:{' '}
-          <Text fontFamily="$mono" fontSize="$2">
-            {truncateAddress(buyerPubKey)}
+          Signer Address:{' '}
+          <Text fontSize="$2" style={monospaceSingleLineStyle}>
+            {truncateAddress(signerPubKey)}
           </Text>
         </Text>
       )}
@@ -43,27 +119,53 @@ export function OperatorConsentStep({
       {operatorConsented ? (
         <XStack gap="$2" alignItems="center">
           <Icon name="check" size="sm" color="success" />
-          <Text color="$success">Operator consent accepted — ready to pay</Text>
+          <Text color="$success">Credits management authorized</Text>
         </XStack>
+      ) : derivesDifferentKey ? (
+        <Text fontSize="$2" color="$warning" lineHeight="$3">
+          This signer key was not generated by the connected wallet, so it cannot be restored here.
+          Import its private key from the Signer key step to authorize it.
+        </Text>
+      ) : canRestoreKey ? (
+        <>
+          <Text fontSize="$2" tone="soft" lineHeight="$3">
+            This browser does not hold your signer key. Restore it from your wallet to continue —
+            the same wallet always produces the same key.
+          </Text>
+          <Button
+            size="sm"
+            {...compactButtonProps}
+            onPress={() => {
+              void handleRestore()
+            }}
+            disabled={restorePending}
+          >
+            {restorePending ? (
+              <XStack gap="$2" alignItems="center">
+                <ButtonText>Restoring…</ButtonText>
+                <Spinner size="sm" />
+              </XStack>
+            ) : (
+              <ButtonText>Restore Signer Key</ButtonText>
+            )}
+          </Button>
+        </>
       ) : (
         <Button
           size="sm"
           {...compactButtonProps}
           onPress={() => {
-            setIsSigning(true)
-            void onSign().finally(() => {
-              setIsSigning(false)
-            })
+            void onSign()
           }}
-          disabled={!canSign || isSigning}
+          disabled={!canSign || isBusy}
         >
-          {isSigning ? (
+          {isBusy ? (
             <XStack gap="$2" alignItems="center">
-              <ButtonText>Signing…</ButtonText>
+              <ButtonText>Submitting…</ButtonText>
               <Spinner size="sm" />
             </XStack>
           ) : (
-            <ButtonText>Sign Operator Consent</ButtonText>
+            <ButtonText>Authorize Credits Management</ButtonText>
           )}
         </Button>
       )}

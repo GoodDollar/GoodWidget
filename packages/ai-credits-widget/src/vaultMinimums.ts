@@ -1,4 +1,5 @@
 import { gToWei, parseGAmount, formatUsdDisplay, quoteDepositPrincipalUsd, quoteStreamPrincipalUsd } from './quoteMath'
+import { formatExactGValue } from './format'
 import type { AiCreditsQuote } from './widgetRuntimeContract'
 import { parseAbi, type Address, type PublicClient } from 'viem'
 
@@ -19,20 +20,22 @@ export type VaultPaymentMinimums = {
 export function formatMinGDisplay(amountWei: bigint): string {
   const raw = Number(amountWei) / 1e18
   if (!Number.isFinite(raw) || raw <= 0) return '0'
-  if (raw >= 1000) return Math.ceil(raw).toString()
-  if (raw >= 10) return (Math.ceil(raw * 10) / 10).toFixed(1)
-  return (Math.ceil(raw * 100) / 100).toFixed(2)
+  // Minimums always round up, so the displayed figure is never below the
+  // amount the vault actually accepts.
+  if (raw >= 1000) return formatExactGValue(Math.ceil(raw))
+  if (raw >= 10) return formatExactGValue(Math.ceil(raw * 10) / 10)
+  return formatExactGValue(Math.ceil(raw * 100) / 100)
 }
 
 export function formatMinGDisplayLocale(amountG: string): string {
   const value = parseGAmount(amountG)
   if (value <= 0) return amountG
-  if (value >= 1000) return Math.ceil(value).toLocaleString('en-US')
+  if (value >= 1000) return formatExactGValue(Math.ceil(value))
   return amountG
 }
 
 export function formatMinUsdDisplay(usd: string): string {
-  return formatUsdDisplay(usd, 2)
+  return formatUsdDisplay(usd)
 }
 
 function parseUsdThreshold(usd: string | null): number {
@@ -44,6 +47,7 @@ function parseUsdThreshold(usd: string | null): number {
 export function getPaymentAmountValidation(params: {
   depositAmount: string
   streamAmount: string
+  currentStreamAmount?: string | null
   minDepositUsd: string | null
   minStreamUsd: string | null
   quote: AiCreditsQuote | null
@@ -54,10 +58,14 @@ export function getPaymentAmountValidation(params: {
   streamBelowMin: boolean
   overBalance: boolean
   vaultMinimumsMet: boolean
+  streamChanged: boolean
+  hasPaymentAction: boolean
 } {
   const depositG = parseGAmount(params.depositAmount)
   const streamG = parseGAmount(params.streamAmount)
   const balance = parseGAmount(params.gBalance ?? '0')
+  const streamChanged = gToWei(params.streamAmount) !== gToWei(params.currentStreamAmount ?? '0')
+  const hasPaymentAction = depositG > 0 || streamChanged
   const minDepositUsd = parseUsdThreshold(params.minDepositUsd)
   const minStreamUsd = parseUsdThreshold(params.minStreamUsd)
   const depositUsd =
@@ -71,7 +79,11 @@ export function getPaymentAmountValidation(params: {
   const depositBelowMin =
     depositG > 0 && minDepositUsd > 0 && params.quote !== null && depositUsd < minDepositUsd
   const streamBelowMin =
-    streamG > 0 && minStreamUsd > 0 && params.quote !== null && streamUsd < minStreamUsd
+    streamChanged &&
+    streamG > 0 &&
+    minStreamUsd > 0 &&
+    params.quote !== null &&
+    streamUsd < minStreamUsd
   const overBalance = depositG > balance
   const minsLoaded = params.minStreamUsd !== null
   const vaultMinimumsMet = !minsLoaded || (!depositBelowMin && !streamBelowMin)
@@ -81,6 +93,8 @@ export function getPaymentAmountValidation(params: {
     streamBelowMin,
     overBalance,
     vaultMinimumsMet,
+    streamChanged,
+    hasPaymentAction,
   }
 }
 
@@ -107,8 +121,8 @@ export function getPayDisabledMessage(params: {
   if (params.validation.streamBelowMin && params.minStreamUsd) {
     return `Monthly stream must be at least ${formatMinUsdDisplay(params.minStreamUsd)}.`
   }
-  if (params.status !== 'quote_ready') {
-    return 'Enter a deposit or monthly stream amount to continue.'
+  if (params.status !== 'quote_ready' && params.status !== 'payment_failed') {
+    return 'Enter a deposit or change the monthly stream amount to continue.'
   }
   return 'Adjust the amounts to continue.'
 }
@@ -184,14 +198,16 @@ export async function validateVaultPaymentAmounts(params: {
   payer: Address
   depositAmount: string
   streamAmount: string
+  currentStreamAmount?: string | null
 }): Promise<void> {
   const depositG = parseGAmount(params.depositAmount)
   const streamG = parseGAmount(params.streamAmount)
   const hasDeposit = depositG > 0
-  const hasStream = streamG > 0
+  const streamChanged = gToWei(params.streamAmount) !== gToWei(params.currentStreamAmount ?? '0')
+  const hasStreamUpdate = streamChanged && streamG > 0
 
-  if (!hasDeposit && !hasStream) {
-    throw new Error('Enter a deposit or monthly stream amount')
+  if (!hasDeposit && !streamChanged) {
+    throw new Error('Enter a deposit or change the monthly stream amount')
   }
 
   const [minFirstDepositUsd, minMonthlyStreamUsd, totalDeposited] = await Promise.all([
@@ -213,7 +229,7 @@ export async function validateVaultPaymentAmounts(params: {
     }),
   ])
 
-  if (hasStream) {
+  if (hasStreamUpdate) {
     const monthlyWei = gToWei(params.streamAmount)
     const streamUsd = await readGdUsd18(params.publicClient, params.vault, monthlyWei)
     if (streamUsd < minMonthlyStreamUsd) {

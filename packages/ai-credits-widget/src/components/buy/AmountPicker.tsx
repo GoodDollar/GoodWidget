@@ -17,6 +17,7 @@ import {
   getPayDisabledMessage,
   getPaymentAmountValidation,
 } from '../../vaultMinimums'
+import { formatGValue } from '../../format'
 import { AiCreditsStatusNotice, BonusBadgeFrame } from '../theme/cards'
 import { HoverTooltip } from '../shared/tooltips'
 import { compactButtonProps } from '../shared/styles'
@@ -106,6 +107,11 @@ interface AmountPickerProps {
   depositBonusPercent: number
   streamBonusPercent: number
   isPayPending: boolean
+  /**
+   * Why buying is unavailable regardless of the amounts entered — missing setup,
+   * for instance. Blocks payment and is surfaced verbatim; null when nothing blocks it.
+   */
+  payBlockedReason?: string | null
   buildQuote: (depositG: string, streamG: string) => Promise<AiCreditsQuote>
   onPay: (quote: AiCreditsQuote) => void
   onVerifyGoodId: () => Promise<void>
@@ -123,6 +129,7 @@ export function AmountPicker({
   depositBonusPercent,
   streamBonusPercent,
   isPayPending,
+  payBlockedReason = null,
   buildQuote,
   onPay,
   onVerifyGoodId,
@@ -171,32 +178,38 @@ export function AmountPicker({
       getPaymentAmountValidation({
         depositAmount,
         streamAmount,
+        currentStreamAmount: monthlyStreamG,
         minDepositUsd,
         minStreamUsd,
         quote,
         gdUsdPerToken,
         gBalance,
       }),
-    [depositAmount, streamAmount, minDepositUsd, minStreamUsd, quote, gdUsdPerToken, gBalance],
+    [depositAmount, streamAmount, monthlyStreamG, minDepositUsd, minStreamUsd, quote, gdUsdPerToken, gBalance],
   )
   const minsLoaded = minStreamUsd !== null
-  const hasAmounts = depositG > 0 || streamG > 0
+  const canRetryAfterFailure = status === 'quote_ready' || status === 'payment_failed'
   const canPay =
-    status === 'quote_ready' &&
+    !payBlockedReason &&
+    canRetryAfterFailure &&
     minsLoaded &&
-    hasAmounts &&
+    paymentValidation.hasPaymentAction &&
     paymentValidation.vaultMinimumsMet &&
     !paymentValidation.overBalance &&
     !quotePending &&
     quote !== null
-  const payDisabledMessage = getPayDisabledMessage({
-    canPay,
-    minsLoaded,
-    status,
-    minDepositUsd,
-    minStreamUsd,
-    validation: paymentValidation,
-  })
+  // A missing prerequisite outranks any amount-related hint: telling someone to
+  // adjust their deposit is misleading when the real blocker is setup.
+  const payDisabledMessage =
+    payBlockedReason ??
+    getPayDisabledMessage({
+      canPay,
+      minsLoaded,
+      status,
+      minDepositUsd,
+      minStreamUsd,
+      validation: paymentValidation,
+    })
   const { depositBelowMin, streamBelowMin, overBalance } = paymentValidation
   const depositMinUsdLabel =
     minDepositUsd !== null
@@ -244,18 +257,23 @@ export function AmountPicker({
       <XStack justifyContent="space-between" alignItems="center" gap="$2">
         <Heading level={5}>Buy Credits</Heading>
         {usd1ToGLabel && (
-          <Text fontSize="$2" secondary flexShrink={1} textAlign="right">
+          <Text fontSize="$2" tone="soft" flexShrink={1} textAlign="right">
             US$1 ≈ {usd1ToGLabel} G$
           </Text>
         )}
       </XStack>
 
       <XStack justifyContent="space-between" alignItems="center">
-        <Text variant="label" secondary>
+        <Text variant="label" tone="soft">
           Your G$ Balance
         </Text>
         {gBalance !== null ? (
-          <TokenAmount token="G$" amount={gBalance} size="sm" />
+          <TokenAmount
+            token="G$"
+            amount={gBalance}
+            formattedAmount={formatGValue(gBalance)}
+            size="sm"
+          />
         ) : (
           <Spinner size="sm" />
         )}
@@ -274,7 +292,7 @@ export function AmountPicker({
         />
         <XStack justifyContent="space-between" alignItems="center" gap="$2">
           {depositG > 0 && depositEstUsd ? (
-            <Text fontSize="$1" secondary>
+            <Text fontSize="$1" tone="soft">
               ≈ {depositEstUsd}
             </Text>
           ) : depositG > 0 && quotePending ? (
@@ -282,7 +300,7 @@ export function AmountPicker({
           ) : (
             <YStack />
           )}
-          <Text fontSize="$1" secondary textAlign="right" flexShrink={0}>
+          <Text fontSize="$1" tone="soft" textAlign="right" flexShrink={0}>
             {depositMinUsdLabel}
           </Text>
         </XStack>
@@ -303,7 +321,7 @@ export function AmountPicker({
         />
         <XStack justifyContent="space-between" alignItems="center" gap="$2">
           {streamG > 0 && streamEstUsd ? (
-            <Text fontSize="$1" secondary>
+            <Text fontSize="$1" tone="soft">
               ≈ {streamEstUsd}/month
             </Text>
           ) : streamG > 0 && quotePending ? (
@@ -311,7 +329,7 @@ export function AmountPicker({
           ) : (
             <YStack />
           )}
-          <Text fontSize="$1" secondary textAlign="right" flexShrink={0}>
+          <Text fontSize="$1" tone="soft" textAlign="right" flexShrink={0}>
             {streamMinUsdLabel}
           </Text>
         </XStack>
@@ -355,6 +373,14 @@ export function AmountPicker({
             />
           </XStack>
         </>
+      )}
+
+      {payBlockedReason && (
+        <AiCreditsStatusNotice borderColor="$warning">
+          <Text color="$warning" fontSize="$2">
+            {payBlockedReason}
+          </Text>
+        </AiCreditsStatusNotice>
       )}
 
       {overBalance && (

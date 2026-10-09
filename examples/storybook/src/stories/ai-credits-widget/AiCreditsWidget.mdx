@@ -40,12 +40,14 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
     description="Buy-flow status describes purchase progress and errors. The Manage tab (activeTab) is separate — use it when the wallet has credits or after a successful purchase."
   >
     <DocsGrid>
-      <DocsCard title="S1 – Disconnected">No wallet connected; tabs and purchase stepper hidden; circular Connect Wallet button.</DocsCard>
+      <DocsCard title="S1 – Disconnected">Setup tab with connect CTA; Buy Credits, Manage, and History tabs visible but disabled until a wallet connects.</DocsCard>
+      <DocsCard title="S1b – Setup tab">Connected wallet — onboarding for Download AntSeed, Signer Key, and Authorize Credits Management. The authorization step opens the same consent flow used by Buy Credits.</DocsCard>
       <DocsCard title="S2 – Purchase Setup">Buy tab — stepper with a CTA to open the active step in a bottom drawer.</DocsCard>
       <DocsCard title="S3 – Quote Ready">Buy tab — pay step available via drawer CTA; ready to confirm Celo transaction.</DocsCard>
       <DocsCard title="S4 – Payment Pending">Buy tab — Celo tx submitted.</DocsCard>
       <DocsCard title="S5 – Payment Confirmed">Buy tab — settling on Base.</DocsCard>
-      <DocsCard title="S6 – Manage tab">Manage tab — balance, stream, history, close/withdraw, API setup.</DocsCard>
+      <DocsCard title="S6 – Manage tab">Manage tab — balance, stream, close/withdraw, API setup.</DocsCard>
+      <DocsCard title="S6b – History tab">History tab — filtered, paginated AI credit funding history.</DocsCard>
       <DocsCard title="S7 – Insufficient G$">G$ below minimum purchase threshold.</DocsCard>
       <DocsCard title="S8 – Payment Failed">Transaction or settlement error.</DocsCard>
       <DocsCard title="S9 – Backend Unavailable">Backend unreachable.</DocsCard>
@@ -55,11 +57,13 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
 
   <DocsSection
     title="Widget navigation"
-    description="When a wallet is connected, Buy Credits and Manage appear as tabs at the top (with the GoodDollar header and chain badge). Switch tabs anytime — including during payment pending or failed states."
+    description="Setup, Buy Credits, Manage, and History appear as tabs (with the GoodDollar header and chain badge). Before a wallet connects, only Setup is active. After connecting, switch tabs anytime — including during payment pending or failed states."
   >
     <DocsGrid>
-      <DocsCard title="Buy Credits">Stepper for buyer key, consent, and pay — tap a step or CTA to open it in a drawer.</DocsCard>
-      <DocsCard title="Manage">Credits balance, stream info, close/withdraw, API setup, and history.</DocsCard>
+      <DocsCard title="Setup">Onboarding entry point — connect wallet when disconnected; onboarding step shell when connected.</DocsCard>
+      <DocsCard title="Buy Credits">Stepper for signer key, wallet authorization, and payment — tap a step or CTA to open it in a drawer.</DocsCard>
+      <DocsCard title="Manage">Credits balance, stream info, close/withdraw, and API setup.</DocsCard>
+      <DocsCard title="History">Paginated credit history with source, status, and date filters.</DocsCard>
     </DocsGrid>
   </DocsSection>
 
@@ -70,19 +74,19 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
     <DocsGrid>
       <DocsCard title="GET …/profile">Credits profile for the payer wallet.</DocsCard>
       <DocsCard title="GET …/credit-history">
-        Newest-first funding history (`items[].buyerAddress` is used to recover the buyer).
+        Newest-first funding history (`items[].signerAddress` is used to recover the signer).
       </DocsCard>
       <DocsCard title="GET …/outstanding">Pending or failed Base funding entries.</DocsCard>
       <DocsCard title="POST …/celo/events/record">Notify `{ txHash }` after a successful Celo payment.</DocsCard>
-      <DocsCard title="POST …/accounts/:buyer/operator-consent">
-        Buyer-signed SetOperator relay — backend submits `acceptBuyerOperator` on Base (no buyer gas).
+      <DocsCard title="POST …/accounts/:signer/operator-consent">
+        Signer-signed SetOperator relay — backend submits `acceptSignerOperator` on Base (no signer gas).
       </DocsCard>
-      <DocsCard title="POST …/channels/:channelId/close">Buyer-signed channel close from credits management.</DocsCard>
-      <DocsCard title="POST …/accounts/:buyer/withdraw">Buyer-signed principal withdraw to the payer wallet.</DocsCard>
+      <DocsCard title="POST …/channels/:channelId/close">Signer-signed channel close from credits management.</DocsCard>
+      <DocsCard title="POST …/accounts/:signer/withdraw">Signer-signed principal withdraw to the payer wallet.</DocsCard>
     </DocsGrid>
     <DocsCallout title="On-chain (not backend)" tone="info">
       Vault minimum reads, quotes, withdrawable principal, and Celo deposit/stream transactions are
-      handled on-chain via RPC. Buyer EIP-712 signing for operator consent, close, and withdraw
+      handled on-chain via RPC. Signer EIP-712 signing for wallet authorization, close, and withdraw
       happens in the widget; only the Base submission is relayed by the worker. There is no
       channel-list API — paste the channel ID manually.
     </DocsCallout>
@@ -92,9 +96,9 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
     title="Known limitations"
     description="Features that still need operator care in production."
   >
-    <DocsCallout title="Buyer private key session" tone="warning">
-      Close channel and withdraw require the buyer private key in the current browser session. Use
-      Sign &amp; Generate in Buyer &amp; Operator on the credits management screen if the key was
+    <DocsCallout title="Signer private key session" tone="warning">
+      Close channel and withdraw require the signer private key in the current browser session. Use
+      Sign &amp; Generate in Signer &amp; Operator on the credits management screen if the key was
       lost after refresh.
     </DocsCallout>
     <DocsCallout title="Vault minimums" tone="info">

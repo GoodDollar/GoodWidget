@@ -12,8 +12,8 @@ import type {
   TransactionsResponse,
   UserCreditProfile,
 } from './backendTypes'
-import type { BuyerOperatorStatus } from './operatorConsent'
-import { markMockOperatorConsent, type AiCreditsChainClient } from './chainClient'
+import type { SignerOperatorStatus } from './operatorConsent'
+import type { AiCreditsChainClient } from './chainClient'
 import {
   flowRateWeiToMonthlyG,
   weiToG,
@@ -52,12 +52,12 @@ function normalizeAddress(address: string): string {
 export type WithdrawPrincipalRequest = {
   amount: string
   recipient: string
-  timestamp: number
+  nonce: string
   signature: string
 }
 
 export type ChannelOperationRequest = {
-  timestamp?: number
+  nonce?: string
   signature?: string
 }
 
@@ -84,9 +84,16 @@ export type OperatorConsentRequest = {
 }
 
 export type OperatorConsentResponse = {
-  buyer: string
+  signer: string
   bridge: BridgeResponse
 }
+
+export type OperatorRevokeRequest = {
+  nonce: string
+  signature: string
+}
+
+export type OperatorRevokeResponse = OperatorConsentResponse
 
 async function readBridgeResponseBody<T extends { bridge?: BridgeResponse }>(
   response: Response,
@@ -126,58 +133,34 @@ function clampHistoryLimit(limit: number | undefined): number {
   return Math.min(Math.max(1, Math.floor(limit)), MAX_HISTORY_LIMIT)
 }
 
-function paginateGdCredits(
-  entries: GdCreditEntry[],
-  options: CreditHistoryQuery = {},
-): CreditHistoryResponse {
-  let result = [...entries].sort((a, b) => {
-    const byCreated = b.createdAt.localeCompare(a.createdAt)
-    if (byCreated !== 0) return byCreated
-    return b.id.localeCompare(a.id)
-  })
-  if (options.source) {
-    result = result.filter((entry) => entry.source === options.source)
-  }
-  if (options.fundingStatus) {
-    result = result.filter((entry) => entry.fundingStatus === options.fundingStatus)
-  }
-  if (options.from) {
-    const fromMs = Date.parse(options.from)
-    result = result.filter((entry) => Date.parse(entry.createdAt) >= fromMs)
-  }
-  if (options.to) {
-    const toMs = Date.parse(options.to)
-    result = result.filter((entry) => Date.parse(entry.createdAt) <= toMs)
-  }
-  const limit = clampHistoryLimit(options.limit)
-  const offset = Math.max(0, Math.floor(options.offset ?? 0))
-  const total = result.length
-  const items = result.slice(offset, offset + limit)
-  return {
-    account: '',
-    items,
-    total,
-    limit,
-    offset,
-    hasMore: offset + limit < total,
-  }
-}
-
-export function resolveBuyerAddress(entries: GdCreditEntry[]): string | null {
+export function resolveSignerAddress(entries: GdCreditEntry[]): string | null {
   for (const entry of entries) {
-    if (entry.buyerAddress && isAddress(entry.buyerAddress)) {
-      return normalizeAddress(entry.buyerAddress)
+    if (entry.signerAddress && isAddress(entry.signerAddress)) {
+      return normalizeAddress(entry.signerAddress)
     }
   }
   return null
 }
 
-function defaultOperatorStatus(payer: string): BuyerOperatorStatus {
+export function collectSignerAddressesFromEntries(entries: GdCreditEntry[]): string[] {
+  const seen = new Set<string>()
+  const result: string[] = []
+  for (const entry of entries) {
+    if (!entry.signerAddress || !isAddress(entry.signerAddress)) continue
+    const key = normalizeAddress(entry.signerAddress)
+    if (seen.has(key)) continue
+    seen.add(key)
+    result.push(key)
+  }
+  return result
+}
+
+function defaultOperatorStatus(payer: string): SignerOperatorStatus {
   const account = normalizeAddress(payer)
   return {
     enabled: false,
     account,
-    buyerAddress: account,
+    signerAddress: account,
     currentOperator: '0x0000000000000000000000000000000000000000',
     operatorAccepted: false,
     consentNonce: '0',
@@ -200,26 +183,27 @@ export function totalCreditUsdFromStatus(status: {
 
 export type AccountEnrichment = {
   totalCreditUsd: string
-  goodIdVerified: boolean
   totalGdDepositedG: string
   monthlyStreamG: string
 }
 
 export type BuildAccountViewOptions = {
-  buyerAddress?: string | null
+  signerAddress?: string | null
 }
 
-export async function enrichAccountView(
-  view: AccountView,
-  chain: AiCreditsChainClient,
-): Promise<AccountEnrichment> {
+/**
+ * Derives the display fields that need no further network access.
+ *
+ * GoodID verification is deliberately not read here. Chaining it to the backend
+ * credit fetch meant any backend error also cleared the verified flag, and it
+ * re-ran on every refresh; the adapter resolves it once per account instead.
+ */
+export function enrichAccountView(view: AccountView): AccountEnrichment {
   const { profile } = view
-  const goodIdVerified = await chain.isGoodIdVerified(view.account)
   const monthlyStreamG = flowRateWeiToMonthlyG(profile.streamFlowRateWeiPerSecond)
   const depositedWei = BigInt(profile.totalGdDepositedWei)
   return {
     totalCreditUsd: totalCreditUsdFromProfile(profile),
-    goodIdVerified,
     totalGdDepositedG: depositedWei > 0n ? weiToG(depositedWei) : '0.00',
     monthlyStreamG,
   }
@@ -234,7 +218,6 @@ export interface AiCreditsBackendClient {
     payer: string,
     options?: { status?: 'pending' | 'funded' | 'failed'; limit?: number; cursor?: string },
   ): Promise<TransactionsResponse>
-  getUsageLog(payer: string): Promise<GdCreditEntry[]>
   notifyPayment(txHash: string): Promise<CeloEventsRecordResponse>
   waitForSettlement(
     ref: AccountRef,
@@ -245,16 +228,19 @@ export interface AiCreditsBackendClient {
     body?: ChannelOperationRequest,
   ): Promise<ChannelOperationResponse>
   withdrawCredits(
-    buyer: string,
+    signer: string,
     body: WithdrawPrincipalRequest,
   ): Promise<WithdrawPrincipalResponse>
   submitOperatorConsent(
-    buyer: string,
+    signer: string,
     body: OperatorConsentRequest,
   ): Promise<OperatorConsentResponse>
+  revokeOperatorConsent(
+    signer: string,
+    body: OperatorRevokeRequest,
+  ): Promise<OperatorRevokeResponse>
 }
 
-const MOCK_DELAY_MS = 600
 const BPS_PER_PERCENT = 100
 
 export const DEFAULT_DISCOUNT_CONFIG: DiscountConfig = {
@@ -281,194 +267,6 @@ function discountConfigFromConfigValues(
       config?.STREAMING_BONUS_BPS,
       DEFAULT_DISCOUNT_CONFIG.streamBonusPercent,
     ),
-  }
-}
-
-export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
-  private activeRef: AccountRef | null = null
-  private lastCreditUsd = 0n
-
-  private readonly accountStates = new Map<
-    string,
-    {
-      principalUsd: bigint
-      bonusUsd: bigint
-      transactions: GdCreditEntry[]
-      rootAccount: string
-    }
-  >()
-
-  private getState(payer: string) {
-    const key = normalizeAddress(payer)
-    if (!this.accountStates.has(key)) {
-      this.accountStates.set(key, {
-        principalUsd: 0n,
-        bonusUsd: 0n,
-        transactions: [],
-        rootAccount: key,
-      })
-    }
-    return this.accountStates.get(key)!
-  }
-
-  async getDiscountConfig(): Promise<DiscountConfig> {
-    await sleep(MOCK_DELAY_MS)
-    return { ...DEFAULT_DISCOUNT_CONFIG }
-  }
-
-  private buildProfile(payer: string): UserCreditProfile {
-    const state = this.getState(payer)
-    const now = new Date().toISOString()
-    const outstanding = state.transactions
-      .filter((entry) => entry.fundingStatus === 'pending' || entry.fundingStatus === 'failed')
-      .reduce((sum, entry) => sum + BigInt(entry.totalCreditUsd), 0n)
-    return {
-      account: normalizeAddress(payer),
-      rootAccount: state.rootAccount,
-      createdAt: now,
-      updatedAt: now,
-      totalGdDepositedWei: '0',
-      totalPrincipalUsd: state.principalUsd.toString(),
-      totalBonusUsd: state.bonusUsd.toString(),
-      totalGDStreamedWei: '0',
-      totalOutstandingFundingUsd: outstanding.toString(),
-      streamFlowRateWeiPerSecond: '0',
-    }
-  }
-
-  async getAccountCredit(payer: string): Promise<AccountCreditResponse> {
-    await sleep(MOCK_DELAY_MS)
-    const profile = this.buildProfile(payer)
-    return {
-      account: profile.account,
-      profile,
-    }
-  }
-
-  async getCreditHistory(
-    payer: string,
-    options: CreditHistoryQuery = {},
-  ): Promise<CreditHistoryResponse> {
-    await sleep(MOCK_DELAY_MS)
-    const history = paginateGdCredits(this.getState(payer).transactions, options)
-    return {
-      ...history,
-      account: normalizeAddress(payer),
-    }
-  }
-
-  async getOutstanding(payer: string): Promise<{ outstandingFundingUsd: string; count: number }> {
-    await sleep(MOCK_DELAY_MS)
-    const state = this.getState(payer)
-    const pending = state.transactions.filter(
-      (entry) => entry.fundingStatus === 'pending' || entry.fundingStatus === 'failed',
-    )
-    const outstanding = pending.reduce(
-      (sum, entry) => sum + BigInt(entry.totalCreditUsd || '0'),
-      0n,
-    )
-    return { outstandingFundingUsd: outstanding.toString(), count: pending.length }
-  }
-
-  async getTransactions(
-    payer: string,
-    options: { status?: 'pending' | 'funded' | 'failed'; limit?: number; cursor?: string } = {},
-  ): Promise<TransactionsResponse> {
-    const history = await this.getCreditHistory(payer, {
-      fundingStatus: options.status,
-      limit: options.limit,
-      offset: options.cursor ? Number(options.cursor) || 0 : 0,
-    })
-    return { account: history.account, transactions: history.items }
-  }
-
-  async getUsageLog(payer: string): Promise<GdCreditEntry[]> {
-    const history = await this.getCreditHistory(payer, { limit: DEFAULT_HISTORY_LIMIT, offset: 0 })
-    return history.items
-  }
-
-  prepareSettlement(ref: AccountRef, creditUsd: bigint): void {
-    this.activeRef = { payer: normalizeAddress(ref.payer), buyer: normalizeAddress(ref.buyer) }
-    this.lastCreditUsd = creditUsd
-  }
-
-  async notifyPayment(txHash: string): Promise<CeloEventsRecordResponse> {
-    await sleep(MOCK_DELAY_MS)
-    const ref = this.activeRef
-    if (!ref) return { txHash, events: [] }
-
-    const totalUsd = this.lastCreditUsd
-    const now = new Date().toISOString()
-    const entry: GdCreditEntry = {
-      id: `${txHash}:0`,
-      account: ref.payer,
-      rootAccount: ref.payer,
-      source: 'deposit',
-      gdAmountWei: '0',
-      totalCreditUsd: totalUsd.toString(),
-      principalUsd: totalUsd.toString(),
-      bonusUsd: '0',
-      fundingStatus: 'pending',
-      txHash,
-      logIndex: 0,
-      createdAt: now,
-      streamUpdateMonth: now.slice(0, 7),
-      buyerAddress: ref.buyer,
-    }
-
-    const state = this.getState(ref.payer)
-    if (!state.transactions.find((item) => item.id === entry.id)) {
-      state.transactions.unshift(entry)
-    }
-    return { txHash, events: [entry] }
-  }
-
-  async waitForSettlement(
-    ref: AccountRef,
-    _options: { txHashes?: string[]; previousBalance?: string } = {},
-  ): Promise<SettlementResult> {
-    await sleep(MOCK_DELAY_MS)
-    const state = this.getState(ref.payer)
-    for (const entry of state.transactions) {
-      if (entry.fundingStatus !== 'pending') continue
-      entry.fundingStatus = 'funded'
-      state.principalUsd += BigInt(entry.principalUsd)
-      state.bonusUsd += BigInt(entry.bonusUsd)
-    }
-    return { totalCreditUsd: totalCreditUsdFromProfile(this.buildProfile(ref.payer)) }
-  }
-
-  async closeChannel(
-    channelId: string,
-    _body: ChannelOperationRequest = {},
-  ): Promise<ChannelOperationResponse> {
-    await sleep(MOCK_DELAY_MS)
-    return { channelId, action: 'close', bridge: { enabled: true, txHash: '0xmock' } }
-  }
-
-  async withdrawCredits(
-    _buyer: string,
-    body: WithdrawPrincipalRequest,
-  ): Promise<WithdrawPrincipalResponse> {
-    await sleep(MOCK_DELAY_MS)
-    return {
-      account: _buyer,
-      amountUsd: body.amount,
-      bridge: { enabled: true, txHash: '0xmock' },
-    }
-  }
-
-  async submitOperatorConsent(
-    buyer: string,
-    _body: OperatorConsentRequest,
-  ): Promise<OperatorConsentResponse> {
-    await sleep(MOCK_DELAY_MS)
-    const normalizedBuyer = normalizeAddress(buyer)
-    markMockOperatorConsent(normalizedBuyer)
-    return {
-      buyer: normalizedBuyer,
-      bridge: { enabled: true, txHash: '0xmock' },
-    }
   }
 }
 
@@ -512,7 +310,17 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
 
     const response = await fetch(`${this.accountBase(payer)}/credit-history?${params.toString()}`)
     if (!response.ok) throw new Error(`Credit history request failed: ${response.status}`)
-    return response.json() as Promise<CreditHistoryResponse>
+    // The backend still calls this `buyerAddress`; the widget speaks in signers.
+    const payload = (await response.json()) as Omit<CreditHistoryResponse, 'items'> & {
+      items?: Array<GdCreditEntry & { buyerAddress?: string }>
+    }
+    return {
+      ...payload,
+      items: (payload.items ?? []).map(({ buyerAddress, ...entry }) => ({
+        ...entry,
+        signerAddress: entry.signerAddress ?? buyerAddress,
+      })),
+    }
   }
 
   async getOutstanding(payer: string): Promise<{ outstandingFundingUsd: string; count: number }> {
@@ -611,23 +419,23 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
   }
 
   async withdrawCredits(
-    buyer: string,
+    signer: string,
     body: WithdrawPrincipalRequest,
   ): Promise<WithdrawPrincipalResponse> {
-    const response = await fetch(`${this.accountBase(buyer)}/withdraw`, {
+    const response = await fetch(`${this.accountBase(signer)}/withdraw`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })
     const bridge = await parseBridgeResponse(response, 'Withdraw')
-    return { account: normalizeAddress(buyer), amountUsd: body.amount, bridge }
+    return { account: normalizeAddress(signer), amountUsd: body.amount, bridge }
   }
 
   async submitOperatorConsent(
-    buyer: string,
+    signer: string,
     body: OperatorConsentRequest,
   ): Promise<OperatorConsentResponse> {
-    const response = await fetch(`${this.accountBase(buyer)}/operator-consent`, {
+    const response = await fetch(`${this.accountBase(signer)}/operator-consent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -637,15 +445,86 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
     })
     const payload = await readBridgeResponseBody<OperatorConsentResponse>(response, 'Operator consent')
     return {
-      buyer: normalizeAddress(payload.buyer ?? buyer),
+      signer: normalizeAddress(payload.signer ?? signer),
+      bridge: payload.bridge,
+    }
+  }
+
+  async revokeOperatorConsent(
+    signer: string,
+    body: OperatorRevokeRequest,
+  ): Promise<OperatorRevokeResponse> {
+    const response = await fetch(`${this.accountBase(signer)}/operator-revoke`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nonce: body.nonce,
+        signature: body.signature,
+      }),
+    })
+    const payload = await readBridgeResponseBody<OperatorRevokeResponse>(response, 'Operator revoke')
+    return {
+      signer: normalizeAddress(payload.signer ?? signer),
       bridge: payload.bridge,
     }
   }
 }
 
-export function createBackendClient(backendUrl: string | undefined): AiCreditsBackendClient {
+export class UnavailableAiCreditsBackendClient implements AiCreditsBackendClient {
+  private unavailable(): never {
+    throw new Error('AI Credits backend is not configured')
+  }
+
+  async getDiscountConfig() {
+    return this.unavailable()
+  }
+
+  async getAccountCredit() {
+    return this.unavailable()
+  }
+
+  async getCreditHistory() {
+    return this.unavailable()
+  }
+
+  async getOutstanding() {
+    return this.unavailable()
+  }
+
+  async getTransactions() {
+    return this.unavailable()
+  }
+
+  async notifyPayment() {
+    return this.unavailable()
+  }
+
+  async waitForSettlement() {
+    return this.unavailable()
+  }
+
+  async closeChannel() {
+    return this.unavailable()
+  }
+
+  async withdrawCredits() {
+    return this.unavailable()
+  }
+
+  async submitOperatorConsent() {
+    return this.unavailable()
+  }
+
+  async revokeOperatorConsent() {
+    return this.unavailable()
+  }
+}
+
+export function createBackendClient(
+  backendUrl: string | undefined,
+): AiCreditsBackendClient {
   if (!backendUrl) {
-    return new MockAiCreditsBackendClient()
+    return new UnavailableAiCreditsBackendClient()
   }
   return new ProductionAiCreditsBackendClient(backendUrl)
 }
@@ -656,7 +535,7 @@ export async function waitForOperatorConsent(
 ): Promise<void> {
   for (let attempt = 0; attempt < BRIDGE_POLL_MAX_ATTEMPTS; attempt++) {
     if (attempt > 0) await sleep(BRIDGE_POLL_INTERVAL_MS)
-    const status = await chain.getBuyerOperatorStatus(ref)
+    const status = await chain.getSignerOperatorStatus(ref)
     if (status.operatorAccepted) return
   }
 
@@ -670,29 +549,33 @@ export async function buildAccountView(
   options: BuildAccountViewOptions = {},
 ): Promise<AccountView> {
   const normalizedPayer = normalizeAddress(payer)
-  const [credit, outstanding, history] = await Promise.all([
-    backend.getAccountCredit(payer),
-    backend.getOutstanding(payer),
-    backend.getCreditHistory(payer, { limit: MAX_HISTORY_LIMIT, offset: 0 }),
-  ])
-  const sessionBuyer =
-    options.buyerAddress && isAddress(options.buyerAddress)
-      ? normalizeAddress(options.buyerAddress)
+  const signer =
+    options.signerAddress && isAddress(options.signerAddress)
+      ? normalizeAddress(options.signerAddress)
       : null
-  const buyer = sessionBuyer ?? resolveBuyerAddress(history.items)
-  const [operator, withdrawableUsd] = buyer
-    ? await Promise.all([
-        chain.getBuyerOperatorStatus({ payer: normalizedPayer, buyer }),
-        chain.getWithdrawableUsd(buyer),
-      ])
-    : [defaultOperatorStatus(normalizedPayer), '0']
+
+  // These four reads are independent of one another and span two networks (the
+  // credit backend and Base). Only the credit profile is load-bearing, so the
+  // rest degrade on their own rather than taking the whole view down with them:
+  // a Base RPC hiccup used to discard a perfectly good credit profile.
+  const [credit, outstanding, operator, withdrawableUsd] = await Promise.all([
+    backend.getAccountCredit(payer),
+    backend.getOutstanding(payer).catch(() => null),
+    signer
+      ? chain.getSignerOperatorStatus({ payer: normalizedPayer, signer }).catch(() => null)
+      : Promise.resolve(defaultOperatorStatus(normalizedPayer)),
+    signer ? chain.getWithdrawableUsd(signer).catch(() => null) : Promise.resolve('0'),
+  ])
+
   return {
     account: normalizedPayer,
-    buyer,
+    signer,
     profile: credit.profile,
     operator,
     withdrawableUsd,
-    outstandingFundingUsd: outstanding.outstandingFundingUsd,
-    outstandingFundingCount: outstanding.count,
+    // Not rendered anywhere today; '0' keeps the shape without inventing a
+    // balance the caller would display.
+    outstandingFundingUsd: outstanding?.outstandingFundingUsd ?? '0',
+    outstandingFundingCount: outstanding?.count ?? 0,
   }
 }

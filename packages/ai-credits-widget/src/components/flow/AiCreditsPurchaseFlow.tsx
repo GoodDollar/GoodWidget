@@ -1,17 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { Button, ButtonText, Drawer, ScrollArea, YStack } from '@goodwidget/ui'
+import React, { useCallback, useEffect, useRef } from 'react'
 import type {
   AiCreditsQuote,
   AiCreditsWidgetAdapterActions,
   AiCreditsWidgetAdapterState,
 } from '../../widgetRuntimeContract'
 import { AmountPicker } from '../buy/AmountPicker'
-import { BuyerKeyPanel } from '../buy/BuyerKeyPanel'
-import { OperatorConsentStep } from '../buy/OperatorConsentStep'
-import { AiCreditsFlowStepper } from './AiCreditsFlowStepper'
-import type { AiCreditsFlowStep } from './types'
-import { getActiveFlowStepActionLabel, getAiCreditsActiveFlowStep } from './purchaseFlowUtils'
-import { compactButtonProps } from '../shared/styles'
 
 interface AiCreditsPurchaseFlowProps {
   state: AiCreditsWidgetAdapterState
@@ -20,175 +13,68 @@ interface AiCreditsPurchaseFlowProps {
   onPay: (quote: AiCreditsQuote) => void
 }
 
+/**
+ * Reason the purchase cannot go through yet, or null when it can.
+ *
+ * The Setup tab owns the signer key and the wallet authorization, so Buy no
+ * longer repeats them as steps — it just states what is still missing and keeps
+ * the amounts explorable in the meantime.
+ */
+function getPayBlockedReason(state: AiCreditsWidgetAdapterState): string | null {
+  if (!state.signerPubKey) {
+    return 'Generate or import your signer key in the Set Up tab before buying.'
+  }
+  if (!state.operatorConsented) {
+    return state.operatorConsentPending
+      ? 'Waiting for your wallet authorization to confirm…'
+      : 'Authorize your wallet in the Set Up tab before buying.'
+  }
+  return null
+}
+
+/**
+ * The Buy tab: the purchase UI on its own. Setup progress lives in the Setup
+ * tab, so there is no stepper or drawer here — the amount picker is the tab.
+ */
 export function AiCreditsPurchaseFlow({
   state,
   actions,
   isPending,
   onPay,
 }: AiCreditsPurchaseFlowProps) {
-  const [buyerPubKeySaved, setBuyerPubKeySaved] = useState(false)
-  const activeStep = getAiCreditsActiveFlowStep(state, buyerPubKeySaved)
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [drawerStep, setDrawerStep] = useState<AiCreditsFlowStep | null>(activeStep)
-  const prevActiveStepRef = useRef<AiCreditsFlowStep | null>(null)
-  const goodIdTabPendingRef = useRef(false)
-
+  // Consent may have been granted on another device or in an earlier session,
+  // so reconcile against the chain rather than trusting local state alone. Keyed
+  // on payer+signer because `actions` is rebuilt on every state change.
+  const syncedConsentForRef = useRef<string | null>(null)
   useEffect(() => {
-    setBuyerPubKeySaved(false)
-  }, [state.buyerPubKey])
-
-  useEffect(() => {
-    if (activeStep !== 'consent' || state.operatorConsented) return
-    if (!state.address || !state.buyerPubKey) return
+    if (state.operatorConsented) return
+    if (!state.address || !state.signerPubKey) return
+    const key = `${state.address}:${state.signerPubKey}`.toLowerCase()
+    if (syncedConsentForRef.current === key) return
+    syncedConsentForRef.current = key
     void actions.syncOperatorConsentFromChain()
-  }, [activeStep, state.operatorConsented, state.address, state.buyerPubKey, actions])
-
-  useEffect(() => {
-    if (!activeStep) {
-      setDrawerOpen(false)
-      setDrawerStep(null)
-      prevActiveStepRef.current = null
-      return
-    }
-
-    const previousStep = prevActiveStepRef.current
-    prevActiveStepRef.current = activeStep
-    setDrawerStep(activeStep)
-
-    if (previousStep == null) {
-      setDrawerOpen(false)
-    } else if (previousStep !== activeStep) {
-      setDrawerOpen(true)
-    }
-  }, [activeStep])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const onFocus = () => {
-      if (!goodIdTabPendingRef.current) return
-      goodIdTabPendingRef.current = false
-      if (activeStep === 'pay') {
-        setDrawerStep('pay')
-        setDrawerOpen(true)
-      }
-    }
-    window.addEventListener('focus', onFocus)
-    return () => window.removeEventListener('focus', onFocus)
-  }, [activeStep])
+  }, [state.operatorConsented, state.address, state.signerPubKey, actions])
 
   const handleVerifyGoodId = useCallback(async () => {
-    try {
-      const started = await actions.verifyGoodId()
-      if (started) {
-        goodIdTabPendingRef.current = true
-      }
-    } finally {
-      if (activeStep === 'pay') {
-        setDrawerStep('pay')
-        setDrawerOpen(true)
-      }
-    }
-  }, [actions, activeStep])
-
-  const openDrawer = useCallback(
-    (step: AiCreditsFlowStep) => {
-      if (step !== activeStep && !(step === 'pay' && state.status === 'payment_failed')) return
-      setDrawerStep(step)
-      setDrawerOpen(true)
-    },
-    [activeStep, state.status],
-  )
-
-  const handleStepPress = useCallback(
-    (stepId: string) => {
-      openDrawer(stepId as AiCreditsFlowStep)
-    },
-    [openDrawer],
-  )
-
-  const actionLabel = getActiveFlowStepActionLabel(state, activeStep, buyerPubKeySaved)
-
-  function renderDrawerContent(step: AiCreditsFlowStep | null) {
-    if (!step) return null
-
-    switch (step) {
-      case 'buyer_key':
-        return (
-          <BuyerKeyPanel
-            embedded
-            buyerPubKey={state.buyerPubKey}
-            buyerPrvKey={state.buyerPrvKey ?? null}
-            buyerPubKeySaved={buyerPubKeySaved}
-            onGenerate={actions.generateBuyerKey}
-            onConfirm={() => setBuyerPubKeySaved(true)}
-          />
-        )
-      case 'consent':
-        return (
-          <OperatorConsentStep
-            embedded
-            buyerPubKey={state.buyerPubKey}
-            buyerPrvKey={state.buyerPrvKey ?? null}
-            operatorConsented={state.operatorConsented}
-            onSign={actions.signOperatorConsent}
-          />
-        )
-      case 'pay':
-        return (
-          <AmountPicker
-            embedded
-            status={state.status}
-            gBalance={state.gBalance}
-            minDepositUsd={state.minDepositUsd}
-            minStreamUsd={state.minStreamUsd}
-            monthlyStreamG={state.monthlyStreamG}
-            gdUsdPerToken={state.gdUsdPerToken}
-            isGoodIdVerified={state.isGoodIdVerified}
-            depositBonusPercent={state.depositBonusPercent}
-            streamBonusPercent={state.streamBonusPercent}
-            isPayPending={isPending}
-            buildQuote={actions.buildQuote}
-            onPay={onPay}
-            onVerifyGoodId={handleVerifyGoodId}
-          />
-        )
-      default:
-        return null
-    }
-  }
+    await actions.verifyGoodId()
+  }, [actions])
 
   return (
-    <>
-      <AiCreditsFlowStepper
-        state={state}
-        buyerPubKeySaved={buyerPubKeySaved}
-        onStepPress={handleStepPress}
-      />
-      {!drawerOpen && actionLabel && activeStep && (
-        <Button
-          fullWidth
-          size="sm"
-          {...compactButtonProps}
-          onPress={() => {
-            openDrawer(activeStep)
-          }}
-        >
-          <ButtonText>{actionLabel}</ButtonText>
-        </Button>
-      )}
-      <Drawer
-        open={drawerOpen && drawerStep !== null}
-        onClose={() => {
-          setDrawerOpen(false)
-        }}
-        height="full"
-      >
-        <ScrollArea width="100%">
-          <YStack gap="$3" paddingBottom="$4" width="100%">
-            {renderDrawerContent(drawerStep)}
-          </YStack>
-        </ScrollArea>
-      </Drawer>
-    </>
+    <AmountPicker
+      status={state.status}
+      gBalance={state.gBalance}
+      minDepositUsd={state.minDepositUsd}
+      minStreamUsd={state.minStreamUsd}
+      monthlyStreamG={state.monthlyStreamG}
+      gdUsdPerToken={state.gdUsdPerToken}
+      isGoodIdVerified={state.isGoodIdVerified}
+      depositBonusPercent={state.depositBonusPercent}
+      streamBonusPercent={state.streamBonusPercent}
+      isPayPending={isPending}
+      payBlockedReason={getPayBlockedReason(state)}
+      buildQuote={actions.buildQuote}
+      onPay={onPay}
+      onVerifyGoodId={handleVerifyGoodId}
+    />
   )
 }

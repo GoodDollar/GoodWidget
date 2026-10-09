@@ -82,7 +82,7 @@ test('StreamingWidget shows loading states for streams and history', async ({ pa
 test('StreamingWidget shows empty states for streams and history', async ({ page }) => {
   await gotoStory(page, 'empty-state')
 
-  await expectBodyToContain(page, ['No streams found.'])
+  await expectBodyToContain(page, ['No active streams found.'])
 
   await page.getByText('History').first().click()
   await expectBodyToContain(page, ['No stream history found.'])
@@ -120,6 +120,53 @@ test('StreamingWidget shows populated incoming and outgoing stream views', async
   await page.getByText('History').first().click()
   await expectBodyToContain(page, ['Stream history', 'Show more'])
   await saveScreenshot(page, 'sw-22-stream-history-tab')
+})
+
+test('StreamingWidget expands and collapses stream details', async ({ page }) => {
+  await gotoStory(page, 'populated-state')
+
+  const expandButton = page.getByRole('button', { name: 'Expand stream details' }).first()
+  await expandButton.click()
+  await expectBodyToContain(page, ['Token', 'Flow rate', 'Update', 'Cancel stream'])
+  await saveScreenshot(page, 'sw-24-stream-details-expanded')
+
+  await page.getByRole('button', { name: 'Collapse stream details' }).first().click()
+  await expect(page.getByText('Flow rate', { exact: true })).toHaveCount(0)
+  await saveScreenshot(page, 'sw-25-stream-details-collapsed')
+})
+
+test('StreamingWidget filters stream history by status', async ({ page }) => {
+  await gotoStory(page, 'populated-state')
+  await page.getByText('History').first().click()
+
+  await page.getByRole('button', { name: 'Active' }).click()
+  await expectBodyToContain(page, ['Active'])
+  await expect(page.getByRole('button', { name: 'Expand stream details' })).toHaveCount(2)
+  await saveScreenshot(page, 'sw-26-history-active-filter')
+
+  await page.getByRole('button', { name: 'Ended' }).click()
+  await expectBodyToContain(page, ['Ended'])
+  await expect(page.getByRole('button', { name: 'Expand stream details' })).toHaveCount(4)
+  await saveScreenshot(page, 'sw-27-history-ended-filter')
+})
+
+test('StreamingWidget covers stream cancellation and update states', async ({ page }) => {
+  await gotoStory(page, 'cancel-stream-pending')
+  await page.getByRole('button', { name: 'Expand stream details' }).first().click()
+  await expect(page.getByRole('button', { name: 'Update' })).toBeVisible()
+  await expect(page.getByText('Cancel stream', { exact: true })).toHaveCount(0)
+  await saveScreenshot(page, 'sw-28-cancel-stream-pending')
+
+  await gotoStory(page, 'cancel-stream-failure')
+  await page.getByRole('button', { name: 'Expand stream details' }).first().click()
+  await expectBodyToContain(page, ['Transaction cancelled by wallet.'])
+  await saveScreenshot(page, 'sw-29-cancel-stream-failure')
+
+  await gotoStory(page, 'update-stream-form')
+  // Heading renders as styled Text, not an h1-h6, so match on text not role.
+  await expect(page.getByText('Update Stream').first()).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Update Stream' })).toBeVisible()
+  await saveScreenshot(page, 'sw-30-update-stream-form')
 })
 
 test('StreamingWidget renders usable mobile and desktop layouts', async ({ page }) => {

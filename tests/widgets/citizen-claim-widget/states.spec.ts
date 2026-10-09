@@ -30,6 +30,8 @@ import { test, expect, Page } from '@playwright/test'
 
 const STORY_URL =
   '/iframe.html?id=qa-citizenclaimwidget-runtime-fixtures--custodial-local-fixture&viewMode=story'
+const CLAIM_ALL_CONTRACT_STORY_URL =
+  '/iframe.html?id=qa-citizenclaimwidget-runtime-fixtures--custodial-execution-claim-all-contract&viewMode=story'
 
 /** Navigate directly to the story iframe (bypasses Storybook shell for speed). */
 async function gotoStory(page: Page): Promise<void> {
@@ -163,4 +165,37 @@ test('CitizenClaimWidget Retry button re-triggers the adapter', async ({ page })
   // Either back in loading (no Retry, no Verify) or resolved to not_whitelisted
   // — both are valid depending on timing
   expect(afterClickText).toBeTruthy()
+})
+
+test('CitizenClaimWidget claimExecution claimAll reports per-chain success and failure', async ({
+  page,
+}) => {
+  await page.goto(CLAIM_ALL_CONTRACT_STORY_URL)
+  await page.waitForLoadState('domcontentloaded')
+
+  const runButton = page.getByRole('button', { name: 'Run claimAll' })
+  await expect(runButton).toBeVisible()
+  await runButton.click()
+
+  const celoResult = page.getByTestId('CitizenClaimWidget-custodial-claim-all-42220')
+  const fuseResult = page.getByTestId('CitizenClaimWidget-custodial-claim-all-122')
+  const duration = page.getByTestId('CitizenClaimWidget-custodial-claim-all-duration')
+
+  await expect(celoResult).toHaveText('chain 42220: fulfilled - ok', { timeout: 20_000 })
+  await expect(fuseResult).toContainText('chain 122: rejected', { timeout: 20_000 })
+  await expect(fuseResult).toContainText('Simulated Fuse claim failure', { timeout: 20_000 })
+  await expect(duration).toContainText('duration:', { timeout: 20_000 })
+
+  const measuredDurationText = await duration.textContent()
+  expect(measuredDurationText).toBeTruthy()
+  const durationMatch = measuredDurationText?.match(/[\d.]+/)
+  expect(durationMatch).toBeTruthy()
+  const measuredDuration = Number(durationMatch?.[0])
+  expect(Number.isFinite(measuredDuration)).toBe(true)
+  expect(measuredDuration).toBeLessThan(6_500)
+
+  await page.screenshot({
+    path: 'tests/widgets/citizen-claim-widget/test-results/ccw-05-custodial-claim-all-contract.png',
+    fullPage: true,
+  })
 })

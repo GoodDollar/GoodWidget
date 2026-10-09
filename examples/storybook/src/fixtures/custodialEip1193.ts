@@ -36,9 +36,9 @@ const CHAIN_CONFIGS: Record<number, { chain: Chain; rpcUrl: string }> = {
       id: 8453,
       name: 'Base',
       nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-      rpcUrls: { default: { http: ['https://mainnet.base.org'] } },
+      rpcUrls: { default: { http: ['https://base.drpc.org'] } },
     } as Chain,
-    rpcUrl: 'https://mainnet.base.org',
+    rpcUrl: 'https://base.drpc.org',
   },
   [50]: {
     chain: {

@@ -1,5 +1,5 @@
 import type { EIP1193Provider } from './eip1193'
-import type { HostEnvironment, HostCapabilities, HostDetectionResult } from './types'
+import type { HostCapabilities, HostDetectionResult } from './types'
 
 interface WindowWithProviders {
   ethereum?: EIP1193Provider & {
@@ -32,9 +32,7 @@ const DEFAULT_CAPABILITIES: HostCapabilities = {
   signin: false,
 }
 
-async function detectFarcaster(
-  win: WindowWithProviders,
-): Promise<HostDetectionResult | null> {
+async function detectFarcaster(win: WindowWithProviders): Promise<HostDetectionResult | null> {
   if (!win.farcaster?.sdk?.wallet) return null
 
   try {

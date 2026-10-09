@@ -1,4 +1,9 @@
 export { createMiniAppElement } from './createMiniAppElement'
+export type {
+  MiniAppElement,
+  MiniAppElementConstructor,
+  MiniAppElementOptions,
+} from './createMiniAppElement'
 export { DefaultAppKitProvider } from './DefaultAppKitProvider'
 export { injectStylesIntoShadow, updateShadowStyles, getResetCSS } from './shadowStyles'
 export { readCSSOverrides, observeCSSChanges } from './cssPropertyBridge'

@@ -7,6 +7,7 @@ interface WelcomeStepContentProps {
   walletAddress?: string
   isIdentityVerified: boolean
   onProceedPress?: () => void
+  onVerifyPress?: () => void
 }
 
 export function WelcomeStepContent({
@@ -14,6 +15,7 @@ export function WelcomeStepContent({
   walletAddress,
   isIdentityVerified,
   onProceedPress,
+  onVerifyPress,
 }: WelcomeStepContentProps) {
   return (
     <YStack gap="$3">
@@ -21,6 +23,7 @@ export function WelcomeStepContent({
         identityStatus={identityStatus}
         walletAddress={walletAddress}
         onProceedPress={isIdentityVerified ? onProceedPress : undefined}
+        onVerifyPress={onVerifyPress}
       />
     </YStack>
   )

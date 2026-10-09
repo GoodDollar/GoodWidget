@@ -5,6 +5,7 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
+    "test": "turbo run test",
     "clean": "turbo run clean",
     "storybook": "pnpm --filter @goodwidget/storybook storybook",
     "build-storybook": "pnpm --filter @goodwidget/storybook build-storybook",
@@ -16,17 +17,19 @@
     "vercel:deploy:production": "pnpm vercel:build:production && vercel deploy --prebuilt --prod",
     "test:storybook": "pnpm --filter @goodwidget/storybook test:storybook",
     "test:demo": "playwright test",
-    "test:ai-credits-web": "playwright test --config apps/ai-credits-web/playwright.config.ts"
+    "test:ai-credits-web": "playwright test --config apps/ai-credits-web/playwright.config.ts",
+    "test:superfluid-campaign-web": "playwright test --config apps/superfluid-campaign-web/playwright.config.ts",
+    "test:gooddata-analytics-web": "playwright test --config apps/gooddata-analytics-web/playwright.config.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.44.0",
-    "turbo": "^2.4.0",
-    "typescript": "^5.7.0",
-    "eslint": "^9.20.0",
-    "prettier": "^3.5.0",
     "@typescript-eslint/eslint-plugin": "^8.25.0",
     "@typescript-eslint/parser": "^8.25.0",
-    "vercel": "^54.14.2"
+    "eslint": "^9.20.0",
+    "prettier": "^3.5.0",
+    "turbo": "^2.4.0",
+    "typescript": "^5.7.0",
+    "vercel": "^54.21.1"
   },
   "packageManager": "pnpm@9.15.0"
 }

@@ -50,6 +50,49 @@ export function formatTimestamp(unixSeconds: number): string {
   })
 }
 
+/**
+ * `streamedUntilUpdatedAt` is a snapshot frozen at the last on-chain update, so a
+ * running stream has accrued more since. Add the elapsed slice back on.
+ */
+export function liveStreamedAmount(
+  streamedSoFar: bigint,
+  flowRate: bigint,
+  updatedAtTimestamp: number,
+  isActive: boolean,
+  nowSeconds: number,
+): bigint {
+  if (!isActive || flowRate <= 0n) return streamedSoFar
+
+  const elapsed = Math.max(0, nowSeconds - updatedAtTimestamp)
+  return streamedSoFar + flowRate * BigInt(elapsed)
+}
+
+export function formatDuration(seconds: number): string {
+  if (seconds <= 0) return 'less than a minute'
+
+  const days = Math.floor(seconds / SECONDS_PER_DAY)
+  const hours = Math.floor((seconds % SECONDS_PER_DAY) / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+
+  const parts: string[] = []
+  if (days) parts.push(`${days}d`)
+  if (hours) parts.push(`${hours}h`)
+  if (!days && minutes) parts.push(`${minutes}m`)
+
+  return parts.length ? parts.join(' ') : 'less than a minute'
+}
+
+export function formatDateTime(unixSeconds: number): string {
+  if (!unixSeconds) return 'N/A'
+  return new Date(unixSeconds * 1000).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
+
 export function chainName(chainId: number): string {
   if (chainId === STREAMING_CHAINS.CELO) return 'Celo'
   if (chainId === STREAMING_CHAINS.BASE) return 'Base'

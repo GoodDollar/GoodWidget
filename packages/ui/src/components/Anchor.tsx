@@ -21,6 +21,8 @@ interface AnchorProps {
   children: React.ReactNode
   target?: '_blank' | '_self' | '_parent' | '_top'
   rel?: string
+  /** Inline layout overrides — anchors are often used as flex children around a Button. */
+  style?: React.CSSProperties
 }
 
 export function Anchor({ href, children, target = '_blank', rel, ...rest }: AnchorProps) {

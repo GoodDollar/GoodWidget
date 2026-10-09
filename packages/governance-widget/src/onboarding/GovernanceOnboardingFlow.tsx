@@ -3,7 +3,12 @@ import type { ReactNode } from 'react'
 import { Button, ButtonText, PageWizardShell, XStack, usePageWizard } from '@goodwidget/ui'
 import { HOUSE_COPY } from './copy'
 import { DEFAULT_TRANSACTION_STEPS, DEFAULT_FINAL_ACTIONS } from './constants'
-import { validateProfileDraft, isProfileDraftComplete, validateField } from './validation'
+import {
+  isProfileDraftComplete,
+  isProfileFieldRequired,
+  validateField,
+  validateProfileDraft,
+} from './validation'
 import { WelcomeStepContent } from './steps/WelcomeStepContent'
 import { HouseStepContent } from './steps/HouseStepContent'
 import { ProfileStepContent } from './steps/ProfileStepContent'
@@ -23,29 +28,35 @@ import type { StepperStepItem } from '@goodwidget/ui'
 interface GovernanceOnboardingFlowProps {
   identityStatus: GovernanceIdentityStatus
   walletAddress?: string
-  disabledHouseOptions: GovernanceHouse[]
   initialFieldErrors: GovernanceProfileFieldErrors
-  stakeAmountLabel: string
+  stakeAmountLabels: Record<GovernanceHouse, string>
   transactionSteps: StepperStepItem[]
   finalActions: GovernanceOnboardingAction[]
+  onHouseChange?: (house: GovernanceHouse) => void
+  onIdentityVerificationPress?: () => void
+  onProfileSubmit?: (profileDraft: GovernanceWizardData['profileDraft'], house: GovernanceHouse) => void
   onFinalActionPress?: (actionId: string) => void
   dataTestId?: string
+}
+
+function areTransactionStepsComplete(steps: StepperStepItem[]): boolean {
+  return steps.length > 0 && steps.every((step) => step.status === 'completed')
 }
 
 export function GovernanceOnboardingFlow({
   identityStatus,
   walletAddress,
-  disabledHouseOptions,
   initialFieldErrors,
-  stakeAmountLabel,
+  stakeAmountLabels,
   transactionSteps = DEFAULT_TRANSACTION_STEPS,
   finalActions = DEFAULT_FINAL_ACTIONS,
+  onHouseChange,
+  onIdentityVerificationPress,
+  onProfileSubmit,
   onFinalActionPress,
   dataTestId,
 }: GovernanceOnboardingFlowProps) {
-  const { currentStep, steps, data, setData, next } = usePageWizard()
-  // The success step is a terminal view and should not appear in the progress
-  // indicator — Stitch design shows exactly 4 steps: Verify, Path, Profile, Transact.
+  const { currentStep, steps, data, setData, next, back, isFirst } = usePageWizard()
   const stepperDisplaySteps = steps.filter((s) => s.id !== 'success')
   const [fieldErrors, setFieldErrors] = useState<GovernanceProfileFieldErrors>(initialFieldErrors)
 
@@ -53,6 +64,7 @@ export function GovernanceOnboardingFlow({
   const selectedHouse = wizardData.selectedHouse
   const profileDraft = wizardData.profileDraft ?? {}
   const resolvedHouse: GovernanceHouse = selectedHouse ?? 'citizenship'
+  const selectedStakeAmountLabel = stakeAmountLabels[resolvedHouse]
   const isIdentityVerified = identityStatus === 'verified'
   const profileIsComplete = isProfileDraftComplete(resolvedHouse, profileDraft)
 
@@ -68,7 +80,6 @@ export function GovernanceOnboardingFlow({
       }
     })
 
-    // Clear the error as the user types so they get immediate positive feedback
     setFieldErrors((previousErrors) => {
       const nextErrors = { ...previousErrors }
       delete nextErrors[fieldKey]
@@ -76,10 +87,12 @@ export function GovernanceOnboardingFlow({
     })
   }
 
-  // Validate a single field when the user leaves it (blur) so they see
-  // inline feedback before hitting the submit button.
   const handleFieldBlur = (fieldKey: GovernanceProfileFieldKey, fieldValue: string) => {
-    const error = validateField(fieldKey, fieldValue)
+    const error = validateField(
+      fieldKey,
+      fieldValue,
+      isProfileFieldRequired(resolvedHouse, fieldKey),
+    )
     setFieldErrors((prev) => {
       if (!error) {
         const next = { ...prev }
@@ -95,12 +108,14 @@ export function GovernanceOnboardingFlow({
     setFieldErrors(nextFieldErrors)
 
     if (Object.keys(nextFieldErrors).length === 0) {
+      onProfileSubmit?.(profileDraft, resolvedHouse)
       next()
     }
   }
 
   const handleHouseSelect = (nextHouse: GovernanceHouse) => {
     setData({ selectedHouse: nextHouse })
+    onHouseChange?.(nextHouse)
   }
 
   let shellTitle = 'Governance onboarding'
@@ -108,6 +123,7 @@ export function GovernanceOnboardingFlow({
   let shellContent: ReactNode = null
   let shellFooter: ReactNode = null
   let hideStepper = false
+  const showBackButton = !isFirst && currentStep?.id !== 'stake' && currentStep?.id !== 'success'
 
   switch (currentStep?.id as GovernanceOnboardingStepId | undefined) {
     case 'welcome':
@@ -121,28 +137,27 @@ export function GovernanceOnboardingFlow({
           walletAddress={walletAddress}
           isIdentityVerified={isIdentityVerified}
           onProceedPress={next}
+          onVerifyPress={onIdentityVerificationPress}
         />
       )
-      // Footer is null — "Proceed to Membership" is inside OnboardingIdentityCard
       shellFooter = null
       break
 
     case 'house':
       shellTitle = 'Choose your house'
       shellDescription =
-        'Where will your impact be felt? Choose the path that best fits your contribution.'
+        'Select the governance body you wish to join.'
       shellContent = (
         <HouseStepContent
           selectedHouse={selectedHouse}
-          disabledHouseOptions={disabledHouseOptions}
-          stakeAmountLabel={stakeAmountLabel}
+          stakeAmountLabels={stakeAmountLabels}
           onHouseSelect={handleHouseSelect}
         />
       )
       shellFooter = (
-        <XStack gap="$3" justifyContent="flex-end" flexWrap="wrap">
-          <Button disabled={!selectedHouse} onPress={next}>
-            <ButtonText>Continue to profile</ButtonText>
+        <XStack width="100%">
+          <Button fullWidth disabled={!selectedHouse} onPress={next}>
+            <ButtonText>Continue</ButtonText>
           </Button>
         </XStack>
       )
@@ -157,37 +172,34 @@ export function GovernanceOnboardingFlow({
           selectedHouse={resolvedHouse}
           profileDraft={profileDraft}
           fieldErrors={fieldErrors}
-          stakeAmountLabel={stakeAmountLabel}
+          stakeAmountLabel={selectedStakeAmountLabel}
           onProfileFieldChange={updateProfileField}
           onProfileFieldBlur={handleFieldBlur}
           ctaDisabled={!profileIsComplete}
-          // CTA button lives inside the card — no shell footer button needed
           onContinuePress={handleProfileContinue}
         />
       )
-      // Footer is null — "Create Profile and Stake" is inside ProfileStepContent card
       shellFooter = null
       break
 
     case 'stake': {
-      // Disable the CTA until every on-chain transaction step has completed.
-      // L03TJ3 feedback: "I can continue to success while the progress is not finalized?"
-      const allStepsCompleted =
-        transactionSteps.length > 0 &&
-        transactionSteps.every((step) => step.status === 'completed')
-      shellTitle = 'Creating profile & staking'
+      const allStepsCompleted = areTransactionStepsComplete(transactionSteps)
+      shellTitle = 'Securing your membership'
       shellDescription =
-        'Please wait while your transaction is confirmed on-chain. You can review each step below.'
+        'Transactions are being processed on-chain. Please do not close this window.'
       shellContent = (
-        <StakeStepContent stakeAmountLabel={stakeAmountLabel} transactionSteps={transactionSteps} />
+        <StakeStepContent
+          stakeAmountLabel={selectedStakeAmountLabel}
+          transactionSteps={transactionSteps}
+        />
       )
-      shellFooter = (
-        <XStack gap="$3" justifyContent="flex-end" flexWrap="wrap">
-          <Button disabled={!allStepsCompleted} onPress={next}>
+      shellFooter = allStepsCompleted ? (
+        <XStack width="100%">
+          <Button fullWidth onPress={next}>
             <ButtonText>Continue to success</ButtonText>
           </Button>
         </XStack>
-      )
+      ) : null
       break
     }
 
@@ -196,7 +208,7 @@ export function GovernanceOnboardingFlow({
       shellContent = (
         <SuccessStepContent
           finalActions={finalActions}
-          stakeAmountLabel={stakeAmountLabel}
+          stakeAmountLabel={selectedStakeAmountLabel}
           onFinalActionPress={onFinalActionPress}
         />
       )
@@ -208,6 +220,21 @@ export function GovernanceOnboardingFlow({
     <PageWizardShell
       title={shellTitle}
       description={shellDescription}
+      headerAction={showBackButton ? (
+        <Button
+          variant="secondary"
+          size="sm"
+          backgroundColor="$backgroundHover"
+          borderColor="$borderColor"
+          hoverStyle={{ backgroundColor: '$backgroundPress' }}
+          pressStyle={{ backgroundColor: '$backgroundPress' }}
+          focusStyle={{ backgroundColor: '$backgroundFocus' }}
+          data-testid="GovernanceOnboardingWidget-back"
+          onPress={back}
+        >
+          <ButtonText color="$color">Back</ButtonText>
+        </Button>
+      ) : undefined}
       footer={shellFooter}
       dataTestId={dataTestId}
       showStepper={!hideStepper}
