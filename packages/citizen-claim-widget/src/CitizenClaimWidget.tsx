@@ -252,7 +252,13 @@ function CitizenClaimInner({
             })
 
             try {
-              const receipt = await actions.claim()
+              const receipt = await actions.claim(() =>
+                updateToast(toastId, {
+                  message: `Claiming on ${singleChainName} — waiting for blockchain confirmation`,
+                  status: 'confirming',
+                  duration: 0,
+                }),
+              )
               updateToast(toastId, {
                 message: `Claim succeeded on ${singleChainName}`,
                 status: 'success',
@@ -294,7 +300,20 @@ function CitizenClaimInner({
             )
           }
 
-          const claimResults = await actions.claimAll(claimPlan.map((entry) => entry.chainId))
+          const claimResults = await actions.claimAll(
+            claimPlan.map((entry) => entry.chainId),
+            (submittedChainId) => {
+              const toastId = toastByChain.get(submittedChainId)
+              if (!toastId) return
+              const entryChainName =
+                chainNameById.get(submittedChainId) ?? getChainDisplayName(submittedChainId)
+              updateToast(toastId, {
+                message: `Claiming on ${entryChainName} — waiting for blockchain confirmation`,
+                status: 'confirming',
+                duration: 0,
+              })
+            },
+          )
 
           for (const claimResult of claimResults) {
             const entryChainName =

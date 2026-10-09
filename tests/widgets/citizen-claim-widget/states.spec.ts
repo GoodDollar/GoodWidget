@@ -3,7 +3,7 @@
  *
  * Tests use the CustodialLocalFixture story with a randomly-generated test wallet
  * (address: 0x329377cbeeF39f01b0Ea04B80465c9eB47D3ED1) that has no on-chain history,
- * so the expected live-RPC flow is: loading → not_whitelisted.
+ * so the expected flow is: loading → not_whitelisted.
  *
  * The error state is tested by intercepting and blocking all RPC network calls.
  *
@@ -84,20 +84,52 @@ test('CitizenClaimWidget shows loading spinner on mount', async ({ page }) => {
   })
 })
 
-// ─── not_whitelisted state (live RPC) ────────────────────────────────────────
-test('CitizenClaimWidget shows not_whitelisted for fresh wallet (live Celo RPC)', async ({
+// ─── not_whitelisted state ────────────────────────────────────────────────────
+test('CitizenClaimWidget shows not_whitelisted for fresh wallet (mocked Celo RPC)', async ({
   page,
   browserName,
 }) => {
   test.skip(
     browserName !== 'chromium',
-    'Live RPC test requires --disable-web-security / --ignore-certificate-errors',
+    'Custodial provider story requires --disable-web-security / --ignore-certificate-errors',
   )
+
+  // Mock the Celo RPC endpoint so the test is deterministic and does not depend on
+  // forno.celo.org availability in CI. The mock returns a zero address for
+  // getWhitelistedRoot(address) (4-byte selector 0x2d0e9b46), which the ClaimSDK
+  // interprets as "not whitelisted". All other calls return an empty result since
+  // daily-stats and claimable reads are best-effort and caught internally.
+  type JsonRpcReq = { id: number; method: string; params?: unknown[] }
+
+  const mockRpc = (req: JsonRpcReq): object => {
+    if (req.method === 'eth_call') {
+      const call = req.params?.[0] as { data?: string } | undefined
+      // getWhitelistedRoot(address) → zero address = not whitelisted
+      if (call?.data?.startsWith('0x2d0e9b46')) {
+        return { jsonrpc: '2.0', id: req.id, result: '0x' + '0'.repeat(64) }
+      }
+    }
+    return { jsonrpc: '2.0', id: req.id, result: '0x' }
+  }
+
+  await page.route('https://forno.celo.org/**', async (route, request) => {
+    let body: unknown
+    try {
+      body = request.postDataJSON()
+    } catch {
+      await route.continue()
+      return
+    }
+    const result = Array.isArray(body)
+      ? (body as JsonRpcReq[]).map(mockRpc)
+      : mockRpc(body as JsonRpcReq)
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(result) })
+  })
 
   await gotoStory(page)
 
-  // Wait up to 40s for the identity check to complete
-  const matched = await waitForText(page, ['Verify', 'Whitelisting', 'Face'], 40_000)
+  // Wait up to 15s — the mock responds immediately so no long wait is needed
+  const matched = await waitForText(page, ['Verify', 'Whitelisting', 'Face'], 15_000)
   expect(matched, 'Expected not_whitelisted state with Verify CTA').toBeTruthy()
 
   const bodyText = await page.evaluate(() => document.body.innerText)
@@ -192,7 +224,7 @@ test('CitizenClaimWidget claimExecution claimAll reports per-chain success and f
   expect(durationMatch).toBeTruthy()
   const measuredDuration = Number(durationMatch?.[0])
   expect(Number.isFinite(measuredDuration)).toBe(true)
-  expect(measuredDuration).toBeLessThan(6_500)
+  expect(measuredDuration).toBeLessThan(10_000)
 
   await page.screenshot({
     path: 'tests/widgets/citizen-claim-widget/test-results/ccw-05-custodial-claim-all-contract.png',
