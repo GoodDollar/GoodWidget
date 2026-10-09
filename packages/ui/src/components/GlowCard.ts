@@ -9,6 +9,6 @@ export const GlowCard = createComponent(Card, {
   borderColor: '$borderColorFocus',
   shadowColor: '$borderColorFocus',
   shadowOffset: { width: 0, height: 0 },
-  shadowOpacity: 1,
-  shadowRadius: 34,
+  shadowOpacity: 0.4,
+  shadowRadius: 12,
 })

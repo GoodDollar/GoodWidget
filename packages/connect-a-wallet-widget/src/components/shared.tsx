@@ -16,24 +16,15 @@ export const EmptyStateCard = createComponent(Card, {
   gap: '$3',
 })
 
-export const ChainRowCard = createComponent(Card, {
-  name: 'ChainRowCard',
-  padding: '$3',
-  flexDirection: 'row' as const,
-  alignItems: 'center' as const,
-  justifyContent: 'space-between' as const,
-  gap: '$2',
-})
-
 export const AddressFormCard = createComponent(Card, {
   name: 'AddressFormCard',
   padding: '$4',
   gap: '$3',
 })
 
-export function ActionButton({ children, minWidth = 108, size = 'sm', ...props }: ButtonProps) {
+export function ActionButton({ children, size = 'sm', ...props }: ButtonProps) {
   return (
-    <Button minWidth={minWidth} size={size} {...props}>
+    <Button size={size} {...props}>
       {children}
     </Button>
   )
