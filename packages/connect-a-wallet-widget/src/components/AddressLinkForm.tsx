@@ -17,8 +17,8 @@ export function AddressLinkForm({
 }: AddressLinkFormProps) {
   return (
     <AddressFormCard>
-      <Heading level={5}>Wallet address to link</Heading>
-      <Text secondary>
+      <Heading level={6} fontSize="$1">Connect or Disconnect Address</Heading>
+      <Text fontSize="$1" secondary>
         Enter the address you want to connect to or disconnect from your GoodID, then check its
         status on each supported chain.
       </Text>
@@ -27,9 +27,10 @@ export function AddressLinkForm({
         onChangeText={onChangeAddressInput}
         placeholder="0x…"
         disabled={isChecking}
+        size="sm"
       />
-      <ActionButton onPress={onCheckAddress} disabled={isChecking || !addressInput} fullWidth>
-        {isChecking ? <Spinner size="sm" /> : <ButtonText>Check address</ButtonText>}
+      <ActionButton onPress={onCheckAddress} disabled={isChecking || !addressInput} fullWidth size="sm">
+        {isChecking ? <Spinner size="sm" /> : <ButtonText fontSize="$1">Check address</ButtonText>}
       </ActionButton>
     </AddressFormCard>
   )
