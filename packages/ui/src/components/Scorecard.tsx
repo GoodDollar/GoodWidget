@@ -32,6 +32,8 @@ export interface ScorecardProps {
   suffix?: string
   format?: MetricFormat
   decimals?: number
+  /** Optional caption line below the value row, e.g. a breakdown of the headline value ("out of X in subscription"). */
+  subLabel?: string
   trend?: ScorecardTrend
   trendLabel?: string
   variant?: ScorecardVariant
@@ -154,6 +156,25 @@ const ScorecardAffixText = createComponent(TamaguiText, {
   defaultVariants: { size: 'md' },
 })
 
+/** Same vertical rhythm as the trend row — the two are mutually exclusive in practice, but neither is aware of the other, so each gets its own top margin off the value row. */
+const ScorecardSubLabelText = createComponent(TamaguiText, {
+  name: 'ScorecardSubLabelText',
+  fontFamily: '$body',
+  color: '$placeholderColor',
+  textAlign: 'center',
+  marginTop: VALUE_TO_TREND_GAP_PX,
+
+  variants: {
+    size: {
+      sm: { fontSize: SECONDARY_SIZE_PX.sm },
+      md: { fontSize: SECONDARY_SIZE_PX.md },
+      lg: { fontSize: SECONDARY_SIZE_PX.lg },
+    },
+  } as const,
+
+  defaultVariants: { size: 'md' },
+})
+
 const ScorecardTrendRow = createComponent(XStack, {
   name: 'ScorecardTrendRow',
   alignItems: 'center',
@@ -235,6 +256,7 @@ function ScorecardContent({
   suffix,
   format = 'compact',
   decimals,
+  subLabel,
   trend,
   trendLabel,
   size = 'md',
@@ -253,6 +275,7 @@ function ScorecardContent({
         <ScorecardValueText size={size}>{formattedValue}</ScorecardValueText>
         {suffix ? <ScorecardAffixText size={size}>{suffix}</ScorecardAffixText> : null}
       </ScorecardValueRow>
+      {subLabel ? <ScorecardSubLabelText size={size}>{subLabel}</ScorecardSubLabelText> : null}
       {trend ? (
         <ScorecardTrendRow>
           <TrendGlyph

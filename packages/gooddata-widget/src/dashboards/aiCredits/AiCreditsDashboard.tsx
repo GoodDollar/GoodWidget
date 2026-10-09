@@ -22,7 +22,7 @@ import {
   YStack,
 } from '@goodwidget/ui'
 import type { DataTableColumnDef } from '@goodwidget/ui'
-import { flowRateToDaily, weiToGd, weiToUsd } from './analyticsConversions'
+import { flowRateToMonthly, weiToGd, weiToUsd } from './analyticsConversions'
 import type { DailyAnalyticsRecord } from './connector'
 import { useAiCreditsDashboardData, type AnalyticsDataSource } from './useAiCreditsDashboardData'
 import {
@@ -78,7 +78,10 @@ const TABLE_COLUMNS: Array<DataTableColumnDef<TableRow>> = [
     key: 'aiCreditsUsd',
     label: 'AI Credits (USD)',
     type: 'currency',
-    formatter: (value) => `$${(value as number).toFixed(2)}`,
+    // 3 decimal places, not 2 — per-day AI Credits USD amounts are small enough
+    // that 2 decimals rounded most rows to $0.00, per CEO feedback after the
+    // PR #179 production deploy.
+    formatter: (value) => `$${(value as number).toFixed(3)}`,
     sortable: true,
     description: 'AI Credits consumed this day, converted to USD.',
   },
@@ -102,6 +105,18 @@ const TABLE_COLUMNS: Array<DataTableColumnDef<TableRow>> = [
 function filterCompleteRecords(daily: DailyAnalyticsRecord[]): DailyAnalyticsRecord[] {
   return daily.filter((record) => !record.missing)
 }
+
+/**
+ * TEMP_GD_USD_RATE = 0.00013 // hardcoded until Worker exposes a live rate — Thales following up with Mike/Hadar
+ *
+ * Data-source gap: the Worker's schema (`/v1/analytics`, `/v1/analytics/refresh`) exposes no
+ * G$/USD exchange rate anywhere, so the USD equivalent of the G$ *deposited/bought* total
+ * (the "Total Credits Bought in G$" scorecard's value) can't be computed from any data this
+ * widget receives. `aiCreditsUsedWei` ("AI credits consumed") is a different metric and must
+ * not be substituted here even though it's denominated in USD too. This rate is a stand-in
+ * pending a real rate field/endpoint from the data team — swap it out once that lands.
+ */
+const TEMP_GD_USD_RATE = 0.00013
 
 function toTableRow(record: DailyAnalyticsRecord): TableRow {
   const gdDeposited = weiToGd(record.gdOneTimeDepositsWei)
@@ -239,12 +254,23 @@ function AiCreditsDashboardView({
   const dailyRecords = data ? filterCompleteRecords(data.daily) : []
   const hasDailyData = dailyRecords.length > 0
 
-  // Scorecards derive straight from `global`, matching the reference dashboard's renderHero().
-  const totalGdSpent = data
-    ? weiToGd(data.global.gdOneTimeDepositsWei) + weiToGd(data.global.gdStreamedWei)
-    : 0
+  // Scorecards derive straight from `global`, matching the reference dashboard's renderHero() —
+  // except the flow rate below, which can't safely use `global` as-is (see comment there).
+  const gdStreamedTotal = data ? weiToGd(data.global.gdStreamedWei) : 0
+  const totalGdSpent = data ? weiToGd(data.global.gdOneTimeDepositsWei) + gdStreamedTotal : 0
+  // Temporary USD estimate for the deposited/bought G$ total — see TEMP_GD_USD_RATE above.
+  const totalGdSpentUsd = totalGdSpent * TEMP_GD_USD_RATE
   const aiCreditsUsedUsd = data ? weiToUsd(data.global.aiCreditsUsedWei) : 0
-  const gdFlowRatePerDay = data ? flowRateToDaily(data.global.gdTotalFlowRateWeiPerSecond) : 0
+  // `data.global.gdTotalFlowRateWeiPerSecond` mirrors whatever the Worker's most recent daily
+  // record is, even when that record is today's still-accumulating, `missing: true` snapshot —
+  // right after a day boundary this reads as "0" until the new day's first streaming event
+  // lands, understating the real current rate. `dailyRecords` above already filters out
+  // incomplete records for the chart/table, so reuse its latest entry here too instead of
+  // reading `global` directly.
+  const latestCompleteDailyRecord = dailyRecords[dailyRecords.length - 1]
+  const gdFlowRatePerMonth = latestCompleteDailyRecord
+    ? flowRateToMonthly(latestCompleteDailyRecord.gdTotalFlowRateWeiPerSecond)
+    : 0
 
   const volumeChartData = dailyRecords.flatMap((record) => [
     { x: record.date, y: weiToGd(record.gdOneTimeDepositsWei), series: 'deposits' },
@@ -278,9 +304,11 @@ function AiCreditsDashboardView({
         <Scorecard
           variant="card"
           value={totalGdSpent}
-          label="Total G$ Spent"
+          label="Total Credits Bought in G$"
           prefix="G$"
+          suffix={`(≈ ${formatMetricValue(totalGdSpentUsd, 'decimal', 2)} USD)`}
           format="decimal"
+          subLabel={`out of ${formatMetricValue(gdStreamedTotal, 'decimal', 2)} G$ in subscription (streaming)`}
           testID="scorecard-total-gd"
         />
         <Scorecard
@@ -293,10 +321,9 @@ function AiCreditsDashboardView({
         />
         <Scorecard
           variant="card"
-          value={gdFlowRatePerDay}
-          label="G$ Flow Rate"
+          value={gdFlowRatePerMonth}
+          label="Total Monthly Subscriptions"
           prefix="G$"
-          suffix="/day"
           format="decimal"
           testID="scorecard-flow-rate"
         />
