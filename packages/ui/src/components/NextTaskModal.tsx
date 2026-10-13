@@ -59,6 +59,8 @@ export interface NextTaskModalProps {
     triggerId: string
     reason: 'close-button' | 'skip-link' | 'overlay'
   }) => void
+  /** Applied to the rendered card root, for Storybook/Playwright targeting. */
+  testID?: string
 }
 
 type ModalPhase = 'idle' | 'shown'
@@ -79,6 +81,7 @@ export function NextTaskModal({
   onShown,
   onClicked,
   onDismissed,
+  testID,
 }: NextTaskModalProps) {
   const [phase, setPhase] = useState<ModalPhase>('idle')
   const activeDetailRef = useRef<NextTaskTriggerDetail | null>(null)
@@ -161,7 +164,7 @@ export function NextTaskModal({
           <Icon name="x" size="sm" />
         </Button>
       </YStack>
-      <NextTaskCtaCard>
+      <NextTaskCtaCard testID={testID} data-testid={testID}>
         {content.imageUrl ? (
           <Stack width={96} height={96} borderRadius="$3" overflow="hidden">
             <Image
