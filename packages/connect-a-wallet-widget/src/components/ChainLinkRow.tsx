@@ -6,6 +6,7 @@ import { ActionButton } from './shared'
 
 interface ChainLinkRowProps {
   row: ConnectAWalletChainLinkState
+  disabled?: boolean
   onConnect: () => void
   onDisconnect: () => void
 }
@@ -15,7 +16,7 @@ interface ChainLinkRowProps {
  * Disconnect (never hidden) with a Spinner while a status is in flight, per
  * Bounty Lead sign-off on the human-reviewer checklist.
  */
-export function ChainLinkRow({ row, onConnect, onDisconnect }: ChainLinkRowProps) {
+export function ChainLinkRow({ row, disabled, onConnect, onDisconnect }: ChainLinkRowProps) {
   const { actionLabel, isBusy, isDisabled } = chainLinkRowPresentation(row.status)
   const handlePress = actionLabel === 'Connect' ? onConnect : onDisconnect
   const [disconnectHovered, setDisconnectHovered] = useState(false)
@@ -39,6 +40,7 @@ export function ChainLinkRow({ row, onConnect, onDisconnect }: ChainLinkRowProps
 
   return (
     <XStack
+      data-testid={`chain-row-${row.chainId}`}
       padding="$4"
       alignItems="center"
       justifyContent="space-between"
@@ -88,7 +90,7 @@ export function ChainLinkRow({ row, onConnect, onDisconnect }: ChainLinkRowProps
       ) : isDisconnect ? (
         <ActionButton
           onPress={handlePress}
-          disabled={isDisabled}
+          disabled={disabled || isDisabled}
           variant="outline"
           borderColor="$error"
           hoverStyle={{ backgroundColor: '$error' }}
@@ -108,7 +110,7 @@ export function ChainLinkRow({ row, onConnect, onDisconnect }: ChainLinkRowProps
       ) : (
         <ActionButton
           onPress={handlePress}
-          disabled={isDisabled}
+          disabled={disabled || isDisabled}
           variant="primary"
           paddingHorizontal="$2.5"
           paddingVertical="$1.5"

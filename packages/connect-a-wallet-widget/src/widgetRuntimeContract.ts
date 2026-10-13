@@ -44,8 +44,12 @@ export interface ConnectAWalletWidgetAdapterState {
 
   // Overall widget status
   status: ConnectAWalletWidgetStatus
-  /** Top-level error, set only when status is 'error'. */
+  /** Wallet connection or address-status lookup error. */
   error: string | null
+  /** Validation feedback for the editable secondary address. */
+  addressError?: string | null
+  /** Blocks competing operations and edits until the current request settles. */
+  isBusy?: boolean
 
   // Secondary-address input flow
   secondaryAddressInput: string
