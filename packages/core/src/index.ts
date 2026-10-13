@@ -16,6 +16,15 @@ export type {
 export { WalletControls } from './WalletControls'
 export type { WalletControlsProps } from './WalletControls'
 
+export { useNextTaskTrigger } from './useNextTaskTrigger'
+export type { NextTaskTriggerFirePayload, UseNextTaskTriggerResult } from './useNextTaskTrigger'
+export {
+  NEXT_TASK_TRIGGER_EVENT,
+  dispatchNextTaskTrigger,
+  subscribeToNextTaskTrigger,
+} from './nextTaskEventBus'
+export type { NextTaskTriggerDetail, NextTaskTriggerListener } from './nextTaskEventBus'
+
 export type {
   EIP1193Provider,
   RequestArguments,
