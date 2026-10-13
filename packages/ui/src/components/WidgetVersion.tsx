@@ -10,8 +10,8 @@ export interface WidgetVersionProps {
 
 /**
  * Small, muted version label rendered at the bottom-right corner of a widget.
- * It sits in normal flow below the widget content (right-aligned) so it never
- * overlaps or shifts the widget layout.
+ * It sits in normal flow below the widget content (right-aligned), adding height
+ * to the widget without overlapping its content.
  */
 export function WidgetVersion({ version, testId = 'widget-version' }: WidgetVersionProps) {
   return (
