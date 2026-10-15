@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test'
+import type { EIP1193Provider } from '@goodwidget/core'
 
 export const HOST = '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef'
 export const SECONDARY = '0x1111111111111111111111111111111111111111'
@@ -11,6 +12,8 @@ interface WalletFixture {
   rejectConnect: boolean
   rejectSwitch: boolean
   rejectTransaction: boolean
+  holdTransaction: boolean
+  rejectPendingTransaction: () => void
   calls: { method: string; params?: unknown }[]
   events: { type: string; detail: unknown }[]
   emit: (event: string, value: unknown) => void
@@ -19,10 +22,11 @@ interface WalletFixture {
 declare global {
   interface Window {
     cawWallet: WalletFixture
+    cawProvider: EIP1193Provider
   }
 }
 
-export async function openWalletFlow(page: Page) {
+export async function openWalletFlow(page: Page, story = STORY, injectProvider = true) {
   const rpc = {
     reads: [] as number[],
     failChain: 0,
@@ -33,11 +37,12 @@ export async function openWalletFlow(page: Page) {
     holdReads: false,
     releaseReads: [] as (() => void)[],
   }
-  await page.addInitScript(({ host, hash }) => {
+  await page.addInitScript(({ host, hash, injectProvider }) => {
     const listeners = new Map<string, Set<(value: unknown) => void>>()
     const wallet: WalletFixture = {
       accounts: [], chainId: 42220,
       rejectConnect: false, rejectSwitch: false, rejectTransaction: false,
+      holdTransaction: false, rejectPendingTransaction: () => {},
       calls: [], events: [],
       emit(event, value) {
         if (event === 'accountsChanged') wallet.accounts = value as string[]
@@ -48,40 +53,43 @@ export async function openWalletFlow(page: Page) {
     for (const type of ['caw-link-success', 'caw-unlink-success', 'caw-link-error']) {
       window.addEventListener(type, (event) => wallet.events.push({ type, detail: (event as CustomEvent).detail }))
     }
-    Object.defineProperty(window, 'ethereum', {
-      configurable: true,
-      value: {
-        on(event: string, listener: (value: unknown) => void) {
-          if (!listeners.has(event)) listeners.set(event, new Set())
-          listeners.get(event)!.add(listener)
-        },
-        removeListener(event: string, listener: (value: unknown) => void) {
-          listeners.get(event)?.delete(listener)
-        },
-        async request({ method, params }: { method: string; params?: { chainId?: string }[] }) {
-          wallet.calls.push({ method, params })
-          const reject = () => { throw Object.assign(new Error('User rejected request'), { code: 4001 }) }
-          switch (method) {
-            case 'eth_accounts': return wallet.accounts
-            case 'eth_requestAccounts':
-              if (wallet.rejectConnect) reject()
-              wallet.emit('accountsChanged', [host])
-              return wallet.accounts
-            case 'eth_chainId': return `0x${wallet.chainId.toString(16)}`
-            case 'wallet_switchEthereumChain':
-              if (wallet.rejectSwitch) reject()
-              wallet.chainId = Number(params?.[0].chainId)
-              wallet.emit('chainChanged', `0x${wallet.chainId.toString(16)}`)
-              return null
-            case 'eth_sendTransaction':
-              if (wallet.rejectTransaction) reject()
-              return hash
-            default: throw new Error(`Unexpected wallet RPC: ${method}`)
-          }
-        },
+    window.cawProvider = {
+      on(event: string, listener: (value: unknown) => void) {
+        if (!listeners.has(event)) listeners.set(event, new Set())
+        listeners.get(event)!.add(listener)
       },
+      removeListener(event: string, listener: (value: unknown) => void) {
+        listeners.get(event)?.delete(listener)
+      },
+      async request({ method, params }: { method: string; params?: { chainId?: string }[] }) {
+        wallet.calls.push({ method, params })
+        const reject = () => { throw Object.assign(new Error('User rejected request'), { code: 4001 }) }
+        switch (method) {
+          case 'eth_accounts': return wallet.accounts
+          case 'eth_requestAccounts':
+            if (wallet.rejectConnect) reject()
+            wallet.emit('accountsChanged', [host])
+            return wallet.accounts
+          case 'eth_chainId': return `0x${wallet.chainId.toString(16)}`
+          case 'wallet_switchEthereumChain':
+            if (wallet.rejectSwitch) reject()
+            wallet.chainId = Number(params?.[0].chainId)
+            wallet.emit('chainChanged', `0x${wallet.chainId.toString(16)}`)
+            return null
+          case 'eth_sendTransaction':
+            if (wallet.holdTransaction) await new Promise<void>((_resolve, reject) => {
+              wallet.rejectPendingTransaction = () => reject(Object.assign(new Error('User rejected request'), { code: 4001 }))
+            })
+            if (wallet.rejectTransaction) reject()
+            return hash
+          default: throw new Error(`Unexpected wallet RPC: ${method}`)
+        }
+      },
+    } as EIP1193Provider
+    if (injectProvider) Object.defineProperty(window, 'ethereum', {
+      configurable: true, value: window.cawProvider,
     })
-  }, { host: HOST, hash: HASH })
+  }, { host: HOST, hash: HASH, injectProvider })
 
   await page.route(/^https:\/\/(rpc\.fuse\.io|forno\.celo\.org|rpc\.ankr\.com\/xdc)/, async (route) => {
     const url = route.request().url()
@@ -120,7 +128,7 @@ export async function openWalletFlow(page: Page) {
     }
     await route.fulfill({ json: Array.isArray(request) ? request.map(reply) : reply(request) })
   })
-  await page.goto(STORY)
+  await page.goto(story)
   await expect(page.getByRole('button', { name: 'Connect Wallet', exact: true })).toBeVisible()
   return rpc
 }

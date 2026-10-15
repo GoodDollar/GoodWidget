@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useWallet } from '@goodwidget/core'
+import { CONNECT_UNAVAILABLE_ERROR, useWallet } from '@goodwidget/core'
 import { createPublicClient, createWalletClient, custom, http, isAddress, type Chain, type PublicClient } from 'viem'
 import { IdentitySDK, SupportedChains } from '@goodsdks/citizen-sdk'
 import { createDialog, closeDialog, createToast, updateToast } from '@goodwidget/ui'
@@ -53,6 +53,7 @@ function humanReadableError(err: unknown): string {
   console.error('[ConnectAWalletWidget]', err)
   if (!(err instanceof Error)) return 'Something went wrong. Please try again.'
   const msg = err.message
+  if (msg === CONNECT_UNAVAILABLE_ERROR) return msg
   if (msg === 'Wallet changed') return 'Wallet changed. Check the address status again.'
   if (msg === 'Transaction reverted') return 'Transaction reverted. Please check the address status and retry.'
   if (msg.includes('cancelled: user did not confirm')) return 'Cancelled by user.'
@@ -275,10 +276,6 @@ export function useConnectAWalletAdapter(
 
   const handleConnectWallet = useCallback(async (): Promise<void> => {
     if (busyRef.current) return
-    if (!provider) {
-      setError('No wallet provider available. Connect a wallet in the host app.')
-      return
-    }
     busyRef.current = true
     setError(null)
     setIsConnectingWallet(true)
@@ -290,7 +287,7 @@ export function useConnectAWalletAdapter(
       busyRef.current = false
       if (mountedRef.current) setIsConnectingWallet(false)
     }
-  }, [connect, provider])
+  }, [connect])
 
   // ---------------------------------------------------------------------------
   // connectChain / disconnectChain — link or unlink `secondaryAddress` on one
@@ -371,8 +368,10 @@ export function useConnectAWalletAdapter(
         })
         onLinkSuccess?.({ address: secondaryAddress, chainId: targetChainId, transactionHash })
       } catch (err: unknown) {
-        closeDialog()
-        if (mountedRef.current && walletVersion.current === version) setRowStatus(targetChainId, previousStatus)
+        if (mountedRef.current && walletVersion.current === version) {
+          closeDialog()
+          setRowStatus(targetChainId, previousStatus)
+        }
         updateToast(toastId, {
           message: `Failed to link on ${CHAIN_NAMES[targetChainId]}: ${humanReadableError(err)}`,
           status: 'error',
@@ -435,8 +434,10 @@ export function useConnectAWalletAdapter(
         })
         onUnlinkSuccess?.({ address: secondaryAddress, chainId: targetChainId, transactionHash })
       } catch (err: unknown) {
-        closeDialog()
-        if (mountedRef.current && walletVersion.current === version) setRowStatus(targetChainId, previousStatus)
+        if (mountedRef.current && walletVersion.current === version) {
+          closeDialog()
+          setRowStatus(targetChainId, previousStatus)
+        }
         updateToast(toastId, {
           message: `Failed to unlink on ${CHAIN_NAMES[targetChainId]}: ${humanReadableError(err)}`,
           status: 'error',

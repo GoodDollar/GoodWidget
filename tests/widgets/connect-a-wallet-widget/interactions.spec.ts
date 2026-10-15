@@ -10,6 +10,31 @@ test('missing provider is safe and explains why connection is unavailable', asyn
   expect(errors).toEqual([])
 })
 
+test('host wallet selector opens without a provider and supports cancellation and deferred connection', async ({ page }) => {
+  await openWalletFlow(page, '/iframe.html?id=qa-connectawalletwidget-interactions--host-connect&viewMode=story', false)
+  const connect = page.getByRole('button', { name: 'Connect Wallet', exact: true })
+  await connect.click()
+  await expect(page.getByRole('dialog', { name: 'Host wallet selector' })).toBeVisible()
+  await expect(page.getByText('No wallet provider available. Connect a wallet in the host app.')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Cancel wallet selection' }).click()
+  await expect(connect).toBeEnabled()
+  await connect.click()
+  await page.evaluate(() => Object.defineProperty(window, 'ethereum', { configurable: true, value: window.cawProvider }))
+  await page.getByRole('button', { name: 'Select wallet', exact: true }).click()
+  await page.getByRole('textbox', { name: 'Wallet address' }).fill(SECONDARY)
+  await page.getByRole('button', { name: 'Check address', exact: true }).click()
+  await expect(page.getByTestId('chain-row-122').getByRole('button', { name: 'Connect', exact: true })).toBeEnabled()
+})
+
+test('host connection rejection without a provider reports the rejection and releases controls', async ({ page }) => {
+  await page.goto('/iframe.html?id=qa-connectawalletwidget-interactions--host-connect-rejected&viewMode=story')
+  const connect = page.getByRole('button', { name: 'Connect Wallet', exact: true })
+  await connect.click()
+  await expect(page.getByText('Rejected by wallet.', { exact: true })).toBeVisible()
+  await expect(connect).toBeEnabled()
+  await expect(page.getByText('No wallet provider available. Connect a wallet in the host app.')).toHaveCount(0)
+})
+
 test('wallet cancellation can be retried; invalid-address feedback clears on edit', async ({ page }) => {
   const rpc = await openWalletFlow(page)
   await page.evaluate(() => { window.cawWallet.rejectConnect = true })
@@ -57,6 +82,31 @@ for (const flow of [
   { chain: 122, name: 'Fuse', action: 'Connect', next: 'Disconnect', event: 'caw-link-success', success: 'Linked on Fuse' },
   { chain: 42220, name: 'Celo', action: 'Disconnect', next: 'Connect', event: 'caw-unlink-success', success: 'Unlinked on Celo' },
 ]) {
+  test(`${flow.action}: late rejection from an unmounted widget leaves the replacement dialog usable`, async ({ page }) => {
+    await openWalletFlow(page, '/iframe.html?id=qa-connectawalletwidget-interactions--replacement&viewMode=story')
+    await connectAndCheck(page)
+    await page.evaluate(() => { window.cawWallet.holdTransaction = true })
+    const action = page.getByTestId(`chain-row-${flow.chain}`).getByRole('button', { name: flow.action, exact: true })
+    await action.click()
+    await page.getByRole('button', { name: 'Confirm', exact: true }).click()
+    await expect.poll(() => page.evaluate(() => window.cawWallet.calls.filter((call) => call.method === 'eth_sendTransaction').length)).toBe(1)
+    await page.getByRole('button', { name: 'Replace widget', exact: true }).click()
+    await page.getByRole('textbox', { name: 'Wallet address' }).fill(SECONDARY)
+    await page.getByRole('button', { name: 'Check address', exact: true }).click()
+    await action.click()
+    await expect(page.getByRole('heading', { name: 'Security Confirmation' })).toBeVisible()
+    await page.evaluate(() => window.cawWallet.rejectPendingTransaction())
+    await expect(page.getByText(/Rejected by wallet\./)).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Security Confirmation' })).toBeVisible()
+    await page.getByRole('button', { name: 'Cancel', exact: true }).click()
+    await expect(action).toBeEnabled()
+    await expect(page.getByRole('button', { name: 'Change address', exact: true })).toBeEnabled()
+    await page.evaluate(() => { window.cawWallet.holdTransaction = false })
+    await action.click()
+    await page.getByRole('button', { name: 'Confirm', exact: true }).click()
+    await expect(page.getByText(flow.success, { exact: true })).toBeVisible()
+  })
+
   test(`${flow.action}: confirmation, successful receipt, status and callback`, async ({ page }) => {
     await openWalletFlow(page)
     await connectAndCheck(page)

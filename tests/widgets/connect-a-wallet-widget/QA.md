@@ -37,6 +37,31 @@ or a verified GoodID account work. No real transaction was sent during automatio
 
 No dependency manifest, lockfile, shared UI source or GoodSDKs changes are part of this fix.
 
+### PR #249 review follow-up (2026-10-15)
+
+- Both link/unlink error handlers now guard dialog cleanup by mount and wallet-session
+  identity. A late rejection still updates its own toast but cannot close a replacement
+  widget's confirmation. Regression tests cover both actions, cancelling the replacement
+  dialog, recovered controls and a successful retry.
+- Wallet connection delegates to core before requiring a provider, allowing a host
+  `connectOverride` to open a selector and supply the provider later. Core now rejects with
+  `CONNECT_UNAVAILABLE_ERROR` only when neither an override nor a provider exists; the
+  widget preserves its existing missing-provider message. This small shared-core change
+  keeps connector availability in the provider, with no new wallet abstraction.
+- New host-flow tests cover opening/cancelling/reopening the selector, receiving a provider
+  later and checking addresses, plus override rejection and control recovery. The existing
+  missing-provider and injected-wallet tests remain in place.
+- The four new regression cases failed before the production fixes. Afterward,
+  `pnpm test:demo tests/widgets/connect-a-wallet-widget --workers=1 --retries=0`
+  passed **31/31, exit 0** against a prestarted Storybook. An earlier run was interrupted
+  by a simultaneous workspace rebuild; the reported result is the subsequent clean run.
+- Targeted core and widget builds passed, including declarations, using the previously
+  prepared dependency declarations noted above. Direct ESLint over the changed core files,
+  widget source, interaction story and widget tests passed; the 17 existing core tests passed.
+- Workspace `pnpm build` and `pnpm lint` were rerun and still stop at the same baseline
+  `packages/ui/src/components-test/Select.tsx:7` TS2322 error. No fresh live-wallet
+  transactions were performed for this review pass; the manual evidence below is unchanged.
+
 ## Screenshot evidence
 
 All paths below are relative to this folder's `test-results/`:
