@@ -263,7 +263,7 @@ export function ClaimWidget({
       defaultTheme={defaultTheme}
     >
       <ClaimInner />
-      <WidgetVersion version={version} />
+      <WidgetVersion name="Claim" version={version} />
     </GoodWidgetProvider>
   )
 }

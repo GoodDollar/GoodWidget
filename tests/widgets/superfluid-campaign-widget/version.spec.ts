@@ -9,5 +9,7 @@ test('SuperfluidCampaignWidget displays its package version', async ({ page }) =
   await page.goto(
     '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--no-wallet-content&viewMode=story',
   )
-  await expect(page.getByTestId('widget-version')).toHaveText(`v${version}`, { timeout: 20_000 })
+  await expect(page.getByTestId('widget-version')).toHaveText(`Superfluid Campaign v${version}`, {
+    timeout: 20_000,
+  })
 })

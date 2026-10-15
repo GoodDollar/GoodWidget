@@ -49,7 +49,7 @@ export function StreamingWidgetPreview({
         initialStreamsFormOpen={initialStreamsFormOpen}
       />
       <ToastContainer />
-      <WidgetVersion version={version} />
+      <WidgetVersion name="Streaming" version={version} />
     </GoodWidgetProvider>
   )
 }
@@ -71,7 +71,7 @@ export function StreamingWidget({
     >
       <StreamingWidgetRuntime environment={environment} apiKey={apiKey} />
       <ToastContainer />
-      <WidgetVersion version={version} />
+      <WidgetVersion name="Streaming" version={version} />
     </GoodWidgetProvider>
   )
 }

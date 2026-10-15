@@ -651,7 +651,7 @@ export function AiCreditsWidget({
           showWalletControls={showWalletControls}
         />
         <ToastContainer />
-        <WidgetVersion version={version} />
+        <WidgetVersion name="AI Credits" version={version} />
       </YStack>
     </GoodWidgetProvider>
   )

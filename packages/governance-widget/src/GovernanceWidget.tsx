@@ -761,7 +761,7 @@ export function GovernanceWidget({
       ) : (
         <DefaultGovernanceWidgetContent adapterInput={adapterInput} testId={testId} />
       )}
-      <WidgetVersion version={version} />
+      <WidgetVersion name="Governance" version={version} />
     </GovernanceWidgetProvider>
   )
 }

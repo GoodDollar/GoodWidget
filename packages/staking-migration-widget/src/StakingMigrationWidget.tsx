@@ -157,7 +157,7 @@ export function StakingMigrationWidget({
         adapterFactory={adapterFactory}
       />
       <ToastContainer />
-      <WidgetVersion version={version} />
+      <WidgetVersion name="Staking Migration" version={version} />
     </GoodWidgetProvider>
   )
 }

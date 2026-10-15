@@ -310,7 +310,7 @@ export function SuperfluidCampaignWidgetWithClient({
         />
       </Card>
       <ToastContainer />
-      <WidgetVersion version={version} />
+      <WidgetVersion name="Superfluid Campaign" version={version} />
     </GoodWidgetProvider>
   )
 }

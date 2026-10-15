@@ -104,7 +104,7 @@ export function GoodDataWidget({ basename }: GoodDataWidgetProps = {}) {
             <Route path="*" element={<UnknownDashboardPage />} />
           </Routes>
         </BrowserRouter>
-        <WidgetVersion version={version} />
+        <WidgetVersion name="GoodData" version={version} />
       </YStack>
     </YStack>
   )

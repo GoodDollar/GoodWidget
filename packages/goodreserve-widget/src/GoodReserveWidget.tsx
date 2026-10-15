@@ -77,7 +77,7 @@ export function GoodReserveWidget({
           mockState={mockState}
           preferredChainId={preferredChainId}
         />
-        <WidgetVersion version={version} />
+        <WidgetVersion name="GoodReserve" version={version} />
       </YStack>
     </GoodWidgetProvider>
   )

@@ -7,5 +7,7 @@ const { version } = JSON.parse(
 
 test('GoodReserveWidget displays its package version', async ({ page }) => {
   await page.goto('/iframe.html?id=widgets-goodreservewidget--interactive&viewMode=story')
-  await expect(page.getByTestId('widget-version')).toHaveText(`v${version}`, { timeout: 20_000 })
+  await expect(page.getByTestId('widget-version')).toHaveText(`GoodReserve v${version}`, {
+    timeout: 20_000,
+  })
 })

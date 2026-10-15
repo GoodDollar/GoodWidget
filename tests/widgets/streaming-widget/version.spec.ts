@@ -9,5 +9,7 @@ test('StreamingWidget displays its package version', async ({ page }) => {
   await page.goto(
     '/iframe.html?id=qa-streamingwidget-runtime-fixtures--populated-state&viewMode=story',
   )
-  await expect(page.getByTestId('widget-version')).toHaveText(`v${version}`, { timeout: 20_000 })
+  await expect(page.getByTestId('widget-version')).toHaveText(`Streaming v${version}`, {
+    timeout: 20_000,
+  })
 })

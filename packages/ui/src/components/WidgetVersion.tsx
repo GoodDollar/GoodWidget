@@ -2,6 +2,8 @@ import { YStack } from 'tamagui'
 import { Text } from './Text'
 
 export interface WidgetVersionProps {
+  /** Human-readable widget name. */
+  name: string
   /** Widget package version, taken from the widget's own package.json. */
   version: string
   /** Optional test id override. */
@@ -13,11 +15,11 @@ export interface WidgetVersionProps {
  * It sits in normal flow below the widget content (right-aligned), adding height
  * to the widget without overlapping its content.
  */
-export function WidgetVersion({ version, testId = 'widget-version' }: WidgetVersionProps) {
+export function WidgetVersion({ name, version, testId = 'widget-version' }: WidgetVersionProps) {
   return (
     <YStack width="100%" alignItems="flex-end" paddingHorizontal="$2" paddingBottom="$1">
       <Text variant="caption" tone="dim" opacity={0.7} data-testid={testId}>
-        {`v${version}`}
+        {`${name} v${version}`}
       </Text>
     </YStack>
   )

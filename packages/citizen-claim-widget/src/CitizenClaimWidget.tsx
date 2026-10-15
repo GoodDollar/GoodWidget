@@ -689,7 +689,7 @@ export function CitizenClaimWidget({
         onClaimError={onClaimError}
         initialTab={initialTab}
       />
-      <WidgetVersion version={version} />
+      <WidgetVersion name="Citizen Claim" version={version} />
     </GoodWidgetProvider>
   )
 }

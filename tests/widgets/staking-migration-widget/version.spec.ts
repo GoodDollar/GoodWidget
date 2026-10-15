@@ -9,5 +9,7 @@ test('StakingMigrationWidget displays its package version', async ({ page }) => 
   await page.goto(
     '/iframe.html?id=qa-stakingmigrationwidget-runtime-fixtures--ready&viewMode=story',
   )
-  await expect(page.getByTestId('widget-version')).toHaveText(`v${version}`, { timeout: 20_000 })
+  await expect(page.getByTestId('widget-version')).toHaveText(`Staking Migration v${version}`, {
+    timeout: 20_000,
+  })
 })
