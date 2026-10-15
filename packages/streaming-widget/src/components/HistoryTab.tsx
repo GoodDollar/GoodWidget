@@ -1,12 +1,12 @@
 import React, { useState } from 'react'
-import { ButtonText, Heading, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
+import { Button, ButtonText, Heading, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
 import type { StreamListItem, StreamStatusFilter } from '../widgetRuntimeContract'
 import { tokenSymbol } from './format'
 import { StreamCard } from './StreamCard'
 import {
   EmptyStateCard,
   ErrorStateCard,
-  ActionButton,
+  compactButtonProps,
   SecondaryButtonText,
   StreamingTabContent,
 } from './shared'
@@ -61,14 +61,16 @@ export function HistoryTab({
     <StreamingTabContent>
       <XStack justifyContent="space-between" alignItems="center">
         <Heading level={4}>Stream history</Heading>
-        <ActionButton variant="secondary" onPress={onRefresh}>
+        <Button size="sm" {...compactButtonProps} variant="secondary" onPress={onRefresh}>
           <SecondaryButtonText>Refresh</SecondaryButtonText>
-        </ActionButton>
+        </Button>
       </XStack>
 
       <XStack gap="$2">
         {(['all', 'active', 'ended'] as StreamStatusFilter[]).map((filter) => (
-          <ActionButton
+          <Button
+            size="sm"
+            {...compactButtonProps}
             key={filter}
             onPress={() => selectStatus(filter)}
             variant={status === filter ? 'primary' : 'secondary'}
@@ -78,7 +80,7 @@ export function HistoryTab({
             ) : (
               <SecondaryButtonText>{STATUS_LABELS[filter]}</SecondaryButtonText>
             )}
-          </ActionButton>
+          </Button>
         ))}
       </XStack>
 
@@ -92,9 +94,9 @@ export function HistoryTab({
       {!loading && error && (
         <ErrorStateCard>
           <Text color="$error">{error}</Text>
-          <ActionButton onPress={onRefresh}>
+          <Button size="sm" {...compactButtonProps} onPress={onRefresh}>
             <ButtonText>Retry</ButtonText>
-          </ActionButton>
+          </Button>
         </ErrorStateCard>
       )}
 
@@ -113,12 +115,14 @@ export function HistoryTab({
         ))}
 
       {!loading && !error && hasMoreHistory && (
-        <ActionButton
+        <Button
+          size="sm"
+          {...compactButtonProps}
           variant="secondary"
           onPress={() => setHistoryLimit((count) => count + PAGE_SIZE)}
         >
           <SecondaryButtonText>Show more</SecondaryButtonText>
-        </ActionButton>
+        </Button>
       )}
     </StreamingTabContent>
   )

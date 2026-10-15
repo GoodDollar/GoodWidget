@@ -2,8 +2,6 @@ import React from 'react'
 import {
   Badge,
   BadgeText,
-  Button,
-  type ButtonProps,
   ButtonText,
   Card,
   YStack,
@@ -12,6 +10,16 @@ import {
 import type { WriteStatus } from '../widgetRuntimeContract'
 
 export type SuperTokenSymbol = 'G$' | 'SUP'
+
+// Mirrors the compactButtonProps convention established in
+// ai-credits-widget/src/components/shared/styles.ts — spread onto every
+// <Button size="sm"> in this package so button proportions stay consistent
+// with the rest of the GoodWidget suite.
+export const compactButtonProps = {
+  borderRadius: '$3',
+  height: '$7',
+  paddingHorizontal: '$3',
+} as const
 
 export const StreamingTabContent = createComponent(YStack, {
   name: 'StreamingTabContent',
@@ -84,17 +92,4 @@ export function WriteStatusBadge({ status }: { status: WriteStatus }) {
 
 export function SecondaryButtonText({ children }: { children: React.ReactNode }) {
   return <ButtonText color="$primary">{children}</ButtonText>
-}
-
-export function ActionButton({
-  children,
-  minWidth = 100,
-  size = 'sm',
-  ...props
-}: ButtonProps) {
-  return (
-    <Button minWidth={minWidth} size={size} {...props}>
-      {children}
-    </Button>
-  )
 }
