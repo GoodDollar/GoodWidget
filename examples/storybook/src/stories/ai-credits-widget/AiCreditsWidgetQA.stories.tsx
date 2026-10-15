@@ -17,6 +17,7 @@ import {
   PaymentFailedStory,
   BackendUnavailableStory,
   UnsupportedChainStory,
+  MockBackendStory,
   AppKitConnectWalletStory,
   MultiSignerManageStory,
   WalletControlsStory,
@@ -103,6 +104,12 @@ export const BackendUnavailable: Story = {
 
 export const UnsupportedChain: Story = {
   render: () => <UnsupportedChainStory />,
+}
+
+/** Backend mocked, wallet is whatever EIP-1193 extension is injected in the browser. */
+export const MockBackend: Story = {
+  name: 'Mock Backend (browser wallet)',
+  render: () => <MockBackendStory />,
 }
 
 /** Multi-signer manage tab: signer selector and private-key reveal. */

@@ -9,7 +9,7 @@ import {
 } from '../helpers/goodDataWidgetStories'
 
 const meta: Meta<typeof AiCreditsDashboard> = {
-  title: 'QA/AiCreditsDashboard/Runtime Fixtures',
+  title: 'QA/GoodDataWidget/Runtime Fixtures',
   component: AiCreditsDashboard,
   tags: ['autodocs', 'qa'],
   args: {},

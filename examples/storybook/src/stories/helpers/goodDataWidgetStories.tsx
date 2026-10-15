@@ -1,7 +1,16 @@
 import React from 'react'
 import { TamaguiProvider } from '@tamagui/core'
 import { defaultConfig } from '@goodwidget/ui'
-import { AiCreditsDashboard, type AnalyticsResponse } from '@goodwidget/gooddata-widget'
+import {
+  AiCreditsDashboard,
+  registerAiCreditsDashboard,
+  type AnalyticsResponse,
+} from '@goodwidget/gooddata-widget'
+
+// Idempotent — registers the real `aiCredits` connector (hits the live
+// AntSeed Worker) against the default worker URL. Safe to call at module
+// scope since repeated calls are no-ops (see registerAiCreditsDashboard).
+registerAiCreditsDashboard()
 
 // Fixed (non-random, non-"now") fixture so every render and screenshot is byte-identical across runs.
 const FIXED_ANALYTICS_RESPONSE: AnalyticsResponse = {
@@ -106,6 +115,15 @@ export function AiCreditsDashboardEmptyStory() {
   return (
     <GoodDataWidgetStoryShell dataTestId="GoodDataWidget-empty">
       <AiCreditsDashboard mockState={{ kind: 'empty' }} />
+    </GoodDataWidgetStoryShell>
+  )
+}
+
+/** No mockState — renders AiCreditsDashboardLive, which fetches from the real `aiCredits` connector (the live AntSeed Worker), not a fixture. */
+export function AiCreditsDashboardLiveConnectorStory() {
+  return (
+    <GoodDataWidgetStoryShell dataTestId="GoodDataWidget-live-connector">
+      <AiCreditsDashboard />
     </GoodDataWidgetStoryShell>
   )
 }

@@ -5,6 +5,7 @@ import {
   CitizenClaimWidget,
   createCitizenClaimWidgetCustodialExecution,
   useCitizenClaimAdapter,
+  type CitizenClaimWidgetEnvironment,
   type CitizenClaimWidgetProps,
 } from '@goodwidget/citizen-claim-widget'
 import {
@@ -70,11 +71,15 @@ function CitizenClaimWidgetStoryShell({
   dataTestId,
   defaultTheme,
   themeOverrides,
+  environment = 'development',
+  initialTab,
 }: {
   provider: unknown
   dataTestId: string
   defaultTheme?: 'light' | 'dark'
   themeOverrides?: CitizenClaimWidgetProps['themeOverrides']
+  environment?: CitizenClaimWidgetEnvironment
+  initialTab?: CitizenClaimWidgetProps['initialTab']
 }) {
   const [activeChainId, setActiveChainId] = useState<number | null>(null)
 
@@ -104,11 +109,12 @@ function CitizenClaimWidgetStoryShell({
   return (
     <CitizenClaimWidget
       provider={provider}
-      environment="development"
+      environment={environment}
       data-testid={dataTestId}
       chainId={activeChainId ?? 42220}
       defaultTheme={defaultTheme}
       themeOverrides={themeOverrides}
+      initialTab={initialTab}
     />
   )
 }
@@ -116,9 +122,11 @@ function CitizenClaimWidgetStoryShell({
 export function InjectedWalletStory({
   defaultTheme,
   themeOverrides,
+  environment,
 }: {
   defaultTheme?: 'light' | 'dark'
   themeOverrides?: CitizenClaimWidgetProps['themeOverrides']
+  environment?: CitizenClaimWidgetEnvironment
 } = {}) {
   const injectedProvider = getInjectedEip1193Provider()
   const usableProvider = isInjectedProviderUsable(injectedProvider)
@@ -141,6 +149,7 @@ export function InjectedWalletStory({
       dataTestId="CitizenClaimWidget-injected-wallet"
       defaultTheme={defaultTheme}
       themeOverrides={themeOverrides}
+      environment={environment}
     />
   )
 }
@@ -148,9 +157,11 @@ export function InjectedWalletStory({
 export function CustodialLocalFixtureStory({
   defaultTheme,
   themeOverrides,
+  initialTab,
 }: {
   defaultTheme?: 'light' | 'dark'
   themeOverrides?: CitizenClaimWidgetProps['themeOverrides']
+  initialTab?: CitizenClaimWidgetProps['initialTab']
 } = {}) {
   try {
     const provider = createCustodialEip1193Provider()
@@ -160,6 +171,7 @@ export function CustodialLocalFixtureStory({
         dataTestId="CitizenClaimWidget-custodial-wallet"
         defaultTheme={defaultTheme}
         themeOverrides={themeOverrides}
+        initialTab={initialTab}
       />
     )
   } catch (error: unknown) {
