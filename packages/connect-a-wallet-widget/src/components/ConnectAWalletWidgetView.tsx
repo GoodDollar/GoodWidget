@@ -100,9 +100,10 @@ export function ConnectAWalletWidgetView({
     return (
       <WidgetContent data-testid={dataTestId}>
         {header}
+        {state.error && <Alert type="error" message={state.error} />}
         <WalletGate
           isWalletConnected={state.isWalletConnected}
-          isConnecting={state.status === 'connecting'}
+          isConnecting={state.status === 'connecting' || !!state.isBusy}
           onConnect={actions.connectWallet}
         />
       </WidgetContent>
@@ -133,7 +134,7 @@ export function ConnectAWalletWidgetView({
             Couldn't load link status
           </Heading>
           <Alert type="error" message={state.error ?? 'Something went wrong.'} />
-          <ActionButton onPress={actions.checkSecondaryAddress} size="sm">
+          <ActionButton onPress={actions.checkSecondaryAddress} disabled={state.isBusy} size="sm">
             <ButtonText fontSize="$1">Retry</ButtonText>
           </ActionButton>
         </EmptyStateCard>
@@ -143,6 +144,8 @@ export function ConnectAWalletWidgetView({
         <AddressLinkForm
           addressInput={state.secondaryAddressInput}
           isChecking={state.status === 'checking_address'}
+          disabled={state.isBusy}
+          error={state.addressError}
           onChangeAddressInput={actions.setSecondaryAddressInput}
           onCheckAddress={actions.checkSecondaryAddress}
         />
@@ -158,7 +161,7 @@ export function ConnectAWalletWidgetView({
         <>
           <XStack alignItems="center" justifyContent="space-between" marginBottom="$1">
             <Heading level={6} fontSize="$1">Linked address</Heading>
-            <Button variant="text" size="sm" onPress={actions.changeSecondaryAddress}>
+            <Button variant="text" size="sm" disabled={state.isBusy} onPress={actions.changeSecondaryAddress}>
               <ButtonText fontSize="$1" color="$primary">Change address</ButtonText>
             </Button>
           </XStack>
@@ -194,6 +197,7 @@ export function ConnectAWalletWidgetView({
               <ChainLinkRow
                 key={row.chainId}
                 row={row}
+                disabled={state.isBusy}
                 onConnect={() => actions.connectChain(row.chainId)}
                 onDisconnect={() => actions.disconnectChain(row.chainId)}
               />

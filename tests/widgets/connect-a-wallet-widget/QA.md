@@ -1,0 +1,154 @@
+# Connect-a-wallet follow-up QA (#245)
+
+Follow-up to PR #116, targeting `plan/connect-a-wallet-widget`.
+Checked on Windows with Chromium on 2026-10-13. Contributor-operated real-wallet
+Celo checks are recorded below; live Fuse/XDC transactions have not been tested.
+
+## Scope and coverage
+
+| Requirement | Implementation / evidence |
+| --- | --- |
+| Chain-independent reads | Adapter uses HTTP clients for Fuse, Celo and XDC; interaction test asserts all three endpoints and no wallet `eth_call`. |
+| Missing provider and connection failures | Disconnected gate stays usable; cancellation can be retried and missing-provider feedback is visible. |
+| Invalid input | Inline input error appears without RPC calls and clears when edited. |
+| Competing actions | Synchronous busy guard covers address edits, status checks and link/unlink until settlement; tests cover rapid clicks, cancellation, rejection and pending receipts. |
+| SDK-backed interactions | Real adapter and installed IdentitySDK run against a mocked injected provider and intercepted HTTP RPC. Link/unlink success, cancellation, rejection and reverted receipts are covered. |
+| Wallet changes | Pending confirmation is cancelled on disconnect; stale status responses cannot populate a new account session. |
+| Screenshot policy | Existing locations retained. Root `/test-results/` remains ignored; nested widget screenshots are curated tracked evidence. |
+
+These tests do not establish that live RPC endpoints, deployed contracts, wallet gas handling,
+or a verified GoodID account work. No real transaction was sent during automation.
+
+## Verification
+
+- Install passed in the contributor's terminal using pinned pnpm 9.15.0:
+  `corepack pnpm install --frozen-lockfile --store-dir .local-qa-245/pnpm-store --config.node-linker=hoisted`.
+- `pnpm build` and `pnpm lint` both stop at the existing UI declaration error:
+  `packages/ui/src/components-test/Select.tsx:7`, TS2322 (`listbox` is not a React Native `Role`).
+  The same failure was reproduced from an untouched archive of base commit
+  `3ce69ab61c6ab276b226cb0ed0e57d0beaa979fc`. Shared UI was not changed.
+- `pnpm --filter @goodwidget/connect-a-wallet-widget build` passed, including declarations,
+  after locally emitting dependency declarations despite the baseline UI errors. This is
+  a targeted check, not a passing clean workspace build.
+- Widget lint and direct ESLint over the widget source, new story and tests passed.
+- `pnpm test:demo tests/widgets/connect-a-wallet-widget --workers=1 --retries=0`
+  passed: **27/27, exit 0**, using the repository config and a prestarted Storybook on port 6006.
+  Earlier Windows-managed server shutdown attempts hung; the prestarted-server run finished normally.
+
+No dependency manifest, lockfile, shared UI source or GoodSDKs changes are part of this fix.
+
+### PR #249 review follow-up (2026-10-15)
+
+- Both link/unlink error handlers now guard dialog cleanup by mount and wallet-session
+  identity. A late rejection still updates its own toast but cannot close a replacement
+  widget's confirmation. Regression tests cover both actions, cancelling the replacement
+  dialog, recovered controls and a successful retry.
+- Wallet connection delegates to core before requiring a provider, allowing a host
+  `connectOverride` to open a selector and supply the provider later. Core now rejects with
+  `CONNECT_UNAVAILABLE_ERROR` only when neither an override nor a provider exists; the
+  widget preserves its existing missing-provider message. This small shared-core change
+  keeps connector availability in the provider, with no new wallet abstraction.
+- New host-flow tests cover opening/cancelling/reopening the selector, receiving a provider
+  later and checking addresses, plus override rejection and control recovery. The existing
+  missing-provider and injected-wallet tests remain in place.
+- The four new regression cases failed before the production fixes. Afterward,
+  `pnpm test:demo tests/widgets/connect-a-wallet-widget --workers=1 --retries=0`
+  passed **31/31, exit 0** against a prestarted Storybook. An earlier run was interrupted
+  by a simultaneous workspace rebuild; the reported result is the subsequent clean run.
+- Targeted core and widget builds passed, including declarations, using the previously
+  prepared dependency declarations noted above. Direct ESLint over the changed core files,
+  widget source, interaction story and widget tests passed; the 17 existing core tests passed.
+- Workspace `pnpm build` and `pnpm lint` were rerun and still stop at the same baseline
+  `packages/ui/src/components-test/Select.tsx:7` TS2322 error. No fresh live-wallet
+  transactions were performed for this review pass; the manual evidence below is unchanged.
+
+## Screenshot evidence
+
+All paths below are relative to this folder's `test-results/`:
+
+- `caw-01-*` through `caw-09-*`: existing gate, loading, ready, error and responsive states.
+- `caw-10-invalid-address.png`: editable validation error.
+- `caw-11-transaction-pending.png`: actions stay disabled while waiting for a receipt.
+- `caw-122-confirmation.png`, `caw-122-success.png`: link confirmation and success.
+- `caw-42220-confirmation.png`, `caw-42220-success.png`: unlink confirmation and success.
+- `caw-flow-390-*`, `caw-flow-1280-*`: mobile and desktop ready/confirmation states.
+- `manual-celo-unlinked-after-refresh.png`: contributor-captured live Celo result after
+  refresh, with the verified root and secondary address distinct and Celo Not Connected.
+
+The screenshot helper waits for the shared dialog's spring animation to settle before capture.
+
+## Real-wallet results
+
+Tester: `edehvictor`, 2026-10-13. MetaMask was used for initial read-only checks;
+the existing verified GoodWallet account was then connected through WalletConnect
+to an ignored local Storybook harness. All transaction approvals/rejections were
+performed by the contributor, not by automation.
+
+| Scenario | Observed result | Evidence |
+| --- | --- | --- |
+| Invalid address and edit | Error displayed and cleared on edit | Contributor confirmation |
+| Live chain status reads | Fuse, Celo and XDC results loaded without a signature/transaction request | Contributor confirmation and screenshots supplied in the working conversation |
+| GoodWallet connection | Address matched the contributor's verified wallet | Contributor confirmation and screenshot |
+| Celo link cancellation | Cancelled-by-user feedback; status remained Not Connected | Contributor screenshot; control recovery confirmed |
+| Celo link wallet rejection | Rejected-by-wallet feedback; status remained Not Connected | Contributor screenshot; control recovery confirmed |
+| Celo link success | Connected status persisted after refresh and a new address check | Contributor confirmation and screenshot; link hash not captured |
+| Celo unlink cancellation | Contributor reported completing the cancellation check | Reported, without a separate screenshot |
+| Celo unlink wallet rejection | Rejected-by-wallet feedback; status remained Connected | Contributor screenshot |
+| Celo unlink success | Success callback/hash, then Not Connected after refresh and a new address check | Contributor confirmation, screenshot and public receipt check |
+| Fuse/XDC live link/unlink | Not tested | No claim of live transaction coverage |
+
+Unlink transaction:
+`0x2d76a9a6dd79c57d16da32d9761900f13a26763a0db2d9d01b0813f9eb705180`.
+An independent read-only `eth_getTransactionReceipt` request to `https://forno.celo.org`
+returned status `0x1`, block `0x4c4c1ca`, and destination
+`0xC361A6E67822a0EDc17D899227dd9FC50BD62F42` (the SDK's production Celo identity contract).
+The supplied calldata decoded to `disconnectAccount` for the intended secondary address.
+Refresh persistence is contributor-observed, separate from this receipt verification.
+
+### WalletConnect compatibility limitation
+
+The installed UniversalProvider returns a numeric `eth_chainId`. Shared core parses
+the response as hexadecimal, so Celo `42220` appeared as `270880`. The local harness
+normalizes chain-ID responses/events to hexadecimal before passing the provider to
+the unchanged widget. The contributor then confirmed that Celo displayed correctly.
+Normalization leaves transaction parameters, accounts and wallet decisions unchanged.
+
+This is an ignored local integration workaround, **not** a shipped shared-core fix.
+The Celo results validate the widget with that normalized provider, not unmodified
+WalletConnect compatibility. The harness and Reown Project ID are excluded from Git.
+A shared-provider correction needs separate scope agreement; disclose this in the PR.
+
+The `caw-*` PNGs above are mock evidence. The `manual-celo-unlinked-after-refresh.png`
+image is the contributor's unmodified browser capture, supplied after the refresh check.
+Other live screenshots remain in the working conversation; they contain unrelated
+chat/sidebar information and are not included in the PR evidence.
+
+## Manual reproduction
+
+Use `Widgets / ConnectAWalletWidget / Showcase / Injected Wallet` in Storybook.
+This story requires an injected EIP-1193 browser wallet. A GoodWallet website login alone
+does not connect that account to Storybook. Confirm a supported connection route first;
+do not export keys or use a different account and call it verified-account QA.
+
+Use a verified root identity and a fresh secondary address you control. Only approve
+transactions after reviewing the account, chain, security notice and any fees yourself.
+Linking changes identity associations and shared claim eligibility; it is not a harmless UI demo.
+
+1. Connect and confirm the displayed host address matches the intended verified account.
+2. Enter invalid text, check the visible error, then edit to the secondary address.
+3. Check Fuse, Celo and XDC status; record any RPC/deployment failures independently.
+4. On each supported deployment where the host identity is eligible, cancel a link at the
+   security dialog and verify no transaction prompt appears and controls recover.
+5. Retry, confirm the notice, then reject in the wallet; verify the row and controls recover.
+6. If the account is eligible and you approve the fees, complete a link. Record the chain
+   and transaction hash, then reload and recheck the on-chain status.
+7. Unlink only the secondary address linked for this test. Verify cancellation, successful
+   completion, controls recovering and the refreshed on-chain status.
+8. Check phone-sized and desktop layouts. Record browser, wallet, network, actual result
+   and screenshots, with account details redacted as needed. Report unsupported cases as
+   blocked or not tested, never passed.
+
+Issue #245 requires per-chain status checks and manual wallet-flow evidence; it does
+not explicitly require live link/unlink transactions on all three chains. Report the
+Celo-only mutation coverage and the compatibility limitation explicitly. Mobile evidence
+is automated Chromium viewport coverage, not a physical-phone wallet transaction test.

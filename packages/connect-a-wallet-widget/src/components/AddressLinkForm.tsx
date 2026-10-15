@@ -5,6 +5,8 @@ import { ActionButton, AddressFormCard } from './shared'
 interface AddressLinkFormProps {
   addressInput: string
   isChecking: boolean
+  disabled?: boolean
+  error?: string | null
   onChangeAddressInput: (value: string) => void
   onCheckAddress: () => void
 }
@@ -12,6 +14,8 @@ interface AddressLinkFormProps {
 export function AddressLinkForm({
   addressInput,
   isChecking,
+  disabled,
+  error,
   onChangeAddressInput,
   onCheckAddress,
 }: AddressLinkFormProps) {
@@ -26,10 +30,13 @@ export function AddressLinkForm({
         value={addressInput}
         onChangeText={onChangeAddressInput}
         placeholder="0x…"
-        disabled={isChecking}
+        aria-label="Wallet address"
+        aria-invalid={!!error}
+        errorMessage={error ?? undefined}
+        disabled={disabled || isChecking}
         size="sm"
       />
-      <ActionButton onPress={onCheckAddress} disabled={isChecking || !addressInput} fullWidth size="sm">
+      <ActionButton onPress={onCheckAddress} disabled={disabled || isChecking || !addressInput.trim()} fullWidth size="sm">
         {isChecking ? <Spinner size="sm" /> : <ButtonText fontSize="$1">Check address</ButtonText>}
       </ActionButton>
     </AddressFormCard>
