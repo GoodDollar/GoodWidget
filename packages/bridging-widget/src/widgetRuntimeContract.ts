@@ -81,6 +81,11 @@ export interface BridgingWidgetAdapterState {
   historyTransactions: BridgeTransaction[]
   isHistoryLoading: boolean
   historyError: string | null
+  /** True when one or more history entries could not be resolved (e.g. a
+   *  delivery-status lookup failed) and were dropped rather than blanking
+   *  the whole list; distinct from historyError, which means the whole
+   *  fetch failed. */
+  isHistoryPartial: boolean
   /** Transaction tapped in the History tab; its detail modal is open while non-null */
   selectedHistoryTransaction: BridgeTransaction | null
   /** Block explorer link for selectedHistoryTransaction's source-chain tx, when available */
