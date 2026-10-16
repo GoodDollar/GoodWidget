@@ -1,6 +1,18 @@
 import React from 'react'
 import { formatUnits } from 'viem'
-import { Badge, BadgeText, Heading, Spinner, Text, XStack, YStack, getChainDisplayName } from '@goodwidget/ui'
+import {
+  Badge,
+  BadgeText,
+  Button,
+  ButtonText,
+  Heading,
+  Icon,
+  Spinner,
+  Text,
+  XStack,
+  YStack,
+  getChainDisplayName,
+} from '@goodwidget/ui'
 import type { BridgeTransaction } from '@goodsdks/bridging-sdk'
 import { formatTokenAmount } from '../amount'
 import { BridgingTabContent, EmptyStateCard, PROTOCOL_LABELS, RouteSelectionCard } from './shared'
@@ -11,6 +23,10 @@ interface HistoryTabProps {
   transactions: BridgeTransaction[]
   isLoading: boolean
   error: string | null
+  /** True when the underlying fetch dropped one or more entries (e.g. a
+   *  delivery-status lookup failed) rather than returning the full set. */
+  isPartial: boolean
+  onRefresh: () => void
   onSelectTransaction: (transaction: BridgeTransaction) => void
 }
 
@@ -47,7 +63,14 @@ function HistoryRow({ transaction, onPress }: { transaction: BridgeTransaction; 
 // Loads the connected address's bridge history (useBridgeHistory, driven via
 // the adapter) across all supported chains. Tapping any row reopens
 // BridgeHistoryDetailModal so a pending transfer's delivery can be tracked.
-export function HistoryTab({ transactions, isLoading, error, onSelectTransaction }: HistoryTabProps) {
+//
+// The underlying SDK call (getCombinedHistory) can silently drop a chain
+// it failed to query internally — a known upstream limitation tracked
+// separately in GoodSDKs, not something this widget can detect or fix. The
+// copy below is deliberately non-committal ("no transactions found" rather
+// than "you have no history") so it never asserts a blank history that may
+// actually just be an SDK-side gap, and always offers a manual refresh.
+export function HistoryTab({ transactions, isLoading, error, isPartial, onRefresh, onSelectTransaction }: HistoryTabProps) {
   if (isLoading) {
     return (
       <BridgingTabContent>
@@ -64,6 +87,9 @@ export function HistoryTab({ transactions, isLoading, error, onSelectTransaction
       <BridgingTabContent>
         <EmptyStateCard>
           <Text color="$error">{error}</Text>
+          <Button size="sm" variant="secondary" onPress={onRefresh}>
+            <ButtonText>Retry</ButtonText>
+          </Button>
         </EmptyStateCard>
       </BridgingTabContent>
     )
@@ -77,8 +103,11 @@ export function HistoryTab({ transactions, isLoading, error, onSelectTransaction
             Bridge history
           </Heading>
           <Text secondary center>
-            Transactions you bridge will show up here.
+            No transactions found. Recently bridged funds can take a few minutes to appear — try refreshing.
           </Text>
+          <Button size="sm" variant="secondary" onPress={onRefresh}>
+            <ButtonText>Refresh</ButtonText>
+          </Button>
         </EmptyStateCard>
       </BridgingTabContent>
     )
@@ -86,6 +115,17 @@ export function HistoryTab({ transactions, isLoading, error, onSelectTransaction
 
   return (
     <BridgingTabContent>
+      <XStack justifyContent="space-between" alignItems="center">
+        <Heading level={4}>Bridge history</Heading>
+        <Button size="sm" variant="ghost" iconSize="sm" onPress={onRefresh} aria-label="Refresh history">
+          <Icon name="refresh" size="sm" color="muted" />
+        </Button>
+      </XStack>
+      {isPartial && (
+        <Text color="$warning" fontSize={12}>
+          Some transactions couldn't be loaded. Tap refresh to try again.
+        </Text>
+      )}
       <YStack gap="$2">
         {transactions.map((transaction) => (
           <HistoryRow
