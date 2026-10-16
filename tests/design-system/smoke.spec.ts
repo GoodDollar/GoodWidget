@@ -528,3 +528,45 @@ test('DataTable/Controllable story exposes a working range control for the neste
   await expect(addressColumnCell).toHaveJSProperty('offsetWidth', 350)
   await screenshotStory(page, 'tests/design-system/test-results/story-datatable-controllable-width.png')
 })
+
+// NextTaskModal interaction flows (trigger firing, dismissal, host-navigation
+// handoff) are already covered by the story file's own play() functions. Storybook
+// auto-runs a story's play() on every render, including a plain Playwright
+// page.goto (not just under `pnpm test:storybook`), so ShownWithContent and
+// ShownWithoutImage below are already past their trigger click by the time this
+// spec looks at them — re-clicking would hit the now-open drawer's overlay
+// instead of the trigger button underneath it. These smoke tests only capture
+// baseline screenshots of the resulting render states, matching how the other
+// design-system primitives are smoke-tested above.
+
+test('NextTaskModal/Closed story renders the trigger harness with the modal hidden', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-nexttaskmodal--closed')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByTestId('NextTaskModal-fire-trigger')).toBeVisible()
+  // The Drawer (Tamagui Sheet) stays mounted while closed and is moved off-canvas
+  // via transform rather than opacity, so `toBeVisible` (an opacity/display check)
+  // would pass even though the card is not on screen — `toBeInViewport` checks the
+  // actual rendered position instead.
+  await expect(frame.getByTestId('NextTaskModal-closed')).not.toBeInViewport()
+  await screenshotStory(page, 'tests/design-system/test-results/story-nexttaskmodal-closed.png')
+})
+
+test('NextTaskModal/ShownWithContent story renders the drawer with image, title, description, and CTA', async ({
+  page,
+}) => {
+  await gotoStory(page, 'design-system-primitives-nexttaskmodal--shown-with-content')
+  const frame = getStoryFrame(page)
+  const card = frame.getByTestId('NextTaskModal-shown')
+  await expect(card).toBeVisible()
+  await expect(card.getByText('Stake your G$ and earn')).toBeVisible()
+  await screenshotStory(page, 'tests/design-system/test-results/story-nexttaskmodal-shown.png')
+})
+
+test('NextTaskModal/ShownWithoutImage story renders the drawer without the image slot', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-nexttaskmodal--shown-without-image')
+  const frame = getStoryFrame(page)
+  const card = frame.getByTestId('NextTaskModal-no-image')
+  await expect(card).toBeVisible()
+  await expect(card.getByText('Verify your identity')).toBeVisible()
+  await screenshotStory(page, 'tests/design-system/test-results/story-nexttaskmodal-no-image.png')
+})
