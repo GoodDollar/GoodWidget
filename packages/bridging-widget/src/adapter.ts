@@ -180,6 +180,7 @@ export function useBridgingAdapter(): BridgingWidgetAdapterResult {
     historyTransactions: history.transactions,
     isHistoryLoading: history.isLoading,
     historyError: history.error,
+    isHistoryPartial: history.isPartial,
     selectedHistoryTransaction,
     selectedHistoryExplorerLink,
   }
