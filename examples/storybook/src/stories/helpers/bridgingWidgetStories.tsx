@@ -145,6 +145,7 @@ function createAdapter(
     historyTransactions: sampleHistory,
     isHistoryLoading: false,
     historyError: null,
+    isHistoryPartial: false,
     selectedHistoryTransaction: null,
     selectedHistoryExplorerLink: null,
   }
