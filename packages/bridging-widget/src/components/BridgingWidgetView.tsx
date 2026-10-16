@@ -58,6 +58,8 @@ export function BridgingWidgetView({ adapter, initialTab = 'bridge' }: BridgingW
           transactions={state.historyTransactions}
           isLoading={state.isHistoryLoading}
           error={state.historyError}
+          isPartial={state.isHistoryPartial}
+          onRefresh={actions.refreshHistory}
           onSelectTransaction={actions.viewHistoryTransaction}
         />
       )}
