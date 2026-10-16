@@ -1,0 +1,59 @@
+name: Promote main to next
+
+# main remains the development/deployment branch. A reviewed manual promotion is the only
+# supported path to next, and only next is wired to npm publication.
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: Source branch (intentionally restricted)
+        required: true
+        type: choice
+        options: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: goodwidget-next-promotion
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    permissions:
+      contents: write
+    # The release environment supplies the maintainer approval gate before next can move.
+    environment: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require a maintainer and main as source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ACTOR: ${{ github.actor }}
+          SOURCE: ${{ inputs.source }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          test "$SOURCE" = main
+          permission="$(gh api "repos/$REPOSITORY/collaborators/$ACTOR/permission" --jq .permission)"
+          test "$permission" = admin -o "$permission" = maintain
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          ref: main
+      - name: Create or update next
+        env:
+          GIT_AUTHOR_NAME: goodwidget-release
+          GIT_AUTHOR_EMAIL: goodwidget-release@users.noreply.github.com
+          GIT_COMMITTER_NAME: goodwidget-release
+          GIT_COMMITTER_EMAIL: goodwidget-release@users.noreply.github.com
+        run: |
+          git fetch origin main next || git fetch origin main
+          if git show-ref --verify --quiet refs/remotes/origin/next; then
+            # A normal merge preserves next's release history and exits before push on conflicts.
+            git switch --create next --track origin/next
+            git merge --no-edit origin/main
+          else
+            # The first promotion creates the long-lived publication branch from main.
+            git switch --create next origin/main
+          fi
+          git push origin next

@@ -1,0 +1,63 @@
+name: Release dev packages
+
+# The dev channel exists so GoodWallet can integrate a widget change before it is
+# promoted. It publishes prereleases under the `dev` dist-tag only: it cannot move
+# `latest`, cannot write a commit or tag back to main, and therefore cannot delay or
+# conflict with a production release that is already under way.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'turbo.json'
+      - 'tsconfig.base.json'
+      - 'packages/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  # Independent of the production group so a queued dev build never holds up a release.
+  # A superseded dev candidate has no value, so let a newer push cancel it.
+  group: goodwidget-npm-dev-release
+  cancel-in-progress: true
+
+jobs:
+  release:
+    # Skip the version commit that a production release pushes to next and that may later
+    # reach main through a merge.
+    if: ${{ !contains(github.event.head_commit.message, '[goodwidget release]') }}
+    permissions:
+      contents: read
+      id-token: write
+    environment: release-dev
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          ref: main
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22.14.0
+          registry-url: https://registry.npmjs.org
+      - name: Configure pinned toolchain
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.0 --activate
+          node --version
+          pnpm --version
+      - name: Install immutable workspace
+        run: pnpm install --frozen-lockfile
+      - name: Build, pack, publish to the dev tag, verify, and dispatch
+        env:
+          RELEASE_BASE_SHA: ${{ github.event.before }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: 'true'
+          GOODWALLET_DISPATCH_PAT: ${{ secrets.GOODWALLET_DISPATCH_PAT }}
+          # Wallet dev automation has its own switch, so the dev integration can be proven
+          # end to end while production dispatch is still inert.
+          ENABLE_GOODWALLET_DEV_DISPATCH: ${{ vars.ENABLE_GOODWALLET_DEV_DISPATCH }}
+        run: pnpm release:dev
