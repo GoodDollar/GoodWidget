@@ -8,8 +8,7 @@
     "directory": "packages/goodreserve-widget"
   },
   "files": [
-    "dist",
-    "integration-manifest.json"
+    "dist"
   ],
   "type": "module",
   "main": "./dist/index.cjs",
@@ -34,8 +33,7 @@
       "types": "./dist/register.d.ts",
       "import": "./dist/register.js",
       "require": "./dist/register.cjs"
-    },
-    "./integration-manifest": "./integration-manifest.json"
+    }
   },
   "scripts": {
     "build": "tsup",
