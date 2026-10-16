@@ -173,7 +173,7 @@ test('BridgingWidget shows history loading, empty and error states', async ({ pa
   await saveScreenshot(page, 'bw-19-history-loading')
 
   await gotoStory(page, 'history-empty')
-  await expectBodyToContain(page, ['Bridge history', 'Transactions you bridge will show up here.'])
+  await expectBodyToContain(page, ['Bridge history', 'No transactions found.'])
   await saveScreenshot(page, 'bw-20-history-empty')
 
   await gotoStory(page, 'history-error')
