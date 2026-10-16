@@ -10,14 +10,20 @@ import type {
 import { mapBridgeError } from './errors'
 
 const HISTORY_EVENT_LIMIT = 50
+// While any transaction is still 'pending', poll for delivery updates instead
+// of waiting for the user to tab away and back.
+const HISTORY_POLL_INTERVAL_MS = 15_000
 
 export interface BridgeHistoryState {
   transactions: BridgeTransaction[]
   isLoading: boolean
   error: string | null
+  /** True when at least one event's delivery-status lookup failed and was
+   *  dropped from `transactions` rather than blanking the whole list. */
+  isPartial: boolean
 }
 
-const EMPTY_STATE: BridgeHistoryState = { transactions: [], isLoading: false, error: null }
+const EMPTY_STATE: BridgeHistoryState = { transactions: [], isLoading: false, error: null, isPartial: false }
 
 function isRequestEvent(
   event: BridgeRequestEvent | ExecutedTransferEvent,
@@ -25,20 +31,27 @@ function isRequestEvent(
   return 'targetChainId' in event.args
 }
 
+interface BuildTransactionsResult {
+  transactions: BridgeTransaction[]
+  isPartial: boolean
+}
+
 // getCombinedHistory returns the raw on-chain events for both legs of a
 // bridge (the source-chain request and, once delivered, the destination-chain
 // transfer) deduplicated across chains, but not paired up or resolved to a
-// delivery status. Groups them by the shared request id so each bridge
-// appears once, then normalizes into the SDK's own BridgeTransaction shape.
+// delivery status. Groups them by bridge + source chain + request id (the id
+// alone is only unique per source chain, not globally) so each bridge appears
+// once, then normalizes into the SDK's own BridgeTransaction shape.
 async function buildTransactions(
   sdk: BridgingSDK,
   events: (BridgeRequestEvent | ExecutedTransferEvent)[],
-): Promise<BridgeTransaction[]> {
+): Promise<BuildTransactionsResult> {
   const requestById = new Map<string, BridgeRequestEvent>()
   const executedById = new Map<string, ExecutedTransferEvent>()
 
   for (const event of events) {
-    const key = `${event.args.bridge}:${event.args.id.toString()}`
+    const sourceChainId = isRequestEvent(event) ? event.chainId : event.args.sourceChainId
+    const key = `${event.args.bridge}:${sourceChainId}:${event.args.id.toString()}`
     if (isRequestEvent(event)) {
       requestById.set(key, event)
     } else {
@@ -48,7 +61,11 @@ async function buildTransactions(
 
   const keys = new Set([...requestById.keys(), ...executedById.keys()])
 
-  return Promise.all(
+  // Each entry's delivery-status lookup hits an external explorer
+  // (LayerZeroScan/Axelarscan) independently, so one slow/unavailable
+  // explorer must not blank every other already-resolved entry. allSettled
+  // keeps the entries that succeeded and flags the batch as partial instead.
+  const settled = await Promise.allSettled(
     Array.from(keys, async (key): Promise<BridgeTransaction> => {
       const request = requestById.get(key)
       const executed = executedById.get(key)
@@ -100,6 +117,18 @@ async function buildTransactions(
       }
     }),
   )
+
+  const transactions: BridgeTransaction[] = []
+  let isPartial = false
+  for (const result of settled) {
+    if (result.status === 'fulfilled') {
+      transactions.push(result.value)
+    } else {
+      isPartial = true
+    }
+  }
+
+  return { transactions, isPartial }
 }
 
 interface UseBridgeHistoryArgs {
@@ -126,15 +155,15 @@ export function useBridgeHistory({ sdk, address, publicClients }: UseBridgeHisto
     }
 
     const requestId = ++requestIdRef.current
-    setState({ transactions: [], isLoading: true, error: null })
+    setState({ transactions: [], isLoading: true, error: null, isPartial: false })
 
     sdk
       .getCombinedHistory(address, publicClients, { limit: HISTORY_EVENT_LIMIT })
       .then((events) => buildTransactions(sdk, events))
-      .then((transactions) => {
+      .then(({ transactions, isPartial }) => {
         if (requestIdRef.current !== requestId) return
         transactions.sort((a, b) => b.timestamp - a.timestamp)
-        setState({ transactions, isLoading: false, error: null })
+        setState({ transactions, isLoading: false, error: null, isPartial })
       })
       .catch((err: unknown) => {
         if (requestIdRef.current !== requestId) return
@@ -142,11 +171,23 @@ export function useBridgeHistory({ sdk, address, publicClients }: UseBridgeHisto
           transactions: [],
           isLoading: false,
           error: mapBridgeError(err, 'Unable to load bridge history.'),
+          isPartial: false,
         })
       })
   }, [sdk, address, publicClients, refreshToken])
 
   const refresh = useCallback(() => setRefreshToken((token) => token + 1), [])
+
+  // Keep pending entries live without requiring the user to manually refresh:
+  // poll on an interval for as long as at least one transaction is pending,
+  // and stop automatically once every entry has settled.
+  useEffect(() => {
+    const hasPendingTransaction = state.transactions.some((transaction) => transaction.status.status === 'pending')
+    if (!hasPendingTransaction) return
+
+    const intervalId = setInterval(refresh, HISTORY_POLL_INTERVAL_MS)
+    return () => clearInterval(intervalId)
+  }, [state.transactions, refresh])
 
   return { ...state, refresh }
 }
