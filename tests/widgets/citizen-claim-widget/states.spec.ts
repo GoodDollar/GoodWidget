@@ -33,6 +33,38 @@ const STORY_URL =
 const CLAIM_ALL_CONTRACT_STORY_URL =
   '/iframe.html?id=qa-citizenclaimwidget-runtime-fixtures--custodial-execution-claim-all-contract&viewMode=story'
 
+const RPC_CACHE_STORAGE_KEY = 'goodwidget:viem-rpcs'
+const DETERMINISTIC_CHAINLIST_PAYLOAD = JSON.stringify([
+  { chainId: 42220, rpc: ['https://celo-fallback.goodwidget.test'] },
+  { chainId: 122, rpc: ['https://fuse-fallback.goodwidget.test'] },
+  { chainId: 50, rpc: ['https://xdc-fallback.goodwidget.test'] },
+])
+const ALL_TEST_RPC_PATTERNS = [
+  'https://forno.celo.org/**',
+  'https://rpc.fuse.io/**',
+  'https://rpc.ankr.com/**',
+  'https://celo-fallback.goodwidget.test/**',
+  'https://fuse-fallback.goodwidget.test/**',
+  'https://xdc-fallback.goodwidget.test/**',
+]
+
+async function setupDeterministicRpcDiscovery(page: Page): Promise<void> {
+  await page.addInitScript((cacheKey: string) => {
+    try {
+      window.localStorage.removeItem(cacheKey)
+    } catch {
+      // Ignore storage access errors in restricted contexts
+    }
+  }, RPC_CACHE_STORAGE_KEY)
+  await page.route('https://chainlist.org/rpcs.json', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: DETERMINISTIC_CHAINLIST_PAYLOAD,
+    }),
+  )
+}
+
 /** Navigate directly to the story iframe (bypasses Storybook shell for speed). */
 async function gotoStory(page: Page): Promise<void> {
   await page.goto(STORY_URL)
@@ -111,10 +143,11 @@ test('CitizenClaimWidget shows not_whitelisted for fresh wallet (live Celo RPC)'
 
 // ─── error state (RPC blocked) ────────────────────────────────────────────────
 test('CitizenClaimWidget shows error state when RPC is unreachable', async ({ page }) => {
-  // Block all chain RPC endpoints to force the error state
-  await page.route('https://forno.celo.org/**', (route) => route.abort())
-  await page.route('https://rpc.fuse.io/**', (route) => route.abort())
-  await page.route('https://rpc.ankr.com/**', (route) => route.abort())
+  // Seed deterministic Chainlist discovery and block all primary + fallback RPC endpoints
+  await setupDeterministicRpcDiscovery(page)
+  for (const pattern of ALL_TEST_RPC_PATTERNS) {
+    await page.route(pattern, (route) => route.abort())
+  }
 
   await gotoStory(page)
 
@@ -133,17 +166,12 @@ test('CitizenClaimWidget shows error state when RPC is unreachable', async ({ pa
 
 // ─── error → retry ────────────────────────────────────────────────────────────
 test('CitizenClaimWidget Retry button re-triggers the adapter', async ({ page }) => {
-  // Block RPCs to enter error state, then unblock to allow retry to succeed
+  // Block all primary + discovered fallback RPCs to enter error state, then unblock on retry
   let blocked = true
-  await page.route('https://forno.celo.org/**', (route) =>
-    blocked ? route.abort() : route.continue(),
-  )
-  await page.route('https://rpc.fuse.io/**', (route) =>
-    blocked ? route.abort() : route.continue(),
-  )
-  await page.route('https://rpc.ankr.com/**', (route) =>
-    blocked ? route.abort() : route.continue(),
-  )
+  await setupDeterministicRpcDiscovery(page)
+  for (const pattern of ALL_TEST_RPC_PATTERNS) {
+    await page.route(pattern, (route) => (blocked ? route.abort() : route.continue()))
+  }
 
   await gotoStory(page)
   await waitForText(page, ['Retry'], 20_000)
