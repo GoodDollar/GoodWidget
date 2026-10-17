@@ -1,6 +1,10 @@
-import { createPublicClient, createWalletClient, http, type Chain } from 'viem'
+import { type Chain, type PublicClient, type WalletClient } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
-import type { EIP1193Provider } from '@goodwidget/core'
+import {
+  createViemFallbackClient,
+  type EIP1193Provider,
+  type ViemFallbackStorage,
+} from '@goodwidget/core'
 
 type EventCallback = (...args: unknown[]) => void
 
@@ -51,6 +55,22 @@ const CHAIN_CONFIGS: Record<number, { chain: Chain; rpcUrl: string }> = {
   },
 }
 
+function getRpcCacheStorage(): ViemFallbackStorage {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) return window.localStorage
+  } catch {
+    // Access itself throws in some privacy modes.
+  }
+  return {}
+}
+
+export function createCustodialFallbackClient() {
+  return createViemFallbackClient(getRpcCacheStorage(), {
+    chainIds: Object.keys(CHAIN_CONFIGS).map(Number),
+    rank: false,
+  })
+}
+
 /**
  * Creates an EIP-1193 provider backed by a local private key.
  * This is for local Storybook testing to mimic "wallet-in-host" behavior.
@@ -65,34 +85,39 @@ export function createCustodialEip1193Provider(): EIP1193Provider {
   const account = privateKeyToAccount(CUSTODIAL_PRIVATE_KEY as `0x${string}`)
   let activeChainId = 42220 // Default to Celo, can be switched via wallet_switchEthereumChain
   const listeners: Record<string, EventCallback[]> = {}
+  const fallbackClient = createCustodialFallbackClient()
 
   const clientsByChain = Object.fromEntries(
-    Object.entries(CHAIN_CONFIGS).map(([chainId, config]) => {
-      const transport = http(config.rpcUrl)
-      return [
-        Number(chainId),
-        {
-          publicClient: createPublicClient({ chain: config.chain, transport }),
-          walletClient: createWalletClient({ account, chain: config.chain, transport }),
-        },
-      ]
-    }),
+    Object.entries(CHAIN_CONFIGS).map(([chainId, config]) => [
+      Number(chainId),
+      Promise.all([
+        fallbackClient.createPublicClient({
+          chain: config.chain,
+          fallbackRpcs: [config.rpcUrl],
+        }),
+        fallbackClient.createWalletClient({
+          account,
+          chain: config.chain,
+          fallbackRpcs: [config.rpcUrl],
+        }),
+      ]).then(([publicClient, walletClient]) => ({ publicClient, walletClient })),
+    ]),
   ) as Record<
     number,
-    {
-      publicClient: ReturnType<typeof createPublicClient>
-      walletClient: ReturnType<typeof createWalletClient>
-    }
+    Promise<{
+      publicClient: PublicClient
+      walletClient: WalletClient
+    }>
   >
 
   const emit = (event: string, payload: unknown) => {
     for (const listener of listeners[event] ?? []) listener(payload)
   }
 
-  const getActiveClients = () => {
-    const clients = clientsByChain[activeChainId]
-    if (!clients) throw new Error(`Unsupported active chain: ${activeChainId}`)
-    return clients
+  const getActiveClients = async () => {
+    const clientsPromise = clientsByChain[activeChainId]
+    if (!clientsPromise) throw new Error(`Unsupported active chain: ${activeChainId}`)
+    return clientsPromise
   }
 
   const parseRequestedChainId = (rawChainId: string): number => {
@@ -131,7 +156,7 @@ export function createCustodialEip1193Provider(): EIP1193Provider {
         }
         case 'eth_sendTransaction': {
           const tx = (params?.[0] as Record<string, unknown> | undefined) ?? {}
-          const { walletClient } = getActiveClients()
+          const { walletClient } = await getActiveClients()
           const hash = await walletClient.sendTransaction({
             account,
             to: tx.to as `0x${string}`,
@@ -150,7 +175,7 @@ export function createCustodialEip1193Provider(): EIP1193Provider {
         case 'eth_call': {
           const callRequest = (params?.[0] as Record<string, unknown> | undefined) ?? {}
           const blockTag = (params?.[1] as string | undefined) ?? 'latest'
-          const { publicClient } = getActiveClients()
+          const { publicClient } = await getActiveClients()
           const result = await publicClient.call({
             account: (callRequest.from as `0x${string}` | undefined) ?? account.address,
             to: callRequest.to as `0x${string}`,
@@ -164,7 +189,7 @@ export function createCustodialEip1193Provider(): EIP1193Provider {
         }
         case 'eth_getBalance': {
           const target = (params?.[0] as `0x${string}` | undefined) ?? account.address
-          const { publicClient } = getActiveClients()
+          const { publicClient } = await getActiveClients()
           const balance = await publicClient.getBalance({ address: target })
           return `0x${balance.toString(16)}`
         }

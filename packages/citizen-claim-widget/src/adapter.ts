@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useWallet } from '@goodwidget/core'
+import {
+  createViemFallbackClient,
+  useWallet,
+  type ViemFallbackStorage,
+} from '@goodwidget/core'
 import {
   createPublicClient,
   createWalletClient,
   custom,
   formatUnits,
-  http,
   type Account,
   type Chain,
   type PublicClient,
@@ -62,6 +65,22 @@ const CHAIN_CONFIGS: Record<number, Chain> = {
 
 const SUPPORTED_CHAINS = citizenSdkCapabilities.chains
 const AVAILABLE_ENVIRONMENTS = citizenSdkCapabilities.environments
+
+function getRpcCacheStorage(): ViemFallbackStorage {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) return window.localStorage
+  } catch {
+    // Access itself throws in some privacy modes.
+  }
+  return {}
+}
+
+export function createCitizenClaimFallbackClient() {
+  return createViemFallbackClient(getRpcCacheStorage(), {
+    chainIds: [...SUPPORTED_CHAINS],
+    rank: false,
+  })
+}
 
 // Display names for chains a connected wallet can land on outside the 3
 // citizen-sdk supports (e.g. the other networks this app's own wallet-connect
@@ -291,11 +310,13 @@ export function useCitizenClaimAdapter(
     [],
   )
 
+  const fallbackRpcClient = useMemo(() => createCitizenClaimFallbackClient(), [])
+
   // Custodial integrations own one public client per chain. Reuse those
   // clients for entitlement/stat reads as well as claim execution so the
   // widget does not silently switch back to its fallback RPCs.
   const getPublicClientForChain = useCallback(
-    (targetChainId: number): PublicClient | null => {
+    async (targetChainId: number): Promise<PublicClient | null> => {
       if (isCustodialExecution) {
         const configuredClients = claimExecution?.clientsByChain[targetChainId]
         return (
@@ -308,9 +329,12 @@ export function useCitizenClaimAdapter(
       const chain = CHAIN_CONFIGS[targetChainId]
       const rpcUrl = chain?.rpcUrls.default.http[0]
       if (!chain || !rpcUrl) return null
-      return createPublicClient({ chain, transport: http(rpcUrl) })
+      return fallbackRpcClient.createPublicClient({
+        chain,
+        fallbackRpcs: [rpcUrl],
+      })
     },
-    [claimExecution, isCustodialExecution],
+    [claimExecution, fallbackRpcClient, isCustodialExecution],
   )
 
   const resolveClientsForChain = useCallback(
@@ -396,7 +420,7 @@ export function useCitizenClaimAdapter(
   // entitlement to read and never send a transaction through it.
   // ---------------------------------------------------------------------------
   const createReadOnlyClientsForChain = useCallback(
-    (targetChainId: number) => {
+    async (targetChainId: number) => {
       if (!address) return null
 
       if (isCustodialExecution) {
@@ -408,19 +432,25 @@ export function useCitizenClaimAdapter(
       const rpcUrl = chain?.rpcUrls.default.http[0]
       if (!chain || !rpcUrl) return null
 
-      const publicClient = createPublicClient({ chain, transport: http(rpcUrl) })
-      const walletClient = createWalletClient({
-        account: address as `0x${string}`,
-        chain,
-        transport: http(rpcUrl),
-      })
+      const [publicClient, walletClient] = await Promise.all([
+        fallbackRpcClient.createPublicClient({
+          chain,
+          fallbackRpcs: [rpcUrl],
+        }),
+        fallbackRpcClient.createWalletClient({
+          account: address as `0x${string}`,
+          chain,
+          fallbackRpcs: [rpcUrl],
+        }),
+      ])
       return { publicClient, walletClient }
     },
-    [address, claimExecution, isCustodialExecution, normalizeClientBundle],
+    [address, claimExecution, fallbackRpcClient, isCustodialExecution, normalizeClientBundle],
   )
 
   const createReadOnlySdkForChain = useCallback(
-    (targetChainId: number) => createSdkInstances(createReadOnlyClientsForChain(targetChainId)),
+    async (targetChainId: number) =>
+      createSdkInstances(await createReadOnlyClientsForChain(targetChainId)),
     [createReadOnlyClientsForChain, createSdkInstances],
   )
 
@@ -441,7 +471,7 @@ export function useCitizenClaimAdapter(
       await Promise.all(
         SUPPORTED_CHAINS.map(async (supportedChainId) => {
           try {
-            const sdk = createReadOnlySdkForChain(supportedChainId)
+            const sdk = await createReadOnlySdkForChain(supportedChainId)
             if (!sdk) return
             const result = await sdk.claimSDK.checkEntitlement()
             if (result.amount <= 0n) return
@@ -461,7 +491,7 @@ export function useCitizenClaimAdapter(
       await Promise.all(
         SUPPORTED_CHAINS.map(async (supportedChainId) => {
           try {
-            const publicClient = getPublicClientForChain(supportedChainId)
+            const publicClient = await getPublicClientForChain(supportedChainId)
             if (!publicClient) return
             const entitlement = await checkGenericEntitlement({
               publicClient,
@@ -494,7 +524,7 @@ export function useCitizenClaimAdapter(
     await Promise.all(
       SUPPORTED_CHAINS.map(async (supportedChainId) => {
         try {
-          const publicClient = getPublicClientForChain(supportedChainId)
+          const publicClient = await getPublicClientForChain(supportedChainId)
           if (!publicClient) return
           const stats = await checkGenericDailyStats({
             publicClient,
@@ -595,7 +625,7 @@ export function useCitizenClaimAdapter(
 
     // A personalized status read, but still address-only: no connected
     // account or passed-down provider is required, only the address itself.
-    const sdk = createReadOnlySdkForChain(statusChainId)
+    const sdk = await createReadOnlySdkForChain(statusChainId)
     if (!sdk) {
       // The address is known and statusChainId passed the supported-chain
       // check above, so a null sdk here means client/RPC setup itself
