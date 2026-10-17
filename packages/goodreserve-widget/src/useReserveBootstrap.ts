@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
-import { useWallet } from '@goodwidget/core'
+import {
+  createViemFallbackClient,
+  useWallet,
+  type ViemFallbackStorage,
+} from '@goodwidget/core'
 import { erc20ABI, GoodReserveSDK, getReserveChainFromId } from '@goodsdks/good-reserve'
 import {
-  createPublicClient,
   createWalletClient,
   custom,
-  http,
   formatUnits,
   type Chain,
+  type PublicClient,
 } from 'viem'
 import { celo, xdc } from 'viem/chains'
 import type { ReserveSwapWidgetAdapterState } from './widgetRuntimeContract'
@@ -26,6 +29,22 @@ import { mapReserveError } from './errors'
 export const RESERVE_CHAINS: Record<number, Chain> = {
   [CELO_CHAIN_ID]: celo,
   [XDC_CHAIN_ID]: xdc,
+}
+
+function getRpcCacheStorage(): ViemFallbackStorage {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) return window.localStorage
+  } catch {
+    // Access itself throws in some privacy modes.
+  }
+  return {}
+}
+
+export function createReserveFallbackClient() {
+  return createViemFallbackClient(getRpcCacheStorage(), {
+    chainIds: [CELO_CHAIN_ID, XDC_CHAIN_ID],
+    rank: false,
+  })
 }
 
 export function getStableSymbol(chainId: number | null): string {
@@ -49,7 +68,7 @@ export function balancesForDirection(
 // ---------------------------------------------------------------------------
 export interface ReserveRefs {
   sdkRef: React.MutableRefObject<GoodReserveSDK | null>
-  publicClientRef: React.MutableRefObject<ReturnType<typeof createPublicClient> | null>
+  publicClientRef: React.MutableRefObject<PublicClient | null>
   walletClientRef: React.MutableRefObject<ReturnType<typeof createWalletClient> | null>
   decimalsRef: React.MutableRefObject<{ stable: number; gd: number }>
   balancesRef: React.MutableRefObject<{ stable: string; gd: string }>
@@ -74,7 +93,7 @@ export function useReserveRefs(
   initialDirection: ReserveSwapWidgetAdapterState['direction'],
 ): ReserveRefs {
   const sdkRef = useRef<GoodReserveSDK | null>(null)
-  const publicClientRef = useRef<ReturnType<typeof createPublicClient> | null>(null)
+  const publicClientRef = useRef<PublicClient | null>(null)
   const walletClientRef = useRef<ReturnType<typeof createWalletClient> | null>(null)
   const decimalsRef = useRef({ stable: getStableDecimals(null), gd: DEFAULT_GD_DECIMALS })
   const balancesRef = useRef({ stable: '0.00', gd: '0.00' })
@@ -187,7 +206,7 @@ export function useReserveBootstrap(
 
     try {
       const chain = RESERVE_CHAINS[chainId]
-      const publicClient = createPublicClient({ chain, transport: http() })
+      const publicClient = await createReserveFallbackClient().createPublicClient({ chain })
       const transport = custom(provider as Parameters<typeof custom>[0])
       const walletClient = createWalletClient({
         account: address as `0x${string}`,
