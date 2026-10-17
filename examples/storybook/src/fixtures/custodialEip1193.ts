@@ -103,13 +103,18 @@ export function createCustodialEip1193Provider(
           chain: config.chain,
           fallbackRpcs: [config.rpcUrl],
         }),
-      ]).then(([publicClient, walletClient]) => ({ publicClient, walletClient })),
+      ]).then(([publicClient, walletClient]) => ({
+        publicClient,
+        walletClient,
+        chain: config.chain,
+      })),
     ]),
   ) as Record<
     number,
     Promise<{
       publicClient: PublicClient
       walletClient: WalletClient
+      chain: Chain
     }>
   >
 
@@ -159,7 +164,7 @@ export function createCustodialEip1193Provider(
         }
         case 'eth_sendTransaction': {
           const tx = (params?.[0] as Record<string, unknown> | undefined) ?? {}
-          const { walletClient } = await getActiveClients()
+          const { walletClient, chain } = await getActiveClients()
           const hash = await walletClient.sendTransaction({
             account,
             to: tx.to as `0x${string}`,
@@ -171,7 +176,7 @@ export function createCustodialEip1193Provider(
               ? BigInt(tx.maxPriorityFeePerGas as string)
               : undefined,
             nonce: typeof tx.nonce === 'string' ? Number(tx.nonce) : undefined,
-            chain: CHAIN_CONFIGS[activeChainId]?.chain,
+            chain: walletClient.chain ?? chain,
           })
           return hash
         }
