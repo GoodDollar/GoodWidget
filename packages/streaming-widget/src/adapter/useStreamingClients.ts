@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { createPublicClient, createWalletClient, custom, http } from 'viem'
+import { createWalletClient, custom } from 'viem'
 import {
   GdaSDK,
   isSupportedChain,
@@ -8,7 +8,11 @@ import {
   SupportedChains,
 } from '@goodsdks/streaming-sdk'
 import type { StreamingWidgetEnvironment } from '../widgetRuntimeContract'
-import { createBasePublicClient, VIEM_CHAINS } from './chains'
+import {
+  createBasePublicClient,
+  createStreamingPublicClient,
+  VIEM_CHAINS,
+} from './chains'
 
 interface UseStreamingClientsArgs {
   provider: unknown
@@ -30,10 +34,9 @@ export function useStreamingClients({
     if (!chain) return null
 
     const transport = custom(provider as Parameters<typeof custom>[0])
-    const publicClient = createPublicClient({
-      chain,
-      transport: http(chain.rpcUrls.default.http[0]),
-    })
+    const publicClient = createStreamingPublicClient(chain, [
+      ...(chain.rpcUrls.default.http ?? []),
+    ])
     const walletClient = createWalletClient({ chain, transport })
 
     return { publicClient, walletClient }
