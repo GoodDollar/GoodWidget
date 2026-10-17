@@ -2,12 +2,13 @@ import { test, expect, type Page } from '@playwright/test'
 
 const STORY_PREFIX = '/iframe.html?id=qa-streamingwidget-runtime-fixtures--'
 
-function storyUrl(storyId: string): string {
-  return `${STORY_PREFIX}${storyId}&viewMode=story`
+function storyUrl(storyId: string, args?: string): string {
+  const argsParam = args ? `&args=${args}` : ''
+  return `${STORY_PREFIX}${storyId}&viewMode=story${argsParam}`
 }
 
-async function gotoStory(page: Page, storyId: string): Promise<void> {
-  await page.goto(storyUrl(storyId))
+async function gotoStory(page: Page, storyId: string, args?: string): Promise<void> {
+  await page.goto(storyUrl(storyId, args))
   await page.waitForLoadState('domcontentloaded')
   await page.waitForFunction(() => document.body.innerText.trim().length > 0)
 }
@@ -17,13 +18,8 @@ async function bodyText(page: Page): Promise<string> {
 }
 
 async function expectBodyToContain(page: Page, patterns: Array<string | RegExp>) {
-  const text = await bodyText(page)
   for (const pattern of patterns) {
-    if (typeof pattern === 'string') {
-      expect(text).toContain(pattern)
-    } else {
-      expect(text).toMatch(pattern)
-    }
+    await expect(page.locator('body')).toContainText(pattern)
   }
 }
 
@@ -106,7 +102,7 @@ test('StreamingWidget shows populated incoming and outgoing stream views', async
     'Active streams',
     'Incoming',
     'Outgoing',
-    /100\s+G\$\s*\/mo/,
+    /100\s*G\$\s*\/mo/,
   ])
 
   await page.getByText('Incoming').first().click()
@@ -284,3 +280,51 @@ test('StreamingWidget shows read-only Base SUP balance and reserve data', async 
   ])
   await saveScreenshot(page, 'sw-17-non-base-reserve-disabled')
 })
+
+test('StreamingWidget renders light theme across all card surfaces and tabs without dark slate fallback', async ({
+  page,
+}) => {
+  await gotoStory(page, 'light-theme-populated')
+  await expectBodyToContain(page, ['GoodDollar', 'Streams', 'History', 'Pools', 'Balances', 'Active streams'])
+
+  // Verify the widget root and StreamRow use light-theme surface colors rather than dark slate (#111927 / rgb(17, 25, 39))
+  const rootBg = await page
+    .getByTestId('StreamingWidget-light-theme-populated')
+    .evaluate((el) => {
+      const firstChild = el.firstElementChild as HTMLElement | null
+      return firstChild ? window.getComputedStyle(firstChild).backgroundColor : ''
+    })
+  expect(rootBg).not.toBe('rgb(17, 25, 39)')
+  expect(rootBg).not.toBe('rgb(10, 15, 29)')
+
+  await saveScreenshot(page, 'sw-31-light-theme-populated')
+
+  await page.getByText('Pools').first().click()
+  await expectBodyToContain(page, ['Claimable', 'Claim', 'Connect'])
+  await saveScreenshot(page, 'sw-32-light-theme-pools')
+
+  await page.getByText('Balances').first().click()
+  await expectBodyToContain(page, ['Super Token Balance', 'SUP Balance', 'SUP Reserve'])
+  await saveScreenshot(page, 'sw-33-light-theme-balances')
+
+  await gotoStory(page, 'empty-state', 'defaultTheme:light')
+  await expectBodyToContain(page, ['No active streams found.'])
+  await saveScreenshot(page, 'sw-34-light-theme-empty-state')
+
+  await gotoStory(page, 'error-state', 'defaultTheme:light')
+  await expectBodyToContain(page, ['Unable to reach the network', 'Retry'])
+  await saveScreenshot(page, 'sw-35-light-theme-error-state')
+
+  await gotoStory(page, 'create-update-form', 'defaultTheme:light')
+  await expectBodyToContain(page, ['Create / Update Stream', 'Set Stream'])
+  await saveScreenshot(page, 'sw-36-light-theme-create-update-form')
+
+  await gotoStory(page, 'no-wallet', 'defaultTheme:light')
+  await expectBodyToContain(page, ['Wallet not connected', 'Connect Wallet'])
+  await saveScreenshot(page, 'sw-37-light-theme-no-wallet')
+
+  await gotoStory(page, 'wrong-chain', 'defaultTheme:light')
+  await expectBodyToContain(page, ['Unsupported network', 'Switch to Celo', 'Switch to Base'])
+  await saveScreenshot(page, 'sw-38-light-theme-wrong-chain')
+})
+

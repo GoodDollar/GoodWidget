@@ -1,7 +1,7 @@
 import React from 'react'
-import { ButtonText, Heading, Text, XStack } from '@goodwidget/ui'
+import { Button, ButtonText, Heading, Text, XStack } from '@goodwidget/ui'
 import { STREAMING_CHAINS } from '../widgetRuntimeContract'
-import { ActionButton, EmptyStateCard } from './shared'
+import { compactButtonProps, EmptyStateCard } from './shared'
 
 interface WalletGateProps {
   isConnected: boolean
@@ -25,9 +25,9 @@ export function WalletGate({
         <Text secondary center>
           Connect your wallet to view streams, pools, and balances.
         </Text>
-        <ActionButton onPress={onConnect}>
+        <Button fullWidth size="sm" {...compactButtonProps} onPress={onConnect}>
           <ButtonText>Connect Wallet</ButtonText>
-        </ActionButton>
+        </Button>
       </EmptyStateCard>
     )
   }
@@ -41,13 +41,13 @@ export function WalletGate({
         <Text secondary center>
           Switch to Celo or Base to use the streaming widget.
         </Text>
-        <XStack gap="$2">
-          <ActionButton onPress={() => onSwitchChain(STREAMING_CHAINS.CELO)}>
+        <XStack gap="$2" width="100%">
+          <Button flex={1} size="sm" {...compactButtonProps} onPress={() => onSwitchChain(STREAMING_CHAINS.CELO)}>
             <ButtonText>Switch to Celo</ButtonText>
-          </ActionButton>
-          <ActionButton onPress={() => onSwitchChain(STREAMING_CHAINS.BASE)}>
+          </Button>
+          <Button flex={1} size="sm" {...compactButtonProps} onPress={() => onSwitchChain(STREAMING_CHAINS.BASE)}>
             <ButtonText>Switch to Base</ButtonText>
-          </ActionButton>
+          </Button>
         </XStack>
       </EmptyStateCard>
     )
