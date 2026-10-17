@@ -1,9 +1,10 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { GoodWidgetProvider } from '@goodwidget/core'
 import type { EIP1193Provider } from '@goodwidget/core'
 import { ToastContainer } from '@goodwidget/ui'
 import { useStreamingAdapter } from './adapter'
 import { StreamingWidgetView } from './components/StreamingWidgetView'
+import { createStreamingWidgetConfig } from './config'
 import type {
   StreamingWidgetAdapterResult,
   StreamingWidgetProps,
@@ -39,8 +40,14 @@ export function StreamingWidgetPreview({
   config,
   defaultTheme = 'dark',
 }: StreamingWidgetPreviewProps) {
+  const streamingConfig = useMemo(() => createStreamingWidgetConfig(config), [config])
+
   return (
-    <GoodWidgetProvider config={config} themeOverrides={themeOverrides} defaultTheme={defaultTheme}>
+    <GoodWidgetProvider
+      config={streamingConfig}
+      themeOverrides={themeOverrides}
+      defaultTheme={defaultTheme}
+    >
       <StreamingWidgetView
         adapter={adapter}
         initialTab={initialTab}
@@ -59,10 +66,12 @@ export function StreamingWidget({
   defaultTheme = 'dark',
   apiKey,
 }: StreamingWidgetProps) {
+  const streamingConfig = useMemo(() => createStreamingWidgetConfig(config), [config])
+
   return (
     <GoodWidgetProvider
       provider={provider as EIP1193Provider | undefined}
-      config={config}
+      config={streamingConfig}
       themeOverrides={themeOverrides}
       defaultTheme={defaultTheme}
     >

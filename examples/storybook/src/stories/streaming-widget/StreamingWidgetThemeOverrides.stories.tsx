@@ -13,21 +13,22 @@
  * of that guide rather than a separate visual language.
  *
  * StreamingWidget uses `Button` directly for its primary actions (no
- * StreamingWidget-specific sub-theme), plus six Card-derived named
- * components that fall back to Card's field set since they don't have their
- * own preset entries. See packages/streaming-widget/src/components/shared.tsx.
+ * StreamingWidget-specific button sub-theme), plus six Card-derived named
+ * components registered in `streamingWidgetConfig` (`StreamRow`, `PoolRow`,
+ * `BalanceCard`, `EmptyStateCard`, `ErrorStateCard`, `SetStreamFormCard`).
+ * See packages/streaming-widget/src/config.ts and components/shared.tsx.
  *
- * Controls are wired for `dark_Button` and the two targets rendered in the
- * PopulatedStateStory fixture (`dark_StreamRow`, `dark_BalanceCard`) — a
- * couple of high-impact targets that visibly shift the default brand, not
- * exhaustive coverage of every value. The remaining Card-derived targets
- * follow the same field shape and are documented below for reference.
+ * Controls are wired for `dark_Button` / `light_Button` and the two targets
+ * rendered in the PopulatedStateStory fixture (`dark_StreamRow` / `light_StreamRow`,
+ * `dark_BalanceCard` / `light_BalanceCard`) — a couple of high-impact targets
+ * that visibly shift the default brand, not exhaustive coverage of every value.
+ * The remaining Card-derived targets follow the same field shape and are
+ * documented below for reference.
  */
 import React from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import type { StreamingWidgetProps } from '@goodwidget/streaming-widget'
 import { PopulatedStateStory } from '../helpers/streamingWidgetStories'
-import { withDefaultPreset } from '../helpers/withDefaultPreset'
 import { DocsCallout, DocsList } from '../docs/DocsLayout'
 
 type ThemeOverrides = NonNullable<StreamingWidgetProps['themeOverrides']>
@@ -74,6 +75,7 @@ function CodeBlock({ children }: { children: string }) {
 }
 
 interface OverridesArgs {
+  defaultTheme: 'light' | 'dark'
   buttonBackground: string
   buttonBackgroundHover: string
   buttonBackgroundPress: string
@@ -85,22 +87,31 @@ interface OverridesArgs {
 }
 
 function buildThemeOverrides(args: OverridesArgs): ThemeOverrides {
+  const componentThemes = {
+    Button: {
+      background: args.buttonBackground,
+      backgroundHover: args.buttonBackgroundHover,
+      backgroundPress: args.buttonBackgroundPress,
+      backgroundFocus: args.buttonBackgroundFocus,
+      color: args.buttonColor,
+    },
+    StreamRow: {
+      borderColor: args.streamRowBorderColor,
+    },
+    BalanceCard: {
+      borderColor: args.balanceCardBorderColor,
+      shadowColor: args.balanceCardShadowColor,
+    },
+  }
+
   return {
     themes: {
-      dark_Button: {
-        background: args.buttonBackground,
-        backgroundHover: args.buttonBackgroundHover,
-        backgroundPress: args.buttonBackgroundPress,
-        backgroundFocus: args.buttonBackgroundFocus,
-        color: args.buttonColor,
-      },
-      dark_StreamRow: {
-        borderColor: args.streamRowBorderColor,
-      },
-      dark_BalanceCard: {
-        borderColor: args.balanceCardBorderColor,
-        shadowColor: args.balanceCardShadowColor,
-      },
+      dark_Button: componentThemes.Button,
+      light_Button: componentThemes.Button,
+      dark_StreamRow: componentThemes.StreamRow,
+      light_StreamRow: componentThemes.StreamRow,
+      dark_BalanceCard: componentThemes.BalanceCard,
+      light_BalanceCard: componentThemes.BalanceCard,
     },
   }
 }
@@ -109,8 +120,12 @@ const meta: Meta<OverridesArgs> = {
   title: 'Widgets/StreamingWidget/Theme overrides',
   tags: ['integrator', 'showcase'],
   parameters: { layout: 'padded' },
-  decorators: [withDefaultPreset],
   argTypes: {
+    defaultTheme: {
+      control: 'radio',
+      options: ['light', 'dark'],
+      description: 'Base theme applied via the widget’s own defaultTheme prop.',
+    },
     buttonBackground: { control: 'color', description: 'themes.dark_Button.background' },
     buttonBackgroundHover: { control: 'color', description: 'themes.dark_Button.backgroundHover' },
     buttonBackgroundPress: { control: 'color', description: 'themes.dark_Button.backgroundPress' },
@@ -121,6 +136,7 @@ const meta: Meta<OverridesArgs> = {
     balanceCardShadowColor: { control: 'color', description: 'themes.dark_BalanceCard.shadowColor' },
   },
   args: {
+    defaultTheme: 'light',
     buttonBackground: '#7C3AED',
     buttonBackgroundHover: '#6D28D9',
     buttonBackgroundPress: '#5B21B6',
@@ -140,7 +156,7 @@ export const Playground: Story = {
     return (
       <div style={{ display: 'grid', gap: 24, maxWidth: 560, margin: '0 auto' }}>
         <CodeBlock>
-          {`<StreamingWidget\n  themeOverrides={${JSON.stringify(themeOverrides, null, 2)}}\n/>`}
+          {`<StreamingWidget\n  defaultTheme="${args.defaultTheme}"\n  themeOverrides={${JSON.stringify(themeOverrides, null, 2)}}\n/>`}
         </CodeBlock>
 
         <DocsCallout title="All overridable paths on StreamingWidget" tone="info">
@@ -164,7 +180,7 @@ export const Playground: Story = {
           </DocsList>
         </DocsCallout>
 
-        <PopulatedStateStory defaultTheme="dark" themeOverrides={themeOverrides} />
+        <PopulatedStateStory defaultTheme={args.defaultTheme} themeOverrides={themeOverrides} />
       </div>
     )
   },

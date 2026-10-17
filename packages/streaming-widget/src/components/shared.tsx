@@ -2,8 +2,6 @@ import React from 'react'
 import {
   Badge,
   BadgeText,
-  Button,
-  type ButtonProps,
   ButtonText,
   Card,
   YStack,
@@ -12,6 +10,12 @@ import {
 import type { WriteStatus } from '../widgetRuntimeContract'
 
 export type SuperTokenSymbol = 'G$' | 'SUP'
+
+export const compactButtonProps = {
+  borderRadius: '$3',
+  height: '$7',
+  paddingHorizontal: '$3',
+} as const
 
 export const StreamingTabContent = createComponent(YStack, {
   name: 'StreamingTabContent',
@@ -22,18 +26,21 @@ export const StreamingTabContent = createComponent(YStack, {
 
 export const StreamRow = createComponent(Card, {
   name: 'StreamRow',
+  extends: 'Card',
   padding: '$3',
   gap: '$2',
 })
 
 export const PoolRow = createComponent(Card, {
   name: 'PoolRow',
+  extends: 'Card',
   padding: '$3',
   gap: '$2',
 })
 
 export const EmptyStateCard = createComponent(Card, {
   name: 'EmptyStateCard',
+  extends: 'Card',
   padding: '$6',
   alignItems: 'center' as const,
   justifyContent: 'center' as const,
@@ -42,18 +49,21 @@ export const EmptyStateCard = createComponent(Card, {
 
 export const ErrorStateCard = createComponent(Card, {
   name: 'ErrorStateCard',
+  extends: 'Card',
   padding: '$4',
   gap: '$2',
 })
 
 export const SetStreamFormCard = createComponent(Card, {
   name: 'SetStreamFormCard',
+  extends: 'Card',
   padding: '$4',
   gap: '$3',
 })
 
 export const BalanceCard = createComponent(Card, {
   name: 'BalanceCard',
+  extends: 'Card',
   padding: '$4',
   gap: '$2',
 })
@@ -84,17 +94,4 @@ export function WriteStatusBadge({ status }: { status: WriteStatus }) {
 
 export function SecondaryButtonText({ children }: { children: React.ReactNode }) {
   return <ButtonText color="$primary">{children}</ButtonText>
-}
-
-export function ActionButton({
-  children,
-  minWidth = 100,
-  size = 'sm',
-  ...props
-}: ButtonProps) {
-  return (
-    <Button minWidth={minWidth} size={size} {...props}>
-      {children}
-    </Button>
-  )
 }

@@ -256,9 +256,17 @@ function createAdapter(
 // MiniAppShell must sit inside a provider: without one it first paints before any
 // Tamagui theme is registered, and the theme that the widget's own provider registers
 // then flips its internal Theme hook path on the next re-render ("Should have a queue").
-function StoryShell({ children, dataTestId }: { children: React.ReactNode; dataTestId: string }) {
+function StoryShell({
+  children,
+  dataTestId,
+  defaultTheme,
+}: {
+  children: React.ReactNode
+  dataTestId: string
+  defaultTheme?: 'light' | 'dark'
+}) {
   return (
-    <GoodWidgetProvider>
+    <GoodWidgetProvider defaultTheme={defaultTheme}>
       <MiniAppShell>
         <YStack
           data-testid={dataTestId}
@@ -292,7 +300,7 @@ function PreviewStoryShell({
   themeOverrides?: StreamingWidgetProps['themeOverrides']
 }) {
   return (
-    <StoryShell dataTestId={dataTestId}>
+    <StoryShell dataTestId={dataTestId} defaultTheme={defaultTheme}>
       <StreamingWidgetPreview
         adapter={adapter}
         initialTab={initialTab}
@@ -320,7 +328,7 @@ function StreamingWidgetStoryShell({
   const trimmedApiKey = apiKey?.trim()
 
   return (
-    <StoryShell dataTestId={dataTestId}>
+    <StoryShell dataTestId={dataTestId} defaultTheme={defaultTheme}>
       <StreamingWidget
         provider={provider}
         environment="production"
@@ -515,14 +523,12 @@ export function PopulatedStateStory({ defaultTheme, themeOverrides }: ThemeArgs 
 
 export function LightThemePopulatedStory({ themeOverrides }: Pick<ThemeArgs, 'themeOverrides'> = {}) {
   return (
-    <GoodWidgetProvider defaultTheme="light">
-      <PreviewStoryShell
-        adapter={createAdapter()}
-        dataTestId="StreamingWidget-light-theme-populated"
-        defaultTheme="light"
-        themeOverrides={themeOverrides}
-      />
-    </GoodWidgetProvider>
+    <PreviewStoryShell
+      adapter={createAdapter()}
+      dataTestId="StreamingWidget-light-theme-populated"
+      defaultTheme="light"
+      themeOverrides={themeOverrides}
+    />
   )
 }
 

@@ -24,3 +24,5 @@ export type { UseStreamingAdapterOptions } from './adapter'
 // Widget component
 export { StreamingWidget, StreamingWidgetPreview } from './StreamingWidget'
 export type { StreamingWidgetPreviewProps } from './StreamingWidget'
+export { streamingWidgetConfig, createStreamingWidgetConfig } from './config'
+

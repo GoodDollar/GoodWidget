@@ -1,12 +1,12 @@
 import React from 'react'
-import { ButtonText, Heading, Input, Select, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
+import { Button, ButtonText, Heading, Input, Select, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
 import type {
   SetStreamFormState,
   StreamTimeUnit,
   WriteStatus,
 } from '../widgetRuntimeContract'
 import { formatFlowRatePerDay } from './format'
-import { ActionButton, SetStreamFormCard } from './shared'
+import { compactButtonProps, SetStreamFormCard } from './shared'
 
 interface SetStreamFormProps {
   form: SetStreamFormState
@@ -101,8 +101,11 @@ export function SetStreamForm({
       )}
 
       <XStack gap="$2" alignItems="center">
-        <ActionButton
-          flex={1}
+        <Button
+          fullWidth={status !== 'success' && status !== 'error'}
+          flex={status === 'success' || status === 'error' ? 1 : undefined}
+          size="sm"
+          {...compactButtonProps}
           disabled={isSubmitting || !!form.validationError || !form.flowRate}
           onPress={onSubmit}
         >
@@ -111,11 +114,11 @@ export function SetStreamForm({
           ) : (
             <ButtonText>{isEditing ? 'Update Stream' : 'Set Stream'}</ButtonText>
           )}
-        </ActionButton>
+        </Button>
         {(status === 'success' || status === 'error') && (
-          <ActionButton onPress={onReset}>
+          <Button size="sm" {...compactButtonProps} onPress={onReset}>
             <ButtonText>Reset</ButtonText>
-          </ActionButton>
+          </Button>
         )}
       </XStack>
     </SetStreamFormCard>
