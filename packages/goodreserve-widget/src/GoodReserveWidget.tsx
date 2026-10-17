@@ -7,15 +7,16 @@ import { useGoodReserveAdapter } from './useGoodReserveAdapter'
 import type { ReserveSwapWidgetProps } from './widgetRuntimeContract'
 
 function GoodReserveWidgetInner({
+  environment,
   onSwapSuccess,
   onSwapError,
   mockState,
   preferredChainId,
 }: Pick<
   ReserveSwapWidgetProps,
-  'onSwapSuccess' | 'onSwapError' | 'mockState' | 'preferredChainId'
+  'environment' | 'onSwapSuccess' | 'onSwapError' | 'mockState' | 'preferredChainId'
 >) {
-  const adapter = useGoodReserveAdapter(mockState)
+  const adapter = useGoodReserveAdapter(mockState, environment)
   const { status, txHash, error, address, chainId } = adapter.state
 
   // Hold the host callbacks in refs so inline arrow functions (a new reference
@@ -52,6 +53,7 @@ export function GoodReserveWidget({
   config,
   themeOverrides,
   defaultTheme = 'dark',
+  environment,
   onSwapSuccess,
   onSwapError,
   mockState,
@@ -70,6 +72,7 @@ export function GoodReserveWidget({
     >
       <YStack padding="$4" width="100%">
         <GoodReserveWidgetInner
+          environment={environment}
           onSwapSuccess={onSwapSuccess}
           onSwapError={onSwapError}
           mockState={mockState}

@@ -31,8 +31,18 @@ export const cobaltOverrides: GoodWidgetThemeOverrides = {
     dark_ClaimActionRing: { primary: '#2E5DE8', primaryLight: '#6E8DFF' },
     light_ClaimActionRing: { primary: '#2E5DE8', primaryLight: '#6E8DFF' },
     dark_ClaimActionInner: { backgroundDark: '#0E1A3A', backgroundDarkHover: '#172B60' },
+    light_ClaimActionInner: { backgroundDark: '#EEF3FF', backgroundDarkHover: '#E0EAFF' },
     dark_TokenAmountText: { color: '#BBD0FF', secondaryColor: '#7FA2FF' },
     light_TokenAmountText: { color: '#1D3EB2', secondaryColor: '#3C5FC7' },
+    // SuperfluidCampaignWidget named card surfaces
+    dark_CampaignShell: { borderColor: '#2E5DE8', shadowColor: 'rgba(46,93,232,0.7)' },
+    light_CampaignShell: { borderColor: '#2E5DE8', shadowColor: 'rgba(46,93,232,0.12)' },
+    dark_ActionCard: { borderColor: '#2E5DE8', shadowColor: 'rgba(46,93,232,0.7)' },
+    light_ActionCard: { borderColor: '#2E5DE8', shadowColor: 'rgba(46,93,232,0.12)' },
+    dark_LeaderboardSummary: { borderColor: '#2E5DE8', shadowColor: 'rgba(46,93,232,0.7)' },
+    light_LeaderboardSummary: { borderColor: '#2E5DE8', shadowColor: 'rgba(46,93,232,0.12)' },
+    dark_LeaderboardRow: { borderColor: '#2E5DE8', shadowColor: 'rgba(46,93,232,0.7)' },
+    light_LeaderboardRow: { borderColor: '#2E5DE8', shadowColor: 'rgba(46,93,232,0.12)' },
     // Button — the most visible themed surface across every widget (e.g. StreamingWidget's
     // "Connect Wallet" action). Without this, only card borders/shadows would shift and the
     // preset would look like a no-op on any wallet-gated fallback screen.
@@ -89,8 +99,18 @@ export const tealOverrides: GoodWidgetThemeOverrides = {
     dark_ClaimActionRing: { primary: '#00A884', primaryLight: '#33C9AA' },
     light_ClaimActionRing: { primary: '#00A884', primaryLight: '#33C9AA' },
     dark_ClaimActionInner: { backgroundDark: '#062A23', backgroundDarkHover: '#0B3B31' },
+    light_ClaimActionInner: { backgroundDark: '#EBFBF7', backgroundDarkHover: '#D8F5EE' },
     dark_TokenAmountText: { color: '#BFF5E7', secondaryColor: '#66D5BB' },
     light_TokenAmountText: { color: '#007A61', secondaryColor: '#1F9C82' },
+    // SuperfluidCampaignWidget named card surfaces
+    dark_CampaignShell: { borderColor: '#00A884', shadowColor: 'rgba(0,168,132,0.65)' },
+    light_CampaignShell: { borderColor: '#00A884', shadowColor: 'rgba(0,168,132,0.12)' },
+    dark_ActionCard: { borderColor: '#00A884', shadowColor: 'rgba(0,168,132,0.65)' },
+    light_ActionCard: { borderColor: '#00A884', shadowColor: 'rgba(0,168,132,0.12)' },
+    dark_LeaderboardSummary: { borderColor: '#00A884', shadowColor: 'rgba(0,168,132,0.65)' },
+    light_LeaderboardSummary: { borderColor: '#00A884', shadowColor: 'rgba(0,168,132,0.12)' },
+    dark_LeaderboardRow: { borderColor: '#00A884', shadowColor: 'rgba(0,168,132,0.65)' },
+    light_LeaderboardRow: { borderColor: '#00A884', shadowColor: 'rgba(0,168,132,0.12)' },
     // Button — see cobaltOverrides comment above.
     dark_Button: {
       background: '#00A884',

@@ -3,6 +3,7 @@ export type { GoodReserveWidgetIntegration } from './integration'
 
 export type {
   ReserveSwapDirection,
+  ReserveSwapWidgetEnvironment,
   ReserveSwapQuoteView,
   ReserveSwapWidgetStatus,
   ReserveSwapWidgetAdapterState,

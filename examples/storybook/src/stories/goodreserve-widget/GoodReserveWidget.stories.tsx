@@ -1,6 +1,6 @@
 import React from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
-import { GoodReserveWidget } from '@goodwidget/goodreserve-widget'
+import { GoodReserveWidget, type ReserveSwapWidgetProps } from '@goodwidget/goodreserve-widget'
 import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
 import {
   getInjectedEip1193Provider,
@@ -15,6 +15,14 @@ const meta: Meta<typeof GoodReserveWidget> = {
   component: GoodReserveWidget,
   tags: ['autodocs'],
   parameters: { layout: 'padded' },
+  argTypes: {
+    environment: {
+      control: 'radio',
+      options: ['production', 'staging', 'development'],
+      description:
+        'GoodReserveSDK deployment environment. When omitted, defaults to production on Celo and development on XDC.',
+    },
+  },
 }
 
 export default meta
@@ -22,12 +30,18 @@ type Story = StoryObj<typeof meta>
 
 // Renders one deterministic reserve state per story for CI-safe widget coverage.
 const renderStory = (
-  mockState: Story['args']['mockState'],
+  mockState: ReserveSwapWidgetProps['mockState'],
   dataTestId: string,
   defaultTheme?: 'light' | 'dark',
+  environment?: ReserveSwapWidgetProps['environment'],
 ) => (
   // <div data-testid={dataTestId} style={{ width: 390 }}>
-  <GoodReserveWidget provider={provider} mockState={mockState} defaultTheme={defaultTheme} />
+  <GoodReserveWidget
+    provider={provider}
+    mockState={mockState}
+    defaultTheme={defaultTheme}
+    environment={environment}
+  />
   // </div>
 )
 
@@ -133,16 +147,20 @@ export const SwapError: Story = {
 // statically imported and reaches the real getReserveStats/getBuyQuote path
 // against a connected wallet provider.
 export const Interactive: Story = {
-  render: () => (
+  render: (args) => (
     <div data-testid="GoodReserveWidget-interactive" style={{ width: 390 }}>
-      <GoodReserveWidget provider={provider} />
+      <GoodReserveWidget provider={provider} environment={args.environment} />
     </div>
   ),
 }
 
 // Injected wallet story — uses the browser's EIP-1193 provider (MetaMask, Rabby, etc).
 // Matches the citizen-claim-widget InjectedWallet pattern. NOT for CI.
-function InjectedWalletStory() {
+function InjectedWalletStory({
+  environment,
+}: {
+  environment?: ReserveSwapWidgetProps['environment']
+}) {
   const injectedProvider = getInjectedEip1193Provider()
   const usableProvider = isInjectedProviderUsable(injectedProvider)
 
@@ -160,20 +178,20 @@ function InjectedWalletStory() {
 
   return (
     <div data-testid="GoodReserveWidget-injected-wallet" style={{ width: 390 }}>
-      <GoodReserveWidget provider={injectedProvider} />
+      <GoodReserveWidget provider={injectedProvider} environment={environment} />
     </div>
   )
 }
 
 export const InjectedWallet: Story = {
-  render: () => <InjectedWalletStory />,
+  render: (args) => <InjectedWalletStory environment={args.environment} />,
 }
 
 // Live wallet test — uses real MetaMask/wallet extension for end-to-end testing.
 // This story requires a browser wallet extension (MetaMask, etc.) to be installed.
 // NOT for CI — requires manual testing with real wallet connection.
 export const LiveWallet: Story = {
-  render: () => {
+  render: (args) => {
     if (typeof window === 'undefined' || !(window as any).ethereum) {
       return (
         <div style={{ padding: '20px', maxWidth: '400px' }}>
@@ -223,7 +241,7 @@ export const LiveWallet: Story = {
           <br />
           <small>Test the full swap flow: quote - confirm - execute - success</small>
         </div>
-        <GoodReserveWidget provider={walletProvider} />
+        <GoodReserveWidget provider={walletProvider} environment={args.environment} />
       </div>
     )
   },

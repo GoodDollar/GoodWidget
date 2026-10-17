@@ -50,6 +50,7 @@ const initialState: ReserveSwapWidgetAdapterState = {
 // ---------------------------------------------------------------------------
 export function useGoodReserveAdapter(
   mockState?: Partial<ReserveSwapWidgetAdapterState>,
+  environment?: import('./widgetRuntimeContract').ReserveSwapWidgetEnvironment,
 ): ReserveSwapWidgetAdapterResult {
   const [state, setState] = useState<ReserveSwapWidgetAdapterState>({
     ...initialState,
@@ -90,7 +91,7 @@ export function useGoodReserveAdapter(
 
   // 1. Bootstrap: wallet connection, SDK construction, chain handling.
   const { chainId, provider, chainSupported, connect, readActiveChainId, refreshBalances, bootstrapSdk } =
-    useReserveBootstrap(refs, applyStatePatch, mockState)
+    useReserveBootstrap(refs, applyStatePatch, mockState, environment)
 
   // 2. Quote pipeline: debounced input → SDK quote → display derivation.
   useReserveQuote(refs, state, applyStatePatch, mockState, quoteRefreshNonce)

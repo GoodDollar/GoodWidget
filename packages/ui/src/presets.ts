@@ -390,6 +390,7 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
     },
     light_ClaimActionGlow: {
       backgroundColor: color.governanceGlowPrimary,
+      glowOpacity: '0.08',
       opacity: '0.08',
       glowOffset: '-4px',
     },
@@ -397,6 +398,14 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
       backgroundColor: color.primary,
       glowOpacity: '0.45',
       glowOffset: '-16px',
+    },
+    light_ClaimActionInner: {
+      backgroundDark: color.governanceBackgroundDark,
+      backgroundDarkHover: color.governanceBackgroundDarkHover,
+    },
+    dark_ClaimActionInner: {
+      backgroundDark: color.backgroundDark,
+      backgroundDarkHover: color.surfaceAlt,
     },
     dark_ClaimActionButton: {
       background: color.transparent,
