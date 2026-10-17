@@ -1,9 +1,10 @@
 import React from 'react'
-import { Badge, BadgeText, Button, ButtonText, Card, Text, XStack, YStack } from '@goodwidget/ui'
+import { Badge, BadgeText, Button, ButtonText, Text, XStack, YStack } from '@goodwidget/ui'
 import { ACTIVITY_ICON_MAP } from '../widgetRuntimeContract'
 import type { CampaignActionDefinition } from '../widgetRuntimeContract'
 import { ACTIVITY_ICON_COMPONENT, resolveActivityIconColorToken } from './activityIconComponents'
 import { compactButtonProps } from './shared/styles'
+import { ActionCardFrame } from './theme/cards'
 
 interface ActionCardProps {
   action: CampaignActionDefinition
@@ -36,7 +37,7 @@ export function ActionCard({ action, onPressCta }: ActionCardProps) {
   const handleCardActivate = () => onPressCta(action)
 
   return (
-    <Card
+    <ActionCardFrame
       flexDirection="column"
       gap="$3"
       $sm={{ gap: '$2', padding: '$3' }}
@@ -120,6 +121,6 @@ export function ActionCard({ action, onPressCta }: ActionCardProps) {
           </Button>
         </YStack>
       </XStack>
-    </Card>
+    </ActionCardFrame>
   )
 }

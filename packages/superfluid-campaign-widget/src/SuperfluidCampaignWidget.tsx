@@ -2,12 +2,13 @@ import React, { useCallback, useState } from 'react'
 import { GoodWidgetProvider, useWallet } from '@goodwidget/core'
 import type { EIP1193Provider } from '@goodwidget/core'
 import { CitizenClaimWidget } from '@goodwidget/citizen-claim-widget'
-import { Card, Heading, Text, ToastContainer, YStack } from '@goodwidget/ui'
+import { Heading, Text, ToastContainer, YStack } from '@goodwidget/ui'
 import { CampaignHeader } from './components/CampaignHeader'
 import { FaqAccordion } from './components/FaqAccordion'
 import { LeaderboardSummary } from './components/LeaderboardSummary'
 import { LeaderboardView } from './components/LeaderboardView'
 import { RewardPoolSection } from './components/RewardPoolSection'
+import { CampaignShellCard } from './components/theme/cards'
 import { useAirdropStatus } from './hooks/useAirdropStatus'
 import { DEFAULT_CAMPAIGN_DEFINITION } from './campaignDefinition'
 import {
@@ -284,7 +285,7 @@ export function SuperfluidCampaignWidgetWithClient({
       defaultTheme={defaultTheme}
       contentMaxWidth={contentMaxWidth}
     >
-      <Card padding={0} backgroundColor="$backgroundDark" width="100%">
+      <CampaignShellCard padding={0} backgroundColor="$backgroundDark" width="100%">
         <SuperfluidCampaignRuntime
           data={data}
           actionLinks={actionLinks}
@@ -306,7 +307,7 @@ export function SuperfluidCampaignWidgetWithClient({
           switchChainOverride={switchChainOverride}
           availableChainIdsOverride={availableChainIdsOverride}
         />
-      </Card>
+      </CampaignShellCard>
       <ToastContainer />
     </GoodWidgetProvider>
   )

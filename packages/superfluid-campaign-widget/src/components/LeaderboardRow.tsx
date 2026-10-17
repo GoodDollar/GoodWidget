@@ -1,8 +1,9 @@
 import React from 'react'
-import { Anchor, Badge, BadgeText, Card, Text, XStack, YStack } from '@goodwidget/ui'
+import { Anchor, Badge, BadgeText, Text, XStack, YStack } from '@goodwidget/ui'
 import type { ActivityType, LeaderboardEntry } from '../widgetRuntimeContract'
 import { ActivityIcons } from './ActivityIcons'
 import { truncateAddress } from './shared/styles'
+import { LeaderboardRowCard } from './theme/cards'
 
 /** Shared by the header and rows so every table column has one stable width. */
 export const LEADERBOARD_COLUMN_WIDTHS = {
@@ -37,7 +38,7 @@ export function LeaderboardRow({ entry, isCurrentUser = false, activities }: Lea
   const addressLabel = entry.ensName ?? truncateAddress(entry.address)
 
   return (
-    <Card
+    <LeaderboardRowCard
       data-testid={`LeaderboardRow-${entry.rank}`}
       flexDirection="row"
       alignItems="center"
@@ -82,6 +83,6 @@ export function LeaderboardRow({ entry, isCurrentUser = false, activities }: Lea
           <ActivityIcons completedActivities={entry.completedActivities} activities={activities} />
         </XStack>
       )}
-    </Card>
+    </LeaderboardRowCard>
   )
 }
