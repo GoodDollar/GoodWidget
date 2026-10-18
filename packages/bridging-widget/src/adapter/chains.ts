@@ -1,4 +1,5 @@
 import { createPublicClient, http, type Chain } from 'viem'
+import { SUPPORTED_CHAINS } from '@goodsdks/bridging-sdk'
 import { BRIDGING_CHAINS } from '../widgetRuntimeContract'
 
 // RPC endpoints matching GoodSDKs' own demo-bridging-app wiring
@@ -35,9 +36,15 @@ export function isBridgingChain(chainId: number | null | undefined): boolean {
   return !!chainId && chainId in VIEM_CHAINS
 }
 
+export function getChainDecimals(chainId: number | null | undefined): number {
+  if (!chainId) return 18
+  return SUPPORTED_CHAINS[chainId]?.decimals ?? 18
+}
+
 export function createBridgingPublicClient(chainId: number) {
   const chain = VIEM_CHAINS[chainId]
   if (!chain) return null
 
   return createPublicClient({ chain, transport: http(chain.rpcUrls.default.http[0]) })
 }
+

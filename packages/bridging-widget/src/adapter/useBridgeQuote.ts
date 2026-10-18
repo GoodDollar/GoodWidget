@@ -1,13 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { parseUnits, type Address } from 'viem'
 import type { BridgeFeeQuote, BridgeProtocol, BridgeRequirement, BridgingSDK } from '@goodsdks/bridging-sdk'
+import { getChainDecimals } from './chains'
 import { mapBridgeError } from './errors'
 
 const QUOTE_DEBOUNCE_MS = 400
-
-// G$ is an 18-decimal token on every bridged chain (BridgeRouteLimits docs
-// its own amounts as "normalized G$ base units (18 decimals)").
-const G_DOLLAR_DECIMALS = 18
 
 export type BridgeQuoteStatus = 'idle' | 'loading' | 'ready' | 'error'
 
@@ -61,7 +58,7 @@ export function useBridgeQuote({
 
     let amount: bigint
     try {
-      amount = parseUnits(inputAmount, G_DOLLAR_DECIMALS)
+      amount = parseUnits(inputAmount, getChainDecimals(fromChain))
     } catch {
       requestIdRef.current += 1
       setState(IDLE_STATE)

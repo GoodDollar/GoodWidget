@@ -1,7 +1,8 @@
 import React from 'react'
-import { BadgeText, ChainBadge, Heading, Text, XStack } from '@goodwidget/ui'
+import { BadgeText, Heading, Text, XStack, getChainDisplayName } from '@goodwidget/ui'
 import type { BridgeConfig, BridgeFeeQuote, BridgeProtocol, BridgeRequirement } from '@goodsdks/bridging-sdk'
 import { getBridgeTargetChains } from '../adapter/bridgeRoutes'
+import { BRIDGING_CHAINS } from '../widgetRuntimeContract'
 import { AmountEntry } from './AmountEntry'
 import { FeeBreakdown } from './FeeBreakdown'
 import { ActionButton, BridgingTabContent, PROTOCOL_LABELS, RouteSelectionCard } from './shared'
@@ -11,6 +12,9 @@ interface BridgeTabProps {
   targetChainId: number | null
   availableProtocols: BridgeProtocol[]
   selectedProtocol: BridgeProtocol | null
+  isConnected?: boolean
+  onConnect?: () => Promise<void> | void
+  onSelectSourceChain: (chainId: number) => void
   onSelectTargetChain: (chainId: number) => void
   onSelectProtocol: (protocol: BridgeProtocol) => void
   inputAmount: string
@@ -33,6 +37,9 @@ export function BridgeTab({
   targetChainId,
   availableProtocols,
   selectedProtocol,
+  isConnected = true,
+  onConnect,
+  onSelectSourceChain,
   onSelectTargetChain,
   onSelectProtocol,
   inputAmount,
@@ -49,6 +56,7 @@ export function BridgeTab({
   onPressMax,
   onReview,
 }: BridgeTabProps) {
+  const sourceOptions = Object.values(BRIDGING_CHAINS) as number[]
   const targetOptions = getBridgeTargetChains(chainId)
   const hasTarget = targetChainId !== null
   const isRouteSupported = availableProtocols.length > 0
@@ -57,7 +65,17 @@ export function BridgeTab({
     <BridgingTabContent>
       <RouteSelectionCard>
         <Text secondary>From</Text>
-        <ChainBadge chainId={chainId} />
+        <XStack gap="$2" flexWrap="wrap">
+          {sourceOptions.map((option) => (
+            <ActionButton
+              key={option}
+              onPress={() => onSelectSourceChain(option)}
+              variant={chainId === option ? 'primary' : 'secondary'}
+            >
+              <BadgeText>{getChainDisplayName(option)}</BadgeText>
+            </ActionButton>
+          ))}
+        </XStack>
 
         <Text secondary>To</Text>
         <XStack gap="$2" flexWrap="wrap">
@@ -67,7 +85,7 @@ export function BridgeTab({
               onPress={() => onSelectTargetChain(option)}
               variant={targetChainId === option ? 'primary' : 'secondary'}
             >
-              <BadgeText>{option}</BadgeText>
+              <BadgeText>{getChainDisplayName(option)}</BadgeText>
             </ActionButton>
           ))}
         </XStack>
@@ -108,25 +126,38 @@ export function BridgeTab({
         </RouteSelectionCard>
       )}
 
-      {hasTarget && isRouteSupported && selectedProtocol && (
+      {(hasTarget && isRouteSupported && selectedProtocol) || !isConnected ? (
         <>
           <AmountEntry
             inputAmount={inputAmount}
+            sourceChainId={chainId}
+            isConnected={isConnected}
             bridgeConfig={bridgeConfig}
             isBridgeConfigLoading={isBridgeConfigLoading}
             onChangeAmount={onChangeAmount}
             onPressMax={onPressMax}
           />
-          <FeeBreakdown
-            targetChainId={targetChainId}
-            protocol={selectedProtocol}
-            quoteStatus={quoteStatus}
-            quote={quote}
-            needsApproval={needsApproval}
-            requirements={requirements}
-            quoteError={quoteError}
-          />
-          {canBridge && (
+          {hasTarget && selectedProtocol && (
+            <FeeBreakdown
+              targetChainId={targetChainId}
+              protocol={selectedProtocol}
+              quoteStatus={quoteStatus}
+              quote={quote}
+              needsApproval={needsApproval}
+              requirements={requirements}
+              quoteError={quoteError}
+            />
+          )}
+          {!isConnected ? (
+            <ActionButton
+              testID="BridgingWidget-connect-cta"
+              size="lg"
+              fullWidth
+              onPress={onConnect}
+            >
+              <BadgeText>Connect Wallet</BadgeText>
+            </ActionButton>
+          ) : canBridge ? (
             <ActionButton
               testID="BridgingWidget-review-cta"
               size="lg"
@@ -135,9 +166,9 @@ export function BridgeTab({
             >
               <BadgeText>Review</BadgeText>
             </ActionButton>
-          )}
+          ) : null}
         </>
-      )}
+      ) : null}
     </BridgingTabContent>
   )
 }

@@ -2,13 +2,14 @@ import React, { useState } from 'react'
 import { Input, Text, XStack } from '@goodwidget/ui'
 import { formatUnits } from 'viem'
 import type { BridgeConfig } from '@goodsdks/bridging-sdk'
+import { getChainDecimals } from '../adapter/chains'
 import { formatInputAmount, formatTokenAmount } from '../amount'
 import { RouteSelectionCard } from './shared'
 
-const G_DOLLAR_DECIMALS = 18
-
 interface AmountEntryProps {
   inputAmount: string
+  sourceChainId?: number | null
+  isConnected?: boolean
   bridgeConfig: BridgeConfig | null
   isBridgeConfigLoading: boolean
   onChangeAmount: (raw: string) => void
@@ -20,6 +21,8 @@ interface AmountEntryProps {
 // two widgets read as the same family.
 export function AmountEntry({
   inputAmount,
+  sourceChainId,
+  isConnected = true,
   bridgeConfig,
   isBridgeConfigLoading,
   onChangeAmount,
@@ -30,11 +33,14 @@ export function AmountEntry({
   const [isFocused, setIsFocused] = useState(false)
   const displayValue = isFocused ? inputAmount : formatInputAmount(inputAmount)
 
-  const balanceLabel = bridgeConfig
-    ? formatTokenAmount(formatUnits(bridgeConfig.tokenBalance, G_DOLLAR_DECIMALS))
-    : isBridgeConfigLoading
-      ? '…'
-      : '0.00'
+  const sourceDecimals = getChainDecimals(sourceChainId)
+  const balanceLabel = !isConnected
+    ? '—'
+    : bridgeConfig
+      ? formatTokenAmount(formatUnits(bridgeConfig.tokenBalance, sourceDecimals))
+      : isBridgeConfigLoading
+        ? '…'
+        : '0.00'
 
   return (
     <RouteSelectionCard testID="BridgingWidget-amount-card">

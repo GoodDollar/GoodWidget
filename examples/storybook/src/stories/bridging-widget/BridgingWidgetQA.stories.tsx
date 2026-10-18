@@ -6,6 +6,8 @@ import {
   ConfigLoadingStory,
   CustodialLocalFixtureStory,
   FaqTabStory,
+  FuseDestinationStory,
+  FuseSourceStory,
   HistoryDetailModalOpenStory,
   HistoryEmptyStory,
   HistoryErrorStory,
@@ -230,3 +232,16 @@ export const LightThemePopulated: Story = {
     <LightThemePopulatedStory themeOverrides={brandPresetOverrides(brandPreset)} />
   ),
 }
+
+export const FuseSource: Story = {
+  render: ({ defaultTheme, brandPreset }) => (
+    <FuseSourceStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
+}
+
+export const FuseDestination: Story = {
+  render: ({ defaultTheme, brandPreset }) => (
+    <FuseDestinationStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
+}
+

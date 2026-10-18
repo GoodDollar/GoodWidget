@@ -10,7 +10,8 @@ import type {
 } from './widgetRuntimeContract'
 import { getRouteProtocols } from './adapter/bridgeRoutes'
 import { useBridgingPublicClients, useBridgingSdk } from './adapter/bridgingClient'
-import { isBridgingChain } from './adapter/chains'
+import { isBridgingChain, getChainDecimals } from './adapter/chains'
+import { BRIDGING_CHAINS } from './widgetRuntimeContract'
 import { sanitizeAmount } from './amount'
 import { useBridgeConfig } from './adapter/useBridgeConfig'
 import { useBridgeHistory } from './adapter/useBridgeHistory'
@@ -20,9 +21,9 @@ import { useBridgeSubmission } from './adapter/useBridgeSubmission'
 export function useBridgingAdapter(): BridgingWidgetAdapterResult {
   const { address, chainId, isConnected, provider, connect, switchChain } = useWallet()
   const walletAddress = (address as Address | null) ?? null
-  const activeChainId = chainId ?? null
-  const isWrongChain = isConnected && !isBridgingChain(activeChainId)
-  const isReady = isConnected && !!walletAddress && !isWrongChain
+  const [selectedSourceChainId, setSelectedSourceChainId] = useState<number>(BRIDGING_CHAINS.CELO)
+  const activeChainId = chainId && isBridgingChain(chainId) ? chainId : (chainId ?? selectedSourceChainId)
+  const isWrongChain = isConnected && !isBridgingChain(chainId ?? null)
 
   const [targetChainId, setTargetChainId] = useState<number | null>(null)
   const [selectedProtocol, setSelectedProtocol] = useState<BridgeProtocol | null>(null)
@@ -35,18 +36,24 @@ export function useBridgingAdapter(): BridgingWidgetAdapterResult {
   const submission = useBridgeSubmission({ sdk })
   const history = useBridgeHistory({ sdk, address: walletAddress, publicClients })
 
-  // Reset the selected route whenever the source chain stops being usable,
-  // so a stale target/protocol from a previous chain is never shown as valid.
-  useEffect(() => {
-    if (isReady) return
+  const handleSwitchChain = useCallback(async (nextChainId: number) => {
+    setSelectedSourceChainId(nextChainId)
+    if (isConnected && switchChain) {
+      await switchChain(nextChainId)
+    }
+  }, [isConnected, switchChain])
 
-    setTargetChainId(null)
-    setSelectedProtocol(null)
-    setInputAmountRaw('')
-    setIsReviewOpen(false)
-    setSelectedHistoryTransaction(null)
-    submission.reset()
-  }, [isReady])
+  // Reset the selected route whenever the source chain is unsupported
+  useEffect(() => {
+    if (isWrongChain) {
+      setTargetChainId(null)
+      setSelectedProtocol(null)
+      setInputAmountRaw('')
+      setIsReviewOpen(false)
+      setSelectedHistoryTransaction(null)
+      submission.reset()
+    }
+  }, [isWrongChain])
 
   // Clear a typed amount when the destination chain changes: a route's
   // limits/balance are route-specific, so an amount valid for the old route
@@ -58,9 +65,9 @@ export function useBridgingAdapter(): BridgingWidgetAdapterResult {
   }, [targetChainId])
 
   const availableProtocols = useMemo(() => {
-    if (!isReady || activeChainId === null || targetChainId === null) return []
+    if (activeChainId === null || targetChainId === null) return []
     return getRouteProtocols(activeChainId, targetChainId)
-  }, [isReady, activeChainId, targetChainId])
+  }, [activeChainId, targetChainId])
 
   // Keep the selected protocol in sync with the route's actual options: default
   // to the first one when a route becomes available, and drop a selection that
@@ -107,9 +114,10 @@ export function useBridgingAdapter(): BridgingWidgetAdapterResult {
 
   const setMaxAmount = useCallback(() => {
     const balance = bridgeConfigState.config?.tokenBalance
-    if (balance === undefined) return
-    setInputAmountRaw(formatUnits(balance, 18))
-  }, [bridgeConfigState.config])
+    if (balance === undefined || activeChainId === null) return
+    const decimals = getChainDecimals(activeChainId)
+    setInputAmountRaw(formatUnits(balance, decimals))
+  }, [bridgeConfigState.config, activeChainId])
 
   const openReview = useCallback(() => {
     if (!quoteState.canBridge || !quoteState.quote) return
@@ -187,7 +195,7 @@ export function useBridgingAdapter(): BridgingWidgetAdapterResult {
 
   const actions: BridgingWidgetAdapterActions = {
     connect,
-    switchChain,
+    switchChain: handleSwitchChain,
     selectTargetChain,
     selectProtocol,
     setInputAmount,

@@ -664,3 +664,106 @@ export function LightThemePopulatedStory({ themeOverrides }: Pick<ThemeArgs, 'th
     </GoodWidgetProvider>
   )
 }
+
+export function FuseSourceStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  // Fuse (122) has 2 decimals: 500 G$ = 50000n, input 100 G$ = 10000n
+  const fuseDecimals = 2
+  const G$Fuse = (whole: number) => BigInt(whole) * 10n ** BigInt(fuseDecimals)
+
+  const fuseBridgeConfig: BridgeConfig = {
+    ...sampleBridgeConfig,
+    currentChainId: BRIDGING_CHAINS.FUSE,
+    tokenBalance: G$Fuse(500), // 50000n (500 G$)
+    routeLimits: {
+      minAmount: G$Fuse(1), // 100n (1 G$)
+      dailyLimit: G$Fuse(1000000),
+      txLimit: G$Fuse(300000000),
+      accountDailyLimit: G$Fuse(50000),
+      onlyWhitelisted: false,
+    },
+    routeLimitsChainId: BRIDGING_CHAINS.FUSE,
+  }
+
+  // 100 G$ transferred from Fuse (2 decimals) to Celo (18 decimals)
+  // Protocol fee: 0.25 G$ (in Celo 18 decimals) = 250000000000000000n
+  // Amount received: 99.75 G$ (in Celo 18 decimals) = 99750000000000000000n
+  const fuseSourceQuote: BridgeFeeQuote = {
+    fee: 120000000000000n,
+    feeInNative: '0.00012',
+    protocol: 'LAYERZERO',
+    target: DEMO_ADDRESS,
+    targetChainId: BRIDGING_CHAINS.CELO,
+    amount: G$Fuse(100), // 10000n
+    protocolFeeBps: 25n,
+    protocolFee: 250000000000000000n,
+    amountReceived: 99750000000000000000n,
+  }
+
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        chainId: BRIDGING_CHAINS.FUSE,
+        targetChainId: BRIDGING_CHAINS.CELO,
+        inputAmount: '100',
+        bridgeConfig: fuseBridgeConfig,
+        quote: fuseSourceQuote,
+        canBridge: true,
+      })}
+      dataTestId="BridgingWidget-fuse-source"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function FuseDestinationStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  // Celo (42220) has 18 decimals -> Fuse (122) has 2 decimals
+  const celoDecimals = 18
+  const G$Celo = (whole: number) => BigInt(whole) * 10n ** BigInt(celoDecimals)
+
+  const celoBridgeConfig: BridgeConfig = {
+    ...sampleBridgeConfig,
+    currentChainId: BRIDGING_CHAINS.CELO,
+    tokenBalance: G$Celo(500),
+    routeLimits: {
+      minAmount: G$Celo(1),
+      dailyLimit: G$Celo(1000000),
+      txLimit: G$Celo(300000000),
+      accountDailyLimit: G$Celo(50000),
+      onlyWhitelisted: false,
+    },
+    routeLimitsChainId: BRIDGING_CHAINS.CELO,
+  }
+
+  // 100 G$ from Celo (18 decimals) to Fuse (2 decimals)
+  // Protocol fee: 0.25 G$ (in Fuse 2 decimals) = 25n
+  // Amount received: 99.75 G$ (in Fuse 2 decimals) = 9975n
+  const fuseDestinationQuote: BridgeFeeQuote = {
+    fee: 120000000000000n,
+    feeInNative: '0.00012',
+    protocol: 'LAYERZERO',
+    target: DEMO_ADDRESS,
+    targetChainId: BRIDGING_CHAINS.FUSE,
+    amount: G$Celo(100),
+    protocolFeeBps: 25n,
+    protocolFee: 25n,
+    amountReceived: 9975n,
+  }
+
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        chainId: BRIDGING_CHAINS.CELO,
+        targetChainId: BRIDGING_CHAINS.FUSE,
+        inputAmount: '100',
+        bridgeConfig: celoBridgeConfig,
+        quote: fuseDestinationQuote,
+        canBridge: true,
+      })}
+      dataTestId="BridgingWidget-fuse-destination"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+

@@ -34,10 +34,10 @@ async function saveScreenshot(page: Page, name: string) {
   })
 }
 
-test('BridgingWidget shows the disconnected wallet gate', async ({ page }) => {
+test('BridgingWidget shows the disconnected wallet state with connect action', async ({ page }) => {
   await gotoStory(page, 'no-wallet')
 
-  await expectBodyToContain(page, ['Wallet not connected', 'Connect Wallet'])
+  await expectBodyToContain(page, ['GoodDollar Bridge', 'Connect Wallet', 'Balance: — G$'])
   await saveScreenshot(page, 'bw-01-no-wallet')
 })
 
@@ -58,7 +58,7 @@ test('BridgingWidget shows the unsupported network prompt', async ({ page }) => 
 test('BridgingWidget renders tab navigation and switches views', async ({ page }) => {
   await gotoStory(page, 'ready-to-bridge')
 
-  await expectBodyToContain(page, ['GoodDollar Bridge', 'Bridge', 'History', 'FAQ', 'Chain 122'])
+  await expectBodyToContain(page, ['GoodDollar Bridge', 'Bridge', 'History', 'FAQ', 'Fuse'])
 
   await page.getByText('History', { exact: true }).first().click()
   await expectBodyToContain(page, ['Fuse', 'Celo', 'Ethereum'])
@@ -201,7 +201,7 @@ test('BridgingWidget opens the history detail modal with delivery progress', asy
   await gotoStory(page, 'history-detail-modal-open')
 
   await expectBodyToContain(page, [
-    'LayerZero Bridge',
+    'LayerZero (Celo, Ethereum, Fuse, XDC) Bridge',
     'Sent on Fuse',
     'Delivered on Celo',
     'View on explorer',
@@ -229,3 +229,31 @@ test('BridgingWidget renders a usable mobile layout', async ({ page }) => {
   await expectBodyToContain(page, ['GoodDollar Bridge', 'Bridge', 'History', 'FAQ'])
   await saveScreenshot(page, 'bw-26-mobile-ready-to-bridge')
 })
+
+test('BridgingWidget correctly formats 2-decimal Fuse amounts as source', async ({ page }) => {
+  await gotoStory(page, 'fuse-source')
+
+  await expectBodyToContain(page, [
+    'GoodDollar Bridge',
+    'Balance: 500.00 G$',
+    'Estimated G$ received',
+    '99.75 G$',
+  ])
+  await expect(page.getByTestId('BridgingWidget-review-cta')).toBeVisible()
+  await saveScreenshot(page, 'bw-27-fuse-source')
+})
+
+test('BridgingWidget correctly formats 2-decimal Fuse amounts as destination', async ({ page }) => {
+  await gotoStory(page, 'fuse-destination')
+
+  await expectBodyToContain(page, [
+    'GoodDollar Bridge',
+    'Balance: 500.00 G$',
+    'Estimated G$ received',
+    '99.75 G$',
+    '0.25% (0.25 G$)',
+  ])
+  await expect(page.getByTestId('BridgingWidget-review-cta')).toBeVisible()
+  await saveScreenshot(page, 'bw-28-fuse-destination')
+})
+

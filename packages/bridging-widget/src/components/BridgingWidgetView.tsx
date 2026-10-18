@@ -1,8 +1,10 @@
 import React, { useState } from 'react'
-import { Badge, BadgeText, Heading, WidgetTabs, XStack, YStack } from '@goodwidget/ui'
-import type {
-  BridgingWidgetAdapterResult,
-  BridgingWidgetTab,
+import { Heading, WidgetTabs, XStack, YStack } from '@goodwidget/ui'
+import { WalletControls } from '@goodwidget/core'
+import {
+  BRIDGING_CHAINS,
+  type BridgingWidgetAdapterResult,
+  type BridgingWidgetTab,
 } from '../widgetRuntimeContract'
 import { BridgeConfirmModal } from './BridgeConfirmModal'
 import { BridgeHistoryDetailModal } from './BridgeHistoryDetailModal'
@@ -21,7 +23,7 @@ export function BridgingWidgetView({ adapter, initialTab = 'bridge' }: BridgingW
   const { state, actions } = adapter
   const [activeTab, setActiveTab] = useState<BridgingWidgetTab>(initialTab)
 
-  const tabContent = !state.isConnected || state.isWrongChain ? (
+  const tabContent = state.isWrongChain ? (
     <WalletGate
       isConnected={state.isConnected}
       isWrongChain={state.isWrongChain}
@@ -30,12 +32,15 @@ export function BridgingWidgetView({ adapter, initialTab = 'bridge' }: BridgingW
     />
   ) : (
     <>
-      {activeTab === 'bridge' && state.chainId !== null && (
+      {activeTab === 'bridge' && (
         <BridgeTab
-          chainId={state.chainId}
+          chainId={state.chainId ?? BRIDGING_CHAINS.CELO}
           targetChainId={state.targetChainId}
           availableProtocols={state.availableProtocols}
           selectedProtocol={state.selectedProtocol}
+          isConnected={state.isConnected}
+          onConnect={actions.connect}
+          onSelectSourceChain={actions.switchChain}
           onSelectTargetChain={actions.selectTargetChain}
           onSelectProtocol={actions.selectProtocol}
           inputAmount={state.inputAmount}
@@ -97,11 +102,7 @@ export function BridgingWidgetView({ adapter, initialTab = 'bridge' }: BridgingW
     <YStack gap="$3" padding="$5" width="100%" style={{ boxSizing: 'border-box' }}>
       <XStack justifyContent="space-between" alignItems="center" paddingHorizontal="$1">
         <Heading level={4}>GoodDollar Bridge</Heading>
-        {state.chainId && (
-          <Badge type="info">
-            <BadgeText>Chain {state.chainId}</BadgeText>
-          </Badge>
-        )}
+        <WalletControls />
       </XStack>
       <WidgetTabs
         tabs={[
