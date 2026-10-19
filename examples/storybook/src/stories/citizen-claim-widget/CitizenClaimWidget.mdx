@@ -1,4 +1,4 @@
-import { Canvas, Meta } from '@storybook/blocks';
+import { Canvas, Meta, Source } from '@storybook/blocks';
 import * as ShowcaseStories from './CitizenClaimWidgetShowcase.stories';
 import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/DocsLayout';
 
@@ -11,9 +11,33 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
 >
   <DocsSection
     title="Manual wallet showcase"
-    description="Use this story when reviewing the widget in a browser that has an injected wallet available."
+    description="Use this story when reviewing the widget in a browser that has an injected wallet available. Use the Controls panel below the canvas to preview `defaultTheme` and a sample `themeOverrides` brand preset."
   >
     <Canvas of={ShowcaseStories.InjectedWallet} />
+  </DocsSection>
+
+  <DocsSection
+    title="How to mount it"
+    description="Keep the host contract narrow. The widget expects a provider and optional theming inputs."
+  >
+    <Source
+      dark
+      language="tsx"
+      code={`import { CitizenClaimWidget } from '@goodwidget/citizen-claim-widget'
+import { MiniAppShell } from '@goodwidget/ui'
+
+export function ClaimPanel({ provider }: { provider?: unknown }) {
+  return (
+    <MiniAppShell title="GoodDollar">
+      <CitizenClaimWidget
+        provider={provider}
+        environment="production"
+        defaultTheme="dark"
+      />
+    </MiniAppShell>
+  )
+}`}
+    />
   </DocsSection>
 
   <DocsSection

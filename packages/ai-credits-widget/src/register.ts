@@ -1,5 +1,10 @@
 const DEFAULT_TAG_NAME = 'ai-credits-widget'
 
+export const goodWidgetMetadata = {
+  packageName: '@goodwidget/ai-credits-widget',
+  packageVersion: '0.1.0',
+} as const
+
 /**
  * Register the <ai-credits-widget> custom element.
  *
@@ -16,9 +21,7 @@ const DEFAULT_TAG_NAME = 'ai-credits-widget'
  *   const tag = await register('my-ai-credits-widget')
  */
 export async function register(tagName: string = DEFAULT_TAG_NAME): Promise<string> {
-  // Keep the element and its browser-focused React/Tamagui dependency graph
-  // out of server evaluation. A static import here would execute that graph
-  // before this DOM guard could protect an SSR or package-inspection process.
+  // Keep browser-only Custom Element dependencies out of server evaluation.
   if (typeof customElements === 'undefined') return tagName
   if (!customElements.get(tagName)) {
     const { AiCreditsWidgetElement } = await import('./element')
@@ -27,4 +30,4 @@ export async function register(tagName: string = DEFAULT_TAG_NAME): Promise<stri
   return tagName
 }
 
-void register()
+void register().catch(() => undefined)

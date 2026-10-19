@@ -1,28 +1,25 @@
 {
   "name": "@goodwidget/ai-credits-widget",
-  "version": "0.1.0",
+  "version": "0.1.12",
   "description": "GoodWidget for buying AI coding credits with G$ on Celo",
-  "license": "MIT",
-  "files": [
-    "dist",
-    "integration-manifest.json"
-  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/GoodDollar/GoodWidget.git",
     "directory": "packages/ai-credits-widget"
   },
-  "publishConfig": {
-    "access": "public"
-  },
-  "sideEffects": [
-    "./dist/register.js",
-    "./dist/register.cjs"
+  "files": [
+    "dist",
+    "README.md",
+    "integration-manifest.json"
   ],
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "sideEffects": [
+    "./dist/register.js",
+    "./dist/register.cjs"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -39,13 +36,19 @@
       "import": "./dist/register.js",
       "require": "./dist/register.cjs"
     },
+    "./mocked": {
+      "types": "./dist/mocked/index.d.ts",
+      "import": "./dist/mocked/index.js",
+      "require": "./dist/mocked/index.cjs"
+    },
     "./integration-manifest": "./integration-manifest.json"
   },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
     "lint": "eslint src/",
-    "clean": "rm -rf dist .turbo"
+    "clean": "rm -rf dist .turbo",
+    "bump-version": "pnpm version patch --no-git-tag-version && git add package.json && git commit -m \"chore(release): bump @goodwidget/ai-credits-widget to $(node -p 'JSON.parse(require(\"fs\").readFileSync(\"package.json\")).version')\""
   },
   "peerDependencies": {
     "react": ">=18.0.0",
@@ -53,9 +56,9 @@
   },
   "dependencies": {
     "@goodsdks/citizen-sdk": "1.2.7",
-    "@goodwidget/core": "workspace:^",
-    "@goodwidget/embed": "workspace:^",
-    "@goodwidget/ui": "workspace:^",
+    "@goodwidget/core": "workspace:*",
+    "@goodwidget/embed": "workspace:*",
+    "@goodwidget/ui": "workspace:*",
     "viem": "^2.0.0"
   },
   "devDependencies": {

@@ -1,6 +1,11 @@
 import { YStack } from 'tamagui'
 import { createComponent } from '../createComponent'
 
+/**
+ * Default: A container to be treated as surface, the first layer above background.
+ * Raised: A card with a slightly elevated background to indicate prominence, surface-raised. highest level container/card.
+ * Elevated: A card with a more pronounced shadow that is lifting up the card from the background visually.
+ */
 export const Card = createComponent(YStack, {
   name: 'Card',
   backgroundColor: '$background',
@@ -15,10 +20,19 @@ export const Card = createComponent(YStack, {
   gap: '$3',
 
   variants: {
+    raised: {
+      true: {
+        shadowOpacity: 0,
+        borderRadius: '$2',
+        backgroundColor: '$backgroundRaised',
+      },
+    },
     elevated: {
       true: {
         shadowOffset: { width: 0, height: 4 },
         shadowRadius: 16,
+        borderRadius: '$2',
+        backgroundColor: '$backgroundRaised',
       },
     },
     outlined: {

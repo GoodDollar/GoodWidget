@@ -49,6 +49,7 @@ interface PageWizardProviderProps {
 interface PageWizardShellProps {
   title: string
   description?: string
+  headerAction?: ReactNode
   footer?: ReactNode
   children: ReactNode
   dataTestId?: string
@@ -209,6 +210,7 @@ export function usePageWizard(): PageWizardContextValue {
 export function PageWizardShell({
   title,
   description,
+  headerAction,
   footer,
   children,
   dataTestId,
@@ -326,10 +328,20 @@ export function PageWizardShell({
             })}
           </XStack>
 
-          <YStack gap="$1" alignItems="center">
-            <Heading level={3} textAlign="center">{title}</Heading>
-            {description ? <Text tone="secondary" textAlign="center">{description}</Text> : null}
-          </YStack>
+          {headerAction ? (
+            <XStack alignItems="center" gap="$3" width="100%">
+              <YStack gap="$1" alignItems="center" flex={1}>
+                <Heading level={3} textAlign="center">{title}</Heading>
+                {description ? <Text tone="secondary" textAlign="center">{description}</Text> : null}
+              </YStack>
+              {headerAction}
+            </XStack>
+          ) : (
+            <YStack gap="$1" alignItems="center">
+              <Heading level={3} textAlign="center">{title}</Heading>
+              {description ? <Text tone="secondary" textAlign="center">{description}</Text> : null}
+            </YStack>
+          )}
         </YStack>
       ) : null}
 

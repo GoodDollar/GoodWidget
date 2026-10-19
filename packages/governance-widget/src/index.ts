@@ -5,6 +5,7 @@ export { OptimisticVotingProposalCard } from './OptimisticVotingProposalCard'
 export { FundingDistributionChart } from './FundingDistributionChart'
 export { GovernanceWidgetProvider } from './GovernanceWidgetProvider'
 export { GovernanceOnboardingWidget } from './GovernanceOnboardingWidget'
+export { GovernanceWidget } from './GovernanceWidget'
 export type { GovernanceWidgetProviderProps } from './types'
 export type {
   GovernanceAmount,
@@ -35,3 +36,31 @@ export type {
 } from './types'
 
 export { DEFAULT_TRANSACTION_STEPS } from './onboarding/constants'
+export { useGovernanceAdapter } from './adapter'
+export type {
+  GovernanceDashboardState,
+  GovernanceTransactionKind,
+  GovernanceTransactionState,
+  GovernanceTransactionStatus,
+  GovernanceUnstakeAvailability,
+  GovernanceVotingState,
+  GovernanceWidgetAdapterActions,
+  GovernanceWidgetAdapterFactory,
+  GovernanceWidgetAdapterFactoryInput,
+  GovernanceWidgetAdapterResult,
+  GovernanceWidgetAdapterState,
+  GovernanceWidgetProps,
+  GovernanceWidgetStatus,
+} from './widgetRuntimeContract'
+export {
+  CELO_CHAIN_ID,
+  CELO_GOODID_ADDRESS,
+  DEFAULT_CELO_RPC_URL,
+  G_TOKEN_CELO_ADDRESS,
+  encodeGovernanceRegistrationData,
+  mapFlowSplitterConfig,
+  mapMemberRecord,
+  mapVoteConfig,
+  resolveGovernanceAddresses,
+} from './sdks/contracts'
+export { calculateStreamAmountWei, fetchFundingReceivedSoFar } from './sdks/funding'

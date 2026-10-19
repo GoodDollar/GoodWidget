@@ -35,7 +35,6 @@ export function AlignmentVotingProposalCard({
   return (
     <GovernanceWrapper
       data-testid={testID}
-      maxWidth={480}
       borderColor="$primary"
       cursor={onPress ? 'pointer' : undefined}
       onPress={onPress ? () => onPress(id) : undefined}

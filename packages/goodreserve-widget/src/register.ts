@@ -1,9 +1,11 @@
 const DEFAULT_TAG_NAME = 'gw-goodreserve-widget'
 
-// Registers the reserve widget custom element for non-React hosts.
+export const goodWidgetMetadata = {
+  packageName: '@goodwidget/goodreserve-widget',
+  packageVersion: '0.1.2',
+} as const
+
 export async function register(tagName: string = DEFAULT_TAG_NAME): Promise<string> {
-  // Next.js may evaluate this entry in Node. Defer the element import because
-  // its React/Tamagui graph is needed only when a browser can register it.
   if (typeof customElements === 'undefined') return tagName
   if (!customElements.get(tagName)) {
     const { GoodReserveWidgetElement } = await import('./element')
@@ -12,4 +14,4 @@ export async function register(tagName: string = DEFAULT_TAG_NAME): Promise<stri
   return tagName
 }
 
-void register()
+void register().catch(() => undefined)

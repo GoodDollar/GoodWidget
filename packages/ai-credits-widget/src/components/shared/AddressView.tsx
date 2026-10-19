@@ -7,11 +7,11 @@ export function AddressView({ label, address }: { label: string; address: string
 
   return (
     <YStack gap="$1">
-      <Text fontSize="$1" secondary>
+      <Text fontSize="$1" tone="soft">
         {label}
       </Text>
       <XStack
-        backgroundColor="$backgroundMuted"
+        backgroundColor="$backgroundSurface"
         borderRadius="$2"
         padding="$2"
         justifyContent="space-between"
@@ -19,7 +19,6 @@ export function AddressView({ label, address }: { label: string; address: string
       >
         <Text
           fontSize="$2"
-          fontFamily="$mono"
           flex={1}
           numberOfLines={1}
           style={monospaceSingleLineStyle}

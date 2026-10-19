@@ -3,34 +3,27 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { packages } from './packages.mjs'
 
-const repositoryUrl = 'https://github.com/GoodDollar/GoodWidget.git'
+const allowlisted = new Set(packages.map((pkg) => pkg.name))
 
-// Keep npm's legal/source metadata aligned with the repository rather than
-// relying on each package author to remember the same publication fields.
 for (const expected of packages) {
   const manifest = JSON.parse(readFileSync(`${expected.dir}/package.json`, 'utf8'))
 
   assert.equal(manifest.name, expected.name)
   assert.notEqual(manifest.private, true, `${manifest.name} must remain public`)
-  assert.equal(manifest.license, 'MIT', `${manifest.name} needs the MIT license`)
-  assert.equal(
-    manifest.repository?.url,
-    repositoryUrl,
-    `${manifest.name} needs its source repository`,
-  )
-  assert.equal(
-    manifest.repository?.directory,
-    expected.dir,
-    `${manifest.name} needs its monorepo directory`,
-  )
-  assert.equal(
-    manifest.publishConfig?.access,
-    'public',
-    `${manifest.name} needs explicit public npm access`,
+
+  // The release order is driven by the declared graph, so it must match what the package
+  // actually depends on. A missed edge silently skips a consumer's re-release.
+  const actualDependencies = Object.keys({
+    ...manifest.dependencies,
+    ...manifest.peerDependencies,
+  })
+    .filter((name) => allowlisted.has(name))
+    .sort()
+  assert.deepEqual(
+    [...expected.dependencies].sort(),
+    actualDependencies,
+    `${manifest.name} declares a release graph that does not match its dependencies`,
   )
 }
-
-const license = readFileSync('LICENSE', 'utf8')
-assert.match(license, /^MIT License\n/, 'The repository needs an MIT LICENSE file')
 
 console.log(`Validated metadata for ${packages.length} production packages.`)

@@ -44,6 +44,19 @@ export const packages = [
     kind: 'widget',
     dependencies: ['@goodwidget/ui', '@goodwidget/core', '@goodwidget/embed'],
   },
+  {
+    dir: 'packages/superfluid-campaign-widget',
+    name: '@goodwidget/superfluid-campaign-widget',
+    kind: 'widget',
+    // This widget also consumes another published widget, so it must be released after
+    // it rather than alongside it.
+    dependencies: [
+      '@goodwidget/ui',
+      '@goodwidget/core',
+      '@goodwidget/embed',
+      '@goodwidget/citizen-claim-widget',
+    ],
+  },
 ]
 
 export const productionPackageNames = new Set(packages.map((pkg) => pkg.name))

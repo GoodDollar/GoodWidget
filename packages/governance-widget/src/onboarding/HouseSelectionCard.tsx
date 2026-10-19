@@ -1,18 +1,12 @@
 import { Stack } from 'tamagui'
-import { Badge, BadgeText, Heading, Icon, PillText, Text, XStack, createComponent } from '@goodwidget/ui'
+import { Heading, Icon, PillText, XStack, createComponent } from '@goodwidget/ui'
 import { HOUSE_COPY } from './copy'
 import type { GovernanceHouse } from '../types'
 
-/** Maps each house to its Figma-specified icon name. */
 const HOUSE_ICON: Record<GovernanceHouse, string> = {
   citizenship: 'user',
   alignment: 'compass',
 }
-
-
-/**
- * Internal house-selection button. Uses createComponent to register for theme overrides.
- */
 const HouseOptionButton = createComponent(Stack, {
   name: 'GovernanceHouseOptionButton',
   tag: 'button',
@@ -39,13 +33,6 @@ const HouseOptionButton = createComponent(Stack, {
       true: {
         borderColor: '$borderColorFocus',
         backgroundColor: '$backgroundHover',
-      },
-    },
-    disabled: {
-      true: {
-        opacity: 0.5,
-        cursor: 'not-allowed',
-        pointerEvents: 'none',
       },
     },
   } as const,
@@ -100,7 +87,6 @@ const HousePill = createComponent(Stack, {
 interface HouseSelectionCardProps {
   house: GovernanceHouse
   isSelected: boolean
-  isDisabled: boolean
   stakeAmountLabel: string
   onPress: () => void
 }
@@ -108,7 +94,6 @@ interface HouseSelectionCardProps {
 export function HouseSelectionCard({
   house,
   isSelected,
-  isDisabled,
   stakeAmountLabel,
   onPress,
 }: HouseSelectionCardProps) {
@@ -117,23 +102,18 @@ export function HouseSelectionCard({
   return (
     <HouseOptionButton
       selected={isSelected}
-      disabled={isDisabled}
       role="radio"
       aria-checked={isSelected}
       onPress={onPress}
       data-testid={`GovernanceOnboardingWidget-house-${house}`}
     >
-      {/* ── Header: icon + title + radio (matches Figma layout) ── */}
       <XStack alignItems="center" gap="$3" width="100%">
         <Icon name={HOUSE_ICON[house]} size="sm" color="primary" />
-        <Heading level={5} flex={1}>{houseCopy.title}</Heading>
+        <Heading level={6} flex={1}>{houseCopy.title}</Heading>
         <RadioBullet selected={isSelected}>
           <RadioDot selected={isSelected} />
         </RadioBullet>
       </XStack>
-
-      {/* ── Summary text ─────────────────────────────────────────── */}
-      <Text tone="secondary">{houseCopy.summary}</Text>
 
       <XStack gap="$2" flexWrap="wrap" alignItems="center">
         <HousePill>
@@ -142,14 +122,7 @@ export function HouseSelectionCard({
         <HousePill>
           <PillText>{`${stakeAmountLabel} stake`}</PillText>
         </HousePill>
-        {isSelected ? (
-          <Badge type="success">
-            <BadgeText>Selected</BadgeText>
-          </Badge>
-        ) : null}
       </XStack>
-
-      {/* "Continue with this house" row removed — not in Figma design */}
     </HouseOptionButton>
   )
 }

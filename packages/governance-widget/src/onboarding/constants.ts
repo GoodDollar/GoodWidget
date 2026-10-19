@@ -11,8 +11,8 @@ export const ONBOARDING_STEPS: PageWizardStep[] = [
 ]
 
 export const REQUIRED_PROFILE_FIELDS: Record<GovernanceHouse, GovernanceProfileFieldKey[]> = {
-  citizenship: ['name', 'socialLinks'],
-  alignment: ['name', 'projectWebpage', 'missionStatement', 'distributionStrategy'],
+  citizenship: ['name'],
+  alignment: ['name', 'socialLinks', 'projectWebpage', 'missionStatement'],
 }
 
 export const DEFAULT_TRANSACTION_STEPS: StepperStepItem[] = [

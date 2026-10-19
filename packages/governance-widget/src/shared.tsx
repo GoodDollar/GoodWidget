@@ -33,7 +33,6 @@ export const ImpactCardFrame = createComponent(Card, {
   backgroundColor: '$background',
   color: '$white',
   shadowColor: '$shadowColor',
-  maxWidth: 390,
   overflow: 'hidden',
   borderWidth: 0,
   padding: '$5',

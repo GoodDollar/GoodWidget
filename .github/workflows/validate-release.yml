@@ -30,6 +30,8 @@ jobs:
           corepack prepare pnpm@9.15.0 --activate
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:release
-      - run: pnpm lint
-      - run: pnpm build
+      # Scoped to the workspace packages: a release contract must not be held hostage by
+      # lint debt in the demo apps, and publication never ships them.
+      - run: pnpm --filter './packages/**' run lint
+      - run: pnpm --filter './packages/**' run build
       - run: pnpm validate:register-entries

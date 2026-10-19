@@ -81,7 +81,7 @@ const InputWithLabel = React.forwardRef<unknown, InputProps>(function InputWithL
   { label, errorMessage, error, onChangeText, onChange, ...props },
   ref,
 ) {
-  const { onChange: handleChange, onChangeText: handleChangeText } = React.useMemo(
+  const { onChange: handleChange } = React.useMemo(
     () => createInputChangeHandlers({ onChange, onChangeText }),
     [onChange, onChangeText],
   )
@@ -93,7 +93,6 @@ const InputWithLabel = React.forwardRef<unknown, InputProps>(function InputWithL
         ref={ref}
         error={error || !!errorMessage}
         onChange={handleChange}
-        onChangeText={handleChangeText}
         {...props}
       />
       {errorMessage && <InputError>{errorMessage}</InputError>}

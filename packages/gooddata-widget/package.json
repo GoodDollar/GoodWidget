@@ -1,0 +1,58 @@
+{
+  "name": "@goodwidget/gooddata-widget",
+  "version": "0.1.0",
+  "description": "Reusable GoodData dashboard widget: connector lifecycle, data fetching/normalization, and dashboard composition/registration for GoodDollar analytics dashboards",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": [
+    "./dist/register.js",
+    "./dist/register.cjs"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./element": {
+      "types": "./dist/element.d.ts",
+      "import": "./dist/element.js",
+      "require": "./dist/element.cjs"
+    },
+    "./register": {
+      "types": "./dist/register.d.ts",
+      "import": "./dist/register.js",
+      "require": "./dist/register.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint src/",
+    "clean": "rm -rf dist .turbo",
+    "bump-version": "pnpm version patch --no-git-tag-version && git add package.json && git commit -m \"chore(release): bump @goodwidget/gooddata-widget to $(node -p 'JSON.parse(require(\"fs\").readFileSync(\"package.json\")).version')\""
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "dependencies": {
+    "@goodwidget/embed": "workspace:*",
+    "@goodwidget/ui": "workspace:*",
+    "react-router-dom": "^6.28.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "tsup": "^8.4.0",
+    "typescript": "^5.7.0"
+  }
+}

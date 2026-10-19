@@ -55,6 +55,12 @@ test('root resolution changes release the complete allowlist', () => {
     packages.map((pkg) => pkg.name),
   )
 })
+test('a widget that consumes another widget is released after it', () => {
+  assert.deepEqual(names(['packages/citizen-claim-widget/src/claim.ts']), [
+    '@goodwidget/citizen-claim-widget',
+    '@goodwidget/superfluid-campaign-widget',
+  ])
+})
 test('excluded packages never enter the production allowlist', () => {
   assert.deepEqual(
     names([

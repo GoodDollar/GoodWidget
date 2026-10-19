@@ -1,0 +1,59 @@
+import { Canvas, Meta } from '@storybook/blocks';
+import * as ShowcaseStories from './SuperfluidCampaignWidget.stories';
+import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/DocsLayout';
+
+<Meta of={ShowcaseStories} />
+
+<DocsPage
+  eyebrow="Widget Guide"
+  title="SuperfluidCampaignWidget"
+  lead="Displays the Superfluid Ecosystem Rewards campaign: two reward pools with their eligible actions, a leaderboard, and the campaign FAQ. This phase renders against a static mock dataset — no live points/leaderboard API yet."
+>
+  <DocsSection
+    title="Manual wallet showcase"
+    description="Use this story when reviewing the widget in a browser with an injected wallet, to exercise the real connect flow and the embedded CitizenClaimWidget CTAs."
+  >
+    <Canvas of={ShowcaseStories.InjectedWallet} />
+  </DocsSection>
+
+  <DocsSection
+    title="QA coverage"
+    description="Deterministic fixtures for the disconnected (public) and connected views, and the leaderboard view, matching the two approved #127 mockups."
+  >
+    <DocsCard
+      title="Open the QA fixture demo"
+      href="?path=/story/qa-superfluidcampaignwidget-runtime-fixtures--no-wallet-content"
+    >
+      `NoWalletContent` / `NoWalletLeaderboard` match the disconnected mockups exactly (no
+      currentUserEntry, plain "Connect wallet" CTA). `CustodialLocalFixtureContent` /
+      `CustodialLocalFixtureLeaderboard` use a local custodial wallet to exercise the connected
+      view, including the highlighted current-user leaderboard row.
+    </DocsCard>
+  </DocsSection>
+
+  <DocsSection
+    title="Known gaps in this phase"
+    description="Flagged rather than silently worked around — see the plan sub-issue for the follow-up items these map to."
+  >
+    <DocsGrid>
+      <DocsCard title="Activity icon glyphs">
+        `ACTIVITY_ICON_MAP`'s exact icon names (`calendar`, `person-plus`, `megaphone`, `stream`,
+        `hand-coin`) are not yet in `@goodwidget/ui`'s Icon registry. `ActivityIcons` and
+        `ActionCard` substitute the closest already-registered glyph until the registry is
+        extended.
+      </DocsCard>
+      <DocsCard title="Live leaderboard search/pagination">
+        The leaderboard's search box filters the static fixture locally; pagination controls are
+        a disabled placeholder pending a real leaderboard API.
+      </DocsCard>
+    </DocsGrid>
+  </DocsSection>
+
+  <DocsSection title="Workflow guidance" description="Choose the story type based on the job you are trying to do.">
+    <DocsCallout title="Rule of use" tone="info">
+      Use the showcase story to validate the product-facing integration flow (including the
+      embedded CitizenClaimWidget). Use the QA fixtures to compare pixel-for-pixel against the
+      approved #127 mockups, in both the disconnected and connected states.
+    </DocsCallout>
+  </DocsSection>
+</DocsPage>

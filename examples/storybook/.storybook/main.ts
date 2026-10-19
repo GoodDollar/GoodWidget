@@ -5,10 +5,7 @@
  * - Addons: essentials (controls, docs, actions) + interactions (play functions)
  * - viteFinal: mirrors the react-native-web + Tamagui settings from examples/react-web
  */
-import { fileURLToPath } from 'node:url'
 import type { StorybookConfig } from '@storybook/react-vite'
-
-const reactNativeSvgShim = fileURLToPath(new URL('../src/shims/reactNativeSvg.tsx', import.meta.url))
 
 const config: StorybookConfig = {
   stories: ['../src/**/*.mdx', '../src/**/*.stories.@(ts|tsx)'],
@@ -38,11 +35,27 @@ const config: StorybookConfig = {
       alias: {
         ...(config.resolve?.alias as Record<string, string> | undefined),
         'react-native': 'react-native-web',
-        'react-native-svg': reactNativeSvgShim,
       },
     }
     config.optimizeDeps = {
       ...config.optimizeDeps,
+      // Storybook loads this preview annotation through a virtual module. When it is
+      // pre-bundled alongside the branch's larger widget dependency graph, Vite can
+      // discover a new shared chunk after the first browser request and invalidate the
+      // URL that Storybook already emitted. It is a small ESM module, so serving it
+      // directly avoids that dev-only optimizer race while preserving interactions.
+      exclude: [
+        ...(config.optimizeDeps?.exclude ?? []),
+        '@storybook/addon-interactions/preview',
+      ],
+      // MDX docs load these dependencies lazily. Include them in the initial
+      // dependency scan so opening a docs page cannot trigger a second Vite
+      // optimization pass and invalidate chunk URLs already in the browser.
+      include: [
+        ...(config.optimizeDeps?.include ?? []),
+        '@storybook/blocks',
+        '@mdx-js/react',
+      ],
       esbuildOptions: {
         ...config.optimizeDeps?.esbuildOptions,
         resolveExtensions: [

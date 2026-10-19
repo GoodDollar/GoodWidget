@@ -32,9 +32,7 @@ const DEFAULT_CAPABILITIES: HostCapabilities = {
   signin: false,
 }
 
-async function detectFarcaster(
-  win: WindowWithProviders,
-): Promise<HostDetectionResult | null> {
+async function detectFarcaster(win: WindowWithProviders): Promise<HostDetectionResult | null> {
   if (!win.farcaster?.sdk?.wallet) return null
 
   try {

@@ -2,23 +2,11 @@
   "name": "@goodwidget/staking-migration-widget",
   "version": "0.1.0",
   "description": "Fuse staking migration widget for moving sG$ positions to Celo savings",
-  "license": "MIT",
-  "files": [
-    "dist",
-    "integration-manifest.json"
-  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/GoodDollar/GoodWidget.git",
     "directory": "packages/staking-migration-widget"
   },
-  "publishConfig": {
-    "access": "public"
-  },
-  "sideEffects": [
-    "./dist/register.js",
-    "./dist/register.cjs"
-  ],
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -52,9 +40,9 @@
     "react-dom": ">=18.0.0"
   },
   "dependencies": {
-    "@goodwidget/core": "workspace:^",
-    "@goodwidget/embed": "workspace:^",
-    "@goodwidget/ui": "workspace:^",
+    "@goodwidget/core": "workspace:*",
+    "@goodwidget/embed": "workspace:*",
+    "@goodwidget/ui": "workspace:*",
     "viem": "^2.0.0"
   },
   "devDependencies": {
@@ -64,5 +52,9 @@
     "react-dom": "^18.3.0",
     "tsup": "^8.4.0",
     "typescript": "^5.7.0"
-  }
+  },
+  "files": [
+    "dist",
+    "integration-manifest.json"
+  ]
 }

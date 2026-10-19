@@ -43,11 +43,16 @@ export function StreamingWidgetView({
           setStreamStatus={state.setStreamStatus}
           setStreamError={state.setStreamError}
           setStreamTxHash={state.setStreamTxHash}
+          editingStreamId={state.editingStreamId}
+          cancelStreamStatus={state.cancelStreamStatus}
+          cancelStreamError={state.cancelStreamError}
           initialFormOpen={initialStreamsFormOpen}
           onRefresh={actions.refreshStreams}
           onUpdateSetStreamForm={actions.updateSetStreamForm}
           onSubmitSetStream={actions.submitSetStream}
           onResetSetStream={actions.resetSetStream}
+          onEditStream={actions.editStream}
+          onCancelStream={(stream) => void actions.cancelStream(stream.receiver, stream.token)}
         />
       )}
       {activeTab === 'history' && (

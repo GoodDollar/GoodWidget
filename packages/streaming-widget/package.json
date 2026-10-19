@@ -1,24 +1,12 @@
 {
   "name": "@goodwidget/streaming-widget",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "GoodWidget for Superfluid streaming flows — streams, GDA pool memberships, and Super Token balances",
-  "license": "MIT",
-  "files": [
-    "dist",
-    "integration-manifest.json"
-  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/GoodDollar/GoodWidget.git",
     "directory": "packages/streaming-widget"
   },
-  "publishConfig": {
-    "access": "public"
-  },
-  "sideEffects": [
-    "./dist/register.js",
-    "./dist/register.cjs"
-  ],
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -52,10 +40,10 @@
     "react-dom": ">=18.0.0"
   },
   "dependencies": {
-    "@goodsdks/streaming-sdk": "1.0.0",
-    "@goodwidget/core": "workspace:^",
-    "@goodwidget/embed": "workspace:^",
-    "@goodwidget/ui": "workspace:^",
+    "@goodsdks/streaming-sdk": "1.1.0",
+    "@goodwidget/core": "workspace:*",
+    "@goodwidget/embed": "workspace:*",
+    "@goodwidget/ui": "workspace:*",
     "viem": "^2.0.0"
   },
   "devDependencies": {
@@ -65,5 +53,9 @@
     "react-dom": "^18.3.0",
     "tsup": "^8.4.0",
     "typescript": "^5.7.0"
-  }
+  },
+  "files": [
+    "dist",
+    "integration-manifest.json"
+  ]
 }

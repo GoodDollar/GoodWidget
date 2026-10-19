@@ -1,5 +1,10 @@
 const DEFAULT_TAG_NAME = 'gw-streaming'
 
+export const goodWidgetMetadata = {
+  packageName: '@goodwidget/streaming-widget',
+  packageVersion: '0.1.1',
+} as const
+
 /**
  * Register the <gw-streaming> custom element.
  *
@@ -16,7 +21,7 @@ const DEFAULT_TAG_NAME = 'gw-streaming'
  *   const tag = await register('my-streaming-widget')
  */
 export async function register(tagName: string = DEFAULT_TAG_NAME): Promise<string> {
-  // Keep server-side package evaluation out of the browser-only element graph.
+  // Keep browser-only Custom Element dependencies out of server evaluation.
   if (typeof customElements === 'undefined') return tagName
   if (!customElements.get(tagName)) {
     const { StreamingWidgetElement } = await import('./element')
@@ -25,4 +30,4 @@ export async function register(tagName: string = DEFAULT_TAG_NAME): Promise<stri
   return tagName
 }
 
-void register()
+void register().catch(() => undefined)

@@ -3,6 +3,9 @@
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",
+    // Editor/typecheck config only; emitting is tsup's job via tsconfig.build.json.
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
     "paths": {
       "@goodwidget/ui": ["../ui/src/index.ts"]
     }
