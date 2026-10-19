@@ -18,6 +18,7 @@ on:
           - '@goodwidget/goodreserve-widget'
           - '@goodwidget/staking-migration-widget'
           - '@goodwidget/streaming-widget'
+          - '@goodwidget/superfluid-campaign-widget'
 
 permissions:
   contents: read
