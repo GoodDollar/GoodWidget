@@ -1,15 +1,26 @@
 import { readFileSync } from 'node:fs'
-import { test, expect } from '@playwright/test'
+import { test } from '@playwright/test'
+import { captureVersionScreenshot } from '../version-screenshot'
 
 const { version } = JSON.parse(
   readFileSync('packages/staking-migration-widget/package.json', 'utf-8'),
 ) as { version: string }
 
 test('StakingMigrationWidget displays its package version', async ({ page }) => {
-  await page.goto(
-    '/iframe.html?id=qa-stakingmigrationwidget-runtime-fixtures--ready&viewMode=story',
-  )
-  await expect(page.getByTestId('widget-version')).toHaveText(`Staking Migration v${version}`, {
-    timeout: 20_000,
-  })
+  for (const theme of [
+    { name: 'dark', story: 'qa-stakingmigrationwidget-runtime-fixtures--ready' },
+    { name: 'light', story: 'qa-stakingmigrationwidget-runtime-fixtures--light-theme-ready' },
+  ]) {
+    for (const viewport of [
+      { name: 'desktop', width: 1280, height: 900 },
+      { name: 'mobile', width: 430, height: 932 },
+    ]) {
+      await captureVersionScreenshot(page, [`Staking Migration v${version}`], {
+        url: `/iframe.html?id=${theme.story}&viewMode=story`,
+        path: `tests/widgets/staking-migration-widget/test-results/version-ready-${viewport.name}-${theme.name}.png`,
+        width: viewport.width,
+        height: viewport.height,
+      })
+    }
+  }
 })

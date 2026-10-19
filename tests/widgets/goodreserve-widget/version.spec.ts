@@ -1,13 +1,26 @@
 import { readFileSync } from 'node:fs'
-import { test, expect } from '@playwright/test'
+import { test } from '@playwright/test'
+import { captureVersionScreenshot } from '../version-screenshot'
 
 const { version } = JSON.parse(
   readFileSync('packages/goodreserve-widget/package.json', 'utf-8'),
 ) as { version: string }
 
 test('GoodReserveWidget displays its package version', async ({ page }) => {
-  await page.goto('/iframe.html?id=widgets-goodreservewidget--interactive&viewMode=story')
-  await expect(page.getByTestId('widget-version')).toHaveText(`GoodReserve v${version}`, {
-    timeout: 20_000,
-  })
+  for (const theme of [
+    { name: 'dark', story: 'widgets-goodreservewidget--quote-ready-buy' },
+    { name: 'light', story: 'widgets-goodreservewidget--quote-ready-buy-light-theme' },
+  ]) {
+    for (const viewport of [
+      { name: 'desktop', width: 1280, height: 900 },
+      { name: 'mobile', width: 430, height: 932 },
+    ]) {
+      await captureVersionScreenshot(page, [`GoodReserve v${version}`], {
+        url: `/iframe.html?id=${theme.story}&viewMode=story`,
+        path: `tests/widgets/goodreserve-widget/test-results/version-quote-ready-${viewport.name}-${theme.name}.png`,
+        width: viewport.width,
+        height: viewport.height,
+      })
+    }
+  }
 })
