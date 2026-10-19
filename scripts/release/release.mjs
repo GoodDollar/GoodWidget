@@ -19,11 +19,14 @@ import {
 } from './validate-manifests.mjs'
 
 function run(command, args, options = {}) {
-  return execFileSync(command, args, {
+  const output = execFileSync(command, args, {
     encoding: 'utf8',
     stdio: options.capture ? 'pipe' : 'inherit',
     ...options,
-  }).trim()
+  })
+  // Inherited stdio is not captured, so execFileSync resolves to null rather than a
+  // string. Every non-capturing call would otherwise throw before anything is published.
+  return output === null ? '' : output.trim()
 }
 
 function packageJson(pkg) {
@@ -99,7 +102,7 @@ async function dispatchWidget(pkg, version, integrity, sourceCommit, releaseUrl)
     releaseUrl,
   })
   const response = await fetch(
-    'https://api.github.com/repos/GoodDollar/GoodWallet/repository/dispatches',
+    'https://api.github.com/repos/GoodDollar/GoodWallet/dispatches',
     {
       method: 'POST',
       headers: {

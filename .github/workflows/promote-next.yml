@@ -22,6 +22,8 @@ jobs:
   promote:
     permissions:
       contents: write
+      # Needed to start release-next.yml once next has moved.
+      actions: write
     # The release environment supplies the maintainer approval gate before next can move.
     environment: release
     runs-on: ubuntu-latest
@@ -41,6 +43,7 @@ jobs:
           fetch-depth: 0
           ref: main
       - name: Create or update next
+        id: promote
         env:
           GIT_AUTHOR_NAME: goodwidget-release
           GIT_AUTHOR_EMAIL: goodwidget-release@users.noreply.github.com
@@ -49,11 +52,20 @@ jobs:
         run: |
           git fetch origin main next || git fetch origin main
           if git show-ref --verify --quiet refs/remotes/origin/next; then
+            # The release diffs from next's tip as it was before this promotion, so record
+            # it now rather than letting the release guess at a base.
+            echo "base=$(git rev-parse origin/next)" >> "$GITHUB_OUTPUT"
             # A normal merge preserves next's release history and exits before push on conflicts.
             git switch --create next --track origin/next
             git merge --no-edit origin/main
           else
-            # The first promotion creates the long-lived publication branch from main.
+            # The first promotion creates the long-lived publication branch from main. An
+            # all-zero base is the bootstrap signal to release the complete allowlist.
+            echo "base=0000000000000000000000000000000000000000" >> "$GITHUB_OUTPUT"
             git switch --create next origin/main
           fi
           git push origin next
+      - name: Start the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run release-next.yml --ref next --field base=${{ steps.promote.outputs.base }}

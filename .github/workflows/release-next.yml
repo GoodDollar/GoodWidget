@@ -5,6 +5,15 @@ name: Release production packages
 on:
   push:
     branches: [next]
+  # A push made with GITHUB_TOKEN never starts a workflow, so promote-next.yml cannot
+  # reach this job by pushing. workflow_dispatch is exempt from that rule, so promotion
+  # starts the release explicitly and passes the pre-merge tip of next as the diff base.
+  workflow_dispatch:
+    inputs:
+      base:
+        description: Commit to diff from (pre-merge tip of next)
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -46,7 +55,7 @@ jobs:
           git config user.email goodwidget-release@users.noreply.github.com
       - name: Build, pack, publish, verify, and dispatch
         env:
-          RELEASE_BASE_SHA: ${{ github.event.before }}
+          RELEASE_BASE_SHA: ${{ github.event.before || inputs.base }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: 'true'
           GOODWALLET_DISPATCH_PAT: ${{ secrets.GOODWALLET_DISPATCH_PAT }}
