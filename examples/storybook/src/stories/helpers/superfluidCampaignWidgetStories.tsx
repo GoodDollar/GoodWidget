@@ -30,12 +30,14 @@ function StoryShell({ children, dataTestId }: { children: React.ReactNode; dataT
 }
 
 interface MockStoryProps {
+  defaultTheme?: 'light' | 'dark'
   initialView?: SuperfluidCampaignView
   leaderboardScenario?: MockLeaderboardScenario
   programSupTotalsScenario?: MockProgramSupTotalsScenario
 }
 
 function MockSuperfluidCampaignWidgetStoryShell({
+  defaultTheme,
   provider,
   dataTestId,
   initialView = 'content',
@@ -46,6 +48,7 @@ function MockSuperfluidCampaignWidgetStoryShell({
     <StoryShell dataTestId={dataTestId}>
       <MockSuperfluidCampaignWidget
         provider={provider}
+        defaultTheme={defaultTheme}
         initialView={initialView}
         leaderboardScenario={leaderboardScenario}
         programSupTotalsScenario={programSupTotalsScenario}

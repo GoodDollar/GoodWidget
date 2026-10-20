@@ -44,6 +44,8 @@ export { ScrollArea } from './components-test/ScrollArea'
 // Typography
 export { Heading } from './components/Heading'
 export { Text } from './components/Text'
+export { WidgetVersion } from './components/WidgetVersion'
+export type { WidgetVersionProps } from './components/WidgetVersion'
 export { Anchor } from './components/Anchor'
 
 // Inputs
