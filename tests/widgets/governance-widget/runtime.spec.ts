@@ -452,12 +452,10 @@ async function submitAlignmentRegistration(page: Page): Promise<void> {
   await page.getByTestId('GovernanceOnboardingWidget-house-alignment').click()
   await page.getByRole('button', { name: 'Continue', exact: true }).click()
   await page.getByPlaceholder('John Doe or Organization').fill('Mocked Alignment')
+  await page.getByPlaceholder('https://twitter.com/username').fill('https://social.example/mocked-alignment')
   await page.getByPlaceholder('https://example.com').fill('https://alignment.example')
-  await page.getByPlaceholder('What is the primary goal of your alignment?').fill(
-    'Fund public goods through transparent community governance.',
-  )
-  await page.getByPlaceholder('How do you plan to allocate resources?').fill(
-    'Allocate resources through quarterly community-approved votes.',
+  await page.getByPlaceholder('https://discourse.example.com/t/mission').fill(
+    'https://discourse.example.com/t/mocked-alignment',
   )
   await page.getByRole('button', { name: 'Create Profile and Stake' }).click()
 }

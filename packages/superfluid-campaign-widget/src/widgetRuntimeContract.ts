@@ -113,14 +113,9 @@ export interface CampaignActionDefinition {
   href?: string
   /**
    * Renders the card greyed-out and non-interactive (no card/button press, no
-   * link), for actions that are temporarily paused (e.g. points on hold).
+   * link), for actions that are permanently or temporarily closed.
    */
   disabled?: boolean
-}
-
-export interface CampaignPoolNoticeDefinition {
-  title: string
-  message: string
 }
 
 export interface CampaignPoolDefinition {
@@ -129,8 +124,6 @@ export interface CampaignPoolDefinition {
   campaignId: number
   label: string
   actions: CampaignActionDefinition[]
-  /** Optional banner shown above this pool's heading, e.g. a temporary-hold notice. */
-  notice?: CampaignPoolNoticeDefinition
 }
 
 // ---------------------------------------------------------------------------

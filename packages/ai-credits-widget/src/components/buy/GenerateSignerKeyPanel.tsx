@@ -21,26 +21,42 @@ interface GenerateSignerKeyPanelProps {
 }
 
 /** Numbered heading, so each screen reads as a short ordered list. */
-function NumberedStep({ index, title }: { index: number; title: string }) {
+function NumberedStep({
+  index,
+  title,
+  note,
+}: {
+  index: number
+  title: string
+  /** Caveat shown under the title, aligned with it rather than the number. */
+  note?: string
+}) {
   return (
-    <XStack gap="$2" alignItems="center">
-      <YStack
-        width={24}
-        height={24}
-        borderRadius="$full"
-        backgroundColor="$backgroundSurface"
-        alignItems="center"
-        justifyContent="center"
-        flexShrink={0}
-      >
-        <Text fontSize="$1" fontWeight="700">
-          {index}
+    <YStack gap="$1">
+      <XStack gap="$2" alignItems="center">
+        <YStack
+          width={24}
+          height={24}
+          borderRadius="$full"
+          backgroundColor="$backgroundSurface"
+          alignItems="center"
+          justifyContent="center"
+          flexShrink={0}
+        >
+          <Text fontSize="$1" fontWeight="700">
+            {index}
+          </Text>
+        </YStack>
+        <Text fontSize="$3" fontWeight="700">
+          {title}
         </Text>
-      </YStack>
-      <Text fontSize="$3" fontWeight="700">
-        {title}
-      </Text>
-    </XStack>
+      </XStack>
+      {note && (
+        <Text marginLeft={32} fontSize="$2" color="$warning" fontStyle="italic" lineHeight="$3">
+          {note}
+        </Text>
+      )}
+    </YStack>
   )
 }
 
@@ -92,7 +108,12 @@ export function GenerateSignerKeyPanel({
         <YStack gap="$2">
           <NumberedStep index={1} title="Open Antseed Desktop" />
           <NumberedStep index={2} title="Go to Profile → Signer" />
-          <NumberedStep index={3} title="Tap ↑, paste your Signer Private Key, and save" />
+          <NumberedStep
+            index={3}
+            title="Back up your existing Signer Key"
+            note="⚠️ Tap ↓ to back up your existing signer key. Importing a new signer key will replace it."
+          />
+          <NumberedStep index={4} title="Tap ↑ to paste your Signer Key, then save." />
         </YStack>
 
         <AntseedSignerRow mode="generate" showCaption={false} />
@@ -101,13 +122,6 @@ export function GenerateSignerKeyPanel({
           <Text fontSize="$2" tone="soft" lineHeight="$3">
             The address you see when you paste your private key is the public address used for your
             AI credits.
-          </Text>
-        </AiCreditsStatusNotice>
-
-        <AiCreditsStatusNotice borderColor="$warning">
-          <Text color="$warning" fontSize="$2" lineHeight="$3">
-            Back up any existing AntSeed signer key before importing this one. Importing replaces
-            the signer used by your AntSeed account.
           </Text>
         </AiCreditsStatusNotice>
 

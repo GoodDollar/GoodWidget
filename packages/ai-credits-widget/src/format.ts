@@ -6,15 +6,16 @@
  * History cards.
  *
  * G$  — comma-grouped with up to 2 decimals and trailing zeros dropped
- *       (`10,000 G$`, `36,550.55 G$`); compact notation only from 1M up
- *       (`1.2M G$`) so whale balances cannot blow out a card.
+ *       (`950.5 G$`); compact notation with 1 decimal from 1K up
+ *       (`1.3K G$`, `21.2K G$`, `1.2M G$`) so large balances cannot blow out
+ *       a card. Vault minimums and History stay exact (`21,190.79 G$`).
  * US$ — always 2 decimals behind a single `US$` symbol (`US$1.30`); a positive
  *       amount that would round to zero renders as `<US$0.01`, so small
  *       credits never read as nothing.
  */
 
 /** Above this, G$ amounts switch to compact notation to protect the layout. */
-const G_COMPACT_FROM = 1_000_000
+const G_COMPACT_FROM = 1_000
 
 /** Smallest US$ amount that still rounds up to a visible cent. */
 const USD_MIN_VISIBLE = 0.005
@@ -26,7 +27,7 @@ const gGrouped = new Intl.NumberFormat('en-US', {
 
 const gCompact = new Intl.NumberFormat('en-US', {
   notation: 'compact',
-  maximumFractionDigits: 2,
+  maximumFractionDigits: 1,
 })
 
 const usdGrouped = new Intl.NumberFormat('en-US', {
@@ -69,11 +70,21 @@ export function isGValueCompacted(amount: string | number): boolean {
   return Number.isFinite(value) && value >= G_COMPACT_FROM
 }
 
+/** Bare G$ number with no compacting, for minimums and history where every digit matters. */
+export function formatExactGValue(amount: string | number): string {
+  const value = toNumber(amount)
+  if (!Number.isFinite(value) || value <= 0) return '0'
+  if (value < 0.01) return '<0.01'
+  return gGrouped.format(value)
+}
+
 /** Full G$ amount with no compacting, for tooltips behind a compacted value. */
 export function formatExactGAmount(amount: string | number): string {
-  const value = toNumber(amount)
-  if (!Number.isFinite(value) || value <= 0) return '0 G$'
-  return `${gGrouped.format(value)} G$`
+  return `${formatExactGValue(amount)} G$`
+}
+
+export function formatExactGWeiAmount(amountWei: bigint | string): string {
+  return formatExactGAmount(weiToNumber(amountWei))
 }
 
 export function formatGWeiValue(amountWei: bigint | string): string {

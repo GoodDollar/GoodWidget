@@ -14,7 +14,7 @@ import {
 import type { IconName } from '@goodwidget/ui'
 import type { GdCreditEntry } from '../../backendTypes'
 import { formatUsdMicro } from '../../quoteMath'
-import { formatGAmount, formatGWeiAmount, formatUsdMicroAmount } from '../../format'
+import { formatExactGAmount, formatExactGWeiAmount, formatUsdMicroAmount } from '../../format'
 import { compactButtonProps } from '../shared/styles'
 import type {
   AiCreditsHistoryActions,
@@ -69,7 +69,7 @@ function formatEntryGAmount(gdAmountWei: string): string | null {
   try {
     const amountWei = BigInt(gdAmountWei || '0')
     if (amountWei <= 0n) return null
-    return formatGWeiAmount(amountWei)
+    return formatExactGWeiAmount(amountWei)
   } catch {
     return null
   }
@@ -185,7 +185,7 @@ function sumFilteredGdWei(entries: GdCreditEntry[]): bigint {
 }
 
 function formatAccumulatedG(amountWei: bigint): string {
-  return formatGAmount(Number(amountWei) / 1e18)
+  return formatExactGAmount(Number(amountWei) / 1e18)
 }
 
 function formatShortDate(dateValue: string): string {
