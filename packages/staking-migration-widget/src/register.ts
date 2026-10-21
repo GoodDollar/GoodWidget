@@ -7,7 +7,9 @@ export async function register(tagName: string = TAG_NAME): Promise<string> {
   if (typeof customElements === 'undefined') return tagName
   if (!customElements.get(tagName)) {
     const { StakingMigrationWidgetElement } = await import('./element')
-    customElements.define(tagName, StakingMigrationWidgetElement)
+    if (!customElements.get(tagName)) {
+      customElements.define(tagName, StakingMigrationWidgetElement)
+    }
   }
   return tagName
 }
