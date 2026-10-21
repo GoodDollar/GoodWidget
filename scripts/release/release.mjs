@@ -181,7 +181,7 @@ async function release() {
   // Versions and the lockfile become authoritative before publication. The marker makes
   // the resulting push a no-op for release-next.yml and enables exact-version recovery.
   run('git', ['add', ...selected.map((pkg) => `${pkg.dir}/package.json`), 'pnpm-lock.yaml'])
-  run('git', ['commit', '-m', `${releaseMarker} ${versions.join(', ')}`])
+  run('git', ['commit', '--allow-empty', '-m', `${releaseMarker} ${versions.join(', ')}`])
   run('git', ['push', 'origin', 'next'])
 
   // Publish in dependency order and require both immutable registry integrity
