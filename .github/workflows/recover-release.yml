@@ -48,6 +48,9 @@ jobs:
           corepack enable
           corepack prepare pnpm@9.15.0 --activate
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter './packages/**' run build
+      - run: pnpm test:release
+      - run: pnpm validate:register-entries
       - name: Publish the authoritative committed version
         env:
           RECOVERY_PACKAGE: ${{ inputs.package }}
