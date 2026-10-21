@@ -21,7 +21,9 @@ export async function register(tagName: string = DEFAULT_TAG_NAME): Promise<stri
   if (typeof customElements === 'undefined') return tagName
   if (!customElements.get(tagName)) {
     const { CitizenClaimWidgetElement } = await import('./element')
-    customElements.define(tagName, CitizenClaimWidgetElement)
+    if (!customElements.get(tagName)) {
+      customElements.define(tagName, CitizenClaimWidgetElement)
+    }
   }
   return tagName
 }
