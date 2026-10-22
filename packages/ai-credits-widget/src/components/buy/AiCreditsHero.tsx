@@ -1,5 +1,6 @@
 import { Card, Spinner, Text, TokenAmount, XStack, YStack } from '@goodwidget/ui'
 import { BonusBadgeFrame } from '../theme/cards'
+import { formatGValue } from '../../format'
 
 interface HeroCardProps {
   gBalance: string | null
@@ -17,7 +18,12 @@ export function AiCreditsHero({ gBalance, isGoodIdVerified }: HeroCardProps) {
             Your G$ Balance
           </Text>
           {gBalance !== null ? (
-            <TokenAmount token="G$" amount={gBalance} size="xl" />
+            <TokenAmount
+              token="G$"
+              amount={gBalance}
+              formattedAmount={formatGValue(gBalance)}
+              size="xl"
+            />
           ) : (
             <Spinner size="sm" />
           )}

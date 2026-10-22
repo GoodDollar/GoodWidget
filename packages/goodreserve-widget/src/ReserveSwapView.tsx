@@ -365,6 +365,7 @@ function SlippageDrawer({
       open={state.status === 'slippage_selection'}
       onClose={actions.closeSlippage}
       height="half"
+      hideCloseButton
     >
       <YStack testID="GoodReserveWidget-slippage-sheet" gap="$4" width="100%">
         <XStack justifyContent="space-between" alignItems="center">
@@ -407,7 +408,12 @@ function ConfirmDrawer({
   const minimumReceived = formatTokenAmount(state.quote?.minimumReceived)
 
   return (
-    <Drawer open={state.status === 'confirm_dialog'} onClose={actions.closeConfirm} height="full">
+    <Drawer
+      open={state.status === 'confirm_dialog'}
+      onClose={actions.closeConfirm}
+      height="full"
+      hideCloseButton
+    >
       <YStack testID="GoodReserveWidget-confirm-dialog" gap="$4" width="100%">
         <XStack justifyContent="space-between" alignItems="center">
           <Heading level={4} color="$textColor">

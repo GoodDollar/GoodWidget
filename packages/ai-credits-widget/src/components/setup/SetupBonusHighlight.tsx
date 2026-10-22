@@ -26,9 +26,9 @@ export function SetupBonusHighlight({
   if (maxBonusPercent <= 0) return null
 
   return (
-    <Card gap="$2" padding="$3">
+    <Card gap="$1" padding="$1">
       <XStack
-        gap="$3"
+        gap="$2"
         alignItems="center"
         cursor="pointer"
         accessibilityRole="button"
@@ -46,7 +46,7 @@ export function SetupBonusHighlight({
           <Icon name="party-popper" size="sm" color="primary" />
         </YStack>
 
-        <YStack flex={1} gap={2} backgroundColor="$background" padding="$3">
+        <YStack flex={1} gap={3} backgroundColor="$background" padding="$3">
           <Text fontSize="$3" fontWeight="700">
             Up to {maxBonusPercent}% more AI credits
           </Text>
@@ -76,20 +76,20 @@ export function SetupBonusHighlight({
           <Text fontSize="$2" tone="soft" lineHeight="$3">
             {isGoodIdVerified ? (
               <>
-                Your wallet is{' '}
+                If your wallet is{' '}
                 <Text fontSize="$2" fontWeight="700">
                   GoodID verified
                 </Text>
-                , so the bonus is applied automatically to deposits and streams.
+                , the bonus is applied automatically. If not, you can verify to receive the bonus.
               </>
             ) : (
               <>
-                Bonus applies to{' '}
+                If your wallet is{' '}
                 <Text fontSize="$2" fontWeight="700">
-                  verified GoodDollar wallets
+                  GoodDollar-verified
                 </Text>{' '}
-                only. Not verified? Claim UBI first via GoodWallet or GoodDapp — takes a minute,
-                then this kicks in automatically.
+                , the bonus is applied automatically. 
+                If not, you can verify to receive the bonus.
               </>
             )}
           </Text>

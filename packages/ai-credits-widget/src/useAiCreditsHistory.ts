@@ -12,7 +12,7 @@ export type CreditHistorySource = GdCreditEntry['source']
 export type CreditHistoryStatusFilter = 'all' | GdCreditEntry['fundingStatus']
 
 export const BUYER_FILTER_ALL = 'all' as const
-export type BuyerAddressFilter = typeof BUYER_FILTER_ALL | string
+export type SignerAddressFilter = typeof BUYER_FILTER_ALL | string
 
 export const HISTORY_SOURCE_OPTIONS: {
   id: CreditHistorySource
@@ -59,15 +59,15 @@ function toIsoEndOfDay(dateValue: string): string | undefined {
   return new Date(parsed).toISOString()
 }
 
-function matchesBuyerFilter(entry: GdCreditEntry, filter: BuyerAddressFilter): boolean {
+function matchesSignerFilter(entry: GdCreditEntry, filter: SignerAddressFilter): boolean {
   if (filter === BUYER_FILTER_ALL) return true
-  return entry.buyerAddress?.toLowerCase() === filter.toLowerCase()
+  return entry.signerAddress?.toLowerCase() === filter.toLowerCase()
 }
 
 export interface AiCreditsHistoryState {
   selectedSources: Record<CreditHistorySource, boolean>
   statusFilter: CreditHistoryStatusFilter
-  buyerAddressFilter: BuyerAddressFilter
+  signerAddressFilter: SignerAddressFilter
   fromDate: string
   toDate: string
   entries: GdCreditEntry[]
@@ -82,7 +82,7 @@ export interface AiCreditsHistoryState {
 export interface AiCreditsHistoryActions {
   setSourceChecked: (source: CreditHistorySource, checked: boolean) => void
   setStatusFilter: (status: CreditHistoryStatusFilter) => void
-  setBuyerAddressFilter: (value: BuyerAddressFilter) => void
+  setSignerAddressFilter: (value: SignerAddressFilter) => void
   setFromDate: (value: string) => void
   setToDate: (value: string) => void
   reload: () => Promise<void>
@@ -97,24 +97,24 @@ export interface UseAiCreditsHistoryResult {
 export function useAiCreditsHistory(options: {
   address: string | null
   backendUrl?: string
-  defaultBuyerFilter?: BuyerAddressFilter
+  defaultSignerFilter?: SignerAddressFilter
   environment?: AiCreditsWidgetEnvironment
   backendClient?: AiCreditsBackendClient
-  onBuyersDiscovered?: (addresses: string[]) => void
+  onSignersDiscovered?: (addresses: string[]) => void
 }): UseAiCreditsHistoryResult {
   const {
     address,
     backendUrl,
-    defaultBuyerFilter = BUYER_FILTER_ALL,
+    defaultSignerFilter = BUYER_FILTER_ALL,
     environment = 'production',
     backendClient,
-    onBuyersDiscovered,
+    onSignersDiscovered,
   } = options
   const defaultRange = useMemo(() => getLast90DaysRange(), [])
 
   const [selectedSources, setSelectedSources] = useState(createDefaultSelectedSources)
   const [statusFilter, setStatusFilter] = useState<CreditHistoryStatusFilter>('all')
-  const [buyerAddressFilter, setBuyerAddressFilter] = useState<BuyerAddressFilter>(defaultBuyerFilter)
+  const [signerAddressFilter, setSignerAddressFilter] = useState<SignerAddressFilter>(defaultSignerFilter)
   const [fromDate, setFromDate] = useState(defaultRange.from)
   const [toDate, setToDate] = useState(defaultRange.to)
   const [entries, setEntries] = useState<GdCreditEntry[]>([])
@@ -125,8 +125,8 @@ export function useAiCreditsHistory(options: {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    setBuyerAddressFilter(defaultBuyerFilter)
-  }, [defaultBuyerFilter])
+    setSignerAddressFilter(defaultSignerFilter)
+  }, [defaultSignerFilter])
 
   const activeSources = useMemo(
     () => HISTORY_SOURCE_OPTIONS.map((option) => option.id).filter((id) => selectedSources[id]),
@@ -162,7 +162,7 @@ export function useAiCreditsHistory(options: {
       const client = backendClient ?? createBackendClient(backendUrl)
       const apiSource = activeSources.length === 1 ? activeSources[0] : undefined
       const fundingStatus = statusFilter === 'all' ? undefined : statusFilter
-      const filterByBuyer = buyerAddressFilter !== BUYER_FILTER_ALL
+      const filterBySigner = signerAddressFilter !== BUYER_FILTER_ALL
 
       try {
         const collected: GdCreditEntry[] = []
@@ -189,23 +189,23 @@ export function useAiCreditsHistory(options: {
               ? response.items
               : response.items.filter((entry) => selectedSources[entry.source])
 
-          const discoveredBuyers = sourceFiltered
-            .map((entry) => entry.buyerAddress)
+          const discoveredSigners = sourceFiltered
+            .map((entry) => entry.signerAddress)
             .filter((value): value is string => Boolean(value))
-          if (discoveredBuyers.length > 0) {
-            onBuyersDiscovered?.(discoveredBuyers)
+          if (discoveredSigners.length > 0) {
+            onSignersDiscovered?.(discoveredSigners)
           }
 
-          const buyerFiltered = sourceFiltered.filter((entry) =>
-            matchesBuyerFilter(entry, buyerAddressFilter),
+          const signerFiltered = sourceFiltered.filter((entry) =>
+            matchesSignerFilter(entry, signerAddressFilter),
           )
-          collected.push(...buyerFiltered)
+          collected.push(...signerFiltered)
 
           apiHasMore = response.hasMore
           cursor = response.offset + response.limit
           pages += 1
 
-          if (!filterByBuyer) break
+          if (!filterBySigner) break
         }
 
         setEntries((prev) => (append ? [...prev, ...collected] : collected))
@@ -227,11 +227,11 @@ export function useAiCreditsHistory(options: {
       backendClient,
       activeSources,
       statusFilter,
-      buyerAddressFilter,
+      signerAddressFilter,
       fromDate,
       toDate,
       selectedSources,
-      onBuyersDiscovered,
+      onSignersDiscovered,
     ],
   )
 
@@ -260,7 +260,7 @@ export function useAiCreditsHistory(options: {
     state: {
       selectedSources,
       statusFilter,
-      buyerAddressFilter,
+      signerAddressFilter,
       fromDate,
       toDate,
       entries,
@@ -274,7 +274,7 @@ export function useAiCreditsHistory(options: {
     actions: {
       setSourceChecked,
       setStatusFilter,
-      setBuyerAddressFilter,
+      setSignerAddressFilter,
       setFromDate,
       setToDate,
       reload,

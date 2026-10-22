@@ -3,23 +3,36 @@ import type { Address, Hex } from 'viem'
 import { BASE_CHAIN_ID } from './chainClient'
 
 export const ANTSEED_BUYER_OPERATOR_DOMAIN = {
+  // Must match AntseedBuyerOperator's DOMAIN_SEPARATOR verbatim. Do not rename
+  // with the widget's signer terminology — the contract hashes this string.
   name: 'AntseedBuyerOperator',
   version: '1',
 } as const
 
 const WITHDRAW_PRINCIPAL_TYPES = {
   WithdrawPrincipal: [
+    // `buyer` is the contract's field name; the value is our signer address.
+    // EIP-712 hashes field names, so renaming this to `signer` changes the
+    // struct hash and the vault rejects the withdrawal with InvalidSignature().
     { name: 'buyer', type: 'address' },
     { name: 'amount', type: 'uint256' },
     { name: 'recipient', type: 'address' },
-    { name: 'timestamp', type: 'uint256' },
+    { name: 'nonce', type: 'uint256' },
   ],
 } as const
 
 const REQUEST_CLOSE_TYPES = {
   RequestClose: [
     { name: 'channelId', type: 'bytes32' },
-    { name: 'timestamp', type: 'uint256' },
+    { name: 'nonce', type: 'uint256' },
+  ],
+} as const
+
+const REVOKE_OPERATOR_TYPES = {
+  RevokeOperator: [
+    // `buyer` is the contract's field name; the value is our signer address.
+    { name: 'buyer', type: 'address' },
+    { name: 'nonce', type: 'uint256' },
   ],
 } as const
 
@@ -30,14 +43,14 @@ export function normalizeChannelId(channelId: string): Hex | null {
 }
 
 export async function signWithdrawPrincipal(params: {
-  buyerPrivateKey: Hex
+  signerPrivateKey: Hex
   fundingVaultAddress: Address
-  buyer: Address
+  signer: Address
   amountMicro: bigint
   recipient: Address
-  timestamp: number
+  nonce: bigint
 }): Promise<Hex> {
-  const account = privateKeyToAccount(params.buyerPrivateKey)
+  const account = privateKeyToAccount(params.signerPrivateKey)
   return account.signTypedData({
     domain: {
       name: ANTSEED_BUYER_OPERATOR_DOMAIN.name,
@@ -48,21 +61,21 @@ export async function signWithdrawPrincipal(params: {
     types: WITHDRAW_PRINCIPAL_TYPES,
     primaryType: 'WithdrawPrincipal',
     message: {
-      buyer: params.buyer,
+      buyer: params.signer,
       amount: params.amountMicro,
       recipient: params.recipient,
-      timestamp: BigInt(params.timestamp),
+      nonce: params.nonce,
     },
   })
 }
 
 export async function signRequestClose(params: {
-  buyerPrivateKey: Hex
+  signerPrivateKey: Hex
   fundingVaultAddress: Address
   channelId: Hex
-  timestamp: number
+  nonce: bigint
 }): Promise<Hex> {
-  const account = privateKeyToAccount(params.buyerPrivateKey)
+  const account = privateKeyToAccount(params.signerPrivateKey)
   return account.signTypedData({
     domain: {
       name: ANTSEED_BUYER_OPERATOR_DOMAIN.name,
@@ -74,7 +87,30 @@ export async function signRequestClose(params: {
     primaryType: 'RequestClose',
     message: {
       channelId: params.channelId,
-      timestamp: BigInt(params.timestamp),
+      nonce: params.nonce,
+    },
+  })
+}
+
+export async function signRevokeOperator(params: {
+  signerPrivateKey: Hex
+  fundingVaultAddress: Address
+  signer: Address
+  nonce: bigint
+}): Promise<Hex> {
+  const account = privateKeyToAccount(params.signerPrivateKey)
+  return account.signTypedData({
+    domain: {
+      name: ANTSEED_BUYER_OPERATOR_DOMAIN.name,
+      version: ANTSEED_BUYER_OPERATOR_DOMAIN.version,
+      chainId: BASE_CHAIN_ID,
+      verifyingContract: params.fundingVaultAddress,
+    },
+    types: REVOKE_OPERATOR_TYPES,
+    primaryType: 'RevokeOperator',
+    message: {
+      buyer: params.signer,
+      nonce: params.nonce,
     },
   })
 }

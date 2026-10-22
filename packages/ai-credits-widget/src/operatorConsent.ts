@@ -16,10 +16,10 @@ export type Eip712SigningPayload = {
   message: Record<string, string | number>
 }
 
-export type BuyerOperatorStatus = {
+export type SignerOperatorStatus = {
   enabled: boolean
   account: string
-  buyerAddress: string
+  signerAddress: string
   operatorAddress?: string
   currentOperator: string
   operatorAccepted: boolean
@@ -29,13 +29,13 @@ export type BuyerOperatorStatus = {
 export type OperatorConsentPayloadResponse = {
   enabled: boolean
   account: string
-  buyerAddress: string
+  signerAddress: string
   typedData?: Eip712SigningPayload
 }
 
 export type OperatorAcceptResponse = {
   account: string
-  buyerAddress: string
+  signerAddress: string
   bridge?: { txHash?: string }
 }
 
@@ -78,10 +78,10 @@ export function buildSetOperatorPayload(
 }
 
 export async function signOperatorConsentFromTypedData(
-  buyerPrivateKey: `0x${string}`,
+  signerPrivateKey: `0x${string}`,
   typedData: Eip712SigningPayload,
 ): Promise<`0x${string}`> {
-  const account = privateKeyToAccount(buyerPrivateKey)
+  const account = privateKeyToAccount(signerPrivateKey)
   const types = { ...typedData.types }
   delete types.EIP712Domain
   return account.signTypedData({

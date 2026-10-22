@@ -479,13 +479,14 @@ test('SuperfluidCampaignWidget entire action card is clickable and triggers the 
   await gotoStory(page, STORY_IDS.noWalletContent)
 
   // Click the card via its title text, away from the CTA button itself, to
-  // confirm the whole card (not just the button) is a click target.
-  const cardTitle = page.getByText('Vote on Flow State').first()
+  // confirm the whole card (not just the button) is a click target. Uses
+  // Invite users since Vote on Flow State is now a closed/disabled action.
+  const cardTitle = page.getByText('Invite users').first()
   await expect(cardTitle).toBeVisible()
 
   const [newPage] = await Promise.all([context.waitForEvent('page'), cardTitle.click()])
   await newPage.waitForLoadState('domcontentloaded').catch(() => {})
-  expect(newPage.url()).toContain('flowstate.network')
+  expect(newPage.url()).toContain('goodwallet.xyz')
   await newPage.close()
 
   await page.screenshot({
@@ -500,19 +501,107 @@ test('SuperfluidCampaignWidget clicking the CTA button directly does not double-
 }) => {
   await gotoStory(page, STORY_IDS.noWalletContent)
 
-  const voteButton = page.getByText('Vote', { exact: true }).first()
-  await expect(voteButton).toBeVisible()
+  const inviteButton = page.getByText('Invite', { exact: true }).first()
+  await expect(inviteButton).toBeVisible()
 
   const pagesBefore = context.pages().length
-  const [newPage] = await Promise.all([context.waitForEvent('page'), voteButton.click()])
+  const [newPage] = await Promise.all([context.waitForEvent('page'), inviteButton.click()])
   await newPage.waitForLoadState('domcontentloaded').catch(() => {})
 
   // Give a duplicate-fire regression a moment to open a second tab before
   // asserting exactly one new page resulted from this single click.
   await page.waitForTimeout(300)
   expect(context.pages().length).toBe(pagesBefore + 1)
-  expect(newPage.url()).toContain('flowstate.network')
+  expect(newPage.url()).toContain('goodwallet.xyz')
   await newPage.close()
+})
+
+test('SuperfluidCampaignWidget closed actions render disabled and non-interactive', async ({
+  page,
+  context,
+}) => {
+  await gotoStory(page, STORY_IDS.noWalletContent)
+
+  const voteCard = page.getByTestId('ActionCard-layout-flow-state-vote')
+  const fundingCard = page.getByTestId('ActionCard-layout-flow-state-funding')
+  await expect(voteCard).toBeVisible()
+  await expect(fundingCard).toBeVisible()
+
+  await expect(voteCard.getByText('Closed', { exact: true })).toBeVisible()
+  await expect(fundingCard.getByText('Closed', { exact: true })).toBeVisible()
+  await expect(page.getByLabel('Closed: Vote on Flow State')).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  )
+  await expect(page.getByLabel('Closed: Fund GoodBuilders Season 4')).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  )
+
+  const pagesBefore = context.pages().length
+  for (const card of [voteCard, fundingCard]) {
+    await expect(card).not.toHaveAttribute('tabindex')
+    const closedButton = card.getByRole('button', { name: 'Closed' })
+    await expect(closedButton).toBeDisabled()
+
+    await card.evaluate((element) => (element as HTMLElement).focus())
+    await expect(card).not.toBeFocused()
+    await closedButton.evaluate((element) => (element as HTMLElement).focus())
+    await expect(closedButton).not.toBeFocused()
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
+    await page.keyboard.press('Enter')
+    await page.keyboard.press('Space')
+    await page.waitForTimeout(100)
+    expect(context.pages().length, 'keyboard activation must not open a page').toBe(pagesBefore)
+
+    await card.click({ force: true })
+    await closedButton.click({ force: true })
+    await page.waitForTimeout(100)
+    expect(context.pages().length, 'clicking a closed action must not open a page').toBe(
+      pagesBefore,
+    )
+  }
+
+  const tabStops = await page
+    .locator(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    )
+    .count()
+  for (let i = 0; i <= tabStops; i += 1) {
+    await page.keyboard.press('Tab')
+    expect(
+      await page.evaluate(
+        () => document.activeElement?.closest('[aria-label^="Closed:"]') !== null,
+      ),
+    ).toBe(false)
+  }
+})
+
+test('SuperfluidCampaignWidget Gardens Donate and Fund actions open Gardens', async ({
+  page,
+  context,
+}) => {
+  await gotoStory(page, STORY_IDS.noWalletContent)
+  await context.route('https://app.gardens.fund/**', (route) =>
+    route.fulfill({ status: 200, contentType: 'text/html', body: 'Gardens destination' }),
+  )
+  await page.getByText('Ecosystem actions').click()
+
+  for (const { label, buttonName } of [
+    { label: 'gardens-donation', buttonName: 'Donate' },
+    { label: 'gardens-funding', buttonName: 'Fund' },
+  ]) {
+    const card = page.getByTestId(`ActionCard-layout-${label}`)
+    const [newPage] = await Promise.all([
+      context.waitForEvent('page'),
+      card.getByRole('button', { name: buttonName }).click(),
+    ])
+    await newPage.waitForLoadState('domcontentloaded').catch(() => {})
+    expect(newPage.url()).toBe(
+      'https://app.gardens.fund/gardens/42220/0xf42c9ca2b10010142e2bac34ebdddb0b82177684',
+    )
+    await newPage.close()
+  }
 })
 
 test('SuperfluidCampaignWidget claim keeps the Superfluid header and can be closed', async ({ page }) => {
@@ -717,8 +806,8 @@ for (const view of LEADERBOARD_CLOSE_BUTTON_VIEWS) {
   }
 }
 
-// Without an integrator-owned disconnectOverride, the wallet chip keeps its
-// Disconnect affordance but explains where the wallet session must be managed.
+// Without an integrator-owned disconnectOverride, the wallet chip only explains
+// where the wallet session must be managed and does not expose a Disconnect action.
 // Covered on both CampaignHeader (content view) and LeaderboardView, since
 // each renders its own copy of the shared WalletChip component.
 const WALLET_CHIP_DISCONNECT_VIEWS = [
@@ -737,17 +826,13 @@ for (const view of WALLET_CHIP_DISCONNECT_VIEWS) {
     await expect(chip).toBeVisible()
     await chip.click()
 
-    const disconnectItem = page.getByText('Disconnect', { exact: true })
-    await expect(disconnectItem).toBeVisible()
+    await expect(page.getByText('To disconnect, use your wallet.', { exact: true })).toBeVisible()
+    await expect(page.getByText('Disconnect', { exact: true })).toHaveCount(0)
 
     await page.screenshot({
       path: `tests/widgets/superfluid-campaign-widget/test-results/scw-${view.screenshotIndex}-${view.key}-wallet-chip-menu-open.png`,
       fullPage: true,
     })
-
-    await disconnectItem.click()
-
-    await expect(page.getByText('Disconnect should be done in your wallets session')).toBeVisible()
     await expect(chip).toBeVisible()
 
     await page.screenshot({
