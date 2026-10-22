@@ -15,10 +15,9 @@ import {
   getChainDisplayName,
 } from '@goodwidget/ui'
 import type { BridgeTransaction } from '@goodsdks/bridging-sdk'
+import { getChainDecimals } from '../adapter/chains'
 import { formatTokenAmount } from '../amount'
 import { PROTOCOL_LABELS } from './shared'
-
-const G_DOLLAR_DECIMALS = 18
 
 interface BridgeHistoryDetailModalProps {
   transaction: BridgeTransaction | null
@@ -64,7 +63,7 @@ export function BridgeHistoryDetailModal({ transaction, explorerLink, onClose }:
         </XStack>
 
         <Text fontSize={24} fontWeight="800" textAlign="center">
-          {formatTokenAmount(formatUnits(transaction.amount, G_DOLLAR_DECIMALS))} G$
+          {formatTokenAmount(formatUnits(transaction.amount, getChainDecimals(transaction.fromChainId)))} G$
         </Text>
 
         <Stepper steps={steps} maxHeight={200} />

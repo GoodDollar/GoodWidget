@@ -6,12 +6,15 @@ import {
   ConfigLoadingStory,
   CustodialLocalFixtureStory,
   FaqTabStory,
+  FuseDestinationStory,
+  FuseSourceStory,
   HistoryDetailModalOpenStory,
   HistoryEmptyStory,
   HistoryErrorStory,
   HistoryLoadingStory,
   HistoryPopulatedStory,
   InjectedWalletStory,
+  InteractiveSubmitStory,
   InsufficientBalanceStory,
   LightThemePopulatedStory,
   NeedsApprovalStory,
@@ -228,5 +231,23 @@ export const FaqTab: Story = {
 export const LightThemePopulated: Story = {
   render: ({ brandPreset }) => (
     <LightThemePopulatedStory themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
+}
+
+export const FuseSource: Story = {
+  render: ({ defaultTheme, brandPreset }) => (
+    <FuseSourceStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
+}
+
+export const FuseDestination: Story = {
+  render: ({ defaultTheme, brandPreset }) => (
+    <FuseDestinationStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
+}
+
+export const InteractiveSubmit: Story = {
+  render: ({ defaultTheme, brandPreset }) => (
+    <InteractiveSubmitStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
   ),
 }

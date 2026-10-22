@@ -30,18 +30,23 @@ export function useBridgeConfig({
   toChain,
   protocol,
 }: UseBridgeConfigArgs): BridgeConfigState {
-  const [state, setState] = useState<BridgeConfigState>(EMPTY_STATE)
+  const routeKey = `${address}:${fromChain}:${toChain}:${protocol}`
+  const [state, setState] = useState<{ routeKey: string; sdk: BridgingSDK | null; result: BridgeConfigState }>({
+    routeKey: '',
+    sdk: null,
+    result: EMPTY_STATE,
+  })
   const requestIdRef = useRef(0)
 
   useEffect(() => {
     if (!sdk || !address) {
       requestIdRef.current += 1
-      setState(EMPTY_STATE)
+      setState({ routeKey, sdk, result: EMPTY_STATE })
       return
     }
 
     const requestId = ++requestIdRef.current
-    setState({ config: null, isLoading: true, error: null })
+    setState({ routeKey, sdk, result: { config: null, isLoading: true, error: null } })
 
     const route =
       fromChain !== null && toChain !== null && protocol
@@ -52,17 +57,26 @@ export function useBridgeConfig({
       .getBridgeConfig(address, route)
       .then((config) => {
         if (requestIdRef.current !== requestId) return
-        setState({ config, isLoading: false, error: null })
+        setState({ routeKey, sdk, result: { config, isLoading: false, error: null } })
       })
       .catch((err: unknown) => {
         if (requestIdRef.current !== requestId) return
         setState({
-          config: null,
-          isLoading: false,
-          error: mapBridgeError(err, 'Unable to load balance and limits.'),
+          routeKey,
+          sdk,
+          result: {
+            config: null,
+            isLoading: false,
+            error: mapBridgeError(err, 'Unable to load balance and limits.'),
+          },
         })
       })
-  }, [sdk, address, fromChain, toChain, protocol])
+  }, [sdk, address, fromChain, toChain, protocol, routeKey])
 
-  return state
+  // Effects reset asynchronously; never paint a balance or route limit that
+  // belongs to the previous account/source chain in the meantime.
+  if (state.routeKey !== routeKey || state.sdk !== sdk) {
+    return sdk && address ? { config: null, isLoading: true, error: null } : EMPTY_STATE
+  }
+  return state.result
 }

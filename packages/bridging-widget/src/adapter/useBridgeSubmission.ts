@@ -21,7 +21,7 @@ interface UseBridgeSubmissionArgs {
 }
 
 export interface BridgeSubmissionResult extends BridgeSubmissionState {
-  submit: (quote: BridgeFeeQuote) => Promise<void>
+  submit: (loadQuote: () => Promise<BridgeFeeQuote>) => Promise<void>
   reset: () => void
 }
 
@@ -34,16 +34,21 @@ export function useBridgeSubmission({ sdk }: UseBridgeSubmissionArgs): BridgeSub
   // doBridge rejects without saying which step it was on; this ref keeps the
   // last step reported by onStatus so the catch block can attribute the failure.
   const lastInFlightStepRef = useRef<'approving' | 'bridging' | null>(null)
+  const requestIdRef = useRef(0)
 
   const submit = useCallback(
-    async (quote: BridgeFeeQuote) => {
+    async (loadQuote: () => Promise<BridgeFeeQuote>) => {
       if (!sdk) return
 
+      const requestId = ++requestIdRef.current
       lastInFlightStepRef.current = null
       setState({ step: 'approving', failedAtStep: null, error: null, receipt: null })
 
       try {
+        const quote = await loadQuote()
+        if (requestIdRef.current !== requestId) return
         const receipt = await sdk.doBridge(quote, (status: BridgeStatus) => {
+          if (requestIdRef.current !== requestId) return
           if (status.step === 'approving' || status.step === 'bridging') {
             lastInFlightStepRef.current = status.step
           }
@@ -51,8 +56,10 @@ export function useBridgeSubmission({ sdk }: UseBridgeSubmissionArgs): BridgeSub
             setState((current) => ({ ...current, step: status.step, error: null }))
           }
         })
+        if (requestIdRef.current !== requestId) return
         setState({ step: 'completed', failedAtStep: null, error: null, receipt })
       } catch (err: unknown) {
+        if (requestIdRef.current !== requestId) return
         setState({
           step: 'failed',
           failedAtStep: lastInFlightStepRef.current,
@@ -64,7 +71,10 @@ export function useBridgeSubmission({ sdk }: UseBridgeSubmissionArgs): BridgeSub
     [sdk],
   )
 
-  const reset = useCallback(() => setState(IDLE_STATE), [])
+  const reset = useCallback(() => {
+    requestIdRef.current += 1
+    setState(IDLE_STATE)
+  }, [])
 
   return { ...state, submit, reset }
 }

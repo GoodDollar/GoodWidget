@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { formatUnits } from 'viem'
+import { formatUnits, parseUnits } from 'viem'
 import { useWallet } from '@goodwidget/core'
 import type { BridgeProtocol, BridgeTransaction } from '@goodsdks/bridging-sdk'
 import type { Address } from 'viem'
@@ -10,7 +10,9 @@ import type {
 } from './widgetRuntimeContract'
 import { getRouteProtocols } from './adapter/bridgeRoutes'
 import { useBridgingPublicClients, useBridgingSdk } from './adapter/bridgingClient'
-import { isBridgingChain } from './adapter/chains'
+import { isBridgingChain, getChainDecimals } from './adapter/chains'
+import { primaryRequirementMessage } from './adapter/errors'
+import { BRIDGING_CHAINS } from './widgetRuntimeContract'
 import { sanitizeAmount } from './amount'
 import { useBridgeConfig } from './adapter/useBridgeConfig'
 import { useBridgeHistory } from './adapter/useBridgeHistory'
@@ -20,9 +22,9 @@ import { useBridgeSubmission } from './adapter/useBridgeSubmission'
 export function useBridgingAdapter(): BridgingWidgetAdapterResult {
   const { address, chainId, isConnected, provider, connect, switchChain } = useWallet()
   const walletAddress = (address as Address | null) ?? null
-  const activeChainId = chainId ?? null
-  const isWrongChain = isConnected && !isBridgingChain(activeChainId)
-  const isReady = isConnected && !!walletAddress && !isWrongChain
+  const [selectedSourceChainId, setSelectedSourceChainId] = useState<number | null>(null)
+  const activeChainId = selectedSourceChainId ?? (isBridgingChain(chainId) ? chainId! : BRIDGING_CHAINS.CELO)
+  const isWrongChain = isConnected && !isBridgingChain(chainId ?? null)
 
   const [targetChainId, setTargetChainId] = useState<number | null>(null)
   const [selectedProtocol, setSelectedProtocol] = useState<BridgeProtocol | null>(null)
@@ -35,18 +37,21 @@ export function useBridgingAdapter(): BridgingWidgetAdapterResult {
   const submission = useBridgeSubmission({ sdk })
   const history = useBridgeHistory({ sdk, address: walletAddress, publicClients })
 
-  // Reset the selected route whenever the source chain stops being usable,
-  // so a stale target/protocol from a previous chain is never shown as valid.
-  useEffect(() => {
-    if (isReady) return
+  const selectSourceChain = useCallback((nextChainId: number) => {
+    if (!isBridgingChain(nextChainId)) return
+    setSelectedSourceChainId(nextChainId)
+  }, [])
 
+  // Route and amount belong to the selected account and source chain. Keep
+  // an in-flight transaction visible if either changes while it settles.
+  useEffect(() => {
     setTargetChainId(null)
     setSelectedProtocol(null)
     setInputAmountRaw('')
     setIsReviewOpen(false)
     setSelectedHistoryTransaction(null)
-    submission.reset()
-  }, [isReady])
+    if (submission.step === 'idle' || submission.step === 'failed') submission.reset()
+  }, [walletAddress, activeChainId])
 
   // Clear a typed amount when the destination chain changes: a route's
   // limits/balance are route-specific, so an amount valid for the old route
@@ -54,13 +59,13 @@ export function useBridgingAdapter(): BridgingWidgetAdapterResult {
   useEffect(() => {
     setInputAmountRaw('')
     setIsReviewOpen(false)
-    submission.reset()
+    if (submission.step === 'idle' || submission.step === 'failed') submission.reset()
   }, [targetChainId])
 
   const availableProtocols = useMemo(() => {
-    if (!isReady || activeChainId === null || targetChainId === null) return []
+    if (activeChainId === null || targetChainId === null) return []
     return getRouteProtocols(activeChainId, targetChainId)
-  }, [isReady, activeChainId, targetChainId])
+  }, [activeChainId, targetChainId])
 
   // Keep the selected protocol in sync with the route's actual options: default
   // to the first one when a route becomes available, and drop a selection that
@@ -82,6 +87,7 @@ export function useBridgingAdapter(): BridgingWidgetAdapterResult {
 
   const selectProtocol = useCallback((protocol: BridgeProtocol) => {
     setSelectedProtocol(protocol)
+    setIsReviewOpen(false)
   }, [])
 
   const bridgeConfigState = useBridgeConfig({
@@ -103,31 +109,53 @@ export function useBridgingAdapter(): BridgingWidgetAdapterResult {
 
   const setInputAmount = useCallback((amount: string) => {
     setInputAmountRaw(sanitizeAmount(amount))
+    setIsReviewOpen(false)
   }, [])
 
   const setMaxAmount = useCallback(() => {
     const balance = bridgeConfigState.config?.tokenBalance
-    if (balance === undefined) return
-    setInputAmountRaw(formatUnits(balance, 18))
-  }, [bridgeConfigState.config])
+    if (balance === undefined || activeChainId === null) return
+    const decimals = getChainDecimals(activeChainId)
+    setInputAmountRaw(formatUnits(balance, decimals))
+  }, [bridgeConfigState.config, activeChainId])
 
   const openReview = useCallback(() => {
-    if (!quoteState.canBridge || !quoteState.quote) return
+    if (quoteState.status !== 'ready' || !quoteState.canBridge || !quoteState.quote) return
     setIsReviewOpen(true)
-  }, [quoteState.canBridge, quoteState.quote])
+  }, [quoteState.status, quoteState.canBridge, quoteState.quote])
 
   const closeReview = useCallback(() => setIsReviewOpen(false), [])
 
+  const loadLatestQuote = useCallback(async () => {
+    if (!sdk || !walletAddress || targetChainId === null || !selectedProtocol || !inputAmount) {
+      throw new Error('Choose a route and amount before bridging.')
+    }
+    if (chainId !== activeChainId) await switchChain(activeChainId)
+    const amount = parseUnits(inputAmount, getChainDecimals(activeChainId))
+    const result = await sdk.getQuote({
+      sender: walletAddress,
+      amount,
+      fromChain: activeChainId,
+      toChain: targetChainId,
+      protocol: selectedProtocol,
+      refresh: true,
+    })
+    if (!result.canBridge || !result.quote) {
+      throw new Error(primaryRequirementMessage(result.requirements) ?? 'Bridge quote is no longer valid.')
+    }
+    return result.quote
+  }, [sdk, walletAddress, targetChainId, selectedProtocol, inputAmount, chainId, activeChainId, switchChain])
+
   const confirmBridge = useCallback(() => {
-    if (!quoteState.quote) return
+    if (!isReviewOpen || quoteState.status !== 'ready' || !quoteState.canBridge) return
     setIsReviewOpen(false)
-    void submission.submit(quoteState.quote)
-  }, [quoteState.quote, submission.submit])
+    void submission.submit(loadLatestQuote)
+  }, [isReviewOpen, quoteState.status, quoteState.canBridge, submission.submit, loadLatestQuote])
 
   const retrySubmission = useCallback(() => {
-    if (!quoteState.quote) return
-    void submission.submit(quoteState.quote)
-  }, [quoteState.quote, submission.submit])
+    if (submission.step !== 'failed') return
+    void submission.submit(loadLatestQuote)
+  }, [submission.step, submission.submit, loadLatestQuote])
 
   const closeSubmission = useCallback(() => {
     const wasCompleted = submission.step === 'completed'
@@ -156,6 +184,7 @@ export function useBridgingAdapter(): BridgingWidgetAdapterResult {
   const state: BridgingWidgetAdapterState = {
     isConnected,
     address: walletAddress,
+    walletChainId: chainId ?? null,
     chainId: activeChainId,
     isWrongChain,
     targetChainId,
@@ -188,6 +217,7 @@ export function useBridgingAdapter(): BridgingWidgetAdapterResult {
   const actions: BridgingWidgetAdapterActions = {
     connect,
     switchChain,
+    selectSourceChain,
     selectTargetChain,
     selectProtocol,
     setInputAmount,

@@ -14,10 +14,10 @@ import {
   getChainDisplayName,
 } from '@goodwidget/ui'
 import type { BridgeFeeQuote, BridgeProtocol } from '@goodsdks/bridging-sdk'
+import { formatChargedProviderFee, getChainDecimals } from '../adapter/chains'
 import { formatTokenAmount } from '../amount'
 import { DetailRow, PROTOCOL_LABELS, RouteSelectionCard } from './shared'
 
-const G_DOLLAR_DECIMALS = 18
 const BPS_DENOMINATOR = 10_000
 
 interface ReviewScreenProps {
@@ -42,8 +42,8 @@ export function ReviewScreen({
   onClose,
   onConfirm,
 }: ReviewScreenProps) {
-  const amountSent = formatTokenAmount(formatUnits(quote.amount, G_DOLLAR_DECIMALS))
-  const amountReceived = formatTokenAmount(formatUnits(quote.amountReceived, G_DOLLAR_DECIMALS))
+  const amountSent = formatTokenAmount(formatUnits(quote.amount, getChainDecimals(fromChainId)))
+  const amountReceived = formatTokenAmount(formatUnits(quote.amountReceived, getChainDecimals(targetChainId)))
   const protocolFeePercent = (Number(quote.protocolFeeBps) / BPS_DENOMINATOR) * 100
 
   return (
@@ -79,10 +79,10 @@ export function ReviewScreen({
           <DetailRow
             label="Protocol fee"
             value={`${protocolFeePercent}% (${formatTokenAmount(
-              formatUnits(quote.protocolFee, G_DOLLAR_DECIMALS),
+              formatUnits(quote.protocolFee, getChainDecimals(targetChainId)),
             )} G$)`}
           />
-          <DetailRow label="Provider fee" value={`${quote.feeInNative} (paid separately, source-chain native token)`} />
+          <DetailRow label="Provider fee" value={`${formatChargedProviderFee(quote.fee, fromChainId)} (paid separately)`} />
           <DetailRow label="Estimated G$ received" value={`${amountReceived} G$`} />
         </RouteSelectionCard>
 
