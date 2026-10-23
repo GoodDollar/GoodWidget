@@ -94,12 +94,6 @@ test('CitizenClaimWidget shows not_whitelisted for fresh wallet (live Celo RPC)'
     'Live RPC test requires --disable-web-security / --ignore-certificate-errors',
   )
 
-  // This is the only test that reaches a live RPC, and it budgets 40s for the identity
-  // check below. The suite-wide 30s cap would kill it first, so the wait could never
-  // run to completion and a slow Celo response failed on the runner timeout instead of
-  // its own assertion.
-  test.setTimeout(60_000)
-
   await gotoStory(page)
 
   // Wait up to 40s for the identity check to complete
