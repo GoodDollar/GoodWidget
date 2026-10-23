@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 const deepLinkQuery =
-  '&buyerAddress=0x1111111111111111111111111111111111111111' +
+  '&signerAddress=0x1111111111111111111111111111111111111111' +
   `&operatorSignature=0x${'ab'.repeat(64)}`
 
 test('source=antseed renders only the purchase widget, without landing-page sections', async ({
@@ -23,7 +23,7 @@ test('omitting source keeps the landing page wrapper', async ({ page }) => {
   await expect(page.getByTestId('ai-credits-purchase-only')).toHaveCount(0)
 })
 
-test('source=antseed composes with buyerAddress and operatorSignature deep-link params', async ({
+test('source=antseed composes with signerAddress and operatorSignature deep-link params', async ({
   page,
 }) => {
   await page.goto(`/?source=antseed${deepLinkQuery}`)

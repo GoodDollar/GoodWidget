@@ -20,6 +20,8 @@ import {
   createToast,
   updateToast,
 } from '@goodwidget/ui'
+import { version } from '../package.json'
+import { WidgetVersion } from '@goodwidget/ui'
 import { needsWalletConnection, useAiCreditsAdapter } from './adapter'
 import { useAiCreditsHistory } from './useAiCreditsHistory'
 import {
@@ -27,8 +29,7 @@ import {
   AiCreditsPurchaseFlow,
   AiCreditsStatusNotice,
   CreditsManagementCard,
-  BuyerOperatorCard,
-  SetupSnippet,
+  SignerOperatorCard,
   HistoryTab,
   SetupGuidanceCard,
   HowToUseView,
@@ -105,10 +106,8 @@ function SetupTabPanel({
 
   return (
     <YStack gap="$4" width="100%">
-      <AiCreditsHero gBalance={state.gBalance} isGoodIdVerified={state.isGoodIdVerified} />
       <Text tone="soft" fontSize="$2">
-        One-time setup — optional for now. Take the steps in any order, or skip ahead and come back
-        when you are ready to buy.
+        One-time setup required before buying AI Credits.
       </Text>
       <SetupOnboardingFlow state={state} actions={actions} />
     </YStack>
@@ -219,14 +218,13 @@ function DesktopRequiredNotice() {
           <Text fontSize="$2" fontWeight="700">
             Please note:
           </Text>{' '}
-          setup requires a computer.
+          Using your AI credits requires a desktop computer.
         </Text>
         <Icon name={expanded ? 'chevron-up' : 'chevron-down'} size="xs" color="muted" />
       </XStack>
       {expanded && (
         <Text fontSize="$2" lineHeight="$3" tone="soft" paddingLeft="$6">
-          You can buy credits from your phone anytime. Antseed, the app that manages your credits,
-          only runs on a desktop.
+          You can buy credits and set up your Signer Key from your phone. To use your AI credits, you’ll need a desktop computer.
         </Text>
       )}
     </AiCreditsStatusNotice>
@@ -384,9 +382,7 @@ function ManagePanel({
 
       <CreditsManagementCard state={state} actions={actions} />
 
-      <BuyerOperatorCard state={state} actions={actions} />
-
-      <SetupSnippet />
+      <SignerOperatorCard state={state} actions={actions} />
 
       <YStack gap="$2" width="100%" alignItems="center">
         {state.error && (
@@ -450,19 +446,19 @@ function AiCreditsInner({
   const activeAdapter = factoryAdapter ?? defaultAdapter
 
   const { state, actions } = activeAdapter
-  const onBuyersDiscoveredRef = React.useRef(actions.discoverBuyers)
-  onBuyersDiscoveredRef.current = actions.discoverBuyers
-  const onBuyersDiscovered = useCallback((addresses: string[]) => {
-    onBuyersDiscoveredRef.current(addresses)
+  const onSignersDiscoveredRef = React.useRef(actions.discoverSigners)
+  onSignersDiscoveredRef.current = actions.discoverSigners
+  const onSignersDiscovered = useCallback((addresses: string[]) => {
+    onSignersDiscoveredRef.current(addresses)
   }, [])
 
   const history = useAiCreditsHistory({
     address: state.address,
     backendUrl,
-    defaultBuyerFilter: state.buyerPubKey ?? 'all',
+    defaultSignerFilter: state.signerPubKey ?? 'all',
     environment,
     backendClient: adapterOptions?.backendClient,
-    onBuyersDiscovered,
+    onSignersDiscovered,
   })
 
   const handlePay = useCallback(
@@ -537,7 +533,7 @@ function AiCreditsInner({
     )
 
   return (
-    <YStack gap="$3" padding="$3" width="100%">
+    <YStack gap="$2" padding="$3" width="100%">
       <XStack justifyContent="space-between" alignItems="center" gap="$2" paddingHorizontal="$1">
         <Heading level={4}>GoodDollar</Heading>
         <XStack gap="$2" alignItems="center" flexShrink={1} minWidth={0}>
@@ -581,7 +577,7 @@ function AiCreditsInner({
         <HistoryTab
           state={history.state}
           actions={history.actions}
-          knownBuyers={state.buyers.map((address) => ({ address }))}
+          knownSigners={state.signers.map((address) => ({ address }))}
         />
       ) : (
         <BuyCreditsPanel
@@ -655,6 +651,7 @@ export function AiCreditsWidget({
           showWalletControls={showWalletControls}
         />
         <ToastContainer />
+        <WidgetVersion name="AI Credits" version={version} />
       </YStack>
     </GoodWidgetProvider>
   )

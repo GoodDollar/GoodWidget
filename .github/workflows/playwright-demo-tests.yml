@@ -1,0 +1,139 @@
+name: Playwright Demo Tests
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/playwright-demo-tests.yml'
+      - 'docs/demo-environment.md'
+      - 'docs/qa-guide.md'
+      - 'examples/storybook/**'
+      - 'packages/**'
+      - 'playwright.config.ts'
+      - 'tests/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+  pull_request:
+    types: [opened, synchronize, edited, ready_for_review]
+    paths:
+      - '.github/workflows/playwright-demo-tests.yml'
+      - 'docs/demo-environment.md'
+      - 'docs/qa-guide.md'
+      - 'examples/storybook/**'
+      - 'packages/**'
+      - 'playwright.config.ts'
+      - 'tests/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+  pull_request_target:
+    types: [opened, synchronize, edited, ready_for_review]
+    paths:
+      - '.github/workflows/playwright-demo-tests.yml'
+      - 'docs/demo-environment.md'
+      - 'docs/qa-guide.md'
+      - 'examples/storybook/**'
+      - 'packages/**'
+      - 'playwright.config.ts'
+      - 'tests/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+
+permissions:
+  contents: read
+
+jobs:
+  authorize-tests:
+    if: github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    environment: external
+    steps:
+      - run: true
+
+  playwright-demo:
+    if: >-
+      ${{
+        always() && (
+          github.event_name == 'push' ||
+          (github.event_name == 'pull_request' &&
+            github.event.pull_request.head.repo.full_name == github.repository) ||
+          (github.event_name == 'pull_request_target' &&
+            github.event.pull_request.head.repo.full_name != github.repository &&
+            needs.authorize-tests.result == 'success')
+        )
+      }}
+    needs: authorize-tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout approved fork pull request head
+        if: github.event_name == 'pull_request_target'
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          allow-unsafe-pr-checkout: true
+          persist-credentials: false
+
+      - name: Checkout pull request head
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Checkout
+        if: github.event_name == 'push'
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm run build
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install chromium --with-deps
+
+      - name: Check Playwright demo configuration
+        env:
+          VITE_REOWN_PROJECT_ID: ${{ secrets.VITE_REOWN_PROJECT_ID }}
+        run: |
+          if [ -z "${VITE_REOWN_PROJECT_ID}" ]; then
+            echo "::error title=Missing VITE_REOWN_PROJECT_ID::Set the VITE_REOWN_PROJECT_ID repository secret so the AppKit-backed Playwright stories can run in CI."
+            exit 1
+          fi
+
+      - name: Run Playwright demo tests
+        env:
+          VITE_REOWN_PROJECT_ID: ${{ secrets.VITE_REOWN_PROJECT_ID }}
+        run: |
+          if [ -z "${VITE_REOWN_PROJECT_ID}" ]; then
+            echo "::error title=Missing VITE_REOWN_PROJECT_ID::Set the VITE_REOWN_PROJECT_ID repository secret so the AppKit-backed Playwright stories can run in CI."
+            exit 1
+          fi
+          pnpm test:demo
+
+      - name: Upload Playwright artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-demo-artifacts
+          path: |
+            playwright-report
+            test-results
+            tests/**/test-results

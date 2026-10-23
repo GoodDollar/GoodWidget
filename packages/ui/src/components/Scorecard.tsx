@@ -32,10 +32,10 @@ export interface ScorecardProps {
   suffix?: string
   format?: MetricFormat
   decimals?: number
-  /** Optional caption line below the value row, e.g. a breakdown of the headline value ("out of X in subscription"). */
-  subLabel?: string
   trend?: ScorecardTrend
   trendLabel?: string
+  /** Short contextual/source note rendered below the trend row (or value row, if no trend). */
+  subtitle?: string
   variant?: ScorecardVariant
   size?: ScorecardSize
   testID?: string
@@ -156,13 +156,13 @@ const ScorecardAffixText = createComponent(TamaguiText, {
   defaultVariants: { size: 'md' },
 })
 
-/** Same vertical rhythm as the trend row — the two are mutually exclusive in practice, but neither is aware of the other, so each gets its own top margin off the value row. */
-const ScorecardSubLabelText = createComponent(TamaguiText, {
-  name: 'ScorecardSubLabelText',
+/** Short qualifier/source note below the trend row (or value row if no trend) — same variant shape as ScorecardLabelText. */
+const ScorecardSubtitleText = createComponent(TamaguiText, {
+  name: 'ScorecardSubtitleText',
   fontFamily: '$body',
   color: '$placeholderColor',
+  fontWeight: '400',
   textAlign: 'center',
-  marginTop: VALUE_TO_TREND_GAP_PX,
 
   variants: {
     size: {
@@ -256,9 +256,9 @@ function ScorecardContent({
   suffix,
   format = 'compact',
   decimals,
-  subLabel,
   trend,
   trendLabel,
+  subtitle,
   size = 'md',
   testID,
 }: Omit<ScorecardProps, 'variant'>) {
@@ -275,7 +275,6 @@ function ScorecardContent({
         <ScorecardValueText size={size}>{formattedValue}</ScorecardValueText>
         {suffix ? <ScorecardAffixText size={size}>{suffix}</ScorecardAffixText> : null}
       </ScorecardValueRow>
-      {subLabel ? <ScorecardSubLabelText size={size}>{subLabel}</ScorecardSubLabelText> : null}
       {trend ? (
         <ScorecardTrendRow>
           <TrendGlyph
@@ -288,6 +287,11 @@ function ScorecardContent({
             {trendLabel ? ` ${trendLabel}` : ''}
           </ScorecardTrendText>
         </ScorecardTrendRow>
+      ) : null}
+      {subtitle ? (
+        <ScorecardSubtitleText size={size} marginTop={VALUE_TO_TREND_GAP_PX}>
+          {subtitle}
+        </ScorecardSubtitleText>
       ) : null}
     </ScorecardFrame>
   )
