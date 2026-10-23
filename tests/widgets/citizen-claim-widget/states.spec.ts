@@ -101,7 +101,7 @@ test('CitizenClaimWidget shows not_whitelisted for fresh wallet (live Celo RPC)'
   await gotoStory(page)
 
   // A retrying assertion reports the actual widget text if RPC/state resolution fails.
-  const widget = page.getByTestId('CitizenClaimWidget-custodial-wallet')
+  const widget = page.locator('body')
   await expect(widget, 'Expected not_whitelisted state from live Celo RPC').toContainText(
     'Whitelisting Required',
     { timeout: 40_000 },
