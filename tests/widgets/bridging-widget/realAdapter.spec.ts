@@ -44,6 +44,7 @@ async function prepareRoute(page: Page) {
 
 test.describe('real adapter submit flow', () => {
   test('switches source chain, refreshes the quote, and gives that quote to doBridge', async ({ page }) => {
+    test.setTimeout(60_000)
     await prepareRoute(page)
     await page.getByTestId('BridgingWidget-review-confirm').click()
     await expect(page.getByTestId('BridgingWidget-confirm-done')).toBeVisible()

@@ -147,6 +147,21 @@ test('BridgingWidget opens the Review Bridge drawer with route and fee details',
   await saveScreenshot(page, 'bw-13-review-open', 'BridgingWidget-review-screen')
 })
 
+test('BridgingWidget keeps Review confirmation reachable on a short mobile viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 504 })
+  await gotoStory(page, 'review-open')
+
+  const scrollArea = page.getByTestId('BridgingWidget-review-screen').locator('..')
+  const confirm = page.getByTestId('BridgingWidget-review-confirm')
+  await expect.poll(() => scrollArea.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true)
+  await expect.poll(() => scrollArea.evaluate((element) => element.getBoundingClientRect().top)).toBeLessThan(200)
+  await page.mouse.move(195, 350)
+  await page.mouse.wheel(0, 800)
+  await expect.poll(() => scrollArea.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+  await expect(confirm).toBeInViewport()
+  await page.screenshot({ path: 'tests/widgets/bridging-widget/test-results/bw-31-mobile-review-footer.png' })
+})
+
 test('BridgingWidget confirm modal tracks the approve/bridge submission steps', async ({ page }) => {
   await gotoStory(page, 'submission-approving')
   await expectBodyToContain(page, ['Approving G$…'])
