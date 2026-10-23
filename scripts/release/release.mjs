@@ -247,16 +247,18 @@ async function recover() {
   const version = packageJson(pkg).version
   // Recovery is idempotent: publish only when absent, then verify the exact committed
   // version before optionally replaying the wallet dispatch.
-  if (!registryRecord(pkg.name, version))
-    run('pnpm', [
-      '--dir',
-      pkg.dir,
-      'publish',
-      '--access',
-      'public',
-      '--provenance',
-      '--no-git-checks',
-    ])
+  if (!registryRecord(pkg.name, version)) {
+    // Pack and publish exactly as release() does, so both paths authenticate through the
+    // same npm CLI rather than relying on pnpm's separate publish implementation.
+    const packDir = mkdtempSync(join(tmpdir(), 'goodwidget-recover-'))
+    run('pnpm', ['--dir', pkg.dir, 'pack', '--pack-destination', packDir])
+    const tarball = readdirSync(packDir).find(
+      (file) =>
+        file.startsWith(pkg.name.replace('@', '').replace('/', '-')) && file.endsWith('.tgz'),
+    )
+    if (!tarball) throw new Error(`Unable to locate packed tarball for ${pkg.name}`)
+    run('npm', ['publish', join(packDir, tarball), '--access', 'public', '--provenance'])
+  }
   // Recovery owns the already committed version. If publication succeeded but
   // the mutable channel was not updated, repair it idempotently.
   if (registryLatest(pkg.name) !== version) {
