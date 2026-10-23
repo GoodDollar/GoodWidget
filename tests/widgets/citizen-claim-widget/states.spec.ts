@@ -102,12 +102,8 @@ test('CitizenClaimWidget shows not_whitelisted for fresh wallet (live Celo RPC)'
 
   await gotoStory(page)
 
-  // Wait up to 40s for the identity check to complete. 'Retry' is the widget's error
-  // state: live Celo is regularly unreachable or rate-limited from CI runners, and that
-  // outcome says nothing about the code under test, so report it as a skip rather than
-  // a failure. An empty match is still a real failure — the state is then unknown.
-  const matched = await waitForText(page, ['Verify', 'Whitelisting', 'Face', 'Retry'], 40_000)
-  test.skip(matched === 'Retry', 'Live Celo RPC was unreachable from this runner')
+  // Wait up to 40s for the identity check to complete
+  const matched = await waitForText(page, ['Verify', 'Whitelisting', 'Face'], 40_000)
   expect(matched, 'Expected not_whitelisted state with Verify CTA').toBeTruthy()
 
   const bodyText = await page.evaluate(() => document.body.innerText)
