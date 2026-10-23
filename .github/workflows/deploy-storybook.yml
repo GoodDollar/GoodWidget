@@ -20,6 +20,9 @@ on:
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
 
+permissions:
+  contents: read
+
 concurrency:
   group: deploy-storybook-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true

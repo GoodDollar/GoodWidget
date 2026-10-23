@@ -9,7 +9,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "integration-manifest.json"
   ],
   "type": "module",
   "main": "./dist/index.cjs",
@@ -39,7 +40,8 @@
       "types": "./dist/mocked/index.d.ts",
       "import": "./dist/mocked/index.js",
       "require": "./dist/mocked/index.cjs"
-    }
+    },
+    "./integration-manifest": "./integration-manifest.json"
   },
   "scripts": {
     "build": "tsup",
