@@ -30,7 +30,8 @@ concurrency:
 jobs:
   recover:
     permissions:
-      contents: read
+      # Recovery pushes the package tag when the interrupted release never did.
+      contents: write
       id-token: write
     environment: release
     runs-on: ubuntu-latest
@@ -51,6 +52,10 @@ jobs:
       - run: pnpm --filter './packages/**' run build
       - run: pnpm test:release
       - run: pnpm validate:register-entries
+      - name: Configure release identity
+        run: |
+          git config user.name goodwidget-release
+          git config user.email goodwidget-release@users.noreply.github.com
       - name: Publish the authoritative committed version
         env:
           RECOVERY_PACKAGE: ${{ inputs.package }}

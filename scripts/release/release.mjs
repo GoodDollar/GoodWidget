@@ -66,6 +66,15 @@ async function verifyRegistryRelease(name, version) {
   throw new Error(`Registry verification failed for ${name}@${version} or its latest tag`)
 }
 
+function tagExists(tag) {
+  try {
+    run('git', ['rev-parse', '--verify', `refs/tags/${tag}`], { capture: true })
+    return true
+  } catch {
+    return false
+  }
+}
+
 function changedPaths(base, head) {
   const diff = /^0{40}$/.test(base)
     ? []
@@ -125,7 +134,10 @@ async function release() {
   // This assertion is repeated in code so local/manual invocation cannot bypass the
   // workflow-level main-versus-next publication boundary.
   assertNextBranch()
-  const head = process.env.GITHUB_SHA || 'HEAD'
+  // The workflow checks this exact commit out. Resolving it once keeps package
+  // selection, the build, and the push describing the same tree even if next moves
+  // while the run waits for approval or for the concurrency group.
+  const head = run('git', ['rev-parse', process.env.GITHUB_SHA || 'HEAD'], { capture: true })
   const subject = run('git', ['log', '-1', '--pretty=%s', head], { capture: true })
   if (subject.includes(releaseMarker))
     return console.log('Release marker commit detected; nothing to release.')
@@ -182,7 +194,15 @@ async function release() {
   // the resulting push a no-op for release-next.yml and enables exact-version recovery.
   run('git', ['add', ...selected.map((pkg) => `${pkg.dir}/package.json`), 'pnpm-lock.yaml'])
   run('git', ['commit', '--allow-empty', '-m', `${releaseMarker} ${versions.join(', ')}`])
-  run('git', ['push', 'origin', 'next'])
+  // Nothing has been published yet. If next advanced past the approved commit, this
+  // selection no longer describes the branch, so refuse rather than publish from it.
+  run('git', ['fetch', 'origin', 'next'])
+  const remoteNext = run('git', ['rev-parse', 'origin/next'], { capture: true })
+  if (remoteNext !== head)
+    throw new Error(
+      `next moved from ${head} to ${remoteNext} during this run; re-run the release against the current tip`,
+    )
+  run('git', ['push', 'origin', 'HEAD:next'])
 
   // Publish in dependency order and require both immutable registry integrity
   // and the `latest` tag before creating local tags or notifying GoodWallet.
@@ -243,6 +263,14 @@ async function recover() {
     run('npm', ['dist-tag', 'add', `${pkg.name}@${version}`, 'latest'])
   }
   const verified = await verifyRegistryRelease(pkg.name, version)
+  // A release that stopped before pushing tags left them on a discarded runner.
+  // Reconcile this package's tag so the release URL below actually resolves.
+  const tag = `${pkg.name.replace('@goodwidget/', '')}-v${version}`
+  run('git', ['fetch', 'origin', '--tags'])
+  if (!tagExists(tag)) {
+    run('git', ['tag', '-a', tag, '-m', `${pkg.name}@${version}`])
+    run('git', ['push', 'origin', tag])
+  }
   if (pkg.kind === 'widget') {
     const sourceCommit = run('git', ['rev-parse', 'HEAD'], { capture: true })
     await dispatchWidget(
