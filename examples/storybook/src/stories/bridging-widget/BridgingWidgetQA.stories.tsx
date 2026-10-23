@@ -32,6 +32,7 @@ import {
   WrongChainStory,
 } from '../helpers/bridgingWidgetStories'
 import { BRAND_PRESET_OPTIONS, brandPresetOverrides, type BrandPreset } from '../helpers/themeOverridePresets'
+import { BridgingRealAdapterFixture } from '../helpers/bridgingRealAdapterFixture'
 
 interface BridgingWidgetQAArgs {
   defaultTheme: 'light' | 'dark'
@@ -249,5 +250,25 @@ export const FuseDestination: Story = {
 export const InteractiveSubmit: Story = {
   render: ({ defaultTheme, brandPreset }) => (
     <InteractiveSubmitStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
+}
+
+export const RealAdapterSubmit: Story = {
+  render: ({ defaultTheme, brandPreset }) => (
+    <BridgingRealAdapterFixture
+      mode="submit"
+      defaultTheme={defaultTheme}
+      themeOverrides={brandPresetOverrides(brandPreset)}
+    />
+  ),
+}
+
+export const RealAdapterHistory: Story = {
+  render: ({ defaultTheme, brandPreset }) => (
+    <BridgingRealAdapterFixture
+      mode="history"
+      defaultTheme={defaultTheme}
+      themeOverrides={brandPresetOverrides(brandPreset)}
+    />
   ),
 }

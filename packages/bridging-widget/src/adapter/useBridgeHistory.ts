@@ -68,6 +68,8 @@ export function useBridgeHistory({ sdk, address, publicClients }: UseBridgeHisto
 
   const refresh = useCallback(() => setRefreshToken((token) => token + 1), [])
 
+  // A failed explicit scan preserves the same transactions array but still
+  // advances requestIdRef. Restart polling with that new request ID.
   useEffect(() => {
     if (!sdk || !address) return
     const pending = state.transactions.filter((transaction) => transaction.status.status === 'pending')
@@ -92,7 +94,7 @@ export function useBridgeHistory({ sdk, address, publicClients }: UseBridgeHisto
       active = false
       clearInterval(intervalId)
     }
-  }, [sdk, address, state.transactions])
+  }, [sdk, address, publicClients, refreshToken, state.transactions])
 
   return { ...state, refresh }
 }

@@ -21,7 +21,8 @@ interface UseBridgeSubmissionArgs {
 }
 
 export interface BridgeSubmissionResult extends BridgeSubmissionState {
-  submit: (loadQuote: () => Promise<BridgeFeeQuote>) => Promise<void>
+  submit: (loadQuote: () => Promise<BridgeFeeQuote>, isCurrent: () => boolean) => Promise<void>
+  cancelPreparation: () => void
   reset: () => void
 }
 
@@ -35,18 +36,28 @@ export function useBridgeSubmission({ sdk }: UseBridgeSubmissionArgs): BridgeSub
   // last step reported by onStatus so the catch block can attribute the failure.
   const lastInFlightStepRef = useRef<'approving' | 'bridging' | null>(null)
   const requestIdRef = useRef(0)
+  // A quote/network switch is cancellable. Once doBridge starts, preserve its
+  // status callbacks even if the wallet account or selected source changes.
+  const preparingRequestRef = useRef<number | null>(null)
 
   const submit = useCallback(
-    async (loadQuote: () => Promise<BridgeFeeQuote>) => {
+    async (loadQuote: () => Promise<BridgeFeeQuote>, isCurrent: () => boolean) => {
       if (!sdk) return
 
       const requestId = ++requestIdRef.current
+      preparingRequestRef.current = requestId
       lastInFlightStepRef.current = null
       setState({ step: 'approving', failedAtStep: null, error: null, receipt: null })
 
       try {
         const quote = await loadQuote()
         if (requestIdRef.current !== requestId) return
+        if (preparingRequestRef.current === requestId && !isCurrent()) {
+          preparingRequestRef.current = null
+          setState(IDLE_STATE)
+          return
+        }
+        preparingRequestRef.current = null
         const receipt = await sdk.doBridge(quote, (status: BridgeStatus) => {
           if (requestIdRef.current !== requestId) return
           if (status.step === 'approving' || status.step === 'bridging') {
@@ -60,6 +71,12 @@ export function useBridgeSubmission({ sdk }: UseBridgeSubmissionArgs): BridgeSub
         setState({ step: 'completed', failedAtStep: null, error: null, receipt })
       } catch (err: unknown) {
         if (requestIdRef.current !== requestId) return
+        if (preparingRequestRef.current === requestId && !isCurrent()) {
+          preparingRequestRef.current = null
+          setState(IDLE_STATE)
+          return
+        }
+        preparingRequestRef.current = null
         setState({
           step: 'failed',
           failedAtStep: lastInFlightStepRef.current,
@@ -71,10 +88,20 @@ export function useBridgeSubmission({ sdk }: UseBridgeSubmissionArgs): BridgeSub
     [sdk],
   )
 
-  const reset = useCallback(() => {
+  const cancelPreparation = useCallback(() => {
+    if (preparingRequestRef.current === null) return
+    preparingRequestRef.current = null
     requestIdRef.current += 1
+    lastInFlightStepRef.current = null
     setState(IDLE_STATE)
   }, [])
 
-  return { ...state, submit, reset }
+  const reset = useCallback(() => {
+    requestIdRef.current += 1
+    preparingRequestRef.current = null
+    lastInFlightStepRef.current = null
+    setState(IDLE_STATE)
+  }, [])
+
+  return { ...state, submit, cancelPreparation, reset }
 }
