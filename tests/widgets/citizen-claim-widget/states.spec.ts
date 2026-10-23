@@ -2,8 +2,10 @@
  * states.spec.ts — Playwright tests for CitizenClaimWidget states.
  *
  * Tests use the CustodialLocalFixture story with a randomly-generated test wallet
- * (address: 0x329377cbeeF39f01b0Ea04B80465c9eB47D3ED1) that has no on-chain history,
+ * (address: 0x329377cbeeF39f01b0Ea04B80465c9eB47D3ED81) that has no on-chain history,
  * so the expected live-RPC flow is: loading → not_whitelisted.
+ * The live test requires forno.celo.org for identity reads; auxiliary claimable
+ * balances and stats also read rpc.fuse.io and rpc.ankr.com/xdc.
  *
  * The error state is tested by intercepting and blocking all RPC network calls.
  *
@@ -89,6 +91,8 @@ test('CitizenClaimWidget shows not_whitelisted for fresh wallet (live Celo RPC)'
   page,
   browserName,
 }) => {
+  // Allow the 40s live-RPC assertion plus navigation, CTA checks, and screenshot.
+  test.setTimeout(60_000)
   test.skip(
     browserName !== 'chromium',
     'Live RPC test requires --disable-web-security / --ignore-certificate-errors',
@@ -96,12 +100,13 @@ test('CitizenClaimWidget shows not_whitelisted for fresh wallet (live Celo RPC)'
 
   await gotoStory(page)
 
-  // Wait up to 40s for the identity check to complete
-  const matched = await waitForText(page, ['Verify', 'Whitelisting', 'Face'], 40_000)
-  expect(matched, 'Expected not_whitelisted state with Verify CTA').toBeTruthy()
-
-  const bodyText = await page.evaluate(() => document.body.innerText)
-  expect(bodyText).toMatch(/Verify|Whitelisting Required|Face/i)
+  // A retrying assertion reports the actual widget text if RPC/state resolution fails.
+  const widget = page.getByTestId('CitizenClaimWidget-custodial-wallet')
+  await expect(widget, 'Expected not_whitelisted state from live Celo RPC').toContainText(
+    'Whitelisting Required',
+    { timeout: 40_000 },
+  )
+  await expect(widget.getByRole('button', { name: 'Verify', exact: true })).toBeVisible()
 
   await page.screenshot({
     path: 'tests/widgets/citizen-claim-widget/test-results/ccw-02-not-whitelisted.png',
