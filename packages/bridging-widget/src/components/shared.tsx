@@ -13,8 +13,8 @@ import type { BridgeProtocol } from '@goodsdks/bridging-sdk'
 // Shared across BridgeTab (protocol picker) and FeeBreakdown (route summary)
 // so the two screens never label the same protocol differently.
 export const PROTOCOL_LABELS: Record<BridgeProtocol, string> = {
-  AXELAR: 'Axelar',
-  LAYERZERO: 'LayerZero',
+  AXELAR: 'Axelar (Celo, Ethereum)',
+  LAYERZERO: 'LayerZero (Celo, Ethereum, Fuse, XDC)',
 }
 
 export const BridgingTabContent = createComponent(YStack, {

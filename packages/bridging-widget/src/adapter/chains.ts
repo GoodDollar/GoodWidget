@@ -1,4 +1,5 @@
-import { createPublicClient, http, type Chain } from 'viem'
+import { createPublicClient, formatUnits, http, type Chain } from 'viem'
+import { SUPPORTED_CHAINS } from '@goodsdks/bridging-sdk'
 import { BRIDGING_CHAINS } from '../widgetRuntimeContract'
 
 // RPC endpoints matching GoodSDKs' own demo-bridging-app wiring
@@ -33,6 +34,19 @@ export const VIEM_CHAINS: Record<number, Chain> = {
 
 export function isBridgingChain(chainId: number | null | undefined): boolean {
   return !!chainId && chainId in VIEM_CHAINS
+}
+
+export function getChainDecimals(chainId: number | null | undefined): number {
+  if (!chainId) return 18
+  return SUPPORTED_CHAINS[chainId]?.decimals ?? 18
+}
+
+// The SDK's feeInNative is the unbuffered provider estimate. The transaction
+// sends fee (which includes its buffer), so show that exact native-token value.
+export function formatChargedProviderFee(fee: bigint, sourceChainId: number): string {
+  const native = SUPPORTED_CHAINS[sourceChainId]?.nativeCurrency
+  if (!native) return formatUnits(fee, 18)
+  return `${formatUnits(fee, native.decimals)} ${native.symbol}`
 }
 
 export function createBridgingPublicClient(chainId: number) {
