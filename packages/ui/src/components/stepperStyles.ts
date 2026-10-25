@@ -30,7 +30,7 @@ export const FOCUSED_STATUSES = new Set<StepperStepStatus>([
  * the caller marked it `optional`, so it reads as available rather than locked.
  */
 export const OPTIONAL_STEP_OVERRIDES = {
-  label: 'Optional',
+  label: '',
   titleColor: '$colorSoft',
 } as const
 

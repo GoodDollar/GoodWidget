@@ -111,6 +111,11 @@ export interface CampaignActionDefinition {
   ctaKind: CampaignActionCtaKind
   /** Required when ctaKind is 'external-link'. */
   href?: string
+  /**
+   * Renders the card greyed-out and non-interactive (no card/button press, no
+   * link), for actions that are permanently or temporarily closed.
+   */
+  disabled?: boolean
 }
 
 export interface CampaignPoolDefinition {

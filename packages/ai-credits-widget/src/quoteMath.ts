@@ -1,4 +1,5 @@
 import { parseUnits } from 'viem'
+import { formatUsdAmount } from './format'
 import type { AiCreditsQuote } from './widgetRuntimeContract'
 
 export const CREDITS_PER_USD = 10_000
@@ -48,10 +49,8 @@ export function formatProfileUsd(usd: bigint): string {
   return (Number(usd) / 1_000_000).toFixed(4)
 }
 
-export function formatUsdDisplay(usd: string, decimals = 2): string {
-  const value = Number.parseFloat(usd)
-  if (!Number.isFinite(value) || value <= 0) return `US$ ${(0).toFixed(decimals)}`
-  return `US$ ${value.toFixed(decimals)}`
+export function formatUsdDisplay(usd: string): string {
+  return formatUsdAmount(usd)
 }
 
 export function formatUsd1ToG(gdUsdPerToken: number): string | null {
@@ -65,9 +64,9 @@ export function formatUsd1ToG(gdUsdPerToken: number): string | null {
 
 export function formatUsdWithBonus(principalUsd: string, bonusPercent: number): string {
   const principal = Number.parseFloat(principalUsd)
-  if (!Number.isFinite(principal) || principal <= 0) return formatUsdDisplay('0', 4)
-  if (bonusPercent <= 0) return formatUsdDisplay(principalUsd, 4)
-  return formatUsdDisplay((principal * (1 + bonusPercent / 100)).toFixed(4), 4)
+  if (!Number.isFinite(principal) || principal <= 0) return formatUsdDisplay('0')
+  if (bonusPercent <= 0) return formatUsdDisplay(principalUsd)
+  return formatUsdDisplay((principal * (1 + bonusPercent / 100)).toFixed(4))
 }
 
 export function formatUsdMicro(usdMicro: string): string {
@@ -75,7 +74,7 @@ export function formatUsdMicro(usdMicro: string): string {
 }
 
 export function formatUsdMicroDisplay(usdMicro: string): string {
-  return formatUsdDisplay(formatUsdMicro(usdMicro), 4)
+  return formatUsdDisplay(formatUsdMicro(usdMicro))
 }
 
 export function usdDisplayToMicro(usdDisplay: string): string {

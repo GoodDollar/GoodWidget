@@ -15,7 +15,7 @@ interface MockDailyRecord {
   gdStreamedWei: string
   gdTotalFlowRateWeiPerSecond: string
   aiCreditsUsedWei: string
-  uniqueGdBuyers: number
+  uniqueGdSigners: number
   uniqueCreditUsers: number
   updatedAt: string
   missing: boolean
@@ -30,7 +30,7 @@ function buildDailyRecord(daysAgo: number): MockDailyRecord {
     gdStreamedWei: '500000000000000000000',
     gdTotalFlowRateWeiPerSecond: '5000000000000',
     aiCreditsUsedWei: '75000000',
-    uniqueGdBuyers: 4,
+    uniqueGdSigners: 4,
     uniqueCreditUsers: 2,
     updatedAt: new Date().toISOString(),
     missing: false,

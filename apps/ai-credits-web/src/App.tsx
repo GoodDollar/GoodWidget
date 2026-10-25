@@ -82,7 +82,15 @@ function ReownAiCreditsWidget() {
   // has settled on "no wallet". Only the second is a real override, so during
   // the unresolved window these stay undefined and the core provider's own
   // EIP-1193 tracking covers the gap.
-  const isAccountResolved = accountStatus === 'connected' || accountStatus === 'disconnected'
+  //
+  // A restored 'connected' also needs its provider before it counts. AppKit
+  // rehydrates the last account from storage without checking the wallet behind
+  // it, so that address alone can describe a locked wallet — and the widget can
+  // only catch that by asking the provider for its accounts. Handing down an
+  // address with no provider to verify it against is the one combination that
+  // renders as a healthy session nothing can disprove.
+  const isAccountResolved =
+    (accountStatus === 'connected' && Boolean(walletProvider)) || accountStatus === 'disconnected'
 
   // switchNetwork takes a network descriptor, not a chain id.
   const appKitNetworksByChainId = useMemo(
@@ -223,7 +231,14 @@ function PurchaseFrame() {
       data-testid="purchase-frame"
     >
       {projectId ? (
-        <DefaultAppKitProvider enableWallets enableInjected>
+        <DefaultAppKitProvider
+          enableWallets
+          enableInjected
+          metadata={{
+            name: 'GoodDollar AI Credits',
+            description: 'Buy AI credits with G$ and use them through Antseed.',
+          }}
+        >
           <ReownAiCreditsWidget />
         </DefaultAppKitProvider>
       ) : (
@@ -258,7 +273,7 @@ function SecurityDetails() {
     <YStack gap="$7" paddingTop="$3" $sm={{ gap: "$5" }}>
       <XStack gap="$7" alignItems="flex-start" $md={{ flexDirection: 'column' }}>
         <TrustItem icon={<Network size={24} color="$primary" />} title="Local, explicit routing">
-          The buyer proxy runs locally. It will not auto-select a peer: browse the network, inspect
+          The signer proxy runs locally. It will not auto-select a peer: browse the network, inspect
           the services and pricing, then pin the peer you choose.
         </TrustItem>
         <TrustItem
@@ -272,7 +287,7 @@ function SecurityDetails() {
 
       <XStack gap="$7" alignItems="flex-start" $md={{ flexDirection: 'column' }}>
         <TrustItem icon={<KeyRound size={24} color="$primary" />} title="Separated identity">
-          The buyer signing identity is separate from the funding wallet. A compromised buyer
+          The signer signing identity is separate from the funding wallet. A compromised signer
           identity cannot access that wallet, and its exposure is bounded by deposited credits.
         </TrustItem>
         <TrustItem icon={<ShieldCheck size={24} color="$primary" />} title="Keys are secrets">
@@ -312,7 +327,6 @@ function LandingPage() {
   const { depositBonusPercent, streamBonusPercent } = useDiscountConfig(
     import.meta.env.VITE_AI_CREDITS_BACKEND_URL,
   )
-  const maxBonusPercent = Math.max(depositBonusPercent, streamBonusPercent)
 
   return (
     <YStack
