@@ -216,6 +216,8 @@ test('BridgingWidget lists populated bridge history across statuses', async ({ p
     'failed',
   ])
   await expect(page.getByTestId('BridgingWidget-history-row')).toHaveCount(3)
+  await expect(page.getByTestId('BridgingWidget-history-row').first()).toContainText('120.00 G$')
+  await expect(page.getByTestId('BridgingWidget-history-row').last()).toContainText('8.00 G$')
   await saveScreenshot(page, 'bw-22-history-populated')
 })
 

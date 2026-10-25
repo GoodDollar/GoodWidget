@@ -73,7 +73,7 @@ const sampleHistory: BridgeTransaction[] = [
     hash: SAMPLE_COMPLETED_SRC_HASH,
     fromChainId: BRIDGING_CHAINS.FUSE,
     toChainId: BRIDGING_CHAINS.CELO,
-    amount: G$Fuse(120),
+    amount: G$(120),
     protocol: 'LAYERZERO',
     status: {
       status: 'completed',
@@ -100,7 +100,7 @@ const sampleHistory: BridgeTransaction[] = [
     hash: SAMPLE_FAILED_HASH,
     fromChainId: BRIDGING_CHAINS.FUSE,
     toChainId: BRIDGING_CHAINS.XDC,
-    amount: G$Fuse(8),
+    amount: G$(8),
     protocol: 'LAYERZERO',
     status: {
       status: 'failed',

@@ -1,5 +1,4 @@
 import React from 'react'
-import { formatUnits } from 'viem'
 import {
   Badge,
   BadgeText,
@@ -14,8 +13,7 @@ import {
   getChainDisplayName,
 } from '@goodwidget/ui'
 import type { BridgeTransaction } from '@goodsdks/bridging-sdk'
-import { getChainDecimals } from '../adapter/chains'
-import { formatTokenAmount } from '../amount'
+import { formatHistoryAmount } from '../amount'
 import { BridgingTabContent, EmptyStateCard, PROTOCOL_LABELS, RouteSelectionCard } from './shared'
 
 interface HistoryTabProps {
@@ -52,7 +50,7 @@ function HistoryRow({ transaction, onPress }: { transaction: BridgeTransaction; 
         <Text secondary fontSize={12}>
           {PROTOCOL_LABELS[transaction.protocol]} · {new Date(transaction.timestamp * 1000).toLocaleString()}
         </Text>
-        <Text fontWeight="500">{formatTokenAmount(formatUnits(transaction.amount, getChainDecimals(transaction.fromChainId)))} G$</Text>
+        <Text fontWeight="500">{formatHistoryAmount(transaction.amount)} G$</Text>
       </XStack>
     </RouteSelectionCard>
   )
