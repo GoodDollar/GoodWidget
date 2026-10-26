@@ -19,8 +19,10 @@ interface FixtureControls {
   releaseSwitch: () => void
   holdNextFreshQuote: () => void
   releaseFreshQuote: () => void
+  failNextFreshQuoteWithRevert: () => void
   holdBridge: () => void
   releaseBridge: () => void
+  failNextBridgeWithRevert: () => void
   setAccount: (address: Address | null) => void
   failNextHistoryRefresh: () => void
   markDelivered: () => void
@@ -45,8 +47,10 @@ function createFixture(mode: FixtureMode) {
   let releaseSwitch: (() => void) | null = null
   let blockFreshQuote = false
   let releaseFreshQuote: (() => void) | null = null
+  let failFreshQuoteWithRevert = false
   let blockBridge = false
   let releaseBridge: (() => void) | null = null
+  let failBridgeWithRevert = false
   let failNextScan = false
   let delivered = false
   let freshQuote: Awaited<ReturnType<BridgingSDK['getQuote']>>['quote'] = null
@@ -61,8 +65,10 @@ function createFixture(mode: FixtureMode) {
     releaseSwitch: () => { releaseSwitch?.() },
     holdNextFreshQuote: () => { blockFreshQuote = true },
     releaseFreshQuote: () => { releaseFreshQuote?.() },
+    failNextFreshQuoteWithRevert: () => { failFreshQuoteWithRevert = true },
     holdBridge: () => { blockBridge = true },
     releaseBridge: () => { releaseBridge?.() },
+    failNextBridgeWithRevert: () => { failBridgeWithRevert = true },
     setAccount: (next) => {
       account = next
       events.push({ kind: 'account', address: next ?? '' })
@@ -165,6 +171,10 @@ function createFixture(mode: FixtureMode) {
         releaseFreshQuote = null
         blockFreshQuote = false
       }
+      if (params.refresh && failFreshQuoteWithRevert) {
+        failFreshQuoteWithRevert = false
+        throw new Error('The contract function "bridgeLimits" reverted: Internal error')
+      }
       const destinationAmount = parseUnits(
         formatUnits(params.amount, decimals(params.fromChain)),
         decimals(params.toChain),
@@ -194,6 +204,10 @@ function createFixture(mode: FixtureMode) {
         targetChainId: quote.targetChainId,
       })
       onStatus?.({ step: 'bridging' })
+      if (failBridgeWithRevert) {
+        failBridgeWithRevert = false
+        throw new Error('Execution reverted: sensitive RPC details')
+      }
       if (blockBridge) {
         await new Promise<void>((resolve) => { releaseBridge = resolve })
         releaseBridge = null

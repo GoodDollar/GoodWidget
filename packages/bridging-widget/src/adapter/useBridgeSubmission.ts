@@ -48,6 +48,7 @@ export function useBridgeSubmission({ sdk }: UseBridgeSubmissionArgs): BridgeSub
       preparingRequestRef.current = requestId
       lastInFlightStepRef.current = null
       setState({ step: 'approving', failedAtStep: null, error: null, receipt: null })
+      let doBridgeStarted = false
 
       try {
         const quote = await loadQuote()
@@ -58,6 +59,7 @@ export function useBridgeSubmission({ sdk }: UseBridgeSubmissionArgs): BridgeSub
           return
         }
         preparingRequestRef.current = null
+        doBridgeStarted = true
         const receipt = await sdk.doBridge(quote, (status: BridgeStatus) => {
           if (requestIdRef.current !== requestId) return
           if (status.step === 'approving' || status.step === 'bridging') {
@@ -80,7 +82,11 @@ export function useBridgeSubmission({ sdk }: UseBridgeSubmissionArgs): BridgeSub
         setState({
           step: 'failed',
           failedAtStep: lastInFlightStepRef.current,
-          error: mapBridgeError(err, 'Bridge transaction failed.'),
+          error: mapBridgeError(
+            err,
+            doBridgeStarted ? 'Bridge transaction failed.' : 'Unable to prepare bridge. Please try again.',
+            doBridgeStarted ? 'transaction' : 'other',
+          ),
           receipt: null,
         })
       }

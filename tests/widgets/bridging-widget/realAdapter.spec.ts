@@ -10,8 +10,10 @@ type FixtureWindow = Window & {
     releaseSwitch: () => void
     holdNextFreshQuote: () => void
     releaseFreshQuote: () => void
+    failNextFreshQuoteWithRevert: () => void
     holdBridge: () => void
     releaseBridge: () => void
+    failNextBridgeWithRevert: () => void
     setAccount: (address: string | null) => void
     failNextHistoryRefresh: () => void
     markDelivered: () => void
@@ -113,6 +115,28 @@ test('account change after doBridge starts keeps transaction progress visible', 
   await expect(page.getByText('Bridging…')).toBeVisible()
   await page.evaluate(() => (window as FixtureWindow).__bridgingWidgetFixture?.releaseBridge())
   await expect(page.getByTestId('BridgingWidget-confirm-done')).toBeVisible()
+  expect((await events(page)).filter((event) => event.kind === 'doBridge')).toHaveLength(1)
+})
+
+test('fresh-quote revert does not claim the bridge transaction reverted', async ({ page }) => {
+  await prepareRoute(page)
+  await page.evaluate(() => (window as FixtureWindow).__bridgingWidgetFixture?.failNextFreshQuoteWithRevert())
+  await page.getByTestId('BridgingWidget-review-confirm').click()
+
+  await expect(page.getByTestId('BridgingWidget-confirm-modal')).toContainText(
+    'Unable to prepare bridge. Please try again.',
+  )
+  expect((await events(page)).filter((event) => event.kind === 'doBridge')).toHaveLength(0)
+})
+
+test('doBridge revert retains the transaction-specific hint', async ({ page }) => {
+  await prepareRoute(page)
+  await page.evaluate(() => (window as FixtureWindow).__bridgingWidgetFixture?.failNextBridgeWithRevert())
+  await page.getByTestId('BridgingWidget-review-confirm').click()
+
+  await expect(page.getByTestId('BridgingWidget-confirm-modal')).toContainText(
+    'Bridge transaction reverted on-chain. Try a smaller amount.',
+  )
   expect((await events(page)).filter((event) => event.kind === 'doBridge')).toHaveLength(1)
 })
 
