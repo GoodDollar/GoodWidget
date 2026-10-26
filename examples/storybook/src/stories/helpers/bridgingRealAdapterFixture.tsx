@@ -130,6 +130,7 @@ function createFixture(mode: FixtureMode) {
     BridgingSDK.prototype.getBridgeConfig = async (_address, route) => {
       const source = route?.fromChain ?? BRIDGING_CHAINS.CELO
       const unit = 10n ** BigInt(decimals(source))
+      const normalizedUnit = 10n ** 18n
       return {
         supportedChains: {},
         currentChainId: source,
@@ -138,10 +139,10 @@ function createFixture(mode: FixtureMode) {
         allowance: 500n * unit,
         fees: null,
         routeLimits: {
-          minAmount: unit,
-          dailyLimit: 1000000n * unit,
-          txLimit: 300000000n * unit,
-          accountDailyLimit: 50000n * unit,
+          minAmount: normalizedUnit,
+          dailyLimit: 1000000n * normalizedUnit,
+          txLimit: 300000000n * normalizedUnit,
+          accountDailyLimit: 50000n * normalizedUnit,
           onlyWhitelisted: false,
         },
         routeLimitsChainId: source,

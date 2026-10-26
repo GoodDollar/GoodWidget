@@ -57,10 +57,10 @@ const sampleBridgeConfig: BridgeConfig = {
   allowance: 0n,
   fees: null,
   routeLimits: {
-    minAmount: G$Fuse(1),
-    dailyLimit: G$Fuse(1000000),
-    txLimit: G$Fuse(300000000),
-    accountDailyLimit: G$Fuse(50000),
+    minAmount: G$(1),
+    dailyLimit: G$(1000000),
+    txLimit: G$(300000000),
+    accountDailyLimit: G$(50000),
     onlyWhitelisted: false,
   },
   routeLimitsChainId: BRIDGING_CHAINS.FUSE,
@@ -676,10 +676,10 @@ export function FuseSourceStory({ defaultTheme, themeOverrides }: ThemeArgs = {}
     currentChainId: BRIDGING_CHAINS.FUSE,
     tokenBalance: G$Fuse(500), // 50000n (500 G$)
     routeLimits: {
-      minAmount: G$Fuse(1), // 100n (1 G$)
-      dailyLimit: G$Fuse(1000000),
-      txLimit: G$Fuse(300000000),
-      accountDailyLimit: G$Fuse(50000),
+      minAmount: G$(1),
+      dailyLimit: G$(1000000),
+      txLimit: G$(300000000),
+      accountDailyLimit: G$(50000),
       onlyWhitelisted: false,
     },
     routeLimitsChainId: BRIDGING_CHAINS.FUSE,
