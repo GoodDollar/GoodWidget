@@ -2,9 +2,8 @@ import { createPublicClient, formatUnits, http, type Chain } from 'viem'
 import { SUPPORTED_CHAINS } from '@goodsdks/bridging-sdk'
 import { BRIDGING_CHAINS } from '../widgetRuntimeContract'
 
-// RPC endpoints matching GoodSDKs' own demo-bridging-app wiring
-// (apps/demo-bridging-app/src/config.tsx), kept consistent with the SDK's
-// reference integration rather than picked independently.
+// RPC endpoints follow GoodSDKs' demo wiring except Ethereum, where its
+// Cloudflare endpoint fails contract reads used by bridge configuration.
 export const VIEM_CHAINS: Record<number, Chain> = {
   [BRIDGING_CHAINS.CELO]: {
     id: BRIDGING_CHAINS.CELO,
@@ -16,7 +15,7 @@ export const VIEM_CHAINS: Record<number, Chain> = {
     id: BRIDGING_CHAINS.ETHEREUM,
     name: 'Ethereum',
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-    rpcUrls: { default: { http: ['https://cloudflare-eth.com'] } },
+    rpcUrls: { default: { http: ['https://ethereum-rpc.publicnode.com'] } },
   } as Chain,
   [BRIDGING_CHAINS.FUSE]: {
     id: BRIDGING_CHAINS.FUSE,

@@ -34,10 +34,6 @@ const BRIDGE_ERROR_RULES: readonly ErrorMatcher[] = [
     match: ['timeout', 'timed out'],
     message: 'The request timed out. Please try again.',
   },
-  {
-    match: ['revert'],
-    message: 'Bridge transaction reverted on-chain. Try a smaller amount.',
-  },
   { match: ['insufficient funds'], message: 'Insufficient funds for the transfer or gas.' },
   { match: ['allowance'], message: 'Insufficient allowance. Approve and try again.' },
   { match: ['unsupported chain', 'wrong chain'], message: 'Switch to a supported chain to continue.' },
