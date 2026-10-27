@@ -70,8 +70,12 @@ export function AmountEntry({
         </Text>
         <InputFrame
           flex={1}
-          borderWidth={0}
-          backgroundColor="$backgroundTransparent"
+          borderWidth={1}
+          borderColor="$borderColor"
+          borderRadius="$2"
+          backgroundColor="$backgroundInput"
+          paddingHorizontal="$3"
+          minHeight="$10"
           fontWeight="700"
           color="$textColor"
           inputMode="decimal"

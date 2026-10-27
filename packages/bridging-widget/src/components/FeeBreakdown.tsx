@@ -57,8 +57,9 @@ export function FeeBreakdown({
   const requirementMessage = primaryRequirementMessage(requirements)
 
   return (
-    <RouteSelectionCard testID="BridgingWidget-fee-breakdown">
-      <DetailRow label="Route" value={`${getChainDisplayName(targetChainId)} via ${PROTOCOL_LABELS[protocol]}`} />
+    <RouteSelectionCard raised testID="BridgingWidget-fee-breakdown">
+      <DetailRow label="Route" value={`${getChainDisplayName(sourceChainId)} → ${getChainDisplayName(targetChainId)}`} />
+      <DetailRow label="Provider" value={PROTOCOL_LABELS[protocol]} />
       {quote && (
         <>
           <DetailRow
@@ -67,7 +68,7 @@ export function FeeBreakdown({
               formatUnits(quote.protocolFee, getChainDecimals(targetChainId)),
             )} G$)`}
           />
-          <DetailRow label="Provider fee" value={`${formatChargedProviderFee(quote.fee, sourceChainId)} (paid separately)`} />
+          <DetailRow label="Estimated provider fee" value={`${formatChargedProviderFee(quote.fee, sourceChainId)} (native token)`} />
           <DetailRow
             label="Estimated G$ received"
             value={`${formatTokenAmount(formatUnits(quote.amountReceived, getChainDecimals(targetChainId)))} G$`}

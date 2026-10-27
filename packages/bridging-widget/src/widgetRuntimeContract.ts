@@ -5,6 +5,7 @@ import type {
   BridgeProtocol,
   BridgeRequirement,
   BridgeTransaction,
+  TransactionStatus,
 } from '@goodsdks/bridging-sdk'
 import type { Address, Hash } from 'viem'
 
@@ -79,6 +80,15 @@ export interface BridgingWidgetAdapterState {
   submissionFailedAtStep: 'approving' | 'bridging' | null
   submissionError: string | null
   submissionTxHash: Hash | null
+  submissionSourceChainId: number | null
+  submissionTargetChainId: number | null
+  submissionProtocol: BridgeProtocol | null
+  submissionAmount: bigint | null
+  submissionDeliveryStatus: TransactionStatus | null
+  submissionStatusError: string | null
+  submissionSourceExplorerLink: string | null
+  submissionProviderExplorerLink: string | null
+  submissionDestinationExplorerLink: string | null
 
   /** Combined source+destination history for the connected address, newest first */
   historyTransactions: BridgeTransaction[]

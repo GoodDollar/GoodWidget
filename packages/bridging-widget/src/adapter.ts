@@ -10,7 +10,7 @@ import type {
 } from './widgetRuntimeContract'
 import { getRouteProtocols } from './adapter/bridgeRoutes'
 import { useBridgingPublicClients, useBridgingSdk } from './adapter/bridgingClient'
-import { isBridgingChain, getChainDecimals } from './adapter/chains'
+import { isBridgingChain, getChainDecimals, getChainTransactionExplorerLink } from './adapter/chains'
 import { primaryRequirementMessage } from './adapter/errors'
 import { BRIDGING_CHAINS } from './widgetRuntimeContract'
 import { sanitizeAmount } from './amount'
@@ -164,13 +164,13 @@ export function useBridgingAdapter(): BridgingWidgetAdapterResult {
   const confirmBridge = useCallback(() => {
     if (!isReviewOpen || quoteState.status !== 'ready' || !quoteState.canBridge) return
     setIsReviewOpen(false)
-    void submission.submit(loadLatestQuote, isSubmissionIdentityCurrent)
-  }, [isReviewOpen, quoteState.status, quoteState.canBridge, submission.submit, loadLatestQuote, isSubmissionIdentityCurrent])
+    void submission.submit(loadLatestQuote, isSubmissionIdentityCurrent, activeChainId)
+  }, [isReviewOpen, quoteState.status, quoteState.canBridge, submission.submit, loadLatestQuote, isSubmissionIdentityCurrent, activeChainId])
 
   const retrySubmission = useCallback(() => {
     if (submission.step !== 'failed') return
-    void submission.submit(loadLatestQuote, isSubmissionIdentityCurrent)
-  }, [submission.step, submission.submit, loadLatestQuote, isSubmissionIdentityCurrent])
+    void submission.submit(loadLatestQuote, isSubmissionIdentityCurrent, activeChainId)
+  }, [submission.step, submission.submit, loadLatestQuote, isSubmissionIdentityCurrent, activeChainId])
 
   const closeSubmission = useCallback(() => {
     const wasCompleted = submission.step === 'completed'
@@ -221,6 +221,23 @@ export function useBridgingAdapter(): BridgingWidgetAdapterResult {
     submissionFailedAtStep: submission.failedAtStep,
     submissionError: submission.error,
     submissionTxHash: submission.receipt?.transactionHash ?? null,
+    submissionSourceChainId: submission.sourceChainId,
+    submissionTargetChainId: submission.targetChainId,
+    submissionProtocol: submission.protocol,
+    submissionAmount: submission.amount,
+    submissionDeliveryStatus: submission.deliveryStatus,
+    submissionStatusError: submission.deliveryStatusError,
+    submissionSourceExplorerLink: getChainTransactionExplorerLink(
+      submission.sourceChainId,
+      submission.receipt?.transactionHash ?? null,
+    ),
+    submissionProviderExplorerLink: submission.receipt && submission.protocol && sdk
+      ? sdk.getExplorerLink(submission.receipt.transactionHash, submission.protocol)
+      : null,
+    submissionDestinationExplorerLink: getChainTransactionExplorerLink(
+      submission.targetChainId,
+      submission.deliveryStatus?.dstTxHash ?? null,
+    ),
     historyTransactions: history.transactions,
     isHistoryLoading: history.isLoading,
     historyError: history.error,

@@ -65,10 +65,9 @@ export function BridgingWidgetView({ adapter, initialTab = 'bridge' }: BridgingW
     </>
   )
 
-  // Review and Confirm render as drawers above the tab content rather than
-  // inline, so they stay mounted (and keep doBridge()'s submission running)
-  // even if the user flips tabs mid-flow.
-  const review = state.chainId !== null && state.targetChainId !== null &&
+  // Confirm stays mounted while doBridge() runs, even if the user changes tabs.
+  // Unmount Review on close so its Sheet cannot cover the submission drawer.
+  const review = state.isReviewOpen && state.chainId !== null && state.targetChainId !== null &&
     state.selectedProtocol !== null && state.quote !== null && (
       <ReviewScreen
         isOpen={state.isReviewOpen}
@@ -107,6 +106,16 @@ export function BridgingWidgetView({ adapter, initialTab = 'bridge' }: BridgingW
         submissionFailedAtStep={state.submissionFailedAtStep}
         submissionError={state.submissionError}
         needsApproval={state.needsApproval}
+        sourceChainId={state.submissionSourceChainId}
+        targetChainId={state.submissionTargetChainId}
+        protocol={state.submissionProtocol}
+        amount={state.submissionAmount}
+        sourceTxHash={state.submissionTxHash}
+        deliveryStatus={state.submissionDeliveryStatus}
+        deliveryStatusError={state.submissionStatusError}
+        sourceExplorerLink={state.submissionSourceExplorerLink}
+        providerExplorerLink={state.submissionProviderExplorerLink}
+        destinationExplorerLink={state.submissionDestinationExplorerLink}
         onRetry={actions.retrySubmission}
         onClose={actions.closeSubmission}
       />

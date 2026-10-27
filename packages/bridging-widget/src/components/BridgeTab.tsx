@@ -1,11 +1,17 @@
 import React from 'react'
-import { ButtonText, Heading, Text, XStack, getChainDisplayName } from '@goodwidget/ui'
+import { ButtonText, Heading, Icon, Select, Text, XStack, YStack, getChainDisplayName } from '@goodwidget/ui'
 import type { BridgeConfig, BridgeFeeQuote, BridgeProtocol, BridgeRequirement } from '@goodsdks/bridging-sdk'
 import { getBridgeTargetChains } from '../adapter/bridgeRoutes'
 import { BRIDGING_CHAINS } from '../widgetRuntimeContract'
 import { AmountEntry } from './AmountEntry'
 import { FeeBreakdown } from './FeeBreakdown'
-import { ActionButton, BridgingTabContent, PROTOCOL_LABELS, RouteSelectionCard } from './shared'
+import {
+  ActionButton,
+  BridgingTabContent,
+  PROTOCOL_LABELS,
+  PROTOCOL_SUPPORTED_NETWORKS,
+  RouteSelectionCard,
+} from './shared'
 
 interface BridgeTabProps {
   chainId: number
@@ -62,35 +68,35 @@ export function BridgeTab({
   const targetOptions = getBridgeTargetChains(chainId)
   const hasTarget = targetChainId !== null
   const isRouteSupported = availableProtocols.length > 0
+  const chainOptions = (chains: number[]) => chains.map((id) => ({
+    value: String(id),
+    label: getChainDisplayName(id),
+  }))
 
   return (
     <BridgingTabContent>
       <RouteSelectionCard>
-        <Text secondary>From</Text>
-        <XStack gap="$2" flexWrap="wrap">
-          {sourceOptions.map((option) => (
-            <ActionButton
-              key={option}
-              onPress={() => onSelectSourceChain(option)}
-              variant={chainId === option ? 'primary' : 'secondary'}
-            >
-              <ButtonText color={chainId === option ? undefined : '$text'}>{getChainDisplayName(option)}</ButtonText>
-            </ActionButton>
-          ))}
-        </XStack>
-
-        <Text secondary>To</Text>
-        <XStack gap="$2" flexWrap="wrap">
-          {targetOptions.map((option) => (
-            <ActionButton
-              key={option}
-              onPress={() => onSelectTargetChain(option)}
-              variant={targetChainId === option ? 'primary' : 'secondary'}
-            >
-              <ButtonText color={targetChainId === option ? undefined : '$text'}>{getChainDisplayName(option)}</ButtonText>
-            </ActionButton>
-          ))}
-        </XStack>
+        <YStack gap="$1">
+          <Text secondary>From network</Text>
+          <Select
+            accessibilityLabel="Source network"
+            testID="BridgingWidget-source-select"
+            value={String(chainId)}
+            options={chainOptions(sourceOptions)}
+            onValueChange={(value) => onSelectSourceChain(Number(value))}
+          />
+        </YStack>
+        <YStack gap="$1">
+          <Text secondary>To network</Text>
+          <Select
+            accessibilityLabel="Destination network"
+            testID="BridgingWidget-target-select"
+            value={targetChainId === null ? undefined : String(targetChainId)}
+            options={chainOptions(targetOptions)}
+            placeholder="Choose a destination"
+            onValueChange={(value) => onSelectTargetChain(Number(value))}
+          />
+        </YStack>
       </RouteSelectionCard>
 
       {isWrongChain && (
@@ -119,8 +125,11 @@ export function BridgeTab({
 
       {hasTarget && isRouteSupported && (
         <RouteSelectionCard>
-          <Text secondary>Bridge via</Text>
-          <XStack gap="$2" flexWrap="wrap">
+          <YStack gap="$1">
+            <Text fontSize={16} fontWeight="600" color="$textColor">Bridge provider</Text>
+            <Text variant="caption" secondary>Available for this route</Text>
+          </YStack>
+          <YStack gap="$2">
             {availableProtocols.map((protocol) => (
               <ActionButton
                 key={protocol}
@@ -128,13 +137,28 @@ export function BridgeTab({
                 variant={selectedProtocol === protocol ? 'primary' : 'secondary'}
                 width="100%"
                 height="auto"
-                minHeight="$10"
-                paddingVertical="$2"
+                minWidth={0}
+                minHeight="$12"
+                paddingVertical="$3"
+                aria-pressed={selectedProtocol === protocol}
               >
-                <ButtonText color={selectedProtocol === protocol ? undefined : '$text'} textAlign="center">{PROTOCOL_LABELS[protocol]}</ButtonText>
+                <XStack width="100%" alignItems="center" justifyContent="space-between" gap="$3">
+                  <YStack flex={1} alignItems="flex-start" gap="$1">
+                    <ButtonText color={selectedProtocol === protocol ? undefined : '$text'}>
+                      {PROTOCOL_LABELS[protocol]}
+                    </ButtonText>
+                    <Text
+                      fontSize={12}
+                      color={selectedProtocol === protocol ? '$white' : '$secondaryColor'}
+                    >
+                      Supports {PROTOCOL_SUPPORTED_NETWORKS[protocol]}
+                    </Text>
+                  </YStack>
+                  {selectedProtocol === protocol && <Icon name="check" size="sm" color="white" />}
+                </XStack>
               </ActionButton>
             ))}
-          </XStack>
+          </YStack>
         </RouteSelectionCard>
       )}
 

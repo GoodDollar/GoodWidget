@@ -1,21 +1,17 @@
 import React from 'react'
 import {
-  Anchor,
   Button,
-  ButtonText,
   Drawer,
   Heading,
   Icon,
-  Stepper,
-  type StepperStepItem,
-  Text,
+  ScrollArea,
   XStack,
   YStack,
-  getChainDisplayName,
 } from '@goodwidget/ui'
 import type { BridgeTransaction } from '@goodsdks/bridging-sdk'
+import { getChainTransactionExplorerLink } from '../adapter/chains'
 import { formatHistoryAmount } from '../amount'
-import { PROTOCOL_LABELS } from './shared'
+import { BridgeProgress } from './BridgeProgress'
 
 interface BridgeHistoryDetailModalProps {
   transaction: BridgeTransaction | null
@@ -23,57 +19,44 @@ interface BridgeHistoryDetailModalProps {
   onClose: () => void
 }
 
-// Read-only progress view for a tapped History row. Unlike BridgeConfirmModal
-// (which drives a live doBridge() call with approve/retry actions) this
-// transfer already happened on-chain — there is nothing to resubmit, so it
-// only ever shows where the transfer currently stands. Still built on the
-// same shared Stepper, satisfying issue #244's "tapping a pending entry
-// reopens the confirm modal" as the same visual/status language, not a
-// literal re-render of the submit flow.
+// A History entry reuses the same end-to-end progress view as a just-submitted bridge.
 export function BridgeHistoryDetailModal({ transaction, explorerLink, onClose }: BridgeHistoryDetailModalProps) {
   if (!transaction) return null
 
-  const { status } = transaction.status
-  const steps: StepperStepItem[] = [
-    {
-      id: 'source',
-      title: `Sent on ${getChainDisplayName(transaction.fromChainId)}`,
-      status: 'completed',
-    },
-    {
-      id: 'destination',
-      title: `Delivered on ${getChainDisplayName(transaction.toChainId)}`,
-      description: status === 'failed' ? transaction.status.error ?? 'Delivery failed.' : undefined,
-      status: status === 'completed' ? 'completed' : status === 'failed' ? 'failed' : 'active',
-    },
-  ]
+  const sourceTxHash = transaction.status.srcTxHash ?? transaction.hash
+  const destinationTxHash = transaction.status.dstTxHash ?? null
 
   return (
-    <Drawer open={transaction !== null} onClose={onClose} height="half" hideCloseButton>
-      <YStack testID="BridgingWidget-history-detail" gap="$4" width="100%">
-        <XStack justifyContent="space-between" alignItems="center">
-          <Heading level={4} color="$textColor">
-            {PROTOCOL_LABELS[transaction.protocol]} Bridge
-          </Heading>
-          <XStack cursor="pointer" onPress={onClose}>
-            <Icon name="x" size="sm" color="muted" />
-          </XStack>
-        </XStack>
-
-        <Text fontSize={24} fontWeight="800" textAlign="center">
-          {formatHistoryAmount(transaction.amount)} G$
-        </Text>
-
-        <Stepper steps={steps} maxHeight={200} />
-
-        {explorerLink && (
-          <Anchor href={explorerLink}>
-            <Button variant="secondary" fullWidth>
-              <ButtonText>View on explorer</ButtonText>
+    <Drawer open={transaction !== null} onClose={onClose} height="full" hideCloseButton>
+      <ScrollArea width="100%" minHeight={0}>
+        <YStack testID="BridgingWidget-history-detail" gap="$4" width="100%">
+          <XStack justifyContent="space-between" alignItems="center">
+            <Heading level={4} color="$textColor">
+              Bridge status
+            </Heading>
+            <Button size="sm" variant="ghost" onPress={onClose} aria-label="Close bridge status">
+              <Icon name="x" size="sm" color="muted" />
             </Button>
-          </Anchor>
-        )}
-      </YStack>
+          </XStack>
+
+          <BridgeProgress
+            fromChainId={transaction.fromChainId}
+            targetChainId={transaction.toChainId}
+            protocol={transaction.protocol}
+            amountLabel={formatHistoryAmount(transaction.amount)}
+            submissionStep="completed"
+            submissionFailedAtStep={null}
+            submissionError={null}
+            needsApproval={false}
+            sourceTxHash={sourceTxHash}
+            deliveryStatus={transaction.status}
+            deliveryStatusError={null}
+            sourceExplorerLink={getChainTransactionExplorerLink(transaction.fromChainId, sourceTxHash)}
+            providerExplorerLink={explorerLink}
+            destinationExplorerLink={getChainTransactionExplorerLink(transaction.toChainId, destinationTxHash)}
+          />
+        </YStack>
+      </ScrollArea>
     </Drawer>
   )
 }

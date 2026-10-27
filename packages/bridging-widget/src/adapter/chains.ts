@@ -1,5 +1,6 @@
 import { createPublicClient, formatUnits, http, type Chain } from 'viem'
 import { SUPPORTED_CHAINS } from '@goodsdks/bridging-sdk'
+import type { Hash } from 'viem'
 import { BRIDGING_CHAINS } from '../widgetRuntimeContract'
 
 // RPC endpoints follow GoodSDKs' demo wiring except Ethereum, where its
@@ -46,6 +47,18 @@ export function formatChargedProviderFee(fee: bigint, sourceChainId: number): st
   const native = SUPPORTED_CHAINS[sourceChainId]?.nativeCurrency
   if (!native) return formatUnits(fee, 18)
   return `${formatUnits(fee, native.decimals)} ${native.symbol}`
+}
+
+const TRANSACTION_EXPLORERS: Record<number, string> = {
+  [BRIDGING_CHAINS.CELO]: 'https://celoscan.io/tx',
+  [BRIDGING_CHAINS.ETHEREUM]: 'https://etherscan.io/tx',
+  [BRIDGING_CHAINS.FUSE]: 'https://explorer.fuse.io/tx',
+  [BRIDGING_CHAINS.XDC]: 'https://xdcscan.com/tx',
+}
+
+export function getChainTransactionExplorerLink(chainId: number | null, hash: Hash | null): string | null {
+  const explorer = chainId === null ? undefined : TRANSACTION_EXPLORERS[chainId]
+  return explorer && hash ? `${explorer}/${hash}` : null
 }
 
 export function createBridgingPublicClient(chainId: number) {

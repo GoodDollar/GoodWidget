@@ -32,7 +32,7 @@ import {
   WrongChainStory,
 } from '../helpers/bridgingWidgetStories'
 import { BRAND_PRESET_OPTIONS, brandPresetOverrides, type BrandPreset } from '../helpers/themeOverridePresets'
-import { BridgingRealAdapterFixture } from '../helpers/bridgingRealAdapterFixture'
+import { BridgingMockedAdapterFixture } from '../helpers/bridgingRealAdapterFixture'
 
 interface BridgingWidgetQAArgs {
   defaultTheme: 'light' | 'dark'
@@ -43,7 +43,14 @@ const meta: Meta<BridgingWidgetQAArgs> = {
   title: 'QA/BridgingWidget/Runtime Fixtures',
   component: BridgingWidget,
   tags: ['autodocs', 'qa'],
-  parameters: { layout: 'padded' },
+  parameters: {
+    layout: 'padded',
+    docs: {
+      description: {
+        component: 'Runtime fixture stories use deterministic mocked state and quote values. They are not evidence of live fees or delivery.',
+      },
+    },
+  },
   argTypes: {
     defaultTheme: {
       control: 'radio',
@@ -253,9 +260,9 @@ export const InteractiveSubmit: Story = {
   ),
 }
 
-export const RealAdapterSubmit: Story = {
+export const MockedSdkSubmit: Story = {
   render: ({ defaultTheme, brandPreset }) => (
-    <BridgingRealAdapterFixture
+    <BridgingMockedAdapterFixture
       mode="submit"
       defaultTheme={defaultTheme}
       themeOverrides={brandPresetOverrides(brandPreset)}
@@ -263,9 +270,9 @@ export const RealAdapterSubmit: Story = {
   ),
 }
 
-export const RealAdapterHistory: Story = {
+export const MockedSdkHistory: Story = {
   render: ({ defaultTheme, brandPreset }) => (
-    <BridgingRealAdapterFixture
+    <BridgingMockedAdapterFixture
       mode="history"
       defaultTheme={defaultTheme}
       themeOverrides={brandPresetOverrides(brandPreset)}

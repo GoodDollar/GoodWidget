@@ -143,6 +143,15 @@ function createAdapter(
     submissionFailedAtStep: null,
     submissionError: null,
     submissionTxHash: null,
+    submissionSourceChainId: null,
+    submissionTargetChainId: null,
+    submissionProtocol: null,
+    submissionAmount: null,
+    submissionDeliveryStatus: null,
+    submissionStatusError: null,
+    submissionSourceExplorerLink: null,
+    submissionProviderExplorerLink: null,
+    submissionDestinationExplorerLink: null,
     historyTransactions: sampleHistory,
     isHistoryLoading: false,
     historyError: null,
@@ -538,6 +547,13 @@ export function SubmissionCompletedStory({ defaultTheme, themeOverrides }: Theme
       adapter={createAdapter({
         submissionStep: 'completed',
         submissionTxHash: SAMPLE_COMPLETED_SRC_HASH,
+        submissionSourceChainId: BRIDGING_CHAINS.FUSE,
+        submissionTargetChainId: BRIDGING_CHAINS.CELO,
+        submissionProtocol: 'LAYERZERO',
+        submissionAmount: G$Fuse(50),
+        submissionDeliveryStatus: { status: 'pending', srcTxHash: SAMPLE_COMPLETED_SRC_HASH },
+        submissionSourceExplorerLink: `https://explorer.fuse.io/tx/${SAMPLE_COMPLETED_SRC_HASH}`,
+        submissionProviderExplorerLink: `https://layerzeroscan.com/tx/${SAMPLE_COMPLETED_SRC_HASH}`,
       })}
       dataTestId="BridgingWidget-submission-completed"
       defaultTheme={defaultTheme}

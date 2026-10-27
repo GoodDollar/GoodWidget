@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 
 test.use({ video: 'on' })
+const SCREENSHOT_DIR = process.env.GOODWIDGET_QA_SCREENSHOT_DIR ?? 'tests/widgets/bridging-widget/test-results'
 
 type FixtureEvent = { kind: string; [key: string]: string | number | boolean }
 type FixtureWindow = Window & {
@@ -21,35 +22,47 @@ type FixtureWindow = Window & {
 }
 
 async function gotoFixture(page: Page, story: 'submit' | 'history') {
-  await page.goto(`/iframe.html?id=qa-bridgingwidget-runtime-fixtures--real-adapter-${story}&viewMode=story`)
+  await page.goto(`/iframe.html?id=qa-bridgingwidget-runtime-fixtures--mocked-sdk-${story}&viewMode=story`)
   await page.waitForFunction(() => Boolean((window as FixtureWindow).__bridgingWidgetFixture))
-  await expect(page.getByTestId('BridgingWidget-real-adapter')).toBeVisible()
+  await expect(page.getByTestId('BridgingWidget-mocked-sdk-fixture')).toBeVisible()
+  await expect(page.getByText(/Mocked wallet and SDK responses/)).toBeVisible()
 }
 
 async function events(page: Page): Promise<FixtureEvent[]> {
   return page.evaluate(() => (window as FixtureWindow).__bridgingWidgetFixture?.events ?? [])
 }
 
-async function waitForEvent(page: Page, kind: string, count = 1) {
-  await expect.poll(async () => (await events(page)).filter((event) => event.kind === kind).length).toBe(count)
+async function waitForEvent(page: Page, kind: string, count = 1, timeout = 5_000) {
+  await expect.poll(
+    async () => (await events(page)).filter((event) => event.kind === kind).length,
+    { timeout },
+  ).toBe(count)
 }
 
 async function prepareRoute(page: Page) {
   await gotoFixture(page, 'submit')
-  await page.getByRole('button', { name: 'Fuse', exact: true }).first().click()
-  await page.getByRole('button', { name: 'Celo', exact: true }).last().click()
+  await page.getByTestId('BridgingWidget-source-select').click()
+  await page.getByRole('option', { name: 'Fuse' }).click()
+  await page.getByTestId('BridgingWidget-target-select').click()
+  await page.getByRole('option', { name: 'Celo' }).click()
   await page.getByPlaceholder('0.00').fill('100')
   await expect(page.getByTestId('BridgingWidget-review-cta')).toBeVisible()
   await page.getByTestId('BridgingWidget-review-cta').click()
   await expect(page.getByTestId('BridgingWidget-review-screen')).toBeVisible()
 }
 
-test.describe('real adapter submit flow', () => {
+test.describe('SDK-mocked adapter submit flow', () => {
   test('switches source chain, refreshes the quote, and gives that quote to doBridge', async ({ page }) => {
     test.setTimeout(60_000)
     await prepareRoute(page)
+    expect((await events(page)).filter((event) => event.kind === 'switch')).toHaveLength(0)
     await page.getByTestId('BridgingWidget-review-confirm').click()
-    await expect(page.getByTestId('BridgingWidget-confirm-done')).toBeVisible()
+    await expect(page.getByTestId('BridgingWidget-confirm-done')).toContainText('Continue in background')
+    await expect(page.getByTestId('BridgingWidget-bridge-progress')).toContainText('Bridging in progress')
+    await expect(page.getByRole('link', { name: /Track on LayerZero/ })).toBeVisible()
+    await expect(page.getByTestId('BridgingWidget-review-screen')).toBeHidden()
+    await page.getByText('Bridge status').scrollIntoViewIfNeeded()
+    await expect(page.getByText('Bridge status')).toBeInViewport({ ratio: 1 })
 
     const trace = await events(page)
     const switchIndex = trace.findIndex((event) => event.kind === 'switch')
@@ -64,12 +77,33 @@ test.describe('real adapter submit flow', () => {
       targetChainId: 42220,
     })
 
-    await page.getByTestId('BridgingWidget-confirm-modal').screenshot({
-      path: 'tests/widgets/bridging-widget/test-results/bw-30-real-adapter-result.png',
+    await page.screenshot({
+      path: `${SCREENSHOT_DIR}/bw-30-mocked-sdk-result.png`,
     })
     const video = page.video()
     await page.close()
-    await video?.saveAs('tests/widgets/bridging-widget/test-results/bw-30-real-adapter-happy-path.webm')
+    await video?.saveAs(`${SCREENSHOT_DIR}/bw-30-mocked-sdk-flow.webm`)
+  })
+
+  test('submission progress updates from pending to delivered with destination explorer link', async ({ page }) => {
+    test.setTimeout(60_000)
+    await prepareRoute(page)
+    await page.getByTestId('BridgingWidget-review-confirm').click()
+    await expect(page.getByTestId('BridgingWidget-delivery-status')).toContainText('Bridging in progress')
+
+    await page.evaluate(() => (window as FixtureWindow).__bridgingWidgetFixture?.markDelivered())
+    await waitForEvent(page, 'history-status', 2, 20_000)
+    await expect(page.getByTestId('BridgingWidget-delivery-status')).toContainText('Bridge complete')
+    await expect(page.getByRole('link', { name: /Destination transaction/ })).toHaveAttribute(
+      'href',
+      /celoscan\.io\/tx\/0x4444444444444444/,
+    )
+    await expect(page.getByTestId('BridgingWidget-review-screen')).toBeHidden()
+    await page.getByText('Bridge status').scrollIntoViewIfNeeded()
+    await expect(page.getByText('Bridge status')).toBeInViewport({ ratio: 1 })
+    await page.screenshot({
+      path: `${SCREENSHOT_DIR}/bw-32-delivered-progress.png`,
+    })
   })
 })
 
@@ -96,7 +130,15 @@ test('source change during a fresh quote cancels preparation before doBridge', a
   await page.getByTestId('BridgingWidget-review-confirm').click()
   await expect.poll(async () => (await events(page)).filter((event) => event.kind === 'quote' && event.refresh).length).toBe(1)
 
-  await page.getByRole('button', { name: 'Celo', exact: true }).first().dispatchEvent('click')
+  // The preparation drawer intentionally blocks pointer input to the bridge
+  // form. Trigger the underlying source control programmatically to model a
+  // host-driven route update while the fresh quote is still pending.
+  await page.getByTestId('BridgingWidget-source-select').evaluate((element) => {
+    (element as HTMLButtonElement).click()
+  })
+  await page.getByRole('option', { name: 'Celo' }).evaluate((element) => {
+    (element as HTMLButtonElement).click()
+  })
   await expect(page.getByTestId('BridgingWidget-review-cta')).toHaveCount(0)
   await page.evaluate(() => (window as FixtureWindow).__bridgingWidgetFixture?.releaseFreshQuote())
   await expect.poll(async () => (await events(page)).filter((event) => event.kind === 'quote-returned' && event.refresh).length).toBe(1)
@@ -114,7 +156,7 @@ test('account change after doBridge starts keeps transaction progress visible', 
   await expect(page.getByTestId('BridgingWidget-confirm-modal')).toBeVisible()
   await expect(page.getByText('Bridging…')).toBeVisible()
   await page.evaluate(() => (window as FixtureWindow).__bridgingWidgetFixture?.releaseBridge())
-  await expect(page.getByTestId('BridgingWidget-confirm-done')).toBeVisible()
+  await expect(page.getByTestId('BridgingWidget-confirm-done')).toContainText('Continue in background')
   expect((await events(page)).filter((event) => event.kind === 'doBridge')).toHaveLength(1)
 })
 

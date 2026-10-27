@@ -248,7 +248,7 @@ function createFixture(mode: FixtureMode) {
   return { controls, provider, installSdkMock }
 }
 
-export function BridgingRealAdapterFixture({
+export function BridgingMockedAdapterFixture({
   mode,
   defaultTheme,
   themeOverrides,
@@ -267,7 +267,10 @@ export function BridgingRealAdapterFixture({
   }, [fixture])
 
   return (
-    <div data-testid="BridgingWidget-real-adapter" style={{ maxWidth: 420 }}>
+    <div data-testid="BridgingWidget-mocked-sdk-fixture" style={{ maxWidth: 420 }}>
+      <p style={{ margin: 0, padding: '8px 12px', color: '#9a6700', background: '#fff8c5', borderRadius: 4 }}>
+        Mocked wallet and SDK responses. Fees and delivery shown here are test data, not live network results.
+      </p>
       {ready && <BridgingWidget provider={fixture.provider} defaultTheme={defaultTheme} themeOverrides={themeOverrides} />}
     </div>
   )

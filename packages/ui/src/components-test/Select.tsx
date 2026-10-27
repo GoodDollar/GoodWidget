@@ -4,7 +4,7 @@ import { styled, Stack, Text as TamaguiText } from 'tamagui'
 const SelectFrame = styled(Stack, {
   name: 'Select',
   tag: 'button',
-  role: 'listbox',
+  role: 'button',
   flexDirection: 'row',
   alignItems: 'center',
   justifyContent: 'space-between',
@@ -55,6 +55,8 @@ interface SelectProps {
   onValueChange?: (value: string) => void
   placeholder?: string
   disabled?: boolean
+  accessibilityLabel?: string
+  testID?: string
 }
 
 export function Select({
@@ -63,6 +65,8 @@ export function Select({
   onValueChange,
   placeholder = 'Select...',
   disabled,
+  accessibilityLabel,
+  testID,
 }: SelectProps) {
   const [open, setOpen] = useState(false)
   const selected = options.find((o) => o.value === value)
@@ -77,7 +81,14 @@ export function Select({
 
   return (
     <Stack position="relative">
-      <SelectFrame disabled={disabled} onPress={() => setOpen(!open)}>
+      <SelectFrame
+        disabled={disabled}
+        aria-label={accessibilityLabel}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        data-testid={testID}
+        onPress={() => setOpen(!open)}
+      >
         <TamaguiText
           color={selected ? '$color' : '$placeholderColor'}
           fontFamily="$body"
@@ -109,7 +120,11 @@ export function Select({
           overflow="hidden"
         >
           {options.map((option) => (
-            <OptionItem key={option.value} onPress={() => handleSelect(option.value)}>
+            <OptionItem
+              key={option.value}
+              aria-selected={option.value === value}
+              onPress={() => handleSelect(option.value)}
+            >
               <TamaguiText fontFamily="$body" fontSize="$3" color="$color">
                 {option.label}
               </TamaguiText>

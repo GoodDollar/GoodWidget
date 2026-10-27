@@ -57,9 +57,9 @@ export function ReviewScreen({
             <Heading level={4} color="$textColor">
               Review Bridge
             </Heading>
-            <XStack cursor="pointer" onPress={onClose}>
+            <Button size="sm" variant="ghost" onPress={onClose} aria-label="Close review">
               <Icon name="x" size="sm" color="muted" />
-            </XStack>
+            </Button>
           </XStack>
 
           <XStack alignItems="center" justifyContent="center" gap="$3">
@@ -80,7 +80,7 @@ export function ReviewScreen({
           <RouteSelectionCard padding="$4" gap="$2">
             <DetailRow
               label="Route"
-              value={`${getChainDisplayName(targetChainId)} via ${PROTOCOL_LABELS[protocol]}`}
+              value={`${getChainDisplayName(fromChainId)} → ${getChainDisplayName(targetChainId)}`}
             />
             <DetailRow label="Provider" value={PROTOCOL_LABELS[protocol]} />
             <DetailRow
@@ -90,8 +90,8 @@ export function ReviewScreen({
               )} G$)`}
             />
             <DetailRow
-              label="Provider fee"
-              value={`${formatChargedProviderFee(quote.fee, fromChainId)} (paid separately)`}
+              label="Estimated provider fee"
+              value={`${formatChargedProviderFee(quote.fee, fromChainId)} (native token)`}
             />
             <DetailRow label="Estimated G$ received" value={`${amountReceived} G$`} />
           </RouteSelectionCard>
