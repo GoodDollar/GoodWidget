@@ -28,7 +28,7 @@
  *   tests/widgets/citizen-claim-widget/test-results/                     (widget screenshot evidence + debug)
  *   test-results/                                                        (Playwright traces/videos/attachments)
  */
-import { test, expect, Page } from '@playwright/test'
+import { test, expect, Page, Route } from '@playwright/test'
 
 const STORY_URL =
   '/iframe.html?id=qa-citizenclaimwidget-runtime-fixtures--custodial-local-fixture&viewMode=story'
@@ -110,6 +110,55 @@ test('CitizenClaimWidget shows not_whitelisted for fresh wallet (live Celo RPC)'
 
   await page.screenshot({
     path: 'tests/widgets/citizen-claim-widget/test-results/ccw-02-not-whitelisted.png',
+    fullPage: true,
+  })
+})
+
+test('CitizenClaimWidget preserves verification after late addressless auxiliary reads', async ({
+  page,
+}) => {
+  const entitlementRoutes: Route[] = []
+  const statsRoutes: Route[] = []
+  const zeroWord = '0'.repeat(64)
+  const statsResult = `0x${(17).toString(16).padStart(64, '0')}${zeroWord}`
+
+  await page.route(/https:\/\/(forno\.celo\.org|rpc\.fuse\.io|rpc\.ankr\.com)\/.*/, async (route) => {
+    const { id, params } = route.request().postDataJSON()
+    const data = params[0].data as string
+    // Hold the initial addressless entitlement and stats reads past wallet discovery.
+    if (data === '0x98d6621b') {
+      entitlementRoutes.push(route)
+    } else if (data === '0x069786ea') {
+      statsRoutes.push(route)
+    } else {
+      // The connected identity read resolves immediately to a zero root.
+      await route.fulfill({ json: { jsonrpc: '2.0', id, result: `0x${zeroWord}` } })
+    }
+  })
+
+  await gotoStory(page)
+  const verify = page.getByRole('button', { name: 'Verify', exact: true })
+  await expect(verify).toBeVisible({ timeout: 15_000 })
+  await expect.poll(() => entitlementRoutes.length).toBe(3)
+  await expect.poll(() => statsRoutes.length).toBe(6)
+
+  for (const route of entitlementRoutes) {
+    const finished = page.waitForEvent('requestfinished', (request) => request === route.request())
+    const { id } = route.request().postDataJSON()
+    await route.fulfill({ json: { jsonrpc: '2.0', id, result: `0x${zeroWord}` } })
+    await finished
+  }
+  // Stats finish last so their rendered value signals completion of the held reads.
+  for (const route of statsRoutes) {
+    const { id } = route.request().postDataJSON()
+    await route.fulfill({ json: { jsonrpc: '2.0', id, result: statsResult } })
+  }
+  await expect(page.getByText('17', { exact: true })).toBeVisible()
+  await expect(page.getByText('Whitelisting Required', { exact: true })).toBeVisible()
+  await expect(verify).toBeVisible()
+  await expect(page.getByText('Connect your wallet to claim daily G$', { exact: true })).toBeHidden()
+  await page.screenshot({
+    path: 'tests/widgets/citizen-claim-widget/test-results/ccw-06-late-addressless-refresh.png',
     fullPage: true,
   })
 })
