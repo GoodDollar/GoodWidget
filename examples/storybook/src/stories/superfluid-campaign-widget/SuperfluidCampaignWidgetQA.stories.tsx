@@ -12,25 +12,37 @@ const meta: Meta<typeof MockSuperfluidCampaignWidget> = {
   component: MockSuperfluidCampaignWidget,
   tags: ['autodocs', 'qa'],
   parameters: { layout: 'padded' },
+  argTypes: {
+    defaultTheme: {
+      control: 'radio',
+      options: ['dark', 'light'],
+      description: "Base theme applied via the widget's own defaultTheme prop.",
+    },
+  },
+  args: { defaultTheme: 'dark' },
 }
 
 export default meta
 type Story = StoryObj<typeof meta>
 
 export const NoWalletContent: Story = {
-  render: () => <NoWalletStory initialView="content" />,
+  render: ({ defaultTheme }) => <NoWalletStory defaultTheme={defaultTheme} initialView="content" />,
 }
 
 export const NoWalletLeaderboard: Story = {
-  render: () => <NoWalletStory initialView="leaderboard" />,
+  render: ({ defaultTheme }) => <NoWalletStory defaultTheme={defaultTheme} initialView="leaderboard" />,
 }
 
 export const CustodialLocalFixtureContent: Story = {
-  render: () => <CustodialLocalFixtureStory initialView="content" />,
+  render: ({ defaultTheme }) => (
+    <CustodialLocalFixtureStory defaultTheme={defaultTheme} initialView="content" />
+  ),
 }
 
 export const CustodialLocalFixtureLeaderboard: Story = {
-  render: () => <CustodialLocalFixtureStory initialView="leaderboard" />,
+  render: ({ defaultTheme }) => (
+    <CustodialLocalFixtureStory defaultTheme={defaultTheme} initialView="leaderboard" />
+  ),
 }
 
 // Campaign leaderboard states — each fixes the Points API response via

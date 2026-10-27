@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import { AiCreditsDashboard } from '@goodwidget/gooddata-widget'
+import { TamaguiProvider } from '@tamagui/core'
+import { GoodDataWidget, AiCreditsDashboard, registerDashboard } from '@goodwidget/gooddata-widget'
+import { defaultConfig } from '@goodwidget/ui'
 import {
   AiCreditsDashboardLoadingStory,
   AiCreditsDashboardLiveStory,
@@ -7,6 +9,13 @@ import {
   AiCreditsDashboardLiveUnavailableStory,
   AiCreditsDashboardEmptyStory,
 } from '../helpers/goodDataWidgetStories'
+
+registerDashboard({
+  id: 'gooddata-version-demo',
+  path: 'gooddata-version-demo',
+  label: 'AI Credits Analytics',
+  component: AiCreditsDashboardDemoStory,
+})
 
 const meta: Meta<typeof AiCreditsDashboard> = {
   title: 'QA/AiCreditsDashboard/Runtime Fixtures',
@@ -39,4 +48,12 @@ export const LiveUnavailable: Story = {
 
 export const Empty: Story = {
   render: () => <AiCreditsDashboardEmptyStory />,
+}
+
+export const GoodDataWidgetVersion: Story = {
+  render: () => (
+    <TamaguiProvider config={defaultConfig} defaultTheme="dark">
+      <GoodDataWidget />
+    </TamaguiProvider>
+  ),
 }
