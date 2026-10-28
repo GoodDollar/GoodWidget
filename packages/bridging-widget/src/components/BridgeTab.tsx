@@ -1,10 +1,11 @@
 import React from 'react'
-import { ButtonText, Heading, Icon, Select, Text, XStack, YStack, getChainDisplayName } from '@goodwidget/ui'
+import { ButtonText, Heading, Icon, Text, XStack, YStack, getChainDisplayName } from '@goodwidget/ui'
 import type { BridgeConfig, BridgeFeeQuote, BridgeProtocol, BridgeRequirement } from '@goodsdks/bridging-sdk'
 import { getBridgeTargetChains } from '../adapter/bridgeRoutes'
 import { BRIDGING_CHAINS } from '../widgetRuntimeContract'
 import { AmountEntry } from './AmountEntry'
 import { FeeBreakdown } from './FeeBreakdown'
+import { NetworkSelect } from './NetworkSelect'
 import {
   ActionButton,
   BridgingTabContent,
@@ -78,7 +79,7 @@ export function BridgeTab({
       <RouteSelectionCard>
         <YStack gap="$1">
           <Text secondary>From network</Text>
-          <Select
+          <NetworkSelect
             accessibilityLabel="Source network"
             testID="BridgingWidget-source-select"
             value={String(chainId)}
@@ -88,7 +89,7 @@ export function BridgeTab({
         </YStack>
         <YStack gap="$1">
           <Text secondary>To network</Text>
-          <Select
+          <NetworkSelect
             accessibilityLabel="Destination network"
             testID="BridgingWidget-target-select"
             value={targetChainId === null ? undefined : String(targetChainId)}
