@@ -34,6 +34,8 @@ export interface ScorecardProps {
   decimals?: number
   trend?: ScorecardTrend
   trendLabel?: string
+  /** Short contextual/source note rendered below the trend row (or value row, if no trend). */
+  subtitle?: string
   variant?: ScorecardVariant
   size?: ScorecardSize
   testID?: string
@@ -154,6 +156,25 @@ const ScorecardAffixText = createComponent(TamaguiText, {
   defaultVariants: { size: 'md' },
 })
 
+/** Short qualifier/source note below the trend row (or value row if no trend) — same variant shape as ScorecardLabelText. */
+const ScorecardSubtitleText = createComponent(TamaguiText, {
+  name: 'ScorecardSubtitleText',
+  fontFamily: '$body',
+  color: '$placeholderColor',
+  fontWeight: '400',
+  textAlign: 'center',
+
+  variants: {
+    size: {
+      sm: { fontSize: SECONDARY_SIZE_PX.sm },
+      md: { fontSize: SECONDARY_SIZE_PX.md },
+      lg: { fontSize: SECONDARY_SIZE_PX.lg },
+    },
+  } as const,
+
+  defaultVariants: { size: 'md' },
+})
+
 const ScorecardTrendRow = createComponent(XStack, {
   name: 'ScorecardTrendRow',
   alignItems: 'center',
@@ -237,6 +258,7 @@ function ScorecardContent({
   decimals,
   trend,
   trendLabel,
+  subtitle,
   size = 'md',
   testID,
 }: Omit<ScorecardProps, 'variant'>) {
@@ -265,6 +287,11 @@ function ScorecardContent({
             {trendLabel ? ` ${trendLabel}` : ''}
           </ScorecardTrendText>
         </ScorecardTrendRow>
+      ) : null}
+      {subtitle ? (
+        <ScorecardSubtitleText size={size} marginTop={VALUE_TO_TREND_GAP_PX}>
+          {subtitle}
+        </ScorecardSubtitleText>
       ) : null}
     </ScorecardFrame>
   )

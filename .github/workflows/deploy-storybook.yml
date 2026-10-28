@@ -39,6 +39,8 @@ jobs:
   preview:
     if: github.event_name == 'pull_request_target'
     needs: authorize-preview
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     environment:
       name: preview-storybook
@@ -51,6 +53,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          # Trust the reviewed fork commit only after authorization.
+          allow-unsafe-pr-checkout: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
