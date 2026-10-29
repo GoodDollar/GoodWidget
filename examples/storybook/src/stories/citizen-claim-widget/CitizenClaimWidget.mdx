@@ -1,5 +1,6 @@
 import { Canvas, Meta, Source } from '@storybook/blocks';
 import * as ShowcaseStories from './CitizenClaimWidgetShowcase.stories';
+import * as ThemeOverridesStories from './CitizenClaimWidgetThemeOverrides.stories';
 import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/DocsLayout';
 
 <Meta of={ShowcaseStories} />
@@ -11,9 +12,16 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
 >
   <DocsSection
     title="Manual wallet showcase"
-    description="Use this story when reviewing the widget in a browser that has an injected wallet available. Use the Controls panel below the canvas to preview `defaultTheme` and a sample `themeOverrides` brand preset."
+    description="Use this story when reviewing the widget in a browser that has an injected wallet available. Use the Controls panel below the canvas to preview `defaultTheme`, a sample `themeOverrides` brand preset, and the deployed `environment` (development/production only — staging is never offered)."
   >
     <Canvas of={ShowcaseStories.InjectedWallet} />
+  </DocsSection>
+
+  <DocsSection
+    title="Theme overrides"
+    description="Play around with the primitive Card/Button theme overrides using the controls below. Both are demonstrated on surfaces confirmed to actually render through the plain primitive, not the widget's own named ClaimCard/ClaimActionButton sub-themes — see the callout below the code for why those need a dedicated preset instead."
+  >
+    <Canvas of={ThemeOverridesStories.Playground} />
   </DocsSection>
 
   <DocsSection
