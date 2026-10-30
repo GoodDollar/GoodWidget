@@ -806,8 +806,8 @@ for (const view of LEADERBOARD_CLOSE_BUTTON_VIEWS) {
   }
 }
 
-// Without an integrator-owned disconnectOverride, the wallet chip keeps its
-// Disconnect affordance but explains where the wallet session must be managed.
+// Without an integrator-owned disconnectOverride, the wallet chip only explains
+// where the wallet session must be managed and does not expose a Disconnect action.
 // Covered on both CampaignHeader (content view) and LeaderboardView, since
 // each renders its own copy of the shared WalletChip component.
 const WALLET_CHIP_DISCONNECT_VIEWS = [
@@ -826,17 +826,13 @@ for (const view of WALLET_CHIP_DISCONNECT_VIEWS) {
     await expect(chip).toBeVisible()
     await chip.click()
 
-    const disconnectItem = page.getByText('Disconnect', { exact: true })
-    await expect(disconnectItem).toBeVisible()
+    await expect(page.getByText('To disconnect, use your wallet.', { exact: true })).toBeVisible()
+    await expect(page.getByText('Disconnect', { exact: true })).toHaveCount(0)
 
     await page.screenshot({
       path: `tests/widgets/superfluid-campaign-widget/test-results/scw-${view.screenshotIndex}-${view.key}-wallet-chip-menu-open.png`,
       fullPage: true,
     })
-
-    await disconnectItem.click()
-
-    await expect(page.getByText('Disconnect should be done in your wallets session')).toBeVisible()
     await expect(chip).toBeVisible()
 
     await page.screenshot({
