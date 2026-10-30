@@ -531,7 +531,6 @@ export function useCitizenClaimAdapter(
     ])
 
     if (!address) {
-      await auxiliaryReads
       // No wallet address: clear any personalized entitlement left over from a
       // prior connected session so a disconnected user never sees stale amounts.
       setAmount(null)
