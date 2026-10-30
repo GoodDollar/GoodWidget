@@ -36,6 +36,12 @@ jobs:
     environment: release
     runs-on: ubuntu-latest
     steps:
+      - name: Require next for manual recovery
+        run: |
+          test "$GITHUB_REF" = refs/heads/next || {
+            echo "Manual recovery is allowed only from next." >&2
+            exit 1
+          }
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -50,9 +56,6 @@ jobs:
           corepack prepare pnpm@9.15.0 --activate
       - name: Use an npm that supports trusted publishing
         # OIDC trusted publishing requires npm >= 11.5.1, but node 22.14 ships npm 10.x.
-        # Once every package is registered as a trusted publisher on npmjs.com for BOTH
-        # release-next.yml and recover-release.yml, NPM_TOKEN can be deleted and npm will
-        # authenticate through id-token alone.
         run: npm install --global npm@^11.5.1
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter './packages/**' run build
@@ -65,7 +68,6 @@ jobs:
       - name: Publish the authoritative committed version
         env:
           RECOVERY_PACKAGE: ${{ inputs.package }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: 'true'
           GOODWALLET_DISPATCH_PAT: ${{ secrets.GOODWALLET_DISPATCH_PAT }}
           ENABLE_GOODWALLET_DISPATCH: ${{ vars.ENABLE_GOODWALLET_DISPATCH }}

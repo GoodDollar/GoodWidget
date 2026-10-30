@@ -278,6 +278,22 @@ Packages or applications that import `@tamagui/lucide-icons` or
 
 ## Step 5 — Build & publish
 
+### Repository release policy
+
+In this repository, `main` is the development branch: it deploys apps using Vercel Preview
+settings. A maintainer promotes `main` to `next` for production builds, production deployments,
+and npm publication. Configure `next` as a protected branch before enabling releases. There
+is no staging branch. The first promotion creates `next` from `main`.
+
+The `release-next.yml` and `recover-release.yml` workflows publish directly with npm and do
+not invoke `npm-publish.yml` (that legacy workflow has been retired). Both workflows use
+tokenless npm trusted publishing; configure separate npm trusted-publisher entries for
+`GoodDollar/GoodWidget`, each workflow filename, and the protected `release` environment.
+The release workflow dispatches all four production deployments at its authoritative release
+commit after successful processing, including when there are no packages to publish.
+Recovery verifies or repairs the committed package version and its `latest` dist-tag. Do not
+enable wallet dispatch until GoodWallet is ready.
+
 ```bash
 # Build
 npm run build

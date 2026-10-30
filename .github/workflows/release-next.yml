@@ -27,12 +27,21 @@ jobs:
     # The release script pushes its authoritative version commit back to next. The marker
     # prevents that bot-authored push from recursively starting another release.
     if: ${{ !contains(github.event.head_commit.message, '[goodwidget release]') }}
+    outputs:
+      release_sha: ${{ steps.release.outputs.release_sha }}
     permissions:
       contents: write
       id-token: write
     environment: release
     runs-on: ubuntu-latest
     steps:
+      - name: Require next for manual releases
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          test "$GITHUB_REF" = refs/heads/next || {
+            echo "Manual releases are allowed only from next." >&2
+            exit 1
+          }
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -51,9 +60,6 @@ jobs:
           pnpm --version
       - name: Use an npm that supports trusted publishing
         # OIDC trusted publishing requires npm >= 11.5.1, but node 22.14 ships npm 10.x.
-        # Once every package is registered as a trusted publisher on npmjs.com for BOTH
-        # release-next.yml and recover-release.yml, NPM_TOKEN can be deleted and npm will
-        # authenticate through id-token alone.
         run: npm install --global npm@^11.5.1
       - name: Install immutable workspace
         run: pnpm install --frozen-lockfile
@@ -62,12 +68,39 @@ jobs:
           git config user.name goodwidget-release
           git config user.email goodwidget-release@users.noreply.github.com
       - name: Build, pack, publish, verify, and dispatch
+        id: release
         env:
           RELEASE_BASE_SHA: ${{ github.event.before || inputs.base }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: 'true'
           GOODWALLET_DISPATCH_PAT: ${{ secrets.GOODWALLET_DISPATCH_PAT }}
           # Wallet automation remains inert until both this explicit switch and its scoped
           # repository-dispatch credential are configured in the protected environment.
           ENABLE_GOODWALLET_DISPATCH: ${{ vars.ENABLE_GOODWALLET_DISPATCH }}
-        run: pnpm release:widgets
+        run: |
+          pnpm release:widgets
+          echo "release_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  deploy-production:
+    needs: release
+    permissions:
+      actions: write
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch all production deployments at the release commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ needs.release.outputs.release_sha }}
+        run: |
+          status=0
+          for workflow in \
+            deploy-storybook.yml \
+            deploy-ai-credits-web.yml \
+            deploy-superfluid-campaign-web.yml \
+            deploy-gooddata-analytics-web.yml
+          do
+            if ! gh workflow run "$workflow" --ref next --field "commit_sha=$RELEASE_SHA"; then
+              status=1
+            fi
+          done
+          exit "$status"

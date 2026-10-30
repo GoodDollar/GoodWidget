@@ -2,9 +2,15 @@ name: Deploy Superfluid Campaign Web
 
 on:
   workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Release commit to deploy (set by release-next)
+        required: false
+        type: string
   push:
     branches:
       - main
+      - next
     paths:
       - 'apps/superfluid-campaign-web/**'
       - 'packages/superfluid-campaign-widget/**'
@@ -37,6 +43,14 @@ env:
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_SUPERFLUID_CAMPAIGN_WEB_PROJECT_ID }}
 
 jobs:
+  guard-manual-branch:
+    if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main' && github.ref != 'refs/heads/next'
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "Manual deployments are allowed only from main (Preview) or next (Production)." >&2
+          exit 1
+
   authorize-preview:
     if: github.event_name == 'pull_request_target'
     runs-on: ubuntu-latest
@@ -45,7 +59,13 @@ jobs:
       - run: true
 
   preview:
-    if: github.event_name == 'pull_request_target'
+    if: >-
+      always() &&
+      (
+        (github.event_name == 'pull_request_target' && needs.authorize-preview.result == 'success') ||
+        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+        (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+      )
     needs: authorize-preview
     runs-on: ubuntu-latest
     environment:
@@ -55,7 +75,7 @@ jobs:
       - name: Checkout pull request head
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -84,7 +104,7 @@ jobs:
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
   production:
-    if: github.event_name != 'pull_request_target'
+    if: github.ref == 'refs/heads/next' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     environment:
       name: production
@@ -92,6 +112,19 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.commit_sha || github.sha }}
+
+      - name: Verify deployment commit belongs to next
+        env:
+          DEPLOY_SHA: ${{ inputs.commit_sha || github.sha }}
+        run: |
+          git fetch origin next
+          git merge-base --is-ancestor "$DEPLOY_SHA" origin/next || {
+            echo "Production deployments must use a commit reachable from next." >&2
+            exit 1
+          }
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
