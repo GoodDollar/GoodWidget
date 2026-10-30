@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { GoodWidgetProvider, useWallet } from '@goodwidget/core'
+import { GoodWidgetProvider, useNextTaskTrigger, useWallet } from '@goodwidget/core'
 import type { EIP1193Provider } from '@goodwidget/core'
 import {
   createComponent,
@@ -202,6 +202,7 @@ function CitizenClaimInner({
     clientFactory,
     claimExecution,
   })
+  const nextTaskTrigger = useNextTaskTrigger()
   const {
     status,
     address,
@@ -266,6 +267,8 @@ function CitizenClaimInner({
                 transactionHash: (receipt as { transactionHash?: string } | undefined)
                   ?.transactionHash,
               })
+              // Offers the user their next task right after a successful claim.
+              nextTaskTrigger.fire({ source: 'claim' })
             } catch (singleClaimError: unknown) {
               updateToast(toastId, {
                 message: `Claim failed on ${singleChainName}`,
@@ -297,6 +300,9 @@ function CitizenClaimInner({
           }
 
           const claimResults = await actions.claimAll(claimPlan.map((entry) => entry.chainId))
+          // Fires once for the whole batch below, not per claim — a claimAll
+          // run spanning several chains is one task-completion event, not one per chain.
+          let batchHadSuccessfulClaim = false
 
           for (const claimResult of claimResults) {
             const entryChainName =
@@ -319,6 +325,7 @@ function CitizenClaimInner({
                 transactionHash: (claimResult.receipt as { transactionHash?: string } | undefined)
                   ?.transactionHash,
               })
+              batchHadSuccessfulClaim = true
             } catch (multiClaimError: unknown) {
               updateToast(toastId, {
                 message: `Claim failed on ${entryChainName}`,
@@ -332,6 +339,10 @@ function CitizenClaimInner({
                   multiClaimError instanceof Error ? multiClaimError.message : 'Claim failed',
               })
             }
+          }
+
+          if (batchHadSuccessfulClaim) {
+            nextTaskTrigger.fire({ source: 'claim' })
           }
 
           await actions.refresh()
@@ -385,6 +396,7 @@ function CitizenClaimInner({
     chainId,
     chainNameById,
     claimablesByChain,
+    nextTaskTrigger,
     onClaimSuccess,
     onClaimError,
   ])
