@@ -1,0 +1,73 @@
+name: Release production packages
+
+# Publication is intentionally branch-gated: pushes to main may deploy demos, but cannot
+# enter this workflow. A maintainer must first promote main to next.
+on:
+  push:
+    branches: [next]
+  # A push made with GITHUB_TOKEN never starts a workflow, so promote-next.yml cannot
+  # reach this job by pushing. workflow_dispatch is exempt from that rule, so promotion
+  # starts the release explicitly and passes the pre-merge tip of next as the diff base.
+  workflow_dispatch:
+    inputs:
+      base:
+        description: Commit to diff from (pre-merge tip of next)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: goodwidget-npm-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    # The release script pushes its authoritative version commit back to next. The marker
+    # prevents that bot-authored push from recursively starting another release.
+    if: ${{ !contains(github.event.head_commit.message, '[goodwidget release]') }}
+    permissions:
+      contents: write
+      id-token: write
+    environment: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # Pin to the commit that triggered this run rather than the moving branch tip,
+          # so the tree built here is the tree whose changes were selected.
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.14.0
+          registry-url: https://registry.npmjs.org
+      - name: Configure pinned toolchain
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.0 --activate
+          node --version
+          pnpm --version
+      - name: Use an npm that supports trusted publishing
+        # OIDC trusted publishing requires npm >= 11.5.1, but node 22.14 ships npm 10.x.
+        # Once every package is registered as a trusted publisher on npmjs.com for BOTH
+        # release-next.yml and recover-release.yml, NPM_TOKEN can be deleted and npm will
+        # authenticate through id-token alone.
+        run: npm install --global npm@^11.5.1
+      - name: Install immutable workspace
+        run: pnpm install --frozen-lockfile
+      - name: Configure release identity
+        run: |
+          git config user.name goodwidget-release
+          git config user.email goodwidget-release@users.noreply.github.com
+      - name: Build, pack, publish, verify, and dispatch
+        env:
+          RELEASE_BASE_SHA: ${{ github.event.before || inputs.base }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: 'true'
+          GOODWALLET_DISPATCH_PAT: ${{ secrets.GOODWALLET_DISPATCH_PAT }}
+          # Wallet automation remains inert until both this explicit switch and its scoped
+          # repository-dispatch credential are configured in the protected environment.
+          ENABLE_GOODWALLET_DISPATCH: ${{ vars.ENABLE_GOODWALLET_DISPATCH }}
+        run: pnpm release:widgets

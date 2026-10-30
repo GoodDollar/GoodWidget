@@ -1,0 +1,72 @@
+name: Recover committed npm release
+
+# Recovery never computes a new version. It republishes (or only verifies) the version
+# already committed on next after an interrupted registry publication.
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: Already-versioned production package to publish or verify
+        required: true
+        type: choice
+        options:
+          - '@goodwidget/ui'
+          - '@goodwidget/core'
+          - '@goodwidget/embed'
+          - '@goodwidget/ai-credits-widget'
+          - '@goodwidget/citizen-claim-widget'
+          - '@goodwidget/goodreserve-widget'
+          - '@goodwidget/staking-migration-widget'
+          - '@goodwidget/streaming-widget'
+          - '@goodwidget/superfluid-campaign-widget'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: goodwidget-npm-release
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    permissions:
+      # Recovery pushes the package tag when the interrupted release never did.
+      contents: write
+      id-token: write
+    environment: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: next
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.14.0
+          registry-url: https://registry.npmjs.org
+      - name: Configure pinned toolchain
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.0 --activate
+      - name: Use an npm that supports trusted publishing
+        # OIDC trusted publishing requires npm >= 11.5.1, but node 22.14 ships npm 10.x.
+        # Once every package is registered as a trusted publisher on npmjs.com for BOTH
+        # release-next.yml and recover-release.yml, NPM_TOKEN can be deleted and npm will
+        # authenticate through id-token alone.
+        run: npm install --global npm@^11.5.1
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter './packages/**' run build
+      - run: pnpm test:release
+      - run: pnpm validate:register-entries
+      - name: Configure release identity
+        run: |
+          git config user.name goodwidget-release
+          git config user.email goodwidget-release@users.noreply.github.com
+      - name: Publish the authoritative committed version
+        env:
+          RECOVERY_PACKAGE: ${{ inputs.package }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: 'true'
+          GOODWALLET_DISPATCH_PAT: ${{ secrets.GOODWALLET_DISPATCH_PAT }}
+          ENABLE_GOODWALLET_DISPATCH: ${{ vars.ENABLE_GOODWALLET_DISPATCH }}
+        run: pnpm release:recover

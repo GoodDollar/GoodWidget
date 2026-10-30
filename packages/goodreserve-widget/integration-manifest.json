@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "2.0.0",
+  "hostContractVersion": "1.0.0",
+  "widgetId": "goodwidget.goodreserve",
+  "packageName": "@goodwidget/goodreserve-widget",
+  "entries": {
+    "react": {
+      "export": "GoodReserveWidget"
+    },
+    "webComponent": {
+      "registerPath": "./register",
+      "tagName": "gw-goodreserve-widget"
+    }
+  }
+}
