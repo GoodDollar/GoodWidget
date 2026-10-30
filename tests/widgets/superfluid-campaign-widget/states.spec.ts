@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type BrowserContext, type Page } from '@playwright/test'
 
 // Story IDs derived from the Storybook title 'QA/SuperfluidCampaignWidget/Runtime Fixtures'
 // and the named exports in SuperfluidCampaignWidgetQA.stories.tsx.
@@ -46,6 +46,12 @@ async function waitForStoryReady(page: Page): Promise<void> {
 async function gotoStory(page: Page, storyUrl: string): Promise<void> {
   await page.goto(storyUrl)
   await waitForStoryReady(page)
+}
+
+async function stubExternalPopup(context: BrowserContext, hostname: string): Promise<void> {
+  await context.route(`https://${hostname}/**`, (route) =>
+    route.fulfill({ status: 200, contentType: 'text/html', body: '' }),
+  )
 }
 
 test('SuperfluidCampaignWidget QA runtime makes no production data requests', async ({ page }) => {
@@ -235,6 +241,7 @@ test('SuperfluidCampaignWidget Claim SUP rewards CTA opens claim.superfluid.org 
   page,
   context,
 }) => {
+  await stubExternalPopup(context, 'claim.superfluid.org')
   await gotoStory(page, STORY_IDS.noWalletContent)
 
   const claimButton = page.getByText('Claim SUP rewards').first()
@@ -476,6 +483,7 @@ test('SuperfluidCampaignWidget entire action card is clickable and triggers the 
   page,
   context,
 }) => {
+  await stubExternalPopup(context, 'goodwallet.xyz')
   await gotoStory(page, STORY_IDS.noWalletContent)
 
   // Click the card via its title text, away from the CTA button itself, to
@@ -499,6 +507,7 @@ test('SuperfluidCampaignWidget clicking the CTA button directly does not double-
   page,
   context,
 }) => {
+  await stubExternalPopup(context, 'goodwallet.xyz')
   await gotoStory(page, STORY_IDS.noWalletContent)
 
   const inviteButton = page.getByText('Invite', { exact: true }).first()
@@ -621,6 +630,7 @@ test('SuperfluidCampaignWidget invite opens GoodWallet instead of the Citizen Cl
   page,
   context,
 }) => {
+  await stubExternalPopup(context, 'goodwallet.xyz')
   await gotoStory(page, STORY_IDS.noWalletContent)
 
   const inviteCard = page.getByTestId('ActionCard-layout-invite-users')
