@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Locator, type Page } from '@playwright/test'
 
 const STORY_PREFIX = '/iframe.html?id=qa-streamingwidget-runtime-fixtures--'
 
@@ -23,6 +23,59 @@ async function expectBodyToContain(page: Page, patterns: Array<string | RegExp>)
       expect(text).toMatch(pattern)
     }
   }
+}
+
+// WCAG contrast ratio between a button's label colour and the fill actually painted behind
+// it (walking up to the first non-transparent ancestor background).
+async function labelContrast(button: Locator): Promise<number> {
+  return button.evaluate((el) => {
+    const parse = (c: string) => {
+      const [r, g, b, a = 1] = (c.match(/[\d.]+/g) ?? []).map(Number)
+      return { r, g, b, a }
+    }
+    const luminance = ({ r, g, b }: { r: number; g: number; b: number }) => {
+      const channel = (v: number) => {
+        const s = v / 255
+        return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4
+      }
+      return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+    }
+    let node: Element | null = el
+    let background = parse('rgb(255, 255, 255)')
+    while (node) {
+      const candidate = parse(getComputedStyle(node).backgroundColor)
+      if (candidate.a > 0.5) {
+        background = candidate
+        break
+      }
+      node = node.parentElement
+    }
+    const label = Array.from(el.querySelectorAll('*')).find(
+      (child) => child.children.length === 0 && child.textContent?.trim(),
+    )
+    const foreground = parse(getComputedStyle(label ?? el).color)
+    const [light, dark] = [luminance(foreground), luminance(background)].sort((a, b) => b - a)
+    return (light + 0.05) / (dark + 0.05)
+  })
+}
+
+// Hover, press and keyboard focus must never fill an outlined button with its own label
+// colour. A collapsed label sits at ~1:1, so 2:1 is a safe floor for "still readable".
+async function expectReadableInteractiveStates(page: Page, button: Locator) {
+  await button.scrollIntoViewIfNeeded()
+
+  await button.hover()
+  expect(await labelContrast(button), 'hover').toBeGreaterThan(2)
+
+  await page.mouse.down()
+  expect(await labelContrast(button), 'press').toBeGreaterThan(2)
+  // Release away from the button so the press does not trigger its action.
+  await page.mouse.move(0, 0)
+  await page.mouse.up()
+
+  await button.focus()
+  expect(await labelContrast(button), 'focus').toBeGreaterThan(2)
+  await button.blur()
 }
 
 for (const theme of THEMES) {
@@ -309,6 +362,63 @@ for (const theme of THEMES) {
         'Active streams',
       ])
       await saveScreenshot(page, 'sw-31-theme-overrides-playground')
+    })
+    test('StreamingWidget keeps both switch-network buttons inside the card at 390px', async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 390, height: 844 })
+      await gotoStory(page, 'wrong-chain')
+
+      // EmptyStateCard is the direct parent of the "Unsupported network" heading.
+      const card = page.getByText('Unsupported network').locator('xpath=..')
+      const cardBox = await card.boundingBox()
+      expect(cardBox).not.toBeNull()
+
+      for (const name of ['Switch to Celo', 'Switch to Base']) {
+        const box = await page.getByRole('button', { name }).boundingBox()
+        expect(box, name).not.toBeNull()
+        expect(box!.x, `${name} left edge`).toBeGreaterThanOrEqual(cardBox!.x)
+        expect(box!.x + box!.width, `${name} right edge`).toBeLessThanOrEqual(
+          cardBox!.x + cardBox!.width,
+        )
+        expect(box!.y + box!.height, `${name} bottom edge`).toBeLessThanOrEqual(
+          cardBox!.y + cardBox!.height,
+        )
+      }
+      await saveScreenshot(page, 'sw-32-wrong-chain-mobile')
+    })
+
+    test('StreamingWidget keeps secondary button labels readable on hover, press and focus', async ({
+      page,
+    }) => {
+      await gotoStory(page, 'populated-state')
+      await expectReadableInteractiveStates(page, page.getByRole('button', { name: 'Incoming' }))
+      await expectReadableInteractiveStates(page, page.getByRole('button', { name: 'Outgoing' }))
+
+      await page.getByRole('button', { name: 'Expand stream details' }).first().click()
+      await expectReadableInteractiveStates(page, page.getByRole('button', { name: 'Update' }))
+
+      await page.getByText('History').first().click()
+      await expectReadableInteractiveStates(page, page.getByRole('button', { name: 'Refresh' }))
+      await expectReadableInteractiveStates(page, page.getByRole('button', { name: 'Active' }))
+
+      await gotoStory(page, 'create-update-success')
+      await expectReadableInteractiveStates(page, page.getByRole('button', { name: 'Reset' }))
+
+      await gotoStory(page, 'pool-claim-state')
+      await expectReadableInteractiveStates(
+        page,
+        page.getByRole('button', { name: 'Connect', exact: true }),
+      )
+
+      await gotoStory(page, 'pool-connected-state')
+      await expectReadableInteractiveStates(page, page.getByRole('button', { name: 'Disconnect' }))
+
+      await gotoStory(page, 'pool-claimable-amount-error')
+      const retry = page.getByRole('button', { name: 'Retry' })
+      await retry.hover()
+      await saveScreenshot(page, 'sw-33-secondary-button-hover')
+      await expectReadableInteractiveStates(page, retry)
     })
   })
 }

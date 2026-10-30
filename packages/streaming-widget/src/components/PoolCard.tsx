@@ -16,6 +16,7 @@ import { formatWeiAmount } from './format'
 import {
   PoolRow,
   compactButtonProps,
+  secondaryButtonStateProps,
   SecondaryButtonText,
   WriteStatusBadge,
   type SuperTokenSymbol,
@@ -88,7 +89,13 @@ export function PoolCard({
           <Text color="$error" variant="caption">
             Could not load claimable amount.
           </Text>
-          <Button size="sm" {...compactButtonProps} variant="secondary" onPress={onRetryClaimable}>
+          <Button
+            size="sm"
+            {...compactButtonProps}
+            variant="secondary"
+            {...secondaryButtonStateProps}
+            onPress={onRetryClaimable}
+          >
             <SecondaryButtonText>Retry</SecondaryButtonText>
           </Button>
         </XStack>
@@ -102,6 +109,7 @@ export function PoolCard({
               size="sm"
               {...compactButtonProps}
               variant="secondary"
+              {...secondaryButtonStateProps}
               disabled={isConnectPending}
               borderColor="$error"
               onPress={() => onDisconnect(pool.poolId)}
@@ -129,6 +137,7 @@ export function PoolCard({
               size="sm"
               {...compactButtonProps}
               variant="secondary"
+              {...secondaryButtonStateProps}
               disabled={isConnectPending}
               onPress={() => onConnect(pool.poolId)}
             >

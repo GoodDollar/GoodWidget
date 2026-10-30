@@ -23,6 +23,7 @@ import {
   EmptyStateCard,
   ErrorStateCard,
   compactButtonProps,
+  secondaryButtonStateProps,
   SecondaryButtonText,
   StreamingTabContent,
 } from './shared'
@@ -130,6 +131,7 @@ export function StreamsTab({
             key={filter}
             onPress={() => setDirection(filter)}
             variant={direction === filter ? 'primary' : 'secondary'}
+            {...(direction === filter ? {} : secondaryButtonStateProps)}
           >
             {direction === filter ? (
               <ButtonText>{DIRECTION_LABELS[filter]}</ButtonText>

@@ -25,6 +25,7 @@ import {
 } from './format'
 import {
   compactButtonProps,
+  secondaryButtonStateProps,
   SecondaryButtonText,
   StreamRow,
   type SuperTokenSymbol,
@@ -197,6 +198,7 @@ export function StreamCard({
                   {...compactButtonProps}
                   flex={1}
                   variant="secondary"
+                  {...secondaryButtonStateProps}
                   disabled={isCancelling}
                   onPress={() => onEdit(stream)}
                 >

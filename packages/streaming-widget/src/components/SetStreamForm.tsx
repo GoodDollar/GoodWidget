@@ -16,7 +16,12 @@ import type {
   WriteStatus,
 } from '../widgetRuntimeContract'
 import { formatFlowRatePerDay } from './format'
-import { compactButtonProps, SecondaryButtonText, SetStreamFormCard } from './shared'
+import {
+  compactButtonProps,
+  SecondaryButtonText,
+  secondaryButtonStateProps,
+  SetStreamFormCard,
+} from './shared'
 
 interface SetStreamFormProps {
   form: SetStreamFormState
@@ -128,6 +133,7 @@ export function SetStreamForm({
             size="sm"
             {...compactButtonProps}
             variant="secondary"
+            {...secondaryButtonStateProps}
             fullWidth
             onPress={onReset}
           >

@@ -21,6 +21,15 @@ export const compactButtonProps = {
   paddingHorizontal: '$3',
 } as const
 
+// The base Button fills hover/press/focus with the solid brand colour, which hides the
+// `$primary` label of outlined (variant="secondary") buttons. Spread onto every secondary
+// Button so its interactive states keep a transparent fill and signal state via the border.
+export const secondaryButtonStateProps = {
+  hoverStyle: { backgroundColor: '$backgroundTransparent', borderColor: '$primary' },
+  pressStyle: { backgroundColor: '$backgroundTransparent', borderColor: '$primary', opacity: 0.8 },
+  focusStyle: { backgroundColor: '$backgroundTransparent', borderColor: '$primary' },
+} as const
+
 export const StreamingTabContent = createComponent(YStack, {
   name: 'StreamingTabContent',
   flex: 1,

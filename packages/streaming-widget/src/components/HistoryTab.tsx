@@ -7,6 +7,7 @@ import {
   EmptyStateCard,
   ErrorStateCard,
   compactButtonProps,
+  secondaryButtonStateProps,
   SecondaryButtonText,
   StreamingTabContent,
 } from './shared'
@@ -61,7 +62,13 @@ export function HistoryTab({
     <StreamingTabContent>
       <XStack justifyContent="space-between" alignItems="center">
         <Heading level={4}>Stream history</Heading>
-        <Button size="sm" {...compactButtonProps} variant="secondary" onPress={onRefresh}>
+        <Button
+          size="sm"
+          {...compactButtonProps}
+          variant="secondary"
+          {...secondaryButtonStateProps}
+          onPress={onRefresh}
+        >
           <SecondaryButtonText>Refresh</SecondaryButtonText>
         </Button>
       </XStack>
@@ -74,6 +81,7 @@ export function HistoryTab({
             key={filter}
             onPress={() => selectStatus(filter)}
             variant={status === filter ? 'primary' : 'secondary'}
+            {...(status === filter ? {} : secondaryButtonStateProps)}
           >
             {status === filter ? (
               <ButtonText>{STATUS_LABELS[filter]}</ButtonText>
@@ -119,6 +127,7 @@ export function HistoryTab({
           size="sm"
           {...compactButtonProps}
           variant="secondary"
+          {...secondaryButtonStateProps}
           onPress={() => setHistoryLimit((count) => count + PAGE_SIZE)}
         >
           <SecondaryButtonText>Show more</SecondaryButtonText>
