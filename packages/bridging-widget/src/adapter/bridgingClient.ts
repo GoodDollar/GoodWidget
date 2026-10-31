@@ -19,6 +19,7 @@ function buildPublicClients(): Record<number, PublicClient> {
 interface UseBridgingSdkArgs {
   provider: EIP1193Provider | null
   chainId: number | null
+  publicClients: Record<number, PublicClient>
 }
 
 // Exposed separately from useBridgingSdk so callers that need the raw
@@ -32,9 +33,7 @@ export function useBridgingPublicClients(): Record<number, PublicClient> {
 // Builds the BridgingSDK instance used by the Bridge tab. Returns null until
 // the wallet is on a supported chain, mirroring streaming-widget's
 // useStreamingClients pattern (memoized clients, memoized SDK on top).
-export function useBridgingSdk({ provider, chainId }: UseBridgingSdkArgs): BridgingSDK | null {
-  const publicClients = useBridgingPublicClients()
-
+export function useBridgingSdk({ provider, chainId, publicClients }: UseBridgingSdkArgs): BridgingSDK | null {
   const walletClient = useMemo<WalletClient | undefined>(() => {
     if (!provider || chainId === null) return undefined
     const chain = VIEM_CHAINS[chainId]

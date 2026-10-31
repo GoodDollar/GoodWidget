@@ -47,6 +47,24 @@ test('BridgingWidget shows the disconnected wallet state with connect action', a
   await saveScreenshot(page, 'bw-01-no-wallet')
 })
 
+test('network picker supports listbox navigation and dismissal', async ({ page }) => {
+  await gotoStory(page, 'no-wallet')
+  const trigger = page.getByTestId('BridgingWidget-source-select')
+  await trigger.click()
+  const listbox = page.getByRole('listbox', { name: 'Source network' })
+  await expect(listbox).toBeVisible()
+  await page.keyboard.press('ArrowDown')
+  await expect(page.getByRole('option', { name: 'Ethereum' })).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(listbox).toBeHidden()
+  await expect(trigger).toBeFocused()
+
+  await trigger.click()
+  await expect(listbox).toBeVisible()
+  await page.getByText('GoodDollar Bridge').click()
+  await expect(listbox).toBeHidden()
+})
+
 test('BridgingWidget shows the unsupported network prompt', async ({ page }) => {
   await gotoStory(page, 'wrong-chain')
 

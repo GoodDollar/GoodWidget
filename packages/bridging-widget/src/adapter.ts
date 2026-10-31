@@ -24,6 +24,7 @@ export function useBridgingAdapter(): BridgingWidgetAdapterResult {
   const walletAddress = (address as Address | null) ?? null
   const [selectedSourceChainId, setSelectedSourceChainId] = useState<number | null>(null)
   const activeChainId = selectedSourceChainId ?? (isBridgingChain(chainId) ? chainId! : BRIDGING_CHAINS.CELO)
+  const previousWalletChainIdRef = useRef(chainId)
   const isWrongChain = isConnected && !isBridgingChain(chainId ?? null)
   const submissionIdentityRef = useRef({ walletAddress, activeChainId })
   submissionIdentityRef.current = { walletAddress, activeChainId }
@@ -35,9 +36,19 @@ export function useBridgingAdapter(): BridgingWidgetAdapterResult {
   const [selectedHistoryTransaction, setSelectedHistoryTransaction] = useState<BridgeTransaction | null>(null)
 
   const publicClients = useBridgingPublicClients()
-  const sdk = useBridgingSdk({ provider, chainId: activeChainId })
+  const sdk = useBridgingSdk({ provider, chainId: activeChainId, publicClients })
+  const historySdk = useBridgingSdk({ provider: null, chainId: BRIDGING_CHAINS.CELO, publicClients })
   const submission = useBridgeSubmission({ sdk })
-  const history = useBridgeHistory({ sdk, address: walletAddress, publicClients })
+  const history = useBridgeHistory({ sdk: historySdk, address: walletAddress, publicClients })
+
+  useEffect(() => {
+    if (previousWalletChainIdRef.current === chainId) return
+    previousWalletChainIdRef.current = chainId
+    if (isBridgingChain(chainId) && selectedSourceChainId !== null && chainId !== selectedSourceChainId) {
+      submission.cancelPreparation()
+      setSelectedSourceChainId(null)
+    }
+  }, [chainId, selectedSourceChainId, submission.cancelPreparation])
 
   const selectSourceChain = useCallback((nextChainId: number) => {
     if (!isBridgingChain(nextChainId)) return

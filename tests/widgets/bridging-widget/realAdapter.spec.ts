@@ -16,6 +16,7 @@ type FixtureWindow = Window & {
     releaseBridge: () => void
     failNextBridgeWithRevert: () => void
     setAccount: (address: string | null) => void
+    setWalletChain: (chainId: number) => void
     failNextHistoryRefresh: () => void
     markDelivered: () => void
   }
@@ -144,6 +145,26 @@ test('source change during a fresh quote cancels preparation before doBridge', a
   await expect.poll(async () => (await events(page)).filter((event) => event.kind === 'quote-returned' && event.refresh).length).toBe(1)
   await page.waitForTimeout(50)
   expect((await events(page)).filter((event) => event.kind === 'doBridge')).toHaveLength(0)
+})
+
+test('external wallet network change updates an explicitly selected source', async ({ page }) => {
+  await prepareRoute(page)
+  await page.getByRole('button', { name: 'Cancel' }).click()
+  await page.evaluate(() => (window as FixtureWindow).__bridgingWidgetFixture?.setWalletChain(1))
+
+  await expect(page.getByTestId('BridgingWidget-source-select')).toContainText('Ethereum')
+  await expect(page.getByTestId('BridgingWidget-target-select')).toContainText('Choose a destination')
+  expect((await events(page)).filter((event) => event.kind === 'doBridge')).toHaveLength(0)
+})
+
+test('changing source does not rescan account-wide history', async ({ page }) => {
+  await gotoFixture(page, 'history')
+  await waitForEvent(page, 'history-scan')
+  await page.getByTestId('BridgingWidget-source-select').click()
+  await page.getByRole('option', { name: 'Fuse' }).click()
+  await expect(page.getByTestId('BridgingWidget-source-select')).toContainText('Fuse')
+  await page.waitForTimeout(100)
+  expect((await events(page)).filter((event) => event.kind === 'history-scan')).toHaveLength(1)
 })
 
 test('account change after doBridge starts keeps transaction progress visible', async ({ page }) => {

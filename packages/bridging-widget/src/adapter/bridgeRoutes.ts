@@ -26,3 +26,11 @@ export function getRouteProtocols(fromChainId: number, toChainId: number): Bridg
 
   return protocols
 }
+
+export function getProtocolSupportedChains(protocol: BridgeProtocol): BridgingChainId[] {
+  return (Object.values(BRIDGING_CHAINS) as BridgingChainId[]).filter((fromChainId) =>
+    getBridgeTargetChains(fromChainId).some((toChainId) =>
+      getRouteProtocols(fromChainId, toChainId).includes(protocol),
+    ),
+  )
+}

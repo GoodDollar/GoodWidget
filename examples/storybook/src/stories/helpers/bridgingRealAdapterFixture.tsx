@@ -24,6 +24,7 @@ interface FixtureControls {
   releaseBridge: () => void
   failNextBridgeWithRevert: () => void
   setAccount: (address: Address | null) => void
+  setWalletChain: (chainId: number) => void
   failNextHistoryRefresh: () => void
   markDelivered: () => void
 }
@@ -73,6 +74,11 @@ function createFixture(mode: FixtureMode) {
       account = next
       events.push({ kind: 'account', address: next ?? '' })
       emit('accountsChanged', next ? [next] : [])
+    },
+    setWalletChain: (nextChainId) => {
+      walletChainId = nextChainId
+      events.push({ kind: 'wallet-chain', chainId: nextChainId })
+      emit('chainChanged', `0x${nextChainId.toString(16)}`)
     },
     failNextHistoryRefresh: () => { failNextScan = true },
     markDelivered: () => { delivered = true },

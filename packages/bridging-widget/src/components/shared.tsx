@@ -7,8 +7,10 @@ import {
   XStack,
   YStack,
   createComponent,
+  getChainDisplayName,
 } from '@goodwidget/ui'
 import type { BridgeProtocol } from '@goodsdks/bridging-sdk'
+import { getProtocolSupportedChains } from '../adapter/bridgeRoutes'
 
 // Shared across BridgeTab (protocol picker) and FeeBreakdown (route summary)
 // so the two screens never label the same protocol differently.
@@ -17,9 +19,15 @@ export const PROTOCOL_LABELS: Record<BridgeProtocol, string> = {
   LAYERZERO: 'LayerZero',
 }
 
+function supportedNetworksLabel(protocol: BridgeProtocol): string {
+  const names = getProtocolSupportedChains(protocol).map(getChainDisplayName)
+  if (names.length < 2) return names[0] ?? ''
+  return `${names.slice(0, -1).join(', ')}${names.length > 2 ? ',' : ''} and ${names[names.length - 1]}`
+}
+
 export const PROTOCOL_SUPPORTED_NETWORKS: Record<BridgeProtocol, string> = {
-  AXELAR: 'Celo and Ethereum',
-  LAYERZERO: 'Celo, Ethereum, Fuse, and XDC',
+  AXELAR: supportedNetworksLabel('AXELAR'),
+  LAYERZERO: supportedNetworksLabel('LAYERZERO'),
 }
 
 export const BridgingTabContent = createComponent(YStack, {
