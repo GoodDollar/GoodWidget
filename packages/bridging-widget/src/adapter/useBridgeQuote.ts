@@ -1,13 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { parseUnits, type Address } from 'viem'
 import type { BridgeFeeQuote, BridgeProtocol, BridgeRequirement, BridgingSDK } from '@goodsdks/bridging-sdk'
+import { getChainDecimals } from './chains'
 import { mapBridgeError } from './errors'
 
 const QUOTE_DEBOUNCE_MS = 400
-
-// G$ is an 18-decimal token on every bridged chain (BridgeRouteLimits docs
-// its own amounts as "normalized G$ base units (18 decimals)").
-const G_DOLLAR_DECIMALS = 18
 
 export type BridgeQuoteStatus = 'idle' | 'loading' | 'ready' | 'error'
 
@@ -49,57 +46,67 @@ export function useBridgeQuote({
   protocol,
   inputAmount,
 }: UseBridgeQuoteArgs): BridgeQuoteState {
-  const [state, setState] = useState<BridgeQuoteState>(IDLE_STATE)
+  const queryKey = `${sender}:${fromChain}:${toChain}:${protocol}:${inputAmount}`
+  const [state, setState] = useState<{ queryKey: string; sdk: BridgingSDK | null; result: BridgeQuoteState }>({
+    queryKey: '', sdk: null, result: IDLE_STATE,
+  })
   const requestIdRef = useRef(0)
 
   useEffect(() => {
     if (!sdk || !sender || fromChain === null || toChain === null || !protocol || !inputAmount) {
       requestIdRef.current += 1
-      setState(IDLE_STATE)
+      setState({ queryKey, sdk, result: IDLE_STATE })
       return
     }
 
     let amount: bigint
     try {
-      amount = parseUnits(inputAmount, G_DOLLAR_DECIMALS)
+      amount = parseUnits(inputAmount, getChainDecimals(fromChain))
     } catch {
       requestIdRef.current += 1
-      setState(IDLE_STATE)
+      setState({ queryKey, sdk, result: IDLE_STATE })
       return
     }
     if (amount <= 0n) {
       requestIdRef.current += 1
-      setState(IDLE_STATE)
+      setState({ queryKey, sdk, result: IDLE_STATE })
       return
     }
 
     const requestId = ++requestIdRef.current
-    setState((current) => ({ ...current, status: 'loading', error: null }))
+    setState({ queryKey, sdk, result: { ...IDLE_STATE, status: 'loading' } })
 
     const timeoutId = setTimeout(async () => {
       try {
         const result = await sdk.getQuote({ sender, amount, fromChain, toChain, protocol })
         if (requestIdRef.current !== requestId) return
-        setState({
+        setState({ queryKey, sdk, result: {
           status: 'ready',
           quote: result.quote,
           needsApproval: result.needsApproval,
           canBridge: result.canBridge,
           requirements: result.requirements,
           error: null,
-        })
+        } })
       } catch (err: unknown) {
         if (requestIdRef.current !== requestId) return
-        setState({
+        setState({ queryKey, sdk, result: {
           ...IDLE_STATE,
           status: 'error',
           error: mapBridgeError(err, 'Failed to fetch bridge quote.'),
-        })
+        } })
       }
     }, QUOTE_DEBOUNCE_MS)
 
     return () => clearTimeout(timeoutId)
-  }, [sdk, sender, fromChain, toChain, protocol, inputAmount])
+  }, [sdk, sender, fromChain, toChain, protocol, inputAmount, queryKey])
 
-  return state
+  // Effects run after render. Hide the old route's quote immediately on the
+  // first render with changed inputs, before a user could click Review.
+  if (state.queryKey !== queryKey || state.sdk !== sdk) {
+    return sdk && sender && fromChain !== null && toChain !== null && protocol && inputAmount
+      ? { ...IDLE_STATE, status: 'loading' }
+      : IDLE_STATE
+  }
+  return state.result
 }

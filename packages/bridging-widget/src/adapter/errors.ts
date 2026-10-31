@@ -34,16 +34,12 @@ const BRIDGE_ERROR_RULES: readonly ErrorMatcher[] = [
     match: ['timeout', 'timed out'],
     message: 'The request timed out. Please try again.',
   },
-  {
-    match: ['revert'],
-    message: 'Bridge transaction reverted on-chain. Try a smaller amount.',
-  },
   { match: ['insufficient funds'], message: 'Insufficient funds for the transfer or gas.' },
   { match: ['allowance'], message: 'Insufficient allowance. Approve and try again.' },
   { match: ['unsupported chain', 'wrong chain'], message: 'Switch to a supported chain to continue.' },
 ]
 
-export function mapBridgeError(err: unknown, fallback: string): string {
+export function mapBridgeError(err: unknown, fallback: string, context: 'other' | 'transaction' = 'other'): string {
   console.error('[BridgingWidget]', err)
 
   const message = err instanceof Error ? err.message : String(err ?? fallback)
@@ -51,6 +47,10 @@ export function mapBridgeError(err: unknown, fallback: string): string {
 
   for (const rule of BRIDGE_ERROR_RULES) {
     if (rule.match.some((needle) => lower.includes(needle))) return rule.message
+  }
+
+  if (context === 'transaction' && lower.includes('revert')) {
+    return 'Bridge transaction reverted on-chain. Try a smaller amount.'
   }
 
   return fallback

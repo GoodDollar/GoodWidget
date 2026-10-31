@@ -1,8 +1,10 @@
 import React, { useState } from 'react'
-import { Badge, BadgeText, Heading, WidgetTabs, XStack, YStack } from '@goodwidget/ui'
-import type {
-  BridgingWidgetAdapterResult,
-  BridgingWidgetTab,
+import { Badge, BadgeText, Heading, WidgetTabs, XStack, YStack, getChainDisplayName } from '@goodwidget/ui'
+import { WalletControls } from '@goodwidget/core'
+import {
+  BRIDGING_CHAINS,
+  type BridgingWidgetAdapterResult,
+  type BridgingWidgetTab,
 } from '../widgetRuntimeContract'
 import { BridgeConfirmModal } from './BridgeConfirmModal'
 import { BridgeHistoryDetailModal } from './BridgeHistoryDetailModal'
@@ -10,7 +12,6 @@ import { BridgeTab } from './BridgeTab'
 import { FaqTab } from './FaqTab'
 import { HistoryTab } from './HistoryTab'
 import { ReviewScreen } from './ReviewScreen'
-import { WalletGate } from './WalletGate'
 
 interface BridgingWidgetViewProps {
   adapter: BridgingWidgetAdapterResult
@@ -21,21 +22,18 @@ export function BridgingWidgetView({ adapter, initialTab = 'bridge' }: BridgingW
   const { state, actions } = adapter
   const [activeTab, setActiveTab] = useState<BridgingWidgetTab>(initialTab)
 
-  const tabContent = !state.isConnected || state.isWrongChain ? (
-    <WalletGate
-      isConnected={state.isConnected}
-      isWrongChain={state.isWrongChain}
-      onConnect={actions.connect}
-      onSwitchChain={actions.switchChain}
-    />
-  ) : (
+  const tabContent = (
     <>
-      {activeTab === 'bridge' && state.chainId !== null && (
+      {activeTab === 'bridge' && (
         <BridgeTab
-          chainId={state.chainId}
+          chainId={state.chainId ?? BRIDGING_CHAINS.CELO}
           targetChainId={state.targetChainId}
           availableProtocols={state.availableProtocols}
           selectedProtocol={state.selectedProtocol}
+          isConnected={state.isConnected}
+          isWrongChain={state.isWrongChain}
+          onConnect={actions.connect}
+          onSelectSourceChain={actions.selectSourceChain}
           onSelectTargetChain={actions.selectTargetChain}
           onSelectProtocol={actions.selectProtocol}
           inputAmount={state.inputAmount}
@@ -67,12 +65,10 @@ export function BridgingWidgetView({ adapter, initialTab = 'bridge' }: BridgingW
     </>
   )
 
-  // Review and Confirm render as drawers above the tab content rather than
-  // inline, so they stay mounted (and keep doBridge()'s submission running)
-  // even if the user flips tabs mid-flow.
-  const reviewAndConfirm = state.chainId !== null && state.targetChainId !== null &&
+  // Confirm stays mounted while doBridge() runs, even if the user changes tabs.
+  // Unmount Review on close so its Sheet cannot cover the submission drawer.
+  const review = state.isReviewOpen && state.chainId !== null && state.targetChainId !== null &&
     state.selectedProtocol !== null && state.quote !== null && (
-    <>
       <ReviewScreen
         isOpen={state.isReviewOpen}
         fromChainId={state.chainId}
@@ -82,26 +78,16 @@ export function BridgingWidgetView({ adapter, initialTab = 'bridge' }: BridgingW
         onClose={actions.closeReview}
         onConfirm={actions.confirmBridge}
       />
-      <BridgeConfirmModal
-        submissionStep={state.submissionStep}
-        submissionFailedAtStep={state.submissionFailedAtStep}
-        submissionError={state.submissionError}
-        needsApproval={state.needsApproval}
-        onRetry={actions.retrySubmission}
-        onClose={actions.closeSubmission}
-      />
-    </>
   )
 
   return (
     <YStack gap="$3" padding="$5" width="100%" style={{ boxSizing: 'border-box' }}>
-      <XStack justifyContent="space-between" alignItems="center" paddingHorizontal="$1">
+      <XStack justifyContent="space-between" alignItems="center" flexWrap="wrap" gap="$2" paddingHorizontal="$1">
         <Heading level={4}>GoodDollar Bridge</Heading>
-        {state.chainId && (
-          <Badge type="info">
-            <BadgeText>Chain {state.chainId}</BadgeText>
-          </Badge>
+        {state.chainId !== null && (
+          <Badge type="info"><BadgeText>{getChainDisplayName(state.chainId)}</BadgeText></Badge>
         )}
+        <WalletControls />
       </XStack>
       <WidgetTabs
         tabs={[
@@ -114,7 +100,25 @@ export function BridgingWidgetView({ adapter, initialTab = 'bridge' }: BridgingW
         withConnectionStatus={false}
       />
       {tabContent}
-      {reviewAndConfirm}
+      {review}
+      <BridgeConfirmModal
+        submissionStep={state.submissionStep}
+        submissionFailedAtStep={state.submissionFailedAtStep}
+        submissionError={state.submissionError}
+        needsApproval={state.needsApproval}
+        sourceChainId={state.submissionSourceChainId}
+        targetChainId={state.submissionTargetChainId}
+        protocol={state.submissionProtocol}
+        amount={state.submissionAmount}
+        sourceTxHash={state.submissionTxHash}
+        deliveryStatus={state.submissionDeliveryStatus}
+        deliveryStatusError={state.submissionStatusError}
+        sourceExplorerLink={state.submissionSourceExplorerLink}
+        providerExplorerLink={state.submissionProviderExplorerLink}
+        destinationExplorerLink={state.submissionDestinationExplorerLink}
+        onRetry={actions.retrySubmission}
+        onClose={actions.closeSubmission}
+      />
       <BridgeHistoryDetailModal
         transaction={state.selectedHistoryTransaction}
         explorerLink={state.selectedHistoryExplorerLink}

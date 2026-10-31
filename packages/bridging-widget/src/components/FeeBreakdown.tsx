@@ -2,14 +2,15 @@ import React from 'react'
 import { formatUnits } from 'viem'
 import { Spinner, Text, XStack, getChainDisplayName } from '@goodwidget/ui'
 import type { BridgeFeeQuote, BridgeProtocol, BridgeRequirement } from '@goodsdks/bridging-sdk'
+import { formatChargedProviderFee, getChainDecimals } from '../adapter/chains'
 import { formatTokenAmount } from '../amount'
 import { primaryRequirementMessage } from '../adapter/errors'
 import { DetailRow, PROTOCOL_LABELS, RouteSelectionCard } from './shared'
 
-const G_DOLLAR_DECIMALS = 18
 const BPS_DENOMINATOR = 10_000
 
 interface FeeBreakdownProps {
+  sourceChainId: number
   targetChainId: number | null
   protocol: BridgeProtocol
   quoteStatus: 'idle' | 'loading' | 'ready' | 'error'
@@ -23,6 +24,7 @@ interface FeeBreakdownProps {
 // (renders nothing) until the user has typed an amount, since there is
 // nothing to break down yet.
 export function FeeBreakdown({
+  sourceChainId,
   targetChainId,
   protocol,
   quoteStatus,
@@ -55,20 +57,21 @@ export function FeeBreakdown({
   const requirementMessage = primaryRequirementMessage(requirements)
 
   return (
-    <RouteSelectionCard testID="BridgingWidget-fee-breakdown">
-      <DetailRow label="Route" value={`${getChainDisplayName(targetChainId)} via ${PROTOCOL_LABELS[protocol]}`} />
+    <RouteSelectionCard raised testID="BridgingWidget-fee-breakdown">
+      <DetailRow label="Route" value={`${getChainDisplayName(sourceChainId)} → ${getChainDisplayName(targetChainId)}`} />
+      <DetailRow label="Provider" value={PROTOCOL_LABELS[protocol]} />
       {quote && (
         <>
           <DetailRow
             label="Protocol fee"
             value={`${(Number(quote.protocolFeeBps) / BPS_DENOMINATOR) * 100}% (${formatTokenAmount(
-              formatUnits(quote.protocolFee, G_DOLLAR_DECIMALS),
+              formatUnits(quote.protocolFee, getChainDecimals(targetChainId)),
             )} G$)`}
           />
-          <DetailRow label="Provider fee" value={`${quote.feeInNative} (paid separately, source-chain native token)`} />
+          <DetailRow label="Estimated provider fee" value={`${formatChargedProviderFee(quote.fee, sourceChainId)} (native token)`} />
           <DetailRow
             label="Estimated G$ received"
-            value={`${formatTokenAmount(formatUnits(quote.amountReceived, G_DOLLAR_DECIMALS))} G$`}
+            value={`${formatTokenAmount(formatUnits(quote.amountReceived, getChainDecimals(targetChainId)))} G$`}
           />
         </>
       )}

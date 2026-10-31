@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 
 const STORY_PREFIX = '/iframe.html?id=qa-bridgingwidget-runtime-fixtures--'
+const SCREENSHOT_DIR = process.env.GOODWIDGET_QA_SCREENSHOT_DIR ?? 'tests/widgets/bridging-widget/test-results'
 
 function storyUrl(storyId: string): string {
   return `${STORY_PREFIX}${storyId}&viewMode=story`
@@ -27,18 +28,41 @@ async function expectBodyToContain(page: Page, patterns: Array<string | RegExp>)
   }
 }
 
-async function saveScreenshot(page: Page, name: string) {
+async function saveScreenshot(page: Page, name: string, modalTestId?: string) {
+  const path = `${SCREENSHOT_DIR}/${name}.png`
+  if (modalTestId) {
+    await page.getByTestId(modalTestId).screenshot({ path })
+    return
+  }
   await page.screenshot({
-    path: `tests/widgets/bridging-widget/test-results/${name}.png`,
+    path,
     fullPage: true,
   })
 }
 
-test('BridgingWidget shows the disconnected wallet gate', async ({ page }) => {
+test('BridgingWidget shows the disconnected wallet state with connect action', async ({ page }) => {
   await gotoStory(page, 'no-wallet')
 
-  await expectBodyToContain(page, ['Wallet not connected', 'Connect Wallet'])
+  await expectBodyToContain(page, ['GoodDollar Bridge', 'Connect Wallet', 'Balance: — G$'])
   await saveScreenshot(page, 'bw-01-no-wallet')
+})
+
+test('network picker supports listbox navigation and dismissal', async ({ page }) => {
+  await gotoStory(page, 'no-wallet')
+  const trigger = page.getByTestId('BridgingWidget-source-select')
+  await trigger.click()
+  const listbox = page.getByRole('listbox', { name: 'Source network' })
+  await expect(listbox).toBeVisible()
+  await page.keyboard.press('ArrowDown')
+  await expect(page.getByRole('option', { name: 'Ethereum' })).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(listbox).toBeHidden()
+  await expect(trigger).toBeFocused()
+
+  await trigger.click()
+  await expect(listbox).toBeVisible()
+  await page.getByText('GoodDollar Bridge').click()
+  await expect(listbox).toBeHidden()
 })
 
 test('BridgingWidget shows the unsupported network prompt', async ({ page }) => {
@@ -46,7 +70,7 @@ test('BridgingWidget shows the unsupported network prompt', async ({ page }) => 
 
   await expectBodyToContain(page, [
     'Unsupported network',
-    'Switch to a supported chain to use the bridging widget.',
+    'your wallet will switch when you bridge.',
     'Celo',
     'Ethereum',
     'Fuse',
@@ -58,7 +82,7 @@ test('BridgingWidget shows the unsupported network prompt', async ({ page }) => 
 test('BridgingWidget renders tab navigation and switches views', async ({ page }) => {
   await gotoStory(page, 'ready-to-bridge')
 
-  await expectBodyToContain(page, ['GoodDollar Bridge', 'Bridge', 'History', 'FAQ', 'Chain 122'])
+  await expectBodyToContain(page, ['GoodDollar Bridge', 'Bridge', 'History', 'FAQ', 'Fuse'])
 
   await page.getByText('History', { exact: true }).first().click()
   await expectBodyToContain(page, ['Fuse', 'Celo', 'Ethereum'])
@@ -92,6 +116,7 @@ test('BridgingWidget shows bridge-config loading and error states', async ({ pag
 test('BridgingWidget shows fee-quote loading and error states', async ({ page }) => {
   await gotoStory(page, 'quote-loading')
   await expectBodyToContain(page, ['Fetching quote…'])
+  await expect(page.getByTestId('BridgingWidget-review-cta')).toHaveCount(0)
   await saveScreenshot(page, 'bw-07-quote-loading')
 
   await gotoStory(page, 'quote-error')
@@ -122,7 +147,7 @@ test('BridgingWidget flags a one-time approval requirement while still allowing 
 test('BridgingWidget shows the fee breakdown and Review CTA when ready to bridge', async ({ page }) => {
   await gotoStory(page, 'ready-to-bridge')
 
-  await expectBodyToContain(page, ['Celo via LayerZero', 'Estimated G$ received'])
+  await expectBodyToContain(page, ['Fuse → Celo', 'Provider', 'LayerZero', 'Estimated provider fee', '0.000132 FUSE'])
   await expect(page.getByTestId('BridgingWidget-review-cta')).toBeVisible()
   await saveScreenshot(page, 'bw-12-ready-to-bridge')
 })
@@ -133,38 +158,74 @@ test('BridgingWidget opens the Review Bridge drawer with route and fee details',
   await expectBodyToContain(page, [
     'Review Bridge',
     'G$ Sent',
-    'Celo via LayerZero',
+    'Fuse → Celo',
+    'Provider',
+    'LayerZero',
     'Estimated G$ received',
+    '0.000132 FUSE',
   ])
   await expect(page.getByTestId('BridgingWidget-review-confirm')).toBeVisible()
-  await saveScreenshot(page, 'bw-13-review-open')
+  await saveScreenshot(page, 'bw-13-review-open', 'BridgingWidget-review-screen')
+})
+
+test('BridgingWidget keeps Review confirmation reachable on a short mobile viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 504 })
+  await gotoStory(page, 'review-open')
+
+  const scrollArea = page.getByTestId('BridgingWidget-review-screen').locator('..')
+  const confirm = page.getByTestId('BridgingWidget-review-confirm')
+  await expect.poll(() => scrollArea.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true)
+  await expect.poll(() => scrollArea.evaluate((element) => element.getBoundingClientRect().top)).toBeLessThan(200)
+  await page.mouse.move(195, 350)
+  await page.mouse.wheel(0, 800)
+  await expect.poll(() => scrollArea.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+  await expect(confirm).toBeInViewport()
+  await page.screenshot({ path: `${SCREENSHOT_DIR}/bw-31-mobile-review-footer.png` })
 })
 
 test('BridgingWidget confirm modal tracks the approve/bridge submission steps', async ({ page }) => {
   await gotoStory(page, 'submission-approving')
   await expectBodyToContain(page, ['Approving G$…'])
-  await saveScreenshot(page, 'bw-14-submission-approving')
+  await saveScreenshot(page, 'bw-14-submission-approving', 'BridgingWidget-confirm-modal')
 
   await gotoStory(page, 'submission-bridging')
   await expectBodyToContain(page, ['Bridging…'])
-  await saveScreenshot(page, 'bw-15-submission-bridging')
+  await saveScreenshot(page, 'bw-15-submission-bridging', 'BridgingWidget-confirm-modal')
 
   await gotoStory(page, 'submission-completed')
-  await expectBodyToContain(page, ['Bridge Submitted'])
-  await expect(page.getByTestId('BridgingWidget-confirm-done')).toBeVisible()
+  await expectBodyToContain(page, ['Bridge status', 'Bridging in progress', 'Deliver on Celo', 'Track on LayerZero'])
+  await expect(page.getByTestId('BridgingWidget-confirm-done')).toContainText('Continue in background')
+  await page.getByText('Bridge status').scrollIntoViewIfNeeded()
+  await expect(page.getByText('Bridge status')).toBeInViewport({ ratio: 1 })
   await saveScreenshot(page, 'bw-16-submission-completed')
+})
+
+test('BridgingWidget keeps progress and its action reachable on a short mobile viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 504 })
+  await gotoStory(page, 'submission-completed')
+
+  const scrollArea = page.getByTestId('BridgingWidget-confirm-modal').locator('..')
+  const done = page.getByTestId('BridgingWidget-confirm-done')
+  await expect(page.getByText('Bridge status')).toBeInViewport({ ratio: 1 })
+  await page.screenshot({ path: `${SCREENSHOT_DIR}/bw-34-mobile-progress-top.png` })
+  await expect.poll(() => scrollArea.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true)
+  await page.mouse.move(195, 350)
+  await page.mouse.wheel(0, 800)
+  await expect.poll(() => scrollArea.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+  await expect(done).toBeInViewport({ ratio: 1 })
+  await page.screenshot({ path: `${SCREENSHOT_DIR}/bw-33-mobile-progress-footer.png` })
 })
 
 test('BridgingWidget confirm modal shows retryable failure states per step', async ({ page }) => {
   await gotoStory(page, 'submission-failed-approving')
   await expectBodyToContain(page, ['Bridge Failed', 'You rejected the approval request.'])
   await expect(page.getByTestId('BridgingWidget-confirm-retry')).toBeVisible()
-  await saveScreenshot(page, 'bw-17-submission-failed-approving')
+  await saveScreenshot(page, 'bw-17-submission-failed-approving', 'BridgingWidget-confirm-modal')
 
   await gotoStory(page, 'submission-failed-bridging')
   await expectBodyToContain(page, ['Bridge Failed', 'The bridge transaction reverted on-chain.'])
   await expect(page.getByTestId('BridgingWidget-confirm-retry')).toBeVisible()
-  await saveScreenshot(page, 'bw-18-submission-failed-bridging')
+  await saveScreenshot(page, 'bw-18-submission-failed-bridging', 'BridgingWidget-confirm-modal')
 })
 
 test('BridgingWidget shows history loading, empty and error states', async ({ page }) => {
@@ -194,6 +255,8 @@ test('BridgingWidget lists populated bridge history across statuses', async ({ p
     'failed',
   ])
   await expect(page.getByTestId('BridgingWidget-history-row')).toHaveCount(3)
+  await expect(page.getByTestId('BridgingWidget-history-row').first()).toContainText('120.00 G$')
+  await expect(page.getByTestId('BridgingWidget-history-row').last()).toContainText('8.00 G$')
   await saveScreenshot(page, 'bw-22-history-populated')
 })
 
@@ -201,12 +264,28 @@ test('BridgingWidget opens the history detail modal with delivery progress', asy
   await gotoStory(page, 'history-detail-modal-open')
 
   await expectBodyToContain(page, [
-    'LayerZero Bridge',
-    'Sent on Fuse',
-    'Delivered on Celo',
-    'View on explorer',
+    'Bridge status',
+    '120.00 G$',
+    'Submit on Fuse',
+    'Deliver on Celo',
+    'Track on LayerZero',
   ])
-  await saveScreenshot(page, 'bw-23-history-detail-modal-open')
+  await saveScreenshot(page, 'bw-23-history-detail-modal-open', 'BridgingWidget-history-detail')
+})
+
+test('BridgingWidget keeps History progress links reachable on a short mobile viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 504 })
+  await gotoStory(page, 'history-detail-modal-open')
+
+  const scrollArea = page.getByTestId('BridgingWidget-history-detail').locator('..')
+  const providerLink = page.getByRole('link', { name: /Track on LayerZero/ })
+  await expect(page.getByText('Bridge status')).toBeInViewport({ ratio: 1 })
+  await expect.poll(() => scrollArea.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true)
+  await page.mouse.move(195, 350)
+  await page.mouse.wheel(0, 800)
+  await expect.poll(() => scrollArea.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+  await expect(providerLink).toBeInViewport({ ratio: 1 })
+  await page.screenshot({ path: `${SCREENSHOT_DIR}/bw-35-mobile-history-progress.png` })
 })
 
 test('BridgingWidget FAQ tab renders reference content', async ({ page }) => {
@@ -219,7 +298,11 @@ test('BridgingWidget FAQ tab renders reference content', async ({ page }) => {
 test('BridgingWidget renders correctly in the light theme', async ({ page }) => {
   await gotoStory(page, 'light-theme-populated')
 
-  await expectBodyToContain(page, ['GoodDollar Bridge', 'Celo via LayerZero'])
+  await expectBodyToContain(page, ['GoodDollar Bridge', 'Fuse → Celo'])
+  const sourceSelect = page.getByTestId('BridgingWidget-source-select')
+  await expect(sourceSelect).toContainText('Fuse')
+  const sourceColor = await sourceSelect.evaluate((element) => getComputedStyle(element).color)
+  expect(sourceColor).not.toBe('rgb(255, 255, 255)')
   await saveScreenshot(page, 'bw-25-light-theme-populated')
 })
 
@@ -228,4 +311,76 @@ test('BridgingWidget renders a usable mobile layout', async ({ page }) => {
   await gotoStory(page, 'ready-to-bridge')
   await expectBodyToContain(page, ['GoodDollar Bridge', 'Bridge', 'History', 'FAQ'])
   await saveScreenshot(page, 'bw-26-mobile-ready-to-bridge')
+})
+
+test('BridgingWidget correctly formats 2-decimal Fuse amounts as source', async ({ page }) => {
+  await gotoStory(page, 'fuse-source')
+
+  await expectBodyToContain(page, [
+    'GoodDollar Bridge',
+    'Balance: 500.00 G$',
+    'Estimated G$ received',
+    '99.75 G$',
+    '0.000132 FUSE',
+  ])
+  await expect(page.getByTestId('BridgingWidget-review-cta')).toBeVisible()
+  await saveScreenshot(page, 'bw-27-fuse-source')
+})
+
+test('BridgingWidget correctly formats 2-decimal Fuse amounts as destination', async ({ page }) => {
+  await gotoStory(page, 'fuse-destination')
+
+  await expectBodyToContain(page, [
+    'GoodDollar Bridge',
+    'Balance: 500.00 G$',
+    'Estimated G$ received',
+    '99.75 G$',
+    '0.25% (0.25 G$)',
+    '0.000132 CELO',
+  ])
+  await expect(page.getByTestId('BridgingWidget-review-cta')).toBeVisible()
+  await saveScreenshot(page, 'bw-28-fuse-destination')
+})
+
+test('BridgingWidget completes the interactive route-to-submit flow', async ({ page }) => {
+  await gotoStory(page, 'interactive-submit')
+
+  await page.getByTestId('BridgingWidget-source-select').click()
+  await page.getByRole('option', { name: 'Fuse' }).click()
+  await page.getByTestId('BridgingWidget-target-select').click()
+  await page.getByRole('option', { name: 'Celo' }).click()
+  await page.getByPlaceholder('0.00').fill('100')
+  await expect(page.getByTestId('BridgingWidget-review-cta')).toBeVisible()
+  await page.getByPlaceholder('0.00').fill('101')
+  await expect(page.getByTestId('BridgingWidget-review-cta')).toHaveCount(0)
+  await expect(page.getByTestId('BridgingWidget-review-cta')).toBeVisible()
+  await page.getByPlaceholder('0.00').fill('100')
+  await expect(page.getByTestId('BridgingWidget-review-cta')).toBeVisible()
+  await page.getByTestId('BridgingWidget-review-cta').click()
+  await expect(page.getByTestId('BridgingWidget-review-screen')).toBeVisible()
+  await expectBodyToContain(page, ['G$ Sent', '100.00', 'Fuse → Celo', 'Provider'])
+  await page.getByTestId('BridgingWidget-review-confirm').click()
+  await expect(page.getByTestId('BridgingWidget-confirm-modal')).toBeVisible()
+  await expectBodyToContain(page, ['Bridging…'])
+  await expect(page.getByTestId('BridgingWidget-confirm-done')).toContainText('Continue in background')
+  await saveScreenshot(page, 'bw-29-interactive-submit', 'BridgingWidget-confirm-modal')
+})
+
+test('BridgingWidget keeps the chosen provider separate from the route', async ({ page }) => {
+  await gotoStory(page, 'interactive-submit')
+  await page.getByTestId('BridgingWidget-target-select').click()
+  await page.getByRole('option', { name: 'Ethereum' }).click()
+
+  const axelar = page.getByRole('button', { name: /Axelar/ })
+  const layerZero = page.getByRole('button', { name: /LayerZero/ })
+  await expect(axelar).toBeVisible()
+  await expect(layerZero).toBeVisible()
+  await axelar.click()
+  await expect(axelar).toHaveAttribute('aria-pressed', 'true')
+  await expect(layerZero).toHaveAttribute('aria-pressed', 'false')
+  await page.getByPlaceholder('0.00').fill('25')
+  await expect(page.getByTestId('BridgingWidget-fee-breakdown')).toContainText('Celo → Ethereum')
+  await expect(page.getByTestId('BridgingWidget-fee-breakdown')).toContainText('Provider')
+  await expect(page.getByTestId('BridgingWidget-fee-breakdown')).toContainText('Axelar')
+  await expect(page.getByTestId('BridgingWidget-fee-breakdown')).not.toContainText('via Axelar')
 })
