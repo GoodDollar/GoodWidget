@@ -26,6 +26,9 @@ test('CitizenClaimWidget Showcase story loads and remounts across environment ch
     '/iframe.html?id=widgets-citizenclaimwidget-showcase--injected-wallet&viewMode=story&args=environment:development',
   )
   await expect(page.getByText('Ready to claim').first()).toBeVisible({ timeout: 15000 })
+  await page.screenshot({
+    path: 'tests/widgets/citizen-claim-widget/test-results/ccw-showcase-development.png',
+  })
 
   // Switch environment to production
   await gotoStory(
@@ -33,5 +36,7 @@ test('CitizenClaimWidget Showcase story loads and remounts across environment ch
     '/iframe.html?id=widgets-citizenclaimwidget-showcase--injected-wallet&viewMode=story&args=environment:production',
   )
   await expect(page.getByText('Ready to claim').first()).toBeVisible({ timeout: 15000 })
+  await page.screenshot({
+    path: 'tests/widgets/citizen-claim-widget/test-results/ccw-showcase-production.png',
+  })
 })
-
