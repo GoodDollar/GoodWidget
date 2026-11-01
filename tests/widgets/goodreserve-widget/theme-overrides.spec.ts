@@ -10,7 +10,7 @@ async function gotoStory(page: Page, extraArgs = '') {
   await page.locator('#storybook-root').waitFor({ state: 'attached' })
 }
 
-test('GoodReserveWidget Theme Overrides playground renders in dark mode with custom background overrides', async ({
+test('GoodReserveWidget Theme Overrides playground renders in dark mode and updates dynamically in-place', async ({
   page,
 }) => {
   await gotoStory(page, 'defaultTheme:dark')
@@ -20,10 +20,44 @@ test('GoodReserveWidget Theme Overrides playground renders in dark mode with cus
 
   const shell = page.getByTestId('GoodReserveWidget-shell').first()
   await expect(shell).toBeVisible()
+  // Default dark backgroundSurface (#1E1B4B -> rgb(30, 27, 75))
   await expect(shell).toHaveCSS('background-color', 'rgb(30, 27, 75)')
+
+  const amountCard = page.getByTestId('GoodReserveWidget-amount-card-from').first()
+  await expect(amountCard).toBeVisible()
+  // Default dark backgroundInput (#0F172A -> rgb(15, 23, 42))
+  await expect(amountCard).toHaveCSS('background-color', 'rgb(15, 23, 42)')
+
+  const submitButton = themedWidget.locator('.is_Button').first()
+  await expect(submitButton).toBeVisible()
+  // Default dark_Button (#7C3AED -> rgb(124, 58, 237))
+  await expect(submitButton).toHaveCSS('background-color', 'rgb(124, 58, 237)')
 
   await page.screenshot({
     path: 'tests/widgets/goodreserve-widget/test-results/grw-theme-overrides-dark.png',
+  })
+
+  // Dynamically update controls in-place via Storybook addon channel
+  await page.evaluate(() => {
+    const channel = (window as unknown as { __STORYBOOK_ADDONS_CHANNEL__?: { emit: (event: string, data: unknown) => void } })
+      .__STORYBOOK_ADDONS_CHANNEL__
+    channel?.emit('updateStoryArgs', {
+      storyId: 'widgets-goodreservewidget-theme-overrides--playground',
+      updatedArgs: {
+        swapShellBackground: '#e11d48',
+        amountCardBackground: '#059669',
+        submitButtonBackground: '#2563eb',
+      },
+    })
+  })
+
+  // Verify that controls dynamically rewired into base tokens update live styles
+  await expect(shell).toHaveCSS('background-color', 'rgb(225, 29, 72)', { timeout: 5000 })
+  await expect(amountCard).toHaveCSS('background-color', 'rgb(5, 150, 105)', { timeout: 5000 })
+  await expect(submitButton).toHaveCSS('background-color', 'rgb(37, 99, 235)', { timeout: 5000 })
+
+  await page.screenshot({
+    path: 'tests/widgets/goodreserve-widget/test-results/grw-theme-overrides-custom.png',
   })
 })
 
