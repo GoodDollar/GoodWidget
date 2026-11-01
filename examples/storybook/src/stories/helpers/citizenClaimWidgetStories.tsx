@@ -107,16 +107,17 @@ function CitizenClaimWidgetStoryShell({
   }, [provider])
 
   return (
-    <CitizenClaimWidget
-      key={environment}
-      provider={provider}
-      environment={environment}
-      data-testid={dataTestId}
-      chainId={activeChainId ?? 42220}
-      defaultTheme={defaultTheme}
-      themeOverrides={themeOverrides}
-      initialTab={initialTab}
-    />
+    <div key={environment} data-testid={dataTestId}>
+      <CitizenClaimWidget
+        key={environment}
+        provider={provider}
+        environment={environment}
+        chainId={activeChainId ?? 42220}
+        defaultTheme={defaultTheme}
+        themeOverrides={themeOverrides}
+        initialTab={initialTab}
+      />
+    </div>
   )
 }
 

@@ -68,12 +68,16 @@ export function ThemedSuperfluidStory({
   themeOverrides?: GoodWidgetThemeOverrides
 } = {}) {
   return (
-    <MockSuperfluidCampaignWidgetStoryShell
-      defaultTheme={defaultTheme}
-      themeOverrides={themeOverrides}
-      provider={undefined}
-      dataTestId="SuperfluidCampaignWidget-themed"
-    />
+    <div
+      data-testid="SuperfluidCampaignWidget-themed"
+      style={{ width: '100%', maxWidth: 480, margin: '0 auto' }}
+    >
+      <MockSuperfluidCampaignWidget
+        provider={undefined}
+        defaultTheme={defaultTheme}
+        themeOverrides={themeOverrides}
+      />
+    </div>
   )
 }
 

@@ -10,7 +10,7 @@ async function gotoStory(page: Page, extraArgs = '') {
   await page.locator('#storybook-root').waitFor({ state: 'attached' })
 }
 
-test('SuperfluidCampaignWidget Theme Overrides playground renders in dark mode with custom overrides', async ({
+test('SuperfluidCampaignWidget Theme Overrides playground renders in dark mode and updates dynamically in-place', async ({
   page,
 }) => {
   await gotoStory(page, 'defaultTheme:dark')
@@ -30,6 +30,27 @@ test('SuperfluidCampaignWidget Theme Overrides playground renders in dark mode w
 
   await page.screenshot({
     path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-theme-overrides-dark.png',
+  })
+
+  // Dynamically update controls in-place via Storybook addon channel
+  await page.evaluate(() => {
+    const channel = (window as unknown as { __STORYBOOK_ADDONS_CHANNEL__?: { emit: (event: string, data: unknown) => void } })
+      .__STORYBOOK_ADDONS_CHANNEL__
+    channel?.emit('updateStoryArgs', {
+      storyId: 'widgets-superfluidcampaignwidget-theme-overrides--playground',
+      updatedArgs: {
+        cardBackground: '#059669',
+        buttonBackground: '#dc2626',
+      },
+    })
+  })
+
+  // Verify that controls dynamically rewired into base tokens update live styles
+  await expect(card).toHaveCSS('background-color', 'rgb(5, 150, 105)', { timeout: 5000 })
+  await expect(button).toHaveCSS('background-color', 'rgb(220, 38, 38)', { timeout: 5000 })
+
+  await page.screenshot({
+    path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-theme-overrides-custom.png',
   })
 })
 
