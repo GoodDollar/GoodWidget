@@ -130,11 +130,14 @@ export const Playground: Story = {
             <li>
               <strong>dark.backgroundSurface / light.backgroundSurface</strong>: Outer swap shell card background.
               Note: <code>dark_Card.background</code> is a no-op because <code>ReserveSwapShell</code> specifies{' '}
-              <code>backgroundColor: '$backgroundSurface'</code> explicitly.
+              <code>backgroundColor: '$backgroundSurface'</code> explicitly. These base theme keys cascade to every
+              surface referencing <code>$backgroundSurface</code> across the widget, not only the outer card.
             </li>
             <li>
               <strong>dark.backgroundInput / light.backgroundInput</strong>: Amount card panel backgrounds.
               Note: <code>ReserveAmountCard</code> specifies <code>backgroundColor: '$backgroundInput'</code> explicitly.
+              These keys cascade to every input-style surface in the widget (amount panels, token badges, and settings button),
+              not only the outer card.
             </li>
             <li>
               <strong>dark_Button / light_Button</strong>: Swap action button background, hover, and press states.

@@ -119,6 +119,8 @@ export const Playground: Story = {
               <strong>dark.backgroundSurface / light.backgroundSurface</strong>: Hero card background.
               Note: <code>dark_Card.background</code> is a no-op for the hero card because{' '}
               <code>AiCreditsHero</code> specifies <code>backgroundColor="$backgroundSurface"</code> explicitly.
+              This base theme key cascades to every surface in the widget referencing <code>$backgroundSurface</code>{' '}
+              (such as address badges, key generation panels, and operator cards), not only the hero card.
             </li>
             <li>
               <strong>dark_Button / light_Button</strong>: Action button background, hover, and press states.

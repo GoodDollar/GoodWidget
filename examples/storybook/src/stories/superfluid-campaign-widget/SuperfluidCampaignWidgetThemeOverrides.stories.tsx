@@ -45,6 +45,7 @@ function CodeBlock({ children }: { children: string }) {
 interface OverridesArgs {
   defaultTheme: 'light' | 'dark'
   cardBackground: string
+  buttonBackground: string
 }
 
 function buildThemeOverrides(args: OverridesArgs): GoodWidgetThemeOverrides {
@@ -55,6 +56,18 @@ function buildThemeOverrides(args: OverridesArgs): GoodWidgetThemeOverrides {
       },
       light: {
         backgroundDark: args.cardBackground,
+      },
+      dark_Button: {
+        background: args.buttonBackground,
+        backgroundHover: args.buttonBackground,
+        backgroundPress: args.buttonBackground,
+        backgroundFocus: args.buttonBackground,
+      },
+      light_Button: {
+        background: args.buttonBackground,
+        backgroundHover: args.buttonBackground,
+        backgroundPress: args.buttonBackground,
+        backgroundFocus: args.buttonBackground,
       },
     },
   }
@@ -74,10 +87,15 @@ const meta: Meta<OverridesArgs> = {
       control: 'color',
       description: 'Base theme backgroundDark token (styles SuperfluidCampaignWidget outer Card)',
     },
+    buttonBackground: {
+      control: 'color',
+      description: 'themes.dark_Button.background / themes.light_Button.background',
+    },
   },
   args: {
     defaultTheme: 'dark',
     cardBackground: '#1E1B4B',
+    buttonBackground: '#7C3AED',
   },
 }
 export default meta
@@ -98,6 +116,11 @@ export const Playground: Story = {
               <strong>dark.backgroundDark / light.backgroundDark</strong>: Outer card background.
               Note: <code>dark_Card.background</code> is a no-op for the container because{' '}
               <code>SuperfluidCampaignWidget</code> specifies <code>backgroundColor="$backgroundDark"</code> explicitly.
+              This base theme key cascades to every surface in the widget that references <code>$backgroundDark</code>,
+              not only the outer card.
+            </li>
+            <li>
+              <strong>dark_Button / light_Button</strong>: Header action buttons, wallet connect button, and action card CTA buttons.
             </li>
           </DocsList>
         </DocsCallout>
