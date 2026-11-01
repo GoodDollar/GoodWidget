@@ -136,8 +136,9 @@ export const Playground: Story = {
             <li>
               <strong>dark.backgroundInput / light.backgroundInput</strong>: Amount card panel backgrounds.
               Note: <code>ReserveAmountCard</code> specifies <code>backgroundColor: '$backgroundInput'</code> explicitly.
-              These keys cascade to every input-style surface in the widget (amount panels, token badges, and settings button),
-              not only the outer card.
+              These keys cascade to input and action surfaces (amount panels, details table, flip button, and settings button).
+              Note: Token badges and confirm highlights use <code>$backgroundSurfaceAlt</code>, which is not wired to a control
+              and retains the base theme color.
             </li>
             <li>
               <strong>dark_Button / light_Button</strong>: Swap action button background, hover, and press states.
