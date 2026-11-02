@@ -2,6 +2,7 @@ import React from 'react'
 import { Badge, BadgeText, Button, ButtonText, Heading, Icon, Text, XStack, YStack } from '@goodwidget/ui'
 import type { CampaignDefinition } from '../widgetRuntimeContract'
 import { ConnectWalletPrompt } from './ConnectWalletPrompt'
+import { SeasonNotice } from './SeasonNotice'
 import { compactButtonProps } from './shared/styles'
 import { WalletControls } from '@goodwidget/core'
 
@@ -13,6 +14,8 @@ interface CampaignHeaderProps {
     CampaignDefinition,
     'seasonLabel' | 'title' | 'description' | 'supAllocatedLabel' | 'endsLabel'
   >
+  /** Callout rendered under the title; only the main content view passes it. */
+  notice?: string
   isConnected: boolean
   onConnect: () => void
   /** Present when the campaign shell is showing an in-place child widget. */
@@ -32,6 +35,7 @@ interface CampaignHeaderProps {
  */
 export function CampaignHeader({
   data,
+  notice,
   isConnected,
   onConnect,
   onClose,
@@ -84,6 +88,7 @@ export function CampaignHeader({
         <Heading level={1} $sm={{ fontSize: '$7', lineHeight: '$7', letterSpacing: '$7' }}>
           {data.title}
         </Heading>
+        {notice && <SeasonNotice message={notice} />}
         <Text tone="soft">{data.description}</Text>
       </YStack>
 
