@@ -24,6 +24,7 @@ const BPS_DENOMINATOR = 10_000
 interface ReviewScreenProps {
   isOpen: boolean
   fromChainId: number
+  walletChainId: number | null
   targetChainId: number
   protocol: BridgeProtocol
   quote: BridgeFeeQuote
@@ -37,6 +38,7 @@ interface ReviewScreenProps {
 export function ReviewScreen({
   isOpen,
   fromChainId,
+  walletChainId,
   targetChainId,
   protocol,
   quote,
@@ -95,6 +97,12 @@ export function ReviewScreen({
             />
             <DetailRow label="Estimated G$ received" value={`${amountReceived} G$`} />
           </RouteSelectionCard>
+
+          {walletChainId !== fromChainId && (
+            <Text testID="BridgingWidget-review-switch-hint" fontSize={14} color="$secondaryColor">
+              Confirm will ask your wallet to switch to {getChainDisplayName(fromChainId)}. Your wallet must support this network.
+            </Text>
+          )}
 
           <Separator />
 

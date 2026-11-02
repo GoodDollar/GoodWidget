@@ -14,6 +14,10 @@ type ErrorMatcher = {
 
 const BRIDGE_ERROR_RULES: readonly ErrorMatcher[] = [
   {
+    match: ['network switch cancelled'],
+    message: 'Network switch cancelled in wallet.',
+  },
+  {
     match: ['user rejected', 'user denied', '4001', 'action_rejected'],
     message: 'Transaction canceled in wallet.',
   },
@@ -38,6 +42,14 @@ const BRIDGE_ERROR_RULES: readonly ErrorMatcher[] = [
   { match: ['allowance'], message: 'Insufficient allowance. Approve and try again.' },
   { match: ['unsupported chain', 'wrong chain'], message: 'Switch to a supported chain to continue.' },
 ]
+
+export function isUserRejectedError(err: unknown): boolean {
+  const code = typeof err === 'object' && err !== null && 'code' in err ? err.code : null
+  const message = err instanceof Error ? err.message : String(err ?? '')
+  const lower = message.toLowerCase()
+  return code === 4001 || code === '4001' || code === 'ACTION_REJECTED' ||
+    ['user rejected', 'user denied', 'action_rejected'].some((needle) => lower.includes(needle))
+}
 
 export function mapBridgeError(err: unknown, fallback: string, context: 'other' | 'transaction' = 'other'): string {
   console.error('[BridgingWidget]', err)

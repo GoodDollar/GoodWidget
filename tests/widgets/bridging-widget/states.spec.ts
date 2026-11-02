@@ -165,6 +165,7 @@ test('BridgingWidget opens the Review Bridge drawer with route and fee details',
     '0.000132 FUSE',
   ])
   await expect(page.getByTestId('BridgingWidget-review-confirm')).toBeVisible()
+  await expect(page.getByTestId('BridgingWidget-review-switch-hint')).toHaveCount(0)
   await saveScreenshot(page, 'bw-13-review-open', 'BridgingWidget-review-screen')
 })
 

@@ -72,6 +72,7 @@ export function BridgingWidgetView({ adapter, initialTab = 'bridge' }: BridgingW
       <ReviewScreen
         isOpen={state.isReviewOpen}
         fromChainId={state.chainId}
+        walletChainId={state.walletChainId}
         targetChainId={state.targetChainId}
         protocol={state.selectedProtocol}
         quote={state.quote}

@@ -17,6 +17,7 @@ interface FixtureControls {
   events: FixtureEvent[]
   holdNextSwitch: () => void
   releaseSwitch: () => void
+  rejectNextSwitch: () => void
   holdNextFreshQuote: () => void
   releaseFreshQuote: () => void
   failNextFreshQuoteWithRevert: () => void
@@ -45,6 +46,7 @@ function createFixture(mode: FixtureMode) {
   let account: Address | null = ADDRESS
   let walletChainId: number = BRIDGING_CHAINS.CELO
   let blockSwitch = false
+  let rejectSwitch = false
   let releaseSwitch: (() => void) | null = null
   let blockFreshQuote = false
   let releaseFreshQuote: (() => void) | null = null
@@ -64,6 +66,7 @@ function createFixture(mode: FixtureMode) {
     events,
     holdNextSwitch: () => { blockSwitch = true },
     releaseSwitch: () => { releaseSwitch?.() },
+    rejectNextSwitch: () => { rejectSwitch = true },
     holdNextFreshQuote: () => { blockFreshQuote = true },
     releaseFreshQuote: () => { releaseFreshQuote?.() },
     failNextFreshQuoteWithRevert: () => { failFreshQuoteWithRevert = true },
@@ -99,6 +102,11 @@ function createFixture(mode: FixtureMode) {
       if (method === 'wallet_switchEthereumChain') {
         const nextChainId = parseInt(params?.[0].chainId ?? '0x0', 16)
         events.push({ kind: 'switch', chainId: nextChainId })
+        if (rejectSwitch) {
+          rejectSwitch = false
+          events.push({ kind: 'switch-rejected', chainId: nextChainId })
+          throw Object.assign(new Error('User rejected the request.'), { code: 4001 })
+        }
         if (blockSwitch) {
           await new Promise<void>((resolve) => { releaseSwitch = resolve })
           releaseSwitch = null

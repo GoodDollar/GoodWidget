@@ -9,6 +9,7 @@ type FixtureWindow = Window & {
     events: FixtureEvent[]
     holdNextSwitch: () => void
     releaseSwitch: () => void
+    rejectNextSwitch: () => void
     holdNextFreshQuote: () => void
     releaseFreshQuote: () => void
     failNextFreshQuoteWithRevert: () => void
@@ -56,6 +57,9 @@ test.describe('SDK-mocked adapter submit flow', () => {
   test('switches source chain, refreshes the quote, and gives that quote to doBridge', async ({ page }) => {
     test.setTimeout(60_000)
     await prepareRoute(page)
+    await expect(page.getByTestId('BridgingWidget-review-switch-hint')).toContainText(
+      'Confirm will ask your wallet to switch to Fuse.',
+    )
     expect((await events(page)).filter((event) => event.kind === 'switch')).toHaveLength(0)
     await page.getByTestId('BridgingWidget-review-confirm').click()
     await expect(page.getByTestId('BridgingWidget-confirm-done')).toContainText('Continue in background')
@@ -106,6 +110,43 @@ test.describe('SDK-mocked adapter submit flow', () => {
       path: `${SCREENSHOT_DIR}/bw-32-delivered-progress.png`,
     })
   })
+})
+
+test('rejecting a network switch shows a cancellation and Retry switches before submitting', async ({ page }) => {
+  test.setTimeout(60_000)
+  await prepareRoute(page)
+  await page.evaluate(() => (window as FixtureWindow).__bridgingWidgetFixture?.rejectNextSwitch())
+  await page.getByTestId('BridgingWidget-review-confirm').click()
+
+  await expect(page.getByTestId('BridgingWidget-confirm-modal')).toContainText('Network switch cancelled in wallet.')
+  await waitForEvent(page, 'switch-rejected')
+  let trace = await events(page)
+  expect(trace.filter((event) => event.kind === 'quote' && event.refresh)).toHaveLength(0)
+  expect(trace.filter((event) => event.kind === 'doBridge')).toHaveLength(0)
+
+  await page.getByTestId('BridgingWidget-confirm-retry').click()
+  await expect(page.getByTestId('BridgingWidget-confirm-done')).toBeVisible()
+  trace = await events(page)
+  const switchEvents = trace.filter((event) => event.kind === 'switch')
+  const freshQuotes = trace.filter((event) => event.kind === 'quote' && event.refresh)
+  const bridgeCalls = trace.filter((event) => event.kind === 'doBridge')
+  expect(switchEvents).toHaveLength(2)
+  expect(freshQuotes).toHaveLength(1)
+  expect(bridgeCalls).toHaveLength(1)
+  expect(trace.indexOf(freshQuotes[0])).toBeGreaterThan(trace.indexOf(switchEvents[1]))
+  expect(trace.indexOf(bridgeCalls[0])).toBeGreaterThan(trace.indexOf(freshQuotes[0]))
+})
+
+test('Review keeps the switch hint and Confirm reachable on a short mobile screen', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 504 })
+  await prepareRoute(page)
+  await expect(page.getByTestId('BridgingWidget-review-switch-hint')).toContainText(
+    'Confirm will ask your wallet to switch to Fuse.',
+  )
+  const scrollArea = page.getByTestId('BridgingWidget-review-screen').locator('..')
+  await scrollArea.evaluate((element) => { element.scrollTop = element.scrollHeight })
+  await expect(page.getByTestId('BridgingWidget-review-confirm')).toBeInViewport()
+  await page.screenshot({ path: `${SCREENSHOT_DIR}/bw-35-review-switch-mobile.png` })
 })
 
 test('account change during network switch cancels preparation before a fresh quote', async ({ page }) => {

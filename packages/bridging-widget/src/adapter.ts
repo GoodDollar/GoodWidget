@@ -11,7 +11,7 @@ import type {
 import { getRouteProtocols } from './adapter/bridgeRoutes'
 import { useBridgingPublicClients, useBridgingSdk } from './adapter/bridgingClient'
 import { isBridgingChain, getChainDecimals, getChainTransactionExplorerLink } from './adapter/chains'
-import { primaryRequirementMessage } from './adapter/errors'
+import { isUserRejectedError, primaryRequirementMessage } from './adapter/errors'
 import { BRIDGING_CHAINS } from './widgetRuntimeContract'
 import { sanitizeAmount } from './amount'
 import { useBridgeConfig } from './adapter/useBridgeConfig'
@@ -153,7 +153,12 @@ export function useBridgingAdapter(): BridgingWidgetAdapterResult {
       throw new Error('Choose a route and amount before bridging.')
     }
     if (chainId !== activeChainId) {
-      await switchChain(activeChainId)
+      try {
+        await switchChain(activeChainId)
+      } catch (err) {
+        if (isUserRejectedError(err)) throw new Error('Network switch cancelled in wallet.')
+        throw err
+      }
       if (!isSubmissionIdentityCurrent()) throw new Error('Bridge preparation cancelled.')
     }
     const amount = parseUnits(inputAmount, getChainDecimals(activeChainId))
