@@ -62,7 +62,8 @@ import {
 import { executeCeloPayment, G_TOKEN_CELO_ADDRESS, isStreamAmountChanged } from './celoPayment'
 import { startGoodIdVerification, isUserRejectedWalletRequest } from './goodIdVerification'
 import { mapPaymentError } from './paymentErrors'
-import { fetchVaultPaymentMinimums, validateVaultPaymentAmounts } from './vaultMinimums'
+import { validateVaultPaymentAmounts } from './vaultMinimums'
+import { usePaymentMinimums } from './usePaymentMinimums'
 import { quoteTotalUsdMicro, usdDisplayToMicro } from './quoteMath'
 import type {
   AiCreditsWidgetAdapterActions,
@@ -484,6 +485,18 @@ export function useAiCreditsAdapter({
     [chainClientOverride, baseRpcUrl, celoRpcUrl, fundingVaultAddress, celoVault, goodIdAddress],
   )
 
+  const paymentMinimums = usePaymentMinimums({
+    payer: address ?? null,
+    buyer: state.signerPubKey,
+    chainClient,
+    publicClient: celoPublicClient,
+    vault: celoVault,
+    skipValidation: skipVaultPaymentValidation,
+  })
+  const refreshPaymentMinimums = paymentMinimums.refresh
+  const paymentIdentityRef = useRef({ address, chainId, buyer: state.signerPubKey, chainClient, celoVault, celoPublicClient, provider })
+  paymentIdentityRef.current = { address, chainId, buyer: state.signerPubKey, chainClient, celoVault, celoPublicClient, provider }
+
   /**
    * Reads GoodID verification for `account` straight from Celo, independently of
    * the backend account fetch. A failed read leaves the previous value alone:
@@ -584,13 +597,6 @@ export function useAiCreditsAdapter({
               }))
               .catch(() => null)
 
-      const minimumsPromise = skipVaultPaymentValidation
-        ? Promise.resolve({
-            minDepositUsd: '1.00',
-            minStreamUsd: '1.00',
-          })
-        : fetchVaultPaymentMinimums(publicClient, celoVault, address as Address).catch(() => null)
-
       const gdUsdPerTokenPromise = chainClient.fetchGdUsdPerToken().catch(() => null)
       const discountConfigPromise = backendClient.getDiscountConfig().catch(() => null)
       const signersPromise = pendingDeepLink
@@ -608,11 +614,10 @@ export function useAiCreditsAdapter({
           )
 
       try {
-        const [balanceRead, account, minimums, gdUsdPerToken, discountConfig, signers] =
+        const [balanceRead, account, gdUsdPerToken, discountConfig, signers] =
           await Promise.all([
             balancePromise,
             accountPromise,
-            minimumsPromise,
             gdUsdPerTokenPromise,
             discountConfigPromise,
             signersPromise,
@@ -627,8 +632,6 @@ export function useAiCreditsAdapter({
           // An unread balance stays null rather than becoming a false '0'.
           ...(gBalance !== null ? { gBalance } : {}),
           gdUsdPerToken,
-          minDepositUsd: minimums?.minDepositUsd ?? null,
-          minStreamUsd: minimums?.minStreamUsd ?? null,
           depositBonusPercent:
             discountConfig?.depositBonusPercent ?? DEFAULT_DISCOUNT_CONFIG.depositBonusPercent,
           streamBonusPercent:
@@ -908,7 +911,9 @@ export function useAiCreditsAdapter({
         }
         const nextSignerFields = buildSignerStateFields(address, signers, signerAddress)
         setState((prev) =>
-          mergeStatePreservingNonBuyTab(prev, {
+          !addressesMatch(prev.address, address) || !addressesMatch(prev.signerPubKey, signerAddress)
+            ? prev
+            : mergeStatePreservingNonBuyTab(prev, {
             ...accountPatch,
             ...nextSignerFields,
             operatorConsented: accountPatch.operatorConsented ?? nextSignerFields.operatorConsented,
@@ -917,7 +922,9 @@ export function useAiCreditsAdapter({
         )
       } catch (err: unknown) {
         setState((prev) =>
-          mergeStatePreservingNonBuyTab(prev, {
+          !addressesMatch(prev.address, address) || !addressesMatch(prev.signerPubKey, signerAddress)
+            ? prev
+            : mergeStatePreservingNonBuyTab(prev, {
             error: err instanceof Error ? err.message : 'Could not load signer account',
           }),
         )
@@ -1382,6 +1389,7 @@ export function useAiCreditsAdapter({
   const handlePay = useCallback(
     async (quote: AiCreditsQuote) => {
       const currentState = state
+      const paymentIdentity = paymentIdentityRef.current
 
       if (!currentState.address || !currentState.signerPubKey || !providerRef.current) {
         throw new Error('Connect your wallet and generate a signer key before paying')
@@ -1419,10 +1427,14 @@ export function useAiCreditsAdapter({
       if (!skipVaultPaymentValidation) {
         try {
           const publicClient = await celoPublicClient
+          const buyerBalance = hasDeposit
+            ? await chainClient.getBuyerStoredBalance(currentState.signerPubKey)
+            : undefined
           await validateVaultPaymentAmounts({
             publicClient,
             vault: celoVault,
             payer: currentState.address as Address,
+            buyerBalance,
             depositAmount: quote.depositAmountG,
             streamAmount: quote.streamAmountG,
             currentStreamAmount: currentState.monthlyStreamG,
@@ -1442,6 +1454,19 @@ export function useAiCreditsAdapter({
           })
           throw error instanceof Error ? error : new Error(message)
         }
+      }
+
+      const latestIdentity = paymentIdentityRef.current
+      if (
+        latestIdentity.address !== paymentIdentity.address ||
+        latestIdentity.chainId !== paymentIdentity.chainId ||
+        latestIdentity.buyer !== paymentIdentity.buyer ||
+        latestIdentity.chainClient !== paymentIdentity.chainClient ||
+        latestIdentity.celoVault !== paymentIdentity.celoVault ||
+        latestIdentity.celoPublicClient !== paymentIdentity.celoPublicClient ||
+        latestIdentity.provider !== paymentIdentity.provider
+      ) {
+        throw new Error('Buyer or wallet changed. Review the amounts and try again.')
       }
 
       setState((prev) => ({
@@ -1514,6 +1539,7 @@ export function useAiCreditsAdapter({
           txHashes,
           previousBalance: balanceBefore,
         })
+        refreshPaymentMinimums()
 
         const creditUsdMicro = (BigInt(totalCreditUsd) - BigInt(balanceBefore || '0')).toString()
 
@@ -1566,6 +1592,8 @@ export function useAiCreditsAdapter({
       prepareSettlement,
       skipVaultPaymentValidation,
       verifyAccount,
+      celoPublicClient,
+      refreshPaymentMinimums,
     ],
   )
 
@@ -1573,6 +1601,8 @@ export function useAiCreditsAdapter({
     async (options?: { afterGoodIdVerify?: boolean }) => {
       const currentState = state
       if (!currentState.address) return
+
+      refreshPaymentMinimums()
 
       if (options?.afterGoodIdVerify) {
         void readGoodIdVerification(currentState.address)
@@ -1661,6 +1691,7 @@ export function useAiCreditsAdapter({
       celoPublicClient,
       resolveSignerList,
       readGoodIdVerification,
+      refreshPaymentMinimums,
     ],
   )
 
@@ -1969,5 +2000,13 @@ export function useAiCreditsAdapter({
     ],
   )
 
-  return { state, actions }
+  return {
+    state: {
+      ...state,
+      minDepositUsd: paymentMinimums.minDepositUsd,
+      minStreamUsd: paymentMinimums.minStreamUsd,
+      depositBlockedReason: paymentMinimums.depositBlockedReason,
+    },
+    actions,
+  }
 }

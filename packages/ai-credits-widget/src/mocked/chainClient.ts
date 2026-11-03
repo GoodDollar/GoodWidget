@@ -30,13 +30,26 @@ export class MockAiCreditsChainClient implements AiCreditsChainClient {
   private operatorAccepted: boolean
   private readonly gdUsdPerToken: number
   private readonly goodIdVerified: boolean
+  private readonly buyerBalances: Record<string, bigint>
 
   constructor(
-    options: { operatorAccepted?: boolean; gdUsdPerToken?: number; goodIdVerified?: boolean } = {},
+    options: {
+      operatorAccepted?: boolean
+      gdUsdPerToken?: number
+      goodIdVerified?: boolean
+      buyerBalances?: Record<string, bigint>
+    } = {},
   ) {
     this.operatorAccepted = options.operatorAccepted ?? false
     this.gdUsdPerToken = options.gdUsdPerToken ?? 0.0015
     this.goodIdVerified = options.goodIdVerified ?? false
+    this.buyerBalances = Object.fromEntries(
+      Object.entries(options.buyerBalances ?? {}).map(([buyer, balance]) => [normalizeAddress(buyer), balance]),
+    )
+  }
+
+  async getBuyerStoredBalance(buyer: string): Promise<bigint> {
+    return this.buyerBalances[normalizeAddress(buyer)] ?? 0n
   }
 
   async isGoodIdVerified(): Promise<boolean> {

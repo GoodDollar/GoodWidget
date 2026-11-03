@@ -112,6 +112,7 @@ interface AmountPickerProps {
    * for instance. Blocks payment and is surfaced verbatim; null when nothing blocks it.
    */
   payBlockedReason?: string | null
+  depositBlockedReason?: string | null
   buildQuote: (depositG: string, streamG: string) => Promise<AiCreditsQuote>
   onPay: (quote: AiCreditsQuote) => void
   onVerifyGoodId: () => Promise<void>
@@ -130,6 +131,7 @@ export function AmountPicker({
   streamBonusPercent,
   isPayPending,
   payBlockedReason = null,
+  depositBlockedReason = null,
   buildQuote,
   onPay,
   onVerifyGoodId,
@@ -191,6 +193,7 @@ export function AmountPicker({
   const canRetryAfterFailure = status === 'quote_ready' || status === 'payment_failed'
   const canPay =
     !payBlockedReason &&
+    !(depositG > 0 && depositBlockedReason) &&
     canRetryAfterFailure &&
     minsLoaded &&
     paymentValidation.hasPaymentAction &&
@@ -202,6 +205,7 @@ export function AmountPicker({
   // adjust their deposit is misleading when the real blocker is setup.
   const payDisabledMessage =
     payBlockedReason ??
+    (depositG > 0 ? depositBlockedReason : null) ??
     getPayDisabledMessage({
       canPay,
       minsLoaded,
@@ -212,9 +216,9 @@ export function AmountPicker({
     })
   const { depositBelowMin, streamBelowMin, overBalance } = paymentValidation
   const depositMinUsdLabel =
-    minDepositUsd !== null
-      ? `Minimum ${formatMinUsdDisplay(minDepositUsd)} for your first deposit`
-      : 'One-time deposit (no minimum after first deposit)'
+    depositBlockedReason ?? (minDepositUsd !== null
+      ? `Minimum ${formatMinUsdDisplay(minDepositUsd)} deposit`
+      : 'No minimum for this buyer')
   const streamMinUsdLabel = isStreamUpdateFlow
     ? `Current stream · min ${minStreamUsd !== null ? formatMinUsdDisplay(minStreamUsd) : '…'}/month`
     : minStreamUsd !== null
@@ -300,7 +304,7 @@ export function AmountPicker({
           ) : (
             <YStack />
           )}
-          <Text fontSize="$1" tone="soft" textAlign="right" flexShrink={0}>
+          <Text fontSize="$1" tone="soft" textAlign="right" flex={1} minWidth={0}>
             {depositMinUsdLabel}
           </Text>
         </XStack>

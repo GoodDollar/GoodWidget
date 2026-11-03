@@ -4,7 +4,7 @@ import {
   type Chain,
   type PublicClient,
 } from 'viem'
-import { createViemFallbackClient, type ViemFallbackStorage } from '@goodwidget/core'
+import { createViemFallbackClient, type ViemFallbackStorage } from '@goodwidget/core/viemFallbackClient'
 import type { AiCreditsQuote } from './widgetRuntimeContract'
 import type { SignerOperatorStatus, OperatorConsentPayloadResponse } from './operatorConsent'
 import { ANTSEED_DEPOSITS_BASE_ADDRESS, buildSetOperatorPayload } from './operatorConsent'
@@ -43,6 +43,7 @@ const CELO_VAULT_ABI = parseAbi([
 ])
 
 const DEPOSITS_ABI = parseAbi([
+  'function buyers(address buyer) view returns (uint256 balance, uint256 reserved, uint256 lastActivityAt, uint256 firstChannelAt, address operator, uint256 operatorNonce)',
   'function getOperator(address signer) view returns (address)',
   'function getOperatorNonce(address signer) view returns (uint256)',
   'function eip712Domain() view returns (bytes1 fields, string name, string version, uint256 chainId, address verifyingContract, bytes32 salt, uint256[] extensions)',
@@ -111,6 +112,8 @@ export interface AiCreditsChainClient {
     operatorStatus?: SignerOperatorStatus,
   ): Promise<OperatorConsentPayloadResponse>
   getWithdrawableUsd(signer: string): Promise<string>
+  /** Reads the stored balance used by AntseedDeposits to enforce its deposit minimum. */
+  getBuyerStoredBalance(buyer: string): Promise<bigint>
   getSignerAuthNonce(signer: string): Promise<bigint>
 }
 
@@ -174,6 +177,16 @@ export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
       args: [10n ** 18n],
     })
     return Number(usd18) / 1e18
+  }
+
+  async getBuyerStoredBalance(buyer: string): Promise<bigint> {
+    const [balance] = await (await this.baseClient).readContract({
+      address: this.depositsAddress,
+      abi: DEPOSITS_ABI,
+      functionName: 'buyers',
+      args: [normalizeAddress(buyer) as Address],
+    })
+    return balance
   }
 
   async buildQuote(depositG: string, streamG: string): Promise<AiCreditsQuote> {
