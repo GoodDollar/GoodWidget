@@ -146,7 +146,7 @@ test('Review keeps the switch hint and Confirm reachable on a short mobile scree
   const scrollArea = page.getByTestId('BridgingWidget-review-screen').locator('..')
   await scrollArea.evaluate((element) => { element.scrollTop = element.scrollHeight })
   await expect(page.getByTestId('BridgingWidget-review-confirm')).toBeInViewport()
-  await page.screenshot({ path: `${SCREENSHOT_DIR}/bw-35-review-switch-mobile.png` })
+  await page.screenshot({ path: `${SCREENSHOT_DIR}/bw-36-review-switch-mobile.png` })
 })
 
 test('account change during network switch cancels preparation before a fresh quote', async ({ page }) => {
