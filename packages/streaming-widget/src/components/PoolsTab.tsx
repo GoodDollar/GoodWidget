@@ -1,10 +1,10 @@
 import React from 'react'
-import { ButtonText, Spinner, Text, YStack } from '@goodwidget/ui'
+import { Button, ButtonText, Spinner, Text, YStack } from '@goodwidget/ui'
 import type { Address } from 'viem'
 import type { PoolMembershipItem, WriteStatus } from '../widgetRuntimeContract'
 import { tokenSymbol } from './format'
 import { PoolCard } from './PoolCard'
-import { ActionButton, EmptyStateCard, ErrorStateCard, StreamingTabContent } from './shared'
+import { compactButtonProps, EmptyStateCard, ErrorStateCard, StreamingTabContent } from './shared'
 
 interface PoolsTabProps {
   pools: PoolMembershipItem[]
@@ -49,9 +49,9 @@ export function PoolsTab({
       {!loading && error && (
         <ErrorStateCard>
           <Text color="$error">{error}</Text>
-          <ActionButton onPress={onRefresh}>
+          <Button size="sm" {...compactButtonProps} onPress={onRefresh}>
             <ButtonText>Retry</ButtonText>
-          </ActionButton>
+          </Button>
         </ErrorStateCard>
       )}
 
@@ -60,9 +60,9 @@ export function PoolsTab({
           <Text secondary center>
             No GDA pool memberships found for this address.
           </Text>
-          <ActionButton onPress={onRefresh}>
+          <Button size="sm" {...compactButtonProps} onPress={onRefresh}>
             <ButtonText>Refresh</ButtonText>
-          </ActionButton>
+          </Button>
         </EmptyStateCard>
       )}
 
