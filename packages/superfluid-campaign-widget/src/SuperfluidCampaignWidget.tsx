@@ -201,6 +201,7 @@ function SuperfluidCampaignRuntime({
           top-right slot (see CampaignHeader) instead of its own row here. */}
       <CampaignHeader
         data={campaignData}
+        notice={campaignData.notice}
         isConnected={isConnected}
         onConnect={connect}
         disableWalletButton={disableWalletButton}

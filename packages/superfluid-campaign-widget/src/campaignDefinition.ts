@@ -33,6 +33,9 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
   description:
     'Complete eligible actions across GoodDollar, Flow State, and Gardens to earn SUP rewards.',
   endsLabel: 'Ends Nov 3rd',
+  // Season 6 has ended; remove this notice once Season 7 begins.
+  notice:
+    'The current Superfluid Rewards season has ended. You can still donate, claim your free daily UBI, and invite friends, but actions won’t earn reward points until the next season begins. Season 7 is coming soon—stay tuned!',
   pools: [
     {
       id: 'good-dollar-actions',
