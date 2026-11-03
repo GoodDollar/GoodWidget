@@ -1,4 +1,5 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import { parseUnits } from 'viem'
 import {
   BRIDGING_CHAINS,
   BridgingWidget,
@@ -31,20 +32,19 @@ const SAMPLE_PENDING_HASH =
 const SAMPLE_FAILED_HASH =
   '0x4444444444444444444444444444444444444444444444444444444444444444'
 
-// G$ uses 18 decimals on every supported chain, so all amount fixtures below
-// are plain base-unit bigints (e.g. 50 G$ == 50n * 10n ** 18n).
 const G$ = (whole: number) => BigInt(whole) * 10n ** 18n
+const G$Fuse = (whole: number) => BigInt(whole) * 100n
 
 const sampleQuote: BridgeFeeQuote = {
-  fee: 120000000000000n,
-  feeInNative: '0.00012',
+  fee: 132000000000000n,
+  feeInNative: '0.00012 FUSE',
   protocol: 'LAYERZERO',
   target: DEMO_ADDRESS,
   targetChainId: BRIDGING_CHAINS.CELO,
-  amount: G$(50),
+  amount: G$Fuse(50),
   protocolFeeBps: 50n,
-  protocolFee: G$(50) / 400n,
-  amountReceived: G$(50) - G$(50) / 400n,
+  protocolFee: G$(50) / 200n,
+  amountReceived: G$(50) - G$(50) / 200n,
 }
 
 const sampleBridgeConfig: BridgeConfig = {
@@ -52,7 +52,7 @@ const sampleBridgeConfig: BridgeConfig = {
   // empty here rather than pulling in @goodsdks/bridging-sdk's chain map.
   supportedChains: {},
   currentChainId: BRIDGING_CHAINS.FUSE,
-  tokenBalance: G$(500),
+  tokenBalance: G$Fuse(500),
   nativeBalance: 2000000000000000000n,
   allowance: 0n,
   fees: null,
@@ -121,10 +121,11 @@ function createAdapter(
   const baseState: BridgingWidgetAdapterState = {
     isConnected: true,
     address: DEMO_ADDRESS,
+    walletChainId: BRIDGING_CHAINS.FUSE,
     chainId: BRIDGING_CHAINS.FUSE,
     isWrongChain: false,
     targetChainId: BRIDGING_CHAINS.CELO,
-    availableProtocols: ['LAYERZERO', 'AXELAR'],
+    availableProtocols: ['LAYERZERO'],
     selectedProtocol: 'LAYERZERO',
     isRouteSupported: true,
     inputAmount: '50',
@@ -142,6 +143,15 @@ function createAdapter(
     submissionFailedAtStep: null,
     submissionError: null,
     submissionTxHash: null,
+    submissionSourceChainId: null,
+    submissionTargetChainId: null,
+    submissionProtocol: null,
+    submissionAmount: null,
+    submissionDeliveryStatus: null,
+    submissionStatusError: null,
+    submissionSourceExplorerLink: null,
+    submissionProviderExplorerLink: null,
+    submissionDestinationExplorerLink: null,
     historyTransactions: sampleHistory,
     isHistoryLoading: false,
     historyError: null,
@@ -153,6 +163,7 @@ function createAdapter(
   const actions: BridgingWidgetAdapterActions = {
     connect: async () => {},
     switchChain: async () => {},
+    selectSourceChain: () => {},
     selectTargetChain: () => {},
     selectProtocol: () => {},
     setInputAmount: () => {},
@@ -282,7 +293,6 @@ export function InjectedWalletStory({
     />
   )
 }
-
 export function CustodialLocalFixtureStory({
   defaultTheme,
   themeOverrides,
@@ -325,7 +335,8 @@ export function NoWalletStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) 
       adapter={createAdapter({
         isConnected: false,
         address: null,
-        chainId: null,
+        walletChainId: null,
+        chainId: BRIDGING_CHAINS.CELO,
         targetChainId: null,
         availableProtocols: [],
         selectedProtocol: null,
@@ -345,7 +356,8 @@ export function WrongChainStory({ defaultTheme, themeOverrides }: ThemeArgs = {}
   return (
     <PreviewStoryShell
       adapter={createAdapter({
-        chainId: 1,
+        chainId: BRIDGING_CHAINS.CELO,
+        walletChainId: 99999,
         isWrongChain: true,
       })}
       dataTestId="BridgingWidget-wrong-chain"
@@ -535,6 +547,13 @@ export function SubmissionCompletedStory({ defaultTheme, themeOverrides }: Theme
       adapter={createAdapter({
         submissionStep: 'completed',
         submissionTxHash: SAMPLE_COMPLETED_SRC_HASH,
+        submissionSourceChainId: BRIDGING_CHAINS.FUSE,
+        submissionTargetChainId: BRIDGING_CHAINS.CELO,
+        submissionProtocol: 'LAYERZERO',
+        submissionAmount: G$Fuse(50),
+        submissionDeliveryStatus: { status: 'pending', srcTxHash: SAMPLE_COMPLETED_SRC_HASH },
+        submissionSourceExplorerLink: `https://explorer.fuse.io/tx/${SAMPLE_COMPLETED_SRC_HASH}`,
+        submissionProviderExplorerLink: `https://layerzeroscan.com/tx/${SAMPLE_COMPLETED_SRC_HASH}`,
       })}
       dataTestId="BridgingWidget-submission-completed"
       defaultTheme={defaultTheme}
@@ -662,5 +681,197 @@ export function LightThemePopulatedStory({ themeOverrides }: Pick<ThemeArgs, 'th
         themeOverrides={themeOverrides}
       />
     </GoodWidgetProvider>
+  )
+}
+
+export function FuseSourceStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  // Fuse (122) has 2 decimals: 500 G$ = 50000n, input 100 G$ = 10000n
+
+  const fuseBridgeConfig: BridgeConfig = {
+    ...sampleBridgeConfig,
+    currentChainId: BRIDGING_CHAINS.FUSE,
+    tokenBalance: G$Fuse(500), // 50000n (500 G$)
+    routeLimits: {
+      minAmount: G$(1),
+      dailyLimit: G$(1000000),
+      txLimit: G$(300000000),
+      accountDailyLimit: G$(50000),
+      onlyWhitelisted: false,
+    },
+    routeLimitsChainId: BRIDGING_CHAINS.FUSE,
+  }
+
+  // 100 G$ transferred from Fuse (2 decimals) to Celo (18 decimals)
+  // Protocol fee: 0.25 G$ (in Celo 18 decimals) = 250000000000000000n
+  // Amount received: 99.75 G$ (in Celo 18 decimals) = 99750000000000000000n
+  const fuseSourceQuote: BridgeFeeQuote = {
+    fee: 132000000000000n,
+    feeInNative: '0.00012 FUSE',
+    protocol: 'LAYERZERO',
+    target: DEMO_ADDRESS,
+    targetChainId: BRIDGING_CHAINS.CELO,
+    amount: G$Fuse(100), // 10000n
+    protocolFeeBps: 25n,
+    protocolFee: 250000000000000000n,
+    amountReceived: 99750000000000000000n,
+  }
+
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        chainId: BRIDGING_CHAINS.FUSE,
+        targetChainId: BRIDGING_CHAINS.CELO,
+        inputAmount: '100',
+        bridgeConfig: fuseBridgeConfig,
+        quote: fuseSourceQuote,
+        canBridge: true,
+      })}
+      dataTestId="BridgingWidget-fuse-source"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function FuseDestinationStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  // Celo (42220) has 18 decimals -> Fuse (122) has 2 decimals
+  const celoDecimals = 18
+  const G$Celo = (whole: number) => BigInt(whole) * 10n ** BigInt(celoDecimals)
+
+  const celoBridgeConfig: BridgeConfig = {
+    ...sampleBridgeConfig,
+    currentChainId: BRIDGING_CHAINS.CELO,
+    tokenBalance: G$Celo(500),
+    routeLimits: {
+      minAmount: G$Celo(1),
+      dailyLimit: G$Celo(1000000),
+      txLimit: G$Celo(300000000),
+      accountDailyLimit: G$Celo(50000),
+      onlyWhitelisted: false,
+    },
+    routeLimitsChainId: BRIDGING_CHAINS.CELO,
+  }
+
+  // 100 G$ from Celo (18 decimals) to Fuse (2 decimals)
+  // Protocol fee: 0.25 G$ (in Fuse 2 decimals) = 25n
+  // Amount received: 99.75 G$ (in Fuse 2 decimals) = 9975n
+  const fuseDestinationQuote: BridgeFeeQuote = {
+    fee: 132000000000000n,
+    feeInNative: '0.00012 CELO',
+    protocol: 'LAYERZERO',
+    target: DEMO_ADDRESS,
+    targetChainId: BRIDGING_CHAINS.FUSE,
+    amount: G$Celo(100),
+    protocolFeeBps: 25n,
+    protocolFee: 25n,
+    amountReceived: 9975n,
+  }
+
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        chainId: BRIDGING_CHAINS.CELO,
+        targetChainId: BRIDGING_CHAINS.FUSE,
+        inputAmount: '100',
+        bridgeConfig: celoBridgeConfig,
+        quote: fuseDestinationQuote,
+        canBridge: true,
+      })}
+      dataTestId="BridgingWidget-fuse-destination"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+// Clickable adapter fixture: exercises route, amount, Review, Confirm and
+// submit callbacks in one mounted widget, rather than pre-opening each state.
+export function InteractiveSubmitStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  const [source, setSource] = useState<number>(BRIDGING_CHAINS.CELO)
+  const [target, setTarget] = useState<number | null>(null)
+  const [protocol, setProtocol] = useState<'LAYERZERO' | 'AXELAR'>('LAYERZERO')
+  const [amount, setAmount] = useState('')
+  const [quotedAmount, setQuotedAmount] = useState('')
+  const [reviewOpen, setReviewOpen] = useState(false)
+  const [submissionStep, setSubmissionStep] = useState<BridgingWidgetAdapterState['submissionStep']>('idle')
+
+  useEffect(() => {
+    if (submissionStep !== 'bridging') return
+    const timer = setTimeout(() => setSubmissionStep('completed'), 700)
+    return () => clearTimeout(timer)
+  }, [submissionStep])
+
+  useEffect(() => {
+    setQuotedAmount('')
+    if (!amount || target === null) return
+    const timer = setTimeout(() => setQuotedAmount(amount), 200)
+    return () => clearTimeout(timer)
+  }, [source, target, protocol, amount])
+
+  let quote: BridgeFeeQuote | null = null
+  try {
+    if (target !== null && amount === quotedAmount && Number(amount) > 0) {
+      const sourceDecimals = source === BRIDGING_CHAINS.FUSE || source === BRIDGING_CHAINS.ETHEREUM ? 2 : 18
+      const targetDecimals = target === BRIDGING_CHAINS.FUSE || target === BRIDGING_CHAINS.ETHEREUM ? 2 : 18
+      const receivedBase = parseUnits(amount, targetDecimals)
+      const protocolFee = receivedBase / 200n
+      quote = {
+        ...sampleQuote,
+        protocol,
+        targetChainId: target,
+        amount: parseUnits(amount, sourceDecimals),
+        protocolFee,
+        amountReceived: receivedBase - protocolFee,
+      }
+    }
+  } catch {
+    // An incomplete decimal entry has no actionable quote.
+  }
+
+  const adapter = createAdapter({
+    chainId: source,
+    walletChainId: BRIDGING_CHAINS.CELO,
+    targetChainId: target,
+    availableProtocols: target === null ? [] : source === BRIDGING_CHAINS.CELO && target === BRIDGING_CHAINS.ETHEREUM ? ['AXELAR', 'LAYERZERO'] : ['LAYERZERO'],
+    selectedProtocol: target === null ? null : protocol,
+    inputAmount: amount,
+    bridgeConfig: { ...sampleBridgeConfig, currentChainId: source, tokenBalance: source === BRIDGING_CHAINS.FUSE || source === BRIDGING_CHAINS.ETHEREUM ? G$Fuse(500) : G$(500) },
+    quoteStatus: quote ? 'ready' : amount ? 'loading' : 'idle',
+    quote,
+    canBridge: !!quote,
+    isReviewOpen: reviewOpen,
+    submissionStep,
+  }, {
+    selectSourceChain: (next) => {
+      setSource(next)
+      setTarget(null)
+      setAmount('')
+      setReviewOpen(false)
+    },
+    selectTargetChain: (next) => {
+      setTarget(next)
+      setProtocol('LAYERZERO')
+      setAmount('')
+      setReviewOpen(false)
+    },
+    selectProtocol: setProtocol,
+    setInputAmount: setAmount,
+    openReview: () => setReviewOpen(true),
+    closeReview: () => setReviewOpen(false),
+    confirmBridge: () => {
+      setReviewOpen(false)
+      setSubmissionStep('bridging')
+    },
+    retrySubmission: () => setSubmissionStep('bridging'),
+    closeSubmission: () => setSubmissionStep('idle'),
+  })
+
+  return (
+    <PreviewStoryShell
+      adapter={adapter}
+      dataTestId="BridgingWidget-interactive-submit"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
   )
 }

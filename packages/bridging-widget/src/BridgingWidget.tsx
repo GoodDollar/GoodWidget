@@ -31,7 +31,13 @@ export function BridgingWidgetPreview({
   defaultTheme = 'dark',
 }: BridgingWidgetPreviewProps) {
   return (
-    <GoodWidgetProvider config={config} themeOverrides={themeOverrides} defaultTheme={defaultTheme}>
+    <GoodWidgetProvider
+      config={config}
+      themeOverrides={themeOverrides}
+      defaultTheme={defaultTheme}
+      addressOverride={adapter.state.address}
+      chainIdOverride={adapter.state.walletChainId}
+    >
       <BridgingWidgetView adapter={adapter} initialTab={initialTab} />
       <ToastContainer />
     </GoodWidgetProvider>
