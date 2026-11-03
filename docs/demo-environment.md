@@ -140,9 +140,12 @@ pnpm test:demo
 
 Test artifacts are split as follows:
 
-- `test-results/` (gitignored): Playwright traces, videos, and runner attachments.
+- Root `/test-results/` (gitignored temporary output): Playwright traces, videos, and runner attachments.
 - `tests/design-system/test-results/`: design-system smoke screenshots.
-- `tests/widgets/<widget-name>/test-results/`: widget screenshot evidence and debug screenshots.
+- `tests/widgets/<widget-name>/test-results/`: tracked, curated widget screenshot evidence.
+
+Preserve the anchored `/test-results/` ignore rule and existing nested screenshot locations.
+Keep transient debug output in the root directory, not in curated evidence.
 
 To inspect a trace after a failure:
 

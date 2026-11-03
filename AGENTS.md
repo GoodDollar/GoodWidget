@@ -76,7 +76,8 @@ GoodWidget/
 - Story interaction checks: `pnpm test:storybook`.
 - Playwright QA/state-flow checks: `pnpm test:demo`.
 - Root Playwright runtime artifacts (trace/video/attachments): `/test-results/` (gitignored).
-- Nested widget Playwright test-runs are output (`tests/widgets/<widget-name>/test-results/`)
+- Curated widget screenshots are tracked evidence in `tests/widgets/<widget-name>/test-results/`.
+- Keep the anchored `/test-results/` ignore rule; do not ignore or relocate nested widget evidence.
 - Detailed workflow, fixture behavior, and QA reporting template live in
   [`docs/demo-environment.md`](docs/demo-environment.md) and [`docs/qa-guide.md`](docs/qa-guide.md).
 
@@ -92,6 +93,7 @@ GoodWidget/
 - Treat public component names and theme targets as API surface (renaming is a breaking
   change for integrators).
 - Mirror the issue checklist in the PR body.
+- Render `<WidgetVersion name="..." version={version} />` (from `@goodwidget/ui`) in every widget; see `docs/widget-author-instructions.md`.
 - Preserve existing code comments when refactoring files unless explicitly asked to remove
   them.
 

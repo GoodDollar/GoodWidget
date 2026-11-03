@@ -14,9 +14,18 @@ const MOCK_ROWS: Array<{ slug: string; props: Omit<ScorecardProps, 'variant' | '
   { slug: 'active-days', props: { label: 'Active Days', value: 28, format: 'none' } },
   {
     slug: 'unique-wallets',
-    props: { label: 'Unique Wallets', value: 47, trend: { value: 15.3, direction: 'up' }, trendLabel: 'vs last 7d' },
+    props: {
+      label: 'Unique Wallets',
+      value: 47,
+      trend: { value: 15.3, direction: 'up' },
+      trendLabel: 'vs last 7d',
+      subtitle: 'Last 30 days',
+    },
   },
-  { slug: 'daily-flow-rate', props: { label: 'Daily Flow Rate', value: 2450000, prefix: 'G$', suffix: '/day', format: 'compact' } },
+  {
+    slug: 'daily-flow-rate',
+    props: { label: 'Daily Flow Rate', value: 2450000, prefix: 'G$', suffix: '/day', format: 'compact', subtitle: 'From AntSeed vault' },
+  },
 ]
 
 const meta: Meta<typeof Scorecard> = {
@@ -36,6 +45,7 @@ const meta: Meta<typeof Scorecard> = {
       description: 'Number formatting mode',
     },
     decimals: { control: 'number', description: 'Decimal precision' },
+    subtitle: { control: 'text', description: 'Short contextual/source note rendered below the trend row (or value row if no trend)' },
     variant: {
       control: 'select',
       options: ['bare', 'card'],
@@ -80,6 +90,7 @@ export const Controllable: Story = {
     suffix: '',
     format: 'compact',
     decimals: 1,
+    subtitle: '',
     variant: 'card',
     size: 'md',
   },

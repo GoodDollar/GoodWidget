@@ -1,5 +1,14 @@
 import React, { useState } from 'react'
-import { ButtonText, Heading, Separator, Spinner, Text, XStack, YStack } from '@goodwidget/ui'
+import {
+  Button,
+  ButtonText,
+  Heading,
+  Separator,
+  Spinner,
+  Text,
+  XStack,
+  YStack,
+} from '@goodwidget/ui'
 import type {
   SetStreamFormState,
   StreamDirection,
@@ -13,7 +22,8 @@ import { StreamCard } from './StreamCard'
 import {
   EmptyStateCard,
   ErrorStateCard,
-  ActionButton,
+  compactButtonProps,
+  secondaryButtonStateProps,
   SecondaryButtonText,
   StreamingTabContent,
 } from './shared'
@@ -85,9 +95,13 @@ export function StreamsTab({
   return (
     <StreamingTabContent>
       <XStack justifyContent="flex-end">
-        <ActionButton onPress={() => (isFormOpen ? closeForm() : setShowForm(true))}>
+        <Button
+          size="sm"
+          {...compactButtonProps}
+          onPress={() => (isFormOpen ? closeForm() : setShowForm(true))}
+        >
           <ButtonText>{isFormOpen ? 'Close' : '+ New Stream'}</ButtonText>
-        </ActionButton>
+        </Button>
       </XStack>
 
       {isFormOpen && (
@@ -111,17 +125,20 @@ export function StreamsTab({
 
       <XStack gap="$2">
         {(['all', 'incoming', 'outgoing'] as StreamDirection[]).map((filter) => (
-          <ActionButton
+          <Button
+            size="sm"
+            {...compactButtonProps}
             key={filter}
             onPress={() => setDirection(filter)}
             variant={direction === filter ? 'primary' : 'secondary'}
+            {...(direction === filter ? {} : secondaryButtonStateProps)}
           >
             {direction === filter ? (
               <ButtonText>{DIRECTION_LABELS[filter]}</ButtonText>
             ) : (
               <SecondaryButtonText>{DIRECTION_LABELS[filter]}</SecondaryButtonText>
             )}
-          </ActionButton>
+          </Button>
         ))}
       </XStack>
 
@@ -135,9 +152,9 @@ export function StreamsTab({
       {!loading && error && (
         <ErrorStateCard>
           <Text color="$error">{error}</Text>
-          <ActionButton onPress={onRefresh}>
+          <Button size="sm" {...compactButtonProps} onPress={onRefresh}>
             <ButtonText>Retry</ButtonText>
-          </ActionButton>
+          </Button>
         </ErrorStateCard>
       )}
 
@@ -146,9 +163,9 @@ export function StreamsTab({
           <Text secondary center>
             {emptyStreamsMessage}
           </Text>
-          <ActionButton onPress={onRefresh}>
+          <Button size="sm" {...compactButtonProps} onPress={onRefresh}>
             <ButtonText>Refresh</ButtonText>
-          </ActionButton>
+          </Button>
         </EmptyStateCard>
       )}
 

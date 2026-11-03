@@ -1,6 +1,9 @@
-import { StreamingWidgetElement } from './element'
-
 const DEFAULT_TAG_NAME = 'gw-streaming'
+
+export const goodWidgetMetadata = {
+  packageName: '@goodwidget/streaming-widget',
+  packageVersion: '0.1.1',
+} as const
 
 /**
  * Register the <gw-streaming> custom element.
@@ -11,17 +14,20 @@ const DEFAULT_TAG_NAME = 'gw-streaming'
  * Then use in HTML:
  *   <gw-streaming></gw-streaming>
  *
- * Returns the tag name so you can use it programmatically:
- *   const tag = register()  // 'gw-streaming'
+ * Resolves to the tag name so you can use it programmatically:
+ *   const tag = await register()  // 'gw-streaming'
  *
  * Or register under a custom tag:
- *   const tag = register('my-streaming-widget')
+ *   const tag = await register('my-streaming-widget')
  */
-export function register(tagName: string = DEFAULT_TAG_NAME): string {
+export async function register(tagName: string = DEFAULT_TAG_NAME): Promise<string> {
+  // Keep browser-only Custom Element dependencies out of server evaluation.
+  if (typeof customElements === 'undefined') return tagName
   if (!customElements.get(tagName)) {
+    const { StreamingWidgetElement } = await import('./element')
     customElements.define(tagName, StreamingWidgetElement)
   }
   return tagName
 }
 
-register()
+void register().catch(() => undefined)

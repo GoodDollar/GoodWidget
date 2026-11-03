@@ -11,7 +11,10 @@ export const ANTSEED_BUYER_OPERATOR_DOMAIN = {
 
 const WITHDRAW_PRINCIPAL_TYPES = {
   WithdrawPrincipal: [
-    { name: 'signer', type: 'address' },
+    // `buyer` is the contract's field name; the value is our signer address.
+    // EIP-712 hashes field names, so renaming this to `signer` changes the
+    // struct hash and the vault rejects the withdrawal with InvalidSignature().
+    { name: 'buyer', type: 'address' },
     { name: 'amount', type: 'uint256' },
     { name: 'recipient', type: 'address' },
     { name: 'nonce', type: 'uint256' },
@@ -58,7 +61,7 @@ export async function signWithdrawPrincipal(params: {
     types: WITHDRAW_PRINCIPAL_TYPES,
     primaryType: 'WithdrawPrincipal',
     message: {
-      signer: params.signer,
+      buyer: params.signer,
       amount: params.amountMicro,
       recipient: params.recipient,
       nonce: params.nonce,

@@ -55,6 +55,10 @@ pnpm test:demo tests/widgets/<widget specific folder> <-- only run tests for a s
 - `tests/design-system/test-results/`
 - `tests/widgets/<widget-name>/test-results/`
 
+These nested folders hold tracked, curated screenshot evidence. Root `/test-results/`
+holds ignored temporary traces, videos, and runner attachments. Preserve the anchored
+`/test-results/` ignore rule and the existing widget screenshot locations.
+
 ## QA Checklist
 
 When applying for a QA bounty, make sure the bounty includes well defined test cases/states and flows.
