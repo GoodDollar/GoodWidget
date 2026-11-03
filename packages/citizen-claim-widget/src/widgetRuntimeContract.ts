@@ -1,4 +1,9 @@
-import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
+import type {
+  GoodWidgetConfig,
+  GoodWidgetThemeOverrides,
+  NextTaskContent,
+  NextTaskDismissReason,
+} from '@goodwidget/ui'
 import type { Account, Chain, PublicClient, Transport, WalletClient } from 'viem'
 
 export type CitizenClaimWidgetEnvironment = 'production' | 'staging' | 'development'
@@ -139,6 +144,17 @@ export interface CitizenClaimWidgetProps {
   claimExecution?: CitizenClaimWidgetCustodialExecution
   onClaimSuccess?: (detail: CitizenClaimWidgetSuccessDetail) => void
   onClaimError?: (detail: CitizenClaimWidgetErrorDetail) => void
+  /** Opt-in "next task" recommendation shown after a successful claim. No content means no modal. */
+  nextTaskContent?: NextTaskContent | null
+  /**
+   * When passed, the host owns CTA navigation (the CTA renders as a Button); when absent the
+   * CTA is an Anchor to `nextTaskContent.ctaTarget`. Errors it throws or rejects with are
+   * shown as an error toast.
+   */
+  nextTaskResolveNavigation?: (ctaTarget: string) => void | Promise<void>
+  onNextTaskShown?: (payload: { contentId?: string }) => void
+  onNextTaskClicked?: (payload: { ctaTarget: string }) => void
+  onNextTaskDismissed?: (payload: { reason: NextTaskDismissReason }) => void
   /**
    * Integrator-owned live address (e.g. from a wallet-connection SDK's own
    * reactive account hook). See `GoodWidgetProviderProps.addressOverride`.

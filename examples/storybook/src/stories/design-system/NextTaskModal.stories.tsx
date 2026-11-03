@@ -1,16 +1,22 @@
 /**
- * NextTaskModal — Drawer-based "what's next" prompt, shown on demand via
- * `useNextTaskTrigger().fire(...)` (see @goodwidget/core). It has no `open`
- * prop of its own, so each story below renders a trigger button that fires
- * the same window event a real host integration would, and a small on-screen
- * "last event" readout so interaction tests can assert onShown/onClicked/
- * onDismissed payloads without depending on console output.
+ * NextTaskModal — controlled bottom sheet that recommends one next action.
+ *
+ * The host owns `open`/`content`/`onClose`, so each story renders a button that
+ * opens the sheet and a small "last event" readout, letting play()/Playwright
+ * assert what the component reported without reading console output.
+ *
+ * CTA navigation contract (the host handles it, or an Anchor does — never both):
+ * - `resolveNavigation` passed: the CTA is a Button and the host owns navigation
+ *   entirely. `ctaTarget` is handed over untouched; the modal opens no link itself.
+ * - `resolveNavigation` absent: the CTA is an Anchor to `ctaTarget` (http/https
+ *   only). A rejected URL renders a Button that shows an error toast instead.
+ * - A handler that throws or rejects shows an error toast; the modal still closes.
+ * Error toasts need a mounted `<ToastContainer />`, which every story here mounts.
  */
 import React, { useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { expect, within, userEvent, waitFor } from '@storybook/test'
-import { useNextTaskTrigger } from '@goodwidget/core'
-import { NextTaskModal, Card, Heading, Text, Button, ButtonText } from '@goodwidget/ui'
+import { NextTaskModal, ToastContainer, Card, Heading, Text, Button, ButtonText } from '@goodwidget/ui'
 import type { NextTaskContent } from '@goodwidget/ui'
 import { withDefaultPreset } from '../helpers/withDefaultPreset'
 
@@ -26,7 +32,7 @@ type Story = StoryObj
 const contentWithImage: NextTaskContent = {
   title: 'Stake your G$ and earn',
   description: 'Put your claimed G$ to work by staking it for rewards.',
-  ctaLabel: 'Start staking',
+  ctaLabel: 'Open Proposal',
   ctaTarget: 'https://gooddollar.org/stake',
   imageUrl: 'https://placehold.co/96x96',
   contentId: 'stake-prompt',
@@ -40,142 +46,256 @@ const contentWithoutImage: NextTaskContent = {
   contentId: 'goodid-prompt',
 }
 
+const contentWithRejectedUrl: NextTaskContent = {
+  ...contentWithoutImage,
+  ctaTarget: 'javascript:alert(1)',
+  contentId: 'rejected-url-prompt',
+}
+
 /**
- * Shared story scaffold: a "Fire trigger" button plus a readout of the most
- * recent onShown/onClicked/onDismissed payload, so play()/Playwright can
- * assert exactly what the component reported without reading console logs.
+ * Shared story scaffold: an "Open next task" button, a readout of the most
+ * recent onShown/onClicked/onDismissed payload, and a mounted ToastContainer.
  */
-function TriggerHarness({
+function ControlledHarness({
   content,
   testID,
   resolveNavigation,
 }: {
   content: NextTaskContent | null | undefined
   testID: string
-  resolveNavigation?: (ctaTarget: string) => boolean | void
+  resolveNavigation?: (ctaTarget: string) => void | Promise<void>
 }) {
-  const { fire } = useNextTaskTrigger()
+  const [open, setOpen] = useState(false)
   const [lastEvent, setLastEvent] = useState('none')
 
   return (
     <Card style={{ width: 320 }}>
-      <Heading level={5}>Trigger</Heading>
-      <Text>Fires the same window event a real host integration would.</Text>
-      <Button
-        data-testid="NextTaskModal-fire-trigger"
-        fullWidth
-        onPress={() => fire({ source: 'storybook' })}
-      >
-        <ButtonText>Fire trigger</ButtonText>
+      <Heading level={5}>Next task</Heading>
+      <Text>The host controls `open`; the modal reports what the user did.</Text>
+      <Button data-testid="NextTaskModal-open" fullWidth onPress={() => setOpen(true)}>
+        <ButtonText>Open next task</ButtonText>
       </Button>
       <Text data-testid="NextTaskModal-last-event">{lastEvent}</Text>
+      <Text data-testid="NextTaskModal-open-state">{open ? 'open' : 'closed'}</Text>
       <NextTaskModal
         testID={testID}
+        open={open}
         content={content}
+        onClose={() => setOpen(false)}
         resolveNavigation={resolveNavigation}
         onShown={(payload) => setLastEvent(`shown:${payload.contentId ?? ''}`)}
         onClicked={(payload) => setLastEvent(`clicked:${payload.ctaTarget}`)}
         onDismissed={(payload) => setLastEvent(`dismissed:${payload.reason}`)}
+        statusLabel="Claim completed"
       />
+      <ToastContainer />
     </Card>
   )
 }
 
-/** Closed by default — the modal renders nothing until the trigger fires. */
-export const Closed: Story = {
-  render: () => <TriggerHarness content={contentWithImage} testID="NextTaskModal-closed" />,
+/** Opens the sheet from the harness button and returns the card root. */
+async function openAndGetCard(canvasElement: HTMLElement, testID: string) {
+  await userEvent.click(within(canvasElement).getByTestId('NextTaskModal-open'))
+  return within(document.body).findByTestId(testID)
 }
 
-/** Firing the trigger opens the modal with image, title, description, and CTA. */
+/**
+ * Stops anchor clicks from navigating while still letting React's onClick run
+ * (the document listener fires after React's root listener), so Anchor mode can
+ * be exercised without leaving the page. Returns a restore function.
+ */
+function blockLinkNavigation() {
+  const preventNavigation = (event: Event) => {
+    if ((event.target as HTMLElement | null)?.closest('a')) event.preventDefault()
+  }
+  document.addEventListener('click', preventNavigation)
+  return () => document.removeEventListener('click', preventNavigation)
+}
+
+/** Closed by default — the modal renders nothing until the host opens it. */
+export const Closed: Story = {
+  render: () => <ControlledHarness content={contentWithImage} testID="NextTaskModal-closed" />,
+}
+
+/** Opening shows the status pill, headline, recommendation card and CTA. */
 export const ShownWithContent: Story = {
-  render: () => <TriggerHarness content={contentWithImage} testID="NextTaskModal-shown" />,
+  render: () => <ControlledHarness content={contentWithImage} testID="NextTaskModal-shown" />,
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    await userEvent.click(canvas.getByTestId('NextTaskModal-fire-trigger'))
-    const card = await within(document.body).findByTestId('NextTaskModal-shown')
+    const card = await openAndGetCard(canvasElement, 'NextTaskModal-shown')
     await expect(within(card).getByText('Stake your G$ and earn')).toBeInTheDocument()
-    await expect(canvas.getByTestId('NextTaskModal-last-event')).toHaveTextContent('shown:stake-prompt')
+    await expect(within(document.body).getByText('Claim completed')).toBeInTheDocument()
+    await expect(within(document.body).getByText('One good next step')).toBeInTheDocument()
+    await expect(within(canvasElement).getByTestId('NextTaskModal-last-event')).toHaveTextContent(
+      'shown:stake-prompt',
+    )
   },
 }
 
 /** Content with no `imageUrl` renders without the image slot. */
 export const ShownWithoutImage: Story = {
-  render: () => <TriggerHarness content={contentWithoutImage} testID="NextTaskModal-no-image" />,
+  render: () => <ControlledHarness content={contentWithoutImage} testID="NextTaskModal-no-image" />,
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    await userEvent.click(canvas.getByTestId('NextTaskModal-fire-trigger'))
-    const card = await within(document.body).findByTestId('NextTaskModal-no-image')
+    const card = await openAndGetCard(canvasElement, 'NextTaskModal-no-image')
     await expect(within(card).getByText('Verify your identity')).toBeInTheDocument()
     await expect(within(card).queryByRole('img')).not.toBeInTheDocument()
   },
 }
 
-/** `content={null}` — firing the trigger is a no-op; the modal never mounts. */
+/** `content={null}` — opening is a no-op; the modal never mounts. */
 export const NoContent: Story = {
-  render: () => <TriggerHarness content={null} testID="NextTaskModal-no-content" />,
+  render: () => <ControlledHarness content={null} testID="NextTaskModal-no-content" />,
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    await userEvent.click(canvas.getByTestId('NextTaskModal-fire-trigger'))
+    await userEvent.click(within(canvasElement).getByTestId('NextTaskModal-open'))
     await expect(within(document.body).queryByTestId('NextTaskModal-no-content')).not.toBeInTheDocument()
-    await expect(canvas.getByTestId('NextTaskModal-last-event')).toHaveTextContent('none')
+    await waitFor(() =>
+      expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('closed'),
+    )
+    await expect(within(canvasElement).getByTestId('NextTaskModal-last-event')).toHaveTextContent('none')
   },
 }
 
 /**
- * Dismissing via the corner close button reports reason "close-button".
+ * The Drawer's close button, swipe-down and overlay press all share one `onClose`, so they
+ * report the same reason ("overlay"). The shared Drawer is intentionally not changed.
  *
- * The Drawer's enter transition briefly leaves its content `pointer-events:
- * none` until the animation settles, so the click is wrapped in `waitFor` to
- * retry past that window rather than racing it (same pattern as the AppKit
- * connect-wallet story's waitFor use for async UI).
+ * The Drawer's enter transition briefly leaves its content `pointer-events: none` until the
+ * animation settles, so clicks are wrapped in `waitFor` to retry past that window.
  */
-export const DismissViaCloseButton: Story = {
-  render: () => <TriggerHarness content={contentWithImage} testID="NextTaskModal-dismiss-close" />,
+export const DismissViaDrawerClose: Story = {
+  render: () => <ControlledHarness content={contentWithImage} testID="NextTaskModal-dismiss-close" />,
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    await userEvent.click(canvas.getByTestId('NextTaskModal-fire-trigger'))
+    await openAndGetCard(canvasElement, 'NextTaskModal-dismiss-close')
     const closeButton = await within(document.body).findByRole('button', { name: /close/i })
     await waitFor(() => userEvent.click(closeButton))
-    await expect(canvas.getByTestId('NextTaskModal-last-event')).toHaveTextContent('dismissed:close-button')
+    await expect(within(canvasElement).getByTestId('NextTaskModal-last-event')).toHaveTextContent(
+      'dismissed:overlay',
+    )
+    await expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('closed')
   },
 }
 
-/** Dismissing via the "Skip" link reports reason "skip-link". */
+/** Dismissing via "Skip for now" reports reason "skip-link" and flips `open` to false. */
 export const DismissViaSkipLink: Story = {
-  render: () => <TriggerHarness content={contentWithImage} testID="NextTaskModal-dismiss-skip" />,
+  render: () => <ControlledHarness content={contentWithImage} testID="NextTaskModal-dismiss-skip" />,
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    await userEvent.click(canvas.getByTestId('NextTaskModal-fire-trigger'))
-    const skipButton = await within(document.body).findByRole('button', { name: /skip/i })
+    await openAndGetCard(canvasElement, 'NextTaskModal-dismiss-skip')
+    const skipButton = await within(document.body).findByRole('button', { name: /skip for now/i })
     await waitFor(() => userEvent.click(skipButton))
-    await expect(canvas.getByTestId('NextTaskModal-last-event')).toHaveTextContent('dismissed:skip-link')
+    await expect(within(canvasElement).getByTestId('NextTaskModal-last-event')).toHaveTextContent(
+      'dismissed:skip-link',
+    )
+    await expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('closed')
   },
 }
 
 /**
- * `resolveNavigation` returning `true` means the host fully handled the CTA —
- * the external-link fallback (and its URL validation) never runs.
- *
- * Tamagui's Sheet (which Drawer wraps) keeps its content mounted in the DOM
- * after close by design, animating it out via opacity rather than unmounting
- * it — so "the drawer closed" is asserted with `toBeVisible` (which treats
- * `opacity: 0` as not visible), not `toBeInTheDocument`. The assertion is
- * wrapped in `waitFor` since the opacity change is animated, not instant.
+ * No `resolveNavigation`: the CTA is an Anchor whose `href` is the CTA target. Navigation
+ * is blocked in the test; the Anchor still reports the click and the sheet closes.
  */
-export const HostHandledNavigation: Story = {
-  render: () => (
-    <TriggerHarness content={contentWithImage} testID="NextTaskModal-host-nav" resolveNavigation={() => true} />
-  ),
+export const ExternalLink: Story = {
+  render: () => <ControlledHarness content={contentWithImage} testID="NextTaskModal-external-link" />,
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    await userEvent.click(canvas.getByTestId('NextTaskModal-fire-trigger'))
-    const ctaButton = await within(document.body).findByRole('button', { name: /start staking/i })
-    await waitFor(() => userEvent.click(ctaButton))
-    await expect(canvas.getByTestId('NextTaskModal-last-event')).toHaveTextContent(
+    const restoreNavigation = blockLinkNavigation()
+    try {
+      const card = await openAndGetCard(canvasElement, 'NextTaskModal-external-link')
+      const cta = await within(document.body).findByRole('link', { name: 'Open Proposal' })
+      await expect(cta).toHaveAttribute('href', contentWithImage.ctaTarget)
+      await expect(within(card).queryByRole('link')).not.toBeInTheDocument()
+      await waitFor(() => userEvent.click(cta))
+      await expect(within(canvasElement).getByTestId('NextTaskModal-last-event')).toHaveTextContent(
+        `clicked:${contentWithImage.ctaTarget}`,
+      )
+      await expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('closed')
+    } finally {
+      restoreNavigation()
+    }
+  },
+}
+
+/**
+ * `resolveNavigation` passed: the CTA is a Button, the host receives `ctaTarget` untouched,
+ * and no link is opened by the modal.
+ */
+export const HostNavigation: Story = {
+  render: () => {
+    const navigatedTargets: string[] = []
+    return (
+      <ControlledHarness
+        content={contentWithImage}
+        testID="NextTaskModal-host-nav"
+        resolveNavigation={(ctaTarget) => {
+          navigatedTargets.push(ctaTarget)
+          document.body.dataset.nextTaskNavigated = navigatedTargets.join(',')
+        }}
+      />
+    )
+  },
+  play: async ({ canvasElement }) => {
+    delete document.body.dataset.nextTaskNavigated
+    await openAndGetCard(canvasElement, 'NextTaskModal-host-nav')
+    await expect(within(document.body).queryByRole('link', { name: 'Open Proposal' })).not.toBeInTheDocument()
+    const cta = await within(document.body).findByRole('button', { name: 'Open Proposal' })
+    await waitFor(() => userEvent.click(cta))
+    await waitFor(() => expect(document.body.dataset.nextTaskNavigated).toBe(contentWithImage.ctaTarget))
+    await expect(within(canvasElement).getByTestId('NextTaskModal-last-event')).toHaveTextContent(
       `clicked:${contentWithImage.ctaTarget}`,
     )
-    await waitFor(() => {
-      expect(within(document.body).getByTestId('NextTaskModal-host-nav')).not.toBeVisible()
-    })
+    await expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('closed')
+  },
+}
+
+/** A synchronous handler that throws shows an error toast; the sheet still closes. */
+export const NavigationError: Story = {
+  render: () => (
+    <ControlledHarness
+      content={contentWithImage}
+      testID="NextTaskModal-nav-error"
+      resolveNavigation={() => {
+        throw new Error('router unavailable')
+      }}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    await openAndGetCard(canvasElement, 'NextTaskModal-nav-error')
+    const cta = await within(document.body).findByRole('button', { name: 'Open Proposal' })
+    await waitFor(() => userEvent.click(cta))
+    await expect(
+      await within(document.body).findByText('Could not open this link. Please try again.'),
+    ).toBeInTheDocument()
+    await expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('closed')
+  },
+}
+
+/** An async handler that rejects shows the same error toast as a synchronous throw. */
+export const NavigationRejected: Story = {
+  render: () => (
+    <ControlledHarness
+      content={contentWithImage}
+      testID="NextTaskModal-nav-rejected"
+      resolveNavigation={() => Promise.reject(new Error('navigation rejected'))}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    await openAndGetCard(canvasElement, 'NextTaskModal-nav-rejected')
+    const cta = await within(document.body).findByRole('button', { name: 'Open Proposal' })
+    await waitFor(() => userEvent.click(cta))
+    await expect(
+      await within(document.body).findByText('Could not open this link. Please try again.'),
+    ).toBeInTheDocument()
+    await expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('closed')
+  },
+}
+
+/** No handler and a non-http(s) `ctaTarget`: no Anchor is rendered; pressing shows an error toast. */
+export const RejectedUrl: Story = {
+  render: () => <ControlledHarness content={contentWithRejectedUrl} testID="NextTaskModal-rejected-url" />,
+  play: async ({ canvasElement }) => {
+    await openAndGetCard(canvasElement, 'NextTaskModal-rejected-url')
+    await expect(within(document.body).queryByRole('link', { name: 'Verify now' })).not.toBeInTheDocument()
+    const cta = await within(document.body).findByRole('button', { name: 'Verify now' })
+    await waitFor(() => userEvent.click(cta))
+    await expect(await within(document.body).findByText('This link cannot be opened.')).toBeInTheDocument()
+    await expect(within(canvasElement).getByTestId('NextTaskModal-last-event')).not.toHaveTextContent('clicked')
+    await expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('closed')
   },
 }

@@ -23,6 +23,8 @@ interface AnchorProps {
   rel?: string
   /** Inline layout overrides — anchors are often used as flex children around a Button. */
   style?: React.CSSProperties
+  /** Fires on press, before the link opens. Cannot prevent navigation on native, so validate `href` before rendering. */
+  onPress?: () => void
 }
 
 export function Anchor({ href, children, target = '_blank', rel, ...rest }: AnchorProps) {

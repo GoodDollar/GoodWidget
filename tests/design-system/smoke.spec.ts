@@ -535,20 +535,20 @@ test('DataTable/Controllable story exposes a working range control for the neste
   await screenshotStory(page, 'tests/design-system/test-results/story-datatable-controllable-width.png')
 })
 
-// NextTaskModal interaction flows (trigger firing, dismissal, host-navigation
-// handoff) are already covered by the story file's own play() functions. Storybook
-// auto-runs a story's play() on every render, including a plain Playwright
-// page.goto (not just under `pnpm test:storybook`), so ShownWithContent and
-// ShownWithoutImage below are already past their trigger click by the time this
-// spec looks at them — re-clicking would hit the now-open drawer's overlay
-// instead of the trigger button underneath it. These smoke tests only capture
-// baseline screenshots of the resulting render states, matching how the other
-// design-system primitives are smoke-tested above.
+// NextTaskModal's own interaction flows (open, dismiss, both navigation modes, the three
+// error toasts) are covered by the story file's play() functions. Storybook auto-runs a story's
+// play() on every render, including a plain Playwright page.goto (not just under
+// `pnpm test:storybook`), so every story with a play() has already finished its interaction by
+// the time these tests look at it. Tests for those stories therefore assert the final state the
+// play() left behind; the Closed story has no play(), so it is used where a test needs to drive
+// the interaction itself.
 
-test('NextTaskModal/Closed story renders the trigger harness with the modal hidden', async ({ page }) => {
+const NEXT_TASK_CTA_TARGET = 'https://gooddollar.org/stake'
+
+test('NextTaskModal/Closed story renders the harness with the modal hidden', async ({ page }) => {
   await gotoStory(page, 'design-system-primitives-nexttaskmodal--closed')
   const frame = getStoryFrame(page)
-  await expect(frame.getByTestId('NextTaskModal-fire-trigger')).toBeVisible()
+  await expect(frame.getByTestId('NextTaskModal-open')).toBeVisible()
   // The Drawer (Tamagui Sheet) stays mounted while closed and is moved off-canvas
   // via transform rather than opacity, so `toBeVisible` (an opacity/display check)
   // would pass even though the card is not on screen — `toBeInViewport` checks the
@@ -557,7 +557,7 @@ test('NextTaskModal/Closed story renders the trigger harness with the modal hidd
   await screenshotStory(page, 'tests/design-system/test-results/story-nexttaskmodal-closed.png')
 })
 
-test('NextTaskModal/ShownWithContent story renders the drawer with image, title, description, and CTA', async ({
+test('NextTaskModal/ShownWithContent story renders the sheet with status, headline, recommendation and CTA', async ({
   page,
 }) => {
   await gotoStory(page, 'design-system-primitives-nexttaskmodal--shown-with-content')
@@ -565,14 +565,111 @@ test('NextTaskModal/ShownWithContent story renders the drawer with image, title,
   const card = frame.getByTestId('NextTaskModal-shown')
   await expect(card).toBeVisible()
   await expect(card.getByText('Stake your G$ and earn')).toBeVisible()
+  await expect(card.getByText('RECOMMENDED')).toBeVisible()
+  await expect(frame.getByText('Claim completed')).toBeVisible()
+  await expect(frame.getByText('One good next step')).toBeVisible()
+  await expect(frame.getByRole('button', { name: 'Skip for now' })).toBeVisible()
   await screenshotStory(page, 'tests/design-system/test-results/story-nexttaskmodal-shown.png')
 })
 
-test('NextTaskModal/ShownWithoutImage story renders the drawer without the image slot', async ({ page }) => {
+test('NextTaskModal/ShownWithoutImage story renders the sheet without the image slot', async ({ page }) => {
   await gotoStory(page, 'design-system-primitives-nexttaskmodal--shown-without-image')
   const frame = getStoryFrame(page)
   const card = frame.getByTestId('NextTaskModal-no-image')
   await expect(card).toBeVisible()
   await expect(card.getByText('Verify your identity')).toBeVisible()
+  await expect(card.getByRole('img')).toHaveCount(0)
   await screenshotStory(page, 'tests/design-system/test-results/story-nexttaskmodal-no-image.png')
 })
+
+// Mobile and desktop viewports: the iframe document is loaded directly so the viewport size is
+// the story's own viewport (the Storybook manager switches layout at small widths).
+const NEXT_TASK_VIEWPORTS = [
+  { label: 'desktop', width: 1280, height: 800 },
+  // 375x667 (iPhone SE) is the smallest common phone, so it stresses clipping the most.
+  { label: 'mobile', width: 375, height: 667 },
+]
+
+for (const viewport of NEXT_TASK_VIEWPORTS) {
+  test(`NextTaskModal keeps its CTA, skip link and close button fully on screen at ${viewport.width}x${viewport.height} (${viewport.label})`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height })
+    await page.goto('/iframe.html?id=design-system-primitives-nexttaskmodal--shown-with-content&viewMode=story')
+    await page.waitForLoadState('networkidle')
+
+    const card = page.getByTestId('NextTaskModal-shown')
+    const cta = page.getByRole('link', { name: 'Open Proposal' })
+    const skipLink = page.getByRole('button', { name: 'Skip for now' })
+    const closeButton = page.getByRole('button', { name: 'Close' })
+
+    for (const control of [cta, skipLink, closeButton]) {
+      await expect(control).toBeVisible()
+      await expect(control).toBeEnabled()
+      await expect(control).toBeInViewport({ ratio: 1 })
+    }
+    // The card's own content must not be wider than the viewport.
+    const cardWidth = await card.evaluate((element) => element.scrollWidth)
+    expect(cardWidth).toBeLessThanOrEqual(viewport.width)
+
+    await page.screenshot({
+      path: `tests/design-system/test-results/story-nexttaskmodal-shown-${viewport.label}.png`,
+    })
+  })
+}
+
+test('NextTaskModal Anchor mode: the CTA is a link to ctaTarget and pressing it reports the click and closes', async ({
+  page,
+}) => {
+  await gotoStory(page, 'design-system-primitives-nexttaskmodal--closed')
+  const frame = getStoryFrame(page)
+  await frame.getByTestId('NextTaskModal-open').click()
+  const cta = frame.getByRole('link', { name: 'Open Proposal' })
+  await expect(cta).toHaveAttribute('href', NEXT_TASK_CTA_TARGET)
+  // Navigation is blocked at the document level (after React's handler) so the test stays on the page.
+  await frame.locator('body').evaluate((body) => {
+    body.ownerDocument.addEventListener('click', (event) => {
+      if ((event.target as HTMLElement | null)?.closest('a')) event.preventDefault()
+    })
+  })
+  await cta.click()
+  await expect(frame.getByTestId('NextTaskModal-last-event')).toHaveText(`clicked:${NEXT_TASK_CTA_TARGET}`)
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('closed')
+})
+
+test('NextTaskModal host mode: the handler is called with ctaTarget, the sheet closes, no link is involved', async ({
+  page,
+}) => {
+  await gotoStory(page, 'design-system-primitives-nexttaskmodal--host-navigation')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByTestId('NextTaskModal-last-event')).toHaveText(`clicked:${NEXT_TASK_CTA_TARGET}`)
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('closed')
+  await expect(frame.getByRole('link', { name: 'Open Proposal' })).toHaveCount(0)
+})
+
+const NEXT_TASK_ERROR_TOASTS = [
+  {
+    storyId: 'design-system-primitives-nexttaskmodal--navigation-error',
+    description: 'a handler that throws',
+    message: 'Could not open this link. Please try again.',
+  },
+  {
+    storyId: 'design-system-primitives-nexttaskmodal--navigation-rejected',
+    description: 'a handler that rejects',
+    message: 'Could not open this link. Please try again.',
+  },
+  {
+    storyId: 'design-system-primitives-nexttaskmodal--rejected-url',
+    description: 'a rejected (non-http) ctaTarget without a handler',
+    message: 'This link cannot be opened.',
+  },
+]
+
+for (const errorCase of NEXT_TASK_ERROR_TOASTS) {
+  test(`NextTaskModal shows an error toast and still closes for ${errorCase.description}`, async ({ page }) => {
+    await gotoStory(page, errorCase.storyId)
+    const frame = getStoryFrame(page)
+    await expect(frame.getByText(errorCase.message)).toBeVisible()
+    await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('closed')
+  })
+}
