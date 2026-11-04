@@ -1,20 +1,5 @@
 import React from 'react'
 import { Anchor as TamaguiAnchor } from 'tamagui'
-import { createComponent } from '../createComponent'
-
-const AnchorFrame = createComponent(TamaguiAnchor, {
-  name: 'Anchor',
-  color: '$primary',
-  textDecorationLine: 'underline',
-  fontFamily: '$body',
-  fontSize: '$3',
-  hoverStyle: {
-    opacity: 0.85,
-  },
-  pressStyle: {
-    opacity: 0.7,
-  },
-})
 
 interface AnchorProps {
   href: string
@@ -27,15 +12,27 @@ interface AnchorProps {
   onPress?: () => void
 }
 
+/**
+ * Renders Tamagui's Anchor directly, with the style props applied inline, instead of wrapping it in
+ * `createComponent` (`styled()`). On native, `styled()` over Tamagui's Anchor swallows `onPress`, so the
+ * link opened but the host never heard about the press. Tamagui's Anchor calls `onPress` and then
+ * `Linking.openURL(href)` itself on native, and renders a plain `<a href>` on web.
+ */
 export function Anchor({ href, children, target = '_blank', rel, ...rest }: AnchorProps) {
   return (
-    <AnchorFrame
+    <TamaguiAnchor
+      color="$primary"
+      textDecorationLine="underline"
+      fontFamily="$body"
+      fontSize="$3"
+      hoverStyle={{ opacity: 0.85 }}
+      pressStyle={{ opacity: 0.7 }}
       href={href}
       target={target}
       rel={rel ?? (target === '_blank' ? 'noopener noreferrer' : undefined)}
       {...rest}
     >
       {children}
-    </AnchorFrame>
+    </TamaguiAnchor>
   )
 }
