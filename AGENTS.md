@@ -83,6 +83,22 @@ GoodWidget/
 
 ---
 
+## Formatting And Commit Hygiene
+
+- Save edited files and run `pnpm exec prettier --write <touched-files>` before final
+  validation or staging. Format only files touched by the task, not the whole repository.
+- Run `pnpm exec prettier --check <touched-files>`, the relevant lint command, and scoped
+  tests before committing. ESLint passing does not imply Prettier-clean files.
+- Review the final diff and run `git diff --check` before staging. Include intended
+  formatting changes in the same commit rather than leaving them for editor format-on-save.
+- After committing, pushing, or creating a PR, check `git status --short` again. Report
+  remaining changes accurately; do not claim a clean working tree without checking it.
+- If formatting changes appear later, inspect them and report their origin when known.
+  Do not discard or commit someone else's changes without authorization.
+- Commit and push only when explicitly requested.
+
+---
+
 ## Always / Ask First / Never
 
 ### Always
