@@ -44,7 +44,10 @@ export class MockAiCreditsChainClient implements AiCreditsChainClient {
     this.gdUsdPerToken = options.gdUsdPerToken ?? 0.0015
     this.goodIdVerified = options.goodIdVerified ?? false
     this.buyerBalances = Object.fromEntries(
-      Object.entries(options.buyerBalances ?? {}).map(([buyer, balance]) => [normalizeAddress(buyer), balance]),
+      Object.entries(options.buyerBalances ?? {}).map(([buyer, balance]) => [
+        normalizeAddress(buyer),
+        balance,
+      ]),
     )
   }
 
@@ -76,7 +79,9 @@ export class MockAiCreditsChainClient implements AiCreditsChainClient {
       account: payer,
       signerAddress: signer,
       operatorAddress,
-      currentOperator: operatorAccepted ? operatorAddress : '0x0000000000000000000000000000000000000000',
+      currentOperator: operatorAccepted
+        ? operatorAddress
+        : '0x0000000000000000000000000000000000000000',
       operatorAccepted,
       consentNonce: '0',
     }

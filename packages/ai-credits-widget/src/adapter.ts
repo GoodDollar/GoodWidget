@@ -194,11 +194,7 @@ function isNonBuyTab(tab: AiCreditsWidgetTab): boolean {
 }
 
 export function needsWalletConnection(state: AiCreditsWidgetAdapterState): boolean {
-  return (
-    !state.address ||
-    state.status === 'disconnected' ||
-    state.status === 'connecting'
-  )
+  return !state.address || state.status === 'disconnected' || state.status === 'connecting'
 }
 
 function resolveDefaultActiveTab(
@@ -259,9 +255,7 @@ async function readGBalance(client: PublicClient, account: string): Promise<stri
 
 function isPaymentInFlight(status: AiCreditsWidgetStatus): boolean {
   return (
-    status === 'payment_pending' ||
-    status === 'payment_confirmed' ||
-    status === 'payment_failed'
+    status === 'payment_pending' || status === 'payment_confirmed' || status === 'payment_failed'
   )
 }
 
@@ -494,8 +488,24 @@ export function useAiCreditsAdapter({
     skipValidation: skipVaultPaymentValidation,
   })
   const refreshPaymentMinimums = paymentMinimums.refresh
-  const paymentIdentityRef = useRef({ address, chainId, buyer: state.signerPubKey, chainClient, celoVault, celoPublicClient, provider })
-  paymentIdentityRef.current = { address, chainId, buyer: state.signerPubKey, chainClient, celoVault, celoPublicClient, provider }
+  const paymentIdentityRef = useRef({
+    address,
+    chainId,
+    buyer: state.signerPubKey,
+    chainClient,
+    celoVault,
+    celoPublicClient,
+    provider,
+  })
+  paymentIdentityRef.current = {
+    address,
+    chainId,
+    buyer: state.signerPubKey,
+    chainClient,
+    celoVault,
+    celoPublicClient,
+    provider,
+  }
 
   /**
    * Reads GoodID verification for `account` straight from Celo, independently of
@@ -614,14 +624,13 @@ export function useAiCreditsAdapter({
           )
 
       try {
-        const [balanceRead, account, gdUsdPerToken, discountConfig, signers] =
-          await Promise.all([
-            balancePromise,
-            accountPromise,
-            gdUsdPerTokenPromise,
-            discountConfigPromise,
-            signersPromise,
-          ])
+        const [balanceRead, account, gdUsdPerToken, discountConfig, signers] = await Promise.all([
+          balancePromise,
+          accountPromise,
+          gdUsdPerTokenPromise,
+          discountConfigPromise,
+          signersPromise,
+        ])
         if (cancelled) return
 
         const gBalance = balanceRead
@@ -688,7 +697,8 @@ export function useAiCreditsAdapter({
         // negative here is what makes an already-authorized account look unauthorized
         // on every later load.
         const consentChecked =
-          Boolean(selectedSigner) && addressesMatch(resolvedAccount?.view.signer ?? null, selectedSigner)
+          Boolean(selectedSigner) &&
+          addressesMatch(resolvedAccount?.view.signer ?? null, selectedSigner)
         if (!consentChecked) {
           delete accountPatch.operatorConsented
         } else if (selectedSigner && accountPatch.operatorConsented !== undefined) {
@@ -911,22 +921,25 @@ export function useAiCreditsAdapter({
         }
         const nextSignerFields = buildSignerStateFields(address, signers, signerAddress)
         setState((prev) =>
-          !addressesMatch(prev.address, address) || !addressesMatch(prev.signerPubKey, signerAddress)
+          !addressesMatch(prev.address, address) ||
+          !addressesMatch(prev.signerPubKey, signerAddress)
             ? prev
             : mergeStatePreservingNonBuyTab(prev, {
-            ...accountPatch,
-            ...nextSignerFields,
-            operatorConsented: accountPatch.operatorConsented ?? nextSignerFields.operatorConsented,
-            error: null,
-          }),
+                ...accountPatch,
+                ...nextSignerFields,
+                operatorConsented:
+                  accountPatch.operatorConsented ?? nextSignerFields.operatorConsented,
+                error: null,
+              }),
         )
       } catch (err: unknown) {
         setState((prev) =>
-          !addressesMatch(prev.address, address) || !addressesMatch(prev.signerPubKey, signerAddress)
+          !addressesMatch(prev.address, address) ||
+          !addressesMatch(prev.signerPubKey, signerAddress)
             ? prev
             : mergeStatePreservingNonBuyTab(prev, {
-            error: err instanceof Error ? err.message : 'Could not load signer account',
-          }),
+                error: err instanceof Error ? err.message : 'Could not load signer account',
+              }),
         )
       }
     },
@@ -980,7 +993,10 @@ export function useAiCreditsAdapter({
         const signerAccount = privateKeyToAccount(privateKey)
         upsertSignerKey(address, signerAccount.address, { privateKey }, { setActive: true })
 
-        const signers = mergeSignerAddressList(listKnownSignerAddresses(address), signerAccount.address)
+        const signers = mergeSignerAddressList(
+          listKnownSignerAddresses(address),
+          signerAccount.address,
+        )
         const signerFields = buildSignerStateFields(address, signers, signerAccount.address)
         setState((prev) =>
           mergeStatePreservingNonBuyTab(prev, {
@@ -1005,7 +1021,11 @@ export function useAiCreditsAdapter({
             balanceMode: 'always',
           })
           if (accountPatch.operatorConsented !== undefined) {
-            setSignerOperatorConsented(address, signerAccount.address, accountPatch.operatorConsented)
+            setSignerOperatorConsented(
+              address,
+              signerAccount.address,
+              accountPatch.operatorConsented,
+            )
           }
           const nextSignerFields = buildSignerStateFields(address, signers, signerAccount.address)
           setState((prev) =>
@@ -1124,11 +1144,7 @@ export function useAiCreditsAdapter({
     const currentState = state
     if (!currentState.address || !currentState.signerPubKey) {
       setState((prev) =>
-        withDerivedStatus(
-          prev,
-          { error: 'Select a signer before authorizing your wallet' },
-          true,
-        ),
+        withDerivedStatus(prev, { error: 'Select a signer before authorizing your wallet' }, true),
       )
       return
     }
@@ -1167,8 +1183,7 @@ export function useAiCreditsAdapter({
       }
 
       const hasDifferentOperator =
-        operatorStatus.currentOperator !==
-          '0x0000000000000000000000000000000000000000' &&
+        operatorStatus.currentOperator !== '0x0000000000000000000000000000000000000000' &&
         !operatorStatus.operatorAccepted
       if (hasDifferentOperator) {
         throw new Error(
@@ -1668,8 +1683,7 @@ export function useAiCreditsAdapter({
                     status: 'backend_unavailable' as const,
                     error: 'Could not reach backend — check your connection',
                   }),
-              depositBonusPercent:
-                discountConfig?.depositBonusPercent ?? prev.depositBonusPercent,
+              depositBonusPercent: discountConfig?.depositBonusPercent ?? prev.depositBonusPercent,
               streamBonusPercent: discountConfig?.streamBonusPercent ?? prev.streamBonusPercent,
             },
             true,
@@ -1893,7 +1907,11 @@ export function useAiCreditsAdapter({
         return prev
       }
       if (tab === 'buy') {
-        return withDerivedStatus(prev, { activeTab: 'buy', status: 'purchase_setup', error: null }, true)
+        return withDerivedStatus(
+          prev,
+          { activeTab: 'buy', status: 'purchase_setup', error: null },
+          true,
+        )
       }
       return mergeStatePreservingNonBuyTab(prev, { activeTab: tab, error: null })
     })

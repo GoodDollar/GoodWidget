@@ -1,4 +1,10 @@
-import { gToWei, parseGAmount, formatUsdDisplay, quoteDepositPrincipalUsd, quoteStreamPrincipalUsd } from './quoteMath'
+import {
+  gToWei,
+  parseGAmount,
+  formatUsdDisplay,
+  quoteDepositPrincipalUsd,
+  quoteStreamPrincipalUsd,
+} from './quoteMath'
 import { formatExactGValue } from './format'
 import type { AiCreditsQuote } from './widgetRuntimeContract'
 import { parseAbi, type Address, type PublicClient } from 'viem'

@@ -49,21 +49,31 @@ export function usePaymentMinimums(request: MinimumsRequest) {
               : null,
       })
     })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [payer, buyer, chainClient, publicClient, vault, skipValidation, revision])
 
-  const current = result &&
-    result.payer === payer && result.buyer === buyer &&
-    result.chainClient === chainClient && result.publicClient === publicClient &&
-    result.vault === vault && result.skipValidation === skipValidation &&
-    result.revision === revision ? result : null
+  const current =
+    result &&
+    result.payer === payer &&
+    result.buyer === buyer &&
+    result.chainClient === chainClient &&
+    result.publicClient === publicClient &&
+    result.vault === vault &&
+    result.skipValidation === skipValidation &&
+    result.revision === revision
+      ? result
+      : null
 
   return {
-    minDepositUsd: current?.buyerBalance === 0n
-      ? current.minimums?.firstDepositUsd ?? null
-      : current?.minimums?.minDepositUsd ?? null,
+    minDepositUsd:
+      current?.buyerBalance === 0n
+        ? (current.minimums?.firstDepositUsd ?? null)
+        : (current?.minimums?.minDepositUsd ?? null),
     minStreamUsd: current?.minimums?.minStreamUsd ?? null,
-    depositBlockedReason: current?.error ??
+    depositBlockedReason:
+      current?.error ??
       (!current || current.buyerBalance === null ? 'Checking buyer balance...' : null),
     refresh,
   }

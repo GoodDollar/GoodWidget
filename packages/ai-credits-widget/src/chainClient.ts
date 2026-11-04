@@ -1,10 +1,8 @@
+import { parseAbi, type Address, type Chain, type PublicClient } from 'viem'
 import {
-  parseAbi,
-  type Address,
-  type Chain,
-  type PublicClient,
-} from 'viem'
-import { createViemFallbackClient, type ViemFallbackStorage } from '@goodwidget/core/viemFallbackClient'
+  createViemFallbackClient,
+  type ViemFallbackStorage,
+} from '@goodwidget/core/viemFallbackClient'
 import type { AiCreditsQuote } from './widgetRuntimeContract'
 import type { SignerOperatorStatus, OperatorConsentPayloadResponse } from './operatorConsent'
 import { ANTSEED_DEPOSITS_BASE_ADDRESS, buildSetOperatorPayload } from './operatorConsent'
@@ -13,8 +11,7 @@ import { buildQuoteAmounts } from './quoteMath'
 
 export const BASE_CHAIN_ID = 8453
 export const DEFAULT_BASE_RPC_URL = 'https://base.drpc.org'
-export const CELO_GD_ANTSEED_VAULT_ADDRESS =
-  '0x4Dd0136b9aabD5823cf0F65d89e8fB882C660885' as const
+export const CELO_GD_ANTSEED_VAULT_ADDRESS = '0x4Dd0136b9aabD5823cf0F65d89e8fB882C660885' as const
 export const CELO_GOODID_ADDRESS = '0xC361A6E67822a0EDc17D899227dd9FC50BD62F42' as const
 export const DEFAULT_CELO_RPC_URL = 'https://forno.celo.org'
 
@@ -38,9 +35,7 @@ const BASE_CHAIN: Chain = {
   },
 }
 
-const CELO_VAULT_ABI = parseAbi([
-  'function gdUsdPerToken(uint128 amount) view returns (uint256)',
-])
+const CELO_VAULT_ABI = parseAbi(['function gdUsdPerToken(uint128 amount) view returns (uint256)'])
 
 const DEPOSITS_ABI = parseAbi([
   'function buyers(address buyer) view returns (uint256 balance, uint256 reserved, uint256 lastActivityAt, uint256 firstChannelAt, address operator, uint256 operatorNonce)',
@@ -54,9 +49,7 @@ const FUNDING_VAULT_ABI = parseAbi([
   'function usedNonces(address signer) view returns (uint256)',
 ])
 
-const GOODID_ABI = parseAbi([
-  'function getWhitelistedRoot(address account) view returns (address)',
-])
+const GOODID_ABI = parseAbi(['function getWhitelistedRoot(address account) view returns (address)'])
 
 function normalizeAddress(address: string): string {
   return address.toLowerCase()
@@ -180,7 +173,9 @@ export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
   }
 
   async getBuyerStoredBalance(buyer: string): Promise<bigint> {
-    const [balance] = await (await this.baseClient).readContract({
+    const [balance] = await (
+      await this.baseClient
+    ).readContract({
       address: this.depositsAddress,
       abi: DEPOSITS_ABI,
       functionName: 'buyers',
@@ -261,7 +256,9 @@ export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
 
   async getWithdrawableUsd(signer: string): Promise<string> {
     if (!this.fundingVaultAddress) return '0'
-    const amount = await (await this.baseClient).readContract({
+    const amount = await (
+      await this.baseClient
+    ).readContract({
       address: this.fundingVaultAddress,
       abi: FUNDING_VAULT_ABI,
       functionName: 'withdrawablePrincipal',
@@ -295,7 +292,9 @@ export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
 
   private async readDepositsDomain(): Promise<{ name: string; version: string }> {
     try {
-      const domain = await (await this.baseClient).readContract({
+      const domain = await (
+        await this.baseClient
+      ).readContract({
         address: this.depositsAddress,
         abi: DEPOSITS_ABI,
         functionName: 'eip712Domain',
@@ -307,9 +306,7 @@ export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
   }
 }
 
-export function createChainClient(
-  options: AiCreditsChainClientOptions = {},
-): AiCreditsChainClient {
+export function createChainClient(options: AiCreditsChainClientOptions = {}): AiCreditsChainClient {
   return new ProductionAiCreditsChainClient({
     ...options,
     celoGoodIdAddress: options.celoGoodIdAddress ?? CELO_GOODID_ADDRESS,
