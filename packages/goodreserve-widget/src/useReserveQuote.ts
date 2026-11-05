@@ -73,6 +73,7 @@ export function useReserveQuote(
       requestId !== refs.quoteRequestIdRef.current || refs.sdkRef.current !== sdk
 
     const timeoutId = setTimeout(async () => {
+      if (isQuoteRequestSuperseded()) return
       try {
         // BigInt balance comparison — no float rounding at the last decimal.
         let balanceBigInt: bigint

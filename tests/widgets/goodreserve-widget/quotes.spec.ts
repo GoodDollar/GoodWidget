@@ -261,6 +261,37 @@ test.describe('stale quote protection', () => {
     await expect(reviewSwapButton(page)).toBeEnabled()
   })
 
+  test('an edit that sanitizes to the current amount preserves its quote', async ({ page }) => {
+    await openInteractiveStory(page, 'production', CELO_CHAIN_ID)
+    await waitForNetwork(page, celoProduction)
+
+    await typeAmount(page, '10')
+    await expect(page.getByText('1,000.00', { exact: true })).toBeVisible({ timeout: 15_000 })
+    await expect(reviewSwapButton(page)).toBeEnabled()
+
+    const input = page.locator('input').first()
+    await input.fill('10x')
+
+    await expect(input).toHaveValue('10')
+    await expect(page.getByText('1,000.00', { exact: true })).toBeVisible()
+    await expect(reviewSwapButton(page)).toBeEnabled()
+  })
+
+  test('pressing MAX again preserves the current quote', async ({ page }) => {
+    await openInteractiveStory(page, 'production', CELO_CHAIN_ID)
+    await waitForNetwork(page, celoProduction)
+
+    await page.getByTestId('GoodReserveWidget-max').click()
+    await expect(reviewSwapButton(page)).toBeEnabled({ timeout: 15_000 })
+
+    const input = page.locator('input').first()
+    const maxAmount = await input.inputValue()
+    await page.getByTestId('GoodReserveWidget-max').click()
+
+    await expect(input).toHaveValue(maxAmount)
+    await expect(reviewSwapButton(page)).toBeEnabled()
+  })
+
   test('a delayed response for an older amount never overwrites the newer quote', async ({
     page,
   }) => {
@@ -338,6 +369,23 @@ test.describe('stale quote protection', () => {
     await openTransactionDetails(page)
     // 1% slippage on 1,000 G$ → 990 G$ minimum received.
     await expect(page.getByText('990.00 G$', { exact: true })).toBeVisible()
+  })
+
+  test('selecting the active slippage preset preserves the current quote', async ({ page }) => {
+    await openInteractiveStory(page, 'production', CELO_CHAIN_ID)
+    await waitForNetwork(page, celoProduction)
+
+    await typeAmount(page, '10')
+    await expect(page.getByText('1,000.00', { exact: true })).toBeVisible({ timeout: 15_000 })
+    await expect(reviewSwapButton(page)).toBeEnabled()
+
+    const sheet = page.getByTestId('GoodReserveWidget-slippage-sheet')
+    await page.getByTestId('GoodReserveWidget-settings').click()
+    await sheet.getByText('0.1%', { exact: true }).click()
+    await sheet.getByText('Done').dispatchEvent('click')
+
+    await expect(page.getByText('1,000.00', { exact: true })).toBeVisible()
+    await expect(reviewSwapButton(page)).toBeEnabled()
   })
 
   test('switching network clears the quote and ignores the old network response', async ({
@@ -432,5 +480,20 @@ test.describe('stale quote protection', () => {
     await expect(page.getByText('1,000.00', { exact: true })).toHaveCount(0)
     await page.waitForTimeout(DEBOUNCE_SETTLE_MS)
     expect(rpcMock.calls).toHaveLength(callsBeforeSwitch)
+  })
+
+  test('a pending quote debounce cannot replace unsupported-chain state', async ({ page }) => {
+    const rpcMock = await openInteractiveStory(page, 'production', CELO_CHAIN_ID)
+    await waitForNetwork(page, celoProduction)
+
+    const callsBeforeInput = rpcMock.calls.length
+    await page.locator('input').first().fill('10')
+    await updateStoryArgs(page, { walletChainId: FUSE_CHAIN_ID })
+
+    await expect(primaryCta(page)).toContainText('Switch Network', { timeout: 20_000 })
+    await page.waitForTimeout(DEBOUNCE_SETTLE_MS)
+    await expect(primaryCta(page)).toContainText('Switch Network')
+    await expect(primaryCta(page)).not.toContainText('Fetching Quote')
+    expect(rpcMock.calls).toHaveLength(callsBeforeInput)
   })
 })

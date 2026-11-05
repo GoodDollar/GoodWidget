@@ -158,6 +158,7 @@ export function useGoodReserveAdapter(
         })
       },
       setInputAmount: (value: string) => {
+        if (value === state.inputAmount) return
         // The user re-entered an amount, so the stale-quote notice no longer applies.
         refs.quoteRefreshNoticeRef.current = null
         // Drop the previous quote immediately: it was computed for the old
@@ -170,6 +171,7 @@ export function useGoodReserveAdapter(
         })
       },
       setMaxAmount: () => {
+        if (state.inputAmount === state.tokenInBalance) return
         refs.quoteRefreshNoticeRef.current = null
         // Full precision on purpose: rounding here would leave dust behind and
         // stop MAX from actually spending the whole balance. The view formats
@@ -182,6 +184,7 @@ export function useGoodReserveAdapter(
         })
       },
       setSlippagePercent: (value: number) => {
+        if (value === state.slippagePercent) return
         // The quote's minimum received depends on slippage, so it is dropped and
         // re-fetched. The overlay returns to a quote-less editing status rather
         // than the pre-overlay quote_ready, which would re-enable Review early.
@@ -232,6 +235,7 @@ export function useGoodReserveAdapter(
       refreshBalances,
       state.inputAmount,
       state.status,
+      state.slippagePercent,
       state.tokenInBalance,
     ],
   )
