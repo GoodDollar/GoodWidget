@@ -156,6 +156,7 @@ export function useGoodReserveAdapter(
         })
       },
       setInputAmount: (value: string) => {
+        if (value === state.inputAmount) return
         // The user re-entered an amount, so the stale-quote notice no longer applies.
         refs.quoteRefreshNoticeRef.current = null
         applyStatePatch({ inputAmount: value, quote: null, status: value ? 'amount_editing' : 'idle' })
@@ -171,6 +172,7 @@ export function useGoodReserveAdapter(
         })
       },
       setSlippagePercent: (value: number) => {
+        if (value === state.slippagePercent) return
         // Restore the pre-overlay status so closing slippage returns to the
         // correct context (e.g. quote_ready, not idle).
         applyStatePatch({ slippagePercent: value, quote: null, status: 'amount_editing' })
@@ -210,6 +212,8 @@ export function useGoodReserveAdapter(
       provider,
       refs,
       refreshBalances,
+      state.inputAmount,
+      state.slippagePercent,
       state.status,
       state.tokenInBalance,
     ],

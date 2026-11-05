@@ -18,7 +18,8 @@ function GoodReserveWidgetInner({
   ReserveSwapWidgetProps,
   'onSwapSuccess' | 'onSwapError' | 'mockState' | 'preferredChainId' | 'environment'
 >) {
-  const adapter = useGoodReserveAdapter(mockState, environment)
+  const normalizedEnvironment = environment === 'development' ? 'development' : 'production'
+  const adapter = useGoodReserveAdapter(mockState, normalizedEnvironment)
   const { status, txHash, error, address, chainId } = adapter.state
 
   // Hold the host callbacks in refs so inline arrow functions (a new reference
@@ -61,6 +62,7 @@ export function GoodReserveWidget({
   preferredChainId,
   environment = 'production',
 }: ReserveSwapWidgetProps) {
+  const normalizedEnvironment = environment === 'development' ? 'development' : 'production'
   return (
     <GoodWidgetProvider
       provider={provider as EIP1193Provider | undefined}
@@ -74,7 +76,7 @@ export function GoodReserveWidget({
           onSwapError={onSwapError}
           mockState={mockState}
           preferredChainId={preferredChainId}
-          environment={environment}
+          environment={normalizedEnvironment}
         />
         <WidgetVersion name="GoodReserve" version={version} />
       </YStack>

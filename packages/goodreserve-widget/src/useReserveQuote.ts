@@ -26,6 +26,8 @@ export function useReserveQuote(
    */
   quoteRefreshNonce: number,
 ): void {
+  const quoteSequenceRef = useRef(0)
+
   useEffect(() => {
     if (mockState || !refs.sdkRef.current) return
 
@@ -42,6 +44,7 @@ export function useReserveQuote(
       ) {
         return
       }
+      ++quoteSequenceRef.current
       applyStatePatch({ quote: null, warning: null, error: null, status: 'idle' })
       return
     }
@@ -57,17 +60,19 @@ export function useReserveQuote(
     try {
       input = parseUnits(state.inputAmount, inDecimals)
     } catch {
+      ++quoteSequenceRef.current
       applyStatePatch({ quote: null, status: 'amount_editing' })
       return
     }
     if (input <= 0n) {
+      ++quoteSequenceRef.current
       applyStatePatch({ quote: null, status: 'amount_editing' })
       return
     }
 
-    const sequenceId = ++quoteSequenceRef.current;
+    const sequenceId = ++quoteSequenceRef.current
     const timeoutId = setTimeout(async () => {
-      if (sequenceId !== quoteSequenceRef.current || !refs.mountedRef.current) return;
+      if (sequenceId !== quoteSequenceRef.current || !refs.mountedRef.current) return
       try {
         // BigInt balance comparison — no float rounding at the last decimal.
         let balanceBigInt: bigint
@@ -77,6 +82,7 @@ export function useReserveQuote(
           balanceBigInt = 0n
         }
         if (input > balanceBigInt) {
+          if (sequenceId !== quoteSequenceRef.current || !refs.mountedRef.current) return
           refs.quoteRefreshNoticeRef.current = null
           applyStatePatch({
             status: 'insufficient_balance',
@@ -89,6 +95,7 @@ export function useReserveQuote(
 
         // Carry any pending stale-quote notice through the refetch instead of
         // blanking it, so the user still sees why they were bounced back.
+        if (sequenceId !== quoteSequenceRef.current || !refs.mountedRef.current) return
         applyStatePatch({
           status: 'quote_loading',
           warning: refs.quoteRefreshNoticeRef.current,
@@ -99,6 +106,8 @@ export function useReserveQuote(
           state.direction === 'buy'
             ? await refs.sdkRef.current!.getBuyQuote(stableToken, input)
             : await refs.sdkRef.current!.getSellQuote(input, stableToken)
+
+        if (sequenceId !== quoteSequenceRef.current || !refs.mountedRef.current) return
 
         // Slippage and minimum-received are derived in BigInt so the value shown
         // to the user is exactly the minReturn submitted on-chain (no float drift).
@@ -129,6 +138,7 @@ export function useReserveQuote(
           error: null,
         })
       } catch (err: unknown) {
+        if (sequenceId !== quoteSequenceRef.current || !refs.mountedRef.current) return
         refs.quoteRefreshNoticeRef.current = null
         applyStatePatch({
           status: 'quote_error',
@@ -139,7 +149,10 @@ export function useReserveQuote(
       }
     }, QUOTE_DEBOUNCE_MS)
 
-    return () => clearTimeout(timeoutId)
+    return () => {
+      clearTimeout(timeoutId)
+      ++quoteSequenceRef.current
+    }
     // Note: tokenInBalance is intentionally read via ref (not a dep) so a
     // post-swap/direction-toggle balance update does not restart the debounce.
   }, [

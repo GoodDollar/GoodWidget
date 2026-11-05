@@ -184,7 +184,16 @@ export function useReserveBootstrap(
     refs.publicClientRef.current = null
     refs.walletClientRef.current = null
 
-    applyStatePatch({ status: 'sdk_initializing', hasProvider: true, error: null })
+    // Reset amounts, quotes and cached balances when re-initializing environment or chain.
+    applyStatePatch({
+      status: 'sdk_initializing',
+      hasProvider: true,
+      error: null,
+      inputAmount: '',
+      quote: null,
+      tokenInBalance: '0',
+      tokenOutBalance: '0',
+    })
 
     try {
       const chain = RESERVE_CHAINS[chainId]
@@ -250,12 +259,23 @@ export function useReserveBootstrap(
         hasProvider: Boolean(provider),
         address: null,
         chainId: null,
+        inputAmount: '',
+        quote: null,
+        tokenInBalance: '0',
+        tokenOutBalance: '0',
       })
       return
     }
     applyStatePatch({ address, chainId, hasProvider: true })
     if (!chainSupported) {
-      applyStatePatch({ status: 'unsupported_chain', error: null })
+      applyStatePatch({
+        status: 'unsupported_chain',
+        error: null,
+        inputAmount: '',
+        quote: null,
+        tokenInBalance: '0',
+        tokenOutBalance: '0',
+      })
       return
     }
     void bootstrapSdk()
