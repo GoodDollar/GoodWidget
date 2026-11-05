@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { formatUnits, parseUnits } from 'viem'
 import type { ReserveSwapWidgetAdapterState } from './widgetRuntimeContract'
 import { QUOTE_DEBOUNCE_MS, QUOTE_TTL_MS } from './constants'
@@ -65,7 +65,9 @@ export function useReserveQuote(
       return
     }
 
+    const sequenceId = ++quoteSequenceRef.current;
     const timeoutId = setTimeout(async () => {
+      if (sequenceId !== quoteSequenceRef.current || !refs.mountedRef.current) return;
       try {
         // BigInt balance comparison — no float rounding at the last decimal.
         let balanceBigInt: bigint

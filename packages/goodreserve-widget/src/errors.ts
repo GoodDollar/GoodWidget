@@ -52,6 +52,8 @@ const RESERVE_ERROR_RULES: readonly ErrorMatcher[] = [
   { match: ['insufficient funds'], message: 'Insufficient funds for token amount or gas.' },
   { match: ['allowance'], message: 'Insufficient allowance. Approve and try again.' },
   { match: ['slippage'], message: 'Slippage too high. Increase tolerance or reduce trade size.' },
+  { match: ['chain mismatch', 'wallet client chain'], message: 'Wallet network does not match the active reserve network.' },
+  { match: ['reservetransactionerror'], message: 'Swap transaction reverted on-chain.' },
   { match: ['unsupported chain'], message: 'Switch to Celo or XDC to continue.' },
   {
     match: ['cannot find package', 'module not found'],

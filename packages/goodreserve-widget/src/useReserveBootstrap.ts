@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useWallet } from '@goodwidget/core'
-import { erc20ABI, GoodReserveSDK, getReserveChainFromId } from '@goodsdks/good-reserve'
+import { erc20ABI, GoodReserveSDK, getReserveChainFromId, normalizeReserveStats } from '@goodsdks/good-reserve'
 import {
   createPublicClient,
   createWalletClient,
@@ -127,10 +127,11 @@ export function useReserveBootstrap(
   refs: ReserveRefs,
   applyStatePatch: (patch: Partial<ReserveSwapWidgetAdapterState>) => void,
   mockState: Partial<ReserveSwapWidgetAdapterState> | undefined,
+  environment: 'development' | 'production' = 'production',
 ) {
   const { address, chainId, isConnected, provider, connect } = useWallet()
 
-  const reserveEnvironment = chainId === XDC_CHAIN_ID ? 'development' : 'production'
+  const reserveEnvironment = environment
   const chainSupported =
     chainId !== null &&
     (GoodReserveSDK.isChainEnvSupported(chainId, reserveEnvironment) ||
@@ -217,10 +218,8 @@ export function useReserveBootstrap(
       // hundred-million. Dividing by 1e6 converts it straight to a percentage.
       // Verified on the live Celo pool: raw 10_000_000 → 10.00% (and the
       // sibling reserveRatio 40_445_300 → 40.45%, which cross-checks the scale).
-      refs.exitContributionRef.current =
-        stats.exitContribution != null
-          ? `${(stats.exitContribution / EXIT_CONTRIBUTION_PPM_DIVISOR).toFixed(2)}%`
-          : '0%'
+      const normalized = normalizeReserveStats(stats)
+      refs.exitContributionRef.current = normalized.exitContributionPercent ?? '0%'
 
       await refreshBalances()
       const stableSymbol = getStableSymbol(chainId)

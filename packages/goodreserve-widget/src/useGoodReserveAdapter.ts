@@ -50,6 +50,7 @@ const initialState: ReserveSwapWidgetAdapterState = {
 // ---------------------------------------------------------------------------
 export function useGoodReserveAdapter(
   mockState?: Partial<ReserveSwapWidgetAdapterState>,
+  environment: 'development' | 'production' = 'production',
 ): ReserveSwapWidgetAdapterResult {
   const [state, setState] = useState<ReserveSwapWidgetAdapterState>({
     ...initialState,
@@ -90,7 +91,7 @@ export function useGoodReserveAdapter(
 
   // 1. Bootstrap: wallet connection, SDK construction, chain handling.
   const { chainId, provider, chainSupported, connect, readActiveChainId, refreshBalances, bootstrapSdk } =
-    useReserveBootstrap(refs, applyStatePatch, mockState)
+    useReserveBootstrap(refs, applyStatePatch, mockState, environment)
 
   // 2. Quote pipeline: debounced input → SDK quote → display derivation.
   useReserveQuote(refs, state, applyStatePatch, mockState, quoteRefreshNonce)
@@ -157,7 +158,7 @@ export function useGoodReserveAdapter(
       setInputAmount: (value: string) => {
         // The user re-entered an amount, so the stale-quote notice no longer applies.
         refs.quoteRefreshNoticeRef.current = null
-        applyStatePatch({ inputAmount: value, status: value ? 'amount_editing' : 'idle' })
+        applyStatePatch({ inputAmount: value, quote: null, status: value ? 'amount_editing' : 'idle' })
       },
       setMaxAmount: () => {
         refs.quoteRefreshNoticeRef.current = null
@@ -172,7 +173,7 @@ export function useGoodReserveAdapter(
       setSlippagePercent: (value: number) => {
         // Restore the pre-overlay status so closing slippage returns to the
         // correct context (e.g. quote_ready, not idle).
-        applyStatePatch({ slippagePercent: value, status: refs.previousStatusRef.current })
+        applyStatePatch({ slippagePercent: value, quote: null, status: 'amount_editing' })
       },
       openSlippage: () => {
         if (state.status !== 'slippage_selection' && state.status !== 'confirm_dialog') {

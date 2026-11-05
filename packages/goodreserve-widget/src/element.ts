@@ -9,5 +9,8 @@ export const GoodReserveWidgetElement = createMiniAppElement(
     shadow: true,
     defaultTheme: 'dark',
     events: ['swap-success', 'swap-error'],
+    props: {
+      environment: { type: 'attribute', default: 'production' },
+    },
   },
 )
