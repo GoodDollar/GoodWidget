@@ -5,6 +5,31 @@
 
 const ALLOWED_CTA_PROTOCOLS = new Set(['http:', 'https:'])
 
+export const NEXT_TASK_HEADLINE = 'One good next step'
+export const NEXT_TASK_SUPPORTING_COPY =
+  'Small actions today create a bigger impact tomorrow. Thanks for being part of GoodDollar.'
+export const NEXT_TASK_RECOMMENDED_LABEL = 'RECOMMENDED'
+export const NEXT_TASK_SKIP_LABEL = 'Skip for now'
+export const NAVIGATION_FAILED_TOAST_MESSAGE = 'Could not open this link. Please try again.'
+export const REJECTED_URL_TOAST_MESSAGE = 'This link cannot be opened.'
+
+export interface NextTaskContent {
+  title: string
+  description: string
+  ctaLabel: string
+  /** URL (when using `Anchor`) or arbitrary identifier (when using `resolveNavigation`). */
+  ctaTarget: string
+  /** External image asset shown in the card. Expected to be web-deliverable (HTTPS). */
+  imageUrl?: string
+  /** Opaque id surfaced on `onShown` for host-side analytics correlation. */
+  contentId?: string
+  headline?: string
+  supportingCopy?: string
+  recommendedLabel?: string
+  skipLabel?: string
+  statusLabel?: string
+}
+
 /**
  * Validates a CTA target before it is rendered as an external link (Anchor).
  * `content` is a plain host-supplied prop with no fetch or sanitization step,
