@@ -47,7 +47,7 @@
     "react-dom": ">=18.0.0"
   },
   "dependencies": {
-    "@goodsdks/good-reserve": "^0.1.4",
+    "@goodsdks/good-reserve": "^0.1.5",
     "@goodwidget/core": "workspace:*",
     "@goodwidget/embed": "workspace:*",
     "@goodwidget/ui": "workspace:*",

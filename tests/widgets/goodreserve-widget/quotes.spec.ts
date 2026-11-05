@@ -27,6 +27,7 @@ import {
 const INTERACTIVE_STORY_ID = 'widgets-goodreservewidget--interactive'
 const CELO_CHAIN_ID = 42220
 const XDC_CHAIN_ID = 50
+const FUSE_CHAIN_ID = 122
 const DEBOUNCE_SETTLE_MS = 600
 
 // The first story load can include a cold Vite compile.
@@ -51,6 +52,14 @@ const QUOTE_SCENARIOS: QuoteScenario[] = [
     expectedPrice: '100.00000',
     expectedExitContribution: '10.00%',
     expectedMinimumReceived: '999.00',
+  },
+  {
+    config: RESERVE_MOCK_CONFIGS['production-xdc'],
+    buyInput: '10',
+    expectedGoodDollarOutput: '200.00',
+    expectedPrice: '20.00000',
+    expectedExitContribution: '5.00%',
+    expectedMinimumReceived: '199.80',
   },
   {
     config: RESERVE_MOCK_CONFIGS['development-celo'],
@@ -184,6 +193,25 @@ test.describe('quotes and fee data per chain and environment', () => {
     })
   }
 
+  test('xdc / production: sell quote uses the production contract set', async ({ page }) => {
+    const config = RESERVE_MOCK_CONFIGS['production-xdc']
+    const rpcMock = await openInteractiveStory(page, config.environment, XDC_CHAIN_ID)
+    await waitForNetwork(page, config)
+
+    await page.getByTestId('GoodReserveWidget-swap-direction').click()
+    await typeAmount(page, '400')
+
+    // 400 G$ at 20 G$ per USDC → 20 USDC.
+    await expect(page.getByText('20.00', { exact: true })).toBeVisible({ timeout: 15_000 })
+    await expect(reviewSwapButton(page)).toBeEnabled()
+
+    await openTransactionDetails(page)
+    await expect(swapShell(page).getByText('1 G$ = 0.05000 USDC', { exact: true })).toBeVisible()
+    await expect(swapShell(page).getByText('5.00%', { exact: true })).toBeVisible()
+
+    expectOnlyContractsOf(rpcMock, config)
+  })
+
   test('xdc / development: sell quote uses the 6-decimal stable token', async ({ page }) => {
     const config = RESERVE_MOCK_CONFIGS['development-xdc']
     const rpcMock = await openInteractiveStory(page, config.environment, XDC_CHAIN_ID)
@@ -201,17 +229,6 @@ test.describe('quotes and fee data per chain and environment', () => {
     await expect(swapShell(page).getByText('1.00%', { exact: true })).toBeVisible()
 
     expectOnlyContractsOf(rpcMock, config)
-  })
-
-  // The SDK publishes no XDC production contracts, so the widget must not query anything there.
-  test('xdc / production: unavailable in the SDK, shows the switch-network CTA and sends no reserve calls', async ({
-    page,
-  }) => {
-    const rpcMock = await openInteractiveStory(page, 'production', XDC_CHAIN_ID)
-
-    await expect(primaryCta(page)).toContainText('Switch Network', { timeout: 20_000 })
-    await page.waitForTimeout(DEBOUNCE_SETTLE_MS)
-    expect(rpcMock.calls).toEqual([])
   })
 })
 
@@ -380,7 +397,28 @@ test.describe('stale quote protection', () => {
     await expect(reviewSwapButton(page)).toBeEnabled()
   })
 
+  test('production: switching Celo to XDC re-quotes with the XDC production contracts', async ({
+    page,
+  }) => {
+    const xdcProduction = RESERVE_MOCK_CONFIGS['production-xdc']
+    const rpcMock = await openInteractiveStory(page, 'production', CELO_CHAIN_ID)
+    await waitForNetwork(page, celoProduction)
+
+    await typeAmount(page, '10')
+    await expect(page.getByText('1,000.00', { exact: true })).toBeVisible({ timeout: 15_000 })
+
+    await updateStoryArgs(page, { walletChainId: XDC_CHAIN_ID })
+    await waitForNetwork(page, xdcProduction)
+
+    // 10 USDC × 20 = 200 G$ on XDC production; the Celo production quote must be gone.
+    await expect(page.getByText('200.00', { exact: true })).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByText('1,000.00', { exact: true })).toHaveCount(0)
+    await expect(reviewSwapButton(page)).toBeEnabled()
+    expect(rpcMock.unexpectedCalls).toEqual([])
+  })
+
   test('switching to a network without reserve contracts clears the quote', async ({ page }) => {
+    // Fuse is a chain the Storybook wallet can switch to but the reserve has no contracts on.
     const rpcMock = await openInteractiveStory(page, 'production', CELO_CHAIN_ID)
     await waitForNetwork(page, celoProduction)
 
@@ -388,11 +426,11 @@ test.describe('stale quote protection', () => {
     await expect(page.getByText('1,000.00', { exact: true })).toBeVisible({ timeout: 15_000 })
 
     const callsBeforeSwitch = rpcMock.calls.length
-    await updateStoryArgs(page, { walletChainId: XDC_CHAIN_ID })
+    await updateStoryArgs(page, { walletChainId: FUSE_CHAIN_ID })
 
     await expect(primaryCta(page)).toContainText('Switch Network', { timeout: 20_000 })
     await expect(page.getByText('1,000.00', { exact: true })).toHaveCount(0)
-    expect(rpcMock.calls.filter((call) => call.chain === 'xdc')).toEqual([])
-    expect(rpcMock.calls.length).toBeGreaterThanOrEqual(callsBeforeSwitch)
+    await page.waitForTimeout(DEBOUNCE_SETTLE_MS)
+    expect(rpcMock.calls).toHaveLength(callsBeforeSwitch)
   })
 })

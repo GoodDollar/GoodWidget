@@ -35,11 +35,12 @@ export interface ReserveMockConfig {
   stableSymbol: string
 }
 
-// Addresses mirror RESERVE_CONTRACT_ADDRESSES in @goodsdks/good-reserve. XDC production has no
-// entry because the SDK publishes no contracts for it (it is 'unavailable'). Rates, decimals and
-// exit contributions are test fixtures chosen to differ per pair.
+// Addresses mirror RESERVE_CONTRACT_ADDRESSES in @goodsdks/good-reserve. XDC production reuses
+// Celo production's broker/exchange provider addresses but has its own G$ and stable tokens, so
+// the mock resolves contracts per chain. Rates, decimals and exit contributions are test
+// fixtures chosen to differ per pair.
 export const RESERVE_MOCK_CONFIGS: Record<
-  'production-celo' | 'development-celo' | 'development-xdc',
+  'production-celo' | 'production-xdc' | 'development-celo' | 'development-xdc',
   ReserveMockConfig
 > = {
   'production-celo': {
@@ -54,6 +55,19 @@ export const RESERVE_MOCK_CONFIGS: Record<
     gdPerStable: 100n,
     exitContributionRaw: 10_000_000n,
     stableSymbol: 'USDm',
+  },
+  'production-xdc': {
+    chain: 'xdc',
+    environment: 'production',
+    chainId: 50,
+    broker: '0x88de45906D4F5a57315c133620cfa484cB297541',
+    exchangeProvider: '0x2fFBB49055d487DdBBb0C052Cd7c2a02A7971e41',
+    goodDollar: '0xEC2136843a983885AebF2feB3931F73A8eBEe50c',
+    stableToken: '0xfA2958CB79b0491CC627c1557F441eF849Ca8eb1',
+    stableDecimals: 6,
+    gdPerStable: 20n,
+    exitContributionRaw: 5_000_000n,
+    stableSymbol: 'USDC',
   },
   'development-celo': {
     chain: 'celo',
