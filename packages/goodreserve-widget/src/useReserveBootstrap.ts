@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useWallet } from '@goodwidget/core'
-import { erc20ABI, GoodReserveSDK, getReserveChainFromId } from '@goodsdks/good-reserve'
+import { erc20ABI, GoodReserveSDK } from '@goodsdks/good-reserve'
 import {
   createPublicClient,
   createWalletClient,
@@ -10,7 +10,10 @@ import {
   type Chain,
 } from 'viem'
 import { celo, xdc } from 'viem/chains'
-import type { ReserveSwapWidgetAdapterState } from './widgetRuntimeContract'
+import type {
+  ReserveSwapWidgetAdapterState,
+  ReserveWidgetEnvironment,
+} from './widgetRuntimeContract'
 import {
   CELO_CHAIN_ID,
   DEFAULT_GD_DECIMALS,
@@ -65,6 +68,12 @@ export interface ReserveRefs {
    * quote_ready transitions, which otherwise clear `warning`.
    */
   quoteRefreshNoticeRef: React.MutableRefObject<string | null>
+  /**
+   * Monotonic id of the latest quote request. A quote response is applied only
+   * while its id is still current, so a slow response for an earlier input,
+   * direction, slippage or network can never overwrite a newer one.
+   */
+  quoteRequestIdRef: React.MutableRefObject<number>
 }
 
 // Creates all shared refs for the adapter.
@@ -85,6 +94,7 @@ export function useReserveRefs(
   const statusRef = useRef<ReserveSwapWidgetAdapterState['status']>(initialStatus)
   const mountedRef = useRef(true)
   const quoteRefreshNoticeRef = useRef<string | null>(null)
+  const quoteRequestIdRef = useRef(0)
 
   return useMemo(
     () => ({
@@ -100,6 +110,7 @@ export function useReserveRefs(
       statusRef,
       mountedRef,
       quoteRefreshNoticeRef,
+      quoteRequestIdRef,
     }),
     [],
   )
@@ -127,14 +138,15 @@ export function useReserveBootstrap(
   refs: ReserveRefs,
   applyStatePatch: (patch: Partial<ReserveSwapWidgetAdapterState>) => void,
   mockState: Partial<ReserveSwapWidgetAdapterState> | undefined,
+  environment: ReserveWidgetEnvironment,
+  /** Re-runs the quote pipeline once a freshly built SDK is ready. */
+  requestQuoteRefresh: (notice: string | null) => void,
 ) {
   const { address, chainId, isConnected, provider, connect } = useWallet()
 
-  const reserveEnvironment = chainId === XDC_CHAIN_ID ? 'development' : 'production'
-  const chainSupported =
-    chainId !== null &&
-    (GoodReserveSDK.isChainEnvSupported(chainId, reserveEnvironment) ||
-      getReserveChainFromId(chainId) !== null)
+  // The same environment applies to every chain; the SDK reports which
+  // chain/environment pairs actually have reserve contracts deployed.
+  const chainSupported = chainId !== null && GoodReserveSDK.isChainEnvSupported(chainId, environment)
 
   // Reads the wallet's CURRENT chain id directly via eth_chainId so we don't
   // trust memoized React state which may lag a mid-dialog network switch.
@@ -183,7 +195,14 @@ export function useReserveBootstrap(
     refs.publicClientRef.current = null
     refs.walletClientRef.current = null
 
-    applyStatePatch({ status: 'sdk_initializing', hasProvider: true, error: null })
+    // A quote belongs to one chain/SDK pair, so a network switch invalidates it.
+    applyStatePatch({
+      status: 'sdk_initializing',
+      hasProvider: true,
+      error: null,
+      quote: null,
+      quoteExpiresAt: null,
+    })
 
     try {
       const chain = RESERVE_CHAINS[chainId]
@@ -196,7 +215,7 @@ export function useReserveBootstrap(
       })
 
       // exactApproval: true approves only the swap amount each time.
-      const sdk = new GoodReserveSDK(publicClient, walletClient, reserveEnvironment, {
+      const sdk = new GoodReserveSDK(publicClient, walletClient, environment, {
         exactApproval: true,
       })
       const stats = await sdk.getReserveStats()
@@ -232,13 +251,25 @@ export function useReserveBootstrap(
         warning: null,
         error: null,
       })
+      // Any amount kept across the switch is re-quoted against the new SDK.
+      requestQuoteRefresh(null)
     } catch (err: unknown) {
       applyStatePatch({
         status: 'quote_error',
         error: mapReserveError(err, 'Failed to initialize GoodReserve SDK.'),
       })
     }
-  }, [address, applyStatePatch, chainId, chainSupported, provider, refs, refreshBalances, reserveEnvironment])
+  }, [
+    address,
+    applyStatePatch,
+    chainId,
+    chainSupported,
+    environment,
+    provider,
+    refs,
+    refreshBalances,
+    requestQuoteRefresh,
+  ])
 
   // Drive the provider/chain connection lifecycle.
   useEffect(() => {
@@ -256,7 +287,12 @@ export function useReserveBootstrap(
     }
     applyStatePatch({ address, chainId, hasProvider: true })
     if (!chainSupported) {
-      applyStatePatch({ status: 'unsupported_chain', error: null })
+      // The previous network's SDK and quote must not outlive the switch: dropping
+      // the SDK also makes any quote request still in flight count as superseded.
+      refs.sdkRef.current = null
+      refs.publicClientRef.current = null
+      refs.walletClientRef.current = null
+      applyStatePatch({ status: 'unsupported_chain', error: null, quote: null, quoteExpiresAt: null })
       return
     }
     void bootstrapSdk()

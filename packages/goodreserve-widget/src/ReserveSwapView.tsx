@@ -555,7 +555,9 @@ function getMainSwapPrimaryCta(
       loading: false,
     }
   }
-  if (!state.quote) {
+  // Review is only reachable once the quote for the current input and network
+  // has landed; every input, slippage or network change clears it first.
+  if (state.status !== 'quote_ready' || !state.quote) {
     return {
       label: 'Review Swap',
       disabled: true,

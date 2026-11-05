@@ -2,6 +2,9 @@ import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
 
 export type ReserveSwapDirection = 'buy' | 'sell'
 
+/** Reserve contract deployment set the widget talks to on every supported chain. */
+export type ReserveWidgetEnvironment = 'development' | 'production'
+
 export type ReserveSwapWidgetStatus =
   | 'no_provider'
   | 'unsupported_chain'
@@ -97,6 +100,11 @@ export interface ReserveSwapWidgetProps {
   defaultTheme?: 'light' | 'dark'
   /** Chain proposed by the unsupported-chain CTA. Defaults to Celo (42220). */
   preferredChainId?: number
+  /**
+   * Reserve contract environment used on both Celo and XDC. Defaults to
+   * 'production'; 'development' targets the test deployments.
+   */
+  environment?: ReserveWidgetEnvironment
   onSwapSuccess?: (detail: ReserveSwapSuccessDetail) => void
   onSwapError?: (detail: ReserveSwapErrorDetail) => void
   mockState?: Partial<ReserveSwapWidgetAdapterState>

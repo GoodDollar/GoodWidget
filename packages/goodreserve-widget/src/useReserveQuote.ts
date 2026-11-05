@@ -27,7 +27,11 @@ export function useReserveQuote(
   quoteRefreshNonce: number,
 ): void {
   useEffect(() => {
+    // Every run of this effect means the inputs changed, so any request still
+    // in flight belongs to an older input and its result must be discarded.
+    const requestId = ++refs.quoteRequestIdRef.current
     if (mockState || !refs.sdkRef.current) return
+    const sdk = refs.sdkRef.current
 
     if (!state.inputAmount) {
       // A successful swap clears inputAmount as part of its success patch,
@@ -65,6 +69,9 @@ export function useReserveQuote(
       return
     }
 
+    const isQuoteRequestSuperseded = () =>
+      requestId !== refs.quoteRequestIdRef.current || refs.sdkRef.current !== sdk
+
     const timeoutId = setTimeout(async () => {
       try {
         // BigInt balance comparison — no float rounding at the last decimal.
@@ -92,11 +99,15 @@ export function useReserveQuote(
           warning: refs.quoteRefreshNoticeRef.current,
           error: null,
         })
-        const stableToken = refs.sdkRef.current!.getStableTokenAddress()
+        const stableToken = sdk.getStableTokenAddress()
         const output =
           state.direction === 'buy'
-            ? await refs.sdkRef.current!.getBuyQuote(stableToken, input)
-            : await refs.sdkRef.current!.getSellQuote(input, stableToken)
+            ? await sdk.getBuyQuote(stableToken, input)
+            : await sdk.getSellQuote(input, stableToken)
+
+        // Drop the response if the input changed, or the SDK was rebuilt for
+        // another network, while the request was in flight.
+        if (isQuoteRequestSuperseded()) return
 
         // Slippage and minimum-received are derived in BigInt so the value shown
         // to the user is exactly the minReturn submitted on-chain (no float drift).
@@ -127,6 +138,8 @@ export function useReserveQuote(
           error: null,
         })
       } catch (err: unknown) {
+        // A superseded request must not surface its error over newer state.
+        if (isQuoteRequestSuperseded()) return
         refs.quoteRefreshNoticeRef.current = null
         applyStatePatch({
           status: 'quote_error',
