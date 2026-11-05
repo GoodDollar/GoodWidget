@@ -117,12 +117,11 @@ export function NextTaskModal({
     if (!content || !resolveNavigation || hasResolvedRef.current) return
     hasResolvedRef.current = true
     invokeHostCallbackSafely('onClicked', onClicked, { ctaTarget: content.ctaTarget })
+    onClose()
     try {
       await resolveNavigation(content.ctaTarget)
-      onClose()
     } catch {
       createToast({ message: NAVIGATION_FAILED_TOAST_MESSAGE, status: 'error' })
-      hasResolvedRef.current = false
     }
   }, [content, resolveNavigation, onClicked, onClose])
 
