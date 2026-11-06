@@ -89,6 +89,10 @@ test('CitizenClaimWidget shows not_whitelisted for fresh wallet (live Celo RPC)'
   page,
   browserName,
 }) => {
+  // Bounded timeout budget for external live Celo RPC roundtrip in CI:
+  // Playwright's global timeout is 30s, which preempts the 40s wait budget in CI runners.
+  test.setTimeout(60_000)
+
   test.skip(
     browserName !== 'chromium',
     'Live RPC test requires --disable-web-security / --ignore-certificate-errors',
@@ -98,9 +102,12 @@ test('CitizenClaimWidget shows not_whitelisted for fresh wallet (live Celo RPC)'
 
   // Wait up to 40s for the identity check to complete
   const matched = await waitForText(page, ['Verify', 'Whitelisting', 'Face'], 40_000)
-  expect(matched, 'Expected not_whitelisted state with Verify CTA').toBeTruthy()
-
   const bodyText = await page.evaluate(() => document.body.innerText)
+  expect(
+    matched,
+    `Expected not_whitelisted state with Verify CTA within 40s, but received: "${bodyText.trim()}"`,
+  ).toBeTruthy()
+
   expect(bodyText).toMatch(/Verify|Whitelisting Required|Face/i)
 
   await page.screenshot({
