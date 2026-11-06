@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useWallet } from '@goodwidget/core'
-import { erc20ABI, GoodReserveSDK, getReserveChainFromId } from '@goodsdks/good-reserve'
+import { erc20ABI, GoodReserveSDK, getReserveChainFromId, normalizeReserveStats } from '@goodsdks/good-reserve'
 import {
   createPublicClient,
   createWalletClient,
@@ -127,10 +127,11 @@ export function useReserveBootstrap(
   refs: ReserveRefs,
   applyStatePatch: (patch: Partial<ReserveSwapWidgetAdapterState>) => void,
   mockState: Partial<ReserveSwapWidgetAdapterState> | undefined,
+  environment: 'development' | 'production' = 'production',
 ) {
   const { address, chainId, isConnected, provider, connect } = useWallet()
 
-  const reserveEnvironment = chainId === XDC_CHAIN_ID ? 'development' : 'production'
+  const reserveEnvironment = environment
   const chainSupported =
     chainId !== null &&
     (GoodReserveSDK.isChainEnvSupported(chainId, reserveEnvironment) ||
@@ -183,7 +184,16 @@ export function useReserveBootstrap(
     refs.publicClientRef.current = null
     refs.walletClientRef.current = null
 
-    applyStatePatch({ status: 'sdk_initializing', hasProvider: true, error: null })
+    // Reset amounts, quotes and cached balances when re-initializing environment or chain.
+    applyStatePatch({
+      status: 'sdk_initializing',
+      hasProvider: true,
+      error: null,
+      inputAmount: '',
+      quote: null,
+      tokenInBalance: '0',
+      tokenOutBalance: '0',
+    })
 
     try {
       const chain = RESERVE_CHAINS[chainId]
@@ -217,10 +227,8 @@ export function useReserveBootstrap(
       // hundred-million. Dividing by 1e6 converts it straight to a percentage.
       // Verified on the live Celo pool: raw 10_000_000 → 10.00% (and the
       // sibling reserveRatio 40_445_300 → 40.45%, which cross-checks the scale).
-      refs.exitContributionRef.current =
-        stats.exitContribution != null
-          ? `${(stats.exitContribution / EXIT_CONTRIBUTION_PPM_DIVISOR).toFixed(2)}%`
-          : '0%'
+      const normalized = normalizeReserveStats(stats)
+      refs.exitContributionRef.current = normalized.exitContributionPercent ?? '0%'
 
       await refreshBalances()
       const stableSymbol = getStableSymbol(chainId)
@@ -251,12 +259,23 @@ export function useReserveBootstrap(
         hasProvider: Boolean(provider),
         address: null,
         chainId: null,
+        inputAmount: '',
+        quote: null,
+        tokenInBalance: '0',
+        tokenOutBalance: '0',
       })
       return
     }
     applyStatePatch({ address, chainId, hasProvider: true })
     if (!chainSupported) {
-      applyStatePatch({ status: 'unsupported_chain', error: null })
+      applyStatePatch({
+        status: 'unsupported_chain',
+        error: null,
+        inputAmount: '',
+        quote: null,
+        tokenInBalance: '0',
+        tokenOutBalance: '0',
+      })
       return
     }
     void bootstrapSdk()

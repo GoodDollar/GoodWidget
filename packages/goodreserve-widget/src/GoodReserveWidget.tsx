@@ -13,11 +13,13 @@ function GoodReserveWidgetInner({
   onSwapError,
   mockState,
   preferredChainId,
+  environment = 'production',
 }: Pick<
   ReserveSwapWidgetProps,
-  'onSwapSuccess' | 'onSwapError' | 'mockState' | 'preferredChainId'
+  'onSwapSuccess' | 'onSwapError' | 'mockState' | 'preferredChainId' | 'environment'
 >) {
-  const adapter = useGoodReserveAdapter(mockState)
+  const normalizedEnvironment = environment === 'development' ? 'development' : 'production'
+  const adapter = useGoodReserveAdapter(mockState, normalizedEnvironment)
   const { status, txHash, error, address, chainId } = adapter.state
 
   // Hold the host callbacks in refs so inline arrow functions (a new reference
@@ -58,11 +60,9 @@ export function GoodReserveWidget({
   onSwapError,
   mockState,
   preferredChainId,
+  environment = 'production',
 }: ReserveSwapWidgetProps) {
-  // Merge the widget author config with any host config. Memoised so the
-  // Tamagui config object is stable across parent renders.
-  // const mergedConfig = useMemo(() => createReserveWidgetConfig(config), [config])
-
+  const normalizedEnvironment = environment === 'development' ? 'development' : 'production'
   return (
     <GoodWidgetProvider
       provider={provider as EIP1193Provider | undefined}
@@ -76,6 +76,7 @@ export function GoodReserveWidget({
           onSwapError={onSwapError}
           mockState={mockState}
           preferredChainId={preferredChainId}
+          environment={normalizedEnvironment}
         />
         <WidgetVersion name="GoodReserve" version={version} />
       </YStack>

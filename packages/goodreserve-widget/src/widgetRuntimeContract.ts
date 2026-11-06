@@ -100,4 +100,6 @@ export interface ReserveSwapWidgetProps {
   onSwapSuccess?: (detail: ReserveSwapSuccessDetail) => void
   onSwapError?: (detail: ReserveSwapErrorDetail) => void
   mockState?: Partial<ReserveSwapWidgetAdapterState>
+  /** Environment for GoodReserve SDK contracts. Defaults to 'production'. */
+  environment?: 'development' | 'production'
 }
