@@ -4,6 +4,7 @@ import {
   CustodialClaimExecutionClaimAllStory,
   CustodialLocalFixtureStory,
 } from '../helpers/citizenClaimWidgetStories'
+import type { NextTaskContent } from '@goodwidget/ui'
 import { BRAND_PRESET_OPTIONS, brandPresetOverrides, type BrandPreset } from '../helpers/themeOverridePresets'
 
 interface CitizenClaimWidgetQAArgs {
@@ -45,4 +46,39 @@ export const CustodialLocalFixture: Story = {
 
 export const CustodialExecutionClaimAllContract: Story = {
   render: () => <CustodialClaimExecutionClaimAllStory />,
+}
+
+const nextTaskContent: NextTaskContent = {
+  title: 'Stake your G$ and earn',
+  description: 'Put your claimed G$ to work by staking it for rewards.',
+  ctaLabel: 'Open Proposal',
+  ctaTarget: 'https://gooddollar.org/stake',
+  imageUrl: 'https://placehold.co/96x96',
+  contentId: 'stake-prompt',
+}
+
+/**
+ * Widget opt-in for the post-claim "next task" recommendation. The widget opens it
+ * only after a successful claim, and only when `nextTaskContent` is passed.
+ *
+ * Navigation contract: pass `nextTaskResolveNavigation` and the host owns navigation
+ * (the CTA is a Button, here it just logs); omit it and the CTA is an Anchor to
+ * `ctaTarget`. The three `onNextTask*` callbacks are analytics hooks; on the custom
+ * element they arrive as `next-task-shown` / `next-task-clicked` / `next-task-dismissed` events.
+ * Needs a funded custodial fixture key (see `custodialEip1193.ts`) to actually claim.
+ */
+export const CustodialLocalFixtureWithNextTask: Story = {
+  render: ({ defaultTheme, brandPreset }) => (
+    <CustodialLocalFixtureStory
+      defaultTheme={defaultTheme}
+      themeOverrides={brandPresetOverrides(brandPreset)}
+      nextTaskProps={{
+        nextTaskContent,
+        nextTaskResolveNavigation: (ctaTarget) => console.info('[next-task] host navigates to', ctaTarget),
+        onNextTaskShown: (payload) => console.info('[next-task] shown', payload),
+        onNextTaskClicked: (payload) => console.info('[next-task] clicked', payload),
+        onNextTaskDismissed: (payload) => console.info('[next-task] dismissed', payload),
+      }}
+    />
+  ),
 }

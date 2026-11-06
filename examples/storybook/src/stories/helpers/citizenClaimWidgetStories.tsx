@@ -65,16 +65,28 @@ function createMockClaimExecutionClientBundle(chainId: number, shouldFail: boole
   }
 }
 
+/** Props that opt the widget into the post-claim "next task" recommendation. */
+export type CitizenClaimNextTaskProps = Pick<
+  CitizenClaimWidgetProps,
+  | 'nextTaskContent'
+  | 'nextTaskResolveNavigation'
+  | 'onNextTaskShown'
+  | 'onNextTaskClicked'
+  | 'onNextTaskDismissed'
+>
+
 function CitizenClaimWidgetStoryShell({
   provider,
   dataTestId,
   defaultTheme,
   themeOverrides,
+  nextTaskProps,
 }: {
   provider: unknown
   dataTestId: string
   defaultTheme?: 'light' | 'dark'
   themeOverrides?: CitizenClaimWidgetProps['themeOverrides']
+  nextTaskProps?: CitizenClaimNextTaskProps
 }) {
   const [activeChainId, setActiveChainId] = useState<number | null>(null)
 
@@ -109,6 +121,7 @@ function CitizenClaimWidgetStoryShell({
       chainId={activeChainId ?? 42220}
       defaultTheme={defaultTheme}
       themeOverrides={themeOverrides}
+      {...nextTaskProps}
     />
   )
 }
@@ -148,9 +161,11 @@ export function InjectedWalletStory({
 export function CustodialLocalFixtureStory({
   defaultTheme,
   themeOverrides,
+  nextTaskProps,
 }: {
   defaultTheme?: 'light' | 'dark'
   themeOverrides?: CitizenClaimWidgetProps['themeOverrides']
+  nextTaskProps?: CitizenClaimNextTaskProps
 } = {}) {
   try {
     const provider = createCustodialEip1193Provider()
@@ -160,6 +175,7 @@ export function CustodialLocalFixtureStory({
         dataTestId="CitizenClaimWidget-custodial-wallet"
         defaultTheme={defaultTheme}
         themeOverrides={themeOverrides}
+        nextTaskProps={nextTaskProps}
       />
     )
   } catch (error: unknown) {
