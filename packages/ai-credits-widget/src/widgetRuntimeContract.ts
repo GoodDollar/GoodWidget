@@ -48,6 +48,8 @@ export interface AiCreditsWidgetAdapterState {
   /** Operator currently configured for the active signer, if any. */
   currentOperator: string | null
   minDepositUsd: string | null
+  /** Blocks one-time deposits while the selected buyer's minimum cannot be determined. */
+  depositBlockedReason?: string | null
   minStreamUsd: string | null
   /** Bonus credit earned so far, in micro-USD. Folded into `totalCreditUsd`. */
   totalBonusUsd: string | null

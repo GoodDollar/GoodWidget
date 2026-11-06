@@ -1,4 +1,10 @@
-import { gToWei, parseGAmount, formatUsdDisplay, quoteDepositPrincipalUsd, quoteStreamPrincipalUsd } from './quoteMath'
+import {
+  gToWei,
+  parseGAmount,
+  formatUsdDisplay,
+  quoteDepositPrincipalUsd,
+  quoteStreamPrincipalUsd,
+} from './quoteMath'
 import { formatExactGValue } from './format'
 import type { AiCreditsQuote } from './widgetRuntimeContract'
 import { parseAbi, type Address, type PublicClient } from 'viem'
@@ -13,6 +19,7 @@ const VAULT_MINIMUMS_ABI = parseAbi([
 ])
 
 export type VaultPaymentMinimums = {
+  firstDepositUsd: string
   minDepositUsd: string | null
   minStreamUsd: string
 }
@@ -159,6 +166,7 @@ export async function fetchVaultPaymentMinimums(
   publicClient: PublicClient,
   vault: Address,
   payer?: Address,
+  buyerBalance?: bigint,
 ): Promise<VaultPaymentMinimums> {
   const [minFirstDepositUsd, minMonthlyStreamUsd] = await Promise.all([
     publicClient.readContract({
@@ -181,12 +189,13 @@ export async function fetchVaultPaymentMinimums(
       functionName: 'totalDepositedGd',
       args: [payer],
     })
-    if (totalDeposited > 0n) {
+    if (totalDeposited > 0n && buyerBalance !== 0n) {
       minDepositUsd = null
     }
   }
 
   return {
+    firstDepositUsd: formatUsd18(minFirstDepositUsd),
     minDepositUsd,
     minStreamUsd: formatUsd18(minMonthlyStreamUsd),
   }
@@ -196,6 +205,7 @@ export async function validateVaultPaymentAmounts(params: {
   publicClient: PublicClient
   vault: Address
   payer: Address
+  buyerBalance?: bigint
   depositAmount: string
   streamAmount: string
   currentStreamAmount?: string | null
@@ -244,7 +254,7 @@ export async function validateVaultPaymentAmounts(params: {
     }
   }
 
-  if (hasDeposit && totalDeposited === 0n) {
+  if (hasDeposit && (totalDeposited === 0n || params.buyerBalance === 0n)) {
     const depositWei = gToWei(params.depositAmount)
     const depositUsd = await readGdUsd18(params.publicClient, params.vault, depositWei)
     if (depositUsd < minFirstDepositUsd) {
