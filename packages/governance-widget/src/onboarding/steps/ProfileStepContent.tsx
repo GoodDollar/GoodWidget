@@ -2,7 +2,6 @@ import type { ChangeEvent } from 'react'
 import { Theme, XStack, YStack } from 'tamagui'
 import { Button, ButtonText, Card, Icon, Text } from '@goodwidget/ui'
 import { InputError, InputFrame, InputLabel } from '@goodwidget/ui'
-import { ProfileTextAreaField } from '../ProfileTextAreaField'
 import type {
   GovernanceHouse,
   GovernanceProfileDraft,
