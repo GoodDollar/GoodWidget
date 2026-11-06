@@ -29,24 +29,25 @@ The framework provides:
 ```text
 GoodWidget/
   ARCHITECTURE.md                    # this file — system overview
-  AGENTS.md                          # agent operating guide
+  AGENTS.md                          # shared contribution instructions
   package.json
   pnpm-workspace.yaml
   turbo.json
   tsconfig.base.json
-  playwright.config.ts   # Playwright config targeting localhost:3000
+  playwright.config.ts   # Playwright config targeting Storybook on localhost:6006
 
   packages/
     core/           # GoodWidgetProvider, hooks, host detection, wallet context
     ui/             # Tamagui tokens, preset, themes, config assembly, manifest, primitives
     embed/          # Web Component wrapper + CSS custom property bridge
-    claim-widget/   # Example widget package using core + ui + embed
+    claim-widget-theme-demo/ # Example widget package using core + ui + embed
     goodreserve-widget/ # Reserve swap widget package using core + ui + embed
 
   examples/
     react-web/      # React web override and theming demo
     html/           # web component demo
     expo/           # Expo demo app
+    storybook/      # primary UI review environment; stories under src/stories/
 
   docs/
     PACKAGING.md                     # packaging and distribution guide
@@ -69,7 +70,7 @@ GoodWidget/
       |
 @goodwidget/embed
 
-@goodwidget/claim-widget -> depends on core + ui + embed
+@goodwidget/claim-widget-theme-demo -> depends on core + ui + embed
 @goodwidget/goodreserve-widget -> depends on core + ui + embed
 ```
 
@@ -217,13 +218,18 @@ The public UI surface is exported from `packages/ui/src/index.ts`.
 At the moment there are two implementation areas:
 
 - `packages/ui/src/components/`
-  - current production-aligned components such as `Card`, `GlowCard`, `Drawer`, `TokenAmount`
+  - components such as `Card`, `GlowCard`, `Drawer`, `TokenAmount`; inspect dependencies
+    before treating any component as production-ready
 - `packages/ui/src/components-test/`
-  - many still-exported primitives and composites such as `Button`, `Input`, `Checkbox`,
-    `Switch`, `Select`, `Alert`, `Badge`, `Text`, `MiniAppShell`
+  - still-exported legacy primitives and composites such as `Input`, `Checkbox`,
+    `Switch`, `Select`, `Alert`, `Badge`, and layout stacks
 
-This split is real and intentional for the current branch state. The next-step documents
-cover how to reduce that transitional surface.
+The `components-test` components are unreviewed and not design-system aligned; they must
+not be used in production-ready widgets or flows, including via re-exports or dependencies.
+Some components under `components/`, including `Stepper`, still import from that directory.
+Those are migration gaps, not exemptions. Agree affected migrations with the maintainer.
+Use [presets.ts](packages/ui/src/presets.ts) as the leading current design-system reference.
+Historical next-step documents are context, not authorization for a broad rewrite.
 
 ---
 
@@ -291,15 +297,14 @@ component registry in `packages/ui`.
 
 ---
 
-## Package: `@goodwidget/claim-widget`
+## Package: `@goodwidget/claim-widget-theme-demo`
 
-`packages/claim-widget` is the example publishable widget package and the best current
-reference for how a widget author is expected to use the system.
+`packages/claim-widget-theme-demo` is the sample package for theming and embedding.
+It simulates claiming; use `packages/citizen-claim-widget` for the SDK-backed citizen flow.
 
-Key patterns in `packages/claim-widget/src/ClaimWidget.tsx`:
+Key patterns in `packages/claim-widget-theme-demo/src/ClaimWidget.tsx`:
 
 - widget-local named components such as `ClaimCard` and `ClaimActionButton`
-- `extends` relationships for manifest lineage
 - author-level `config` support
 - host-level `themeOverrides` support
 - direct use of shared primitives from `@goodwidget/ui`
@@ -308,46 +313,25 @@ Key patterns in `packages/claim-widget/src/ClaimWidget.tsx`:
 
 ## Demo and Review Environment
 
-### React web demo lab
+Storybook is the primary review environment for UI components and widget flows.
 
-`examples/react-web` is a route-based Vite + React + RN-web SPA that serves as
-the canonical review and Playwright test environment.
+- Stories and MDX docs live in `examples/storybook/src/stories/`, grouped by widget or
+  under `design-system/` for shared components.
+- `pnpm storybook` serves `http://localhost:6006`.
+- Root Playwright tests target that Storybook server; see `playwright.config.ts`.
 
-Routes:
+Read [docs/demo-environment.md](docs/demo-environment.md) for setup, fixtures and
+screenshot conventions, and [docs/qa-guide.md](docs/qa-guide.md) for human/live QA.
 
-| Route               | Content                                                                            |
-| ------------------- | ---------------------------------------------------------------------------------- |
-| `/`                 | Link grid to all demo routes                                                       |
-| `/components/:name` | Per-primitive demo page for each UI component                                      |
-| `/widget/claim`     | ClaimWidget full-flow demo with token, component, and host override examples       |
-| `/theme-overrides`  | The original 5-tab OverrideShowcase (Default / Tokens / Component / Host / Inline) |
+The `examples/` directory also contains integration examples:
 
-Wallet-aware pages (`WalletInfo`, `AddressDisplay`, `ChainBadge`, `ClaimWidget`) use a
-lightweight mock EIP-1193 provider (`src/mock/mockEip1193.ts`) that provides a stable
-address and chain ID without requiring a real browser wallet.
+- `examples/react-web/` — React theming and override demo; run
+  `pnpm --filter @goodwidget/example-react-web dev` on `http://localhost:3000`.
+- `examples/html/` — the theme-demo widget as a Web Component.
+- `examples/expo/` — Expo / React Native example; see its README for setup and limitations.
 
-Start with: `pnpm --filter @goodwidget/example-react-web dev` → `http://localhost:3000`
-
-# See [docs/demo-environment.md](docs/demo-environment.md) for full documentation.
-
-Storybook is the canonical demo and review environment for UI components and widget flows.
-
-- stories live alongside their components
-- Storybook runs at `localhost:6006` during development
-- Playwright tests run against Storybook at `localhost:6006`
-
-See [`docs/demo-environment.md`](docs/demo-environment.md) for full details on Storybook
-setup, story conventions, Playwright fixtures, screenshot evidence requirements, and demo
-routes.
-
-The `examples/` directory contains additional integration demos:
-
-- `examples/react-web/` — React web app demonstrating preset baseline, token overrides,
-  component theme overrides, host `themeOverrides`, and local inline overrides
-- `examples/html/` — plain HTML page using the claim widget as a web component
-- `examples/expo/` — Expo / React Native app validating the current compatibility set
-
-These examples are useful integration references but Storybook is the primary review tool.
+These examples are integration references. Their presence does not establish that every
+widget has been verified across React, Web Component and native consumers.
 
 ---
 
@@ -373,8 +357,9 @@ Use plain React composition when the component is mostly orchestration or state.
 - `packages/ui/src/components-test/` currently still contains many exported primitives in
   transition
 
-That second point is not ideal, but it is the current truth and the docs should reflect it
-honestly.
+Those exports describe existing code, not approved production use. Follow the
+[widget author instructions](docs/widget-author-instructions.md) for component eligibility,
+Tamagui-first implementation, SDK packaging, both wallet connection flows and RPC helpers.
 
 ---
 
@@ -430,10 +415,10 @@ Wallet / chain interactions
 
 ## Related Documents
 
-- [`AGENTS.md`](AGENTS.md) — agent operating guide (always-read before coding)
+- [`AGENTS.md`](AGENTS.md) — shared contribution instructions (read before starting work)
 - [`docs/demo-environment.md`](docs/demo-environment.md) — Storybook, Playwright, demo
   routes, story conventions, fixture setup, screenshot evidence
 - [`docs/architecture/theming-contract.md`](docs/architecture/theming-contract.md) —
   detailed Tamagui/theming rules, decision checklist, correction targets
 - [`docs/PACKAGING.md`](docs/PACKAGING.md) — packaging and distribution guide
-- `agent-next-steps/native-primitives-design-integration-task.md` — next-step task context
+- `agent-next-steps/native-primitives-design-integration-task.md` — historical task context; not a standing work assignment
