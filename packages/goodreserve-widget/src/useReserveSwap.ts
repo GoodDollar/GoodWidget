@@ -1,7 +1,10 @@
 import { useCallback } from 'react'
 import { parseUnits } from 'viem'
-import { getReserveChainFromId } from '@goodsdks/good-reserve'
-import type { ReserveSwapWidgetAdapterState } from './widgetRuntimeContract'
+import { GoodReserveSDK } from '@goodsdks/good-reserve'
+import type {
+  ReserveSwapWidgetAdapterState,
+  ReserveWidgetEnvironment,
+} from './widgetRuntimeContract'
 import { QUOTE_REFRESHED_NOTICE } from './constants'
 import { mapReserveError } from './errors'
 import type { ReserveRefs } from './useReserveBootstrap'
@@ -21,6 +24,7 @@ export function useReserveSwap(
   state: ReserveSwapWidgetAdapterState,
   applyStatePatch: (patch: Partial<ReserveSwapWidgetAdapterState>) => void,
   chainSupported: boolean,
+  environment: ReserveWidgetEnvironment,
   readActiveChainId: () => Promise<number | null>,
   refreshBalances: () => Promise<void>,
   requestQuoteRefresh: (notice: string | null) => void,
@@ -51,7 +55,7 @@ export function useReserveSwap(
     // rather than trusting the memoized chainId: the user may have switched
     // networks in their wallet while the confirm dialog was open.
     const activeChainId = await readActiveChainId()
-    if (activeChainId !== null && getReserveChainFromId(activeChainId) === null) {
+    if (activeChainId !== null && !GoodReserveSDK.isChainEnvSupported(activeChainId, environment)) {
       applyStatePatch({ status: 'unsupported_chain', error: null })
       return
     }
@@ -93,12 +97,6 @@ export function useReserveSwap(
           ? await sdk.buy(stableToken, amountIn, minReturn, onHash)
           : await sdk.sell(stableToken, amountIn, minReturn, onHash)
 
-      // The SDK resolves on any mined receipt, reverted included, so a reverted
-      // swap would otherwise render as "Swap Successful".
-      if (result.receipt?.status !== 'success') {
-        throw new Error('Swap transaction reverted on-chain.')
-      }
-
       refs.quoteRefreshNoticeRef.current = null
       applyStatePatch({
         status: 'swap_success',
@@ -122,6 +120,7 @@ export function useReserveSwap(
   }, [
     applyStatePatch,
     chainSupported,
+    environment,
     readActiveChainId,
     refreshBalances,
     refs,

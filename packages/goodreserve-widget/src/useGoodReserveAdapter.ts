@@ -3,6 +3,7 @@ import type {
   ReserveSwapDirection,
   ReserveSwapWidgetAdapterResult,
   ReserveSwapWidgetAdapterState,
+  ReserveWidgetEnvironment,
 } from './widgetRuntimeContract'
 import {
   DEFAULT_SLIPPAGE_PERCENT,
@@ -50,6 +51,7 @@ const initialState: ReserveSwapWidgetAdapterState = {
 // ---------------------------------------------------------------------------
 export function useGoodReserveAdapter(
   mockState?: Partial<ReserveSwapWidgetAdapterState>,
+  environment: ReserveWidgetEnvironment = 'production',
 ): ReserveSwapWidgetAdapterResult {
   const [state, setState] = useState<ReserveSwapWidgetAdapterState>({
     ...initialState,
@@ -90,7 +92,7 @@ export function useGoodReserveAdapter(
 
   // 1. Bootstrap: wallet connection, SDK construction, chain handling.
   const { chainId, provider, chainSupported, connect, readActiveChainId, refreshBalances, bootstrapSdk } =
-    useReserveBootstrap(refs, applyStatePatch, mockState)
+    useReserveBootstrap(refs, applyStatePatch, mockState, environment, requestQuoteRefresh)
 
   // 2. Quote pipeline: debounced input → SDK quote → display derivation.
   useReserveQuote(refs, state, applyStatePatch, mockState, quoteRefreshNonce)
@@ -101,6 +103,7 @@ export function useGoodReserveAdapter(
     state,
     applyStatePatch,
     chainSupported,
+    environment,
     readActiveChainId,
     refreshBalances,
     requestQuoteRefresh,
@@ -155,24 +158,44 @@ export function useGoodReserveAdapter(
         })
       },
       setInputAmount: (value: string) => {
+        if (value === state.inputAmount) return
         // The user re-entered an amount, so the stale-quote notice no longer applies.
         refs.quoteRefreshNoticeRef.current = null
-        applyStatePatch({ inputAmount: value, status: value ? 'amount_editing' : 'idle' })
+        // Drop the previous quote immediately: it was computed for the old
+        // amount and must not be reviewable while the new quote is pending.
+        applyStatePatch({
+          inputAmount: value,
+          quote: null,
+          quoteExpiresAt: null,
+          status: value ? 'amount_editing' : 'idle',
+        })
       },
       setMaxAmount: () => {
+        if (state.inputAmount === state.tokenInBalance) return
         refs.quoteRefreshNoticeRef.current = null
         // Full precision on purpose: rounding here would leave dust behind and
         // stop MAX from actually spending the whole balance. The view formats
         // the display separately.
         applyStatePatch({
           inputAmount: state.tokenInBalance,
+          quote: null,
+          quoteExpiresAt: null,
           status: 'amount_editing',
         })
       },
       setSlippagePercent: (value: number) => {
-        // Restore the pre-overlay status so closing slippage returns to the
-        // correct context (e.g. quote_ready, not idle).
-        applyStatePatch({ slippagePercent: value, status: refs.previousStatusRef.current })
+        if (value === state.slippagePercent) return
+        // The quote's minimum received depends on slippage, so it is dropped and
+        // re-fetched. The overlay returns to a quote-less editing status rather
+        // than the pre-overlay quote_ready, which would re-enable Review early.
+        const statusAfterSlippageChange = state.inputAmount ? 'amount_editing' : 'idle'
+        refs.previousStatusRef.current = statusAfterSlippageChange
+        applyStatePatch({
+          slippagePercent: value,
+          quote: null,
+          quoteExpiresAt: null,
+          status: statusAfterSlippageChange,
+        })
       },
       openSlippage: () => {
         if (state.status !== 'slippage_selection' && state.status !== 'confirm_dialog') {
@@ -196,6 +219,7 @@ export function useGoodReserveAdapter(
       refreshBalances,
       refresh: async () => {
         if (mockState) return
+        // Rebuilding the SDK clears the quote and re-quotes the entered amount.
         await bootstrapSdk()
       },
     }),
@@ -209,7 +233,9 @@ export function useGoodReserveAdapter(
       provider,
       refs,
       refreshBalances,
+      state.inputAmount,
       state.status,
+      state.slippagePercent,
       state.tokenInBalance,
     ],
   )

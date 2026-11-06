@@ -55,7 +55,10 @@ const CHAIN_CONFIGS: Record<number, { chain: Chain; rpcUrl: string }> = {
  * Creates an EIP-1193 provider backed by a local private key.
  * This is for local Storybook testing to mimic "wallet-in-host" behavior.
  */
-export function createCustodialEip1193Provider(): EIP1193Provider {
+export function createCustodialEip1193Provider(
+  /** Chain the wallet starts on; defaults to Celo. */
+  initialChainId = 42220,
+): EIP1193Provider {
   if (!CUSTODIAL_PRIVATE_KEY.startsWith('0x') || CUSTODIAL_PRIVATE_KEY.length !== 66) {
     throw new Error(
       'Invalid CUSTODIAL_PRIVATE_KEY. Set a 0x-prefixed 32-byte hex private key in custodialEip1193.ts',
@@ -63,7 +66,7 @@ export function createCustodialEip1193Provider(): EIP1193Provider {
   }
 
   const account = privateKeyToAccount(CUSTODIAL_PRIVATE_KEY as `0x${string}`)
-  let activeChainId = 42220 // Default to Celo, can be switched via wallet_switchEthereumChain
+  let activeChainId = initialChainId // Can be switched via wallet_switchEthereumChain
   const listeners: Record<string, EventCallback[]> = {}
 
   const clientsByChain = Object.fromEntries(
