@@ -3,6 +3,14 @@
 This document is required reading for any task that changes Tamagui config, tokens, themes,
 presets, UI primitives, component names, public override targets, or theming behavior.
 
+Use [packages/ui/src/presets.ts](../../packages/ui/src/presets.ts) as the leading current
+design-system reference. Check Tamagui's components before creating custom UI; do not import
+directly from `react-native`. Components under `packages/ui/src/components-test/` are
+unreviewed, not design-system aligned, and must not be used in production-ready flows,
+including through re-exports or dependencies. Follow the
+[widget author guide](../widget-author-instructions.md#production-components-and-recurring-flows)
+for migration gaps and recurring UX flows.
+
 Primary references:
 
 - https://tamagui.dev/docs/core/configuration
