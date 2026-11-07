@@ -125,7 +125,12 @@ test('CitizenClaimWidget Showcase story remounts and refreshes contract data on 
         if (data.startsWith('0x069786ea')) {
           const isDev = DEV_UBI_CONTRACTS.includes(to)
           const claimers = isDev ? 120n : 450n
-          const claimedAmount = isDev ? 1200n * 10n ** 18n : 4500n * 10n ** 18n
+          // Fuse G$ has 2 decimals; Celo and XDC G$ have 18
+          const isFuse =
+            to === '0x3bdeb796950301ffc9568faf89b7370f8b217321' ||
+            to === '0xd253a5203817225e9768c05e5996d642fb96ba86'
+          const scale = isFuse ? 10n ** 2n : 10n ** 18n
+          const claimedAmount = (isDev ? 1200n : 4500n) * scale
           return {
             jsonrpc: '2.0',
             id,
@@ -176,9 +181,10 @@ test('CitizenClaimWidget Showcase story remounts and refreshes contract data on 
   await expect(widget).toBeVisible({ timeout: 15000 })
   await expect(page.getByText('Ready to claim').first()).toBeVisible({ timeout: 15000 })
 
-  // Verify initial development observable: 25 G$ entitlement and 120 daily claimers
+  // Verify initial development observable: 25 G$ entitlement, 120 daily claimers, 3.6K G$ total daily claimed
   await expect(widget.getByText('25', { exact: true }).first()).toBeVisible({ timeout: 15000 })
   await expect(widget.getByText('120', { exact: true })).toBeVisible({ timeout: 15000 })
+  await expect(widget.getByText('3.6K', { exact: true })).toBeVisible({ timeout: 15000 })
 
   // Verify development calls targeted development UBI contracts
   expect(
@@ -218,11 +224,13 @@ test('CitizenClaimWidget Showcase story remounts and refreshes contract data on 
   await expect(widget).toBeVisible({ timeout: 15000 })
   await expect(page.getByText('Ready to claim').first()).toBeVisible({ timeout: 15000 })
 
-  // 5. Verify that the rendered observable updated across the switch (50 replaces 25, 450 replaces 120)
+  // 5. Verify that the rendered observable updated across the switch (50 replaces 25, 450 replaces 120, 13.5K replaces 3.6K)
   await expect(widget.getByText('50', { exact: true }).first()).toBeVisible({ timeout: 15000 })
   await expect(widget.getByText('450', { exact: true })).toBeVisible({ timeout: 15000 })
+  await expect(widget.getByText('13.5K', { exact: true })).toBeVisible({ timeout: 15000 })
   await expect(widget.getByText('25', { exact: true })).not.toBeVisible()
   await expect(widget.getByText('120', { exact: true })).not.toBeVisible()
+  await expect(widget.getByText('3.6K', { exact: true })).not.toBeVisible()
 
   // 6. Verify that fresh contract calls were dispatched post-switch targeting production UBI contracts
   await expect
