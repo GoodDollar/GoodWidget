@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import {
   SuperfluidCampaignWidget,
   type SuperfluidCampaignWidgetProps,
@@ -67,7 +67,7 @@ export function ThemedSuperfluidStory({
   defaultTheme?: 'light' | 'dark'
   themeOverrides?: GoodWidgetThemeOverrides
 } = {}) {
-  const provider = createCustodialEip1193Provider()
+  const provider = useMemo(() => createCustodialEip1193Provider(), [])
   return (
     <div
       data-testid="SuperfluidCampaignWidget-themed"
