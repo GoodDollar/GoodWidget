@@ -51,8 +51,10 @@ function CodeBlock({ children }: { children: string }) {
 
 interface OverridesArgs {
   defaultTheme: 'light' | 'dark'
-  swapShellBackground: string
-  amountCardBackground: string
+  swapShellBackgroundDark: string
+  swapShellBackgroundLight: string
+  amountCardBackgroundDark: string
+  amountCardBackgroundLight: string
   submitButtonBackground: string
 }
 
@@ -60,12 +62,12 @@ function buildThemeOverrides(args: OverridesArgs): GoodWidgetThemeOverrides {
   return {
     themes: {
       dark: {
-        backgroundSurface: args.swapShellBackground,
-        backgroundInput: args.amountCardBackground,
+        backgroundSurface: args.swapShellBackgroundDark,
+        backgroundInput: args.amountCardBackgroundDark,
       },
       light: {
-        backgroundSurface: args.swapShellBackground,
-        backgroundInput: args.amountCardBackground,
+        backgroundSurface: args.swapShellBackgroundLight,
+        backgroundInput: args.amountCardBackgroundLight,
       },
       dark_Button: {
         background: args.submitButtonBackground,
@@ -93,13 +95,21 @@ const meta: Meta<OverridesArgs> = {
       options: ['dark', 'light'],
       description: 'Base theme applied via the widget’s own defaultTheme prop.',
     },
-    swapShellBackground: {
+    swapShellBackgroundDark: {
       control: 'color',
-      description: 'Base theme backgroundSurface token (styles outer swap card shell)',
+      description: 'themes.dark.backgroundSurface token (styles outer swap card shell in dark mode)',
     },
-    amountCardBackground: {
+    swapShellBackgroundLight: {
       control: 'color',
-      description: 'Base theme backgroundInput token (styles amount input card panels)',
+      description: 'themes.light.backgroundSurface token (styles outer swap card shell in light mode)',
+    },
+    amountCardBackgroundDark: {
+      control: 'color',
+      description: 'themes.dark.backgroundInput token (styles amount input card panels in dark mode)',
+    },
+    amountCardBackgroundLight: {
+      control: 'color',
+      description: 'themes.light.backgroundInput token (styles amount input card panels in light mode)',
     },
     submitButtonBackground: {
       control: 'color',
@@ -108,8 +118,10 @@ const meta: Meta<OverridesArgs> = {
   },
   args: {
     defaultTheme: 'dark',
-    swapShellBackground: '#1E1B4B',
-    amountCardBackground: '#0F172A',
+    swapShellBackgroundDark: '#1E1B4B',
+    swapShellBackgroundLight: '#E0E7FF',
+    amountCardBackgroundDark: '#0F172A',
+    amountCardBackgroundLight: '#C7D2FE',
     submitButtonBackground: '#7C3AED',
   },
 }

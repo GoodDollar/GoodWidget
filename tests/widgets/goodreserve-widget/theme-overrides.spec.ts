@@ -35,6 +35,7 @@ test('GoodReserveWidget Theme Overrides playground renders in dark mode and upda
 
   await page.screenshot({
     path: 'tests/widgets/goodreserve-widget/test-results/grw-theme-overrides-dark.png',
+    fullPage: true,
   })
 
   // Dynamically update controls in-place via Storybook addon channel
@@ -44,8 +45,8 @@ test('GoodReserveWidget Theme Overrides playground renders in dark mode and upda
     channel?.emit('updateStoryArgs', {
       storyId: 'widgets-goodreservewidget-theme-overrides--playground',
       updatedArgs: {
-        swapShellBackground: '#e11d48',
-        amountCardBackground: '#059669',
+        swapShellBackgroundDark: '#e11d48',
+        amountCardBackgroundDark: '#059669',
         submitButtonBackground: '#2563eb',
       },
     })
@@ -58,6 +59,7 @@ test('GoodReserveWidget Theme Overrides playground renders in dark mode and upda
 
   await page.screenshot({
     path: 'tests/widgets/goodreserve-widget/test-results/grw-theme-overrides-custom.png',
+    fullPage: true,
   })
 })
 
@@ -71,9 +73,14 @@ test('GoodReserveWidget Theme Overrides playground renders in light mode with cu
 
   const shell = page.getByTestId('GoodReserveWidget-shell').first()
   await expect(shell).toBeVisible()
-  await expect(shell).toHaveCSS('background-color', 'rgb(30, 27, 75)')
+  await expect(shell).toHaveCSS('background-color', 'rgb(224, 231, 255)')
+
+  const amountCard = page.getByTestId('GoodReserveWidget-amount-card-from').first()
+  await expect(amountCard).toBeVisible()
+  await expect(amountCard).toHaveCSS('background-color', 'rgb(199, 210, 254)')
 
   await page.screenshot({
     path: 'tests/widgets/goodreserve-widget/test-results/grw-theme-overrides-light.png',
+    fullPage: true,
   })
 })
