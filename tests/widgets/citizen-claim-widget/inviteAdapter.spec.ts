@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 import { zeroAddress, zeroHash, type Address } from 'viem'
 import {
   encodeInviteCode,
+  generateInviteCode,
   loadInviteSnapshot,
   performCollectAll,
   performJoin,
@@ -164,3 +165,17 @@ test('encodeInviteCode round-trips through performJoin without mutating an unrel
   await performJoin(sdk, inviter, createUser({ inviteCode: myCode }), encoded)
   expect(joinArgs).toEqual([myCode, encoded])
 })
+
+test('generateInviteCode stops at encodedAddress.length without repeating resolveCode for short Base58 addresses', async () => {
+  const shortEncodedAddress = '0x0000000000000000000000000000000000000001' as Address
+  const seenCandidates: string[] = []
+  await expect(
+    generateInviteCode(shortEncodedAddress, async (code) => {
+      seenCandidates.push(code)
+      return '0x9999999999999999999999999999999999999999' as Address
+    }),
+  ).rejects.toThrow('We could not generate an invite code. Please retry.')
+  // Every probed candidate must be distinct (no duplicate queries past encodedAddress.length)
+  expect(new Set(seenCandidates).size).toBe(seenCandidates.length)
+})
+

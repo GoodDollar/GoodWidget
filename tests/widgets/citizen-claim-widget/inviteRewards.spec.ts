@@ -11,7 +11,7 @@
  *   pnpm storybook          (in one terminal)
  *   pnpm test:demo          (in another terminal)
  *
- * Screenshot evidence: tests/widgets/citizen-claim-widget/test-results/ccw-06 .. ccw-13
+ * Screenshot evidence: tests/widgets/citizen-claim-widget/test-results/ccw-06 .. ccw-17
  */
 import { test, expect, Page } from '@playwright/test'
 
