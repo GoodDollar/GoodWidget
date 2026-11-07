@@ -67,13 +67,14 @@ export function ThemedSuperfluidStory({
   defaultTheme?: 'light' | 'dark'
   themeOverrides?: GoodWidgetThemeOverrides
 } = {}) {
+  const provider = createCustodialEip1193Provider()
   return (
     <div
       data-testid="SuperfluidCampaignWidget-themed"
       style={{ width: '100%', maxWidth: 480, margin: '0 auto' }}
     >
       <MockSuperfluidCampaignWidget
-        provider={undefined}
+        provider={provider}
         defaultTheme={defaultTheme}
         themeOverrides={themeOverrides}
       />
