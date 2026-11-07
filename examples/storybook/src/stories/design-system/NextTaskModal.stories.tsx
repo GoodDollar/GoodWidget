@@ -244,7 +244,7 @@ export const HostNavigation: Story = {
   },
 }
 
-/** A synchronous handler that throws shows an error toast; the sheet still closes. */
+/** A synchronous handler that throws shows an error toast; the sheet remains open for retry or dismissal. */
 export const NavigationError: Story = {
   render: () => (
     <ControlledHarness
@@ -262,11 +262,14 @@ export const NavigationError: Story = {
     await expect(
       await within(document.body).findByText('Could not open this link. Please try again.'),
     ).toBeInTheDocument()
+    await expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('open')
+    const skipButton = await within(document.body).findByRole('button', { name: /skip for now/i })
+    await waitFor(() => userEvent.click(skipButton))
     await expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('closed')
   },
 }
 
-/** An async handler that rejects shows the same error toast as a synchronous throw. */
+/** An async handler that rejects shows an error toast; the sheet remains open. */
 export const NavigationRejected: Story = {
   render: () => (
     <ControlledHarness
@@ -282,11 +285,11 @@ export const NavigationRejected: Story = {
     await expect(
       await within(document.body).findByText('Could not open this link. Please try again.'),
     ).toBeInTheDocument()
-    await expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('closed')
+    await expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('open')
   },
 }
 
-/** No handler and a non-http(s) `ctaTarget`: no Anchor is rendered; pressing shows an error toast. */
+/** No handler and a non-http(s) `ctaTarget`: no Anchor is rendered; pressing shows an error toast while sheet stays open. */
 export const RejectedUrl: Story = {
   render: () => <ControlledHarness content={contentWithRejectedUrl} testID="NextTaskModal-rejected-url" />,
   play: async ({ canvasElement }) => {
@@ -296,6 +299,58 @@ export const RejectedUrl: Story = {
     await waitFor(() => userEvent.click(cta))
     await expect(await within(document.body).findByText('This link cannot be opened.')).toBeInTheDocument()
     await expect(within(canvasElement).getByTestId('NextTaskModal-last-event')).not.toHaveTextContent('clicked')
-    await expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('closed')
+    await expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('open')
+  },
+}
+
+/** Configurable copy: headline, supportingCopy, recommendedLabel, skipLabel and statusLabel custom overrides. */
+export const ConfigurableCopy: Story = {
+  render: () => (
+    <ControlledHarness
+      content={{
+        ...contentWithImage,
+        headline: 'Your personalized mission',
+        supportingCopy: 'Complete impactful actions across the community.',
+        recommendedLabel: 'COMMUNITY CHOICE',
+        skipLabel: 'Maybe next time',
+        statusLabel: 'Verification passed',
+      }}
+      testID="NextTaskModal-configurable-copy"
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const card = await openAndGetCard(canvasElement, 'NextTaskModal-configurable-copy')
+    await expect(within(document.body).getByText('Your personalized mission')).toBeInTheDocument()
+    await expect(within(document.body).getByText('Complete impactful actions across the community.')).toBeInTheDocument()
+    await expect(within(card).getByText('COMMUNITY CHOICE')).toBeInTheDocument()
+    await expect(within(document.body).getByText('Maybe next time')).toBeInTheDocument()
+    await expect(within(document.body).getByText('Verification passed')).toBeInTheDocument()
+  },
+}
+
+/** Realistic long copy: long titles, descriptions, and custom labels to test wrapping and responsiveness. */
+export const RealisticLongCopy: Story = {
+  render: () => (
+    <ControlledHarness
+      content={{
+        title: 'Participate in GoodDollar Community Governance Proposal #42: Expansion of Digital UBI Allocation Across Emerging Markets',
+        description: 'Vote on key community parameters including reserve ratio adjustments, liquidity incentives on decentralized exchanges, and grant allocations for regional educational initiatives.',
+        ctaLabel: 'Review and Cast Your Vote on Snapshot',
+        ctaTarget: 'https://gooddollar.org/governance',
+        imageUrl: 'https://placehold.co/96x96',
+        headline: 'Maximize your governance influence in the community',
+        supportingCopy: 'Decentralized decision making relies on active token holders participating in every vote cycle.',
+        recommendedLabel: 'GOVERNANCE VOTE',
+        skipLabel: 'Decide later during voting window',
+        statusLabel: 'Identity verified on Celo',
+      }}
+      testID="NextTaskModal-realistic-copy"
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const card = await openAndGetCard(canvasElement, 'NextTaskModal-realistic-copy')
+    await expect(within(document.body).getByText('Maximize your governance influence in the community')).toBeInTheDocument()
+    await expect(within(card).getByText('GOVERNANCE VOTE')).toBeInTheDocument()
+    await expect(within(document.body).getByText('Decide later during voting window')).toBeInTheDocument()
   },
 }
