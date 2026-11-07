@@ -4,7 +4,7 @@ import { defaultConfig } from '@goodwidget/ui'
 import { AiCreditsDashboard, type AnalyticsResponse } from '@goodwidget/gooddata-widget'
 
 // Fixed (non-random, non-"now") fixture so every render and screenshot is byte-identical across runs.
-const FIXED_ANALYTICS_RESPONSE: AnalyticsResponse = {
+export const FIXED_ANALYTICS_RESPONSE: AnalyticsResponse = {
   days: 3,
   daily: [
     {
