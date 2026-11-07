@@ -13,7 +13,10 @@ import {
   XStack,
   YStack,
 } from '@goodwidget/ui'
-import type { SupReserveLockerItem } from '../widgetRuntimeContract'
+import {
+  STREAMING_CHAINS,
+  type SupReserveLockerItem,
+} from '../widgetRuntimeContract'
 import {
   SUPERFLUID_APP_URL,
   chainName,
@@ -67,6 +70,7 @@ export function BalancesTab({
   onRefresh,
 }: BalancesTabProps) {
   const activeToken = tokenSymbol(chainId)
+  const isBaseChain = chainId === STREAMING_CHAINS.BASE
 
   return (
     <StreamingTabContent>
@@ -121,11 +125,22 @@ export function BalancesTab({
         </ExternalLink>
       </BalanceCard>
 
-      <BalanceCard>
+      <BalanceCard opacity={isBaseChain ? 1 : 0.75}>
         <XStack justifyContent="space-between" alignItems="center">
           <Text variant="label">SUP Reserve</Text>
-          {supReserveLoading && <Spinner size="sm" />}
+          {isBaseChain && supReserveLoading && <Spinner size="sm" />}
+          {!isBaseChain && (
+            <Badge type="default">
+              <BadgeText>Base only</BadgeText>
+            </Badge>
+          )}
         </XStack>
+
+        {!isBaseChain && (
+          <Text variant="caption" secondary>
+            Switch to Base to manage SUP reserve lockers.
+          </Text>
+        )}
 
         {!supReserveLoading && supReserveError && (
           <Text color="$error" variant="caption">
