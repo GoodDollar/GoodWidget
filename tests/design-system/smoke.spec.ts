@@ -666,10 +666,50 @@ const NEXT_TASK_ERROR_TOASTS = [
 ]
 
 for (const errorCase of NEXT_TASK_ERROR_TOASTS) {
-  test(`NextTaskModal shows an error toast and still closes for ${errorCase.description}`, async ({ page }) => {
+  test(`NextTaskModal shows an error toast and keeps drawer open for ${errorCase.description}`, async ({ page }) => {
     await gotoStory(page, errorCase.storyId)
     const frame = getStoryFrame(page)
     await expect(frame.getByText(errorCase.message)).toBeVisible()
+    await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
+    // Verify retry keeps the drawer open and re-displays the error toast
+    const retryBtn = frame.getByRole('button', { name: /open proposal|verify now/i })
+    await retryBtn.click()
+    await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
+    // Verify user dismissal works after failure
+    const skipBtn = frame.getByRole('button', { name: /skip for now/i })
+    await skipBtn.click()
     await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('closed')
+  })
+}
+
+test('NextTaskModal renders custom configurable copy fields properly', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-nexttaskmodal--configurable-copy')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByText('Your personalized mission')).toBeVisible()
+  await expect(frame.getByText('Complete impactful actions across the community.')).toBeVisible()
+  await expect(frame.getByText('COMMUNITY CHOICE')).toBeVisible()
+  await expect(frame.getByText('Maybe next time')).toBeVisible()
+  await expect(frame.getByText('Verification passed')).toBeVisible()
+})
+
+const RESPONSIVE_VIEWPORTS = [
+  { width: 375, height: 667, label: 'small-mobile' },
+  { width: 667, height: 375, label: 'mobile-landscape' },
+  { width: 1280, height: 800, label: 'desktop-wide' },
+]
+
+for (const vp of RESPONSIVE_VIEWPORTS) {
+  test(`NextTaskModal responsive layout with realistic copy at ${vp.width}x${vp.height} (${vp.label})`, async ({ page }) => {
+    await page.setViewportSize({ width: vp.width, height: vp.height })
+    await page.goto('/iframe.html?id=design-system-primitives-nexttaskmodal--realistic-long-copy&viewMode=story')
+    await page.getByTestId('NextTaskModal-open').click()
+    const card = page.getByTestId('NextTaskModal-realistic-copy')
+    await expect(card).toBeVisible()
+    await expect(page.getByText('Maximize your governance influence in the community')).toBeVisible()
+    await expect(page.getByText('GOVERNANCE VOTE')).toBeVisible()
+    const cta = page.getByRole('button', { name: 'Review and Cast Your Vote on Snapshot' })
+    const skip = page.getByRole('button', { name: 'Decide later during voting window' })
+    await expect(cta).toBeVisible()
+    await expect(skip).toBeVisible()
   })
 }

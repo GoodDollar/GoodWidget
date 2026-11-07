@@ -1,5 +1,12 @@
 import React from 'react'
 import { Anchor as TamaguiAnchor } from 'tamagui'
+import { registerComponent } from '../manifest'
+
+registerComponent({
+  name: 'Anchor',
+  themeKeys: ['color', 'colorHover', 'colorPress'],
+  variants: [],
+})
 
 interface AnchorProps {
   href: string
@@ -13,14 +20,13 @@ interface AnchorProps {
 }
 
 /**
- * Renders Tamagui's Anchor directly, with the style props applied inline, instead of wrapping it in
- * `createComponent` (`styled()`). On native, `styled()` over Tamagui's Anchor swallows `onPress`, so the
- * link opened but the host never heard about the press. Tamagui's Anchor calls `onPress` and then
- * `Linking.openURL(href)` itself on native, and renders a plain `<a href>` on web.
+ * Renders Tamagui's Anchor directly with named theme registration, preserving both
+ * manifest-driven CSS overrides (`--gw-Anchor-*`) and native `onPress` event forwarding.
  */
 export function Anchor({ href, children, target = '_blank', rel, ...rest }: AnchorProps) {
   return (
     <TamaguiAnchor
+      theme="Anchor"
       color="$primary"
       textDecorationLine="underline"
       fontFamily="$body"

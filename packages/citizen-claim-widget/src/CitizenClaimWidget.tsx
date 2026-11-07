@@ -336,13 +336,13 @@ function CitizenClaimInner({
                 status: 'success',
                 duration: 3200,
               })
+              batchHadSuccessfulClaim = true
               onClaimSuccess?.({
                 address: address!,
                 chainId: claimResult.chainId,
                 transactionHash: (claimResult.receipt as { transactionHash?: string } | undefined)
                   ?.transactionHash,
               })
-              batchHadSuccessfulClaim = true
             } catch (multiClaimError: unknown) {
               updateToast(toastId, {
                 message: `Claim failed on ${entryChainName}`,

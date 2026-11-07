@@ -199,3 +199,70 @@ test('CitizenClaimWidget claimExecution claimAll reports per-chain success and f
     fullPage: true,
   })
 })
+
+
+// ─── Real Widget Flow with NextTaskModal ───────────────────────────────────────
+
+test('CitizenClaimWidget: drawer opens after successful claim with nextTaskContent, CTA and dismiss work', async ({
+  page,
+}) => {
+  await page.goto('/iframe.html?id=qa-citizenclaimwidget-runtime-fixtures--mock-execution-with-next-task&viewMode=story')
+  await page.waitForLoadState('domcontentloaded')
+
+  // Find and click the Claim button
+  const claimButton = page.locator('button:has-text("Claim")')
+  await expect(claimButton).toBeVisible({ timeout: 20_000 })
+  await claimButton.click()
+
+  // Verify the NextTask drawer opens with task content
+  const modalHeading = page.locator('text=One good next step')
+  await expect(modalHeading).toBeVisible({ timeout: 20_000 })
+  await expect(page.locator('text=Stake your G$ and earn')).toBeVisible()
+
+  // Verify CTA button exists
+  const ctaButton = page.locator('button:has-text("Open Proposal")')
+  await expect(ctaButton).toBeVisible()
+
+  // Verify dismiss works via "Skip for now"
+  const skipButton = page.locator('button:has-text("Skip for now")')
+  await expect(skipButton).toBeVisible()
+  await skipButton.click()
+  await expect(modalHeading).not.toBeVisible()
+
+  await page.screenshot({
+    path: 'tests/widgets/citizen-claim-widget/test-results/ccw-06-next-task-drawer-opened.png',
+    fullPage: true,
+  })
+})
+
+test('CitizenClaimWidget: drawer does NOT open when claims fail', async ({ page }) => {
+  await page.goto('/iframe.html?id=qa-citizenclaimwidget-runtime-fixtures--mock-execution-claim-fails&viewMode=story')
+  await page.waitForLoadState('domcontentloaded')
+
+  const claimButton = page.locator('button:has-text("Claim")')
+  await expect(claimButton).toBeVisible({ timeout: 20_000 })
+  await claimButton.click()
+
+  // Wait for claim processing
+  await page.waitForTimeout(3000)
+
+  // Drawer must not appear
+  const modalHeading = page.locator('text=One good next step')
+  await expect(modalHeading).not.toBeVisible()
+})
+
+test('CitizenClaimWidget: drawer does NOT open when nextTaskContent is absent', async ({ page }) => {
+  await page.goto('/iframe.html?id=qa-citizenclaimwidget-runtime-fixtures--mock-execution-without-next-task&viewMode=story')
+  await page.waitForLoadState('domcontentloaded')
+
+  const claimButton = page.locator('button:has-text("Claim")')
+  await expect(claimButton).toBeVisible({ timeout: 20_000 })
+  await claimButton.click()
+
+  // Wait for claim processing
+  await page.waitForTimeout(2000)
+
+  // Drawer must not appear
+  const modalHeading = page.locator('text=One good next step')
+  await expect(modalHeading).not.toBeVisible()
+})

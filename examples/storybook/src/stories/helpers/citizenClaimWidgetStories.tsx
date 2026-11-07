@@ -81,12 +81,14 @@ function CitizenClaimWidgetStoryShell({
   defaultTheme,
   themeOverrides,
   nextTaskProps,
+  claimExecution,
 }: {
   provider: unknown
   dataTestId: string
   defaultTheme?: 'light' | 'dark'
   themeOverrides?: CitizenClaimWidgetProps['themeOverrides']
   nextTaskProps?: CitizenClaimNextTaskProps
+  claimExecution?: CitizenClaimWidgetProps['claimExecution']
 }) {
   const [activeChainId, setActiveChainId] = useState<number | null>(null)
 
@@ -121,6 +123,7 @@ function CitizenClaimWidgetStoryShell({
       chainId={activeChainId ?? 42220}
       defaultTheme={defaultTheme}
       themeOverrides={themeOverrides}
+      claimExecution={claimExecution}
       {...nextTaskProps}
     />
   )
@@ -267,5 +270,54 @@ export function CustodialClaimExecutionClaimAllStory() {
     <GoodWidgetProvider provider={undefined} defaultTheme="dark">
       <CustodialExecutionClaimAllHarness />
     </GoodWidgetProvider>
+  )
+}
+
+
+export function MockClaimExecutionWidgetStory({
+  defaultTheme,
+  themeOverrides,
+  nextTaskProps,
+  failAll = false,
+}: {
+  defaultTheme?: 'light' | 'dark'
+  themeOverrides?: CitizenClaimWidgetProps['themeOverrides']
+  nextTaskProps?: CitizenClaimNextTaskProps
+  failAll?: boolean
+} = {}) {
+  const claimExecution = useMemo(
+    () =>
+      createCitizenClaimWidgetCustodialExecution({
+        42220: createMockClaimExecutionClientBundle(42220, failAll),
+        122: createMockClaimExecutionClientBundle(122, true),
+      }),
+    [failAll],
+  )
+
+  const mockProvider = useMemo(() => {
+    return {
+      request: async ({ method }: { method: string }) => {
+        if (method === 'eth_accounts' || method === 'eth_requestAccounts') {
+          return [MOCK_CLAIM_ALL_ACCOUNT]
+        }
+        if (method === 'eth_chainId') {
+          return '0xa4ec'
+        }
+        return null
+      },
+      on: () => {},
+      removeListener: () => {},
+    }
+  }, [])
+
+  return (
+    <CitizenClaimWidgetStoryShell
+      provider={mockProvider}
+      claimExecution={claimExecution}
+      dataTestId="CitizenClaimWidget-mock-execution"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+      nextTaskProps={nextTaskProps}
+    />
   )
 }
