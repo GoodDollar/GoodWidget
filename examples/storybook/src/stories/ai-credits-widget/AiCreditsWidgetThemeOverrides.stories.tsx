@@ -49,6 +49,8 @@ interface OverridesArgs {
   defaultTheme: 'light' | 'dark'
   heroBackgroundDark: string
   heroBackgroundLight: string
+  cardBorderColorDark: string
+  cardBorderColorLight: string
   buttonBackground: string
 }
 
@@ -60,6 +62,12 @@ function buildThemeOverrides(args: OverridesArgs): GoodWidgetThemeOverrides {
       },
       light: {
         backgroundSurface: args.heroBackgroundLight,
+      },
+      dark_Card: {
+        borderColor: args.cardBorderColorDark,
+      },
+      light_Card: {
+        borderColor: args.cardBorderColorLight,
       },
       dark_Button: {
         background: args.buttonBackground,
@@ -95,6 +103,14 @@ const meta: Meta<OverridesArgs> = {
       control: 'color',
       description: 'themes.light.backgroundSurface token (styles AiCreditsHero card background in light mode)',
     },
+    cardBorderColorDark: {
+      control: 'color',
+      description: 'themes.dark_Card.borderColor (styles Card border in dark mode)',
+    },
+    cardBorderColorLight: {
+      control: 'color',
+      description: 'themes.light_Card.borderColor (styles Card border in light mode)',
+    },
     buttonBackground: {
       control: 'color',
       description: 'themes.dark_Button.background / themes.light_Button.background',
@@ -104,6 +120,8 @@ const meta: Meta<OverridesArgs> = {
     defaultTheme: 'dark',
     heroBackgroundDark: '#1E1B4B',
     heroBackgroundLight: '#E0E7FF',
+    cardBorderColorDark: '#7C3AED',
+    cardBorderColorLight: '#7C3AED',
     buttonBackground: '#7C3AED',
   },
 }
@@ -121,6 +139,10 @@ export const Playground: Story = {
 
         <DocsCallout title="All overridable paths on AiCreditsWidget" tone="info">
           <DocsList>
+            <li>
+              <strong>dark_Card.borderColor / light_Card.borderColor</strong>: Card border color
+              (demonstrated on the hero card).
+            </li>
             <li>
               <strong>dark.backgroundSurface / light.backgroundSurface</strong>: Hero card background.
               Note: <code>dark_Card.background</code> is a no-op for the hero card because{' '}

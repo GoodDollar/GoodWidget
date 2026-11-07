@@ -46,6 +46,8 @@ interface OverridesArgs {
   defaultTheme: 'light' | 'dark'
   cardBackgroundDark: string
   cardBackgroundLight: string
+  cardBorderColorDark: string
+  cardBorderColorLight: string
   buttonBackground: string
 }
 
@@ -57,6 +59,12 @@ function buildThemeOverrides(args: OverridesArgs): GoodWidgetThemeOverrides {
       },
       light: {
         backgroundDark: args.cardBackgroundLight,
+      },
+      dark_Card: {
+        borderColor: args.cardBorderColorDark,
+      },
+      light_Card: {
+        borderColor: args.cardBorderColorLight,
       },
       dark_Button: {
         background: args.buttonBackground,
@@ -92,6 +100,14 @@ const meta: Meta<OverridesArgs> = {
       control: 'color',
       description: 'themes.light.backgroundDark token (styles SuperfluidCampaignWidget outer Card in light mode)',
     },
+    cardBorderColorDark: {
+      control: 'color',
+      description: 'themes.dark_Card.borderColor (styles outer Card border in dark mode)',
+    },
+    cardBorderColorLight: {
+      control: 'color',
+      description: 'themes.light_Card.borderColor (styles outer Card border in light mode)',
+    },
     buttonBackground: {
       control: 'color',
       description: 'themes.dark_Button.background / themes.light_Button.background',
@@ -101,6 +117,8 @@ const meta: Meta<OverridesArgs> = {
     defaultTheme: 'dark',
     cardBackgroundDark: '#1E1B4B',
     cardBackgroundLight: '#E0E7FF',
+    cardBorderColorDark: '#7C3AED',
+    cardBorderColorLight: '#7C3AED',
     buttonBackground: '#7C3AED',
   },
 }
@@ -118,6 +136,9 @@ export const Playground: Story = {
 
         <DocsCallout title="All overridable paths on SuperfluidCampaignWidget" tone="info">
           <DocsList>
+            <li>
+              <strong>dark_Card.borderColor / light_Card.borderColor</strong>: Outer shell and action card border colors.
+            </li>
             <li>
               <strong>dark.backgroundDark / light.backgroundDark</strong>: Outer card background.
               Note: <code>dark_Card.background</code> is a no-op for the container because{' '}
