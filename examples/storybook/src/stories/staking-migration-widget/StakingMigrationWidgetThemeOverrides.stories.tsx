@@ -10,15 +10,14 @@
  * circular action button is the shared
  * packages/ui/src/components/CircularActionButton.tsx (ClaimActionGlow/Ring/
  * Inner) also used by ai-credits-widget. Its step list uses the shared
- * Stepper component (dark_StepperStepContent).
+ * Stepper component (dark_StepperStepContent / light_StepperStepContent).
  *
- * Controls are wired for `dark_ClaimCard`, `dark_ClaimActionGlow`, and
- * `dark_ClaimActionRing` — a handful of high-impact targets that visibly
- * shift the default brand, not exhaustive coverage of every value.
- * `dark_ClaimActionInner`, `dark_StreakCard`, and `dark_StepperStepContent`
- * follow the same pattern and are documented below for reference. There is
- * no `dark_Button` override here since this widget has no plain `Button`
- * usage — its only action is the circular claim/migrate button.
+ * Controls are wired for both `dark_*` and `light_*` variants of `ClaimCard`,
+ * `ClaimActionGlow`, and `ClaimActionRing` — a handful of high-impact targets
+ * that visibly shift the default brand in both themes, not exhaustive coverage
+ * of every value. `ClaimActionInner`, `StreakCard`, and `StepperStepContent`
+ * follow the same pattern across `dark_*` and `light_*` and are documented
+ * below for reference.
  */
 import React from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
@@ -56,9 +55,13 @@ function CodeBlock({ children }: { children: string }) {
 }
 
 interface OverridesArgs {
+  defaultTheme: 'light' | 'dark'
   claimCardBorderColor: string
+  lightClaimCardBorderColor: string
   claimActionGlowBackground: string
+  lightClaimActionGlowBackground: string
   claimActionRingPrimary: string
+  lightClaimActionRingPrimary: string
 }
 
 function buildThemeOverrides(args: OverridesArgs): GoodWidgetThemeOverrides {
@@ -67,11 +70,20 @@ function buildThemeOverrides(args: OverridesArgs): GoodWidgetThemeOverrides {
       dark_ClaimCard: {
         borderColor: args.claimCardBorderColor,
       },
+      light_ClaimCard: {
+        borderColor: args.lightClaimCardBorderColor,
+      },
       dark_ClaimActionGlow: {
         backgroundColor: args.claimActionGlowBackground,
       },
+      light_ClaimActionGlow: {
+        backgroundColor: args.lightClaimActionGlowBackground,
+      },
       dark_ClaimActionRing: {
         primary: args.claimActionRingPrimary,
+      },
+      light_ClaimActionRing: {
+        primary: args.lightClaimActionRingPrimary,
       },
     },
   }
@@ -82,17 +94,41 @@ const meta: Meta<OverridesArgs> = {
   tags: ['integrator', 'showcase'],
   parameters: { layout: 'padded' },
   argTypes: {
+    defaultTheme: {
+      control: 'radio',
+      options: ['light', 'dark'],
+      description: 'Base theme applied via the widget’s own defaultTheme prop.',
+    },
     claimCardBorderColor: { control: 'color', description: 'themes.dark_ClaimCard.borderColor' },
+    lightClaimCardBorderColor: {
+      control: 'color',
+      description: 'themes.light_ClaimCard.borderColor',
+    },
     claimActionGlowBackground: {
       control: 'color',
       description: 'themes.dark_ClaimActionGlow.backgroundColor',
     },
-    claimActionRingPrimary: { control: 'color', description: 'themes.dark_ClaimActionRing.primary' },
+    lightClaimActionGlowBackground: {
+      control: 'color',
+      description: 'themes.light_ClaimActionGlow.backgroundColor',
+    },
+    claimActionRingPrimary: {
+      control: 'color',
+      description: 'themes.dark_ClaimActionRing.primary',
+    },
+    lightClaimActionRingPrimary: {
+      control: 'color',
+      description: 'themes.light_ClaimActionRing.primary',
+    },
   },
   args: {
+    defaultTheme: 'dark',
     claimCardBorderColor: '#7C3AED',
+    lightClaimCardBorderColor: '#7C3AED',
     claimActionGlowBackground: '#7C3AED',
+    lightClaimActionGlowBackground: '#7C3AED',
     claimActionRingPrimary: '#7C3AED',
+    lightClaimActionRingPrimary: '#7C3AED',
   },
 }
 export default meta
@@ -104,7 +140,7 @@ export const Playground: Story = {
     return (
       <div style={{ display: 'grid', gap: 24, maxWidth: 560, margin: '0 auto' }}>
         <CodeBlock>
-          {`<StakingMigrationWidget\n  themeOverrides={${JSON.stringify(themeOverrides, null, 2)}}\n/>`}
+          {`<StakingMigrationWidget\n  defaultTheme="${args.defaultTheme}"\n  themeOverrides={${JSON.stringify(themeOverrides, null, 2)}}\n/>`}
         </CodeBlock>
 
         <DocsCallout title="All overridable paths on StakingMigrationWidget" tone="info">
@@ -132,7 +168,7 @@ export const Playground: Story = {
           </DocsList>
         </DocsCallout>
 
-        <ReadyStory defaultTheme="dark" themeOverrides={themeOverrides} />
+        <ReadyStory defaultTheme={args.defaultTheme} themeOverrides={themeOverrides} />
       </div>
     )
   },

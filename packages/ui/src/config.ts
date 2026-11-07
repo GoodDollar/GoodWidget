@@ -12,6 +12,7 @@ import type {
   WidgetFontDefinition,
 } from './configTypes'
 import { goodWalletV2Preset } from './presets'
+import { getComponentManifest } from './manifest'
 import { createGoodWidgetTokens, createThemeValues, defaultTokenValues } from './theme'
 
 export const defaultPreset = goodWalletV2Preset
@@ -163,7 +164,18 @@ function mergeThemes(
   }
 
   for (const [name, definition] of Object.entries(override)) {
-    merged[name] = { ...(merged[name] ?? {}), ...definition } as GoodWidgetThemeValues
+    let fallback = merged[name]
+    if (!fallback) {
+      const sepIndex = name.indexOf('_')
+      if (sepIndex > 0) {
+        const mode = name.slice(0, sepIndex)
+        const compName = name.slice(sepIndex + 1)
+        const parentComp = getComponentManifest(compName)?.extends
+        fallback =
+          (parentComp ? merged[`${mode}_${parentComp}`] : undefined) ?? merged[mode]
+      }
+    }
+    merged[name] = { ...(fallback ?? {}), ...definition } as GoodWidgetThemeValues
   }
 
   return merged

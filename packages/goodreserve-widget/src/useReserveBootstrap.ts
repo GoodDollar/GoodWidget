@@ -10,7 +10,10 @@ import {
   type Chain,
 } from 'viem'
 import { celo, xdc } from 'viem/chains'
-import type { ReserveSwapWidgetAdapterState } from './widgetRuntimeContract'
+import type {
+  ReserveSwapWidgetAdapterState,
+  ReserveSwapWidgetEnvironment,
+} from './widgetRuntimeContract'
 import {
   CELO_CHAIN_ID,
   DEFAULT_GD_DECIMALS,
@@ -127,10 +130,12 @@ export function useReserveBootstrap(
   refs: ReserveRefs,
   applyStatePatch: (patch: Partial<ReserveSwapWidgetAdapterState>) => void,
   mockState: Partial<ReserveSwapWidgetAdapterState> | undefined,
+  environment?: ReserveSwapWidgetEnvironment,
 ) {
   const { address, chainId, isConnected, provider, connect } = useWallet()
 
-  const reserveEnvironment = chainId === XDC_CHAIN_ID ? 'development' : 'production'
+  const reserveEnvironment: ReserveSwapWidgetEnvironment =
+    environment ?? (chainId === XDC_CHAIN_ID ? 'development' : 'production')
   const chainSupported =
     chainId !== null &&
     (GoodReserveSDK.isChainEnvSupported(chainId, reserveEnvironment) ||
