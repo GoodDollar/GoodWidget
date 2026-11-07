@@ -53,5 +53,6 @@ export function isAllowedExternalCtaUrl(ctaTarget: string): boolean {
 /** True outside production — gates the console.warn calls for contained
  * integrator-callback errors so they don't spam a production console. */
 export function isDevelopmentMode(): boolean {
-  return typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production'
+  const proc = (globalThis as { process?: { env?: { NODE_ENV?: string } } }).process
+  return proc !== undefined && proc.env?.NODE_ENV !== 'production'
 }

@@ -671,6 +671,10 @@ for (const errorCase of NEXT_TASK_ERROR_TOASTS) {
     const frame = getStoryFrame(page)
     await expect(frame.getByText(errorCase.message)).toBeVisible()
     await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
+    // Verify retry keeps the drawer open and re-displays the error toast
+    const retryBtn = frame.getByRole('button', { name: /open proposal|verify now/i })
+    await retryBtn.click()
+    await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
     // Verify user dismissal works after failure
     const skipBtn = frame.getByRole('button', { name: /skip for now/i })
     await skipBtn.click()

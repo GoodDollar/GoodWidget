@@ -44,12 +44,12 @@ export interface NextTaskModalProps {
   onClose: () => void
   /**
    * CTA navigation contract (the host handles it, or an Anchor does — never both):
-   *   - passed  → the CTA is a Button; the host owns navigation entirely
-   *               (e.g. in-app routing). `ctaTarget` is handed over untouched and
-   *               the modal opens no link itself, with no external fallback.
-   *   - absent  → the CTA is an `Anchor` to `ctaTarget` (http/https only). A
-   *               rejected URL renders a Button that shows an error toast.
-   *   - throws or rejects → caught and shown as an error toast; the modal still closes.
+  // `resolveNavigation` passed: the CTA is a Button; the host owns navigation
+  //             entirely (e.g. in-app routing). `ctaTarget` is handed over untouched and
+  //             the modal opens no link itself, with no external fallback.
+  // `resolveNavigation` absent: the CTA is an `Anchor` to `ctaTarget` (http/https only). A
+  //             rejected URL renders a Button that shows an error toast.
+  // throws or rejects: caught and shown as an error toast; the drawer stays open so the user can retry or dismiss.
    * The error toast needs a mounted `<ToastContainer />`.
    */
   resolveNavigation?: (ctaTarget: string) => void | Promise<void>
@@ -115,11 +115,11 @@ export function NextTaskModal({
   // On error, the drawer stays open so the user can retry or dismiss.
   const handleHostNavigationPress = useCallback(async () => {
     if (!content || !resolveNavigation || hasResolvedRef.current) return
-    hasResolvedRef.current = true
     invokeHostCallbackSafely('onClicked', onClicked, { ctaTarget: content.ctaTarget })
-    onClose()
     try {
       await resolveNavigation(content.ctaTarget)
+      hasResolvedRef.current = true
+      onClose()
     } catch {
       createToast({ message: NAVIGATION_FAILED_TOAST_MESSAGE, status: 'error' })
     }
@@ -153,7 +153,13 @@ export function NextTaskModal({
   // `height="full"` (80% snap point): the half-height drawer clips the CTA on a 375x667 phone.
   return (
     <Drawer height="full" open={isVisible} onClose={() => dismissWithReason('overlay')}>
-      <YStack alignItems="center" gap="$3" width="100%">
+      <YStack
+        alignItems="center"
+        gap="$3"
+        width="100%"
+        maxHeight="100%"
+        style={{ overflowY: 'auto' }}
+      >
         {effectiveStatusLabel ? (
           <Badge type="success">
             <Icon name="check" size="sm" />
