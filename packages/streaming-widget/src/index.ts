@@ -21,6 +21,13 @@ export { STREAMING_CHAINS } from './widgetRuntimeContract'
 export { useStreamingAdapter } from './adapter'
 export type { UseStreamingAdapterOptions } from './adapter'
 
+// Widget config
+export {
+  createStreamingWidgetConfig,
+  streamingSurfaceTheme,
+  streamingWidgetConfig,
+} from './config'
+
 // Widget component
 export { StreamingWidget, StreamingWidgetPreview } from './StreamingWidget'
 export type { StreamingWidgetPreviewProps } from './StreamingWidget'
