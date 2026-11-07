@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Badge, BadgeText, Heading, WidgetTabs, XStack, YStack } from '@goodwidget/ui'
+import { WidgetTabs, YStack } from '@goodwidget/ui'
 import type {
   StreamingWidgetAdapterResult,
   StreamingWidgetTab,
@@ -100,16 +100,15 @@ export function StreamingWidgetView({
   )
 
   return (
-    <YStack gap="$3" padding="$5" width="100%" style={{ boxSizing: 'border-box' }}>
-      <XStack justifyContent="space-between" alignItems="center" paddingHorizontal="$1">
-        <Heading level={4}>GoodDollar</Heading>
-        {state.chainId && (
-          <Badge type="info">
-            <BadgeText>Chain {state.chainId}</BadgeText>
-          </Badge>
-        )}
-      </XStack>
+    <YStack
+      gap="$3"
+      padding="$5"
+      width="100%"
+      backgroundColor="$background"
+      style={{ boxSizing: 'border-box' }}
+    >
       <WidgetTabs
+        chainId={state.chainId ?? undefined}
         tabs={[
           { id: 'streams', label: 'Streams' },
           { id: 'history', label: 'History' },
@@ -118,7 +117,6 @@ export function StreamingWidgetView({
         ]}
         activeTab={activeTab}
         onTabChange={(id) => setActiveTab(id as StreamingWidgetTab)}
-        withConnectionStatus={false}
       />
       {tabContent}
     </YStack>
