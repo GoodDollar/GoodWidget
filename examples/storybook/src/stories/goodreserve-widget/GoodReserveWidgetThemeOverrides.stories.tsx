@@ -121,7 +121,7 @@ const meta: Meta<OverridesArgs> = {
     swapShellBackgroundDark: '#1E1B4B',
     swapShellBackgroundLight: '#E0E7FF',
     amountCardBackgroundDark: '#0F172A',
-    amountCardBackgroundLight: '#C7D2FE',
+    amountCardBackgroundLight: '#D3DCFE',
     submitButtonBackground: '#7C3AED',
   },
 }
