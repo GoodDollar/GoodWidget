@@ -41,5 +41,13 @@ export type { ProgramSupTotals, ProgramSupTotalsResult } from './hooks/useProgra
 // Stable campaign definition
 export { DEFAULT_CAMPAIGN_DEFINITION } from './campaignDefinition'
 
+// Named theme components
+export {
+  ActionCardFrame,
+  CampaignShellCard,
+  LeaderboardRowCard,
+  LeaderboardSummaryCard,
+} from './components/theme/cards'
+
 // Widget component
 export { SuperfluidCampaignWidget } from './SuperfluidCampaignWidget'

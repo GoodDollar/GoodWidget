@@ -65,8 +65,14 @@ export function useReserveQuote(
       return
     }
 
+    const quoteGen = ++refs.quoteGenRef.current
+    const activeSdk = refs.sdkRef.current
+
     const timeoutId = setTimeout(async () => {
       try {
+        if (!refs.mountedRef.current || quoteGen !== refs.quoteGenRef.current || refs.sdkRef.current !== activeSdk || !activeSdk) {
+          return
+        }
         // BigInt balance comparison — no float rounding at the last decimal.
         let balanceBigInt: bigint
         try {
@@ -92,11 +98,15 @@ export function useReserveQuote(
           warning: refs.quoteRefreshNoticeRef.current,
           error: null,
         })
-        const stableToken = refs.sdkRef.current!.getStableTokenAddress()
+        const stableToken = activeSdk.getStableTokenAddress()
         const output =
           state.direction === 'buy'
-            ? await refs.sdkRef.current!.getBuyQuote(stableToken, input)
-            : await refs.sdkRef.current!.getSellQuote(input, stableToken)
+            ? await activeSdk.getBuyQuote(stableToken, input)
+            : await activeSdk.getSellQuote(input, stableToken)
+
+        if (!refs.mountedRef.current || quoteGen !== refs.quoteGenRef.current || refs.sdkRef.current !== activeSdk) {
+          return
+        }
 
         // Slippage and minimum-received are derived in BigInt so the value shown
         // to the user is exactly the minReturn submitted on-chain (no float drift).
@@ -127,6 +137,9 @@ export function useReserveQuote(
           error: null,
         })
       } catch (err: unknown) {
+        if (!refs.mountedRef.current || quoteGen !== refs.quoteGenRef.current || refs.sdkRef.current !== activeSdk) {
+          return
+        }
         refs.quoteRefreshNoticeRef.current = null
         applyStatePatch({
           status: 'quote_error',
