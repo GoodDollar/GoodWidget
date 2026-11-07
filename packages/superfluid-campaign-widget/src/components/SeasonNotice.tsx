@@ -1,7 +1,7 @@
 import React from 'react'
 import { Icon, Text, XStack } from '@goodwidget/ui'
 
-interface SeasonNoticeProps {
+export interface SeasonNoticeProps {
   message: string
 }
 
