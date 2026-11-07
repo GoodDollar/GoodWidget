@@ -30,6 +30,7 @@ test('AiCreditsWidget Theme Overrides playground renders in dark mode and update
 
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-theme-overrides-dark.png',
+    fullPage: true,
   })
 
   // Dynamically update controls in-place via Storybook addon channel
@@ -39,7 +40,7 @@ test('AiCreditsWidget Theme Overrides playground renders in dark mode and update
     channel?.emit('updateStoryArgs', {
       storyId: 'widgets-aicreditswidget-theme-overrides--playground',
       updatedArgs: {
-        heroBackground: '#0284c7',
+        heroBackgroundDark: '#0284c7',
         buttonBackground: '#dc2626',
       },
     })
@@ -51,6 +52,7 @@ test('AiCreditsWidget Theme Overrides playground renders in dark mode and update
 
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-theme-overrides-custom.png',
+    fullPage: true,
   })
 })
 
@@ -65,9 +67,10 @@ test('AiCreditsWidget Theme Overrides playground renders in light mode with cust
   const heroCard = themedWidget.locator('.is_Card').filter({ has: page.getByText('Your G$ Balance') }).first()
   await expect(heroCard).toBeVisible()
 
-  await expect(heroCard).toHaveCSS('background-color', 'rgb(30, 27, 75)')
+  await expect(heroCard).toHaveCSS('background-color', 'rgb(224, 231, 255)')
 
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-theme-overrides-light.png',
+    fullPage: true,
   })
 })

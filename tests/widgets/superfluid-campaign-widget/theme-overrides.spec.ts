@@ -30,6 +30,7 @@ test('SuperfluidCampaignWidget Theme Overrides playground renders in dark mode a
 
   await page.screenshot({
     path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-theme-overrides-dark.png',
+    fullPage: true,
   })
 
   // Dynamically update controls in-place via Storybook addon channel
@@ -39,7 +40,7 @@ test('SuperfluidCampaignWidget Theme Overrides playground renders in dark mode a
     channel?.emit('updateStoryArgs', {
       storyId: 'widgets-superfluidcampaignwidget-theme-overrides--playground',
       updatedArgs: {
-        cardBackground: '#059669',
+        cardBackgroundDark: '#059669',
         buttonBackground: '#dc2626',
       },
     })
@@ -51,6 +52,7 @@ test('SuperfluidCampaignWidget Theme Overrides playground renders in dark mode a
 
   await page.screenshot({
     path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-theme-overrides-custom.png',
+    fullPage: true,
   })
 })
 
@@ -64,7 +66,7 @@ test('SuperfluidCampaignWidget Theme Overrides playground renders in light mode 
 
   const card = themedWidget.locator('.is_Card').first()
   await expect(card).toBeVisible()
-  await expect(card).toHaveCSS('background-color', 'rgb(30, 27, 75)')
+  await expect(card).toHaveCSS('background-color', 'rgb(224, 231, 255)')
 
   const button = themedWidget.locator('.is_Button').first()
   await expect(button).toBeVisible()
@@ -72,5 +74,6 @@ test('SuperfluidCampaignWidget Theme Overrides playground renders in light mode 
 
   await page.screenshot({
     path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-theme-overrides-light.png',
+    fullPage: true,
   })
 })

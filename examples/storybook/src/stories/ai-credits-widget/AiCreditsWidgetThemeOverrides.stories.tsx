@@ -47,7 +47,8 @@ function CodeBlock({ children }: { children: string }) {
 
 interface OverridesArgs {
   defaultTheme: 'light' | 'dark'
-  heroBackground: string
+  heroBackgroundDark: string
+  heroBackgroundLight: string
   buttonBackground: string
 }
 
@@ -55,10 +56,10 @@ function buildThemeOverrides(args: OverridesArgs): GoodWidgetThemeOverrides {
   return {
     themes: {
       dark: {
-        backgroundSurface: args.heroBackground,
+        backgroundSurface: args.heroBackgroundDark,
       },
       light: {
-        backgroundSurface: args.heroBackground,
+        backgroundSurface: args.heroBackgroundLight,
       },
       dark_Button: {
         background: args.buttonBackground,
@@ -86,9 +87,13 @@ const meta: Meta<OverridesArgs> = {
       options: ['dark', 'light'],
       description: 'Base theme applied via the widget’s own defaultTheme prop.',
     },
-    heroBackground: {
+    heroBackgroundDark: {
       control: 'color',
-      description: 'Base theme backgroundSurface token (styles AiCreditsHero card background)',
+      description: 'themes.dark.backgroundSurface token (styles AiCreditsHero card background in dark mode)',
+    },
+    heroBackgroundLight: {
+      control: 'color',
+      description: 'themes.light.backgroundSurface token (styles AiCreditsHero card background in light mode)',
     },
     buttonBackground: {
       control: 'color',
@@ -97,7 +102,8 @@ const meta: Meta<OverridesArgs> = {
   },
   args: {
     defaultTheme: 'dark',
-    heroBackground: '#1E1B4B',
+    heroBackgroundDark: '#1E1B4B',
+    heroBackgroundLight: '#E0E7FF',
     buttonBackground: '#7C3AED',
   },
 }
