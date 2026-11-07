@@ -76,9 +76,23 @@ test('SuperfluidCampaignWidget renders disconnected content view', async ({ page
   await expect(page.getByText('Leaderboard').first()).toBeVisible()
   // Reward pools should be listed
   await expect(page.getByText('How to participate')).toBeVisible()
-  // Season-ended notice is shown in the main content view
-  await expect(page.getByRole('note')).toContainText('The current Superfluid Rewards season has ended.')
-  await expect(page.getByRole('note')).toContainText('Season 7 is coming soon')
+  // Season-ended notice is shown in the main content view directly under the title
+  const notice = page.getByRole('note')
+  await expect(notice).toHaveText(
+    "The current Superfluid Rewards season has ended. You can still donate, claim your free daily UBI, and invite friends, but actions won't earn reward points until the next season begins. Season 7 is coming soon—stay tuned!",
+  )
+  const titleBox = await page.getByText('Superfluid Ecosystem Rewards').boundingBox()
+  const noticeBox = await notice.boundingBox()
+  const descriptionBox = await page
+    .getByText(
+      'Complete eligible actions across GoodDollar, Flow State, and Gardens to earn SUP rewards.',
+    )
+    .boundingBox()
+  if (!titleBox || !noticeBox || !descriptionBox) {
+    throw new Error('Expected title, season notice, and description layout boxes')
+  }
+  expect(noticeBox.y).toBeGreaterThan(titleBox.y)
+  expect(descriptionBox.y).toBeGreaterThan(noticeBox.y)
 
   await page.screenshot({
     path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-01-no-wallet-content.png',
@@ -121,6 +135,7 @@ test('SuperfluidCampaignWidget renders connected content view', async ({ page })
   // (0x1a2b...9a0b form), not the old decorative placeholder box.
   await expect(page.getByText(/^0x[0-9a-fA-F]{4}\.\.\.[0-9a-fA-F]{4}$/)).toBeVisible()
   await expect(page.getByText('How to participate')).toBeVisible()
+  await expect(page.getByRole('note')).toContainText('The current Superfluid Rewards season has ended.')
 
   await page.screenshot({
     path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-03-custodial-content.png',
@@ -135,6 +150,7 @@ test('SuperfluidCampaignWidget renders connected leaderboard view', async ({ pag
   await expect(page.getByText(GOOD_DOLLAR_ACTIONS_TOP_ADDRESS)).toBeVisible()
   await expect(page.getByTestId('LeaderboardStatus')).toContainText('Total points: 4,820')
   await expect(page.getByText('Airdrop status', { exact: true })).not.toBeVisible()
+  await expect(page.getByRole('note')).toHaveCount(0)
 
   await page.screenshot({
     path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-04-custodial-leaderboard.png',
@@ -612,14 +628,18 @@ test('SuperfluidCampaignWidget Gardens Donate and Fund actions open Gardens', as
 test('SuperfluidCampaignWidget claim keeps the Superfluid header and can be closed', async ({ page }) => {
   await gotoStory(page, STORY_IDS.noWalletContent)
 
+  await expect(page.getByRole('note')).toBeVisible()
   await page.getByTestId('ActionCard-layout-claim-ubi').getByText('Claim', { exact: true }).click()
 
   await expect(page.getByText('Superfluid Ecosystem Rewards')).toBeVisible()
+  // Season-ended notice must not appear in the embedded claim view
+  await expect(page.getByRole('note')).toHaveCount(0)
   const closeButton = page.getByLabel('Close claim widget')
   await expect(closeButton).toBeVisible()
   await closeButton.click()
 
   await expect(page.getByTestId('ActionCard-layout-claim-ubi')).toBeVisible()
+  await expect(page.getByRole('note')).toBeVisible()
 })
 
 test('SuperfluidCampaignWidget invite opens GoodWallet instead of the Citizen Claim widget', async ({
