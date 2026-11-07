@@ -108,8 +108,9 @@ export async function generateInviteCode(
   resolveCode: (code: `0x${string}`) => Promise<Address>,
 ): Promise<string> {
   const encodedAddress = bs58.encode(hexToBytes(address))
+  const maxLength = Math.min(30, encodedAddress.length)
 
-  for (let length = 10; length <= 30; length += 1) {
+  for (let length = 10; length <= maxLength; length += 1) {
     const candidate = encodedAddress.slice(0, length)
     const owner = await resolveCode(encodeInviteCode(candidate))
 
@@ -384,7 +385,10 @@ export function useInviteAdapter(
 
   const collectAll = useCallback(async () => {
     const sdk = await getSdk()
-    if (!sdk || !address) return
+    if (!sdk || !address) {
+      setState((current) => ({ ...current, error: 'Connect on Celo or XDC to collect rewards.', success: null }))
+      return
+    }
 
     setState((current) => ({ ...current, status: 'collecting', error: null, success: null }))
     try {
