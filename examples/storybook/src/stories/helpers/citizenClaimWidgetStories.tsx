@@ -107,15 +107,17 @@ function CitizenClaimWidgetStoryShell({
   }, [provider])
 
   return (
-    <CitizenClaimWidget
-      provider={provider}
-      environment={environment}
-      data-testid={dataTestId}
-      chainId={activeChainId ?? 42220}
-      defaultTheme={defaultTheme}
-      themeOverrides={themeOverrides}
-      initialTab={initialTab}
-    />
+    <div key={environment} data-testid={dataTestId}>
+      <CitizenClaimWidget
+        key={environment}
+        provider={provider}
+        environment={environment}
+        chainId={activeChainId ?? 42220}
+        defaultTheme={defaultTheme}
+        themeOverrides={themeOverrides}
+        initialTab={initialTab}
+      />
+    </div>
   )
 }
 
@@ -157,10 +159,12 @@ export function InjectedWalletStory({
 export function CustodialLocalFixtureStory({
   defaultTheme,
   themeOverrides,
+  environment,
   initialTab,
 }: {
   defaultTheme?: 'light' | 'dark'
   themeOverrides?: CitizenClaimWidgetProps['themeOverrides']
+  environment?: CitizenClaimWidgetEnvironment
   initialTab?: CitizenClaimWidgetProps['initialTab']
 } = {}) {
   try {
@@ -171,6 +175,7 @@ export function CustodialLocalFixtureStory({
         dataTestId="CitizenClaimWidget-custodial-wallet"
         defaultTheme={defaultTheme}
         themeOverrides={themeOverrides}
+        environment={environment}
         initialTab={initialTab}
       />
     )

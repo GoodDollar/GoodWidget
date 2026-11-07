@@ -30,12 +30,16 @@ function StoryShell({ children, dataTestId }: { children: React.ReactNode; dataT
 }
 
 interface MockStoryProps {
+  defaultTheme?: 'light' | 'dark'
+  themeOverrides?: GoodWidgetThemeOverrides
   initialView?: SuperfluidCampaignView
   leaderboardScenario?: MockLeaderboardScenario
   programSupTotalsScenario?: MockProgramSupTotalsScenario
 }
 
 function MockSuperfluidCampaignWidgetStoryShell({
+  defaultTheme,
+  themeOverrides,
   provider,
   dataTestId,
   initialView = 'content',
@@ -46,11 +50,34 @@ function MockSuperfluidCampaignWidgetStoryShell({
     <StoryShell dataTestId={dataTestId}>
       <MockSuperfluidCampaignWidget
         provider={provider}
+        defaultTheme={defaultTheme}
+        themeOverrides={themeOverrides}
         initialView={initialView}
         leaderboardScenario={leaderboardScenario}
         programSupTotalsScenario={programSupTotalsScenario}
       />
     </StoryShell>
+  )
+}
+
+export function ThemedSuperfluidStory({
+  defaultTheme,
+  themeOverrides,
+}: {
+  defaultTheme?: 'light' | 'dark'
+  themeOverrides?: GoodWidgetThemeOverrides
+} = {}) {
+  return (
+    <div
+      data-testid="SuperfluidCampaignWidget-themed"
+      style={{ width: '100%', maxWidth: 480, margin: '0 auto' }}
+    >
+      <MockSuperfluidCampaignWidget
+        provider={undefined}
+        defaultTheme={defaultTheme}
+        themeOverrides={themeOverrides}
+      />
+    </div>
   )
 }
 
