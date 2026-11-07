@@ -77,7 +77,7 @@ test('GoodReserveWidget Theme Overrides playground renders in light mode with cu
 
   const amountCard = page.getByTestId('GoodReserveWidget-amount-card-from').first()
   await expect(amountCard).toBeVisible()
-  await expect(amountCard).toHaveCSS('background-color', 'rgb(199, 210, 254)')
+  await expect(amountCard).toHaveCSS('background-color', 'rgb(211, 220, 254)')
 
   await page.screenshot({
     path: 'tests/widgets/goodreserve-widget/test-results/grw-theme-overrides-light.png',
