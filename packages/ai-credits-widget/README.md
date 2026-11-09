@@ -14,6 +14,19 @@ Production requires `backendUrl`. The widget keeps its Celo and Base RPC and con
 internally and fails closed with a backend-unavailable state when the production backend is absent.
 Only the `development` environment may use the built-in mock backend and chain clients.
 
+## Deposit Minimum
+
+One-time deposits require at least $1 of principal, excluding bonuses, when the selected
+buyer's stored `balance` in AntseedDeposits is zero. The widget reads `buyers(buyer).balance`
+directly, not operator accounting or an available/reserved balance calculation. Any positive
+stored balance permits smaller top-ups, subject to the Celo vault's separate first-payer minimum.
+Spending or withdrawing the buyer's balance to zero restores the minimum.
+
+The widget reloads this check when buyers change and rechecks before submitting payment.
+Failed balance reads block one-time deposits until refresh succeeds; stream-only changes keep
+their existing monthly minimum. This is widget validation, not a Celo contract upgrade, and
+cannot prevent cross-chain balance changes after submission.
+
 ## EIP-1193 capabilities
 
 Grant only these EIP-1193 methods to the injected provider:

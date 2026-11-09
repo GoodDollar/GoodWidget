@@ -1,5 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Button, ButtonText, Card, Heading, Input, Separator, Spinner, Text, TokenAmount, XStack, YStack } from '@goodwidget/ui'
+import {
+  Button,
+  ButtonText,
+  Card,
+  Heading,
+  Input,
+  Separator,
+  Spinner,
+  Text,
+  TokenAmount,
+  XStack,
+  YStack,
+} from '@goodwidget/ui'
 import type { AiCreditsQuote, AiCreditsWidgetStatus } from '../../widgetRuntimeContract'
 import {
   formatUsd1ToG,
@@ -63,7 +75,14 @@ function BonusSummaryValue({
 }) {
   if (!isGoodIdVerified) {
     return (
-      <XStack gap="$1.5" alignItems="center" justifyContent="flex-end" flex={1} flexShrink={1} minWidth={0}>
+      <XStack
+        gap="$1.5"
+        alignItems="center"
+        justifyContent="flex-end"
+        flex={1}
+        flexShrink={1}
+        minWidth={0}
+      >
         <Button
           variant="text"
           size="sm"
@@ -112,6 +131,7 @@ interface AmountPickerProps {
    * for instance. Blocks payment and is surfaced verbatim; null when nothing blocks it.
    */
   payBlockedReason?: string | null
+  depositBlockedReason?: string | null
   buildQuote: (depositG: string, streamG: string) => Promise<AiCreditsQuote>
   onPay: (quote: AiCreditsQuote) => void
   onVerifyGoodId: () => Promise<void>
@@ -130,6 +150,7 @@ export function AmountPicker({
   streamBonusPercent,
   isPayPending,
   payBlockedReason = null,
+  depositBlockedReason = null,
   buildQuote,
   onPay,
   onVerifyGoodId,
@@ -185,12 +206,22 @@ export function AmountPicker({
         gdUsdPerToken,
         gBalance,
       }),
-    [depositAmount, streamAmount, monthlyStreamG, minDepositUsd, minStreamUsd, quote, gdUsdPerToken, gBalance],
+    [
+      depositAmount,
+      streamAmount,
+      monthlyStreamG,
+      minDepositUsd,
+      minStreamUsd,
+      quote,
+      gdUsdPerToken,
+      gBalance,
+    ],
   )
   const minsLoaded = minStreamUsd !== null
   const canRetryAfterFailure = status === 'quote_ready' || status === 'payment_failed'
   const canPay =
     !payBlockedReason &&
+    !(depositG > 0 && depositBlockedReason) &&
     canRetryAfterFailure &&
     minsLoaded &&
     paymentValidation.hasPaymentAction &&
@@ -202,6 +233,7 @@ export function AmountPicker({
   // adjust their deposit is misleading when the real blocker is setup.
   const payDisabledMessage =
     payBlockedReason ??
+    (depositG > 0 ? depositBlockedReason : null) ??
     getPayDisabledMessage({
       canPay,
       minsLoaded,
@@ -212,9 +244,10 @@ export function AmountPicker({
     })
   const { depositBelowMin, streamBelowMin, overBalance } = paymentValidation
   const depositMinUsdLabel =
-    minDepositUsd !== null
-      ? `Minimum ${formatMinUsdDisplay(minDepositUsd)} for your first deposit`
-      : 'One-time deposit (no minimum after first deposit)'
+    depositBlockedReason ??
+    (minDepositUsd !== null
+      ? `Minimum ${formatMinUsdDisplay(minDepositUsd)} deposit`
+      : 'No minimum for this buyer')
   const streamMinUsdLabel = isStreamUpdateFlow
     ? `Current stream · min ${minStreamUsd !== null ? formatMinUsdDisplay(minStreamUsd) : '…'}/month`
     : minStreamUsd !== null
@@ -227,9 +260,7 @@ export function AmountPicker({
         ? `Min ${formatMinUsdDisplay(minDepositUsd)}`
         : '0 G$ (optional)'
   const streamPlaceholder =
-    minStreamUsd === null
-      ? 'Loading minimum…'
-      : `Min ${formatMinUsdDisplay(minStreamUsd)}/mo`
+    minStreamUsd === null ? 'Loading minimum…' : `Min ${formatMinUsdDisplay(minStreamUsd)}/mo`
 
   const effectiveDepositBonusPercent = getDepositBonusPercent(isGoodIdVerified, depositBonusPercent)
   const effectiveStreamBonusPercent = getStreamBonusPercent(isGoodIdVerified, streamBonusPercent)
@@ -247,8 +278,7 @@ export function AmountPicker({
           effectiveStreamBonusPercent,
         )
       : null
-  const usd1ToGLabel =
-    gdUsdPerToken !== null ? formatUsd1ToG(gdUsdPerToken) : null
+  const usd1ToGLabel = gdUsdPerToken !== null ? formatUsd1ToG(gdUsdPerToken) : null
 
   const Shell = embedded ? YStack : Card
 
@@ -300,7 +330,7 @@ export function AmountPicker({
           ) : (
             <YStack />
           )}
-          <Text fontSize="$1" tone="soft" textAlign="right" flexShrink={0}>
+          <Text fontSize="$1" tone="soft" textAlign="right" flex={1} minWidth={0}>
             {depositMinUsdLabel}
           </Text>
         </XStack>
@@ -340,9 +370,7 @@ export function AmountPicker({
       {quote && gdUsdPerToken !== null && (
         <>
           <XStack justifyContent="space-between" alignItems="center">
-            <Text variant="label">
-              Est. credits
-            </Text>
+            <Text variant="label">Est. credits</Text>
             <Text fontSize="$2" color="$primary" fontWeight="700">
               {formatMinUsdDisplay(quoteDepositPrincipalUsd(quote, gdUsdPerToken)) +
                 ' + ' +
