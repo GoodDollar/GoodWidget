@@ -15,11 +15,11 @@ body:
   - type: textarea
     id: repos_and_packages
     attributes:
-      label: Which repos and packages the AI should work with
+      label: Repositories and packages in scope
       description: |
-        List the repositories and packages the AI should work with.
+        List the repositories and packages the implementer should work with.
       value: |
-        List the repositories and packages the AI should work with.
+        List the repositories and packages the implementer should work with.
     validations:
       required: true
 
@@ -46,24 +46,28 @@ body:
       label: User flows, states and behaviours
       description: |
         If no UI reference is given, elaborate how the UI/UX behaves.
-        Any other UI/UX instructions to the AI.
+        Any other UI/UX requirements for the implementer.
       value: |
         If no UI reference is given, elaborate how the UI/UX behaves.
-        Any other UI/UX instructions to the AI.
+        Any other UI/UX requirements for the implementer.
     validations:
       required: true
 
   - type: textarea
     id: create_the_plan
     attributes:
-      label: Create the plan (keep this section in the issue body)
+      label: Planning (when investigation or design decisions are needed)
       description: |
-        This content is persisted in the issue body and should be used by the planner/copilot flow.
+        Keep the planning decision in the issue body. A clear, approved issue can proceed without a separate plan.
       value: |
-        ## Create the plan
+        ## Planning
 
-        Based on the above description create an execution plan in a **new sub-issue** and preserve the original issue content unchanged.
-        Do not execute the plan until given instructions to do so.
+        Follow AGENTS.md and obtain maintainer assignment or approval before starting work.
+        If the request is clear enough to implement and verify, record that no separate plan is needed.
+        If investigation or design decisions are needed, prepare a plan for maintainer review before implementation.
+
+        When assigned to plan, create an execution plan in a **new sub-issue** and preserve the original issue content unchanged.
+        Do not implement a draft plan or open a PR during the planning assignment. Wait for maintainer approval to implement.
 
         Sub-issue requirements:
 
@@ -74,15 +78,18 @@ body:
 
         Instructions when creating the plan:
 
-        - Map relevant files that are too be used as reference from all repos mentioned
-        - import existing @GoodDollar packages
-        - Map new components that should be created. Assess when a new component should be created in the new savings widget package or made part of the reusable packages/ui
+        - Map relevant files and references from the repositories in scope.
+        - Agree with the bounty lead or maintainer how required SDK functionality ships with the widget, including any migration from https://github.com/GoodDollar/GoodSDKs.
+        - Include both injected-wallet and Reown connection flows using the embed AppKit provider; report platform constraints for maintainer decision.
+        - Identify reviewed UI/Tamagui components and presets.ts values to reuse; do not use components-test or direct react-native imports.
+        - Include relevant Playwright tests and current, accurate output images; discuss recurring UX flows with the maintainer.
+        - Map new components to the widget package; use packages/ui only for components reusable across widgets.
 
         Plan specification required sections:
 
         - Required states, flows, and behaviors
         - Execution plan
-        - acceptance criteria
-        - human-reviewer checklist
+        - Acceptance criteria and verification commands
+        - Human-reviewer checklist, including human or live QA when required
     validations:
       required: true

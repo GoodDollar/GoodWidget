@@ -2,6 +2,13 @@
 
 A cross-platform mini app framework for building web3 widgets that run inside wallets and dapps.
 
+## Contributing
+
+Read [AGENTS.md](AGENTS.md) for shared instructions for people and agents, including
+approval, planning, repository conventions and verification. Open the
+[GoodDollar contribution guide](https://github.com/GoodDollar/.github/blob/master/CONTRIBUTING.md)
+for organization-wide contribution guidance.
+
 ## Packages
 
 | Package                    | Description                                                                  |
@@ -9,7 +16,7 @@ A cross-platform mini app framework for building web3 widgets that run inside wa
 | `@goodwidget/core`         | EIP-1193 provider normalization, host detection, wallet hooks, React context |
 | `@goodwidget/ui`           | Tamagui-based themeable component library (React + React Native Web)         |
 | `@goodwidget/embed`        | Web Component wrapper for embedding mini apps in any HTML page               |
-| `@goodwidget/claim-widget` | Sample publishable widget — React component + Web Component                  |
+| `@goodwidget/claim-widget-theme-demo` | Sample publishable widget — React component + Web Component                  |
 | `@goodwidget/goodreserve-widget` | Reserve swap widget package (buy/sell flow on Celo/XDC)               |
 
 ## Quick Start
@@ -32,6 +39,10 @@ cd examples/html && pnpm run dev
 ```
 
 ## Building a Mini App
+
+The snippet below illustrates composition only. Follow the
+[widget author instructions](docs/widget-author-instructions.md) for both wallet connection
+flows, SDK packaging, production component checks and test evidence before shipping.
 
 ```tsx
 import { GoodWidgetProvider, useWallet } from '@goodwidget/core'
@@ -175,7 +186,7 @@ GoodWidget/
     core/           → @goodwidget/core          (provider, hooks, EIP-1193, host detection)
     ui/             → @goodwidget/ui            (component library, theme system)
     embed/          → @goodwidget/embed         (Web Component wrapper)
-    claim-widget/   → @goodwidget/claim-widget  (sample publishable widget)
+    claim-widget-theme-demo/ → @goodwidget/claim-widget-theme-demo (theming demo)
     goodreserve-widget/ → @goodwidget/goodreserve-widget (reserve swap widget)
   examples/
     react-web/      → React demo with style override showcase

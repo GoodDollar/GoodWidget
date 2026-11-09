@@ -147,6 +147,12 @@ Test artifacts are split as follows:
 Preserve the anchored `/test-results/` ignore rule and existing nested screenshot locations.
 Keep transient debug output in the root directory, not in curated evidence.
 
+Always add or update relevant tests for changed widget behavior. Use this Playwright setup
+to generate accurate evidence images: assert the intended UI state before capture, inspect
+the resulting image, and name it for the flow/state. Refresh affected images after changes.
+Record the tested revision, command and actual result; never fabricate screenshots or
+present edited or older images as output from the current test run.
+
 To inspect a trace after a failure:
 
 ```sh
@@ -184,15 +190,25 @@ The mock always reports:
 | Address | `0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045` |
 | Chain ID | `42220` (Celo mainnet) |
 
-The mock is passed as the `provider` prop to `ClaimWidget`.  
+The mock is passed as the `provider` prop to `ClaimWidget`.
 **Determinism:** hardcoded values make Playwright screenshots repeatable.
+
+All widgets must support both injected-wallet and Reown connection flows. For injected
+and custodial scenarios, use the relevant helpers in
+`examples/storybook/src/fixtures/custodialEip1193.ts` and
+`examples/storybook/src/fixtures/injectedEip1193.ts`. The injected helper reads
+`window.ethereum`; it is not itself a mock wallet. For Reown, use the provider and wiring
+in the [widget author guide](widget-author-instructions.md#wallet-connections-and-rpc-clients).
+Test both connection paths, plus custodial modes where supported or required, including
+error and empty states. Report missing configuration or platform support as blocked, not
+as an implicit exemption. See the QA guide for fixture, human and live-test distinctions.
 
 ---
 
 ## Adding a new primitive story
 
 1. Confirm the component lives in `packages/ui/src/components/`.
-2. Create `examples/storybook/src/stories/MyComponent.stories.tsx`.
+2. Create `examples/storybook/src/stories/design-system/MyComponent.stories.tsx`.
 3. Set `title: 'Design System/Primitives/MyComponent'` in the meta.
 4. Add `tags: ['autodocs', 'showcase']` for automatic docs generation and classification.
 5. Add a `data-testid="MyComponent-default"` to the primary rendered element.
@@ -225,7 +241,7 @@ export const Default: Story = {
 
 1. Create a reference story file under `examples/storybook/src/stories/<widget-name>/`.
 2. Set a showcase title such as `Widgets/MyWidget/Showcase` in the meta.
-3. Import `createMockEip1193Provider` from `../fixtures/mockEip1193` if wallet context is needed.
+3. Import `createMockEip1193Provider` from `../../fixtures/mockEip1193` if wallet context is needed.
 4. Pass the mock provider to your widget.
 5. Create separate `QA/...` stories for fixture-heavy or automation-only states instead of mixing them into the widget showcase.
 6. Add a widget test under `tests/widgets/<widget-name>/` (and update `tests/design-system/smoke.spec.ts` only if shared design-system coverage also changed).
@@ -296,7 +312,7 @@ Run all play functions with `pnpm test:storybook`.
 ## Architecture notes
 
 The Storybook package (`examples/storybook`) deliberately does **not** change
-`packages/ui`, `packages/core`, `packages/claim-widget`, or `packages/embed`.
+`packages/ui`, `packages/core`, `packages/claim-widget-theme-demo`, or `packages/embed`.
 It is a consumer of those packages, not a contributor to their design system.
 
 See [ARCHITECTURE.md](../ARCHITECTURE.md) for the full GoodWidget architecture.

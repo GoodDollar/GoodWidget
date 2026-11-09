@@ -42,11 +42,21 @@ my-widget/
 
 | Entry | Purpose | Who imports it |
 |-------|---------|---------------|
-| `index.ts` | Exports the React component, types, and the Web Component class | React & React Native consumers |
+| `index.ts` | Exports the React component and types | React & React Native consumers |
 | `element.ts` | Exports only the Custom Element class | Consumers who want to register it themselves |
 | `register.ts` | Side-effect import that calls `customElements.define()` | HTML consumers (`<script>` tag) |
 
 ---
+
+## New-widget requirements
+
+Follow the [widget author instructions](widget-author-instructions.md) for shipping SDK
+functionality with the widget, injected-wallet and Reown connection flows, reviewed UI
+components and test evidence. Agree SDK migration and distribution details with the bounty
+lead or maintainer. The snippets below illustrate packaging; they are not a complete
+implementation of those requirements. Do not import directly from `react-native` in widget
+code; use Tamagui and reviewed UI components. Build aliases and external package declarations
+below are configuration, not instructions to add direct imports.
 
 ## Step 1 — Build your widget as a React component
 
@@ -60,8 +70,9 @@ import React from 'react'
 import { GoodWidgetProvider, useWallet } from '@goodwidget/core'
 import type { EIP1193Provider, GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/core'
 import {
-  Card, Heading, Text, Button, ButtonText, YStack,
+  Card, Heading, Text, Button, ButtonText,
 } from '@goodwidget/ui'
+import { YStack } from 'tamagui'
 
 function Inner() {
   const { address, connect } = useWallet()
@@ -148,11 +159,12 @@ register()
 // src/index.ts
 export { MyWidget } from './MyWidget'
 export type { MyWidgetProps } from './MyWidget'
-export { MyWidgetElement } from './element'
-export { register } from './register'
 ```
 
 ---
+
+Keep browser element creation and registration in the separate `element` and `register`
+entries so importing the React/native entry does not run browser-only code.
 
 ## Step 3 — Configure the build
 
@@ -599,16 +611,17 @@ console.log(getThemeManifest())
 
 ## Reference: Full Example Package
 
-See `packages/claim-widget/` in this repository for a complete, working example
-that demonstrates all of the above:
+See `packages/claim-widget-theme-demo/` for an example of the three-entry-point packaging
+layout. This theme demo does not establish compliance with all production requirements;
+follow the widget author guide before shipping.
 
 ```
-packages/claim-widget/
+packages/claim-widget-theme-demo/
 ├── package.json         # Three exports: ., ./element, ./register
 ├── tsconfig.json
 ├── tsup.config.ts       # Builds all three entry points
 └── src/
-    ├── index.ts         # Barrel: component + element + register
+    ├── index.ts         # React component + types; separate element/register entries
     ├── ClaimWidget.tsx  # React component with GoodWidgetProvider
     ├── element.ts       # createMiniAppElement() wrapper
     └── register.ts      # Auto-registration side effect

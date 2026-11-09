@@ -1,77 +1,23 @@
-# Contributor Bounty Template
+# GoodWidget Contributor Bounty Guidance
 
-Use this when an AI-generated PR already exists and a contributor needs to make it
-production-ready before human review.
+For an assigned task preparing a contributor bounty around an existing AI-generated PR,
+open the current [organization contributor bounty template](https://github.com/GoodDollar/.github/blob/master/.github/ISSUE_TEMPLATE/contributor-bounty-template.md).
+Use the published template rather than copying an older local version. Proposed changes
+in an organization PR are not published requirements; report any conflict before use.
+Follow the [central contribution guide](https://github.com/GoodDollar/.github/blob/master/CONTRIBUTING.md)
+and [AGENTS.md](../AGENTS.md) for approval, scope and review rules.
 
-Contributor role reference:
-https://docs.gooddollar.org/for-developers/contributing/open-source-contributors/contributor-role
+Add the GoodWidget-specific context:
 
-````md
-# [GoodBounty] Finalize <feature/widget name> PR
+- Link the PR, original issue and approved plan when one exists; identify the branch/build.
+- Define the concrete implementation gaps, expected flows and acceptance criteria.
+- Include relevant commands from [AGENTS.md](../AGENTS.md#verification-and-evidence),
+  including `pnpm install --frozen-lockfile`, `pnpm build`, `pnpm lint` and
+  `pnpm test:demo tests/widgets/<widget-folder>` for widget implementation work.
+- Require current Storybook/Playwright coverage and screenshots for affected UI, plus
+  the human or live checks specified by the task. See the [QA guide](qa-guide.md).
+- Request a handoff identifying the contributor, PR and tested commit, fixes, actual
+  verification results, evidence and remaining risks. Explain commands not run.
 
-## Summary
-
-Pick up the existing AI-generated PR for `<feature/widget name>`, run it locally,
-fix implementation gaps, update tests/evidence, and prepare it for human review
-
-## Contributor task
-
-- Claim the bounty with an ETA.
-- Check out the PR branch and run it locally.
-- Compare the implementation against the parent issue, plan issue, and repo docs.
-- Fix concrete gaps in behavior, tests, code quality, or UI.
-- Update screenshots/videos when UI changes.
-- Leave a handoff comment with what changed, what was tested, and remaining risks.
-
-## Scope checks
-
-_Breakdown and update with specifics towards a feature and execution plan_
-
-- [ ] The PR solves the issue requirements.
-- [ ] The implementation follows the plan or explains any deviation.
-- [ ] Existing repo patterns and package boundaries are respected.
-- [ ] Main happy path and important edge/error states work.
-- [ ] Storybook covers the expected states.
-- [ ] Playwright covers the main flows and includes current screenshots.
-- [ ] Desktop and mobile layouts are usable.
-- [ ] The PR description links the source issues and includes test evidence.
-
-## Required commands
-
-```sh
-pnpm install
-pnpm build
-pnpm lint
-pnpm test:demo tests/widgets/<widget-folder>
-```
-````
-
-If a command cannot be run, document why.
-
-## Handoff comment
-
-```md
-Contributor: @<handle>
-PR: #<pr>
-Commit: <commit>
-
-Fixed:
-
-- <fix>
-
-Verified:
-
-- <scenario>: <result>
-
-Evidence:
-
-- <This should confirm what scenarios and ux/ui flows are testable using the playwright tests. Running the tests will be done by reviewer>
-
-Remaining risks:
-
-- <None / details>
-```
-
-```
-
-```
+Keep common roles and submission structure in the central template; maintain only these
+repository-specific references here. A bounty template does not authorize starting work.

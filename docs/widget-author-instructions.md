@@ -16,13 +16,70 @@ practical authoring version.
 Before writing component code:
 
 1. Read the issue and design reference.
-2. Find the closest existing widget or `@goodwidget/ui` primitive.
+2. Read [presets.ts](../packages/ui/src/presets.ts), the leading current design-system
+   reference. Find the closest reviewed widget or UI primitive and check its implementation
+   and dependencies; an export alone does not establish production readiness.
 3. Use the design system first. Add new styling surface only when the existing one cannot express the design.
 4. Check the output manually against the design reference in light/dark and mobile states before asking for review.
 
 Screenshot evidence is useful and required, but it is not a substitute for looking at the actual Storybook output.
 
 ---
+
+## SDK functionality in new widgets
+
+Ship the SDK functionality a new widget needs as part of that widget. Before implementation,
+discuss the package structure, public API, build/distribution approach and tests with the
+bounty lead or maintainer. Identify existing functionality in
+[GoodSDKs](https://github.com/GoodDollar/GoodSDKs) that can be reused or migrated into the
+widget. Keep SDK logic separate from presentation in the agreed structure; do not assume
+that a new separately published SDK is required. Existing external SDK dependencies do not
+establish the packaging approach for new widgets.
+
+## Wallet connections and RPC clients
+
+All widgets must support injected-wallet and Reown connection flows. Use the existing
+[DefaultAppKitProvider](../packages/embed/src/DefaultAppKitProvider.tsx) and hooks exported
+by [`@goodwidget/embed/appkit-provider`](../packages/embed/src/appkitProvider.ts) for Reown
+at the web integration boundary; keep browser-only setup out of the native package entry.
+Keep the wallet connected to `GoodWidgetProvider` through the provider and connection
+callbacks; wrapping a widget in AppKit alone does not wire its connect action.
+
+See the [AI Credits connection example](../examples/storybook/src/stories/helpers/aiCreditsWidgetStories.tsx)
+for AppKit provider, account, chain, connect and disconnect wiring, and the
+[injected-wallet helper](../examples/storybook/src/fixtures/injectedEip1193.ts) for
+`window.ethereum`. Configure a Reown project ID through `VITE_REOWN_PROJECT_ID` or the
+provider's `projectId` prop. Without an ID the current provider renders children without
+AppKit; that is not a working Reown flow. Do not use AppKit hooks outside its context.
+
+This is a requirement for every widget, not a claim that existing widgets or every host
+already satisfy it. Discuss native, embedded-host or other platform constraints with the
+maintainer and record the required work; do not silently drop either connection path.
+
+For chain reads that need RPC failover, use
+[`createViemFallbackClient`](../packages/core/src/viemFallbackClient.ts) from
+`@goodwidget/core/viemFallbackClient`; see the [core guide](../packages/core/README.md) and
+[AI Credits client](../packages/ai-credits-widget/src/chainClient.ts) for storage and lifetime
+handling. Supply storage suitable for the host and review the background-ranking behavior.
+This helper creates viem clients with HTTP fallback; it does not connect wallets. Keep the
+connected wallet's signing transport. An explicitly supplied `transport` bypasses fallback.
+
+## Production components and recurring flows
+
+- Do not import anything directly from `react-native`. Check Tamagui's available components
+  and APIs before implementing a component or platform workaround. Discuss gaps with the
+  maintainer; existing direct imports are not examples to follow.
+- [components-test/](../packages/ui/src/components-test) contains unreviewed components
+  that are not aligned with the design system. Never use them in production-ready widgets
+  or flows, directly, through [UI barrel exports](../packages/ui/src/index.ts), or through
+  another component. Check the implementation and its dependencies, not just its name.
+- Current exports and shared components still depend on that directory. Identify inherited
+  usage and agree a migration with the maintainer before marking the affected flow ready;
+  do not expand a task into a repository-wide rewrite.
+- When a UX flow repeats, ask the maintainer whether it should become a generic shared
+  flow. [Stepper.tsx](../packages/ui/src/components/Stepper.tsx) illustrates reusable flow
+  structure. Its current dependency on `components-test/Stacks` is a migration gap, not
+  an exception to the production rule.
 
 ## The Styling Hierarchy
 
@@ -60,7 +117,8 @@ localized default styling by passing widget-local `config` into its internal
 Start with existing primitives and semantic values:
 
 ```tsx
-import { Card, Text, Button, ButtonText, YStack } from '@goodwidget/ui'
+import { Card, Text, Button, ButtonText } from '@goodwidget/ui'
+import { YStack } from 'tamagui'
 
 export function EmptyState({ onRetry }: { onRetry: () => void }) {
   return (
@@ -272,7 +330,10 @@ When creating widget UI, work in this order:
 3. For each repeated surface, decide whether it needs a named theme target.
 4. Add `createComponent()` only for surfaces that own a visual contract.
 5. Add light and dark stories for the states affected by the component.
-6. Run the screenshot tests, then manually compare the Storybook output to the design reference.
+6. Add or update relevant Playwright tests using the [repository setup](demo-environment.md).
+   Assert the intended state, capture current screenshots, inspect them, then manually
+   compare the Storybook output to the design reference. Report actual results and gaps;
+   do not fabricate images or present old captures as current test output.
 
 Good component boundaries usually look like this:
 
@@ -320,7 +381,10 @@ The widget's `tsconfig.json` and `tsconfig.build.json` must use `"rootDir": "."`
 
 Before requesting review:
 
-- The widget uses existing `@goodwidget/ui` primitives where possible.
+- Required SDK functionality ships with the new widget using the approach agreed with the bounty lead or maintainer.
+- Both injected-wallet and Reown connection flows have relevant tests and evidence; blocked checks are identified.
+- Components follow `presets.ts` and use reviewed UI or Tamagui implementations, without direct `react-native` imports or `components-test` dependencies.
+- Recurring UX flows were discussed with the maintainer for possible shared implementation.
 - Repeated visual surfaces either reuse existing primitives or have intentional named components.
 - New `createComponent()` names are stable and intentionally themeable.
 - Styling uses `$background`, `$color`, `$borderColor`, `$shadowColor`, and token scale values where possible.
