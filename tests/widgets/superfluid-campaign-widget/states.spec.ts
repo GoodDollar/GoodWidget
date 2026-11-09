@@ -82,6 +82,9 @@ test('SuperfluidCampaignWidget renders disconnected content view', async ({ page
   await expect(page.getByText('Leaderboard').first()).toBeVisible()
   // Reward pools should be listed
   await expect(page.getByText('How to participate')).toBeVisible()
+  // Season-ended notice is shown in the main content view
+  await expect(page.getByRole('note')).toContainText('The current Superfluid Rewards season has ended.')
+  await expect(page.getByRole('note')).toContainText('Season 7 is coming soon')
 
   await page.screenshot({
     path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-01-no-wallet-content.png',
@@ -99,6 +102,8 @@ test('SuperfluidCampaignWidget renders disconnected leaderboard view', async ({ 
   // visible for public leaderboard rows.
   await expect(page.getByLabel('Claim UBI: done').first()).toBeVisible()
   await expect(page.getByLabel('Successful invite: done').first()).toBeVisible()
+  // Season-ended notice is limited to the main content view
+  await expect(page.getByRole('note')).toHaveCount(0)
   await expect(page.getByText('Rank', { exact: true })).toBeVisible()
   await expect(page.getByText('Address', { exact: true })).toBeVisible()
   await expect(page.getByText('Points', { exact: true })).toBeVisible()

@@ -180,6 +180,8 @@ export interface CampaignDefinition {
   /** Optional fixed campaign copy; mock fixtures use this for visual-state coverage. */
   supAllocatedLabel?: string
   endsLabel: string
+  /** Optional callout shown under the title in the main content view, e.g. a season-ended notice. */
+  notice?: string
   pools: CampaignPoolDefinition[]
   faq: FaqItemDefinition[]
 }
