@@ -8,6 +8,7 @@ import {
   createComponent,
 } from '@goodwidget/ui'
 import type { WriteStatus } from '../widgetRuntimeContract'
+import { streamingSurfaceTheme } from '../config'
 
 export type SuperTokenSymbol = 'G$' | 'SUP'
 
@@ -39,18 +40,24 @@ export const StreamingTabContent = createComponent(YStack, {
 
 export const StreamRow = createComponent(Card, {
   name: 'StreamRow',
+  extends: 'Card',
+  ...streamingSurfaceTheme,
   padding: '$3',
   gap: '$2',
 })
 
 export const PoolRow = createComponent(Card, {
   name: 'PoolRow',
+  extends: 'Card',
+  ...streamingSurfaceTheme,
   padding: '$3',
   gap: '$2',
 })
 
 export const EmptyStateCard = createComponent(Card, {
   name: 'EmptyStateCard',
+  extends: 'Card',
+  ...streamingSurfaceTheme,
   padding: '$6',
   alignItems: 'center' as const,
   justifyContent: 'center' as const,
@@ -59,18 +66,24 @@ export const EmptyStateCard = createComponent(Card, {
 
 export const ErrorStateCard = createComponent(Card, {
   name: 'ErrorStateCard',
+  extends: 'Card',
+  ...streamingSurfaceTheme,
   padding: '$4',
   gap: '$2',
 })
 
 export const SetStreamFormCard = createComponent(Card, {
   name: 'SetStreamFormCard',
+  extends: 'Card',
+  ...streamingSurfaceTheme,
   padding: '$4',
   gap: '$3',
 })
 
 export const BalanceCard = createComponent(Card, {
   name: 'BalanceCard',
+  extends: 'Card',
+  ...streamingSurfaceTheme,
   padding: '$4',
   gap: '$2',
 })
