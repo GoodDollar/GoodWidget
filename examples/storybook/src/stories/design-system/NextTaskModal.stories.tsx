@@ -29,12 +29,15 @@ const meta: Meta = {
 export default meta
 type Story = StoryObj
 
+const SAMPLE_IMAGE_URL =
+  'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"><rect width="96" height="96" fill="%23243242"/></svg>'
+
 const contentWithImage: NextTaskContent = {
   title: 'Stake your G$ and earn',
   description: 'Put your claimed G$ to work by staking it for rewards.',
   ctaLabel: 'Open Proposal',
   ctaTarget: 'https://gooddollar.org/stake',
-  imageUrl: 'https://placehold.co/96x96',
+  imageUrl: SAMPLE_IMAGE_URL,
   contentId: 'stake-prompt',
 }
 
@@ -244,7 +247,32 @@ export const HostNavigation: Story = {
   },
 }
 
-/** A synchronous handler that throws shows an error toast; the sheet still closes. */
+const contentWithCustomCopy: NextTaskContent = {
+  ...contentWithImage,
+  headline: 'Custom Headline Step',
+  supportingCopy: 'Custom supporting message for active community members.',
+  recommendedLabel: 'FEATURED',
+  skipLabel: 'Not now, thanks',
+  statusLabel: 'Verification complete',
+}
+
+const contentWithRealisticLongCopy: NextTaskContent = {
+  title: 'Participate in the GoodDollar Community Expansion & Micro-Grants Initiative',
+  description:
+    'Read through the extensive proposal detailing the upcoming treasury distribution to regional ambassadors and liquidity pools across multiple EVM ecosystems, cast your vote, and join our active discussion forums.',
+  ctaLabel: 'Read and vote on Snapshot',
+  ctaTarget: 'https://gooddollar.org/governance/proposal-123',
+  imageUrl: 'https://placehold.co/96x96',
+  contentId: 'governance-long-copy',
+  headline: 'Support Community Expansion Proposals',
+  supportingCopy:
+    'Every citizen vote shapes the next generation of financial inclusion. Review all active proposals before making your choice.',
+  recommendedLabel: 'ACTIVE VOTE',
+  skipLabel: 'Remind me tomorrow',
+  statusLabel: 'Claim successfully processed',
+}
+
+/** A synchronous handler that throws shows an error toast; the sheet stays open so the user can retry or dismiss. */
 export const NavigationError: Story = {
   render: () => (
     <ControlledHarness
@@ -262,11 +290,11 @@ export const NavigationError: Story = {
     await expect(
       await within(document.body).findByText('Could not open this link. Please try again.'),
     ).toBeInTheDocument()
-    await expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('closed')
+    await expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('open')
   },
 }
 
-/** An async handler that rejects shows the same error toast as a synchronous throw. */
+/** An async handler that rejects shows the same error toast as a synchronous throw, and keeps the drawer open. */
 export const NavigationRejected: Story = {
   render: () => (
     <ControlledHarness
@@ -282,11 +310,11 @@ export const NavigationRejected: Story = {
     await expect(
       await within(document.body).findByText('Could not open this link. Please try again.'),
     ).toBeInTheDocument()
-    await expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('closed')
+    await expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('open')
   },
 }
 
-/** No handler and a non-http(s) `ctaTarget`: no Anchor is rendered; pressing shows an error toast. */
+/** No handler and a non-http(s) `ctaTarget`: no Anchor is rendered; pressing shows an error toast and keeps the drawer open. */
 export const RejectedUrl: Story = {
   render: () => <ControlledHarness content={contentWithRejectedUrl} testID="NextTaskModal-rejected-url" />,
   play: async ({ canvasElement }) => {
@@ -296,6 +324,24 @@ export const RejectedUrl: Story = {
     await waitFor(() => userEvent.click(cta))
     await expect(await within(document.body).findByText('This link cannot be opened.')).toBeInTheDocument()
     await expect(within(canvasElement).getByTestId('NextTaskModal-last-event')).not.toHaveTextContent('clicked')
-    await expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('closed')
+    await expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('open')
   },
+}
+
+/** Configurable copy overrides: custom headline, supporting copy, labels and status. */
+export const CustomCopy: Story = {
+  render: () => <ControlledHarness content={contentWithCustomCopy} testID="NextTaskModal-custom-copy" />,
+  play: async ({ canvasElement }) => {
+    await openAndGetCard(canvasElement, 'NextTaskModal-custom-copy')
+    await expect(within(document.body).getByText('Custom Headline Step')).toBeInTheDocument()
+    await expect(within(document.body).getByText('Custom supporting message for active community members.')).toBeInTheDocument()
+    await expect(within(document.body).getByText('FEATURED')).toBeInTheDocument()
+    await expect(within(document.body).getByText('Not now, thanks')).toBeInTheDocument()
+    await expect(within(document.body).getByText('Verification complete')).toBeInTheDocument()
+  },
+}
+
+/** Realistic long copy with inner scrolling for responsive testing. */
+export const RealisticLongCopy: Story = {
+  render: () => <ControlledHarness content={contentWithRealisticLongCopy} testID="NextTaskModal-long-copy" />,
 }

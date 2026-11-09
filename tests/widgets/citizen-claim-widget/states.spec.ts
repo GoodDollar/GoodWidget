@@ -199,3 +199,94 @@ test('CitizenClaimWidget claimExecution claimAll reports per-chain success and f
     fullPage: true,
   })
 })
+
+const MOCK_WIDGET_WITH_NEXT_TASK_STORY =
+  '/iframe.html?id=qa-citizenclaimwidget-runtime-fixtures--mock-claim-execution-with-next-task&viewMode=story'
+const MOCK_WIDGET_SINGLE_CHAIN_STORY =
+  '/iframe.html?id=qa-citizenclaimwidget-runtime-fixtures--mock-claim-execution-single-chain-with-next-task&viewMode=story'
+const MOCK_WIDGET_ALL_FAILS_STORY =
+  '/iframe.html?id=qa-citizenclaimwidget-runtime-fixtures--mock-claim-execution-all-fails-with-next-task&viewMode=story'
+const MOCK_WIDGET_WITHOUT_NEXT_TASK_STORY =
+  '/iframe.html?id=qa-citizenclaimwidget-runtime-fixtures--mock-claim-execution-without-next-task&viewMode=story'
+
+test('CitizenClaimWidget real flow: drawer opens after multi-chain claim with at least one success, CTA and dismiss work', async ({
+  page,
+}) => {
+  await page.goto(MOCK_WIDGET_WITH_NEXT_TASK_STORY)
+  await page.waitForLoadState('domcontentloaded')
+
+  // Find and click the Claim button in the widget
+  const claimButton = page.getByRole('button', { name: /Claim/i })
+  await expect(claimButton).toBeVisible({ timeout: 15_000 })
+  await claimButton.click()
+
+  // Verify the NextTaskModal drawer opens after claim
+  const drawerHeadline = page.getByText('One good next step')
+  await expect(drawerHeadline).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByText('Stake your G$ and earn')).toBeVisible()
+  await page.waitForTimeout(600)
+
+  await page.screenshot({
+    path: 'tests/widgets/citizen-claim-widget/test-results/ccw-06-next-task-drawer-open.png',
+  })
+
+  // CTA is clickable and dismiss via close button or skip works
+  const cta = page.getByRole('button', { name: 'Open Proposal' })
+  await expect(cta).toBeVisible()
+
+  const skipButton = page.getByRole('button', { name: 'Skip for now' })
+  await expect(skipButton).toBeVisible()
+  await skipButton.click()
+
+  await expect(drawerHeadline).not.toBeInViewport()
+})
+
+test('CitizenClaimWidget real flow: drawer opens after single-chain claim success', async ({
+  page,
+}) => {
+  await page.goto(MOCK_WIDGET_SINGLE_CHAIN_STORY)
+  await page.waitForLoadState('domcontentloaded')
+
+  const claimButton = page.getByRole('button', { name: /Claim/i })
+  await expect(claimButton).toBeVisible({ timeout: 15_000 })
+  await claimButton.click()
+
+  const drawerHeadline = page.getByText('One good next step')
+  await expect(drawerHeadline).toBeVisible({ timeout: 15_000 })
+
+  const closeButton = page.getByRole('button', { name: 'Close' })
+  await closeButton.click()
+  await expect(drawerHeadline).not.toBeInViewport()
+})
+
+test('CitizenClaimWidget real flow: drawer does NOT open when every claim fails', async ({
+  page,
+}) => {
+  await page.goto(MOCK_WIDGET_ALL_FAILS_STORY)
+  await page.waitForLoadState('domcontentloaded')
+
+  const claimButton = page.getByRole('button', { name: /Claim/i })
+  await expect(claimButton).toBeVisible({ timeout: 15_000 })
+  await claimButton.click()
+
+  // Wait for failure handling to settle — the drawer must not open (stays off-screen / out of viewport)
+  await page.waitForTimeout(2000)
+  const drawerHeadline = page.getByText('One good next step')
+  await expect(drawerHeadline).not.toBeInViewport()
+})
+
+test('CitizenClaimWidget real flow: drawer does NOT open when nextTaskContent is absent', async ({
+  page,
+}) => {
+  await page.goto(MOCK_WIDGET_WITHOUT_NEXT_TASK_STORY)
+  await page.waitForLoadState('domcontentloaded')
+
+  const claimButton = page.getByRole('button', { name: /Claim/i })
+  await expect(claimButton).toBeVisible({ timeout: 15_000 })
+  await claimButton.click()
+
+  // Wait for success toast / completion
+  await page.waitForTimeout(2000)
+  const drawerHeadline = page.getByText('One good next step')
+  await expect(drawerHeadline).toHaveCount(0)
+})

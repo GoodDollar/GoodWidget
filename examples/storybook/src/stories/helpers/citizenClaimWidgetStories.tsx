@@ -15,7 +15,7 @@ import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
 
 const MOCK_CLAIM_ALL_ACCOUNT = '0x329377cbeeF39f01b0Ea04B80465c9eB47D3ED1'
 
-function createMockClaimExecutionClientBundle(chainId: number, shouldFail: boolean) {
+export function createMockClaimExecutionClientBundle(chainId: number, shouldFail: boolean) {
   return {
     publicClient: {
       readContract: async ({ functionName }: { functionName: string }) => {
@@ -267,5 +267,43 @@ export function CustodialClaimExecutionClaimAllStory() {
     <GoodWidgetProvider provider={undefined} defaultTheme="dark">
       <CustodialExecutionClaimAllHarness />
     </GoodWidgetProvider>
+  )
+}
+
+export function MockClaimExecutionWidgetStory({
+  nextTaskProps,
+  singleChain = false,
+  allFail = false,
+}: {
+  nextTaskProps?: CitizenClaimNextTaskProps
+  singleChain?: boolean
+  allFail?: boolean
+} = {}) {
+  const claimExecution = useMemo(() => {
+    if (singleChain) {
+      return createCitizenClaimWidgetCustodialExecution({
+        42220: createMockClaimExecutionClientBundle(42220, allFail),
+      })
+    }
+    return createCitizenClaimWidgetCustodialExecution({
+      42220: createMockClaimExecutionClientBundle(42220, allFail),
+      122: createMockClaimExecutionClientBundle(122, allFail),
+    })
+  }, [singleChain, allFail])
+
+  const provider = useMemo(() => {
+    return createCustodialEip1193Provider()
+  }, [])
+
+  return (
+    <CitizenClaimWidget
+      provider={provider}
+      environment="development"
+      data-testid="CitizenClaimWidget-mock-claim-execution"
+      chainId={42220}
+      defaultTheme="dark"
+      claimExecution={claimExecution}
+      {...nextTaskProps}
+    />
   )
 }

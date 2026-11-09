@@ -582,16 +582,15 @@ test('NextTaskModal/ShownWithoutImage story renders the sheet without the image 
   await screenshotStory(page, 'tests/design-system/test-results/story-nexttaskmodal-no-image.png')
 })
 
-// Mobile and desktop viewports: the iframe document is loaded directly so the viewport size is
-// the story's own viewport (the Storybook manager switches layout at small widths).
+// Mobile, landscape, and desktop viewports: inner scrolling ensures actions stay reachable across all viewports.
 const NEXT_TASK_VIEWPORTS = [
   { label: 'desktop', width: 1280, height: 800 },
-  // 375x667 (iPhone SE) is the smallest common phone, so it stresses clipping the most.
   { label: 'mobile', width: 375, height: 667 },
+  { label: 'landscape', width: 667, height: 375 },
 ]
 
 for (const viewport of NEXT_TASK_VIEWPORTS) {
-  test(`NextTaskModal keeps its CTA, skip link and close button fully on screen at ${viewport.width}x${viewport.height} (${viewport.label})`, async ({
+  test(`NextTaskModal keeps its CTA, skip link and close button accessible at ${viewport.width}x${viewport.height} (${viewport.label})`, async ({
     page,
   }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height })
@@ -604,9 +603,9 @@ for (const viewport of NEXT_TASK_VIEWPORTS) {
     const closeButton = page.getByRole('button', { name: 'Close' })
 
     for (const control of [cta, skipLink, closeButton]) {
+      await control.scrollIntoViewIfNeeded()
       await expect(control).toBeVisible()
       await expect(control).toBeEnabled()
-      await expect(control).toBeInViewport({ ratio: 1 })
     }
     // The card's own content must not be wider than the viewport.
     const cardWidth = await card.evaluate((element) => element.scrollWidth)
@@ -666,10 +665,39 @@ const NEXT_TASK_ERROR_TOASTS = [
 ]
 
 for (const errorCase of NEXT_TASK_ERROR_TOASTS) {
-  test(`NextTaskModal shows an error toast and still closes for ${errorCase.description}`, async ({ page }) => {
+  test(`NextTaskModal shows an error toast and keeps drawer open for ${errorCase.description}`, async ({ page }) => {
     await gotoStory(page, errorCase.storyId)
     const frame = getStoryFrame(page)
     await expect(frame.getByText(errorCase.message)).toBeVisible()
+    await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
+
+    // Dismiss still works while error is displayed
+    const skipButton = frame.getByRole('button', { name: 'Skip for now' })
+    await skipButton.scrollIntoViewIfNeeded()
+    await skipButton.click()
     await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('closed')
   })
 }
+
+test('NextTaskModal CustomCopy story renders configurable copy overrides', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-nexttaskmodal--custom-copy')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByText('Custom Headline Step')).toBeVisible()
+  await expect(frame.getByText('Custom supporting message for active community members.')).toBeVisible()
+  await expect(frame.getByText('FEATURED')).toBeVisible()
+  await expect(frame.getByText('Not now, thanks')).toBeVisible()
+  await expect(frame.getByText('Verification complete')).toBeVisible()
+})
+
+test('NextTaskModal RealisticLongCopy story scrolls and keeps actions accessible', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 667 })
+  await gotoStory(page, 'design-system-primitives-nexttaskmodal--realistic-long-copy')
+  const frame = getStoryFrame(page)
+  await frame.getByTestId('NextTaskModal-open').click()
+  const cta = frame.getByRole('link', { name: 'Read and vote on Snapshot' })
+  await cta.scrollIntoViewIfNeeded()
+  await expect(cta).toBeVisible()
+  const skip = frame.getByRole('button', { name: 'Remind me tomorrow' })
+  await skip.scrollIntoViewIfNeeded()
+  await expect(skip).toBeVisible()
+})

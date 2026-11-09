@@ -3,6 +3,7 @@ import { CitizenClaimWidget } from '@goodwidget/citizen-claim-widget'
 import {
   CustodialClaimExecutionClaimAllStory,
   CustodialLocalFixtureStory,
+  MockClaimExecutionWidgetStory,
 } from '../helpers/citizenClaimWidgetStories'
 import type { NextTaskContent } from '@goodwidget/ui'
 import { BRAND_PRESET_OPTIONS, brandPresetOverrides, type BrandPreset } from '../helpers/themeOverridePresets'
@@ -81,4 +82,44 @@ export const CustodialLocalFixtureWithNextTask: Story = {
       }}
     />
   ),
+}
+
+export const MockClaimExecutionWithNextTask: Story = {
+  render: () => (
+    <MockClaimExecutionWidgetStory
+      nextTaskProps={{
+        nextTaskContent,
+        nextTaskResolveNavigation: (ctaTarget) => console.info('[next-task] host navigates to', ctaTarget),
+        onNextTaskShown: (payload) => console.info('[next-task] shown', payload),
+        onNextTaskClicked: (payload) => console.info('[next-task] clicked', payload),
+        onNextTaskDismissed: (payload) => console.info('[next-task] dismissed', payload),
+      }}
+    />
+  ),
+}
+
+export const MockClaimExecutionSingleChainWithNextTask: Story = {
+  render: () => (
+    <MockClaimExecutionWidgetStory
+      singleChain
+      nextTaskProps={{
+        nextTaskContent,
+      }}
+    />
+  ),
+}
+
+export const MockClaimExecutionAllFailsWithNextTask: Story = {
+  render: () => (
+    <MockClaimExecutionWidgetStory
+      allFail
+      nextTaskProps={{
+        nextTaskContent,
+      }}
+    />
+  ),
+}
+
+export const MockClaimExecutionWithoutNextTask: Story = {
+  render: () => <MockClaimExecutionWidgetStory />,
 }
