@@ -7,6 +7,10 @@ const STORY_IDS = {
     '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--no-wallet-content&viewMode=story',
   noWalletLeaderboard:
     '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--no-wallet-leaderboard&viewMode=story',
+  standaloneLinksContent:
+    '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--standalone-links-content&viewMode=story',
+  goodWalletLinksContent:
+    '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--good-wallet-links-content&viewMode=story',
   custodialContent:
     '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--custodial-local-fixture-content&viewMode=story',
   custodialLeaderboard:
@@ -34,7 +38,7 @@ const STORY_IDS = {
 } as const
 
 // Top-ranked account address (truncated) for each campaign in LEADERBOARD_DATA_FIXTURES
-// (superfluidCampaignWidgetStories.tsx) — 606 = GoodDollar actions (default tab), 614 = Ecosystem actions.
+// (superfluidCampaignWidgetStories.tsx) — 701 = GoodDollar actions (default tab), 710 = Ecosystem actions.
 const GOOD_DOLLAR_ACTIONS_TOP_ADDRESS = '0x1a2b...9a0b'
 const ECOSYSTEM_FUNDING_ACTIONS_TOP_ADDRESS = '0x4d5e...2d3e'
 
@@ -75,16 +79,22 @@ test('SuperfluidCampaignWidget renders disconnected content view', async ({ page
   await gotoStory(page, STORY_IDS.noWalletContent)
 
   await expect(page.getByText('Superfluid Ecosystem Rewards')).toBeVisible()
-  await expect(page.getByText('SEASON 6')).toBeVisible()
+  await expect(page.getByText('SEASON 7', { exact: true })).toBeVisible()
   // Disconnected CTA is required per #127 acceptance criteria
   await expect(page.getByText('Connect Wallet')).toBeVisible()
   // Leaderboard summary section should be present
   await expect(page.getByText('Leaderboard').first()).toBeVisible()
   // Reward pools should be listed
   await expect(page.getByText('How to participate')).toBeVisible()
-  // Season-ended notice is shown in the main content view
-  await expect(page.getByRole('note')).toContainText('The current Superfluid Rewards season has ended.')
-  await expect(page.getByRole('note')).toContainText('Season 7 is coming soon')
+  // The Season 6 season-ended notice is gone.
+  await expect(page.getByRole('note')).toHaveCount(0)
+  await expect(page.getByText('season has ended')).toHaveCount(0)
+  await expect(
+    page.getByText(
+      'Complete eligible actions across GoodDollar, Flow State, Gardens, and AI Credits to earn SUP rewards.',
+    ),
+  ).toBeVisible()
+  await expect(page.getByText('Ends Feb 28th')).toBeVisible()
 
   await page.screenshot({
     path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-01-no-wallet-content.png',
@@ -101,14 +111,13 @@ test('SuperfluidCampaignWidget renders disconnected leaderboard view', async ({ 
   // Activity completion is derived from Points API events and must remain
   // visible for public leaderboard rows.
   await expect(page.getByLabel('Claim UBI: done').first()).toBeVisible()
-  await expect(page.getByLabel('Successful invite: done').first()).toBeVisible()
-  // Season-ended notice is limited to the main content view
+  await expect(page.getByLabel('Invite users: not done').first()).toBeVisible()
   await expect(page.getByRole('note')).toHaveCount(0)
   await expect(page.getByText('Rank', { exact: true })).toBeVisible()
   await expect(page.getByText('Address', { exact: true })).toBeVisible()
   await expect(page.getByText('Points', { exact: true })).toBeVisible()
   await expect(page.getByText('Actions', { exact: true })).toBeVisible()
-  await expect(page.getByLabel('Gardens one-time donation: not done')).not.toBeVisible()
+  await expect(page.getByLabel('Make a one-time donation: not done')).not.toBeVisible()
 
   await page.screenshot({
     path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-02-no-wallet-leaderboard.png',
@@ -120,7 +129,7 @@ test('SuperfluidCampaignWidget renders connected content view', async ({ page })
   await gotoStory(page, STORY_IDS.custodialContent)
 
   await expect(page.getByText('Superfluid Ecosystem Rewards')).toBeVisible()
-  await expect(page.getByText('SEASON 6')).toBeVisible()
+  await expect(page.getByText('SEASON 7', { exact: true })).toBeVisible()
   // Connect Wallet CTA must NOT appear for connected wallet
   await expect(page.getByText('Connect Wallet')).not.toBeVisible()
   // Header's top-right slot must show the truncated-address wallet chip
@@ -221,7 +230,7 @@ test('SuperfluidCampaignWidget mobile leaderboard keeps its headers and scrolls 
   await expect(page.getByText('Points', { exact: true })).toBeVisible()
   await expect(page.getByText('Actions', { exact: true })).toBeVisible()
   await expect(page.getByTestId('LeaderboardRow-1')).toHaveCSS('flex-direction', 'row')
-  await expect(page.getByTestId('LeaderboardRow-1')).toHaveCSS('min-width', '480px')
+  await expect(page.getByTestId('LeaderboardRow-1')).toHaveCSS('min-width', '520px')
 
   const scrollMetrics = await page.getByTestId('Leaderboard-table-scroll').evaluate((element) => ({
     clientWidth: element.clientWidth,
@@ -297,7 +306,7 @@ test("SuperfluidCampaignWidget campaign leaderboard: switching tabs shows each c
 }) => {
   await gotoStory(page, STORY_IDS.leaderboardPopulated)
 
-  // Default tab (GoodDollar actions, campaignId 606)
+  // Default tab (GoodDollar actions, campaignId 701)
   await expect(page.getByText(GOOD_DOLLAR_ACTIONS_TOP_ADDRESS)).toBeVisible()
   await expect(page.getByText(ECOSYSTEM_FUNDING_ACTIONS_TOP_ADDRESS)).not.toBeVisible()
 
@@ -312,15 +321,82 @@ test("SuperfluidCampaignWidget campaign leaderboard: switching tabs shows each c
   })
 })
 
-test('SuperfluidCampaignWidget leaderboard addresses link to the Base Superfluid Explorer', async ({
+test('SuperfluidCampaignWidget leaderboard addresses are plain text with a copy button that copies the full address', async ({
   page,
+  context,
+}) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await gotoStory(page, STORY_IDS.noWalletLeaderboard)
+
+  await expect(page.getByText(GOOD_DOLLAR_ACTIONS_TOP_ADDRESS)).toBeVisible()
+  // The address is no longer a link to the Superfluid explorer.
+  await expect(page.getByRole('link', { name: GOOD_DOLLAR_ACTIONS_TOP_ADDRESS })).toHaveCount(0)
+  await expect(page.locator('a[href*="explorer.superfluid.org"]')).toHaveCount(0)
+
+  const fullAddress = '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b'
+  await page.getByLabel(`Copy address ${fullAddress}`).click()
+
+  await expect(page.getByText('Address copied')).toBeVisible()
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(fullAddress)
+
+  await page.screenshot({
+    path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-40-leaderboard-address-copied.png',
+    fullPage: true,
+  })
+})
+
+test('SuperfluidCampaignWidget leaderboard action icons show a shared tooltip on hover, focus, and tap', async ({
+  page,
+  browser,
 }) => {
   await gotoStory(page, STORY_IDS.noWalletLeaderboard)
 
-  await expect(page.getByRole('link', { name: GOOD_DOLLAR_ACTIONS_TOP_ADDRESS })).toHaveAttribute(
-    'href',
-    'https://explorer.superfluid.org/base-mainnet/accounts/0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b',
-  )
+  // Hover
+  const claimIcon = page.getByLabel('Claim UBI: done').first()
+  await claimIcon.hover()
+  await expect(page.getByRole('tooltip')).toHaveText('Claim UBI')
+  await page.screenshot({
+    path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-41-leaderboard-tooltip-hover.png',
+    fullPage: true,
+  })
+  await page.mouse.move(0, 0)
+  await expect(page.getByRole('tooltip')).toHaveCount(0)
+
+  // Keyboard focus, dismissed with Escape
+  await claimIcon.evaluate((element) => (element.parentElement as HTMLElement).focus())
+  await expect(page.getByRole('tooltip')).toHaveText('Claim UBI')
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('tooltip')).toHaveCount(0)
+
+  // Tap on a touch device
+  const touchContext = await browser.newContext({ hasTouch: true })
+  const touchPage = await touchContext.newPage()
+  await gotoStory(touchPage, STORY_IDS.noWalletLeaderboard)
+  await touchPage.getByLabel('Invite users: not done').first().tap()
+  await expect(touchPage.getByRole('tooltip')).toHaveText('Invite users')
+  await touchContext.close()
+})
+
+test('SuperfluidCampaignWidget leaderboard tooltips use the Season 7 action labels', async ({
+  page,
+}) => {
+  await gotoStory(page, STORY_IDS.leaderboardPopulated)
+  const goodDollarLabels = ['Claim UBI', 'Invite users', 'Vote on Flow State']
+  for (const label of goodDollarLabels) {
+    await expect(page.getByLabel(new RegExp(`^${label}: (done|not done)$`)).first()).toBeVisible()
+  }
+
+  await page.getByText('Ecosystem actions').click()
+  const ecosystemLabels = [
+    'Fund GoodBuilders Season 5',
+    'Make a one-time donation',
+    'Stream to a Community Pool',
+    'Buy AI Credits',
+    'Subscribe to AI Credits',
+  ]
+  for (const label of ecosystemLabels) {
+    await expect(page.getByLabel(new RegExp(`^${label}: (done|not done)$`)).first()).toBeVisible()
+  }
 })
 
 test('SuperfluidCampaignWidget leaderboard only shows actions for the selected campaign', async ({
@@ -329,11 +405,13 @@ test('SuperfluidCampaignWidget leaderboard only shows actions for the selected c
   await gotoStory(page, STORY_IDS.leaderboardPopulated)
 
   await expect(page.getByLabel('Claim UBI: done').first()).toBeVisible()
-  await expect(page.getByLabel('Gardens funding stream: not done')).not.toBeVisible()
+  await expect(page.getByLabel('Stream to a Community Pool: not done')).not.toBeVisible()
 
   await page.getByText('Ecosystem actions').click()
 
-  await expect(page.getByLabel('Gardens funding stream: done').first()).toBeVisible()
+  await expect(page.getByLabel('Stream to a Community Pool: done').first()).toBeVisible()
+  await expect(page.getByLabel('Buy AI Credits: done').first()).toBeVisible()
+  await expect(page.getByLabel('Subscribe to AI Credits: done').first()).toBeVisible()
   await expect(page.getByLabel('Claim UBI: not done')).not.toBeVisible()
 })
 
@@ -345,9 +423,9 @@ test('SuperfluidCampaignWidget enriches a leaderboard page from per-account poin
   await page.route('**/points/campaign?*', async (route) => {
     await route.fulfill({
       json: {
-        campaignId: 606,
+        campaignId: 701,
         name: 'GoodDollar Actions',
-        slug: 'good-dollar-actions',
+        slug: 's7-gooddollar',
         totalPoints: 12,
         memberCount: 1,
         totalEvents: 3,
@@ -402,23 +480,22 @@ test('SuperfluidCampaignWidget enriches a leaderboard page from per-account poin
   await gotoStory(page, STORY_IDS.leaderboardApiContract)
 
   await expect(page.getByLabel('Claim UBI: done')).toBeVisible()
-  await expect(page.getByLabel('Successful invite: not done')).toBeVisible()
-  await expect(page.getByLabel('Flow State vote: not done')).toBeVisible()
+  await expect(page.getByLabel('Invite users: not done')).toBeVisible()
+  await expect(page.getByLabel('Vote on Flow State: not done')).toBeVisible()
 })
 
-test('SuperfluidCampaignWidget SUP distribution and members: populated from the mocked programs client for campaign 606', async ({
+test('SuperfluidCampaignWidget SUP distribution and members: populated from the mocked programs client for campaign 701', async ({
   page,
 }) => {
   await gotoStory(page, STORY_IDS.supTotalsPopulated)
 
   // Figures come from the mocked runtime client, proving changing values are
   // separate from the stable campaign definition.
-  await expect(page.getByText('128,940 / 217,700 SUP')).toBeVisible()
+  await expect(page.getByText('128,940 / 470,772.75 SUP')).toBeVisible()
   // The programs API fixture adapter supplies the member count.
   await expect(page.getByText('712 participants')).toBeVisible()
-  // 614 (Ecosystem actions) has no matching program id yet, so
-  // RewardPoolSection falls back to its own unchanged mock placeholder.
-  await expect(page.getByText('262,450 / 404,300 SUP')).toBeVisible()
+  // 710 (Ecosystem actions) is served by the same mocked programs client.
+  await expect(page.getByText('262,450 / 874,292.25 SUP')).toBeVisible()
 
   await page.screenshot({
     path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-17-sup-totals-populated.png',
@@ -454,17 +531,17 @@ test('SuperfluidCampaignWidget SUP totals: no program renders empty totals', asy
   await expect(page.getByText('0 / 0 SUP')).toHaveCount(2)
 })
 
-test('SuperfluidCampaignWidget SUP distribution and members sourced from the programs API for campaign 606', async ({
+test('SuperfluidCampaignWidget SUP distribution and members sourced from the programs API for campaign 701', async ({
   page,
 }) => {
-  // Mock the programs API endpoint with a minimal superjson envelope for campaign 606.
+  // Mock the programs API endpoint with a minimal superjson envelope for campaign 701.
   await page.route('https://claim.superfluid.org/api/programs', async (route) => {
     await route.fulfill({
       json: {
         json: [
           {
             program: {
-              id: 606,
+              id: 701,
               onchainInfo: {
                 totalAllocated: '50000000000000000000000',
                 totalClaimed: '1000000000000000000',
@@ -488,18 +565,17 @@ test('SuperfluidCampaignWidget entire action card is clickable and triggers the 
   page,
   context,
 }) => {
-  await stubExternalPopup(context, 'goodwallet.xyz')
-  await gotoStory(page, STORY_IDS.noWalletContent)
+  await stubExternalPopup(context, 'ubi.gd')
+  await gotoStory(page, STORY_IDS.standaloneLinksContent)
 
   // Click the card via its title text, away from the CTA button itself, to
-  // confirm the whole card (not just the button) is a click target. Uses
-  // Invite users since Vote on Flow State is now a closed/disabled action.
-  const cardTitle = page.getByText('Invite users').first()
+  // confirm the whole card (not just the button) is a click target.
+  const cardTitle = page.getByText('Buy AI Credits', { exact: true }).first()
   await expect(cardTitle).toBeVisible()
 
   const [newPage] = await Promise.all([context.waitForEvent('page'), cardTitle.click()])
   await newPage.waitForLoadState('domcontentloaded').catch(() => {})
-  expect(newPage.url()).toContain('goodwallet.xyz')
+  expect(newPage.url()).toContain('ubi.gd/3UFIqH3')
   await newPage.close()
 
   await page.screenshot({
@@ -512,50 +588,58 @@ test('SuperfluidCampaignWidget clicking the CTA button directly does not double-
   page,
   context,
 }) => {
-  await stubExternalPopup(context, 'goodwallet.xyz')
-  await gotoStory(page, STORY_IDS.noWalletContent)
+  await stubExternalPopup(context, 'ubi.gd')
+  await gotoStory(page, STORY_IDS.standaloneLinksContent)
 
-  const inviteButton = page.getByText('Invite', { exact: true }).first()
-  await expect(inviteButton).toBeVisible()
+  const subscribeButton = page.getByRole('button', { name: 'Subscribe', exact: true })
+  await expect(subscribeButton).toBeVisible()
 
   const pagesBefore = context.pages().length
-  const [newPage] = await Promise.all([context.waitForEvent('page'), inviteButton.click()])
+  const [newPage] = await Promise.all([context.waitForEvent('page'), subscribeButton.click()])
   await newPage.waitForLoadState('domcontentloaded').catch(() => {})
 
   // Give a duplicate-fire regression a moment to open a second tab before
   // asserting exactly one new page resulted from this single click.
   await page.waitForTimeout(300)
   expect(context.pages().length).toBe(pagesBefore + 1)
-  expect(newPage.url()).toContain('goodwallet.xyz')
+  expect(newPage.url()).toContain('ubi.gd/4AslL0c')
   await newPage.close()
 })
 
-test('SuperfluidCampaignWidget closed actions render disabled and non-interactive', async ({
+test('SuperfluidCampaignWidget "Coming up soon" actions render disabled, greyed and non-interactive', async ({
   page,
   context,
 }) => {
   await gotoStory(page, STORY_IDS.noWalletContent)
 
+  const inviteCard = page.getByTestId('ActionCard-layout-invite-users')
   const voteCard = page.getByTestId('ActionCard-layout-flow-state-vote')
   const fundingCard = page.getByTestId('ActionCard-layout-flow-state-funding')
+  await expect(inviteCard).toBeVisible()
   await expect(voteCard).toBeVisible()
   await expect(fundingCard).toBeVisible()
 
-  await expect(voteCard.getByText('Closed', { exact: true })).toBeVisible()
-  await expect(fundingCard.getByText('Closed', { exact: true })).toBeVisible()
-  await expect(page.getByLabel('Closed: Vote on Flow State')).toHaveAttribute(
+  for (const card of [inviteCard, voteCard, fundingCard]) {
+    await expect(card.getByText('Coming up soon', { exact: true })).toBeVisible()
+    // Disabled actions carry no link at all.
+    await expect(card.locator('a[href]')).toHaveCount(0)
+  }
+  await expect(page.getByLabel('Coming up soon: Invite users')).toHaveAttribute('aria-disabled', 'true')
+  await expect(page.getByLabel('Coming up soon: Vote on Flow State')).toHaveAttribute(
     'aria-disabled',
     'true',
   )
-  await expect(page.getByLabel('Closed: Fund GoodBuilders Season 4')).toHaveAttribute(
+  await expect(page.getByLabel('Coming up soon: Fund GoodBuilders Season 5')).toHaveAttribute(
     'aria-disabled',
     'true',
   )
+  // Points labels stay visible on disabled cards.
+  await expect(inviteCard.getByText(/PT/)).toBeVisible()
 
   const pagesBefore = context.pages().length
-  for (const card of [voteCard, fundingCard]) {
+  for (const card of [inviteCard, voteCard, fundingCard]) {
     await expect(card).not.toHaveAttribute('tabindex')
-    const closedButton = card.getByRole('button', { name: 'Closed' })
+    const closedButton = card.getByRole('button', { name: 'Coming up soon' })
     await expect(closedButton).toBeDisabled()
 
     await card.evaluate((element) => (element as HTMLElement).focus())
@@ -585,7 +669,7 @@ test('SuperfluidCampaignWidget closed actions render disabled and non-interactiv
     await page.keyboard.press('Tab')
     expect(
       await page.evaluate(
-        () => document.activeElement?.closest('[aria-label^="Closed:"]') !== null,
+        () => document.activeElement?.closest('[aria-label^="Coming up soon:"]') !== null,
       ),
     ).toBe(false)
   }
@@ -631,20 +715,167 @@ test('SuperfluidCampaignWidget claim keeps the Superfluid header and can be clos
   await expect(page.getByTestId('ActionCard-layout-claim-ubi')).toBeVisible()
 })
 
-test('SuperfluidCampaignWidget invite opens GoodWallet instead of the Citizen Claim widget', async ({
+test('SuperfluidCampaignWidget invite is disabled with no link and keeps its points label', async ({
   page,
   context,
 }) => {
-  await stubExternalPopup(context, 'goodwallet.xyz')
-  await gotoStory(page, STORY_IDS.noWalletContent)
+  await gotoStory(page, STORY_IDS.goodWalletLinksContent)
 
   const inviteCard = page.getByTestId('ActionCard-layout-invite-users')
-  const [newPage] = await Promise.all([context.waitForEvent('page'), inviteCard.click()])
-  await newPage.waitForLoadState('domcontentloaded').catch(() => {})
-  expect(newPage.url()).toContain('goodwallet.xyz/en/gooddollar')
-  await newPage.close()
+  await expect(inviteCard.getByRole('button', { name: 'Coming up soon' })).toBeDisabled()
+  await expect(inviteCard.locator('a[href]')).toHaveCount(0)
+
+  const pagesBefore = context.pages().length
+  await inviteCard.click({ force: true })
+  await page.waitForTimeout(100)
+  expect(context.pages().length).toBe(pagesBefore)
   await expect(page.getByLabel('Close claim widget')).not.toBeVisible()
 })
+
+test('SuperfluidCampaignWidget Buy AI Credits shows the minimum caption and Subscribe does not', async ({
+  page,
+}) => {
+  await gotoStory(page, STORY_IDS.noWalletContent)
+
+  const buyCard = page.getByTestId('ActionCard-layout-ai-credits-purchase')
+  await expect(buyCard.getByText('Make a one-time deposit in G$ to buy AI Credits.')).toBeVisible()
+  await expect(
+    buyCard.getByText('Minimum first deposit: $1. No minimum for subsequent deposits.'),
+  ).toBeVisible()
+  await expect(buyCard.getByText('1 PT PER 1K G$ (≈ $0.1)')).toBeVisible()
+  await expect(buyCard.getByRole('button', { name: 'Buy AI Credits' })).toBeEnabled()
+
+  const subscribeCard = page.getByTestId('ActionCard-layout-ai-credits-subscription')
+  await expect(
+    subscribeCard.getByText('Subscribe with a G$ stream to buy AI Credits continuously.'),
+  ).toBeVisible()
+  await expect(subscribeCard.getByText('2 PTS PER 1K G$ (≈ $0.1)')).toBeVisible()
+  await expect(subscribeCard.getByText(/Minimum/)).toHaveCount(0)
+  await expect(subscribeCard.getByRole('button', { name: 'Subscribe', exact: true })).toBeEnabled()
+
+  await page.screenshot({
+    path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-42-ai-credits-cards.png',
+    fullPage: true,
+  })
+})
+
+test('SuperfluidCampaignWidget Season 7 card copy for Vote on Flow State and Fund GoodBuilders', async ({
+  page,
+}) => {
+  await gotoStory(page, STORY_IDS.noWalletContent)
+
+  await expect(page.getByText('Vote to help allocate GoodBuilders Season 5 funding.')).toBeVisible()
+  await expect(page.getByText('Fund GoodBuilders Season 5', { exact: true }).first()).toBeVisible()
+  await expect(page.getByText('Start a stream to the GoodBuilders Season 5 pool.')).toBeVisible()
+  await expect(page.getByText('Season 4')).toHaveCount(0)
+})
+
+test('SuperfluidCampaignWidget FAQ reflects the Season 7 questions', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.noWalletContent)
+  await page.getByText('FAQ', { exact: true }).first().click()
+
+  const expectedQuestions = [
+    'Can I earn points for inviting users?',
+    'How can I earn points by buying AI Credits?',
+    'What can I do with AI Credits?',
+    'Why are some actions marked ‘Coming up soon’?',
+  ]
+  for (const question of expectedQuestions) {
+    await expect(page.getByText(question, { exact: true })).toBeVisible()
+  }
+  const removedQuestions = [
+    'Why are Vote on Flow State and Funding closed?',
+    'When did Ecosystem action points restart?',
+    'Are Ecosystem actions still earning points?',
+    'How do Flow State voting points work?',
+  ]
+  for (const question of removedQuestions) {
+    await expect(page.getByText(question, { exact: true })).toHaveCount(0)
+  }
+
+  await page.getByText('Can I earn points for inviting users?', { exact: true }).click()
+  await expect(
+    page.getByText('Invite rewards are coming up soon. Invites are currently not eligible for Season 7 points.'),
+  ).toBeVisible()
+})
+
+const LINK_STORIES = [
+  {
+    key: 'standalone',
+    storyUrl: STORY_IDS.standaloneLinksContent,
+    claimSup: 'https://ubi.gd/4iN7RhK',
+    buy: 'https://ubi.gd/3UFIqH3',
+    subscribe: 'https://ubi.gd/4AslL0c',
+    donate: 'https://ubi.gd/4eunQAd',
+    stream: 'https://ubi.gd/4zEWvDW',
+    claimUbi: 'https://ubi.gd/4BTD7Vb',
+    screenshotIndex: 43,
+  },
+  {
+    key: 'goodwallet',
+    storyUrl: STORY_IDS.goodWalletLinksContent,
+    claimSup: 'https://ubi.gd/4sR6vY1',
+    buy: 'https://ubi.gd/4sRkCwz',
+    subscribe: 'https://ubi.gd/4Ap8chU',
+    donate: 'https://ubi.gd/4zzqRrj',
+    stream: 'https://ubi.gd/4C02hl6',
+    claimUbi: 'https://ubi.gd/3UuQxWV',
+    screenshotIndex: 44,
+  },
+]
+
+for (const linkStory of LINK_STORIES) {
+  test(`SuperfluidCampaignWidget ${linkStory.key} version uses its own tracking links`, async ({
+    page,
+    context,
+  }) => {
+    await stubExternalPopup(context, 'ubi.gd')
+    await gotoStory(page, linkStory.storyUrl)
+    await page.getByText('FAQ', { exact: true }).first().click()
+
+    // Claim SUP CTA opens the integrator's tracked URL.
+    const [claimSupPage] = await Promise.all([
+      context.waitForEvent('page'),
+      page.getByText('Claim SUP rewards').first().click(),
+    ])
+    await claimSupPage.waitForLoadState('domcontentloaded').catch(() => {})
+    expect(claimSupPage.url()).toContain(linkStory.claimSup.replace('https://', ''))
+    await claimSupPage.close()
+
+    // The FAQ "Learn more and get started" link mirrors the Buy AI Credits link.
+    await page.getByText('What can I do with AI Credits?', { exact: true }).click()
+    const learnMoreLink = page.getByRole('link', { name: 'Learn more and get started' })
+    await expect(learnMoreLink).toHaveAttribute('href', linkStory.buy)
+
+    await page.screenshot({
+      path: `tests/widgets/superfluid-campaign-widget/test-results/scw-${linkStory.screenshotIndex}-${linkStory.key}-links-content.png`,
+      fullPage: true,
+    })
+  })
+
+  for (const [actionName, actionTestId, buttonName, expectedUrl] of [
+    ['Buy AI Credits', 'ai-credits-purchase', 'Buy AI Credits', linkStory.buy],
+    ['Subscribe', 'ai-credits-subscription', 'Subscribe', linkStory.subscribe],
+    ['Donate', 'gardens-donation', 'Donate', linkStory.donate],
+    ['Stream', 'gardens-funding', 'Fund', linkStory.stream],
+  ] as const) {
+    test(`SuperfluidCampaignWidget ${linkStory.key} ${actionName} card and button open ${expectedUrl}`, async ({
+      page,
+      context,
+    }) => {
+      await stubExternalPopup(context, 'ubi.gd')
+      await gotoStory(page, linkStory.storyUrl)
+
+      const layout = page.getByTestId(`ActionCard-layout-${actionTestId}`)
+      for (const trigger of [layout.getByRole('button', { name: buttonName, exact: true }), layout]) {
+        const [newPage] = await Promise.all([context.waitForEvent('page'), trigger.click()])
+        await newPage.waitForLoadState('domcontentloaded').catch(() => {})
+        expect(newPage.url()).toContain(expectedUrl.replace('https://', ''))
+        await newPage.close()
+      }
+    })
+  }
+}
 
 // Narrow-viewport regression suite for the header "Connect wallet" CTA, covering
 // both Content view's CampaignHeader and Leaderboard view's own (separately
@@ -708,7 +939,7 @@ for (const { width, label } of HEADER_WRAP_BREAKPOINTS) {
     await gotoStory(page, STORY_IDS.noWalletContent)
 
     const actionLayouts = page.locator('[data-testid^="ActionCard-layout-"]')
-    await expect(actionLayouts).toHaveCount(6)
+    await expect(actionLayouts).toHaveCount(8)
 
     // Every supported phone width is below the shared 480px $sm breakpoint.
     // The description and action footer must therefore stack instead of
@@ -726,7 +957,7 @@ for (const { width, label } of HEADER_WRAP_BREAKPOINTS) {
 
     // No CTA may be silently cut off by the card's rounded overflow boundary.
     const clippedButtons = await findClippedButtons(page)
-    for (const actionLabel of ['Claim', 'Invite', 'Vote', 'Fund', 'Donate']) {
+    for (const actionLabel of ['Claim', 'Coming up soon', 'Buy AI Credits', 'Subscribe', 'Donate']) {
       expect(clippedButtons).not.toContain(actionLabel)
     }
   })
@@ -739,7 +970,7 @@ test('SuperfluidCampaignWidget action cards retain their desktop row above 480px
   await gotoStory(page, STORY_IDS.noWalletContent)
 
   const actionLayouts = page.locator('[data-testid^="ActionCard-layout-"]')
-  await expect(actionLayouts).toHaveCount(6)
+  await expect(actionLayouts).toHaveCount(8)
   for (const layout of await actionLayouts.all()) {
     await expect(layout).toHaveCSS('flex-direction', 'row')
   }

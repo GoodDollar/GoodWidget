@@ -1,5 +1,15 @@
 import React from 'react'
-import { Anchor, Badge, BadgeText, Card, Text, XStack, YStack } from '@goodwidget/ui'
+import {
+  Badge,
+  BadgeText,
+  Button,
+  Card,
+  Icon,
+  Text,
+  XStack,
+  YStack,
+  createToast,
+} from '@goodwidget/ui'
 import type { ActivityType, LeaderboardEntry } from '../widgetRuntimeContract'
 import { ActivityIcons } from './ActivityIcons'
 import { truncateAddress } from './shared/styles'
@@ -7,7 +17,7 @@ import { truncateAddress } from './shared/styles'
 /** Shared by the header and rows so every table column has one stable width. */
 export const LEADERBOARD_COLUMN_WIDTHS = {
   rank: 42,
-  address: 110,
+  address: 150,
   points: 100,
   actions: 160,
 } as const
@@ -17,7 +27,7 @@ export const LEADERBOARD_COLUMN_WIDTHS = {
  * can make the available content width smaller than this, so the parent table
  * scrolls horizontally instead of allowing points or badges to overlap.
  */
-export const LEADERBOARD_ROW_MIN_WIDTH = 480
+export const LEADERBOARD_ROW_MIN_WIDTH = 520
 
 interface LeaderboardRowProps {
   entry: LeaderboardEntry
@@ -27,7 +37,7 @@ interface LeaderboardRowProps {
 }
 
 /**
- * One leaderboard row: rank, linked address/ENS, points, and the active
+ * One leaderboard row: rank, address/ENS with a copy button, points, and the active
  * campaign's activity icons.
  *
  * Every viewport uses the same four inline table columns. Below $sm, the
@@ -35,6 +45,16 @@ interface LeaderboardRowProps {
  */
 export function LeaderboardRow({ entry, isCurrentUser = false, activities }: LeaderboardRowProps) {
   const addressLabel = entry.ensName ?? truncateAddress(entry.address)
+
+  // Always copies the full address, even when the row displays a truncated address or ENS name.
+  const handleCopyAddress = async () => {
+    try {
+      await navigator.clipboard.writeText(entry.address)
+      createToast({ message: 'Address copied', status: 'success' })
+    } catch {
+      createToast({ message: 'Could not copy address', status: 'error' })
+    }
+  }
 
   return (
     <Card
@@ -58,9 +78,16 @@ export function LeaderboardRow({ entry, isCurrentUser = false, activities }: Lea
         width={LEADERBOARD_COLUMN_WIDTHS.address}
         flexShrink={0}
       >
-        <Anchor href={`https://explorer.superfluid.org/base-mainnet/accounts/${entry.address}`}>
-          {addressLabel}
-        </Anchor>
+        <Text>{addressLabel}</Text>
+        <Button
+          size="sm"
+          variant="ghost"
+          iconSize="sm"
+          onPress={handleCopyAddress}
+          aria-label={`Copy address ${entry.address}`}
+        >
+          <Icon name="copy" size="sm" />
+        </Button>
         {isCurrentUser && (
           <Badge type="info">
             <BadgeText>You</BadgeText>

@@ -17,7 +17,8 @@ export type SuperfluidCampaignWidgetEnvironment = 'production' | 'staging' | 'de
 export type SuperfluidCampaignView = 'content' | 'leaderboard'
 
 // ---------------------------------------------------------------------------
-// The six eligible activity types (#127 "Activity icons" section).
+// The eight eligible activity types (#127 "Activity icons" section, plus the
+// AntSeed AI Credits purchase and subscription actions added for Season 7).
 // Exact icon glyph/color mapping is fixed by the approved spec, not themeable.
 // ---------------------------------------------------------------------------
 export type ActivityType =
@@ -27,6 +28,8 @@ export type ActivityType =
   | 'flow-state-funding'
   | 'gardens-donation'
   | 'gardens-funding'
+  | 'ai-credits-purchase'
+  | 'ai-credits-subscription'
 
 export type ActivityIconColorVariant = 'blue' | 'green'
 
@@ -35,7 +38,7 @@ export interface ActivityIconSpec {
   /** Icon glyph name, resolved against @goodwidget/ui's Icon registry. */
   iconName: string
   colorVariant: ActivityIconColorVariant
-  /** Accessible label, also used as a tooltip on the done/not-done glyph. */
+  /** Accessible label, also shown as the tooltip on the done/not-done glyph. */
   label: string
 }
 
@@ -51,31 +54,43 @@ export const ACTIVITY_ICON_MAP: Record<ActivityType, ActivityIconSpec> = {
     activity: 'invite-users',
     iconName: 'person-plus',
     colorVariant: 'blue',
-    label: 'Successful invite',
+    label: 'Invite users',
   },
   'flow-state-vote': {
     activity: 'flow-state-vote',
     iconName: 'megaphone',
     colorVariant: 'blue',
-    label: 'Flow State vote',
+    label: 'Vote on Flow State',
   },
   'flow-state-funding': {
     activity: 'flow-state-funding',
     iconName: 'stream',
     colorVariant: 'blue',
-    label: 'Flow State funding stream',
+    label: 'Fund GoodBuilders Season 5',
   },
   'gardens-donation': {
     activity: 'gardens-donation',
     iconName: 'hand-coin',
     colorVariant: 'green',
-    label: 'Gardens one-time donation',
+    label: 'Make a one-time donation',
   },
   'gardens-funding': {
     activity: 'gardens-funding',
     iconName: 'stream',
     colorVariant: 'green',
-    label: 'Gardens funding stream',
+    label: 'Stream to a Community Pool',
+  },
+  'ai-credits-purchase': {
+    activity: 'ai-credits-purchase',
+    iconName: 'shopping-cart',
+    colorVariant: 'blue',
+    label: 'Buy AI Credits',
+  },
+  'ai-credits-subscription': {
+    activity: 'ai-credits-subscription',
+    iconName: 'stream',
+    colorVariant: 'blue',
+    label: 'Subscribe to AI Credits',
   },
 }
 
@@ -106,6 +121,8 @@ export interface CampaignActionDefinition {
   title: string
   source: string
   description: string
+  /** Optional caption rendered under the description, e.g. a minimum-deposit note. */
+  minimumInfo?: string
   pointsLabel: string
   ctaLabel: string
   ctaKind: CampaignActionCtaKind
@@ -155,6 +172,12 @@ export interface LeaderboardSummaryData {
 export interface FaqAnswerLinkSegment {
   text: string
   href: string
+  /**
+   * When set, the `actionLinks` override for this activity replaces `href`, so a
+   * link that mirrors an action card (e.g. "Learn more and get started" for Buy AI
+   * Credits) uses the same integrator-specific destination as that card.
+   */
+  actionLinkActivity?: ActivityType
 }
 
 export type FaqAnswerSegment = string | FaqAnswerLinkSegment
@@ -180,8 +203,6 @@ export interface CampaignDefinition {
   /** Optional fixed campaign copy; mock fixtures use this for visual-state coverage. */
   supAllocatedLabel?: string
   endsLabel: string
-  /** Optional callout shown under the title in the main content view, e.g. a season-ended notice. */
-  notice?: string
   pools: CampaignPoolDefinition[]
   faq: FaqItemDefinition[]
 }
@@ -251,6 +272,11 @@ export interface SuperfluidCampaignWidgetProps {
    * opens the embedded CitizenClaimWidget when claiming is enabled.
    */
   actionLinks?: CampaignActionLinkOverrides
+  /**
+   * Destination of the header's "Claim SUP rewards" button. Integrators use this
+   * to point at their own tracked link; defaults to https://claim.superfluid.org/.
+   */
+  claimRewardsUrl?: string
   /** Passed through to the embedded CitizenClaimWidget for the Claim CTA. */
   citizenClaimEnvironment?: CitizenClaimWidgetEnvironment
   /** Optional wallet-owned, chain-specific clients for parallel custodial claims. */

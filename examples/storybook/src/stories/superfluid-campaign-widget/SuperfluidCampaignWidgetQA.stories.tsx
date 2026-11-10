@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { MockSuperfluidCampaignWidget } from '@goodwidget/superfluid-campaign-widget/mocked'
 import {
+  GOODWALLET_STORY_LINKS,
+  STANDALONE_STORY_LINKS,
   CustodialLocalFixtureStory,
   NoWalletLeaderboardStory,
   NoWalletStory,
@@ -31,6 +33,28 @@ export const NoWalletContent: Story = {
 
 export const NoWalletLeaderboard: Story = {
   render: ({ defaultTheme }) => <NoWalletStory defaultTheme={defaultTheme} initialView="leaderboard" />,
+}
+
+// Season 7 integrator link sets: the standalone app and the GoodWallet-hosted widget
+// use different tracked links for the same cards.
+export const StandaloneLinksContent: Story = {
+  render: ({ defaultTheme }) => (
+    <NoWalletStory
+      defaultTheme={defaultTheme}
+      initialView="content"
+      {...STANDALONE_STORY_LINKS}
+    />
+  ),
+}
+
+export const GoodWalletLinksContent: Story = {
+  render: ({ defaultTheme }) => (
+    <NoWalletStory
+      defaultTheme={defaultTheme}
+      initialView="content"
+      {...GOODWALLET_STORY_LINKS}
+    />
+  ),
 }
 
 export const CustodialLocalFixtureContent: Story = {
