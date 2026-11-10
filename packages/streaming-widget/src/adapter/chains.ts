@@ -45,12 +45,17 @@ export function createStreamingPublicClient(
   })
   return createPublicClient({
     chain,
-    transport: custom({
-      async request(args) {
-        const resolved = await clientPromise
-        return resolved.transport.request(args)
+    transport: custom(
+      {
+        async request(args) {
+          const resolved = await clientPromise
+          return resolved.transport.request(args)
+        },
       },
-    }),
+      {
+        retryCount: 0,
+      },
+    ),
   })
 }
 
