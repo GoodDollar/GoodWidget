@@ -274,10 +274,12 @@ export function MockClaimExecutionWidgetStory({
   nextTaskProps,
   singleChain = false,
   allFail = false,
+  partialSuccess = false,
 }: {
   nextTaskProps?: CitizenClaimNextTaskProps
   singleChain?: boolean
   allFail?: boolean
+  partialSuccess?: boolean
 } = {}) {
   const claimExecution = useMemo(() => {
     if (singleChain) {
@@ -285,11 +287,17 @@ export function MockClaimExecutionWidgetStory({
         42220: createMockClaimExecutionClientBundle(42220, allFail),
       })
     }
+    if (partialSuccess) {
+      return createCitizenClaimWidgetCustodialExecution({
+        42220: createMockClaimExecutionClientBundle(42220, false),
+        122: createMockClaimExecutionClientBundle(122, true),
+      })
+    }
     return createCitizenClaimWidgetCustodialExecution({
       42220: createMockClaimExecutionClientBundle(42220, allFail),
       122: createMockClaimExecutionClientBundle(122, allFail),
     })
-  }, [singleChain, allFail])
+  }, [singleChain, allFail, partialSuccess])
 
   const provider = useMemo(() => {
     return createCustodialEip1193Provider()

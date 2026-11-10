@@ -625,6 +625,8 @@ test('NextTaskModal Anchor mode: the CTA is a link to ctaTarget and pressing it 
   await frame.getByTestId('NextTaskModal-open').click()
   const cta = frame.getByRole('link', { name: 'Open Proposal' })
   await expect(cta).toHaveAttribute('href', NEXT_TASK_CTA_TARGET)
+  await expect(cta.locator('button')).toHaveCount(0)
+  await expect(frame.getByRole('button', { name: 'Open Proposal' })).toHaveCount(0)
   // Navigation is blocked at the document level (after React's handler) so the test stays on the page.
   await frame.locator('body').evaluate((body) => {
     body.ownerDocument.addEventListener('click', (event) => {
@@ -700,4 +702,31 @@ test('NextTaskModal RealisticLongCopy story scrolls and keeps actions accessible
   const skip = frame.getByRole('button', { name: 'Remind me tomorrow' })
   await skip.scrollIntoViewIfNeeded()
   await expect(skip).toBeVisible()
+})
+
+test('NextTaskModal host mode: double-press during pending navigation calls handler once, and retrying after failure succeeds', async ({
+  page,
+}) => {
+  await gotoStory(page, 'design-system-primitives-nexttaskmodal--navigation-pending-and-retry')
+  const frame = getStoryFrame(page)
+  await frame.getByTestId('NextTaskModal-open').click()
+  const cta = frame.getByRole('button', { name: 'Open Proposal' })
+
+  // Double-press quickly while first navigation is pending
+  await cta.click({ noWaitAfter: true })
+  await cta.click({ noWaitAfter: true })
+
+  // Error toast appears after delay, drawer remains open
+  await expect(frame.getByText('Could not open this link. Please try again.')).toBeVisible()
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
+
+  // resolveNavigation was only called once despite double press
+  const callCountAfterFirstAttempt = await frame.locator('body').evaluate((body) => body.dataset.nextTaskCallCount)
+  expect(callCountAfterFirstAttempt).toBe('1')
+
+  // Retry after failure: second press succeeds
+  await cta.click()
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('closed')
+  const callCountAfterRetry = await frame.locator('body').evaluate((body) => body.dataset.nextTaskCallCount)
+  expect(callCountAfterRetry).toBe('2')
 })

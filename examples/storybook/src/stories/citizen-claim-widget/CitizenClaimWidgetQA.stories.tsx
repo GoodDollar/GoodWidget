@@ -84,18 +84,40 @@ export const CustodialLocalFixtureWithNextTask: Story = {
   ),
 }
 
+const mockNextTaskProps = {
+  nextTaskContent,
+  nextTaskResolveNavigation: (ctaTarget: string) => {
+    if (typeof document !== 'undefined') {
+      document.body.dataset.nextTaskNavigated = ctaTarget
+    }
+    console.info('[next-task] host navigates to', ctaTarget)
+  },
+  onNextTaskShown: (payload: { contentId?: string }) => {
+    if (typeof document !== 'undefined') {
+      document.body.dataset.nextTaskLastEvent = `shown:${payload.contentId ?? ''}`
+    }
+    console.info('[next-task] shown', payload)
+  },
+  onNextTaskClicked: (payload: { ctaTarget: string }) => {
+    if (typeof document !== 'undefined') {
+      document.body.dataset.nextTaskLastEvent = `clicked:${payload.ctaTarget}`
+    }
+    console.info('[next-task] clicked', payload)
+  },
+  onNextTaskDismissed: (payload: { reason: string }) => {
+    if (typeof document !== 'undefined') {
+      document.body.dataset.nextTaskLastEvent = `dismissed:${payload.reason}`
+    }
+    console.info('[next-task] dismissed', payload)
+  },
+}
+
 export const MockClaimExecutionWithNextTask: Story = {
-  render: () => (
-    <MockClaimExecutionWidgetStory
-      nextTaskProps={{
-        nextTaskContent,
-        nextTaskResolveNavigation: (ctaTarget) => console.info('[next-task] host navigates to', ctaTarget),
-        onNextTaskShown: (payload) => console.info('[next-task] shown', payload),
-        onNextTaskClicked: (payload) => console.info('[next-task] clicked', payload),
-        onNextTaskDismissed: (payload) => console.info('[next-task] dismissed', payload),
-      }}
-    />
-  ),
+  render: () => <MockClaimExecutionWidgetStory nextTaskProps={mockNextTaskProps} />,
+}
+
+export const MockClaimExecutionPartialSuccessWithNextTask: Story = {
+  render: () => <MockClaimExecutionWidgetStory partialSuccess nextTaskProps={mockNextTaskProps} />,
 }
 
 export const MockClaimExecutionSingleChainWithNextTask: Story = {

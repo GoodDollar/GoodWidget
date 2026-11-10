@@ -345,3 +345,29 @@ export const CustomCopy: Story = {
 export const RealisticLongCopy: Story = {
   render: () => <ControlledHarness content={contentWithRealisticLongCopy} testID="NextTaskModal-long-copy" />,
 }
+
+/** A slow handler that fails first time and succeeds second time, for testing double-press guard and retry. */
+export const NavigationPendingAndRetry: Story = {
+  render: () => {
+    let callCount = 0
+    let shouldFail = true
+    return (
+      <ControlledHarness
+        content={contentWithImage}
+        testID="NextTaskModal-pending-retry"
+        resolveNavigation={async () => {
+          callCount++
+          if (typeof document !== 'undefined') {
+            document.body.dataset.nextTaskCallCount = String(callCount)
+          }
+          if (shouldFail) {
+            shouldFail = false
+            await new Promise((resolve) => setTimeout(resolve, 200))
+            throw new Error('temporary failure')
+          }
+          await new Promise((resolve) => setTimeout(resolve, 200))
+        }}
+      />
+    )
+  },
+}

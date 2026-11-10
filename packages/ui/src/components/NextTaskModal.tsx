@@ -128,12 +128,13 @@ export function NextTaskModal({
   // The drawer stays open so the user can retry or dismiss.
   const handleHostNavigationPress = useCallback(async () => {
     if (!content || !resolveNavigation || hasResolvedRef.current) return
+    hasResolvedRef.current = true
     invokeHostCallbackSafely('onClicked', onClicked, { ctaTarget: content.ctaTarget })
     try {
       await resolveNavigation(content.ctaTarget)
-      hasResolvedRef.current = true
       onClose()
     } catch {
+      hasResolvedRef.current = false
       createToast({ message: NAVIGATION_FAILED_TOAST_MESSAGE, status: 'error' })
     }
   }, [content, resolveNavigation, onClicked, onClose])
@@ -214,7 +215,14 @@ export function NextTaskModal({
             onPress={handleAnchorPress}
             style={{ width: '100%', textDecoration: 'none' }}
           >
-            <Button variant="primary" fullWidth pointerEvents="none">
+            <Button
+              variant="primary"
+              fullWidth
+              tag="span"
+              role="presentation"
+              tabIndex={-1}
+              pointerEvents="none"
+            >
               <ButtonText>{content.ctaLabel}</ButtonText>
             </Button>
           </Anchor>
