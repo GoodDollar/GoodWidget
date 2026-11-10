@@ -37,7 +37,7 @@ function ExplorerLink({ href, children }: { href: string | null; children: strin
   return (
     <Anchor href={href}>
       <XStack alignItems="center" gap="$1">
-        <Text>{children}</Text>
+        <Text color="$primary">{children}</Text>
         <Icon name="external-link" size="xs" color="primary" />
       </XStack>
     </Anchor>

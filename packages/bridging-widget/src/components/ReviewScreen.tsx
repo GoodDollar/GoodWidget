@@ -93,7 +93,7 @@ export function ReviewScreen({
             />
             <DetailRow
               label="Estimated provider fee"
-              value={`${formatChargedProviderFee(quote.fee, fromChainId)} (native token)`}
+              value={formatChargedProviderFee(quote.fee, fromChainId)}
             />
             <DetailRow label="Estimated G$ received" value={`${amountReceived} G$`} />
           </RouteSelectionCard>
@@ -107,7 +107,7 @@ export function ReviewScreen({
           <Separator />
 
           <XStack gap="$2">
-            <Button flex={1} variant="secondary" onPress={onClose}>
+            <Button flex={1} height={54} variant="secondary" onPress={onClose}>
               <ButtonText>Cancel</ButtonText>
             </Button>
             <Button

@@ -16,6 +16,8 @@ type FixtureWindow = Window & {
     holdBridge: () => void
     releaseBridge: () => void
     failNextBridgeWithRevert: () => void
+    revertNextBridgeReceipt: () => void
+    failNextApprovalWithRevert: () => void
     setAccount: (address: string | null) => void
     setWalletChain: (chainId: number) => void
     failNextHistoryRefresh: () => void
@@ -242,6 +244,41 @@ test('doBridge revert retains the transaction-specific hint', async ({ page }) =
     'Bridge transaction reverted on-chain. Try a smaller amount.',
   )
   expect((await events(page)).filter((event) => event.kind === 'doBridge')).toHaveLength(1)
+})
+
+test('reverted bridge receipt is a failed submission, not pending delivery', async ({ page }) => {
+  await prepareRoute(page)
+  await page.evaluate(() => (window as FixtureWindow).__bridgingWidgetFixture?.revertNextBridgeReceipt())
+  await page.getByTestId('BridgingWidget-review-confirm').click()
+  await expect(page.getByTestId('BridgingWidget-confirm-modal')).toContainText(
+    'Bridge transaction reverted on-chain. Try a smaller amount.',
+  )
+  await expect(page.getByTestId('BridgingWidget-confirm-retry')).toBeVisible()
+  expect((await events(page)).filter((event) => event.kind === 'history-status')).toHaveLength(0)
+})
+
+test('approval revert stays on the approval step', async ({ page }) => {
+  await prepareRoute(page)
+  await page.evaluate(() => (window as FixtureWindow).__bridgingWidgetFixture?.failNextApprovalWithRevert())
+  await page.getByTestId('BridgingWidget-review-confirm').click()
+  await expect(page.getByTestId('BridgingWidget-confirm-modal')).toContainText(
+    'Token approval failed on-chain. Please approve and try again.',
+  )
+  await expect(page.getByTestId('BridgingWidget-confirm-retry')).toBeVisible()
+})
+
+test('open history detail follows a pending transfer through delivery', async ({ page }) => {
+  await page.clock.install()
+  await gotoFixture(page, 'history')
+  await page.getByText('History', { exact: true }).first().click()
+  await expect(page.getByTestId('BridgingWidget-history-row')).toContainText('pending')
+  await page.getByTestId('BridgingWidget-history-row').click()
+  await expect(page.getByTestId('BridgingWidget-history-detail')).toContainText('Bridging in progress')
+
+  await page.evaluate(() => (window as FixtureWindow).__bridgingWidgetFixture?.markDelivered())
+  await page.clock.fastForward(15_000)
+  await expect(page.getByTestId('BridgingWidget-history-detail')).toContainText('Bridge complete')
+  await expect(page.getByTestId('BridgingWidget-history-detail').getByRole('link', { name: /Destination transaction/ })).toBeVisible()
 })
 
 test('failed history refresh still lets the pending-status poll complete delivery', async ({ page }) => {

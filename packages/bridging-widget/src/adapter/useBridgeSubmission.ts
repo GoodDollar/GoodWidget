@@ -8,6 +8,7 @@ import type {
   TransactionStatus,
 } from '@goodsdks/bridging-sdk'
 import { mapBridgeError } from './errors'
+import { requireSuccessfulReceipt } from './receipts'
 
 export type BridgeSubmissionStep = 'idle' | 'approving' | 'bridging' | 'completed' | 'failed'
 
@@ -99,6 +100,7 @@ export function useBridgeSubmission({ sdk }: UseBridgeSubmissionArgs): BridgeSub
           }
         })
         if (requestIdRef.current !== requestId) return
+        requireSuccessfulReceipt(receipt, 'bridge')
         setState((current) => ({
           ...current,
           step: 'completed',
@@ -123,8 +125,15 @@ export function useBridgeSubmission({ sdk }: UseBridgeSubmissionArgs): BridgeSub
           failedAtStep: lastInFlightStepRef.current,
           error: mapBridgeError(
             err,
-            doBridgeStarted ? 'Bridge transaction failed.' : 'Unable to prepare bridge. Please try again.',
+            doBridgeStarted
+              ? lastInFlightStepRef.current === 'approving'
+                ? 'Token approval failed. Please try again.'
+                : lastInFlightStepRef.current === 'bridging'
+                  ? 'Bridge transaction failed.'
+                  : 'Unable to prepare bridge. Please try again.'
+              : 'Unable to prepare bridge. Please try again.',
             doBridgeStarted ? 'transaction' : 'other',
+            lastInFlightStepRef.current,
           ),
           receipt: null,
         })

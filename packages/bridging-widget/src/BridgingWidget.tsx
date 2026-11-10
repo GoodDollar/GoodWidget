@@ -8,10 +8,11 @@ import type {
   BridgingWidgetAdapterResult,
   BridgingWidgetProps,
   BridgingWidgetTab,
+  BridgingRpcUrls,
 } from './widgetRuntimeContract'
 
-function BridgingWidgetRuntime() {
-  const adapter = useBridgingAdapter()
+function BridgingWidgetRuntime({ rpcUrls }: { rpcUrls?: BridgingRpcUrls }) {
+  const adapter = useBridgingAdapter(rpcUrls)
 
   return <BridgingWidgetView adapter={adapter} />
 }
@@ -46,6 +47,7 @@ export function BridgingWidgetPreview({
 
 export function BridgingWidget({
   provider,
+  rpcUrls,
   themeOverrides,
   config,
   defaultTheme = 'dark',
@@ -57,7 +59,7 @@ export function BridgingWidget({
       themeOverrides={themeOverrides}
       defaultTheme={defaultTheme}
     >
-      <BridgingWidgetRuntime />
+      <BridgingWidgetRuntime rpcUrls={rpcUrls} />
       <ToastContainer />
     </GoodWidgetProvider>
   )

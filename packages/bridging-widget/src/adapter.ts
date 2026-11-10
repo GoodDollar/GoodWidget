@@ -7,6 +7,7 @@ import type {
   BridgingWidgetAdapterActions,
   BridgingWidgetAdapterResult,
   BridgingWidgetAdapterState,
+  BridgingRpcUrls,
 } from './widgetRuntimeContract'
 import { getRouteProtocols } from './adapter/bridgeRoutes'
 import { useBridgingPublicClients, useBridgingSdk } from './adapter/bridgingClient'
@@ -19,7 +20,7 @@ import { useBridgeHistory } from './adapter/useBridgeHistory'
 import { useBridgeQuote } from './adapter/useBridgeQuote'
 import { useBridgeSubmission } from './adapter/useBridgeSubmission'
 
-export function useBridgingAdapter(): BridgingWidgetAdapterResult {
+export function useBridgingAdapter(rpcUrls?: BridgingRpcUrls): BridgingWidgetAdapterResult {
   const { address, chainId, isConnected, provider, connect, switchChain } = useWallet()
   const walletAddress = (address as Address | null) ?? null
   const [selectedSourceChainId, setSelectedSourceChainId] = useState<number | null>(null)
@@ -33,9 +34,9 @@ export function useBridgingAdapter(): BridgingWidgetAdapterResult {
   const [selectedProtocol, setSelectedProtocol] = useState<BridgeProtocol | null>(null)
   const [inputAmount, setInputAmountRaw] = useState('')
   const [isReviewOpen, setIsReviewOpen] = useState(false)
-  const [selectedHistoryTransaction, setSelectedHistoryTransaction] = useState<BridgeTransaction | null>(null)
+  const [selectedHistoryHash, setSelectedHistoryHash] = useState<BridgeTransaction['hash'] | null>(null)
 
-  const publicClients = useBridgingPublicClients()
+  const publicClients = useBridgingPublicClients(rpcUrls)
   const sdk = useBridgingSdk({ provider, chainId: activeChainId, publicClients })
   const historySdk = useBridgingSdk({ provider: null, chainId: BRIDGING_CHAINS.CELO, publicClients })
   const submission = useBridgeSubmission({ sdk })
@@ -63,7 +64,7 @@ export function useBridgingAdapter(): BridgingWidgetAdapterResult {
     setSelectedProtocol(null)
     setInputAmountRaw('')
     setIsReviewOpen(false)
-    setSelectedHistoryTransaction(null)
+    setSelectedHistoryHash(null)
     submission.cancelPreparation()
     if (submission.step === 'failed') submission.reset()
   }, [walletAddress, activeChainId])
@@ -200,10 +201,14 @@ export function useBridgingAdapter(): BridgingWidgetAdapterResult {
   }, [submission.step, submission.reset, history.refresh])
 
   const viewHistoryTransaction = useCallback((transaction: BridgeTransaction) => {
-    setSelectedHistoryTransaction(transaction)
+    setSelectedHistoryHash(transaction.hash)
   }, [])
 
-  const closeHistoryTransaction = useCallback(() => setSelectedHistoryTransaction(null), [])
+  const closeHistoryTransaction = useCallback(() => setSelectedHistoryHash(null), [])
+
+  const selectedHistoryTransaction = selectedHistoryHash === null
+    ? null
+    : history.transactions.find((transaction) => transaction.hash === selectedHistoryHash) ?? null
 
   // Explorer links are protocol/chain-specific URL construction that only the
   // SDK instance knows how to build; the UI layer gets a ready-to-use string.

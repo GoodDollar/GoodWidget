@@ -152,7 +152,7 @@ function createAdapter(
     submissionSourceExplorerLink: null,
     submissionProviderExplorerLink: null,
     submissionDestinationExplorerLink: null,
-    historyTransactions: sampleHistory,
+    historyTransactions: [...sampleHistory].sort((a, b) => b.timestamp - a.timestamp),
     isHistoryLoading: false,
     historyError: null,
     isHistoryPartial: false,

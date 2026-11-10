@@ -4,5 +4,5 @@ import type React from 'react'
 
 export const BridgingWidgetElement = createMiniAppElement(
   BridgingWidget as React.ComponentType<Record<string, unknown>>,
-  { shadow: true, defaultTheme: 'dark', events: [] },
+  { shadow: true, defaultTheme: 'dark', props: { rpcUrls: 'property' }, events: [] },
 )

@@ -2,6 +2,7 @@ import React from 'react'
 import { ButtonText, Heading, Icon, Text, XStack, YStack, getChainDisplayName } from '@goodwidget/ui'
 import type { BridgeConfig, BridgeFeeQuote, BridgeProtocol, BridgeRequirement } from '@goodsdks/bridging-sdk'
 import { getBridgeTargetChains } from '../adapter/bridgeRoutes'
+import { primaryRequirementMessage } from '../adapter/errors'
 import { BRIDGING_CHAINS } from '../widgetRuntimeContract'
 import { AmountEntry } from './AmountEntry'
 import { FeeBreakdown } from './FeeBreakdown'
@@ -69,6 +70,17 @@ export function BridgeTab({
   const targetOptions = getBridgeTargetChains(chainId)
   const hasTarget = targetChainId !== null
   const isRouteSupported = availableProtocols.length > 0
+  const reviewDisabledReason = !inputAmount
+    ? 'Enter an amount to continue.'
+    : isBridgeConfigLoading
+      ? 'Loading balance and limits.'
+      : bridgeConfigError
+        ? bridgeConfigError
+        : quoteStatus === 'loading'
+          ? 'Fetching quote…'
+          : quoteStatus === 'error'
+            ? quoteError ?? 'Unable to fetch a quote for this amount.'
+            : primaryRequirementMessage(requirements) ?? 'A valid quote is required before review.'
   const chainOptions = (chains: number[]) => chains.map((id) => ({
     value: String(id),
     label: getChainDisplayName(id),
@@ -140,6 +152,7 @@ export function BridgeTab({
                 height="auto"
                 minWidth={0}
                 minHeight="$12"
+                borderRadius="$3"
                 paddingVertical="$3"
                 aria-pressed={selectedProtocol === protocol}
               >
@@ -195,16 +208,24 @@ export function BridgeTab({
             >
               <ButtonText>Connect Wallet</ButtonText>
             </ActionButton>
-          ) : canBridge && quoteStatus === 'ready' ? (
-            <ActionButton
-              testID="BridgingWidget-review-cta"
-              size="lg"
-              fullWidth
-              onPress={onReview}
-            >
-              <ButtonText>Review</ButtonText>
-            </ActionButton>
-          ) : null}
+          ) : (
+            <YStack gap="$2">
+              <ActionButton
+                testID="BridgingWidget-review-cta"
+                size="lg"
+                fullWidth
+                disabled={!canBridge || quoteStatus !== 'ready'}
+                onPress={onReview}
+              >
+                <ButtonText>Review</ButtonText>
+              </ActionButton>
+              {(!canBridge || quoteStatus !== 'ready') && (
+                <Text testID="BridgingWidget-review-disabled-reason" fontSize={12} color="$secondaryColor">
+                  {reviewDisabledReason}
+                </Text>
+              )}
+            </YStack>
+          )}
         </>
       ) : null}
     </BridgingTabContent>

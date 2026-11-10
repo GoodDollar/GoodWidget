@@ -116,7 +116,7 @@ test('BridgingWidget shows bridge-config loading and error states', async ({ pag
 test('BridgingWidget shows fee-quote loading and error states', async ({ page }) => {
   await gotoStory(page, 'quote-loading')
   await expectBodyToContain(page, ['Fetching quote…'])
-  await expect(page.getByTestId('BridgingWidget-review-cta')).toHaveCount(0)
+  await expect(page.getByTestId('BridgingWidget-review-cta')).toBeDisabled()
   await saveScreenshot(page, 'bw-07-quote-loading')
 
   await gotoStory(page, 'quote-error')
@@ -127,12 +127,12 @@ test('BridgingWidget shows fee-quote loading and error states', async ({ page })
 test('BridgingWidget surfaces unmet requirements and blocks the Review CTA', async ({ page }) => {
   await gotoStory(page, 'below-min-amount')
   await expectBodyToContain(page, ['Minimum bridge amount is 1 G$.'])
-  await expect(page.getByTestId('BridgingWidget-review-cta')).toHaveCount(0)
+  await expect(page.getByTestId('BridgingWidget-review-cta')).toBeDisabled()
   await saveScreenshot(page, 'bw-09-below-min-amount')
 
   await gotoStory(page, 'insufficient-balance')
   await expectBodyToContain(page, ['Your G$ balance is too low for this amount.'])
-  await expect(page.getByTestId('BridgingWidget-review-cta')).toHaveCount(0)
+  await expect(page.getByTestId('BridgingWidget-review-cta')).toBeDisabled()
   await saveScreenshot(page, 'bw-10-insufficient-balance')
 })
 
@@ -148,6 +148,7 @@ test('BridgingWidget shows the fee breakdown and Review CTA when ready to bridge
   await gotoStory(page, 'ready-to-bridge')
 
   await expectBodyToContain(page, ['Fuse → Celo', 'Provider', 'LayerZero', 'Estimated provider fee', '0.000132 FUSE'])
+  await expect(page.getByText('(native token)')).toHaveCount(0)
   await expect(page.getByTestId('BridgingWidget-review-cta')).toBeVisible()
   await saveScreenshot(page, 'bw-12-ready-to-bridge')
 })
@@ -256,7 +257,7 @@ test('BridgingWidget lists populated bridge history across statuses', async ({ p
     'failed',
   ])
   await expect(page.getByTestId('BridgingWidget-history-row')).toHaveCount(3)
-  await expect(page.getByTestId('BridgingWidget-history-row').first()).toContainText('120.00 G$')
+  await expect(page.getByTestId('BridgingWidget-history-row').first()).toContainText('35.00 G$')
   await expect(page.getByTestId('BridgingWidget-history-row').last()).toContainText('8.00 G$')
   await saveScreenshot(page, 'bw-22-history-populated')
 })
@@ -307,6 +308,27 @@ test('BridgingWidget renders correctly in the light theme', async ({ page }) => 
   await saveScreenshot(page, 'bw-25-light-theme-populated')
 })
 
+test('light-theme progress links remain readable', async ({ page }) => {
+  await page.goto(`${storyUrl('submission-completed')}&args=defaultTheme:light`)
+  await page.waitForFunction(() => document.body.innerText.includes('Bridge status'))
+  const link = page.getByRole('link', { name: /Source transaction/ })
+  await expect(link).toBeVisible()
+  const color = await link.locator('span').first().evaluate((element) => getComputedStyle(element).color)
+  expect(color).not.toBe('rgb(255, 255, 255)')
+  await saveScreenshot(page, 'bw-37-light-theme-progress', 'BridgingWidget-confirm-modal')
+})
+
+test('header groups title and chain badge when the network changes', async ({ page }) => {
+  await gotoStory(page, 'interactive-submit')
+  const title = page.getByText('GoodDollar Bridge', { exact: true }).first()
+  await expect(title).toBeVisible()
+  await saveScreenshot(page, 'bw-38-header-celo')
+  await page.getByTestId('BridgingWidget-source-select').click()
+  await page.getByRole('option', { name: 'Ethereum' }).click()
+  await expect(page.getByText('Ethereum', { exact: true }).first()).toBeVisible()
+  await saveScreenshot(page, 'bw-39-header-ethereum')
+})
+
 test('BridgingWidget renders a usable mobile layout', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await gotoStory(page, 'ready-to-bridge')
@@ -353,7 +375,7 @@ test('BridgingWidget completes the interactive route-to-submit flow', async ({ p
   await page.getByPlaceholder('0.00').fill('100')
   await expect(page.getByTestId('BridgingWidget-review-cta')).toBeVisible()
   await page.getByPlaceholder('0.00').fill('101')
-  await expect(page.getByTestId('BridgingWidget-review-cta')).toHaveCount(0)
+  await expect(page.getByTestId('BridgingWidget-review-cta')).toBeDisabled()
   await expect(page.getByTestId('BridgingWidget-review-cta')).toBeVisible()
   await page.getByPlaceholder('0.00').fill('100')
   await expect(page.getByTestId('BridgingWidget-review-cta')).toBeVisible()

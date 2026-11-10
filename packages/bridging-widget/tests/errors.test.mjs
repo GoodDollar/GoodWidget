@@ -26,8 +26,33 @@ test('transaction reverts retain the bridge hint without leaking raw errors', ()
   try {
     const error = new Error('Execution reverted: sensitive RPC details')
     assert.equal(
-      mapBridgeError(error, 'Bridge transaction failed.', 'transaction'),
+      mapBridgeError(error, 'Bridge transaction failed.', 'transaction', 'bridging'),
       'Bridge transaction reverted on-chain. Try a smaller amount.',
+    )
+  } finally {
+    console.error = originalError
+  }
+})
+
+test('approval errors are attributed to approval, while wallet rejection stays distinct', () => {
+  const originalError = console.error
+  console.error = () => {}
+  try {
+    assert.equal(
+      mapBridgeError(new Error('approval transaction reverted on-chain'), 'Token approval failed.', 'transaction', 'approving'),
+      'Token approval failed on-chain. Please approve and try again.',
+    )
+    assert.equal(
+      mapBridgeError(new Error('bridge transaction reverted on-chain'), 'Bridge transaction failed.', 'transaction', 'bridging'),
+      'Bridge transaction reverted on-chain. Try a smaller amount.',
+    )
+    assert.equal(
+      mapBridgeError(new Error('User rejected the request'), 'Token approval failed.', 'transaction', 'approving'),
+      'Transaction cancelled in wallet.',
+    )
+    assert.equal(
+      mapBridgeError(new Error('bridgeLimits reverted'), 'Unable to prepare bridge.', 'transaction'),
+      'Unable to prepare bridge.',
     )
   } finally {
     console.error = originalError

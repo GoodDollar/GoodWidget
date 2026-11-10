@@ -68,7 +68,7 @@ export function FeeBreakdown({
               formatUnits(quote.protocolFee, getChainDecimals(targetChainId)),
             )} G$)`}
           />
-          <DetailRow label="Estimated provider fee" value={`${formatChargedProviderFee(quote.fee, sourceChainId)} (native token)`} />
+          <DetailRow label="Estimated provider fee" value={formatChargedProviderFee(quote.fee, sourceChainId)} />
           <DetailRow
             label="Estimated G$ received"
             value={`${formatTokenAmount(formatUnits(quote.amountReceived, getChainDecimals(targetChainId)))} G$`}

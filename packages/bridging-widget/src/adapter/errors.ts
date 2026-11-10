@@ -19,7 +19,7 @@ const BRIDGE_ERROR_RULES: readonly ErrorMatcher[] = [
   },
   {
     match: ['user rejected', 'user denied', '4001', 'action_rejected'],
-    message: 'Transaction canceled in wallet.',
+    message: 'Transaction cancelled in wallet.',
   },
   {
     match: [
@@ -51,7 +51,12 @@ export function isUserRejectedError(err: unknown): boolean {
     ['user rejected', 'user denied', 'action_rejected'].some((needle) => lower.includes(needle))
 }
 
-export function mapBridgeError(err: unknown, fallback: string, context: 'other' | 'transaction' = 'other'): string {
+export function mapBridgeError(
+  err: unknown,
+  fallback: string,
+  context: 'other' | 'transaction' = 'other',
+  step: 'approving' | 'bridging' | null = null,
+): string {
   console.error('[BridgingWidget]', err)
 
   const message = err instanceof Error ? err.message : String(err ?? fallback)
@@ -62,7 +67,8 @@ export function mapBridgeError(err: unknown, fallback: string, context: 'other' 
   }
 
   if (context === 'transaction' && lower.includes('revert')) {
-    return 'Bridge transaction reverted on-chain. Try a smaller amount.'
+    if (step === 'approving') return 'Token approval failed on-chain. Please approve and try again.'
+    if (step === 'bridging') return 'Bridge transaction reverted on-chain. Try a smaller amount.'
   }
 
   return fallback

@@ -24,6 +24,8 @@ interface FixtureControls {
   holdBridge: () => void
   releaseBridge: () => void
   failNextBridgeWithRevert: () => void
+  revertNextBridgeReceipt: () => void
+  failNextApprovalWithRevert: () => void
   setAccount: (address: Address | null) => void
   setWalletChain: (chainId: number) => void
   failNextHistoryRefresh: () => void
@@ -54,6 +56,8 @@ function createFixture(mode: FixtureMode) {
   let blockBridge = false
   let releaseBridge: (() => void) | null = null
   let failBridgeWithRevert = false
+  let revertNextBridgeReceipt = false
+  let failApprovalWithRevert = false
   let failNextScan = false
   let delivered = false
   let freshQuote: Awaited<ReturnType<BridgingSDK['getQuote']>>['quote'] = null
@@ -73,6 +77,8 @@ function createFixture(mode: FixtureMode) {
     holdBridge: () => { blockBridge = true },
     releaseBridge: () => { releaseBridge?.() },
     failNextBridgeWithRevert: () => { failBridgeWithRevert = true },
+    revertNextBridgeReceipt: () => { revertNextBridgeReceipt = true },
+    failNextApprovalWithRevert: () => { failApprovalWithRevert = true },
     setAccount: (next) => {
       account = next
       events.push({ kind: 'account', address: next ?? '' })
@@ -217,6 +223,11 @@ function createFixture(mode: FixtureMode) {
         amount: quote.amount.toString(),
         targetChainId: quote.targetChainId,
       })
+      if (failApprovalWithRevert) {
+        failApprovalWithRevert = false
+        onStatus?.({ step: 'approving' })
+        throw new Error('approval transaction reverted on-chain')
+      }
       onStatus?.({ step: 'bridging' })
       if (failBridgeWithRevert) {
         failBridgeWithRevert = false
@@ -228,7 +239,8 @@ function createFixture(mode: FixtureMode) {
         blockBridge = false
       }
       // The adapter only reads transactionHash; no chain receipt is produced by this fixture.
-      const receipt = { transactionHash: HASH } as unknown as TransactionReceipt
+      const receipt = { transactionHash: HASH, status: revertNextBridgeReceipt ? 'reverted' : 'success' } as TransactionReceipt
+      revertNextBridgeReceipt = false
       onStatus?.({ step: 'completed', bridgeTxHash: HASH, receipt })
       events.push({ kind: 'bridge-complete' })
       return receipt

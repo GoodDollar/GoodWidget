@@ -66,3 +66,19 @@ test('request and executed legs on the same source chain form one completed entr
   assert.equal(result.transactions[0].status.status, 'completed')
   assert.equal(result.transactions[0].status.dstTxHash, executed.transactionHash)
 })
+
+test('history is newest-first even when a transfer has no source request', async () => {
+  const destinationOnly = {
+    chainId: 42220,
+    transactionHash: hash('8'),
+    timestamp: 300,
+    args: { bridge: 'LAYERZERO', id: 8n, sourceChainId: 122, amount: 20n },
+  }
+  const older = { ...request(122, '7'), timestamp: 200 }
+  const result = await buildTransactions({
+    async getTransactionStatus(txHash) {
+      return { status: 'pending', srcTxHash: txHash }
+    },
+  }, [older, destinationOnly])
+  assert.deepEqual(result.transactions.map((transaction) => transaction.hash), [hash('8'), hash('7')])
+})

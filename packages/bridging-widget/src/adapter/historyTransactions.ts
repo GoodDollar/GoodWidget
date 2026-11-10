@@ -85,7 +85,7 @@ export async function buildTransactions(
       }
     }),
   )
-  return { transactions, isPartial }
+  return { transactions: transactions.sort((a, b) => b.timestamp - a.timestamp), isPartial }
 }
 
 export async function resolvePendingStatuses(

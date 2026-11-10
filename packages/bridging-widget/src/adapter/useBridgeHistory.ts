@@ -52,7 +52,6 @@ export function useBridgeHistory({ sdk, address, publicClients }: UseBridgeHisto
       .then((events) => buildTransactions(sdk, events))
       .then(({ transactions, isPartial }) => {
         if (requestIdRef.current !== requestId) return
-        transactions.sort((a, b) => b.timestamp - a.timestamp)
         setState({ transactions, isLoading: false, error: null, isPartial })
       })
       .catch((err: unknown) => {

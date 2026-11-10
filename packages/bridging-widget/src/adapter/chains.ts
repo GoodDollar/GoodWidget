@@ -1,7 +1,9 @@
-import { createPublicClient, formatUnits, http, type Chain } from 'viem'
+import { createPublicClient, fallback, formatUnits, http, type Chain } from 'viem'
 import { SUPPORTED_CHAINS } from '@goodsdks/bridging-sdk'
 import type { Hash } from 'viem'
-import { BRIDGING_CHAINS } from '../widgetRuntimeContract'
+import { BRIDGING_CHAINS, type BridgingRpcUrls } from '../widgetRuntimeContract'
+import { formatTokenAmount } from '../amount'
+import { DEFAULT_RPC_URLS, getBridgingRpcUrls } from './rpcUrls'
 
 // RPC endpoints follow GoodSDKs' demo wiring except Ethereum, where its
 // Cloudflare endpoint fails contract reads used by bridge configuration.
@@ -10,25 +12,25 @@ export const VIEM_CHAINS: Record<number, Chain> = {
     id: BRIDGING_CHAINS.CELO,
     name: 'Celo',
     nativeCurrency: { name: 'Celo', symbol: 'CELO', decimals: 18 },
-    rpcUrls: { default: { http: ['https://forno.celo.org'] } },
+    rpcUrls: { default: { http: DEFAULT_RPC_URLS[BRIDGING_CHAINS.CELO] } },
   } as Chain,
   [BRIDGING_CHAINS.ETHEREUM]: {
     id: BRIDGING_CHAINS.ETHEREUM,
     name: 'Ethereum',
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-    rpcUrls: { default: { http: ['https://ethereum-rpc.publicnode.com'] } },
+    rpcUrls: { default: { http: DEFAULT_RPC_URLS[BRIDGING_CHAINS.ETHEREUM] } },
   } as Chain,
   [BRIDGING_CHAINS.FUSE]: {
     id: BRIDGING_CHAINS.FUSE,
     name: 'Fuse',
     nativeCurrency: { name: 'Fuse', symbol: 'FUSE', decimals: 18 },
-    rpcUrls: { default: { http: ['https://rpc.fuse.io'] } },
+    rpcUrls: { default: { http: DEFAULT_RPC_URLS[BRIDGING_CHAINS.FUSE] } },
   } as Chain,
   [BRIDGING_CHAINS.XDC]: {
     id: BRIDGING_CHAINS.XDC,
     name: 'XDC Network',
     nativeCurrency: { name: 'XDC', symbol: 'XDC', decimals: 18 },
-    rpcUrls: { default: { http: ['https://rpc.xdcrpc.com'] } },
+    rpcUrls: { default: { http: DEFAULT_RPC_URLS[BRIDGING_CHAINS.XDC] } },
   } as Chain,
 }
 
@@ -45,8 +47,8 @@ export function getChainDecimals(chainId: number | null | undefined): number {
 // sends fee (which includes its buffer), so show that exact native-token value.
 export function formatChargedProviderFee(fee: bigint, sourceChainId: number): string {
   const native = SUPPORTED_CHAINS[sourceChainId]?.nativeCurrency
-  if (!native) return formatUnits(fee, 18)
-  return `${formatUnits(fee, native.decimals)} ${native.symbol}`
+  if (!native) return formatTokenAmount(formatUnits(fee, 18))
+  return `${formatTokenAmount(formatUnits(fee, native.decimals))} ${native.symbol}`
 }
 
 const TRANSACTION_EXPLORERS: Record<number, string> = {
@@ -61,9 +63,11 @@ export function getChainTransactionExplorerLink(chainId: number | null, hash: Ha
   return explorer && hash ? `${explorer}/${hash}` : null
 }
 
-export function createBridgingPublicClient(chainId: number) {
+export function createBridgingPublicClient(chainId: number, overrides?: BridgingRpcUrls) {
   const chain = VIEM_CHAINS[chainId]
   if (!chain) return null
 
-  return createPublicClient({ chain, transport: http(chain.rpcUrls.default.http[0]) })
+  const urls = getBridgingRpcUrls(chainId, overrides)
+  const transport = urls.length > 1 ? fallback(urls.map((url) => http(url))) : http(urls[0])
+  return createPublicClient({ chain, transport })
 }

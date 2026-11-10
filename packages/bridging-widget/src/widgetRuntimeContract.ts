@@ -23,6 +23,7 @@ export const BRIDGING_CHAINS = {
 } as const
 
 export type BridgingChainId = (typeof BRIDGING_CHAINS)[keyof typeof BRIDGING_CHAINS]
+export type BridgingRpcUrls = Partial<Record<BridgingChainId, readonly string[]>>
 
 // ---------------------------------------------------------------------------
 // Widget tab IDs
@@ -146,6 +147,8 @@ export interface BridgingWidgetAdapterResult {
 // ---------------------------------------------------------------------------
 export interface BridgingWidgetProps {
   provider?: unknown
+  /** Per-chain RPC endpoints in priority order. Empty lists use the widget defaults. */
+  rpcUrls?: BridgingRpcUrls
   themeOverrides?: GoodWidgetThemeOverrides
   config?: GoodWidgetConfig
   defaultTheme?: 'light' | 'dark'
