@@ -604,6 +604,7 @@ for (const viewport of NEXT_TASK_VIEWPORTS) {
 
     for (const control of [cta, skipLink, closeButton]) {
       await control.scrollIntoViewIfNeeded()
+      await expect(control).toBeInViewport({ ratio: 1 })
       await expect(control).toBeVisible()
       await expect(control).toBeEnabled()
     }
@@ -698,9 +699,11 @@ test('NextTaskModal RealisticLongCopy story scrolls and keeps actions accessible
   await frame.getByTestId('NextTaskModal-open').click()
   const cta = frame.getByRole('link', { name: 'Read and vote on Snapshot' })
   await cta.scrollIntoViewIfNeeded()
+  await expect(cta).toBeInViewport({ ratio: 1 })
   await expect(cta).toBeVisible()
   const skip = frame.getByRole('button', { name: 'Remind me tomorrow' })
   await skip.scrollIntoViewIfNeeded()
+  await expect(skip).toBeInViewport({ ratio: 1 })
   await expect(skip).toBeVisible()
 })
 

@@ -320,8 +320,12 @@ test('CitizenClaimWidget real flow: drawer does NOT open when every claim fails'
   await expect(claimButton).toBeVisible({ timeout: 15_000 })
   await claimButton.click()
 
-  // Wait for failure handling to settle — the drawer must not open (stays off-screen / out of viewport)
-  await page.waitForTimeout(2000)
+  // Wait for claim failure outcome to be reported and execution to settle
+  await expect(page.getByText('Claim failed on Celo')).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByText('Claim failed on Fuse')).toBeVisible({ timeout: 20_000 })
+  await expect(claimButton).toBeEnabled({ timeout: 20_000 })
+
+  // Assert the drawer headline did not open
   const drawerHeadline = page.getByText('One good next step')
   await expect(drawerHeadline).not.toBeInViewport()
 })
@@ -336,8 +340,11 @@ test('CitizenClaimWidget real flow: drawer does NOT open when nextTaskContent is
   await expect(claimButton).toBeVisible({ timeout: 15_000 })
   await claimButton.click()
 
-  // Wait for success toast / completion
-  await page.waitForTimeout(2000)
+  // Wait for claim success outcome to be reported, proving the claim succeeded
+  await expect(page.getByText('Claim succeeded on Celo')).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByText('Claim succeeded on Fuse')).toBeVisible({ timeout: 20_000 })
+
+  // Assert the drawer was not opened despite success
   const drawerHeadline = page.getByText('One good next step')
   await expect(drawerHeadline).toHaveCount(0)
 })
