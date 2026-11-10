@@ -41,5 +41,9 @@ export type { ProgramSupTotals, ProgramSupTotalsResult } from './hooks/useProgra
 // Stable campaign definition
 export { DEFAULT_CAMPAIGN_DEFINITION } from './campaignDefinition'
 
+// Notice callout component
+export { SeasonNotice } from './components/SeasonNotice'
+export type { SeasonNoticeProps } from './components/SeasonNotice'
+
 // Widget component
 export { SuperfluidCampaignWidget } from './SuperfluidCampaignWidget'
