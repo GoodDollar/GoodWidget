@@ -1,44 +1,59 @@
 #!/usr/bin/env node
-// Translates a Penpot design spec (spec/*.json + meta.json) into Tamagui-oriented build notes.
+// Translates a Penpot design export into ONE build-spec markdown file for a follow-up agent.
 //
 // Usage:  node docs/design-files/scripts/spec-to-tamagui.mjs docs/design-files/<feature> [--check]
 //
-// Reads   <feature>/spec/tokens.json, spec/components/*.json, spec/journey/*.json, spec/journey.json, meta.json
-// Writes  <feature>/generated/{components,journey,component-to-code-map,validation}.md
-// With --check the script writes nothing and exits 1 when the spec has errors (unknown tokens,
-// map entries pointing at missing files, instances with no code mapping). No dependencies.
+// Reads   <feature>/spec/**           local Penpot export (gitignored, produced by penpot-extract-spec.js)
+//         <feature>/meta.json         hand-authored component-to-code map and open questions
+//         packages/ui/src/presets.ts  the token catalog (goodWalletV2Preset), the single source of truth
+// Writes  <feature>/design-spec.md    the only committed output
+//
+// With --check nothing is written: the output is regenerated in memory and compared with the committed
+// design-spec.md. It exits 1 when the file is stale (Penpot changed, nobody regenerated) or the
+// design has errors (tokens missing from presets.ts, map entries pointing at missing files, unmapped instances).
+// The output is deterministic, so a clean re-export always reproduces the committed file byte for byte.
 //
 // Rules, in short: a Penpot token name becomes a Tamagui `$token` (resolveToken), Penpot flex layout
 // becomes XStack/YStack props (translateLayout, translateSizing), and every Penpot component
 // instance is resolved to a code target through meta.json `componentMap` (describeCodeTarget).
+// Requires Node >= 22.18 (imports presets.ts directly).
 
 import fs from 'node:fs'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 const featureDir = path.resolve(process.argv[2] ?? '')
 const isCheckOnly = process.argv.includes('--check')
-// docs/design-files/<feature> -> repo root, used to verify code targets exist on disk.
+// docs/design-files/<feature> -> repo root, used to find presets.ts and verify code targets exist on disk.
 const repoRoot = path.resolve(featureDir, '../../..')
+const outputFilePath = path.join(featureDir, 'design-spec.md')
 
-if (!process.argv[2] || !fs.existsSync(path.join(featureDir, 'spec'))) {
+if (!process.argv[2] || !fs.existsSync(path.join(featureDir, 'meta.json'))) {
   console.error('Usage: spec-to-tamagui.mjs <docs/design-files/feature-dir> [--check]')
   process.exit(2)
 }
+if (!fs.existsSync(path.join(featureDir, 'spec'))) {
+  console.error(`No local Penpot export in ${path.join(featureDir, 'spec')}. Re-export from Penpot first (see docs/design-files/README.md).`)
+  process.exit(2)
+}
 
-const readJson = (relativePath) => JSON.parse(fs.readFileSync(path.join(featureDir, relativePath), 'utf8'))
+function readJson(relativePath) {
+  return JSON.parse(fs.readFileSync(path.join(featureDir, relativePath), 'utf8'))
+}
 
-const readJsonDirectory = (relativeDirectory) =>
-  fs
+function readJsonDirectory(relativeDirectory) {
+  return fs
     .readdirSync(path.join(featureDir, relativeDirectory))
     .filter((fileName) => fileName.endsWith('.json'))
     .sort()
     .map((fileName) => readJson(path.join(relativeDirectory, fileName)))
+}
 
-const tokensSpec = readJson('spec/tokens.json')
 const metaSpec = readJson('meta.json')
 const journeySpec = readJson('spec/journey.json')
 const componentSpecs = readJsonDirectory('spec/components')
 const journeyFrameSpecs = readJsonDirectory('spec/journey')
+const { goodWalletV2Preset: preset } = await import(pathToFileURL(path.join(repoRoot, 'packages/ui/src/presets.ts')).href)
 
 // ---------------------------------------------------------------------------
 // Validation bookkeeping
@@ -51,98 +66,75 @@ const inferredBindings = new Map()
 const rawValues = []
 
 // ---------------------------------------------------------------------------
-// Token catalog: which tokens exist, per Mode theme
+// Token catalog (presets.ts): which tokens exist, and raw-number scales for inference
 // ---------------------------------------------------------------------------
 
-const tokenNamesByTheme = Object.fromEntries(
-  tokensSpec.themes.map((theme) => [
-    theme.name,
-    new Set(theme.activeSets.flatMap((setName) => Object.keys(tokensSpec.sets[setName] ?? {}))),
-  ]),
-)
-const everyTokenName = new Set(Object.values(tokenNamesByTheme).flatMap((names) => [...names]))
-const componentThemeNames = new Set(
-  Object.keys(tokensSpec.sets)
-    .filter((setName) => setName.startsWith('component/'))
-    .flatMap((setName) => Object.keys(tokensSpec.sets[setName]).map((tokenName) => tokenName.split('.')[0])),
-)
+const colorModes = ['light', 'dark']
 
 // Raw-number scales used to infer a token when the designer left a value unbound.
 const tokenScales = {
-  space: scaleFromTokens('space'),
-  radius: scaleFromTokens('radius'),
-  fontSize: scaleFromTokens('fontSize.body'),
+  space: reverseScale(preset.tokens.space),
+  radius: reverseScale(preset.tokens.radius),
+  fontSize: reverseScale(preset.typography.body.size),
 }
 
 /** Builds { rawNumber: tokenKey } for one numeric scale, e.g. space.4 = 16 -> { 16: '4' }. */
-function scaleFromTokens(prefix) {
+function reverseScale(scaleTokens) {
   const scale = {}
-  for (const [tokenName, tokenValue] of Object.entries(tokensSpec.sets['core/dimensions'] ?? {})) {
-    reverseScaleEntry(scale, prefix, tokenName, tokenValue)
-  }
-  for (const [tokenName, tokenValue] of Object.entries(tokensSpec.sets['core/typography'] ?? {})) {
-    reverseScaleEntry(scale, prefix, tokenName, tokenValue)
+  for (const [tokenKey, tokenValue] of Object.entries(scaleTokens)) {
+    // `true` is the default alias of another step, so it must not win the reverse lookup.
+    if (tokenKey !== 'true' && !(tokenValue in scale)) scale[tokenValue] = tokenKey
   }
   return scale
 }
 
-function reverseScaleEntry(scale, prefix, tokenName, tokenValue) {
-  const isInScale = tokenName.startsWith(`${prefix}.`) && typeof tokenValue === 'number'
-  const tokenKey = tokenName.slice(prefix.length + 1)
-  // `true` is the default alias of another step, so it must not win the reverse lookup.
-  if (isInScale && tokenKey !== 'true' && !(tokenValue in scale)) scale[tokenValue] = tokenKey
+/** Which colour modes (light/dark) define a key in the base theme or in a component sub-theme (light_Card). */
+function modesDefiningThemeKey(subThemeName, themeKey) {
+  return colorModes.filter((mode) => themeKey in (preset.themes[subThemeName ? `${mode}_${subThemeName}` : mode] ?? {}))
 }
 
-// ---------------------------------------------------------------------------
-// Penpot token name -> Tamagui token reference
-// ---------------------------------------------------------------------------
-
 /**
- * Resolves a Penpot token name to its Tamagui reference.
- * Returns { reference, subTheme } or null when the token does not exist in the catalog.
+ * Resolves a Penpot token name against presets.ts.
+ * Returns { reference, subTheme } or null when presets.ts does not define it.
  * `subTheme` is set for component tokens (claimCard.background -> $background inside ClaimCard).
  */
 function resolveToken(tokenName, locationLabel) {
-  if (!everyTokenName.has(tokenName)) {
-    errors.push(`Unknown token \`${tokenName}\` at ${locationLabel}`)
-    return null
+  const [tokenGroup, ...keySegments] = tokenName.split('.')
+  const fullKey = keySegments.join('.')
+  const lastSegment = keySegments[keySegments.length - 1]
+  const typographyFamily = preset.typography[keySegments[0]]
+  const typographyScaleByGroup = { fontSize: 'size', fontWeight: 'weight', lineHeight: 'lineHeight', letterSpacing: 'letterSpacing' }
+
+  if (tokenGroup === 'color' || tokenGroup === 'space' || tokenGroup === 'radius' || tokenGroup === 'size') {
+    if (preset.tokens[tokenGroup]?.[fullKey] === undefined) return reportUnknownToken(tokenName, locationLabel)
+    return { reference: tokenGroup === 'color' ? `$${fullKey}` : `$${lastSegment}` }
   }
-  for (const [themeName, names] of Object.entries(tokenNamesByTheme)) {
-    if (!names.has(tokenName)) warnings.push(`Token \`${tokenName}\` is missing in ${themeName} mode (${locationLabel})`)
+  if (tokenGroup in typographyScaleByGroup) {
+    if (typographyFamily?.[typographyScaleByGroup[tokenGroup]]?.[keySegments[1]] === undefined) return reportUnknownToken(tokenName, locationLabel)
+    return { reference: `$${lastSegment}` }
   }
-  const [firstSegment, ...remainingSegments] = tokenName.split('.')
-  if (componentThemeNames.has(firstSegment)) {
-    // Component tokens live in the component's own sub-theme (presets.ts: light_ClaimCard, dark_ClaimCard).
-    const subTheme = firstSegment[0].toUpperCase() + firstSegment.slice(1)
-    return { reference: `$${remainingSegments.join('.')}`, subTheme }
+  if (tokenGroup === 'fontFamily') {
+    if (typographyFamily?.family === undefined) return reportUnknownToken(tokenName, locationLabel)
+    return { reference: `$${lastSegment}` }
   }
-  if (firstSegment === 'theme' || firstSegment === 'color') return { reference: `$${remainingSegments.join('.')}` }
-  // space.N / radius.N / size.N / fontSize.<family>.N / fontFamily.<family>: the last segment is the Tamagui key.
-  return { reference: `$${remainingSegments[remainingSegments.length - 1]}` }
+
+  // `theme.x` lives in the base light/dark themes; any other group is a component sub-theme (claimCard -> light_ClaimCard).
+  const subThemeName = tokenGroup === 'theme' ? undefined : tokenGroup[0].toUpperCase() + tokenGroup.slice(1)
+  const definingModes = modesDefiningThemeKey(subThemeName, fullKey)
+  if (definingModes.length === 0) return reportUnknownToken(tokenName, locationLabel)
+  if (definingModes.length < colorModes.length) warnings.push(`Token \`${tokenName}\` is only defined in ${definingModes.join('/')} mode in presets.ts (${locationLabel})`)
+  return { reference: `$${fullKey}`, subTheme: subThemeName }
+}
+
+function reportUnknownToken(tokenName, locationLabel) {
+  errors.push(`Token \`${tokenName}\` is not defined in packages/ui/src/presets.ts (${locationLabel})`)
+  return null
 }
 
 /** Formats a resolved token as a prop value, noting the sub-theme when there is one. */
 function formatTokenValue(resolvedToken) {
   const subThemeSuffix = resolvedToken.subTheme ? ` (theme ${resolvedToken.subTheme})` : ''
   return `"${resolvedToken.reference}"${subThemeSuffix}`
-}
-
-/** Expands a composite shadow token into Tamagui's shadow props using the token's own value. */
-function expandShadowToken(tokenName, locationLabel) {
-  const shadowDefinition = Object.values(tokensSpec.sets)
-    .map((tokenSet) => tokenSet[tokenName])
-    .find(Boolean)?.[0]
-  if (!shadowDefinition) {
-    errors.push(`Unknown shadow token \`${tokenName}\` at ${locationLabel}`)
-    return []
-  }
-  const colorTokenName = shadowDefinition.color.replace(/[{}]/g, '')
-  const resolvedColor = resolveToken(colorTokenName, locationLabel)
-  return [
-    `shadowColor=${resolvedColor ? formatTokenValue(resolvedColor) : '"?"'}`,
-    `shadowOffset={{ width: ${shadowDefinition.offsetX}, height: ${shadowDefinition.offsetY} }}`,
-    `shadowRadius={${shadowDefinition.blur}}`,
-  ]
 }
 
 // ---------------------------------------------------------------------------
@@ -180,7 +172,8 @@ function translateTokenBindings(node, locationLabel) {
   const cornerValues = {}
   for (const [penpotProperty, tokenName] of Object.entries(node.tokens ?? {})) {
     if (penpotProperty === 'shadow') {
-      props.push(...expandShadowToken(tokenName, locationLabel))
+      // presets.ts has no composite shadow tokens, so a bound shadow cannot be mapped to a `$token`.
+      warnings.push(`Shadow token \`${tokenName}\` has no presets.ts mapping (${locationLabel})`)
       continue
     }
     const resolvedToken = resolveToken(tokenName, locationLabel)
@@ -298,6 +291,7 @@ function translateUnboundValues(node, locationLabel) {
   for (const [unboundKey, unboundValue] of Object.entries(node.unbound ?? {})) {
     if (unboundKey === 'strokes') {
       props.push(`borderWidth={${unboundValue[0].width}}`)
+      if (unboundValue[0].style !== 'solid') props.push(`borderStyle="${unboundValue[0].style}"`)
     } else if (unboundKey === 'borderRadius') {
       const [topLeft, topRight, bottomRight, bottomLeft] = unboundValue
       props.push(`borderTopLeftRadius={${topLeft}}`, `borderTopRightRadius={${topRight}}`, `borderBottomRightRadius={${bottomRight}}`, `borderBottomLeftRadius={${bottomLeft}}`)
@@ -333,6 +327,8 @@ function describeCodeTarget(componentName, locationLabel) {
     errors.push(`Component \`${componentName}\` has no entry in meta.json componentMap (${locationLabel})`)
     return 'UNMAPPED'
   }
+  // A slot is where the embedded widget is mounted as-is; there is nothing to build for it.
+  if (mapEntry.status === 'slot') return 'slot: embedded widget, rendered as-is'
   const target = mapEntry.file ?? mapEntry.proposedFile ?? 'n/a'
   const exportSuffix = mapEntry.export ? ` (${mapEntry.export})` : ''
   return `${mapEntry.status}: ${target}${exportSuffix}`
@@ -358,6 +354,12 @@ function renderNode(node, parentDirection, depth, framePath) {
     const { component, variant } = node.instanceOf
     instanceUsageCounts[component] = (instanceUsageCounts[component] ?? 0) + 1
     const variantProps = Object.entries(variant ?? {}).map(([key, value]) => `${toCamelCase(key)}="${value}"`)
+    if (componentMap[component]?.status === 'slot') {
+      // A slot's placeholder styling is design-time only; the implementer mounts the named widget unstyled.
+      const widgetName = node.overrides?.texts?.find((textOverride) => textOverride.layer === 'Widget name')?.characters ?? 'unnamed'
+      lines.push(`${indent}<${component} widget="${widgetName}" />   // ${describeCodeTarget(component, locationLabel)}`)
+      return lines
+    }
     lines.push(`${indent}<${[component, ...variantProps, ...props].join(' ')} />   // ${describeCodeTarget(component, locationLabel)}`)
     lines.push(...renderOverrides(node.overrides, indent + '  ', locationLabel))
     return lines
@@ -393,75 +395,84 @@ function renderOverrides(overrides, indent, locationLabel) {
 }
 
 // ---------------------------------------------------------------------------
-// Markdown documents
+// Build-spec document (single output file)
 // ---------------------------------------------------------------------------
 
 const legend = [
-  '> Generated by `docs/design-files/scripts/spec-to-tamagui.mjs`. Do not edit by hand: change the Penpot file or `meta.json`, re-export, regenerate.',
+  '> Generated by `docs/design-files/scripts/spec-to-tamagui.mjs` from the Penpot export, `meta.json` and `packages/ui/src/presets.ts`. Do not edit by hand: change Penpot or `meta.json`, re-export, regenerate.',
   '> `†` value was not bound to a token in Penpot; the token shown is an exact numeric match in the scale. `‡` raw number with no matching token.',
-  '> `// status: file` after an instance is its code target from `meta.json` (exists / extend / new / private / third-party / widget-internal).',
+  '> `// status: file` after an instance is its code target from `meta.json` (exists / extend / new / third-party / slot).',
 ].join('\n')
 
-function buildComponentsDocument() {
-  const sections = [`# ${metaSpec.feature}: component structure\n`, legend]
+/** Journey table: one row per frame with its transitions. */
+function buildJourneySection() {
+  const rows = journeySpec.frames.map((frame) => `| ${frame.step} | ${frame.name} | ${frame.transitions ?? 'none'} |`)
+  return ['## Journey\n', journeySpec.notes, '\n| Step | Frame | Transitions |', '| --- | --- | --- |', ...rows, ''].join('\n')
+}
+
+/** Structure of every component the implementer has to build or change. Reused components need no structure. */
+function buildComponentStructureSection() {
+  const sections = ['## Components to build or change\n']
   for (const componentSpec of componentSpecs) {
-    sections.push(`\n## ${componentSpec.name}\n\nCode target: \`${describeCodeTarget(componentSpec.name, componentSpec.name)}\`\n`)
+    const mapEntry = componentMap[componentSpec.name]
+    if (mapEntry?.status !== 'new' && mapEntry?.status !== 'extend') continue
+    sections.push(`### ${componentSpec.name}\n\nCode target: \`${describeCodeTarget(componentSpec.name, componentSpec.name)}\`\n`)
     for (const variant of componentSpec.variants) {
       const variantLabel = Object.entries(variant.properties ?? {}).map(([key, value]) => `${key}=${value}`).join(', ') || 'default'
       const treeLines = renderNode(variant.root, undefined, 0, `${componentSpec.name} [${variantLabel}]`)
-      sections.push(`### ${variantLabel}\n\n\`\`\`text\n${treeLines.join('\n')}\n\`\`\`\n`)
+      sections.push(`#### ${variantLabel}\n\n\`\`\`text\n${treeLines.join('\n')}\n\`\`\`\n`)
     }
   }
   return sections.join('\n')
 }
 
-function buildJourneyDocument() {
-  const sections = [`# ${journeySpec.title}\n`, legend, `\n${journeySpec.notes}\n`]
+/** Structure of every journey frame, rendered with the embedded widget as a WidgetSlot placeholder. */
+function buildFrameSection() {
+  const sections = ['## Journey frames\n']
   for (const frameSpec of journeyFrameSpecs) {
-    const frameSummary = journeySpec.frames.find((frame) => frame.step === frameSpec.step)
     const treeLines = renderNode(frameSpec.root, undefined, 0, frameSpec.name)
-    sections.push(`\n## Step ${frameSpec.step}: ${frameSpec.name}\n\nTransitions: ${frameSummary?.transitions ?? 'none'}\n\n\`\`\`text\n${treeLines.join('\n')}\n\`\`\`\n`)
+    sections.push(`### Step ${frameSpec.step}: ${frameSpec.name}\n\n\`\`\`text\n${treeLines.join('\n')}\n\`\`\`\n`)
   }
   return sections.join('\n')
 }
 
-function buildComponentMapDocument() {
-  const specifiedComponentNames = new Set(componentSpecs.map((componentSpec) => componentSpec.name))
+/** Component-to-code map: one row per Penpot component, with how often the design uses it. */
+function buildComponentMapSection() {
   const rows = Object.entries(componentMap).map(([componentName, entry]) => {
-    const target = entry.file ?? entry.proposedFile ?? 'n/a'
+    const target = entry.status === 'slot' ? 'embedded widget' : entry.file ?? entry.proposedFile ?? 'n/a'
     const exportName = entry.export ? ` \`${entry.export}\`` : ''
     const storybook = entry.storybook ? `\`${entry.storybook}\`` : ''
-    const specLink = specifiedComponentNames.has(componentName) ? `spec/components/${componentName}.json` : 'embedded widget / shared'
-    return `| ${componentName} | ${entry.status} | \`${target}\`${exportName} | ${storybook} | ${specLink} | ${instanceUsageCounts[componentName] ?? 0} | ${entry.change ?? entry.notes ?? ''} |`
+    return `| ${componentName} | ${entry.status} | \`${target}\`${exportName} | ${storybook} | ${instanceUsageCounts[componentName] ?? 0} | ${entry.change ?? entry.notes ?? ''} |`
   })
   return [
-    `# ${metaSpec.feature}: component-to-code map\n`,
-    legend,
-    '\n| Penpot component | Status | Code target | Storybook | Structural spec | Instances in spec | Notes |',
-    '| --- | --- | --- | --- | --- | --- | --- |',
+    '## Component-to-code map\n',
+    '| Penpot component | Status | Code target | Storybook | Instances | Notes |',
+    '| --- | --- | --- | --- | --- | --- |',
     ...rows,
-    '\n## Status legend\n',
+    '\n### Status legend\n',
     ...Object.entries(metaSpec.statusLegend).map(([status, meaning]) => `- **${status}**: ${meaning}`),
-    '\n## Open questions\n',
-    ...metaSpec.openQuestions.map((question) => `- ${question}`),
     '',
   ].join('\n')
 }
 
-function buildValidationDocument() {
+function buildOpenQuestionsSection() {
+  return ['## Open questions\n', ...metaSpec.openQuestions.map((question) => `- ${question}`), ''].join('\n')
+}
+
+function buildValidationSection() {
   const listOrNone = (items) => (items.length ? [...new Set(items)].map((item) => `- ${item}`).join('\n') : '- none')
   return [
-    `# ${metaSpec.feature}: spec validation\n`,
-    `Errors block the check; warnings need a human look.\n`,
-    `## Errors (${new Set(errors).size})\n\n${listOrNone(errors)}\n`,
-    `## Warnings (${new Set(warnings).size})\n\n${listOrNone(warnings)}\n`,
-    `## Inferred token bindings (${inferredBindings.size} distinct)\n\nValues the designer left unbound that exactly match a scale token. Bind them in Penpot to remove the inference.\n\n${listOrNone([...inferredBindings].map(([label, { count, firstLocation }]) => `${label}: ${count}x, first at ${firstLocation}`))}\n`,
-    `## Raw values with no token (${new Set(rawValues).size})\n\n${listOrNone(rawValues)}\n`,
+    '## Validation\n',
+    `Errors block \`--check\`; warnings need a human look.\n`,
+    `**Errors (${new Set(errors).size})**\n\n${listOrNone(errors)}\n`,
+    `**Warnings (${new Set(warnings).size})**\n\n${listOrNone(warnings)}\n`,
+    `**Inferred token bindings (${inferredBindings.size} distinct)**: values left unbound in Penpot that exactly match a scale token. Bind them in Penpot to remove the inference.\n\n${listOrNone([...inferredBindings].map(([label, { count, firstLocation }]) => `${label}: ${count}x, first at ${firstLocation}`))}\n`,
+    `**Raw values with no token (${new Set(rawValues).size})**\n\n${listOrNone(rawValues)}\n`,
   ].join('\n')
 }
 
 // ---------------------------------------------------------------------------
-// Map integrity: every referenced file must exist, every instance must be mapped
+// Map integrity: every referenced file must exist
 // ---------------------------------------------------------------------------
 
 function validateComponentMap() {
@@ -473,26 +484,47 @@ function validateComponentMap() {
   }
 }
 
+/** Map entries nothing in the design uses are stale and should be removed from meta.json. */
+function warnAboutUnusedMapEntries() {
+  for (const componentName of Object.keys(componentMap)) {
+    if (!instanceUsageCounts[componentName]) warnings.push(`meta.json componentMap.${componentName} is not used by any frame or built component`)
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Run
 // ---------------------------------------------------------------------------
 
 validateComponentMap()
-const componentsDocument = buildComponentsDocument()
-const journeyDocument = buildJourneyDocument()
-const componentMapDocument = buildComponentMapDocument()
-const validationDocument = buildValidationDocument()
+// Trees are rendered first so instance usage counts and validation findings are complete before the tables are built.
+const componentStructureSection = buildComponentStructureSection()
+const frameSection = buildFrameSection()
+warnAboutUnusedMapEntries()
+
+const buildSpecDocument = [
+  `# ${metaSpec.feature}: design build spec\n`,
+  legend,
+  '',
+  buildJourneySection(),
+  buildComponentMapSection(),
+  componentStructureSection,
+  frameSection,
+  buildOpenQuestionsSection(),
+  buildValidationSection(),
+].join('\n')
 
 console.log(`errors: ${new Set(errors).size}  warnings: ${new Set(warnings).size}  inferred bindings: ${inferredBindings.size} distinct  raw values: ${new Set(rawValues).size}`)
 for (const error of new Set(errors)) console.error(`ERROR ${error}`)
 
-if (!isCheckOnly) {
-  const outputDirectory = path.join(featureDir, 'generated')
-  fs.mkdirSync(outputDirectory, { recursive: true })
-  fs.writeFileSync(path.join(outputDirectory, 'components.md'), componentsDocument)
-  fs.writeFileSync(path.join(outputDirectory, 'journey.md'), journeyDocument)
-  fs.writeFileSync(path.join(outputDirectory, 'component-to-code-map.md'), componentMapDocument)
-  fs.writeFileSync(path.join(outputDirectory, 'validation.md'), validationDocument)
-  console.log(`wrote ${path.relative(process.cwd(), outputDirectory)}/{components,journey,component-to-code-map,validation}.md`)
+if (isCheckOnly) {
+  const committedDocument = fs.existsSync(outputFilePath) ? fs.readFileSync(outputFilePath, 'utf8') : null
+  if (committedDocument !== buildSpecDocument) {
+    console.error(`ERROR ${path.relative(process.cwd(), outputFilePath)} is ${committedDocument === null ? 'missing' : 'stale'}: regenerate it without --check and commit the result`)
+    process.exit(1)
+  }
+  console.log('design-spec.md is up to date')
+} else {
+  fs.writeFileSync(outputFilePath, buildSpecDocument)
+  console.log(`wrote ${path.relative(process.cwd(), outputFilePath)}`)
 }
 process.exit(errors.length ? 1 : 0)

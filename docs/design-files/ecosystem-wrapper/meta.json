@@ -2,16 +2,19 @@
   "specVersion": 1,
   "kind": "meta",
   "feature": "ecosystem-wrapper",
-  "description": "Hand-authored facts the Penpot file cannot express: which Penpot component maps to which code, icon names, and behaviour notes. Reviewed by a human; validated against the repo by spec-to-tamagui.mjs.",
+  "description": "Hand-authored facts the Penpot file cannot express: which Penpot component maps to which code, icon names, and behaviour notes. Reviewed by a human; validated against the repo and presets.ts by spec-to-tamagui.mjs.",
   "statusLegend": {
     "exists": "Reuse as-is. File and export must resolve in the repo (validated).",
     "extend": "Reuse an existing component and add behaviour/variants (named in `change`).",
     "new": "Does not exist. `proposedFile` is a suggestion, final location is decided in the [Feature].",
-    "private": "Exists but is a non-exported const inside a widget file; promote to a shared export if the wrapper must reuse it.",
     "third-party": "Rendered by a third-party SDK. The Penpot frame is a placeholder, nothing to build.",
-    "widget-internal": "Part of an embedded widget's own UI, already built there. The wrapper does not touch it."
+    "slot": "Placeholder for an embedded widget (Claim, AI Credits, ...). Mount the existing widget as-is; nothing to build or restyle."
   },
   "componentMap": {
+    "WidgetSlot": {
+      "status": "slot",
+      "notes": "The wrapper is a shell: header, bottom bar and drawer around the existing widget packages. Widget content is never redrawn or duplicated here."
+    },
     "BottomAppBar": {
       "status": "new",
       "proposedFile": "packages/ui/src/components/BottomAppBar.tsx",
@@ -92,60 +95,6 @@
       "status": "exists",
       "file": "packages/ui/src/components-test/Spinner.tsx",
       "export": "Spinner"
-    },
-    "TokenAmount": {
-      "status": "exists",
-      "file": "packages/ui/src/components/TokenAmount.tsx",
-      "export": "TokenAmount",
-      "storybook": "examples/storybook/src/stories/design-system/TokenAmount.stories.tsx"
-    },
-    "WidgetTabs": {
-      "status": "exists",
-      "file": "packages/ui/src/components/WidgetTabs.tsx",
-      "export": "WidgetTabs",
-      "notes": "The wrapper hides the tab-bar header layer (hiddenLayers: Header)."
-    },
-    "WidgetVersion": {
-      "status": "exists",
-      "file": "packages/ui/src/components/WidgetVersion.tsx",
-      "export": "WidgetVersion"
-    },
-    "ClaimActionButton": {
-      "status": "widget-internal",
-      "file": "packages/citizen-claim-widget/src/CitizenClaimWidget.tsx",
-      "export": "ClaimActionButton (private const)"
-    },
-    "ChainBreakdown": {
-      "status": "widget-internal",
-      "file": "packages/citizen-claim-widget/src/CitizenClaimWidget.tsx",
-      "export": "ClaimChainBreakdown (private const)"
-    },
-    "DailyStats": {
-      "status": "widget-internal",
-      "file": "packages/citizen-claim-widget/src/CitizenClaimWidget.tsx",
-      "export": "ClaimDailyStats (private const)"
-    },
-    "AiCreditsStep": {
-      "status": "widget-internal",
-      "file": "packages/ai-credits-widget/src/components/setup/SetupGuidanceCard.tsx"
-    },
-    "AiCreditsTabs": {
-      "status": "widget-internal",
-      "file": "packages/ai-credits-widget/src/AiCreditsWidget.tsx"
-    },
-    "AiCreditsGuidance": {
-      "status": "widget-internal",
-      "file": "packages/ai-credits-widget/src/components/setup/SetupGuidanceCard.tsx"
-    },
-    "AiCreditsNotice": {
-      "status": "widget-internal",
-      "file": "packages/ai-credits-widget/src/components/theme/cards.ts",
-      "export": "AiCreditsStatusNotice"
-    },
-    "AiCreditsBadge": {
-      "status": "widget-internal",
-      "file": "packages/ai-credits-widget/src/components/theme/cards.ts",
-      "export": "BonusBadgeFrame"
     }
   },
   "icons": {
