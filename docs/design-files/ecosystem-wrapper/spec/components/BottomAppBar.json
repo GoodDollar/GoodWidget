@@ -1,0 +1,254 @@
+{
+  "specVersion": 1,
+  "kind": "component",
+  "name": "BottomAppBar",
+  "variants": [
+    {
+      "properties": null,
+      "root": {
+        "name": "BottomAppBar",
+        "type": "board",
+        "size": [
+          480,
+          59
+        ],
+        "sizing": {
+          "horizontal": "fix",
+          "vertical": "fix"
+        },
+        "tokens": {
+          "fill": "theme.backgroundHover"
+        },
+        "layout": {
+          "direction": "column",
+          "alignItems": "stretch",
+          "justifyContent": "start",
+          "gap": {
+            "row": 0,
+            "column": 0
+          },
+          "padding": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          }
+        },
+        "children": [
+          {
+            "name": "Rule",
+            "type": "rect",
+            "size": [
+              480,
+              1
+            ],
+            "sizing": {
+              "horizontal": "fill",
+              "vertical": "fix"
+            },
+            "tokens": {
+              "fill": "theme.borderColor"
+            }
+          },
+          {
+            "name": "Items",
+            "type": "board",
+            "size": [
+              480,
+              58
+            ],
+            "sizing": {
+              "horizontal": "fill",
+              "vertical": "fix"
+            },
+            "layout": {
+              "direction": "row",
+              "alignItems": "stretch",
+              "justifyContent": "start",
+              "gap": {
+                "row": 0,
+                "column": 0
+              },
+              "padding": {
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+              }
+            },
+            "children": [
+              {
+                "name": "BottomBarItem",
+                "type": "board",
+                "size": [
+                  96,
+                  58
+                ],
+                "sizing": {
+                  "horizontal": "fill",
+                  "vertical": "fix"
+                },
+                "tokens": {
+                  "rowGap": "space.1",
+                  "paddingTop": "space.2",
+                  "paddingBottom": "space.2"
+                },
+                "instanceOf": {
+                  "component": "BottomBarItem",
+                  "variant": {
+                    "State": "active"
+                  }
+                },
+                "overrides": {
+                  "texts": [
+                    {
+                      "layer": "Label",
+                      "characters": "Claim"
+                    }
+                  ],
+                  "hiddenLayers": []
+                }
+              },
+              {
+                "name": "BottomBarItem",
+                "type": "board",
+                "size": [
+                  96,
+                  58
+                ],
+                "sizing": {
+                  "horizontal": "fill",
+                  "vertical": "fix"
+                },
+                "tokens": {
+                  "rowGap": "space.1",
+                  "paddingTop": "space.2",
+                  "paddingBottom": "space.2"
+                },
+                "instanceOf": {
+                  "component": "BottomBarItem",
+                  "variant": {
+                    "State": "default"
+                  }
+                },
+                "overrides": {
+                  "texts": [
+                    {
+                      "layer": "Label",
+                      "characters": "Reserve"
+                    }
+                  ],
+                  "hiddenLayers": [
+                    "Indicator"
+                  ]
+                }
+              },
+              {
+                "name": "BottomBarItem",
+                "type": "board",
+                "size": [
+                  96,
+                  58
+                ],
+                "sizing": {
+                  "horizontal": "fill",
+                  "vertical": "fix"
+                },
+                "tokens": {
+                  "rowGap": "space.1",
+                  "paddingTop": "space.2",
+                  "paddingBottom": "space.2"
+                },
+                "instanceOf": {
+                  "component": "BottomBarItem",
+                  "variant": {
+                    "State": "default"
+                  }
+                },
+                "overrides": {
+                  "texts": [
+                    {
+                      "layer": "Label",
+                      "characters": "Streaming"
+                    }
+                  ],
+                  "hiddenLayers": [
+                    "Indicator"
+                  ]
+                }
+              },
+              {
+                "name": "BottomBarItem",
+                "type": "board",
+                "size": [
+                  96,
+                  58
+                ],
+                "sizing": {
+                  "horizontal": "fill",
+                  "vertical": "fix"
+                },
+                "tokens": {
+                  "rowGap": "space.1",
+                  "paddingTop": "space.2",
+                  "paddingBottom": "space.2"
+                },
+                "instanceOf": {
+                  "component": "BottomBarItem",
+                  "variant": {
+                    "State": "default"
+                  }
+                },
+                "overrides": {
+                  "texts": [
+                    {
+                      "layer": "Label",
+                      "characters": "AI Credits"
+                    }
+                  ],
+                  "hiddenLayers": [
+                    "Indicator"
+                  ]
+                }
+              },
+              {
+                "name": "BottomBarItem",
+                "type": "board",
+                "size": [
+                  96,
+                  58
+                ],
+                "sizing": {
+                  "horizontal": "fill",
+                  "vertical": "fix"
+                },
+                "tokens": {
+                  "rowGap": "space.1",
+                  "paddingTop": "space.2",
+                  "paddingBottom": "space.2"
+                },
+                "instanceOf": {
+                  "component": "BottomBarItem",
+                  "variant": {
+                    "State": "default"
+                  }
+                },
+                "overrides": {
+                  "texts": [
+                    {
+                      "layer": "Label",
+                      "characters": "More"
+                    }
+                  ],
+                  "hiddenLayers": [
+                    "Indicator"
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

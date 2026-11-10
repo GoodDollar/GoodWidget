@@ -1,0 +1,44 @@
+{
+  "specVersion": 1,
+  "kind": "component",
+  "name": "SkeletonBlock",
+  "variants": [
+    {
+      "properties": null,
+      "root": {
+        "name": "SkeletonBlock",
+        "type": "board",
+        "size": [
+          200,
+          16
+        ],
+        "sizing": {
+          "horizontal": "fix",
+          "vertical": "fix"
+        },
+        "clipContent": false,
+        "children": [
+          {
+            "name": "SkeletonBlock",
+            "type": "rect",
+            "size": [
+              200,
+              16
+            ],
+            "position": [
+              0,
+              0
+            ],
+            "tokens": {
+              "fill": "theme.borderColor",
+              "borderRadiusTopLeft": "radius.3",
+              "borderRadiusTopRight": "radius.3",
+              "borderRadiusBottomLeft": "radius.3",
+              "borderRadiusBottomRight": "radius.3"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,132 @@
+{
+  "specVersion": 1,
+  "kind": "component",
+  "name": "WidgetUnavailable",
+  "variants": [
+    {
+      "properties": null,
+      "root": {
+        "name": "WidgetUnavailable",
+        "type": "board",
+        "size": [
+          432,
+          193
+        ],
+        "sizing": {
+          "horizontal": "fix",
+          "vertical": "fix"
+        },
+        "layout": {
+          "direction": "column",
+          "alignItems": "stretch",
+          "justifyContent": "start",
+          "gap": {
+            "row": 16,
+            "column": 0
+          },
+          "padding": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          }
+        },
+        "children": [
+          {
+            "name": "Card",
+            "type": "board",
+            "size": [
+              432,
+              105
+            ],
+            "sizing": {
+              "horizontal": "fill",
+              "vertical": "auto"
+            },
+            "tokens": {
+              "borderRadiusBottomRight": "radius.3",
+              "strokeColor": "card.borderColor",
+              "fill": "card.background",
+              "borderRadiusTopRight": "radius.3",
+              "paddingRight": "space.4",
+              "paddingTop": "space.4",
+              "paddingLeft": "space.4",
+              "paddingBottom": "space.4",
+              "borderRadiusBottomLeft": "radius.3",
+              "rowGap": "space.3",
+              "borderRadiusTopLeft": "radius.3"
+            },
+            "unbound": {
+              "strokes": [
+                {
+                  "width": 1,
+                  "alignment": "inner",
+                  "style": "solid"
+                }
+              ]
+            },
+            "instanceOf": {
+              "component": "Card",
+              "variant": {
+                "Variant": "outlined"
+              }
+            },
+            "overrides": {
+              "texts": [
+                {
+                  "layer": "Title",
+                  "characters": "Not available on this network"
+                },
+                {
+                  "layer": "Content",
+                  "characters": "Citizen Claim is not supported on Ethereum. Switch to a supported network to continue."
+                }
+              ],
+              "hiddenLayers": []
+            }
+          },
+          {
+            "name": "Button",
+            "type": "board",
+            "size": [
+              432,
+              72
+            ],
+            "sizing": {
+              "horizontal": "fill",
+              "vertical": "fix"
+            },
+            "tokens": {
+              "borderRadiusBottomRight": "radius.full",
+              "fill": "button.background",
+              "borderRadiusTopRight": "radius.full",
+              "paddingRight": "space.5",
+              "columnGap": "space.2",
+              "paddingLeft": "space.5",
+              "borderRadiusBottomLeft": "radius.full",
+              "height": "size.11",
+              "borderRadiusTopLeft": "radius.full"
+            },
+            "instanceOf": {
+              "component": "Button",
+              "variant": {
+                "Variant": "primary",
+                "Size": "lg",
+                "State": "default"
+              }
+            },
+            "overrides": {
+              "texts": [
+                {
+                  "layer": "Label",
+                  "characters": "Switch network"
+                }
+              ],
+              "hiddenLayers": []
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

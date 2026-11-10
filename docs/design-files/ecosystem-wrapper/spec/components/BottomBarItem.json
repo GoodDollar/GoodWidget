@@ -1,0 +1,539 @@
+{
+  "specVersion": 1,
+  "kind": "component",
+  "name": "BottomBarItem",
+  "variants": [
+    {
+      "properties": {
+        "State": "default"
+      },
+      "root": {
+        "name": "BottomBarItem",
+        "type": "board",
+        "size": [
+          96,
+          58
+        ],
+        "sizing": {
+          "horizontal": "fix",
+          "vertical": "fix"
+        },
+        "tokens": {
+          "rowGap": "space.1",
+          "paddingTop": "space.2",
+          "paddingBottom": "space.2"
+        },
+        "layout": {
+          "direction": "column",
+          "alignItems": "center",
+          "justifyContent": "center",
+          "gap": {
+            "row": 4,
+            "column": 0
+          },
+          "padding": {
+            "top": 8,
+            "right": 0,
+            "bottom": 8,
+            "left": 0
+          }
+        },
+        "children": [
+          {
+            "name": "Icon",
+            "type": "board",
+            "size": [
+              24,
+              24
+            ],
+            "sizing": {
+              "horizontal": "fix",
+              "vertical": "fix"
+            },
+            "clipContent": false,
+            "children": [
+              {
+                "name": "Glyph",
+                "type": "path",
+                "size": [
+                  14,
+                  14
+                ],
+                "position": [
+                  5,
+                  5
+                ],
+                "tokens": {
+                  "strokeColor": "theme.secondaryColor"
+                },
+                "unbound": {
+                  "strokes": [
+                    {
+                      "width": 2,
+                      "alignment": "center",
+                      "style": "solid"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "name": "Label",
+            "type": "text",
+            "size": [
+              31,
+              15
+            ],
+            "sizing": {
+              "horizontal": "fix",
+              "vertical": "fix"
+            },
+            "tokens": {
+              "fill": "theme.secondaryColor",
+              "fontFamilies": "fontFamily.body",
+              "fontSize": "fontSize.body.1",
+              "fontWeight": "fontWeight.body.4"
+            },
+            "text": {
+              "characters": "Claim",
+              "fontFamily": "Avenir Next",
+              "fontSize": 12,
+              "fontWeight": "500",
+              "lineHeight": 1.2,
+              "letterSpacing": 0,
+              "align": "left",
+              "growType": "auto-width"
+            }
+          },
+          {
+            "name": "Indicator",
+            "type": "rect",
+            "size": [
+              96,
+              2
+            ],
+            "hidden": true,
+            "sizing": {
+              "horizontal": "fix",
+              "vertical": "fix"
+            },
+            "flexChild": {
+              "absolute": true
+            },
+            "tokens": {
+              "fill": "theme.borderColorFocus"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "properties": {
+        "State": "active"
+      },
+      "root": {
+        "name": "BottomBarItem",
+        "type": "board",
+        "size": [
+          96,
+          58
+        ],
+        "sizing": {
+          "horizontal": "fix",
+          "vertical": "fix"
+        },
+        "tokens": {
+          "rowGap": "space.1",
+          "paddingTop": "space.2",
+          "paddingBottom": "space.2"
+        },
+        "layout": {
+          "direction": "column",
+          "alignItems": "center",
+          "justifyContent": "center",
+          "gap": {
+            "row": 4,
+            "column": 0
+          },
+          "padding": {
+            "top": 8,
+            "right": 0,
+            "bottom": 8,
+            "left": 0
+          }
+        },
+        "children": [
+          {
+            "name": "Icon",
+            "type": "board",
+            "size": [
+              24,
+              24
+            ],
+            "sizing": {
+              "horizontal": "fix",
+              "vertical": "fix"
+            },
+            "clipContent": false,
+            "children": [
+              {
+                "name": "Glyph",
+                "type": "path",
+                "size": [
+                  14,
+                  14
+                ],
+                "position": [
+                  5,
+                  5
+                ],
+                "tokens": {
+                  "strokeColor": "theme.text"
+                },
+                "unbound": {
+                  "strokes": [
+                    {
+                      "width": 2,
+                      "alignment": "center",
+                      "style": "solid"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "name": "Label",
+            "type": "text",
+            "size": [
+              31,
+              15
+            ],
+            "sizing": {
+              "horizontal": "fix",
+              "vertical": "fix"
+            },
+            "tokens": {
+              "fill": "theme.text",
+              "fontFamilies": "fontFamily.body",
+              "fontSize": "fontSize.body.1",
+              "fontWeight": "fontWeight.body.4"
+            },
+            "text": {
+              "characters": "Claim",
+              "fontFamily": "Avenir Next",
+              "fontSize": 12,
+              "fontWeight": "500",
+              "lineHeight": 1.2,
+              "letterSpacing": 0,
+              "align": "left",
+              "growType": "auto-width"
+            }
+          },
+          {
+            "name": "Indicator",
+            "type": "rect",
+            "size": [
+              96,
+              2
+            ],
+            "sizing": {
+              "horizontal": "fix",
+              "vertical": "fix"
+            },
+            "flexChild": {
+              "absolute": true
+            },
+            "tokens": {
+              "fill": "theme.borderColorFocus"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "properties": {
+        "State": "loading"
+      },
+      "root": {
+        "name": "BottomBarItem",
+        "type": "board",
+        "size": [
+          96,
+          58
+        ],
+        "sizing": {
+          "horizontal": "fix",
+          "vertical": "fix"
+        },
+        "tokens": {
+          "rowGap": "space.1",
+          "paddingTop": "space.2",
+          "paddingBottom": "space.2"
+        },
+        "layout": {
+          "direction": "column",
+          "alignItems": "center",
+          "justifyContent": "center",
+          "gap": {
+            "row": 4,
+            "column": 0
+          },
+          "padding": {
+            "top": 8,
+            "right": 0,
+            "bottom": 8,
+            "left": 0
+          }
+        },
+        "children": [
+          {
+            "name": "Icon",
+            "type": "board",
+            "size": [
+              24,
+              24
+            ],
+            "sizing": {
+              "horizontal": "fix",
+              "vertical": "fix"
+            },
+            "clipContent": false,
+            "children": [
+              {
+                "name": "Glyph",
+                "type": "path",
+                "size": [
+                  14,
+                  14
+                ],
+                "hidden": true,
+                "position": [
+                  5,
+                  5
+                ],
+                "tokens": {
+                  "strokeColor": "theme.secondaryColor"
+                },
+                "unbound": {
+                  "strokes": [
+                    {
+                      "width": 2,
+                      "alignment": "center",
+                      "style": "solid"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "Spinner",
+                "type": "board",
+                "size": [
+                  26,
+                  6
+                ],
+                "sizing": {
+                  "horizontal": "auto",
+                  "vertical": "auto"
+                },
+                "position": [
+                  -1,
+                  9
+                ],
+                "tokens": {
+                  "columnGap": "space.1"
+                },
+                "instanceOf": {
+                  "component": "Spinner",
+                  "variant": {
+                    "Size": "sm"
+                  }
+                },
+                "overrides": {
+                  "texts": [],
+                  "hiddenLayers": []
+                }
+              }
+            ]
+          },
+          {
+            "name": "Label",
+            "type": "text",
+            "size": [
+              31,
+              15
+            ],
+            "sizing": {
+              "horizontal": "fix",
+              "vertical": "fix"
+            },
+            "tokens": {
+              "fill": "theme.text",
+              "fontFamilies": "fontFamily.body",
+              "fontSize": "fontSize.body.1",
+              "fontWeight": "fontWeight.body.4"
+            },
+            "text": {
+              "characters": "Claim",
+              "fontFamily": "Avenir Next",
+              "fontSize": 12,
+              "fontWeight": "500",
+              "lineHeight": 1.2,
+              "letterSpacing": 0,
+              "align": "left",
+              "growType": "auto-width"
+            }
+          },
+          {
+            "name": "Indicator",
+            "type": "rect",
+            "size": [
+              96,
+              2
+            ],
+            "sizing": {
+              "horizontal": "fix",
+              "vertical": "fix"
+            },
+            "flexChild": {
+              "absolute": true
+            },
+            "tokens": {
+              "fill": "theme.borderColorFocus"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "properties": {
+        "State": "disabled"
+      },
+      "root": {
+        "name": "BottomBarItem",
+        "type": "board",
+        "size": [
+          96,
+          58
+        ],
+        "sizing": {
+          "horizontal": "fix",
+          "vertical": "fix"
+        },
+        "tokens": {
+          "rowGap": "space.1",
+          "paddingTop": "space.2",
+          "paddingBottom": "space.2",
+          "opacity": "input.disabledOpacity"
+        },
+        "unbound": {
+          "opacity": 0.5
+        },
+        "layout": {
+          "direction": "column",
+          "alignItems": "center",
+          "justifyContent": "center",
+          "gap": {
+            "row": 4,
+            "column": 0
+          },
+          "padding": {
+            "top": 8,
+            "right": 0,
+            "bottom": 8,
+            "left": 0
+          }
+        },
+        "children": [
+          {
+            "name": "Icon",
+            "type": "board",
+            "size": [
+              24,
+              24
+            ],
+            "sizing": {
+              "horizontal": "fix",
+              "vertical": "fix"
+            },
+            "clipContent": false,
+            "children": [
+              {
+                "name": "Glyph",
+                "type": "path",
+                "size": [
+                  14,
+                  14
+                ],
+                "position": [
+                  5,
+                  5
+                ],
+                "tokens": {
+                  "strokeColor": "theme.secondaryColor"
+                },
+                "unbound": {
+                  "strokes": [
+                    {
+                      "width": 2,
+                      "alignment": "center",
+                      "style": "solid"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "name": "Label",
+            "type": "text",
+            "size": [
+              31,
+              15
+            ],
+            "sizing": {
+              "horizontal": "fix",
+              "vertical": "fix"
+            },
+            "tokens": {
+              "fill": "theme.secondaryColor",
+              "fontFamilies": "fontFamily.body",
+              "fontSize": "fontSize.body.1",
+              "fontWeight": "fontWeight.body.4"
+            },
+            "text": {
+              "characters": "Claim",
+              "fontFamily": "Avenir Next",
+              "fontSize": 12,
+              "fontWeight": "500",
+              "lineHeight": 1.2,
+              "letterSpacing": 0,
+              "align": "left",
+              "growType": "auto-width"
+            }
+          },
+          {
+            "name": "Indicator",
+            "type": "rect",
+            "size": [
+              96,
+              2
+            ],
+            "hidden": true,
+            "sizing": {
+              "horizontal": "fix",
+              "vertical": "fix"
+            },
+            "flexChild": {
+              "absolute": true
+            },
+            "tokens": {
+              "fill": "theme.borderColorFocus"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

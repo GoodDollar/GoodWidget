@@ -1,0 +1,63 @@
+{
+  "specVersion": 1,
+  "kind": "journey",
+  "title": "GoodDollar Ecosystem Widget wrapper: user journey (MVP)",
+  "source": "Notion spec \"GoodBounties: Ecosystem widget wrapper\" (status Defining)",
+  "notes": "Frames are composed from instances on the Ecosystem Widget Components page and the Claim / AI Credits component pages, bound to the same tokens. Light and Dark follow the Mode theme. Assumptions: four widgets are pinned to the bottom bar (configurable), the fifth slot is More; the embedded widget's own header is hidden because the wrapper header owns title, network and wallet; the Reown modal is third-party UI and drawn as a placeholder; widget icons are placeholders.",
+  "frames": [
+    {
+      "step": 1,
+      "name": "1 · claim (default)",
+      "file": "01-claim-default.json",
+      "transitions": "Tap AI Credits → 4 · Tap More → 6 · Disconnect → 2"
+    },
+    {
+      "step": 2,
+      "name": "2 · claim · wallet disconnected",
+      "file": "02-claim-wallet-disconnected.json",
+      "transitions": "Press Connect Wallet → 3"
+    },
+    {
+      "step": 3,
+      "name": "3 · connecting wallet (Reown modal)",
+      "file": "03-connecting-wallet.json",
+      "transitions": "Wallet approved → 1"
+    },
+    {
+      "step": 4,
+      "name": "4 · switching widget (loading)",
+      "file": "04-switching-widget-loading.json",
+      "transitions": "Widget loaded → 5"
+    },
+    {
+      "step": 5,
+      "name": "5 · AI Credits loaded",
+      "file": "05-ai-credits-loaded.json",
+      "transitions": "Tap Claim → 1"
+    },
+    {
+      "step": 6,
+      "name": "6 · More drawer open",
+      "file": "06-more-drawer-open.json",
+      "transitions": "Pick a widget → 7 · Close → 1"
+    },
+    {
+      "step": 7,
+      "name": "7 · drawer pick · loading",
+      "file": "07-drawer-pick-loading.json",
+      "transitions": "Widget loaded → 1 · Unsupported network → 8"
+    },
+    {
+      "step": 8,
+      "name": "8 · widget unavailable on network",
+      "file": "08-widget-unavailable.json",
+      "transitions": "Switch network → 1 · or pick another widget"
+    },
+    {
+      "step": 9,
+      "name": "9 · four widgets · More disabled",
+      "file": "09-four-widgets-more-disabled.json",
+      "transitions": "Four or fewer widgets: More is disabled"
+    }
+  ]
+}

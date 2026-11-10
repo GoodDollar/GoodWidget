@@ -1,0 +1,243 @@
+{
+  "specVersion": 1,
+  "kind": "journey-frame",
+  "step": 8,
+  "name": "8 · widget unavailable on network",
+  "canvas": {
+    "x": 1200,
+    "y": 1060
+  },
+  "root": {
+    "name": "8 · widget unavailable on network",
+    "type": "board",
+    "size": [
+      480,
+      800
+    ],
+    "sizing": {
+      "horizontal": "fix",
+      "vertical": "fix"
+    },
+    "tokens": {
+      "fill": "theme.background"
+    },
+    "layout": {
+      "direction": "column",
+      "alignItems": "stretch",
+      "justifyContent": "start",
+      "gap": {
+        "row": 0,
+        "column": 0
+      },
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      }
+    },
+    "children": [
+      {
+        "name": "EcosystemHeader",
+        "type": "board",
+        "size": [
+          480,
+          65
+        ],
+        "sizing": {
+          "horizontal": "fill",
+          "vertical": "auto"
+        },
+        "instanceOf": {
+          "component": "EcosystemHeader",
+          "variant": {
+            "State": "connected"
+          }
+        },
+        "overrides": {
+          "texts": [
+            {
+              "layer": "Row/Title",
+              "characters": "GoodDollar Ecosystem"
+            },
+            {
+              "layer": "Row/Right/ChainBadge/Chain name",
+              "characters": "Ethereum"
+            },
+            {
+              "layer": "Row/Right/WalletChip/Address",
+              "characters": "0x1a2…f9c"
+            }
+          ],
+          "hiddenLayers": []
+        }
+      },
+      {
+        "name": "Body",
+        "type": "board",
+        "size": [
+          480,
+          676
+        ],
+        "sizing": {
+          "horizontal": "fill",
+          "vertical": "fill"
+        },
+        "layout": {
+          "direction": "column",
+          "alignItems": "stretch",
+          "justifyContent": "start",
+          "gap": {
+            "row": 20,
+            "column": 0
+          },
+          "padding": {
+            "top": 16,
+            "right": 16,
+            "bottom": 16,
+            "left": 16
+          }
+        },
+        "children": [
+          {
+            "name": "WidgetUnavailable",
+            "type": "board",
+            "size": [
+              448,
+              193
+            ],
+            "sizing": {
+              "horizontal": "fill",
+              "vertical": "fix"
+            },
+            "instanceOf": {
+              "component": "WidgetUnavailable",
+              "variant": null
+            },
+            "overrides": {
+              "texts": [
+                {
+                  "layer": "Card/Title",
+                  "characters": "Not available on this network"
+                },
+                {
+                  "layer": "Card/Content",
+                  "characters": "Citizen Claim is not supported on Ethereum. Switch to a supported network to continue."
+                },
+                {
+                  "layer": "Button/Label",
+                  "characters": "Switch network"
+                }
+              ],
+              "hiddenLayers": [],
+              "nestedInstances": [
+                {
+                  "layer": "Card",
+                  "component": "Card",
+                  "variant": {
+                    "Variant": "outlined"
+                  }
+                },
+                {
+                  "layer": "Button",
+                  "component": "Button",
+                  "variant": {
+                    "Variant": "primary",
+                    "Size": "lg",
+                    "State": "default"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "BottomAppBar",
+        "type": "board",
+        "size": [
+          480,
+          59
+        ],
+        "sizing": {
+          "horizontal": "fill",
+          "vertical": "fix"
+        },
+        "tokens": {
+          "fill": "theme.backgroundHover"
+        },
+        "instanceOf": {
+          "component": "BottomAppBar",
+          "variant": null
+        },
+        "overrides": {
+          "texts": [
+            {
+              "layer": "Items/BottomBarItem/Label",
+              "characters": "Claim"
+            },
+            {
+              "layer": "Items/BottomBarItem/Label",
+              "characters": "Reserve"
+            },
+            {
+              "layer": "Items/BottomBarItem/Label",
+              "characters": "Streaming"
+            },
+            {
+              "layer": "Items/BottomBarItem/Label",
+              "characters": "AI Credits"
+            },
+            {
+              "layer": "Items/BottomBarItem/Label",
+              "characters": "More"
+            }
+          ],
+          "hiddenLayers": [
+            "Items/BottomBarItem/Indicator",
+            "Items/BottomBarItem/Indicator",
+            "Items/BottomBarItem/Indicator",
+            "Items/BottomBarItem/Indicator"
+          ],
+          "nestedInstances": [
+            {
+              "layer": "Items/BottomBarItem",
+              "component": "BottomBarItem",
+              "variant": {
+                "State": "active"
+              }
+            },
+            {
+              "layer": "Items/BottomBarItem",
+              "component": "BottomBarItem",
+              "variant": {
+                "State": "default"
+              }
+            },
+            {
+              "layer": "Items/BottomBarItem",
+              "component": "BottomBarItem",
+              "variant": {
+                "State": "default"
+              }
+            },
+            {
+              "layer": "Items/BottomBarItem",
+              "component": "BottomBarItem",
+              "variant": {
+                "State": "default"
+              }
+            },
+            {
+              "layer": "Items/BottomBarItem",
+              "component": "BottomBarItem",
+              "variant": {
+                "State": "default"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

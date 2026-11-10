@@ -1,0 +1,555 @@
+{
+  "specVersion": 1,
+  "kind": "journey-frame",
+  "step": 5,
+  "name": "5 · AI Credits loaded",
+  "canvas": {
+    "x": 2400,
+    "y": 160
+  },
+  "root": {
+    "name": "5 · AI Credits loaded",
+    "type": "board",
+    "size": [
+      480,
+      800
+    ],
+    "sizing": {
+      "horizontal": "fix",
+      "vertical": "fix"
+    },
+    "tokens": {
+      "fill": "theme.background"
+    },
+    "layout": {
+      "direction": "column",
+      "alignItems": "stretch",
+      "justifyContent": "start",
+      "gap": {
+        "row": 0,
+        "column": 0
+      },
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      }
+    },
+    "children": [
+      {
+        "name": "EcosystemHeader",
+        "type": "board",
+        "size": [
+          480,
+          65
+        ],
+        "sizing": {
+          "horizontal": "fill",
+          "vertical": "auto"
+        },
+        "instanceOf": {
+          "component": "EcosystemHeader",
+          "variant": {
+            "State": "connected"
+          }
+        },
+        "overrides": {
+          "texts": [
+            {
+              "layer": "Row/Title",
+              "characters": "GoodDollar Ecosystem"
+            },
+            {
+              "layer": "Row/Right/ChainBadge/Chain name",
+              "characters": "Celo"
+            },
+            {
+              "layer": "Row/Right/WalletChip/Address",
+              "characters": "0x1a2…f9c"
+            }
+          ],
+          "hiddenLayers": []
+        }
+      },
+      {
+        "name": "Body",
+        "type": "board",
+        "size": [
+          480,
+          676
+        ],
+        "sizing": {
+          "horizontal": "fill",
+          "vertical": "fill"
+        },
+        "layout": {
+          "direction": "column",
+          "alignItems": "stretch",
+          "justifyContent": "start",
+          "gap": {
+            "row": 8,
+            "column": 0
+          },
+          "padding": {
+            "top": 16,
+            "right": 16,
+            "bottom": 16,
+            "left": 16
+          }
+        },
+        "children": [
+          {
+            "name": "AiCreditsGuidance",
+            "type": "board",
+            "size": [
+              448,
+              263
+            ],
+            "sizing": {
+              "horizontal": "fill",
+              "vertical": "auto"
+            },
+            "tokens": {
+              "paddingLeft": "space.1",
+              "paddingRight": "space.1",
+              "rowGap": "space.2"
+            },
+            "instanceOf": {
+              "component": "AiCreditsGuidance",
+              "variant": null
+            },
+            "overrides": {
+              "texts": [
+                {
+                  "layer": "Tagline",
+                  "characters": "GoodDollar supports buying Antseed AI credits with G$. Use them in Antseed to access supported AI tools such as Claude Code and Codex."
+                },
+                {
+                  "layer": "AiCreditsBonusCard/Body/Title",
+                  "characters": "Up to 20% more AI credits"
+                },
+                {
+                  "layer": "AiCreditsBonusCard/Body/Subtitle",
+                  "characters": "+10% on deposits, +20% on streams — paid with G$"
+                },
+                {
+                  "layer": "InvolvedHeading",
+                  "characters": "WHAT'S INVOLVED:"
+                },
+                {
+                  "layer": "AiCreditsInvolvedRow/NumberCircle/Number",
+                  "characters": "1"
+                },
+                {
+                  "layer": "AiCreditsInvolvedRow/Description",
+                  "characters": "Get G$ — claim G$ UBI or buy G$ on celo to purchase AI credits."
+                },
+                {
+                  "layer": "AiCreditsInvolvedRow/NumberCircle/Number",
+                  "characters": "2"
+                },
+                {
+                  "layer": "AiCreditsInvolvedRow/Description",
+                  "characters": "Get Antseed — Use Antseed to use your AI credits."
+                },
+                {
+                  "layer": "Actions/Button/Label",
+                  "characters": "How to use"
+                },
+                {
+                  "layer": "Actions/Button/Label",
+                  "characters": "Antseed site"
+                },
+                {
+                  "layer": "Actions/Button/Label",
+                  "characters": "FAQs"
+                }
+              ],
+              "hiddenLayers": [
+                "Header"
+              ],
+              "nestedInstances": [
+                {
+                  "layer": "Header/AiCreditsBadge",
+                  "component": "AiCreditsBadge",
+                  "variant": {
+                    "Tone": "ui-info"
+                  }
+                },
+                {
+                  "layer": "Actions/Button",
+                  "component": "Button",
+                  "variant": {
+                    "Variant": "outline",
+                    "Size": "sm",
+                    "State": "default"
+                  }
+                },
+                {
+                  "layer": "Actions/Button",
+                  "component": "Button",
+                  "variant": {
+                    "Variant": "outline",
+                    "Size": "sm",
+                    "State": "default"
+                  }
+                },
+                {
+                  "layer": "Actions/Button",
+                  "component": "Button",
+                  "variant": {
+                    "Variant": "outline",
+                    "Size": "sm",
+                    "State": "default"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "AiCreditsTabs",
+            "type": "board",
+            "size": [
+              448,
+              47
+            ],
+            "sizing": {
+              "horizontal": "fill",
+              "vertical": "auto"
+            },
+            "instanceOf": {
+              "component": "AiCreditsTabs",
+              "variant": {
+                "Active tab": "Set Up"
+              }
+            },
+            "overrides": {
+              "texts": [
+                {
+                  "layer": "Tabs/Tab/Label",
+                  "characters": "Set Up"
+                },
+                {
+                  "layer": "Tabs/Tab/Label",
+                  "characters": "Buy Credits"
+                },
+                {
+                  "layer": "Tabs/Tab/Label",
+                  "characters": "Manage"
+                },
+                {
+                  "layer": "Tabs/Tab/Label",
+                  "characters": "History"
+                }
+              ],
+              "hiddenLayers": []
+            }
+          },
+          {
+            "name": "AiCreditsNotice",
+            "type": "board",
+            "size": [
+              448,
+              50
+            ],
+            "sizing": {
+              "horizontal": "fill",
+              "vertical": "auto"
+            },
+            "tokens": {
+              "borderRadiusBottomRight": "radius.3",
+              "strokeColor": "theme.borderColor",
+              "fill": "theme.backgroundHover",
+              "borderRadiusTopRight": "radius.3",
+              "paddingRight": "space.3",
+              "columnGap": "space.2",
+              "paddingTop": "space.2",
+              "paddingLeft": "space.3",
+              "paddingBottom": "space.2",
+              "shadow": "theme.shadow",
+              "borderRadiusBottomLeft": "radius.3",
+              "borderRadiusTopLeft": "radius.3"
+            },
+            "unbound": {
+              "strokes": [
+                {
+                  "width": 1,
+                  "alignment": "inner",
+                  "style": "solid"
+                }
+              ],
+              "shadows": [
+                {
+                  "style": "drop-shadow",
+                  "offsetX": 0,
+                  "offsetY": 2,
+                  "blur": 8,
+                  "spread": 0,
+                  "color": "#030712",
+                  "opacity": 0.7215686274509804
+                }
+              ]
+            },
+            "instanceOf": {
+              "component": "AiCreditsNotice",
+              "variant": {
+                "Tone": "neutral"
+              }
+            },
+            "overrides": {
+              "texts": [
+                {
+                  "layer": "Message",
+                  "characters": "Please note: Using your AI credits requires a desktop computer."
+                }
+              ],
+              "hiddenLayers": []
+            }
+          },
+          {
+            "name": "Panel",
+            "type": "board",
+            "size": [
+              448,
+              178
+            ],
+            "sizing": {
+              "horizontal": "fill",
+              "vertical": "auto"
+            },
+            "layout": {
+              "direction": "column",
+              "alignItems": "stretch",
+              "justifyContent": "start",
+              "gap": {
+                "row": 12,
+                "column": 0
+              },
+              "padding": {
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+              }
+            },
+            "children": [
+              {
+                "name": "Intro",
+                "type": "text",
+                "size": [
+                  309,
+                  17
+                ],
+                "sizing": {
+                  "horizontal": "fix",
+                  "vertical": "fix"
+                },
+                "tokens": {
+                  "fill": "theme.color",
+                  "fontFamilies": "fontFamily.body",
+                  "fontSize": "fontSize.body.2",
+                  "fontWeight": "fontWeight.body.3"
+                },
+                "text": {
+                  "characters": "One-time setup required before buying AI Credits.",
+                  "fontFamily": "Avenir Next",
+                  "fontSize": 14,
+                  "fontWeight": "400",
+                  "lineHeight": 1.2,
+                  "letterSpacing": 0,
+                  "align": "left",
+                  "growType": "auto-width"
+                }
+              },
+              {
+                "name": "AiCreditsStep",
+                "type": "board",
+                "size": [
+                  448,
+                  69
+                ],
+                "sizing": {
+                  "horizontal": "fill",
+                  "vertical": "auto"
+                },
+                "tokens": {
+                  "columnGap": "space.3"
+                },
+                "instanceOf": {
+                  "component": "AiCreditsStep",
+                  "variant": {
+                    "Status": "Ready"
+                  }
+                },
+                "overrides": {
+                  "texts": [
+                    {
+                      "layer": "Content/Header/Title",
+                      "characters": "Get Antseed"
+                    },
+                    {
+                      "layer": "Content/Header/Status",
+                      "characters": "Ready"
+                    },
+                    {
+                      "layer": "Content/Description",
+                      "characters": "Antseed Desktop App or API — choose either"
+                    }
+                  ],
+                  "hiddenLayers": []
+                }
+              },
+              {
+                "name": "AiCreditsStep",
+                "type": "board",
+                "size": [
+                  448,
+                  28
+                ],
+                "sizing": {
+                  "horizontal": "fill",
+                  "vertical": "auto"
+                },
+                "tokens": {
+                  "columnGap": "space.3"
+                },
+                "instanceOf": {
+                  "component": "AiCreditsStep",
+                  "variant": {
+                    "Status": "Optional"
+                  }
+                },
+                "overrides": {
+                  "texts": [
+                    {
+                      "layer": "Content/Header/Title",
+                      "characters": "Signer key"
+                    }
+                  ],
+                  "hiddenLayers": []
+                }
+              },
+              {
+                "name": "AiCreditsStep",
+                "type": "board",
+                "size": [
+                  448,
+                  28
+                ],
+                "sizing": {
+                  "horizontal": "fill",
+                  "vertical": "auto"
+                },
+                "tokens": {
+                  "columnGap": "space.3"
+                },
+                "instanceOf": {
+                  "component": "AiCreditsStep",
+                  "variant": {
+                    "Status": "Optional"
+                  }
+                },
+                "overrides": {
+                  "texts": [
+                    {
+                      "layer": "Content/Header/Title",
+                      "characters": "Authorize Credits Management"
+                    }
+                  ],
+                  "hiddenLayers": []
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "BottomAppBar",
+        "type": "board",
+        "size": [
+          480,
+          59
+        ],
+        "sizing": {
+          "horizontal": "fill",
+          "vertical": "fix"
+        },
+        "tokens": {
+          "fill": "theme.backgroundHover"
+        },
+        "instanceOf": {
+          "component": "BottomAppBar",
+          "variant": null
+        },
+        "overrides": {
+          "texts": [
+            {
+              "layer": "Items/BottomBarItem/Label",
+              "characters": "Claim"
+            },
+            {
+              "layer": "Items/BottomBarItem/Label",
+              "characters": "Reserve"
+            },
+            {
+              "layer": "Items/BottomBarItem/Label",
+              "characters": "Streaming"
+            },
+            {
+              "layer": "Items/BottomBarItem/Label",
+              "characters": "AI Credits"
+            },
+            {
+              "layer": "Items/BottomBarItem/Label",
+              "characters": "More"
+            }
+          ],
+          "hiddenLayers": [
+            "Items/BottomBarItem/Indicator",
+            "Items/BottomBarItem/Indicator",
+            "Items/BottomBarItem/Indicator",
+            "Items/BottomBarItem/Indicator"
+          ],
+          "nestedInstances": [
+            {
+              "layer": "Items/BottomBarItem",
+              "component": "BottomBarItem",
+              "variant": {
+                "State": "default"
+              }
+            },
+            {
+              "layer": "Items/BottomBarItem",
+              "component": "BottomBarItem",
+              "variant": {
+                "State": "default"
+              }
+            },
+            {
+              "layer": "Items/BottomBarItem",
+              "component": "BottomBarItem",
+              "variant": {
+                "State": "default"
+              }
+            },
+            {
+              "layer": "Items/BottomBarItem",
+              "component": "BottomBarItem",
+              "variant": {
+                "State": "active"
+              }
+            },
+            {
+              "layer": "Items/BottomBarItem",
+              "component": "BottomBarItem",
+              "variant": {
+                "State": "default"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

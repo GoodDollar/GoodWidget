@@ -1,0 +1,349 @@
+{
+  "specVersion": 1,
+  "kind": "journey-frame",
+  "step": 7,
+  "name": "7 · drawer pick · loading",
+  "canvas": {
+    "x": 600,
+    "y": 1060
+  },
+  "root": {
+    "name": "7 · drawer pick · loading",
+    "type": "board",
+    "size": [
+      480,
+      800
+    ],
+    "sizing": {
+      "horizontal": "fix",
+      "vertical": "fix"
+    },
+    "tokens": {
+      "fill": "theme.background"
+    },
+    "layout": {
+      "direction": "column",
+      "alignItems": "stretch",
+      "justifyContent": "start",
+      "gap": {
+        "row": 0,
+        "column": 0
+      },
+      "padding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      }
+    },
+    "children": [
+      {
+        "name": "EcosystemHeader",
+        "type": "board",
+        "size": [
+          480,
+          65
+        ],
+        "sizing": {
+          "horizontal": "fill",
+          "vertical": "auto"
+        },
+        "instanceOf": {
+          "component": "EcosystemHeader",
+          "variant": {
+            "State": "connected"
+          }
+        },
+        "overrides": {
+          "texts": [
+            {
+              "layer": "Row/Title",
+              "characters": "GoodDollar Ecosystem"
+            },
+            {
+              "layer": "Row/Right/ChainBadge/Chain name",
+              "characters": "Celo"
+            },
+            {
+              "layer": "Row/Right/WalletChip/Address",
+              "characters": "0x1a2…f9c"
+            }
+          ],
+          "hiddenLayers": []
+        }
+      },
+      {
+        "name": "Body",
+        "type": "board",
+        "size": [
+          480,
+          676
+        ],
+        "sizing": {
+          "horizontal": "fill",
+          "vertical": "fill"
+        },
+        "layout": {
+          "direction": "column",
+          "alignItems": "stretch",
+          "justifyContent": "start",
+          "gap": {
+            "row": 20,
+            "column": 0
+          },
+          "padding": {
+            "top": 16,
+            "right": 16,
+            "bottom": 16,
+            "left": 16
+          }
+        },
+        "children": [
+          {
+            "name": "Tabs skeleton",
+            "type": "board",
+            "size": [
+              448,
+              16
+            ],
+            "sizing": {
+              "horizontal": "fill",
+              "vertical": "auto"
+            },
+            "layout": {
+              "direction": "row",
+              "alignItems": "center",
+              "justifyContent": "start",
+              "gap": {
+                "row": 0,
+                "column": 16
+              },
+              "padding": {
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+              }
+            },
+            "children": [
+              {
+                "name": "SkeletonBlock",
+                "type": "board",
+                "size": [
+                  64,
+                  16
+                ],
+                "sizing": {
+                  "horizontal": "fix",
+                  "vertical": "fix"
+                },
+                "instanceOf": {
+                  "component": "SkeletonBlock",
+                  "variant": null
+                },
+                "overrides": {
+                  "texts": [],
+                  "hiddenLayers": []
+                }
+              },
+              {
+                "name": "SkeletonBlock",
+                "type": "board",
+                "size": [
+                  96,
+                  16
+                ],
+                "sizing": {
+                  "horizontal": "fix",
+                  "vertical": "fix"
+                },
+                "instanceOf": {
+                  "component": "SkeletonBlock",
+                  "variant": null
+                },
+                "overrides": {
+                  "texts": [],
+                  "hiddenLayers": []
+                }
+              },
+              {
+                "name": "SkeletonBlock",
+                "type": "board",
+                "size": [
+                  48,
+                  16
+                ],
+                "sizing": {
+                  "horizontal": "fix",
+                  "vertical": "fix"
+                },
+                "instanceOf": {
+                  "component": "SkeletonBlock",
+                  "variant": null
+                },
+                "overrides": {
+                  "texts": [],
+                  "hiddenLayers": []
+                }
+              }
+            ]
+          },
+          {
+            "name": "SkeletonBlock",
+            "type": "board",
+            "size": [
+              448,
+              320
+            ],
+            "sizing": {
+              "horizontal": "fill",
+              "vertical": "fix"
+            },
+            "instanceOf": {
+              "component": "SkeletonBlock",
+              "variant": null
+            },
+            "overrides": {
+              "texts": [],
+              "hiddenLayers": []
+            }
+          },
+          {
+            "name": "SkeletonBlock",
+            "type": "board",
+            "size": [
+              200,
+              16
+            ],
+            "sizing": {
+              "horizontal": "fix",
+              "vertical": "fix"
+            },
+            "instanceOf": {
+              "component": "SkeletonBlock",
+              "variant": null
+            },
+            "overrides": {
+              "texts": [],
+              "hiddenLayers": []
+            }
+          },
+          {
+            "name": "SkeletonBlock",
+            "type": "board",
+            "size": [
+              140,
+              16
+            ],
+            "sizing": {
+              "horizontal": "fix",
+              "vertical": "fix"
+            },
+            "instanceOf": {
+              "component": "SkeletonBlock",
+              "variant": null
+            },
+            "overrides": {
+              "texts": [],
+              "hiddenLayers": []
+            }
+          }
+        ]
+      },
+      {
+        "name": "BottomAppBar",
+        "type": "board",
+        "size": [
+          480,
+          59
+        ],
+        "sizing": {
+          "horizontal": "fill",
+          "vertical": "fix"
+        },
+        "tokens": {
+          "fill": "theme.backgroundHover"
+        },
+        "instanceOf": {
+          "component": "BottomAppBar",
+          "variant": null
+        },
+        "overrides": {
+          "texts": [
+            {
+              "layer": "Items/BottomBarItem/Label",
+              "characters": "Claim"
+            },
+            {
+              "layer": "Items/BottomBarItem/Label",
+              "characters": "Reserve"
+            },
+            {
+              "layer": "Items/BottomBarItem/Label",
+              "characters": "Streaming"
+            },
+            {
+              "layer": "Items/BottomBarItem/Label",
+              "characters": "AI Credits"
+            },
+            {
+              "layer": "Items/BottomBarItem/Label",
+              "characters": "More"
+            }
+          ],
+          "hiddenLayers": [
+            "Items/BottomBarItem/Indicator",
+            "Items/BottomBarItem/Indicator",
+            "Items/BottomBarItem/Indicator",
+            "Items/BottomBarItem/Indicator",
+            "Items/BottomBarItem/Icon/Glyph"
+          ],
+          "nestedInstances": [
+            {
+              "layer": "Items/BottomBarItem",
+              "component": "BottomBarItem",
+              "variant": {
+                "State": "default"
+              }
+            },
+            {
+              "layer": "Items/BottomBarItem",
+              "component": "BottomBarItem",
+              "variant": {
+                "State": "default"
+              }
+            },
+            {
+              "layer": "Items/BottomBarItem",
+              "component": "BottomBarItem",
+              "variant": {
+                "State": "default"
+              }
+            },
+            {
+              "layer": "Items/BottomBarItem",
+              "component": "BottomBarItem",
+              "variant": {
+                "State": "default"
+              }
+            },
+            {
+              "layer": "Items/BottomBarItem",
+              "component": "BottomBarItem",
+              "variant": {
+                "State": "loading"
+              }
+            },
+            {
+              "layer": "Items/BottomBarItem/Icon/Spinner",
+              "component": "Spinner",
+              "variant": {
+                "Size": "sm"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

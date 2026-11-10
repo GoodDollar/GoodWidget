@@ -1,0 +1,159 @@
+{
+  "specVersion": 1,
+  "kind": "meta",
+  "feature": "ecosystem-wrapper",
+  "description": "Hand-authored facts the Penpot file cannot express: which Penpot component maps to which code, icon names, and behaviour notes. Reviewed by a human; validated against the repo by spec-to-tamagui.mjs.",
+  "statusLegend": {
+    "exists": "Reuse as-is. File and export must resolve in the repo (validated).",
+    "extend": "Reuse an existing component and add behaviour/variants (named in `change`).",
+    "new": "Does not exist. `proposedFile` is a suggestion, final location is decided in the [Feature].",
+    "private": "Exists but is a non-exported const inside a widget file; promote to a shared export if the wrapper must reuse it.",
+    "third-party": "Rendered by a third-party SDK. The Penpot frame is a placeholder, nothing to build.",
+    "widget-internal": "Part of an embedded widget's own UI, already built there. The wrapper does not touch it."
+  },
+  "componentMap": {
+    "BottomAppBar": {
+      "status": "new",
+      "proposedFile": "packages/ui/src/components/BottomAppBar.tsx",
+      "notes": "Fixed bar, fill-width, 5 slots. Slot count (4 pinned + More) is configurable per the Notion spec."
+    },
+    "BottomBarItem": {
+      "status": "new",
+      "proposedFile": "packages/ui/src/components/BottomBarItem.tsx",
+      "states": "default | active | loading | disabled",
+      "icons": "Icon.tsx SVG_PATHS names, see `icons` below",
+      "notes": "Active shows the Indicator layer, loading swaps the glyph for Spinner (sm), disabled is used for the More slot when four or fewer widgets exist."
+    },
+    "EcosystemHeader": {
+      "status": "new",
+      "proposedFile": "packages/ui/src/components/EcosystemHeader.tsx",
+      "states": "connected | disconnected",
+      "composes": [
+        "ChainBadge",
+        "WalletChip",
+        "Button"
+      ],
+      "notes": "Owns title, network and wallet. The embedded widget's own header must be hidden (needs a hideHeader switch upstream, see openQuestions)."
+    },
+    "WidgetDrawer": {
+      "status": "extend",
+      "file": "packages/ui/src/components/Drawer.tsx",
+      "export": "Drawer",
+      "storybook": "examples/storybook/src/stories/design-system/Drawer.stories.tsx",
+      "change": "Same frame (32px top radius, $backgroundHover, $borderColor). Add the widget list content and the header title; Drawer already provides scrim via DrawerOverlay."
+    },
+    "WidgetListRow": {
+      "status": "new",
+      "proposedFile": "packages/ui/src/components/WidgetListRow.tsx",
+      "states": "default | active",
+      "notes": "Icon, name, description, optional active marker."
+    },
+    "WidgetUnavailable": {
+      "status": "new",
+      "proposedFile": "packages/ui/src/components/WidgetUnavailable.tsx",
+      "composes": [
+        "Card (outlined)",
+        "Button (primary, lg)"
+      ],
+      "notes": "Shown when the chosen widget does not support the connected network."
+    },
+    "SkeletonBlock": {
+      "status": "exists",
+      "file": "packages/ui/src/components/Skeleton.tsx",
+      "export": "Skeleton"
+    },
+    "WalletChip": {
+      "status": "exists",
+      "file": "packages/ui/src/components/WalletChip.tsx",
+      "export": "WalletChip",
+      "notes": "Address format in the design (0x1a2…f9c) matches the compact shortAddress form."
+    },
+    "WalletModal": {
+      "status": "third-party",
+      "file": "packages/embed/src/DefaultAppKitProvider.tsx",
+      "notes": "Reown AppKit modal, drawn as a placeholder in Penpot."
+    },
+    "ChainBadge": {
+      "status": "exists",
+      "file": "packages/ui/src/components-test/ChainBadge.tsx",
+      "export": "ChainBadge"
+    },
+    "Button": {
+      "status": "exists",
+      "file": "packages/ui/src/components/Button.tsx",
+      "export": "Button"
+    },
+    "Card": {
+      "status": "exists",
+      "file": "packages/ui/src/components/Card.ts",
+      "export": "Card"
+    },
+    "Spinner": {
+      "status": "exists",
+      "file": "packages/ui/src/components-test/Spinner.tsx",
+      "export": "Spinner"
+    },
+    "TokenAmount": {
+      "status": "exists",
+      "file": "packages/ui/src/components/TokenAmount.tsx",
+      "export": "TokenAmount",
+      "storybook": "examples/storybook/src/stories/design-system/TokenAmount.stories.tsx"
+    },
+    "WidgetTabs": {
+      "status": "exists",
+      "file": "packages/ui/src/components/WidgetTabs.tsx",
+      "export": "WidgetTabs",
+      "notes": "The wrapper hides the tab-bar header layer (hiddenLayers: Header)."
+    },
+    "WidgetVersion": {
+      "status": "exists",
+      "file": "packages/ui/src/components/WidgetVersion.tsx",
+      "export": "WidgetVersion"
+    },
+    "ClaimActionButton": {
+      "status": "widget-internal",
+      "file": "packages/citizen-claim-widget/src/CitizenClaimWidget.tsx",
+      "export": "ClaimActionButton (private const)"
+    },
+    "ChainBreakdown": {
+      "status": "widget-internal",
+      "file": "packages/citizen-claim-widget/src/CitizenClaimWidget.tsx",
+      "export": "ClaimChainBreakdown (private const)"
+    },
+    "DailyStats": {
+      "status": "widget-internal",
+      "file": "packages/citizen-claim-widget/src/CitizenClaimWidget.tsx",
+      "export": "ClaimDailyStats (private const)"
+    },
+    "AiCreditsStep": {
+      "status": "widget-internal",
+      "file": "packages/ai-credits-widget/src/components/setup/SetupGuidanceCard.tsx"
+    },
+    "AiCreditsTabs": {
+      "status": "widget-internal",
+      "file": "packages/ai-credits-widget/src/AiCreditsWidget.tsx"
+    },
+    "AiCreditsGuidance": {
+      "status": "widget-internal",
+      "file": "packages/ai-credits-widget/src/components/setup/SetupGuidanceCard.tsx"
+    },
+    "AiCreditsNotice": {
+      "status": "widget-internal",
+      "file": "packages/ai-credits-widget/src/components/theme/cards.ts",
+      "export": "AiCreditsStatusNotice"
+    },
+    "AiCreditsBadge": {
+      "status": "widget-internal",
+      "file": "packages/ai-credits-widget/src/components/theme/cards.ts",
+      "export": "BonusBadgeFrame"
+    }
+  },
+  "icons": {
+    "note": "Glyph paths are not machine-readable from Penpot. Names refer to Icon.tsx SVG_PATHS; widget icons in the bottom bar are placeholders until the Notion spec confirms final art. Per-widget icon names are not yet decided."
+  },
+  "openQuestions": [
+    "Single-widget mode (bottom bar hidden) is not drawn.",
+    "Superfluid Campaign has no Penpot components yet, so its wrapper frame cannot be generated.",
+    "Hiding the embedded widget's own header needs an upstream hideHeader switch in each widget."
+  ]
+}
