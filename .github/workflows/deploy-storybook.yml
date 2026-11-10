@@ -10,7 +10,6 @@ on:
   push:
     branches:
       - main
-      - next
     paths:
       - 'examples/storybook/**'
       - 'packages/**'
@@ -105,7 +104,7 @@ jobs:
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
   production:
-    if: github.ref == 'refs/heads/next' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    if: github.ref == 'refs/heads/next' && github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment:
       name: production

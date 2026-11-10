@@ -289,8 +289,10 @@ The `release-next.yml` and `recover-release.yml` workflows publish directly with
 not invoke `npm-publish.yml` (that legacy workflow has been retired). Both workflows use
 tokenless npm trusted publishing; configure separate npm trusted-publisher entries for
 `GoodDollar/GoodWidget`, each workflow filename, and the protected `release` environment.
-The release workflow dispatches all four production deployments at its authoritative release
-commit after successful processing, including when there are no packages to publish.
+Promotion offers independent opt-in selections for the four production deployments. Only
+selected apps are dispatched at the authoritative release commit after successful processing,
+including when there are no packages to publish. A direct release run or a push without these
+selections deploys no apps.
 Recovery verifies or repairs the committed package version and its `latest` dist-tag. Do not
 enable wallet dispatch until GoodWallet is ready.
 

@@ -14,6 +14,26 @@ on:
         description: Commit to diff from (pre-merge tip of next)
         required: false
         type: string
+      deploy_storybook:
+        description: Deploy Storybook to Production after release processing
+        required: false
+        type: boolean
+        default: false
+      deploy_ai_credits:
+        description: Deploy AI Credits to Production after release processing
+        required: false
+        type: boolean
+        default: false
+      deploy_superfluid_campaign:
+        description: Deploy Superfluid Campaign to Production after release processing
+        required: false
+        type: boolean
+        default: false
+      deploy_gooddata:
+        description: Deploy GoodData to Production after release processing
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -87,20 +107,38 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     steps:
-      - name: Dispatch all production deployments at the release commit
+      - name: Dispatch selected production deployments at the release commit
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           RELEASE_SHA: ${{ needs.release.outputs.release_sha }}
+          DEPLOY_STORYBOOK: ${{ inputs.deploy_storybook }}
+          DEPLOY_AI_CREDITS: ${{ inputs.deploy_ai_credits }}
+          DEPLOY_SUPERFLUID_CAMPAIGN: ${{ inputs.deploy_superfluid_campaign }}
+          DEPLOY_GOODDATA: ${{ inputs.deploy_gooddata }}
         run: |
           status=0
-          for workflow in \
-            deploy-storybook.yml \
-            deploy-ai-credits-web.yml \
-            deploy-superfluid-campaign-web.yml \
-            deploy-gooddata-analytics-web.yml
+          for selection in \
+            "DEPLOY_STORYBOOK:deploy-storybook.yml" \
+            "DEPLOY_AI_CREDITS:deploy-ai-credits-web.yml" \
+            "DEPLOY_SUPERFLUID_CAMPAIGN:deploy-superfluid-campaign-web.yml" \
+            "DEPLOY_GOODDATA:deploy-gooddata-analytics-web.yml"
           do
-            if ! gh workflow run "$workflow" --ref next --field "commit_sha=$RELEASE_SHA"; then
+            variable="${selection%%:*}"
+            workflow="${selection#*:}"
+            if [ "${!variable}" = "true" ] && ! gh workflow run "$workflow" \
+              --repo "$GH_REPO" \
+              --ref next \
+              --field "commit_sha=$RELEASE_SHA"
+            then
               status=1
             fi
           done
+          if [ "$DEPLOY_STORYBOOK" != "true" ] &&
+            [ "$DEPLOY_AI_CREDITS" != "true" ] &&
+            [ "$DEPLOY_SUPERFLUID_CAMPAIGN" != "true" ] &&
+            [ "$DEPLOY_GOODDATA" != "true" ]
+          then
+            echo "No production apps selected; skipping app deployments."
+          fi
           exit "$status"

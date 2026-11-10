@@ -52,9 +52,10 @@ GitHub Actions workflow:
 - Pull requests targeting `main` create Preview deployments. Fork deployments remain gated
   by the `external` environment approval.
 - Pushes and manual deployments from `main` use Vercel Preview settings for development.
-- Only `next` deploys with Vercel Production settings. The release workflow explicitly
-  dispatches all four production deployments at the authoritative release commit after
-  release processing, even when no npm packages need publishing.
+- Only `next` deploys with Vercel Production settings. Promotion independently opts in to
+  production deployments for each app; selected deployments run at the authoritative release
+  commit after release processing, even when no npm packages need publishing. No selection
+  means no app deployment.
 - Required GitHub secrets: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and the project-specific
   `VERCEL_PROJECT_ID`. Configure the `production` environment for `next` and the
   `preview-*` environments for main/PR previews.

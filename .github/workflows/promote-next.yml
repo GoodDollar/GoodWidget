@@ -10,6 +10,26 @@ on:
         required: true
         type: choice
         options: [main]
+      deploy_storybook:
+        description: Deploy Storybook to Production after release processing
+        required: false
+        type: boolean
+        default: false
+      deploy_ai_credits:
+        description: Deploy AI Credits to Production after release processing
+        required: false
+        type: boolean
+        default: false
+      deploy_superfluid_campaign:
+        description: Deploy Superfluid Campaign to Production after release processing
+        required: false
+        type: boolean
+        default: false
+      deploy_gooddata:
+        description: Deploy GoodData to Production after release processing
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -68,4 +88,18 @@ jobs:
       - name: Start the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run release-next.yml --ref next --field base=${{ steps.promote.outputs.base }}
+          GH_REPO: ${{ github.repository }}
+          BASE: ${{ steps.promote.outputs.base }}
+          DEPLOY_STORYBOOK: ${{ inputs.deploy_storybook }}
+          DEPLOY_AI_CREDITS: ${{ inputs.deploy_ai_credits }}
+          DEPLOY_SUPERFLUID_CAMPAIGN: ${{ inputs.deploy_superfluid_campaign }}
+          DEPLOY_GOODDATA: ${{ inputs.deploy_gooddata }}
+        run: |
+          gh workflow run release-next.yml \
+            --repo "$GH_REPO" \
+            --ref next \
+            --field "base=$BASE" \
+            --field "deploy_storybook=$DEPLOY_STORYBOOK" \
+            --field "deploy_ai_credits=$DEPLOY_AI_CREDITS" \
+            --field "deploy_superfluid_campaign=$DEPLOY_SUPERFLUID_CAMPAIGN" \
+            --field "deploy_gooddata=$DEPLOY_GOODDATA"
