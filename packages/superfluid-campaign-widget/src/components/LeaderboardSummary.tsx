@@ -2,7 +2,6 @@ import React from 'react'
 import {
   Button,
   ButtonText,
-  Card,
   Heading,
   Icon,
   ProgressBar,
@@ -12,6 +11,7 @@ import {
 } from '@goodwidget/ui'
 import type { LeaderboardSummaryData } from '../widgetRuntimeContract'
 import { compactButtonProps } from './shared/styles'
+import { LeaderboardSummaryCard } from './theme/cards'
 
 interface LeaderboardSummaryProps {
   leaderboard?: LeaderboardSummaryData
@@ -29,7 +29,7 @@ export function LeaderboardSummary({ leaderboard, onViewLeaderboard }: Leaderboa
     : ''
 
   return (
-    <Card gap="$4">
+    <LeaderboardSummaryCard gap="$4">
       <XStack justifyContent="space-between" alignItems="center" gap="$3" flexWrap="wrap">
         <XStack gap="$3" alignItems="center">
           <Icon name="party-popper" size="lg" color="primary" />
@@ -65,6 +65,6 @@ export function LeaderboardSummary({ leaderboard, onViewLeaderboard }: Leaderboa
           </XStack>
         </>
       )}
-    </Card>
+    </LeaderboardSummaryCard>
   )
 }

@@ -10,7 +10,10 @@ import {
   type Chain,
 } from 'viem'
 import { celo, xdc } from 'viem/chains'
-import type { ReserveSwapWidgetAdapterState } from './widgetRuntimeContract'
+import type {
+  ReserveSwapWidgetAdapterState,
+  ReserveSwapWidgetEnvironment,
+} from './widgetRuntimeContract'
 import {
   CELO_CHAIN_ID,
   DEFAULT_GD_DECIMALS,
@@ -59,6 +62,8 @@ export interface ReserveRefs {
   previousStatusRef: React.MutableRefObject<ReserveSwapWidgetAdapterState['status']>
   statusRef: React.MutableRefObject<ReserveSwapWidgetAdapterState['status']>
   mountedRef: React.MutableRefObject<boolean>
+  bootstrapGenRef: React.MutableRefObject<number>
+  quoteGenRef: React.MutableRefObject<number>
   /**
    * Notice to re-display once the next quote lands. The stale-quote path sets
    * this so the "review the new amount" message survives the quote_loading →
@@ -84,6 +89,8 @@ export function useReserveRefs(
   const previousStatusRef = useRef<ReserveSwapWidgetAdapterState['status']>(initialStatus)
   const statusRef = useRef<ReserveSwapWidgetAdapterState['status']>(initialStatus)
   const mountedRef = useRef(true)
+  const bootstrapGenRef = useRef(0)
+  const quoteGenRef = useRef(0)
   const quoteRefreshNoticeRef = useRef<string | null>(null)
 
   return useMemo(
@@ -99,6 +106,8 @@ export function useReserveRefs(
       previousStatusRef,
       statusRef,
       mountedRef,
+      bootstrapGenRef,
+      quoteGenRef,
       quoteRefreshNoticeRef,
     }),
     [],
@@ -127,10 +136,13 @@ export function useReserveBootstrap(
   refs: ReserveRefs,
   applyStatePatch: (patch: Partial<ReserveSwapWidgetAdapterState>) => void,
   mockState: Partial<ReserveSwapWidgetAdapterState> | undefined,
+  environment?: ReserveSwapWidgetEnvironment,
+  requestQuoteRefresh?: (notice: string | null) => void,
 ) {
   const { address, chainId, isConnected, provider, connect } = useWallet()
 
-  const reserveEnvironment = chainId === XDC_CHAIN_ID ? 'development' : 'production'
+  const reserveEnvironment: ReserveSwapWidgetEnvironment =
+    environment ?? (chainId === XDC_CHAIN_ID ? 'development' : 'production')
   const chainSupported =
     chainId !== null &&
     (GoodReserveSDK.isChainEnvSupported(chainId, reserveEnvironment) ||
@@ -155,9 +167,10 @@ export function useReserveBootstrap(
   const refreshBalances = useCallback(async () => {
     if (!address || !refs.sdkRef.current || !refs.publicClientRef.current) return
     const sdk = refs.sdkRef.current
+    const publicClient = refs.publicClientRef.current
     const stableToken = sdk.getStableTokenAddress()
     const [stable, gd] = await Promise.all([
-      refs.publicClientRef.current.readContract({
+      publicClient.readContract({
         address: stableToken,
         abi: erc20ABI,
         functionName: 'balanceOf',
@@ -165,10 +178,10 @@ export function useReserveBootstrap(
       }) as Promise<bigint>,
       sdk.getGDBalance(address as `0x${string}`),
     ])
+    if (!refs.mountedRef.current || refs.sdkRef.current !== sdk) return
     const stableBalance = formatUnits(stable, refs.decimalsRef.current.stable)
     const gdBalance = formatUnits(gd, refs.decimalsRef.current.gd)
     refs.balancesRef.current = { stable: stableBalance, gd: gdBalance }
-    if (!refs.mountedRef.current) return
     applyStatePatch({
       ...balancesForDirection(refs.directionRef.current, stableBalance, gdBalance),
     })
@@ -177,13 +190,24 @@ export function useReserveBootstrap(
   const bootstrapSdk = useCallback(async () => {
     if (!provider || !address || !chainId || !chainSupported) return
 
-    // Drop any SDK/client bound to a previous chain so a chain switch
-    // re-initializes against the new chain instead of reusing stale clients.
+    const gen = ++refs.bootstrapGenRef.current
+    refs.quoteGenRef.current += 1
+    refs.quoteRefreshNoticeRef.current = null
+
+    // Drop any SDK/client bound to a previous chain or environment so a switch
+    // re-initializes against the new deployment instead of reusing stale state.
     refs.sdkRef.current = null
     refs.publicClientRef.current = null
     refs.walletClientRef.current = null
 
-    applyStatePatch({ status: 'sdk_initializing', hasProvider: true, error: null })
+    applyStatePatch({
+      status: 'sdk_initializing',
+      hasProvider: true,
+      quote: null,
+      quoteExpiresAt: null,
+      warning: null,
+      error: null,
+    })
 
     try {
       const chain = RESERVE_CHAINS[chainId]
@@ -200,6 +224,7 @@ export function useReserveBootstrap(
         exactApproval: true,
       })
       const stats = await sdk.getReserveStats()
+      if (!refs.mountedRef.current || gen !== refs.bootstrapGenRef.current) return
 
       refs.sdkRef.current = sdk
       refs.publicClientRef.current = publicClient
@@ -223,43 +248,80 @@ export function useReserveBootstrap(
           : '0%'
 
       await refreshBalances()
+      if (!refs.mountedRef.current || gen !== refs.bootstrapGenRef.current) return
+
       const stableSymbol = getStableSymbol(chainId)
       const dir = refs.directionRef.current
       applyStatePatch({
         status: 'idle',
         tokenInSymbol: dir === 'buy' ? stableSymbol : 'G$',
         tokenOutSymbol: dir === 'buy' ? 'G$' : stableSymbol,
+        quote: null,
+        quoteExpiresAt: null,
         warning: null,
         error: null,
       })
+      requestQuoteRefresh?.(null)
     } catch (err: unknown) {
+      if (!refs.mountedRef.current || gen !== refs.bootstrapGenRef.current) return
       applyStatePatch({
         status: 'quote_error',
+        quote: null,
+        quoteExpiresAt: null,
         error: mapReserveError(err, 'Failed to initialize GoodReserve SDK.'),
       })
     }
-  }, [address, applyStatePatch, chainId, chainSupported, provider, refs, refreshBalances, reserveEnvironment])
+  }, [
+    address,
+    applyStatePatch,
+    chainId,
+    chainSupported,
+    provider,
+    refs,
+    refreshBalances,
+    requestQuoteRefresh,
+    reserveEnvironment,
+  ])
 
   // Drive the provider/chain connection lifecycle.
   useEffect(() => {
     if (mockState) return
     if (!provider || !isConnected || !address) {
+      refs.bootstrapGenRef.current += 1
+      refs.quoteGenRef.current += 1
       refs.sdkRef.current = null
       refs.publicClientRef.current = null
+      refs.walletClientRef.current = null
       applyStatePatch({
         status: 'no_provider',
         hasProvider: Boolean(provider),
         address: null,
         chainId: null,
+        quote: null,
+        quoteExpiresAt: null,
       })
       return
     }
     applyStatePatch({ address, chainId, hasProvider: true })
     if (!chainSupported) {
-      applyStatePatch({ status: 'unsupported_chain', error: null })
+      refs.bootstrapGenRef.current += 1
+      refs.quoteGenRef.current += 1
+      refs.sdkRef.current = null
+      refs.publicClientRef.current = null
+      refs.walletClientRef.current = null
+      applyStatePatch({
+        status: 'unsupported_chain',
+        quote: null,
+        quoteExpiresAt: null,
+        error: null,
+      })
       return
     }
     void bootstrapSdk()
+    return () => {
+      refs.bootstrapGenRef.current += 1
+      refs.quoteGenRef.current += 1
+    }
   }, [address, applyStatePatch, bootstrapSdk, chainId, chainSupported, isConnected, mockState, provider, refs])
 
   return { address, chainId, provider, chainSupported, connect, readActiveChainId, refreshBalances, bootstrapSdk }
