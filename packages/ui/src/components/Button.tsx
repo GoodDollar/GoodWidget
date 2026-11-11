@@ -1,6 +1,6 @@
 import React from 'react'
 import type { ReactNode } from 'react'
-import { styled, Stack, Text as TamaguiText, Theme } from 'tamagui'
+import { styled, Stack, Text as TamaguiText } from 'tamagui'
 import { createComponent } from '../createComponent'
 
 /**
@@ -23,7 +23,7 @@ import { createComponent } from '../createComponent'
  * Override per-instance with explicit borderRadius prop if needed.
  */
 export const ButtonFrame = createComponent(Stack, {
-  name: 'Button',
+  name: 'ButtonFrame',
   tag: 'button',
   role: 'button',
   flexDirection: 'row',
@@ -177,6 +177,18 @@ export const ButtonText = styled(TamaguiText, {
   fontWeight: '600',
   color: '$textColor',
   userSelect: 'none',
+
+  variants: {
+    variant: {
+      primary: { color: '$textColor' },
+      secondary: { color: '$color' },
+      outline: { color: '$color' },
+      ghost: { color: '$color' },
+      pill: { color: '$color' },
+      text: { color: '$color' },
+      list: { color: '$color' },
+    },
+  } as const,
 })
 
 /** Pill label text — uppercase 11px, tracking wide */
@@ -206,16 +218,19 @@ export interface ButtonProps {
  * The light_Button / dark_Button component theme sets `color: white` for
  * primary buttons rendered on the brand-colored background. Non-primary
  * variants (secondary, outline, ghost, text, list) use transparent or no
- * background, so the inherited white would be invisible. `Theme reset`
- * discards the Button component theme, letting children (ButtonText) pick
- * up the parent theme's text color — which is the correct readable color
- * for transparent-background buttons.
+ * background, so they render with the ambient theme's text color.
+ * The `Button` component theme is only bound to primary buttons, preventing
+ * non-primary buttons from resolving to primary-button white in Light theme.
  */
 export function Button({ variant = 'primary', children, ...props }: ButtonProps) {
-  const needsReset = variant !== 'primary'
+  const isPrimary = variant === 'primary'
   return (
-    <ButtonFrame variant={variant} {...props}>
-      {needsReset ? <Theme reset>{children}</Theme> : children}
+    <ButtonFrame
+      theme={isPrimary ? 'Button' : undefined}
+      variant={variant}
+      {...props}
+    >
+      {children}
     </ButtonFrame>
   )
 }
