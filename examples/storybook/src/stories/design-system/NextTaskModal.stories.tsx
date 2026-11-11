@@ -13,7 +13,7 @@
  * - A handler that throws or rejects shows an error toast; the modal still closes.
  * Error toasts need a mounted `<ToastContainer />`, which every story here mounts.
  */
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { expect, within, userEvent, waitFor } from '@storybook/test'
 import { NextTaskModal, ToastContainer, Card, Heading, Text, Button, ButtonText } from '@goodwidget/ui'
@@ -386,4 +386,129 @@ export const NavigationPendingAndRetry: Story = {
       />
     )
   },
+}
+
+interface DeferredNavigationAttempt {
+  resolve: () => void
+  reject: (error: Error) => void
+}
+
+function StaleNavigationHarness() {
+  const [mounted, setMounted] = useState(true)
+  const [open, setOpen] = useState(false)
+  const [lastEvent, setLastEvent] = useState('none')
+  const [callCount, setCallCount] = useState(0)
+  const [settledCount, setSettledCount] = useState(0)
+  const [closeCount, setCloseCount] = useState(0)
+  const pendingAttemptsRef = useRef<DeferredNavigationAttempt[]>([])
+
+  const settleOldestAttempt = (outcome: 'resolve' | 'reject') => {
+    const oldestAttempt = pendingAttemptsRef.current.shift()
+    if (!oldestAttempt) return
+    if (outcome === 'resolve') {
+      oldestAttempt.resolve()
+    } else {
+      oldestAttempt.reject(new Error('stale failure'))
+    }
+    // Schedule state update on the next macrotask so all async continuations in NextTaskModal settle first.
+    setTimeout(() => setSettledCount((count) => count + 1), 0)
+  }
+
+  return (
+    <Card style={{ width: 320 }}>
+      <Heading level={5}>Stale navigation harness</Heading>
+      <Button data-testid="NextTaskModal-open" fullWidth onPress={() => setOpen(true)}>
+        <ButtonText>Open next task</ButtonText>
+      </Button>
+      <Button data-testid="NextTaskModal-host-close" fullWidth onPress={() => setOpen(false)}>
+        <ButtonText>Host close</ButtonText>
+      </Button>
+      <Button data-testid="NextTaskModal-toggle-mount" fullWidth onPress={() => setMounted((value) => !value)}>
+        <ButtonText>Toggle mount</ButtonText>
+      </Button>
+      <Button
+        data-testid="NextTaskModal-resolve-oldest"
+        fullWidth
+        onPress={() => settleOldestAttempt('resolve')}
+      >
+        <ButtonText>Resolve oldest attempt</ButtonText>
+      </Button>
+      <Button
+        data-testid="NextTaskModal-reject-oldest"
+        fullWidth
+        onPress={() => settleOldestAttempt('reject')}
+      >
+        <ButtonText>Reject oldest attempt</ButtonText>
+      </Button>
+      <Text data-testid="NextTaskModal-last-event">{lastEvent}</Text>
+      <Text data-testid="NextTaskModal-open-state">{open ? 'open' : 'closed'}</Text>
+      <Text data-testid="NextTaskModal-call-count">{String(callCount)}</Text>
+      <Text data-testid="NextTaskModal-settled-count">{String(settledCount)}</Text>
+      <Text data-testid="NextTaskModal-close-count">{String(closeCount)}</Text>
+      {mounted ? (
+        <NextTaskModal
+          testID="NextTaskModal-stale-navigation"
+          open={open}
+          content={contentWithImage}
+          onClose={() => {
+            setCloseCount((count) => count + 1)
+            setOpen(false)
+          }}
+          resolveNavigation={() => {
+            setCallCount((count) => count + 1)
+            return new Promise<void>((resolve, reject) => {
+              pendingAttemptsRef.current.push({ resolve, reject })
+            })
+          }}
+          onShown={(payload) => setLastEvent(`shown:${payload.contentId ?? ''}`)}
+          onClicked={(payload) => setLastEvent(`clicked:${payload.ctaTarget}`)}
+          onDismissed={(payload) => setLastEvent(`dismissed:${payload.reason}`)}
+          statusLabel="Claim completed"
+        />
+      ) : null}
+      <ToastContainer />
+    </Card>
+  )
+}
+
+/** Controlled close/reopen while an earlier navigation promise is still pending ignores stale outcomes. */
+export const StaleNavigationIgnoredAcrossReopen: Story = {
+  render: () => <StaleNavigationHarness />,
+}
+
+function ThrowingOnCloseHarness() {
+  const [open, setOpen] = useState(false)
+  const [callCount, setCallCount] = useState(0)
+  const [closeAttempts, setCloseAttempts] = useState(0)
+
+  return (
+    <Card style={{ width: 320 }}>
+      <Heading level={5}>Throwing onClose harness</Heading>
+      <Button data-testid="NextTaskModal-open" fullWidth onPress={() => setOpen(true)}>
+        <ButtonText>Open next task</ButtonText>
+      </Button>
+      <Text data-testid="NextTaskModal-open-state">{open ? 'open' : 'closed'}</Text>
+      <Text data-testid="NextTaskModal-call-count">{String(callCount)}</Text>
+      <Text data-testid="NextTaskModal-close-count">{String(closeAttempts)}</Text>
+      <NextTaskModal
+        testID="NextTaskModal-throwing-on-close"
+        open={open}
+        content={contentWithImage}
+        onClose={() => {
+          setCloseAttempts((count) => count + 1)
+          throw new Error('host onClose failure')
+        }}
+        resolveNavigation={async () => {
+          setCallCount((count) => count + 1)
+        }}
+        statusLabel="Claim completed"
+      />
+      <ToastContainer />
+    </Card>
+  )
+}
+
+/** A host onClose failure after navigation succeeds does not trigger the navigation error toast or reset the guard. */
+export const OnCloseThrowAfterNavigationSuccess: Story = {
+  render: () => <ThrowingOnCloseHarness />,
 }

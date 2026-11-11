@@ -783,3 +783,117 @@ test('NextTaskModal host mode: double-press during pending navigation calls hand
   const callCountAfterRetry = await frame.locator('body').evaluate((body) => body.dataset.nextTaskCallCount)
   expect(callCountAfterRetry).toBe('2')
 })
+
+test('NextTaskModal host mode: stale pending navigation from a closed session does not reset guard, toast, or close reopened modal', async ({
+  page,
+}) => {
+  await gotoStory(page, 'design-system-primitives-nexttaskmodal--stale-navigation-ignored-across-reopen')
+  const frame = getStoryFrame(page)
+
+  // Session 1: open and start navigation attempt 1 (left pending)
+  await frame.getByTestId('NextTaskModal-open').click()
+  const cta = frame.getByRole('button', { name: 'Open Proposal' })
+  await cta.scrollIntoViewIfNeeded()
+  await expect(cta).toBeVisible()
+  await cta.click()
+  await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('1')
+
+  // Host closes and reopens modal before attempt 1 settles (session 2)
+  await frame.getByTestId('NextTaskModal-host-close').evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('closed')
+  await frame.getByTestId('NextTaskModal-open').click()
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
+
+  // Session 2: start navigation attempt 2 (also pending)
+  await cta.scrollIntoViewIfNeeded()
+  await expect(cta).toBeVisible()
+  await cta.click()
+  await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('2')
+
+  // Reject stale attempt 1: must NOT show error toast or unlock CTA for a 3rd call while attempt 2 is pending
+  await frame.getByTestId('NextTaskModal-reject-oldest').evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-settled-count')).toHaveText('1')
+  await expect(frame.getByText('Could not open this link. Please try again.')).toHaveCount(0)
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
+  await cta.evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('2')
+
+  // Resolve attempt 2: current session closes cleanly
+  await frame.getByTestId('NextTaskModal-resolve-oldest').evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-settled-count')).toHaveText('2')
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('closed')
+
+  // Verify stale fulfillment as well: open session 3, leave attempt 3 pending, close + reopen into session 4,
+  // then resolve stale attempt 3 -> session 4 stays open without being closed by attempt 3.
+  await frame.getByTestId('NextTaskModal-open').click()
+  await cta.scrollIntoViewIfNeeded()
+  await expect(cta).toBeVisible()
+  await cta.click()
+  await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('3')
+
+  await frame.getByTestId('NextTaskModal-host-close').evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('closed')
+  await frame.getByTestId('NextTaskModal-open').click()
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
+
+  await frame.getByTestId('NextTaskModal-resolve-oldest').evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-settled-count')).toHaveText('3')
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
+
+  // Session 4 CTA still works normally once resolved
+  await cta.scrollIntoViewIfNeeded()
+  await expect(cta).toBeVisible()
+  await cta.click()
+  await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('4')
+  await frame.getByTestId('NextTaskModal-resolve-oldest').evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-settled-count')).toHaveText('4')
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('closed')
+  await expect(frame.getByTestId('NextTaskModal-close-count')).toHaveText('2')
+
+  // Verify unmount invalidation: unmount while attempts 5 & 6 are pending, then settle both -> no toast or onClose call
+  await frame.getByTestId('NextTaskModal-open').click()
+  await cta.scrollIntoViewIfNeeded()
+  await expect(cta).toBeVisible()
+  await cta.click()
+  await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('5')
+
+  await frame.getByTestId('NextTaskModal-toggle-mount').evaluate((button) => (button as HTMLElement).click())
+  await frame.getByTestId('NextTaskModal-resolve-oldest').evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-settled-count')).toHaveText('5')
+  await expect(frame.getByTestId('NextTaskModal-close-count')).toHaveText('2')
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
+
+  await frame.getByTestId('NextTaskModal-toggle-mount').evaluate((button) => (button as HTMLElement).click())
+  await expect(cta).toBeVisible()
+  await cta.click()
+  await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('6')
+  await frame.getByTestId('NextTaskModal-toggle-mount').evaluate((button) => (button as HTMLElement).click())
+  await frame.getByTestId('NextTaskModal-reject-oldest').evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-settled-count')).toHaveText('6')
+  await expect(frame.getByText('Could not open this link. Please try again.')).toHaveCount(0)
+})
+
+test('NextTaskModal host mode: onClose throwing after successful navigation does not show navigation error toast or reset guard', async ({
+  page,
+}) => {
+  await gotoStory(page, 'design-system-primitives-nexttaskmodal--on-close-throw-after-navigation-success')
+  const frame = getStoryFrame(page)
+
+  await frame.getByTestId('NextTaskModal-open').click()
+  const cta = frame.getByRole('button', { name: 'Open Proposal' })
+  await cta.scrollIntoViewIfNeeded()
+  await expect(cta).toBeVisible()
+
+  const [pageError] = await Promise.all([page.waitForEvent('pageerror'), cta.click()])
+  expect(pageError.message).toContain('host onClose failure')
+
+  await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('1')
+  await expect(frame.getByTestId('NextTaskModal-close-count')).toHaveText('1')
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
+  await expect(frame.getByText('Could not open this link. Please try again.')).toHaveCount(0)
+
+  // Guard stays latched after successful navigation so pressing CTA again does not re-run resolveNavigation
+  await cta.evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('1')
+  await expect(frame.getByTestId('NextTaskModal-close-count')).toHaveText('1')
+})

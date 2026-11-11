@@ -97,14 +97,26 @@ export function NextTaskModal({
   // Guards so exactly one `onShown` fires per open and one terminal action (CTA or dismiss) per open.
   const hasReportedShownRef = useRef(false)
   const hasResolvedRef = useRef(false)
+  // Tracks the active visibility/navigation session so stale async completions after close or unmount are ignored.
+  const navigationGenerationRef = useRef(0)
 
   useEffect(() => {
     if (!isVisible) {
+      navigationGenerationRef.current += 1
       hasReportedShownRef.current = false
       hasResolvedRef.current = false
-      return
     }
-    if (hasReportedShownRef.current) return
+  }, [isVisible])
+
+  useEffect(
+    () => () => {
+      navigationGenerationRef.current += 1
+    },
+    [],
+  )
+
+  useEffect(() => {
+    if (!isVisible || hasReportedShownRef.current) return
     hasReportedShownRef.current = true
     invokeHostCallbackSafely('onShown', onShown, { contentId: content?.contentId })
   }, [isVisible, onShown, content?.contentId])
@@ -129,14 +141,18 @@ export function NextTaskModal({
   const handleHostNavigationPress = useCallback(async () => {
     if (!content || !resolveNavigation || hasResolvedRef.current) return
     hasResolvedRef.current = true
+    const attemptGeneration = ++navigationGenerationRef.current
     invokeHostCallbackSafely('onClicked', onClicked, { ctaTarget: content.ctaTarget })
     try {
       await resolveNavigation(content.ctaTarget)
-      onClose()
     } catch {
+      if (attemptGeneration !== navigationGenerationRef.current) return
       hasResolvedRef.current = false
       createToast({ message: NAVIGATION_FAILED_TOAST_MESSAGE, status: 'error' })
+      return
     }
+    if (attemptGeneration !== navigationGenerationRef.current) return
+    onClose()
   }, [content, resolveNavigation, onClicked, onClose])
 
   // The Anchor opens the link itself; this only reports the click and closes the sheet.
