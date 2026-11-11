@@ -38,6 +38,9 @@ const OptionItem = styled(Stack, {
   paddingVertical: '$2',
   cursor: 'pointer',
   backgroundColor: '$background',
+  borderWidth: 0,
+  borderColor: 'transparent',
+  outlineWidth: 0,
 
   hoverStyle: {
     backgroundColor: '$backgroundHover',
