@@ -62,7 +62,7 @@ export interface NextTaskModalProps {
    *               the modal opens no link itself, with no external fallback.
    *   - absent  → the CTA is an `Anchor` to `ctaTarget` (http/https only). A
    *               rejected URL renders a Button that shows an error toast.
-   *   - throws or rejects → caught and shown as an error toast; the modal still closes.
+   *   - throws or rejects → caught and shown as an error toast; the modal stays open so the user can retry or dismiss.
    * The error toast needs a mounted `<ToastContainer />`.
    */
   resolveNavigation?: (ctaTarget: string) => void | Promise<void>
