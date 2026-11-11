@@ -1,0 +1,96 @@
+import { Canvas, Meta } from '@storybook/blocks';
+import * as InteractionStories from './PasskeyLoginWidgetInteractions.stories';
+import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection, DocsList } from '../docs/DocsLayout';
+
+<Meta of={InteractionStories} />
+
+<DocsPage
+  eyebrow="Widget Guide"
+  title="PasskeyLoginWidget"
+  lead="Log in with a passkey and keep the account recoverable. The widget runs entirely in the browser: it derives an account key from the passkey, encrypts a backup with another key derived from it, and stores that backup in the user's own Google Drive or iCloud. GoodDollar operates no server for it."
+>
+  <DocsSection
+    title="How it works"
+    description="Everything is derived from the WebAuthn PRF extension of one passkey."
+  >
+    <DocsList>
+      <li>
+        New users get a fresh passkey. Its PRF output is expanded with HKDF-SHA-256 into the account key (secp256k1), a
+        backup encryption key (AES-256-GCM) and a file tag (`prfTag`).
+      </li>
+      <li>
+        The backup file is named <code>{'gwpk-<prfTag>-<address>.json'}</code> and holds only `version`, `address`, `iv` and
+        `ciphertext`. The address is authenticated as AES-GCM additional data.
+      </li>
+      <li>
+        Logging in again lists the files with the passkey's `prfTag`, reads the single match and decrypts it. No match
+        shows "No backup found"; several matches show "More than one backup matches this passkey".
+      </li>
+      <li>
+        Existing users (the host passes `privateKey`) get a fresh passkey that backs up their current key, so accounts
+        created with another login method can be restored by passkey.
+      </li>
+    </DocsList>
+  </DocsSection>
+
+  <DocsSection
+    title="Usage"
+    description="Pass the backup providers and the relying party; the host receives the key only through the onLogin callback."
+  >
+    <DocsCard title="React">
+      ```tsx
+      import {
+        PasskeyLoginWidget,
+        createGoogleDriveStorage,
+        createICloudStorage,
+      } from '@goodwidget/passkey-login-widget'
+
+      <PasskeyLoginWidget
+        storage={[
+          createGoogleDriveStorage({ clientId: GOOGLE_OAUTH_WEB_CLIENT_ID }),
+          createICloudStorage({ containerId: CLOUDKIT_CONTAINER, apiToken: CLOUDKIT_API_TOKEN }),
+        ]}
+        rpId="example.org"
+        appName="Example app"
+        onLogin={({ privateKey, address, isNewAccount }) => signIn(privateKey, address, isNewAccount)}
+        onBackupComplete={({ address, provider }) => markBackedUp(address, provider)}
+        onSkip={() => showOtherLoginMethods()}
+        onError={({ code }) => report(code)}
+      />
+      ```
+    </DocsCard>
+    <DocsCallout title="Host responsibilities" tone="info">
+      Pass `privateKey` only for a logged-in user (it enables the backup flow). A single configured provider skips the
+      provider choice screens. The widget remembers the last used provider id in localStorage
+      (`goodwidget.passkey-login.provider`) and never stores keys.
+    </DocsCallout>
+  </DocsSection>
+
+  <DocsSection
+    title="Try it"
+    description="The real widget with real crypto on in-memory storage. The Playwright specs drive these with a Chromium virtual authenticator; by hand they need an authenticator that supports PRF."
+  >
+    <Canvas of={InteractionStories.OneProvider} />
+  </DocsSection>
+
+  <DocsSection
+    title="QA coverage"
+    description="Every screen of the designs (A1-D6) has a deterministic fixture in light and dark, and a Live story exists for manual checks."
+  >
+    <DocsGrid>
+      <DocsCard
+        title="Screen fixtures"
+        href="?path=/story/qa-passkeyloginwidget-screen-fixtures--a-1-entry"
+      >
+        One fixture per screen, rendered from a fixed adapter result, in light and dark.
+      </DocsCard>
+      <DocsCard
+        title="Live (real passkey + real providers)"
+        href="?path=/story/qa-passkeyloginwidget-live-real-passkey-real-providers--live"
+      >
+        Manual story for a real passkey with Google Drive / iCloud. Needs the VITE_PASSKEY_* values described in
+        `tests/widgets/passkey-login-widget/QA.md`.
+      </DocsCard>
+    </DocsGrid>
+  </DocsSection>
+</DocsPage>
