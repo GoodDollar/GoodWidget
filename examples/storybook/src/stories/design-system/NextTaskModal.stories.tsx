@@ -272,6 +272,12 @@ const contentWithRealisticLongCopy: NextTaskContent = {
   statusLabel: 'Claim successfully processed',
 }
 
+const contentWithRealisticLongCopyWithoutImage: NextTaskContent = {
+  ...contentWithRealisticLongCopy,
+  imageUrl: undefined,
+  contentId: 'governance-long-copy-no-image',
+}
+
 /** A synchronous handler that throws shows an error toast; the sheet stays open so the user can retry or dismiss. */
 export const NavigationError: Story = {
   render: () => (
@@ -344,6 +350,16 @@ export const CustomCopy: Story = {
 /** Realistic long copy with inner scrolling for responsive testing. */
 export const RealisticLongCopy: Story = {
   render: () => <ControlledHarness content={contentWithRealisticLongCopy} testID="NextTaskModal-long-copy" />,
+}
+
+/** Realistic long copy without an image slot for responsive testing. */
+export const RealisticLongCopyWithoutImage: Story = {
+  render: () => (
+    <ControlledHarness
+      content={contentWithRealisticLongCopyWithoutImage}
+      testID="NextTaskModal-long-copy-no-image"
+    />
+  ),
 }
 
 /** A slow handler that fails first time and succeeds second time, for testing double-press guard and retry. */

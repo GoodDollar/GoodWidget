@@ -131,6 +131,16 @@ export const MockClaimExecutionSingleChainWithNextTask: Story = {
   ),
 }
 
+export const MockClaimExecutionSingleClaimFallbackWithNextTask: Story = {
+  render: () => (
+    <MockClaimExecutionWidgetStory
+      singleChain
+      emptyClaimables
+      nextTaskProps={mockNextTaskProps}
+    />
+  ),
+}
+
 export const MockClaimExecutionAllFailsWithNextTask: Story = {
   render: () => (
     <MockClaimExecutionWidgetStory

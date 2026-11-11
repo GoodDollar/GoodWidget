@@ -692,20 +692,63 @@ test('NextTaskModal CustomCopy story renders configurable copy overrides', async
   await expect(frame.getByText('Verification complete')).toBeVisible()
 })
 
-test('NextTaskModal RealisticLongCopy story scrolls and keeps actions accessible', async ({ page }) => {
-  await page.setViewportSize({ width: 375, height: 667 })
-  await gotoStory(page, 'design-system-primitives-nexttaskmodal--realistic-long-copy')
-  const frame = getStoryFrame(page)
-  await frame.getByTestId('NextTaskModal-open').click()
-  const cta = frame.getByRole('link', { name: 'Read and vote on Snapshot' })
-  await cta.scrollIntoViewIfNeeded()
-  await expect(cta).toBeInViewport({ ratio: 1 })
-  await expect(cta).toBeVisible()
-  const skip = frame.getByRole('button', { name: 'Remind me tomorrow' })
-  await skip.scrollIntoViewIfNeeded()
-  await expect(skip).toBeInViewport({ ratio: 1 })
-  await expect(skip).toBeVisible()
-})
+const NEXT_TASK_LONG_COPY_VARIANTS = [
+  {
+    label: 'with-image',
+    storyId: 'design-system-primitives-nexttaskmodal--realistic-long-copy',
+    testId: 'NextTaskModal-long-copy',
+    hasImage: true,
+  },
+  {
+    label: 'without-image',
+    storyId: 'design-system-primitives-nexttaskmodal--realistic-long-copy-without-image',
+    testId: 'NextTaskModal-long-copy-no-image',
+    hasImage: false,
+  },
+]
+
+for (const variant of NEXT_TASK_LONG_COPY_VARIANTS) {
+  for (const viewport of NEXT_TASK_VIEWPORTS) {
+    test(`NextTaskModal RealisticLongCopy (${variant.label}) keeps headline, CTA and skip accessible at ${viewport.width}x${viewport.height} (${viewport.label})`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height })
+      await page.goto(`/iframe.html?id=${variant.storyId}&viewMode=story`)
+      await page.waitForLoadState('domcontentloaded')
+
+      const openButton = page.getByTestId('NextTaskModal-open')
+      await expect(openButton).toBeVisible()
+      await openButton.click()
+
+      const card = page.getByTestId(variant.testId)
+      await expect(card).toBeVisible()
+      if (!variant.hasImage) {
+        await expect(card.getByRole('img')).toHaveCount(0)
+      }
+
+      const headline = page.getByText('Support Community Expansion Proposals', { exact: true })
+      const cta = page.getByRole('link', { name: 'Read and vote on Snapshot' })
+      const skip = page.getByRole('button', { name: 'Remind me tomorrow' })
+      const closeButton = page.getByRole('button', { name: 'Close' })
+
+      for (const control of [headline, cta, skip, closeButton]) {
+        await control.scrollIntoViewIfNeeded()
+        await expect(control).toBeInViewport({ ratio: 1 })
+        await expect(control).toBeVisible()
+      }
+      await expect(cta).toBeEnabled()
+      await expect(skip).toBeEnabled()
+      await expect(closeButton).toBeEnabled()
+
+      const cardWidth = await card.evaluate((element) => element.scrollWidth)
+      expect(cardWidth).toBeLessThanOrEqual(viewport.width)
+
+      await page.screenshot({
+        path: `tests/design-system/test-results/story-nexttaskmodal-long-copy-${variant.label}-${viewport.label}.png`,
+      })
+    })
+  }
+}
 
 test('NextTaskModal host mode: double-press during pending navigation calls handler once, and retrying after failure succeeds', async ({
   page,
@@ -714,10 +757,17 @@ test('NextTaskModal host mode: double-press during pending navigation calls hand
   const frame = getStoryFrame(page)
   await frame.getByTestId('NextTaskModal-open').click()
   const cta = frame.getByRole('button', { name: 'Open Proposal' })
+  await cta.scrollIntoViewIfNeeded()
+  await expect(cta).toBeInViewport({ ratio: 1 })
+  await expect(cta).toBeVisible()
+  await expect(cta).toBeEnabled()
 
-  // Double-press quickly while first navigation is pending
-  await cta.click({ noWaitAfter: true })
-  await cta.click({ noWaitAfter: true })
+  // Dispatch both presses in a single browser execution so slow runners cannot
+  // settle and reset the guard between sequential Playwright clicks.
+  await cta.evaluate((button) => {
+    ;(button as HTMLElement).click()
+    ;(button as HTMLElement).click()
+  })
 
   // Error toast appears after delay, drawer remains open
   await expect(frame.getByText('Could not open this link. Please try again.')).toBeVisible()

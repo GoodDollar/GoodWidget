@@ -206,6 +206,8 @@ const MOCK_WIDGET_PARTIAL_SUCCESS_STORY =
   '/iframe.html?id=qa-citizenclaimwidget-runtime-fixtures--mock-claim-execution-partial-success-with-next-task&viewMode=story'
 const MOCK_WIDGET_SINGLE_CHAIN_STORY =
   '/iframe.html?id=qa-citizenclaimwidget-runtime-fixtures--mock-claim-execution-single-chain-with-next-task&viewMode=story'
+const MOCK_WIDGET_SINGLE_CLAIM_FALLBACK_STORY =
+  '/iframe.html?id=qa-citizenclaimwidget-runtime-fixtures--mock-claim-execution-single-claim-fallback-with-next-task&viewMode=story'
 const MOCK_WIDGET_ALL_FAILS_STORY =
   '/iframe.html?id=qa-citizenclaimwidget-runtime-fixtures--mock-claim-execution-all-fails-with-next-task&viewMode=story'
 const MOCK_WIDGET_WITHOUT_NEXT_TASK_STORY =
@@ -307,6 +309,50 @@ test('CitizenClaimWidget real flow: drawer opens after single-chain claim succes
 
   const closeButton = page.getByRole('button', { name: 'Close' })
   await closeButton.click()
+  await expect(drawerHeadline).not.toBeInViewport()
+})
+
+test('CitizenClaimWidget real flow: single-claim fallback runs and opens drawer when claimablesByChain is empty', async ({
+  page,
+}) => {
+  // Abort fallback RPCs so findAltEntitlement settles immediately with no alt-chain claimables.
+  await page.route('https://forno.celo.org/**', (route) => route.abort())
+  await page.route('https://rpc.fuse.io/**', (route) => route.abort())
+  await page.route('https://fuse-rpc.gateway.pokt.network/**', (route) => route.abort())
+  await page.route('https://rpc.ankr.com/**', (route) => route.abort())
+
+  await page.goto(MOCK_WIDGET_SINGLE_CLAIM_FALLBACK_STORY)
+  await page.waitForLoadState('domcontentloaded')
+
+  await expect(page.getByText('Ready to claim')).toBeVisible({ timeout: 15_000 })
+  const claimButton = page.getByRole('button', { name: /Claim/i })
+  await expect(claimButton).toBeVisible()
+  await expect(claimButton).toBeEnabled()
+
+  // claimablesByChain is empty, so ClaimChainBreakdown ("Celo" inside the card) is absent:
+  // only the WidgetTabs network badge renders exact "Celo", proving claimPlan.length === 0.
+  await expect(page.getByText('Celo', { exact: true })).toHaveCount(1)
+  await expect(page.getByTestId('CitizenClaimWidget-custodial-claim-all-42220')).toHaveCount(0)
+  await expect(page.getByTestId('CitizenClaimWidget-custodial-claim-all-122')).toHaveCount(0)
+
+  await claimButton.click()
+
+  // Single-claim fallback emits single-chain success toast and opens NextTaskModal.
+  await expect(page.getByText('Claim succeeded on Celo')).toBeVisible({ timeout: 20_000 })
+  const drawerHeadline = page.getByText('One good next step')
+  await expect(drawerHeadline).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByText('Stake your G$ and earn')).toBeVisible()
+
+  // ClaimChainBreakdown stays absent after claim completion as well.
+  await expect(page.getByText('Celo', { exact: true })).toHaveCount(1)
+  await expect(page.getByTestId('CitizenClaimWidget-custodial-claim-all-42220')).toHaveCount(0)
+
+  const cta = page.getByRole('button', { name: 'Open Proposal' })
+  await expect(cta).toBeVisible()
+  await cta.scrollIntoViewIfNeeded()
+  await cta.click()
+
+  await expect(page.locator('body')).toHaveAttribute('data-next-task-navigated', 'https://gooddollar.org/stake')
   await expect(drawerHeadline).not.toBeInViewport()
 })
 
