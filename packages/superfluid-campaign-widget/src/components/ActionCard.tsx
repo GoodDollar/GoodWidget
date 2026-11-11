@@ -87,14 +87,8 @@ export function ActionCard({ action, onPressCta }: ActionCardProps) {
         <XStack flexShrink={0} $sm={{ display: 'none' }}>
           <ActivityIconComponent size={24} color={iconColor} />
         </XStack>
-        {/* The optional minimum caption sits directly under the description. */}
         <YStack gap="$1" flex={1}>
           <Text tone="soft">{action.description}</Text>
-          {action.minimumInfo && (
-            <Text variant="caption" tone="secondary">
-              {action.minimumInfo}
-            </Text>
-          )}
         </YStack>
         <YStack
           gap="$2"

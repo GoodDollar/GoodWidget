@@ -86,6 +86,32 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
       campaignId: 710,
       label: 'Ecosystem actions',
       actions: [
+        // Buy and Subscribe lead the Ecosystem pool, ahead of the other actions.
+        {
+          activity: 'ai-credits-purchase',
+          // TODO: set pointsEventNames to the AntSeed producer's event names once the
+          // first wallets complete these actions; until then the leaderboard falls back
+          // to the canonical activity name. Points reward the G$ deposited, never the
+          // later use of the credits.
+          title: 'Buy AI Credits',
+          source: 'AntSeed',
+          description: 'Get 10% more AI credits with G$.',
+          pointsLabel: '1 PT PER 1K G$ (≈ $0.1)',
+          ctaLabel: 'BUY',
+          ctaKind: 'external-link',
+          href: BUY_AI_CREDITS_URL,
+        },
+        {
+          activity: 'ai-credits-subscription',
+          // TODO: set pointsEventNames to the AntSeed producer's event names (see above).
+          title: 'Subscribe to AI Credits',
+          source: 'AntSeed',
+          description: 'Stream G$ for 20% more AI credits.',
+          pointsLabel: '2 PTS PER 1K G$ (≈ $0.1)',
+          ctaLabel: 'Subscribe',
+          ctaKind: 'external-link',
+          href: SUBSCRIBE_AI_CREDITS_URL,
+        },
         {
           activity: 'flow-state-funding',
           pointsEventNames: [POINTS_EVENT_NAMES.flowStateFunding],
@@ -118,32 +144,6 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
           ctaLabel: 'Fund',
           ctaKind: 'external-link',
           href: 'https://app.gardens.fund/gardens/42220/0xf42c9ca2b10010142e2bac34ebdddb0b82177684',
-        },
-        {
-          activity: 'ai-credits-purchase',
-          // TODO: set pointsEventNames to the AntSeed producer's event names once the
-          // first wallets complete these actions; until then the leaderboard falls back
-          // to the canonical activity name. Points reward the G$ deposited, never the
-          // later use of the credits.
-          title: 'Buy AI Credits',
-          source: 'AntSeed',
-          description: 'Make a one-time deposit in G$ to buy AI Credits.',
-          minimumInfo: 'Minimum first deposit: $1. No minimum for subsequent deposits.',
-          pointsLabel: '1 PT PER 1K G$ (≈ $0.1)',
-          ctaLabel: 'Buy AI Credits',
-          ctaKind: 'external-link',
-          href: BUY_AI_CREDITS_URL,
-        },
-        {
-          activity: 'ai-credits-subscription',
-          // TODO: set pointsEventNames to the AntSeed producer's event names (see above).
-          title: 'Subscribe to AI Credits',
-          source: 'AntSeed',
-          description: 'Subscribe with a G$ stream to buy AI Credits continuously.',
-          pointsLabel: '2 PTS PER 1K G$ (≈ $0.1)',
-          ctaLabel: 'Subscribe',
-          ctaKind: 'external-link',
-          href: SUBSCRIBE_AI_CREDITS_URL,
         },
       ],
     },
@@ -179,7 +179,7 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
     {
       question: 'How can I earn points by buying AI Credits?',
       answer:
-        'Buy AntSeed AI Credits with G$ through a one-time deposit or a streaming subscription. Deposits earn 1 point per $0.10 in G$, and subscriptions earn 2 points per $0.10 in G$ successfully streamed. Your first deposit must be at least $1, and subscriptions must stream at least $1 per month. Using the AI Credits does not earn additional points.',
+        'Buy AntSeed AI Credits with G$ through a one-time deposit or a streaming subscription. Deposits earn 1 point per $0.10 in G$, and subscriptions earn 2 points per $0.10 in G$ successfully streamed. Minimum first deposit: $1. No minimum for subsequent deposits. Subscriptions must stream at least $1 per month. Using the AI Credits does not earn additional points.',
     },
     {
       question: 'What can I do with AI Credits?',

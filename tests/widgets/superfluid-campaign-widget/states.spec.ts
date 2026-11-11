@@ -732,31 +732,52 @@ test('SuperfluidCampaignWidget invite is disabled with no link and keeps its poi
   await expect(page.getByLabel('Close claim widget')).not.toBeVisible()
 })
 
-test('SuperfluidCampaignWidget Buy AI Credits shows the minimum caption and Subscribe does not', async ({
+test('SuperfluidCampaignWidget AI Credits cards show the S7 copy, BUY label and no minimum caption', async ({
   page,
 }) => {
   await gotoStory(page, STORY_IDS.noWalletContent)
 
   const buyCard = page.getByTestId('ActionCard-layout-ai-credits-purchase')
-  await expect(buyCard.getByText('Make a one-time deposit in G$ to buy AI Credits.')).toBeVisible()
-  await expect(
-    buyCard.getByText('Minimum first deposit: $1. No minimum for subsequent deposits.'),
-  ).toBeVisible()
+  await expect(buyCard.getByText('Get 10% more AI credits with G$.')).toBeVisible()
   await expect(buyCard.getByText('1 PT PER 1K G$ (≈ $0.1)')).toBeVisible()
-  await expect(buyCard.getByRole('button', { name: 'Buy AI Credits' })).toBeEnabled()
+  await expect(buyCard.getByRole('button', { name: 'BUY', exact: true })).toBeEnabled()
 
   const subscribeCard = page.getByTestId('ActionCard-layout-ai-credits-subscription')
-  await expect(
-    subscribeCard.getByText('Subscribe with a G$ stream to buy AI Credits continuously.'),
-  ).toBeVisible()
+  await expect(subscribeCard.getByText('Stream G$ for 20% more AI credits.')).toBeVisible()
   await expect(subscribeCard.getByText('2 PTS PER 1K G$ (≈ $0.1)')).toBeVisible()
-  await expect(subscribeCard.getByText(/Minimum/)).toHaveCount(0)
   await expect(subscribeCard.getByRole('button', { name: 'Subscribe', exact: true })).toBeEnabled()
+
+  // The minimum-deposit details live in the FAQ, not on the cards.
+  await expect(buyCard.getByText(/Minimum/)).toHaveCount(0)
+  await expect(subscribeCard.getByText(/Minimum/)).toHaveCount(0)
 
   await page.screenshot({
     path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-42-ai-credits-cards.png',
     fullPage: true,
   })
+})
+
+test('SuperfluidCampaignWidget Buy and Subscribe lead the Ecosystem actions', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.noWalletContent)
+
+  const actionLayouts = page.locator('[data-testid^="ActionCard-layout-"]')
+  const layoutTestIds = await actionLayouts.evaluateAll((layouts) =>
+    layouts.map((layout) => layout.getAttribute('data-testid')),
+  )
+  // The first three cards belong to GoodDollar actions; the Ecosystem pool follows.
+  expect(layoutTestIds.slice(3, 5)).toEqual([
+    'ActionCard-layout-ai-credits-purchase',
+    'ActionCard-layout-ai-credits-subscription',
+  ])
+})
+
+test('SuperfluidCampaignWidget FAQ holds the AI Credits minimum deposit details', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.noWalletContent)
+  await page.getByText('FAQ', { exact: true }).first().click()
+  await page.getByText('How can I earn points by buying AI Credits?', { exact: true }).click()
+  await expect(
+    page.getByText('Minimum first deposit: $1. No minimum for subsequent deposits.', { exact: false }),
+  ).toBeVisible()
 })
 
 test('SuperfluidCampaignWidget Season 7 card copy for Vote on Flow State and Fund GoodBuilders', async ({
@@ -854,7 +875,7 @@ for (const linkStory of LINK_STORIES) {
   })
 
   for (const [actionName, actionTestId, buttonName, expectedUrl] of [
-    ['Buy AI Credits', 'ai-credits-purchase', 'Buy AI Credits', linkStory.buy],
+    ['Buy AI Credits', 'ai-credits-purchase', 'BUY', linkStory.buy],
     ['Subscribe', 'ai-credits-subscription', 'Subscribe', linkStory.subscribe],
     ['Donate', 'gardens-donation', 'Donate', linkStory.donate],
     ['Stream', 'gardens-funding', 'Fund', linkStory.stream],
@@ -931,6 +952,39 @@ const HEADER_WRAP_VIEWS = [
   },
 ]
 
+/**
+ * The AI Credits cards must never be taller than the tallest other action card
+ * (so they never stand out). In the desktop row layout, where every card has a
+ * one-line description, they must also not be shorter than the shortest card.
+ * Stacked phone layouts size cards to their own copy, so only the upper bound applies.
+ */
+async function expectAiCreditsCardsMatchOtherCardHeights(
+  page: Page,
+  { isDesktopRow }: { isDesktopRow: boolean },
+) {
+  const cardHeightsByActivity = await page.evaluate(() => {
+    const heights: Record<string, number> = {}
+    for (const layout of document.querySelectorAll('[data-testid^="ActionCard-layout-"]')) {
+      const activity = (layout.getAttribute('data-testid') ?? '').replace('ActionCard-layout-', '')
+      // The layout sits inside the card, whose role=button element is the visible box.
+      const cardElement = layout.closest('[role="button"]')
+      heights[activity] = cardElement?.getBoundingClientRect().height ?? 0
+    }
+    return heights
+  })
+  const otherCardHeights = Object.entries(cardHeightsByActivity)
+    .filter(([activity]) => !activity.startsWith('ai-credits'))
+    .map(([, height]) => height)
+  const minOtherHeight = Math.min(...otherCardHeights)
+  const maxOtherHeight = Math.max(...otherCardHeights)
+  for (const activity of ['ai-credits-purchase', 'ai-credits-subscription']) {
+    if (isDesktopRow) {
+      expect(cardHeightsByActivity[activity]).toBeGreaterThanOrEqual(minOtherHeight - 1)
+    }
+    expect(cardHeightsByActivity[activity]).toBeLessThanOrEqual(maxOtherHeight + 1)
+  }
+}
+
 for (const { width, label } of HEADER_WRAP_BREAKPOINTS) {
   test(`SuperfluidCampaignWidget action cards stack cleanly at ${width}px (${label})`, async ({
     page,
@@ -955,9 +1009,11 @@ for (const { width, label } of HEADER_WRAP_BREAKPOINTS) {
     const documentScrollWidth = await page.evaluate(() => document.documentElement.scrollWidth)
     expect(documentScrollWidth).toBeLessThanOrEqual(width + 1)
 
+    await expectAiCreditsCardsMatchOtherCardHeights(page, { isDesktopRow: false })
+
     // No CTA may be silently cut off by the card's rounded overflow boundary.
     const clippedButtons = await findClippedButtons(page)
-    for (const actionLabel of ['Claim', 'Coming up soon', 'Buy AI Credits', 'Subscribe', 'Donate']) {
+    for (const actionLabel of ['Claim', 'Coming up soon', 'BUY', 'Subscribe', 'Donate']) {
       expect(clippedButtons).not.toContain(actionLabel)
     }
   })
@@ -974,6 +1030,7 @@ test('SuperfluidCampaignWidget action cards retain their desktop row above 480px
   for (const layout of await actionLayouts.all()) {
     await expect(layout).toHaveCSS('flex-direction', 'row')
   }
+  await expectAiCreditsCardsMatchOtherCardHeights(page, { isDesktopRow: true })
 })
 
 for (const view of HEADER_WRAP_VIEWS) {

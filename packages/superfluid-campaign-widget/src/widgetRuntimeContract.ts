@@ -121,8 +121,6 @@ export interface CampaignActionDefinition {
   title: string
   source: string
   description: string
-  /** Optional caption rendered under the description, e.g. a minimum-deposit note. */
-  minimumInfo?: string
   pointsLabel: string
   ctaLabel: string
   ctaKind: CampaignActionCtaKind
