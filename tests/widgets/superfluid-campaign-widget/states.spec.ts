@@ -624,7 +624,10 @@ test('SuperfluidCampaignWidget "Coming up soon" actions render disabled, greyed 
     // Disabled actions carry no link at all.
     await expect(card.locator('a[href]')).toHaveCount(0)
   }
-  await expect(page.getByLabel('Coming up soon: Invite users')).toHaveAttribute('aria-disabled', 'true')
+  await expect(page.getByLabel('Coming up soon: Invite users')).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  )
   await expect(page.getByLabel('Coming up soon: Vote on Flow State')).toHaveAttribute(
     'aria-disabled',
     'true',
@@ -702,7 +705,9 @@ test('SuperfluidCampaignWidget Gardens Donate and Fund actions open Gardens', as
   }
 })
 
-test('SuperfluidCampaignWidget claim keeps the Superfluid header and can be closed', async ({ page }) => {
+test('SuperfluidCampaignWidget claim keeps the Superfluid header and can be closed', async ({
+  page,
+}) => {
   await gotoStory(page, STORY_IDS.noWalletContent)
 
   await page.getByTestId('ActionCard-layout-claim-ubi').getByText('Claim', { exact: true }).click()
@@ -771,12 +776,16 @@ test('SuperfluidCampaignWidget Buy and Subscribe lead the Ecosystem actions', as
   ])
 })
 
-test('SuperfluidCampaignWidget FAQ holds the AI Credits minimum deposit details', async ({ page }) => {
+test('SuperfluidCampaignWidget FAQ holds the AI Credits minimum deposit details', async ({
+  page,
+}) => {
   await gotoStory(page, STORY_IDS.noWalletContent)
   await page.getByText('FAQ', { exact: true }).first().click()
   await page.getByText('How can I earn points by buying AI Credits?', { exact: true }).click()
   await expect(
-    page.getByText('Minimum first deposit: $1. No minimum for subsequent deposits.', { exact: false }),
+    page.getByText('Minimum first deposit: $1. No minimum for subsequent deposits.', {
+      exact: false,
+    }),
   ).toBeVisible()
 })
 
@@ -816,7 +825,9 @@ test('SuperfluidCampaignWidget FAQ reflects the Season 7 questions', async ({ pa
 
   await page.getByText('Can I earn points for inviting users?', { exact: true }).click()
   await expect(
-    page.getByText('Invite rewards are coming up soon. Invites are currently not eligible for Season 7 points.'),
+    page.getByText(
+      'Invite rewards are coming up soon. Invites are currently not eligible for Season 7 points.',
+    ),
   ).toBeVisible()
 })
 
@@ -888,7 +899,10 @@ for (const linkStory of LINK_STORIES) {
       await gotoStory(page, linkStory.storyUrl)
 
       const layout = page.getByTestId(`ActionCard-layout-${actionTestId}`)
-      for (const trigger of [layout.getByRole('button', { name: buttonName, exact: true }), layout]) {
+      for (const trigger of [
+        layout.getByRole('button', { name: buttonName, exact: true }),
+        layout,
+      ]) {
         const [newPage] = await Promise.all([context.waitForEvent('page'), trigger.click()])
         await newPage.waitForLoadState('domcontentloaded').catch(() => {})
         expect(newPage.url()).toContain(expectedUrl.replace('https://', ''))
@@ -952,6 +966,10 @@ const HEADER_WRAP_VIEWS = [
   },
 ]
 
+// CI and local machines render the monospace font with slightly different line metrics,
+// shifting otherwise-equal card heights by a pixel or two.
+const CARD_HEIGHT_FONT_METRIC_TOLERANCE_PX = 4
+
 /**
  * The AI Credits cards must never be taller than the tallest other action card
  * (so they never stand out). In the desktop row layout, where every card has a
@@ -979,9 +997,13 @@ async function expectAiCreditsCardsMatchOtherCardHeights(
   const maxOtherHeight = Math.max(...otherCardHeights)
   for (const activity of ['ai-credits-purchase', 'ai-credits-subscription']) {
     if (isDesktopRow) {
-      expect(cardHeightsByActivity[activity]).toBeGreaterThanOrEqual(minOtherHeight - 1)
+      expect(cardHeightsByActivity[activity]).toBeGreaterThanOrEqual(
+        minOtherHeight - CARD_HEIGHT_FONT_METRIC_TOLERANCE_PX,
+      )
     }
-    expect(cardHeightsByActivity[activity]).toBeLessThanOrEqual(maxOtherHeight + 1)
+    expect(cardHeightsByActivity[activity]).toBeLessThanOrEqual(
+      maxOtherHeight + CARD_HEIGHT_FONT_METRIC_TOLERANCE_PX,
+    )
   }
 }
 
