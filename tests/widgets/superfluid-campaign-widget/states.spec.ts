@@ -484,6 +484,81 @@ test('SuperfluidCampaignWidget enriches a leaderboard page from per-account poin
   await expect(page.getByLabel('Vote on Flow State: not done')).toBeVisible()
 })
 
+test('SuperfluidCampaignWidget marks AI Credits actions done from the AntSeed point events', async ({
+  page,
+}) => {
+  const account = '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+  const ecosystemCampaignId = '710'
+
+  await page.route('**/points/campaign?*', async (route) => {
+    await route.fulfill({
+      json: {
+        campaignId: Number(ecosystemCampaignId),
+        name: 'Ecosystem Actions',
+        slug: 's7-gooddollar-2',
+        totalPoints: 3,
+        memberCount: 1,
+        totalEvents: 2,
+        lastEventAt: '2026-11-12T00:00:00.000Z',
+        createdAt: '2026-11-01T00:00:00.000Z',
+      },
+    })
+  })
+  await page.route('**/points/accounts?*', async (route) => {
+    await route.fulfill({
+      json: {
+        accounts: [
+          {
+            account,
+            totalPoints: 3,
+            eventCount: 2,
+            lastEventAt: '2026-11-12T00:00:00.000Z',
+          },
+        ],
+        pagination: {
+          page: 1,
+          limit: 10,
+          totalDocs: 1,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPrevPage: false,
+        },
+      },
+    })
+  })
+  // Only the Ecosystem campaign carries AntSeed events; the Gardens donation has no event here.
+  await page.route('**/points/events?*', async (route) => {
+    const requestedCampaignId = new URL(route.request().url()).searchParams.get('campaignId')
+    const events =
+      requestedCampaignId === ecosystemCampaignId
+        ? [
+            { eventName: 'aiCreditsSent', points: 1 },
+            { eventName: 'aiCreditsStreamed', points: 2 },
+          ]
+        : []
+    await route.fulfill({
+      json: {
+        events,
+        pagination: {
+          page: 1,
+          limit: 100,
+          totalDocs: events.length,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPrevPage: false,
+        },
+      },
+    })
+  })
+
+  await gotoStory(page, STORY_IDS.leaderboardApiContract)
+  await page.getByText('Ecosystem actions').click()
+
+  await expect(page.getByLabel('Buy AI Credits: done')).toBeVisible()
+  await expect(page.getByLabel('Subscribe to AI Credits: done')).toBeVisible()
+  await expect(page.getByLabel('Stream to a Community Pool: not done')).toBeVisible()
+})
+
 test('SuperfluidCampaignWidget SUP distribution and members: populated from the mocked programs client for campaign 701', async ({
   page,
 }) => {

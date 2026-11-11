@@ -21,6 +21,9 @@ const POINTS_EVENT_NAMES = {
   flowStateFunding: 'roundStreamed',
   gardensDonation: 'opensourceSent',
   gardensFunding: 'opensourceStreamed',
+  // AntSeed producer events: one-time G$ purchase (Sent) and G$ stream (Streamed).
+  aiCreditsPurchase: 'aiCreditsSent',
+  aiCreditsSubscription: 'aiCreditsStreamed',
   // TODO: Replace when the Flow State voting points producer is implemented.
   // Keeping a distinct placeholder preserves the action and icon flow without
   // incorrectly treating another event as proof that the user voted.
@@ -89,10 +92,8 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
         // Buy and Subscribe lead the Ecosystem pool, ahead of the other actions.
         {
           activity: 'ai-credits-purchase',
-          // TODO: set pointsEventNames to the AntSeed producer's event names once the
-          // first wallets complete these actions; until then the leaderboard falls back
-          // to the canonical activity name. Points reward the G$ deposited, never the
-          // later use of the credits.
+          // Points reward the G$ deposited, never the later use of the credits.
+          pointsEventNames: [POINTS_EVENT_NAMES.aiCreditsPurchase],
           title: 'Buy AI Credits',
           source: 'AntSeed',
           description: 'Get 10% more AI credits with G$.',
@@ -103,7 +104,8 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
         },
         {
           activity: 'ai-credits-subscription',
-          // TODO: set pointsEventNames to the AntSeed producer's event names (see above).
+          // Points reward the G$ streamed, never the later use of the credits.
+          pointsEventNames: [POINTS_EVENT_NAMES.aiCreditsSubscription],
           title: 'Subscribe to AI Credits',
           source: 'AntSeed',
           description: 'Stream G$ for 20% more AI credits.',
