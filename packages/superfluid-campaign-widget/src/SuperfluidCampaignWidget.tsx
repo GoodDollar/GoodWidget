@@ -20,6 +20,8 @@ import type {
   CampaignActionDefinition,
   CampaignActionLinkOverrides,
   CampaignDefinition,
+  FaqAnswerSegment,
+  FaqItemDefinition,
   LeaderboardSummaryData,
   SuperfluidCampaignView,
   SuperfluidCampaignWidgetProps,
@@ -33,6 +35,7 @@ const GOODDOLLAR_PAGE_URL = 'https://goodwallet.xyz/en/gooddollar'
 interface SuperfluidCampaignRuntimeProps {
   data: SuperfluidCampaignWidgetProps['data']
   actionLinks?: CampaignActionLinkOverrides
+  claimRewardsUrl?: SuperfluidCampaignWidgetProps['claimRewardsUrl']
   leaderboardSummary?: LeaderboardSummaryData
   dataClient: SuperfluidCampaignDataClient
   citizenClaimEnvironment: SuperfluidCampaignWidgetProps['citizenClaimEnvironment']
@@ -93,6 +96,30 @@ function handleActionCta(
   }
 }
 
+/** Replaces the href of FAQ link segments that mirror an action card's destination. */
+function applyFaqLinkOverrides(
+  faq: FaqItemDefinition[],
+  actionLinks: CampaignActionLinkOverrides,
+): FaqItemDefinition[] {
+  const overrideSegment = (segment: FaqAnswerSegment): FaqAnswerSegment => {
+    if (typeof segment === 'string' || !segment.actionLinkActivity) return segment
+    const href = actionLinks[segment.actionLinkActivity]
+    return href ? { ...segment, href } : segment
+  }
+
+  return faq.map((item) => {
+    if (typeof item.answer === 'string') return item
+    return {
+      ...item,
+      answer: item.answer.map((block) =>
+        Array.isArray(block)
+          ? block.map(overrideSegment)
+          : { ...block, items: block.items.map((bullet) => bullet.map(overrideSegment)) },
+      ),
+    }
+  })
+}
+
 function applyActionLinkOverrides(
   campaign: CampaignDefinition,
   actionLinks?: CampaignActionLinkOverrides,
@@ -101,6 +128,7 @@ function applyActionLinkOverrides(
 
   return {
     ...campaign,
+    faq: applyFaqLinkOverrides(campaign.faq, actionLinks),
     pools: campaign.pools.map((pool) => ({
       ...pool,
       actions: pool.actions.map((action) => {
@@ -114,6 +142,7 @@ function applyActionLinkOverrides(
 function SuperfluidCampaignRuntime({
   data,
   actionLinks,
+  claimRewardsUrl,
   leaderboardSummary,
   dataClient,
   citizenClaimEnvironment,
@@ -155,6 +184,7 @@ function SuperfluidCampaignRuntime({
       <YStack gap="$5" width="100%" padding="$5" style={{ boxSizing: 'border-box' }}>
         <CampaignHeader
           data={campaignData}
+          claimRewardsUrl={claimRewardsUrl}
           isConnected={isConnected}
           onConnect={connect}
           onClose={() => setEmbeddedClaimTab(null)}
@@ -201,7 +231,7 @@ function SuperfluidCampaignRuntime({
           top-right slot (see CampaignHeader) instead of its own row here. */}
       <CampaignHeader
         data={campaignData}
-        notice={campaignData.notice}
+        claimRewardsUrl={claimRewardsUrl}
         isConnected={isConnected}
         onConnect={connect}
         disableWalletButton={disableWalletButton}
@@ -262,6 +292,7 @@ export function SuperfluidCampaignWidgetWithClient({
   contentMaxWidth,
   data,
   actionLinks,
+  claimRewardsUrl,
   citizenClaimEnvironment = 'production',
   citizenClaimExecution,
   disableClaim = false,
@@ -291,6 +322,7 @@ export function SuperfluidCampaignWidgetWithClient({
         <SuperfluidCampaignRuntime
           data={data}
           actionLinks={actionLinks}
+          claimRewardsUrl={claimRewardsUrl}
           leaderboardSummary={leaderboardSummary}
           dataClient={dataClient}
           citizenClaimEnvironment={citizenClaimEnvironment}

@@ -2,20 +2,19 @@ import React from 'react'
 import { Badge, BadgeText, Button, ButtonText, Heading, Icon, Text, XStack, YStack } from '@goodwidget/ui'
 import type { CampaignDefinition } from '../widgetRuntimeContract'
 import { ConnectWalletPrompt } from './ConnectWalletPrompt'
-import { SeasonNotice } from './SeasonNotice'
 import { compactButtonProps } from './shared/styles'
 import { WalletControls } from '@goodwidget/core'
 
-/** claim.superfluid.org is the Superfluid-operated claim app — always opened in a new tab, never embedded. */
-const SUPERFLUID_CLAIM_APP_URL = 'https://claim.superfluid.org/'
+/** claim.superfluid.org is the Superfluid-operated claim app — the default Claim SUP destination, always opened in a new tab, never embedded. */
+const DEFAULT_CLAIM_REWARDS_URL = 'https://claim.superfluid.org/'
 
 interface CampaignHeaderProps {
   data: Pick<
     CampaignDefinition,
     'seasonLabel' | 'title' | 'description' | 'supAllocatedLabel' | 'endsLabel'
   >
-  /** Callout rendered under the title; only the main content view passes it. */
-  notice?: string
+  /** Destination of the Claim SUP rewards button; defaults to the Superfluid claim app. */
+  claimRewardsUrl?: string
   isConnected: boolean
   onConnect: () => void
   /** Present when the campaign shell is showing an in-place child widget. */
@@ -35,7 +34,7 @@ interface CampaignHeaderProps {
  */
 export function CampaignHeader({
   data,
-  notice,
+  claimRewardsUrl = DEFAULT_CLAIM_REWARDS_URL,
   isConnected,
   onConnect,
   onClose,
@@ -88,7 +87,6 @@ export function CampaignHeader({
         <Heading level={1} $sm={{ fontSize: '$7', lineHeight: '$7', letterSpacing: '$7' }}>
           {data.title}
         </Heading>
-        {notice && <SeasonNotice message={notice} />}
         <Text tone="soft">{data.description}</Text>
       </YStack>
 
@@ -109,7 +107,7 @@ export function CampaignHeader({
         <Button
           size="sm"
           {...compactButtonProps}
-          onPress={() => window.open(SUPERFLUID_CLAIM_APP_URL, '_blank', 'noopener,noreferrer')}
+          onPress={() => window.open(claimRewardsUrl, '_blank', 'noopener,noreferrer')}
         >
           <ButtonText>Claim SUP rewards</ButtonText>
         </Button>

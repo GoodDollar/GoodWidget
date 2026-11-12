@@ -24,13 +24,13 @@ export const DEFAULT_MOCK_SUPERFLUID_CAMPAIGN_SCENARIO: MockSuperfluidCampaignSc
 export const MOCK_LEADERBOARD_SUMMARY: LeaderboardSummaryData = {
   totalParticipants: 2184,
   supDistributed: 316300,
-  supTotal: 622000,
+  supTotal: 1345065,
   lastUpdatedLabel: 'Last updated: 18m ago',
 }
 
 export const MOCK_CAMPAIGN_DEFINITION: CampaignDefinition = {
   ...DEFAULT_CAMPAIGN_DEFINITION,
-  supAllocatedLabel: '622K SUP allocated',
+  supAllocatedLabel: '1.35M SUP allocated',
 }
 
 const AIRDROP_STATUS_FIXTURES = {
@@ -67,11 +67,11 @@ const LEADERBOARD_DATA_FIXTURES: Record<
   number,
   NonNullable<ReturnType<CampaignLeaderboardAdapter>['data']>
 > = {
-  606: {
+  701: {
     summary: {
-      campaignId: 606,
+      campaignId: 701,
       name: 'GoodDollar Actions',
-      slug: 'good-dollar-actions',
+      slug: 's7-gooddollar',
       totalPoints: 128450,
       memberCount: 624,
       totalEvents: 3891,
@@ -84,14 +84,14 @@ const LEADERBOARD_DATA_FIXTURES: Record<
         totalPoints: 4820,
         eventCount: 96,
         lastEventAt: '2026-07-29T12:00:00.000Z',
-        completedActivities: ['claim-ubi', 'invite-users', 'flow-state-vote'],
+        completedActivities: ['claim-ubi'],
       },
       {
         account: '0x2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c',
         totalPoints: 4390,
         eventCount: 88,
         lastEventAt: '2026-07-29T11:00:00.000Z',
-        completedActivities: ['claim-ubi', 'invite-users'],
+        completedActivities: ['claim-ubi'],
       },
       {
         account: '0x3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d',
@@ -110,11 +110,11 @@ const LEADERBOARD_DATA_FIXTURES: Record<
       hasPrevPage: false,
     },
   },
-  614: {
+  710: {
     summary: {
-      campaignId: 614,
+      campaignId: 710,
       name: 'Ecosystem Contributions',
-      slug: 'ecosystem-funding-actions',
+      slug: 's7-gooddollar-2',
       totalPoints: 84200,
       memberCount: 318,
       totalEvents: 1745,
@@ -127,14 +127,19 @@ const LEADERBOARD_DATA_FIXTURES: Record<
         totalPoints: 3420,
         eventCount: 55,
         lastEventAt: '2026-07-29T09:00:00.000Z',
-        completedActivities: ['flow-state-funding', 'gardens-donation', 'gardens-funding'],
+        completedActivities: [
+          'gardens-donation',
+          'gardens-funding',
+          'ai-credits-purchase',
+          'ai-credits-subscription',
+        ],
       },
       {
         account: '0x5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f',
         totalPoints: 2985,
         eventCount: 47,
         lastEventAt: '2026-07-29T08:00:00.000Z',
-        completedActivities: ['gardens-donation'],
+        completedActivities: ['gardens-donation', 'ai-credits-purchase'],
       },
     ],
     pagination: {
@@ -156,8 +161,8 @@ const SUP_TOTALS_FIXTURES: Record<
   number,
   NonNullable<ReturnType<ProgramSupTotalsAdapter>['data']>
 > = {
-  606: { totalAllocated: 217700, totalClaimed: 128940, totalMembers: 712 },
-  614: { totalAllocated: 404300, totalClaimed: 262450, totalMembers: 318 },
+  701: { totalAllocated: 470772.75, totalClaimed: 128940, totalMembers: 712 },
+  710: { totalAllocated: 874292.25, totalClaimed: 262450, totalMembers: 318 },
 }
 
 /** Named leaderboard scenarios exercised by Storybook and Playwright. */

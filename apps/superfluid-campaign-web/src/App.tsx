@@ -1,6 +1,7 @@
 import React, { useMemo, useRef } from 'react'
 import { SuperfluidCampaignWidget } from '@goodwidget/superfluid-campaign-widget'
 import type { EIP1193Provider } from '@goodwidget/core'
+import type { CampaignActionLinkOverrides } from '@goodwidget/superfluid-campaign-widget'
 import {
   DEFAULT_APPKIT_NETWORKS,
   DefaultAppKitProvider,
@@ -13,6 +14,22 @@ import { TamaguiProvider } from '@tamagui/core'
 import { YStack, defaultConfig } from '@goodwidget/ui'
 
 const DESKTOP_WIDGET_MAX_WIDTH = 960
+
+/**
+ * Tracked ubi.gd destinations for the standalone app. Invite, Vote on Flow State
+ * and Fund GoodBuilders are intentionally absent: those cards are disabled for
+ * Season 7 and must not carry a link.
+ */
+const STANDALONE_ACTION_LINKS: CampaignActionLinkOverrides = {
+  'claim-ubi': 'https://ubi.gd/4BTD7Vb',
+  'gardens-donation': 'https://ubi.gd/4eunQAd',
+  'gardens-funding': 'https://ubi.gd/4zEWvDW',
+  'ai-credits-purchase': 'https://ubi.gd/3UFIqH3',
+  'ai-credits-subscription': 'https://ubi.gd/4AslL0c',
+}
+
+/** Tracked ubi.gd link opened by the header's "Claim SUP rewards" button. */
+const STANDALONE_CLAIM_REWARDS_URL = 'https://ubi.gd/4iN7RhK'
 
 /**
  * Pressing the disconnect-menu item under AppKit opens AppKit's own Account
@@ -103,14 +120,8 @@ function AppKitSuperfluidCampaignWidget() {
       disconnectOverride={async () => {
         await open({ view: 'Account' })
       }}
-      actionLinks={{
-        'flow-state-vote': 'https://ubi.gd/4fEqvrS',
-        'flow-state-funding': 'https://ubi.gd/4z2tH8y',
-        'gardens-donation': 'https://ubi.gd/4xhk4kv',
-        'gardens-funding': 'https://ubi.gd/3TABl9O',
-        'invite-users': 'https://ubi.gd/4xhYTyH',
-        'claim-ubi': 'https://ubi.gd/3RNtzJd',
-      }}
+      actionLinks={STANDALONE_ACTION_LINKS}
+      claimRewardsUrl={STANDALONE_CLAIM_REWARDS_URL}
     />
   )
 }
@@ -131,6 +142,8 @@ function CampaignWidgetFrame() {
       provider={typeof window === 'undefined' ? undefined : window.ethereum}
       defaultTheme="dark"
       contentMaxWidth={DESKTOP_WIDGET_MAX_WIDTH}
+      actionLinks={STANDALONE_ACTION_LINKS}
+      claimRewardsUrl={STANDALONE_CLAIM_REWARDS_URL}
     />
   )
 }

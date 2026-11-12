@@ -21,25 +21,31 @@ const POINTS_EVENT_NAMES = {
   flowStateFunding: 'roundStreamed',
   gardensDonation: 'opensourceSent',
   gardensFunding: 'opensourceStreamed',
+  // AntSeed producer events: one-time G$ purchase (Sent) and G$ stream (Streamed).
+  aiCreditsPurchase: 'aiCreditsSent',
+  aiCreditsSubscription: 'aiCreditsStreamed',
   // TODO: Replace when the Flow State voting points producer is implemented.
   // Keeping a distinct placeholder preserves the action and icon flow without
   // incorrectly treating another event as proof that the user voted.
   flowStateVote: 'roundVotes',
 } as const
 
+// Standalone-app tracking links for the AntSeed actions. Integrators with their
+// own tracked links (e.g. GoodWallet) replace them through `actionLinks`.
+const BUY_AI_CREDITS_URL = 'https://ubi.gd/3UFIqH3'
+const SUBSCRIBE_AI_CREDITS_URL = 'https://ubi.gd/4AslL0c'
+
 export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
-  seasonLabel: 'SEASON 6',
+  seasonLabel: 'SEASON 7',
   title: 'Superfluid Ecosystem Rewards',
   description:
-    'Complete eligible actions across GoodDollar, Flow State, and Gardens to earn SUP rewards.',
-  endsLabel: 'Ends Nov 3rd',
-  // Season 6 has ended; remove this notice once Season 7 begins.
-  notice:
-    'The current Superfluid Rewards season has ended. You can still donate, claim your free daily UBI, and invite friends, but actions won’t earn reward points until the next season begins. Season 7 is coming soon—stay tuned!',
+    'Complete eligible actions across GoodDollar, Flow State, Gardens, and AI Credits to earn SUP rewards.',
+  endsLabel: 'Ends Feb 28th',
   pools: [
     {
       id: 'good-dollar-actions',
-      campaignId: 606,
+      // Season 7 "GoodDollar actions" program (slug s7-gooddollar).
+      campaignId: 701,
       label: 'GoodDollar actions',
       actions: [
         {
@@ -59,18 +65,19 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
           source: 'GoodDollar',
           description: 'Invite someone to claim G$ through GoodWallet.',
           pointsLabel: '10 PTS PER INVITE',
-          ctaLabel: 'Invite',
+          ctaLabel: 'Coming up soon',
           ctaKind: 'external-link',
-          href: 'https://goodwallet.xyz/en/gooddollar?tab=inviteRewards',
+          // Invites are not eligible for Season 7 points yet: no link until they are enabled.
+          disabled: true,
         },
         {
           activity: 'flow-state-vote',
           pointsEventNames: [POINTS_EVENT_NAMES.flowStateVote],
           title: 'Vote on Flow State',
           source: 'Flow State',
-          description: 'Vote to help allocate GoodBuilders Season 4 funding.',
+          description: 'Vote to help allocate GoodBuilders Season 5 funding.',
           pointsLabel: '5 PTS PER VOTE',
-          ctaLabel: 'Closed',
+          ctaLabel: 'Coming up soon',
           ctaKind: 'external-link',
           disabled: true,
         },
@@ -78,17 +85,43 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
     },
     {
       id: 'ecosystem-funding-actions',
-      campaignId: 614,
+      // Season 7 "Ecosystem actions" program (slug s7-gooddollar-2).
+      campaignId: 710,
       label: 'Ecosystem actions',
       actions: [
+        // Buy and Subscribe lead the Ecosystem pool, ahead of the other actions.
+        {
+          activity: 'ai-credits-purchase',
+          // Points reward the G$ deposited, never the later use of the credits.
+          pointsEventNames: [POINTS_EVENT_NAMES.aiCreditsPurchase],
+          title: 'Buy AI Credits',
+          source: 'AntSeed',
+          description: 'Get 10% more AI credits with G$.',
+          pointsLabel: '1 PT PER 1K G$ (≈ $0.1)',
+          ctaLabel: 'BUY',
+          ctaKind: 'external-link',
+          href: BUY_AI_CREDITS_URL,
+        },
+        {
+          activity: 'ai-credits-subscription',
+          // Points reward the G$ streamed, never the later use of the credits.
+          pointsEventNames: [POINTS_EVENT_NAMES.aiCreditsSubscription],
+          title: 'Subscribe to AI Credits',
+          source: 'AntSeed',
+          description: 'Stream G$ for 20% more AI credits.',
+          pointsLabel: '2 PTS PER 1K G$ (≈ $0.1)',
+          ctaLabel: 'Subscribe',
+          ctaKind: 'external-link',
+          href: SUBSCRIBE_AI_CREDITS_URL,
+        },
         {
           activity: 'flow-state-funding',
           pointsEventNames: [POINTS_EVENT_NAMES.flowStateFunding],
-          title: 'Fund GoodBuilders Season 4',
+          title: 'Fund GoodBuilders Season 5',
           source: 'Flow State',
-          description: 'Start a stream to the GoodBuilders Season 4 pool.',
+          description: 'Start a stream to the GoodBuilders Season 5 pool.',
           pointsLabel: '2 PTS PER 1K G$ (≈ $0.1)',
-          ctaLabel: 'Closed',
+          ctaLabel: 'Coming up soon',
           ctaKind: 'external-link',
           disabled: true,
         },
@@ -142,14 +175,26 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
       ],
     },
     {
-      question: 'When does an invite count as successful?',
-      answer:
-        'An invite counts after the invited user completes three G$ claims. The invite reward is registered when they complete their fourth claim.',
+      question: 'Can I earn points for inviting users?',
+      answer: 'Invite rewards are coming up soon. Invites are currently not eligible for Season 7 points.',
     },
     {
-      question: 'How do Flow State voting points work?',
+      question: 'How can I earn points by buying AI Credits?',
       answer:
-        'GoodBuilders Season 4 has six voting epochs. You earn 5 points each time you complete the vote for an epoch, for a maximum of 30 points during the campaign.',
+        'Buy AntSeed AI Credits with G$ through a one-time deposit or a streaming subscription. Deposits earn 1 point per $0.10 in G$, and subscriptions earn 2 points per $0.10 in G$ successfully streamed. Minimum first deposit: $1. No minimum for subsequent deposits. Subscriptions must stream at least $1 per month. Using the AI Credits does not earn additional points.',
+    },
+    {
+      question: 'What can I do with AI Credits?',
+      answer: [
+        [
+          'Use your G$ to buy AI Credits for supported tools such as Claude Code and Codex through AntSeed. GoodDollar-verified wallets get 10% more credits on one-time deposits or 20% more on streaming subscriptions, alongside the SUP rewards available through this campaign. Using your credits requires a desktop computer.',
+        ],
+        [{
+            text: 'Learn more and get started',
+            href: BUY_AI_CREDITS_URL,
+            actionLinkActivity: 'ai-credits-purchase',
+          }],
+      ],
     },
     {
       question: 'How do I start receiving SUP?',
@@ -212,18 +257,9 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
         'Wait a few minutes, then check BaseScan (basescan.org) to confirm a non-zero ETH balance on Base. Check/update the gas fee suggestion in your wallet (e.g. MetaMask) and retry. If it persists, contact the GoodDollar Telegram support group (t.me/GoodDollarX).',
     },
     {
-      question: 'Why are Vote on Flow State and Funding closed?',
+      question: 'Why are some actions marked ‘Coming up soon’?',
       answer:
-        'These actions are closed because GoodBuilders Season 4 finished on September 29. All streams for this round have been closed, so no further actions or points are available.',
-    },
-    {
-      question: 'When did Ecosystem action points restart?',
-      answer: 'Ecosystem action points restarted on October 4, 2026 for available actions.',
-    },
-    {
-      question: 'Are Ecosystem actions still earning points?',
-      answer:
-        'Yes. Available Ecosystem actions are earning points again. Points earned before the pause remain unchanged, and existing SUP reward streams continued based on those points. Streams related to Flow State Funding have been closed.',
+        'Invites, GoodBuilders voting, and GoodBuilders funding are not available for Season 7 points yet. These cards will be enabled when the actions become available.',
     },
   ],
 }
