@@ -3,6 +3,7 @@ import { CitizenClaimWidget } from '@goodwidget/citizen-claim-widget'
 import {
   CustodialClaimExecutionClaimAllStory,
   CustodialLocalFixtureStory,
+  MockClaimExecutionWidgetStory,
 } from '../helpers/citizenClaimWidgetStories'
 import type { NextTaskContent } from '@goodwidget/ui'
 import { BRAND_PRESET_OPTIONS, brandPresetOverrides, type BrandPreset } from '../helpers/themeOverridePresets'
@@ -81,4 +82,76 @@ export const CustodialLocalFixtureWithNextTask: Story = {
       }}
     />
   ),
+}
+
+const mockNextTaskProps = {
+  nextTaskContent,
+  nextTaskResolveNavigation: (ctaTarget: string) => {
+    if (typeof document !== 'undefined') {
+      document.body.dataset.nextTaskNavigated = ctaTarget
+    }
+    console.info('[next-task] host navigates to', ctaTarget)
+  },
+  onNextTaskShown: (payload: { contentId?: string }) => {
+    if (typeof document !== 'undefined') {
+      document.body.dataset.nextTaskLastEvent = `shown:${payload.contentId ?? ''}`
+    }
+    console.info('[next-task] shown', payload)
+  },
+  onNextTaskClicked: (payload: { ctaTarget: string }) => {
+    if (typeof document !== 'undefined') {
+      document.body.dataset.nextTaskLastEvent = `clicked:${payload.ctaTarget}`
+    }
+    console.info('[next-task] clicked', payload)
+  },
+  onNextTaskDismissed: (payload: { reason: string }) => {
+    if (typeof document !== 'undefined') {
+      document.body.dataset.nextTaskLastEvent = `dismissed:${payload.reason}`
+    }
+    console.info('[next-task] dismissed', payload)
+  },
+}
+
+export const MockClaimExecutionWithNextTask: Story = {
+  render: () => <MockClaimExecutionWidgetStory nextTaskProps={mockNextTaskProps} />,
+}
+
+export const MockClaimExecutionPartialSuccessWithNextTask: Story = {
+  render: () => <MockClaimExecutionWidgetStory partialSuccess nextTaskProps={mockNextTaskProps} />,
+}
+
+export const MockClaimExecutionSingleChainWithNextTask: Story = {
+  render: () => (
+    <MockClaimExecutionWidgetStory
+      singleChain
+      nextTaskProps={{
+        nextTaskContent,
+      }}
+    />
+  ),
+}
+
+export const MockClaimExecutionSingleClaimFallbackWithNextTask: Story = {
+  render: () => (
+    <MockClaimExecutionWidgetStory
+      singleChain
+      emptyClaimables
+      nextTaskProps={mockNextTaskProps}
+    />
+  ),
+}
+
+export const MockClaimExecutionAllFailsWithNextTask: Story = {
+  render: () => (
+    <MockClaimExecutionWidgetStory
+      allFail
+      nextTaskProps={{
+        nextTaskContent,
+      }}
+    />
+  ),
+}
+
+export const MockClaimExecutionWithoutNextTask: Story = {
+  render: () => <MockClaimExecutionWidgetStory />,
 }

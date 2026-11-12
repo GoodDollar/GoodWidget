@@ -582,16 +582,15 @@ test('NextTaskModal/ShownWithoutImage story renders the sheet without the image 
   await screenshotStory(page, 'tests/design-system/test-results/story-nexttaskmodal-no-image.png')
 })
 
-// Mobile and desktop viewports: the iframe document is loaded directly so the viewport size is
-// the story's own viewport (the Storybook manager switches layout at small widths).
+// Mobile, landscape, and desktop viewports: inner scrolling ensures actions stay reachable across all viewports.
 const NEXT_TASK_VIEWPORTS = [
   { label: 'desktop', width: 1280, height: 800 },
-  // 375x667 (iPhone SE) is the smallest common phone, so it stresses clipping the most.
   { label: 'mobile', width: 375, height: 667 },
+  { label: 'landscape', width: 667, height: 375 },
 ]
 
 for (const viewport of NEXT_TASK_VIEWPORTS) {
-  test(`NextTaskModal keeps its CTA, skip link and close button fully on screen at ${viewport.width}x${viewport.height} (${viewport.label})`, async ({
+  test(`NextTaskModal keeps its CTA, skip link and close button accessible at ${viewport.width}x${viewport.height} (${viewport.label})`, async ({
     page,
   }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height })
@@ -604,9 +603,10 @@ for (const viewport of NEXT_TASK_VIEWPORTS) {
     const closeButton = page.getByRole('button', { name: 'Close' })
 
     for (const control of [cta, skipLink, closeButton]) {
+      await control.scrollIntoViewIfNeeded()
+      await expect(control).toBeInViewport({ ratio: 1 })
       await expect(control).toBeVisible()
       await expect(control).toBeEnabled()
-      await expect(control).toBeInViewport({ ratio: 1 })
     }
     // The card's own content must not be wider than the viewport.
     const cardWidth = await card.evaluate((element) => element.scrollWidth)
@@ -626,6 +626,8 @@ test('NextTaskModal Anchor mode: the CTA is a link to ctaTarget and pressing it 
   await frame.getByTestId('NextTaskModal-open').click()
   const cta = frame.getByRole('link', { name: 'Open Proposal' })
   await expect(cta).toHaveAttribute('href', NEXT_TASK_CTA_TARGET)
+  await expect(cta.locator('button')).toHaveCount(0)
+  await expect(frame.getByRole('button', { name: 'Open Proposal' })).toHaveCount(0)
   // Navigation is blocked at the document level (after React's handler) so the test stays on the page.
   await frame.locator('body').evaluate((body) => {
     body.ownerDocument.addEventListener('click', (event) => {
@@ -666,10 +668,232 @@ const NEXT_TASK_ERROR_TOASTS = [
 ]
 
 for (const errorCase of NEXT_TASK_ERROR_TOASTS) {
-  test(`NextTaskModal shows an error toast and still closes for ${errorCase.description}`, async ({ page }) => {
+  test(`NextTaskModal shows an error toast and keeps drawer open for ${errorCase.description}`, async ({ page }) => {
     await gotoStory(page, errorCase.storyId)
     const frame = getStoryFrame(page)
     await expect(frame.getByText(errorCase.message)).toBeVisible()
+    await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
+
+    // Dismiss still works while error is displayed
+    const skipButton = frame.getByRole('button', { name: 'Skip for now' })
+    await skipButton.scrollIntoViewIfNeeded()
+    await skipButton.click()
     await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('closed')
   })
 }
+
+test('NextTaskModal CustomCopy story renders configurable copy overrides', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-nexttaskmodal--custom-copy')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByText('Custom Headline Step')).toBeVisible()
+  await expect(frame.getByText('Custom supporting message for active community members.')).toBeVisible()
+  await expect(frame.getByText('FEATURED')).toBeVisible()
+  await expect(frame.getByText('Not now, thanks')).toBeVisible()
+  await expect(frame.getByText('Verification complete')).toBeVisible()
+})
+
+const NEXT_TASK_LONG_COPY_VARIANTS = [
+  {
+    label: 'with-image',
+    storyId: 'design-system-primitives-nexttaskmodal--realistic-long-copy',
+    testId: 'NextTaskModal-long-copy',
+    hasImage: true,
+  },
+  {
+    label: 'without-image',
+    storyId: 'design-system-primitives-nexttaskmodal--realistic-long-copy-without-image',
+    testId: 'NextTaskModal-long-copy-no-image',
+    hasImage: false,
+  },
+]
+
+for (const variant of NEXT_TASK_LONG_COPY_VARIANTS) {
+  for (const viewport of NEXT_TASK_VIEWPORTS) {
+    test(`NextTaskModal RealisticLongCopy (${variant.label}) keeps headline, CTA and skip accessible at ${viewport.width}x${viewport.height} (${viewport.label})`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height })
+      await page.goto(`/iframe.html?id=${variant.storyId}&viewMode=story`)
+      await page.waitForLoadState('domcontentloaded')
+
+      const openButton = page.getByTestId('NextTaskModal-open')
+      await expect(openButton).toBeVisible()
+      await openButton.click()
+
+      const card = page.getByTestId(variant.testId)
+      await expect(card).toBeVisible()
+      if (!variant.hasImage) {
+        await expect(card.getByRole('img')).toHaveCount(0)
+      }
+
+      const headline = page.getByText('Support Community Expansion Proposals', { exact: true })
+      const cta = page.getByRole('link', { name: 'Read and vote on Snapshot' })
+      const skip = page.getByRole('button', { name: 'Remind me tomorrow' })
+      const closeButton = page.getByRole('button', { name: 'Close' })
+
+      for (const control of [headline, cta, skip, closeButton]) {
+        await control.scrollIntoViewIfNeeded()
+        await expect(control).toBeInViewport({ ratio: 1 })
+        await expect(control).toBeVisible()
+      }
+      await expect(cta).toBeEnabled()
+      await expect(skip).toBeEnabled()
+      await expect(closeButton).toBeEnabled()
+
+      const cardWidth = await card.evaluate((element) => element.scrollWidth)
+      expect(cardWidth).toBeLessThanOrEqual(viewport.width)
+
+      await page.screenshot({
+        path: `tests/design-system/test-results/story-nexttaskmodal-long-copy-${variant.label}-${viewport.label}.png`,
+      })
+    })
+  }
+}
+
+test('NextTaskModal host mode: double-press during pending navigation calls handler once, and retrying after failure succeeds', async ({
+  page,
+}) => {
+  await gotoStory(page, 'design-system-primitives-nexttaskmodal--navigation-pending-and-retry')
+  const frame = getStoryFrame(page)
+  await frame.getByTestId('NextTaskModal-open').click()
+  const cta = frame.getByRole('button', { name: 'Open Proposal' })
+  await cta.scrollIntoViewIfNeeded()
+  await expect(cta).toBeInViewport({ ratio: 1 })
+  await expect(cta).toBeVisible()
+  await expect(cta).toBeEnabled()
+
+  // Dispatch both presses in a single browser execution so slow runners cannot
+  // settle and reset the guard between sequential Playwright clicks.
+  await cta.evaluate((button) => {
+    ;(button as HTMLElement).click()
+    ;(button as HTMLElement).click()
+  })
+
+  // Error toast appears after delay, drawer remains open
+  await expect(frame.getByText('Could not open this link. Please try again.')).toBeVisible()
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
+
+  // resolveNavigation was only called once despite double press
+  const callCountAfterFirstAttempt = await frame.locator('body').evaluate((body) => body.dataset.nextTaskCallCount)
+  expect(callCountAfterFirstAttempt).toBe('1')
+
+  // Retry after failure: second press succeeds
+  await cta.click()
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('closed')
+  const callCountAfterRetry = await frame.locator('body').evaluate((body) => body.dataset.nextTaskCallCount)
+  expect(callCountAfterRetry).toBe('2')
+})
+
+test('NextTaskModal host mode: stale pending navigation from a closed session does not reset guard, toast, or close reopened modal', async ({
+  page,
+}) => {
+  await gotoStory(page, 'design-system-primitives-nexttaskmodal--stale-navigation-ignored-across-reopen')
+  const frame = getStoryFrame(page)
+
+  // Session 1: open and start navigation attempt 1 (left pending)
+  await frame.getByTestId('NextTaskModal-open').click()
+  const cta = frame.getByRole('button', { name: 'Open Proposal' })
+  await cta.scrollIntoViewIfNeeded()
+  await expect(cta).toBeVisible()
+  await cta.click()
+  await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('1')
+
+  // Host closes and reopens modal before attempt 1 settles (session 2)
+  await frame.getByTestId('NextTaskModal-host-close').evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('closed')
+  await frame.getByTestId('NextTaskModal-open').click()
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
+
+  // Session 2: start navigation attempt 2 (also pending)
+  await cta.scrollIntoViewIfNeeded()
+  await expect(cta).toBeVisible()
+  await cta.click()
+  await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('2')
+
+  // Reject stale attempt 1: must NOT show error toast or unlock CTA for a 3rd call while attempt 2 is pending
+  await frame.getByTestId('NextTaskModal-reject-oldest').evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-settled-count')).toHaveText('1')
+  await expect(frame.getByText('Could not open this link. Please try again.')).toHaveCount(0)
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
+  await cta.evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('2')
+
+  // Resolve attempt 2: current session closes cleanly
+  await frame.getByTestId('NextTaskModal-resolve-oldest').evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-settled-count')).toHaveText('2')
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('closed')
+
+  // Verify stale fulfillment as well: open session 3, leave attempt 3 pending, close + reopen into session 4,
+  // then resolve stale attempt 3 -> session 4 stays open without being closed by attempt 3.
+  await frame.getByTestId('NextTaskModal-open').click()
+  await cta.scrollIntoViewIfNeeded()
+  await expect(cta).toBeVisible()
+  await cta.click()
+  await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('3')
+
+  await frame.getByTestId('NextTaskModal-host-close').evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('closed')
+  await frame.getByTestId('NextTaskModal-open').click()
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
+
+  await frame.getByTestId('NextTaskModal-resolve-oldest').evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-settled-count')).toHaveText('3')
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
+
+  // Session 4 CTA still works normally once resolved
+  await cta.scrollIntoViewIfNeeded()
+  await expect(cta).toBeVisible()
+  await cta.click()
+  await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('4')
+  await frame.getByTestId('NextTaskModal-resolve-oldest').evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-settled-count')).toHaveText('4')
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('closed')
+  await expect(frame.getByTestId('NextTaskModal-close-count')).toHaveText('2')
+
+  // Verify unmount invalidation: unmount while attempts 5 & 6 are pending, then settle both -> no toast or onClose call
+  await frame.getByTestId('NextTaskModal-open').click()
+  await cta.scrollIntoViewIfNeeded()
+  await expect(cta).toBeVisible()
+  await cta.click()
+  await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('5')
+
+  await frame.getByTestId('NextTaskModal-toggle-mount').evaluate((button) => (button as HTMLElement).click())
+  await frame.getByTestId('NextTaskModal-resolve-oldest').evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-settled-count')).toHaveText('5')
+  await expect(frame.getByTestId('NextTaskModal-close-count')).toHaveText('2')
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
+
+  await frame.getByTestId('NextTaskModal-toggle-mount').evaluate((button) => (button as HTMLElement).click())
+  await expect(cta).toBeVisible()
+  await cta.click()
+  await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('6')
+  await frame.getByTestId('NextTaskModal-toggle-mount').evaluate((button) => (button as HTMLElement).click())
+  await frame.getByTestId('NextTaskModal-reject-oldest').evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-settled-count')).toHaveText('6')
+  await expect(frame.getByText('Could not open this link. Please try again.')).toHaveCount(0)
+})
+
+test('NextTaskModal host mode: onClose throwing after successful navigation does not show navigation error toast or reset guard', async ({
+  page,
+}) => {
+  await gotoStory(page, 'design-system-primitives-nexttaskmodal--on-close-throw-after-navigation-success')
+  const frame = getStoryFrame(page)
+
+  await frame.getByTestId('NextTaskModal-open').click()
+  const cta = frame.getByRole('button', { name: 'Open Proposal' })
+  await cta.scrollIntoViewIfNeeded()
+  await expect(cta).toBeVisible()
+
+  const [pageError] = await Promise.all([page.waitForEvent('pageerror'), cta.click()])
+  expect(pageError.message).toContain('host onClose failure')
+
+  await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('1')
+  await expect(frame.getByTestId('NextTaskModal-close-count')).toHaveText('1')
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
+  await expect(frame.getByText('Could not open this link. Please try again.')).toHaveCount(0)
+
+  // Guard stays latched after successful navigation so pressing CTA again does not re-run resolveNavigation
+  await cta.evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('1')
+  await expect(frame.getByTestId('NextTaskModal-close-count')).toHaveText('1')
+})

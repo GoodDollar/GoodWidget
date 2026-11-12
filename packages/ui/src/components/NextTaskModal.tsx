@@ -13,13 +13,14 @@ import { Stack, YStack } from '../components-test/Stacks'
 import { invokeHostCallbackSafely } from './invokeHostCallbackSafely'
 import { isAllowedExternalCtaUrl } from './nextTaskNavigation'
 
-const NEXT_TASK_HEADLINE = 'One good next step'
-const NEXT_TASK_SUPPORTING_COPY =
+export const NEXT_TASK_HEADLINE = 'One good next step'
+export const NEXT_TASK_SUPPORTING_COPY =
   'Small actions today create a bigger impact tomorrow. Thanks for being part of GoodDollar.'
-const NEXT_TASK_RECOMMENDED_LABEL = 'RECOMMENDED'
-const NEXT_TASK_SKIP_LABEL = 'Skip for now'
-const NAVIGATION_FAILED_TOAST_MESSAGE = 'Could not open this link. Please try again.'
-const REJECTED_URL_TOAST_MESSAGE = 'This link cannot be opened.'
+export const NEXT_TASK_RECOMMENDED_LABEL = 'RECOMMENDED'
+export const NEXT_TASK_SKIP_LABEL = 'Skip for now'
+export const NEXT_TASK_STATUS_LABEL = 'Claim completed'
+export const NAVIGATION_FAILED_TOAST_MESSAGE = 'Could not open this link. Please try again.'
+export const REJECTED_URL_TOAST_MESSAGE = 'This link cannot be opened.'
 
 export interface NextTaskContent {
   title: string
@@ -32,6 +33,16 @@ export interface NextTaskContent {
   imageUrl?: string
   /** Opaque id surfaced on `onShown` for host-side analytics correlation. */
   contentId?: string
+  /** Optional headline overriding "One good next step". */
+  headline?: string
+  /** Optional supporting copy overriding the default text. */
+  supportingCopy?: string
+  /** Optional badge label overriding "RECOMMENDED". */
+  recommendedLabel?: string
+  /** Optional label overriding "Skip for now". */
+  skipLabel?: string
+  /** Optional status pill label (e.g. "Claim completed"). */
+  statusLabel?: string
 }
 
 export type NextTaskDismissReason = 'close-button' | 'skip-link' | 'overlay'
@@ -51,7 +62,7 @@ export interface NextTaskModalProps {
    *               the modal opens no link itself, with no external fallback.
    *   - absent  → the CTA is an `Anchor` to `ctaTarget` (http/https only). A
    *               rejected URL renders a Button that shows an error toast.
-   *   - throws or rejects → caught and shown as an error toast; the modal still closes.
+   *   - throws or rejects → caught and shown as an error toast; the modal stays open so the user can retry or dismiss.
    * The error toast needs a mounted `<ToastContainer />`.
    */
   resolveNavigation?: (ctaTarget: string) => void | Promise<void>
@@ -86,14 +97,26 @@ export function NextTaskModal({
   // Guards so exactly one `onShown` fires per open and one terminal action (CTA or dismiss) per open.
   const hasReportedShownRef = useRef(false)
   const hasResolvedRef = useRef(false)
+  // Tracks the active visibility/navigation session so stale async completions after close or unmount are ignored.
+  const navigationGenerationRef = useRef(0)
 
   useEffect(() => {
     if (!isVisible) {
+      navigationGenerationRef.current += 1
       hasReportedShownRef.current = false
       hasResolvedRef.current = false
-      return
     }
-    if (hasReportedShownRef.current) return
+  }, [isVisible])
+
+  useEffect(
+    () => () => {
+      navigationGenerationRef.current += 1
+    },
+    [],
+  )
+
+  useEffect(() => {
+    if (!isVisible || hasReportedShownRef.current) return
     hasReportedShownRef.current = true
     invokeHostCallbackSafely('onShown', onShown, { contentId: content?.contentId })
   }, [isVisible, onShown, content?.contentId])
@@ -114,15 +137,21 @@ export function NextTaskModal({
   )
 
   // Host navigation: the host owns the destination; a throw or rejection is shown, never swallowed.
+  // The drawer stays open so the user can retry or dismiss.
   const handleHostNavigationPress = useCallback(async () => {
     if (!content || !resolveNavigation || hasResolvedRef.current) return
     hasResolvedRef.current = true
+    const attemptGeneration = ++navigationGenerationRef.current
     invokeHostCallbackSafely('onClicked', onClicked, { ctaTarget: content.ctaTarget })
     try {
       await resolveNavigation(content.ctaTarget)
     } catch {
+      if (attemptGeneration !== navigationGenerationRef.current) return
+      hasResolvedRef.current = false
       createToast({ message: NAVIGATION_FAILED_TOAST_MESSAGE, status: 'error' })
+      return
     }
+    if (attemptGeneration !== navigationGenerationRef.current) return
     onClose()
   }, [content, resolveNavigation, onClicked, onClose])
 
@@ -135,33 +164,44 @@ export function NextTaskModal({
   }, [content, onClicked, onClose])
 
   // A URL that failed the http(s) check is never rendered as an Anchor, so nothing navigates.
+  // The drawer stays open on error so the user can inspect or dismiss.
   const handleRejectedUrlPress = useCallback(() => {
-    if (hasResolvedRef.current) return
-    hasResolvedRef.current = true
     createToast({ message: REJECTED_URL_TOAST_MESSAGE, status: 'error' })
-    onClose()
-  }, [onClose])
+  }, [])
 
   if (!content) return null
 
   const isCtaTargetOpenableAsLink = !resolveNavigation && isAllowedExternalCtaUrl(content.ctaTarget)
   const handleButtonCtaPress = resolveNavigation ? handleHostNavigationPress : handleRejectedUrlPress
 
-  // `height="full"` (80% snap point): the half-height drawer clips the CTA on a 375x667 phone.
+  const effectiveStatusLabel = content.statusLabel ?? statusLabel
+  const effectiveHeadline = content.headline ?? NEXT_TASK_HEADLINE
+  const effectiveSupportingCopy = content.supportingCopy ?? NEXT_TASK_SUPPORTING_COPY
+  const effectiveRecommendedLabel = content.recommendedLabel ?? NEXT_TASK_RECOMMENDED_LABEL
+  const effectiveSkipLabel = content.skipLabel ?? NEXT_TASK_SKIP_LABEL
+
+  // `height="full"` (80% snap point): inner scrolling ensures all actions remain reachable on small viewports and landscape.
   return (
     <Drawer height="full" open={isVisible} onClose={() => dismissWithReason('overlay')}>
-      <YStack alignItems="center" gap="$3" width="100%">
-        {statusLabel ? (
+      <YStack
+        alignItems="center"
+        gap="$3"
+        width="100%"
+        maxHeight="100%"
+        paddingBottom="$4"
+        style={{ overflowY: 'auto' }}
+      >
+        {effectiveStatusLabel ? (
           <Badge type="success">
             <Icon name="check" size="sm" />
-            <BadgeText>{statusLabel}</BadgeText>
+            <BadgeText>{effectiveStatusLabel}</BadgeText>
           </Badge>
         ) : null}
         <Heading level={3} textAlign="center">
-          {NEXT_TASK_HEADLINE}
+          {effectiveHeadline}
         </Heading>
         <Text tone="secondary" center>
-          {NEXT_TASK_SUPPORTING_COPY}
+          {effectiveSupportingCopy}
         </Text>
         <NextTaskCtaCard testID={testID} data-testid={testID}>
           {content.imageUrl ? (
@@ -177,7 +217,7 @@ export function NextTaskModal({
           ) : null}
           <YStack flex={1} gap="$1" alignItems="flex-start">
             <Badge type="info">
-              <BadgeText>{NEXT_TASK_RECOMMENDED_LABEL}</BadgeText>
+              <BadgeText>{effectiveRecommendedLabel}</BadgeText>
             </Badge>
             <Heading level={5}>{content.title}</Heading>
             <Text variant="caption" tone="secondary">
@@ -186,8 +226,21 @@ export function NextTaskModal({
           </YStack>
         </NextTaskCtaCard>
         {isCtaTargetOpenableAsLink ? (
-          <Anchor href={content.ctaTarget} onPress={handleAnchorPress}>
-            {content.ctaLabel}
+          <Anchor
+            href={content.ctaTarget}
+            onPress={handleAnchorPress}
+            style={{ width: '100%', textDecoration: 'none' }}
+          >
+            <Button
+              variant="primary"
+              fullWidth
+              tag="span"
+              role="presentation"
+              tabIndex={-1}
+              pointerEvents="none"
+            >
+              <ButtonText>{content.ctaLabel}</ButtonText>
+            </Button>
           </Anchor>
         ) : (
           <Button variant="primary" fullWidth onPress={handleButtonCtaPress}>
@@ -195,7 +248,7 @@ export function NextTaskModal({
           </Button>
         )}
         <Button variant="text" onPress={() => dismissWithReason('skip-link')}>
-          <ButtonText>{NEXT_TASK_SKIP_LABEL}</ButtonText>
+          <ButtonText>{effectiveSkipLabel}</ButtonText>
         </Button>
       </YStack>
     </Drawer>
