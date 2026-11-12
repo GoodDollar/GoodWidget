@@ -1,10 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
-import {
-  AiCreditsWidget,
-  createBackendClient,
-  DEFAULT_DISCOUNT_CONFIG,
-  type DiscountConfig,
-} from '@goodwidget/ai-credits-widget'
+import React, { useMemo, useRef } from 'react'
+import { AiCreditsWidget } from '@goodwidget/ai-credits-widget'
 import type { EIP1193Provider } from '@goodwidget/core'
 import {
   DefaultAppKitProvider,
@@ -44,29 +39,6 @@ const ANTSEED_SECURITY_DOCS = 'https://antseed.com/docs/security/'
 
 function envAddress(value: string | undefined): `0x${string}` | undefined {
   return value ? (value as `0x${string}`) : undefined
-}
-
-function useDiscountConfig(backendUrl: string | undefined): DiscountConfig {
-  const [config, setConfig] = useState<DiscountConfig>(DEFAULT_DISCOUNT_CONFIG)
-
-  useEffect(() => {
-    if (!backendUrl) return
-
-    let cancelled = false
-
-    createBackendClient(backendUrl)
-      .getDiscountConfig()
-      .then((next) => {
-        if (!cancelled) setConfig(next)
-      })
-      .catch(() => {})
-
-    return () => {
-      cancelled = true
-    }
-  }, [backendUrl])
-
-  return config
 }
 
 function ReownAiCreditsWidget() {
@@ -324,10 +296,6 @@ function SecurityDetails() {
 }
 
 function LandingPage() {
-  const { depositBonusPercent, streamBonusPercent } = useDiscountConfig(
-    import.meta.env.VITE_AI_CREDITS_BACKEND_URL,
-  )
-
   return (
     <YStack
       tag="main"
