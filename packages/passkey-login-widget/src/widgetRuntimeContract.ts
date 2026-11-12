@@ -14,6 +14,7 @@ export const PASSKEY_ERROR_CODES = [
   'UNSUPPORTED_BROWSER', // D1
   'PASSKEY_CANCELLED', // D2
   'PASSKEY_FAILED', // D2 layout, different copy: the passkey provider rejected the request
+  'PASSKEY_BLOCKED_IN_FRAME', // D1 layout, different copy: a passkey manager extension refuses requests from embedded frames
   'BACKUP_NOT_FOUND', // D3
   'PROVIDER_AUTH_FAILED', // D4
   'BACKUP_FAILED', // D5

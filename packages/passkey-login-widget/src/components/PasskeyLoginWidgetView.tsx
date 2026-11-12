@@ -57,7 +57,7 @@ export function PasskeyLoginWidgetView({
       case 'C3_RESTORE_SUCCESS':
         return <RestoreSuccessScreen actions={actions} />
       case 'D1_UNSUPPORTED_BROWSER':
-        return <UnsupportedBrowserScreen actions={actions} />
+        return <UnsupportedBrowserScreen actions={actions} isBlockedInFrame={flowState.errorCode === 'PASSKEY_BLOCKED_IN_FRAME'} />
       case 'D2_PASSKEY_CANCELLED':
         return (
           <PasskeyCancelledScreen

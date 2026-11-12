@@ -103,11 +103,12 @@ describe('passkey flow machine', () => {
     assert.equal(finalState.progressStepIndex, 2)
   })
 
-  it('maps every error code to its screen, AMBIGUOUS_BACKUP sharing D6, PASSKEY_FAILED sharing D2', () => {
+  it('maps every error code to its screen, AMBIGUOUS_BACKUP sharing D6, PASSKEY_FAILED sharing D2, PASSKEY_BLOCKED_IN_FRAME sharing D1', () => {
     const expectedScreens = {
       UNSUPPORTED_BROWSER: 'D1_UNSUPPORTED_BROWSER',
       PASSKEY_CANCELLED: 'D2_PASSKEY_CANCELLED',
       PASSKEY_FAILED: 'D2_PASSKEY_CANCELLED',
+      PASSKEY_BLOCKED_IN_FRAME: 'D1_UNSUPPORTED_BROWSER',
       BACKUP_NOT_FOUND: 'D3_BACKUP_NOT_FOUND',
       PROVIDER_AUTH_FAILED: 'D4_PROVIDER_AUTH_FAILED',
       BACKUP_FAILED: 'D5_BACKUP_FAILED',

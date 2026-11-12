@@ -25,6 +25,8 @@ export const PASSKEY_ERROR_MESSAGES: Record<PasskeyErrorCode, string> = {
   UNSUPPORTED_BROWSER: "This browser or passkey provider doesn't support passkey login.",
   PASSKEY_CANCELLED: 'The passkey request was cancelled or no passkey was found.',
   PASSKEY_FAILED: 'The passkey request failed.',
+  PASSKEY_BLOCKED_IN_FRAME:
+    "Your passkey manager extension refused this request because the widget is running in an embedded frame. Open the widget in its own tab or window (or use the browser's built-in passkeys) and try again.",
   BACKUP_NOT_FOUND: 'No backup was found for this passkey.',
   PROVIDER_AUTH_FAILED: "Couldn't connect to the backup provider.",
   BACKUP_FAILED: 'The backup could not be written.',
@@ -44,6 +46,14 @@ export type WebAuthnStep =
 const CANCELLATION_ERROR_NAMES = ['NotAllowedError', 'AbortError']
 /** Rejection names that mean this browser, provider or origin cannot do the request at all; a retry cannot help. */
 const UNSUPPORTED_ERROR_NAMES = ['NotSupportedError', 'SecurityError', 'ConstraintError']
+
+/**
+ * Message of the rejection a password-manager extension (Bitwarden's FIDO2 client) throws for `create()` when the
+ * calling document is not the top-level document: its content script sets `sameOriginWithAncestors` to
+ * `self === top` and the extension refuses a registration when that is false. Newer versions throw a
+ * NotAllowedError DOMException, older ones a plain Error, so it is recognised by message, before any name mapping.
+ */
+const EXTENSION_FRAME_REFUSAL_MESSAGE = /sameOriginWithAncestors/
 
 /** Reads `name` and `message` by shape: errors thrown by an injected password manager can come from another realm and fail `instanceof`. */
 function readErrorNameAndMessage(error: unknown): { name: string; message: string } {
@@ -74,6 +84,9 @@ export function toWebAuthnStepError(step: WebAuthnStep, error: unknown, isDismis
   }
   const { name, message } = readErrorNameAndMessage(error)
   const diagnostic = `${step}: ${name}: ${message}`
+  if (EXTENSION_FRAME_REFUSAL_MESSAGE.test(message)) {
+    return new PasskeyFlowError('PASSKEY_BLOCKED_IN_FRAME', PASSKEY_ERROR_MESSAGES.PASSKEY_BLOCKED_IN_FRAME, diagnostic, { cause: error })
+  }
   if (UNSUPPORTED_ERROR_NAMES.includes(name)) {
     return new PasskeyFlowError('UNSUPPORTED_BROWSER', PASSKEY_ERROR_MESSAGES.UNSUPPORTED_BROWSER, diagnostic, { cause: error })
   }

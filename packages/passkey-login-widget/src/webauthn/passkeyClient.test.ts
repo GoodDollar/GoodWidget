@@ -116,6 +116,20 @@ describe('passkeyClient', () => {
       }
     })
 
+    it('ends on the embedded-frame error without retrying when an extension refuses create() for sameOriginWithAncestors', async () => {
+      const extensionRefusals = [
+        new Error("Invalid 'sameOriginWithAncestors' value"), // older Bitwarden: plain Error after the messenger round trip
+        new DOMException("Invalid 'sameOriginWithAncestors' value", 'NotAllowedError'), // newer Bitwarden: rehydrated DOMException
+      ]
+      for (const extensionRefusal of extensionRefusals) {
+        const calls = installFakeCredentials({ create: [extensionRefusal] })
+        const flowError = await rejectionOf(createPasskey(options))
+        assert.equal(flowError.code, 'PASSKEY_BLOCKED_IN_FRAME')
+        assert.equal(flowError.diagnostic, `create: ${extensionRefusal.name}: Invalid 'sameOriginWithAncestors' value`)
+        assert.equal(calls.length, 1, 'the enable-only retry would be refused the same way')
+      }
+    })
+
     it('does not retry a registration the provider cannot do at all and ends on D1', async () => {
       const calls = installFakeCredentials({ create: [new DOMException('no ES256', 'NotSupportedError')] })
       const flowError = await rejectionOf(createPasskey(options))

@@ -281,6 +281,13 @@ export function usePasskeyLoginAdapter(props: PasskeyLoginWidgetProps): PasskeyL
       return
     }
     supportCheckStartedRef.current = true
+    // Some passkey manager extensions refuse to register a passkey from a frame. Whether one is installed cannot be
+    // known up front, so this only leaves a hint in the console instead of blocking a frame that may work fine.
+    if (window.self !== window.top) {
+      console.warn(
+        '[passkey-login-widget] Running inside an embedded frame: a passkey manager extension may refuse to create a passkey here (e.g. "Invalid \'sameOriginWithAncestors\' value"). Open the widget in its own tab or window if that happens.',
+      )
+    }
     const blockedFeatures = findBlockedWebAuthnFeatures()
     if (blockedFeatures.length > 0) {
       reportFailure(

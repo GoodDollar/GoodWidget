@@ -65,11 +65,12 @@ export function createInitialFlowState(options: {
   }
 }
 
-/** Screen that shows which error. AMBIGUOUS_BACKUP shares the D6 layout, PASSKEY_FAILED the D2 layout. */
+/** Screen that shows which error. AMBIGUOUS_BACKUP shares the D6 layout, PASSKEY_FAILED the D2 layout, PASSKEY_BLOCKED_IN_FRAME the D1 layout. */
 const ERROR_SCREEN_BY_CODE: Record<PasskeyErrorCode, PasskeyScreenId> = {
   UNSUPPORTED_BROWSER: 'D1_UNSUPPORTED_BROWSER',
   PASSKEY_CANCELLED: 'D2_PASSKEY_CANCELLED',
   PASSKEY_FAILED: 'D2_PASSKEY_CANCELLED',
+  PASSKEY_BLOCKED_IN_FRAME: 'D1_UNSUPPORTED_BROWSER',
   BACKUP_NOT_FOUND: 'D3_BACKUP_NOT_FOUND',
   PROVIDER_AUTH_FAILED: 'D4_PROVIDER_AUTH_FAILED',
   BACKUP_FAILED: 'D5_BACKUP_FAILED',

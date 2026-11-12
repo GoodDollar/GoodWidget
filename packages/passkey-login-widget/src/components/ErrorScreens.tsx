@@ -1,6 +1,7 @@
 import React from 'react'
 import { Alert, YStack } from '@goodwidget/ui'
 import type { PasskeyLoginAdapterActions } from '../adapter.ts'
+import { PASSKEY_ERROR_MESSAGES } from '../webauthn/passkeyErrors.ts'
 import { ScreenAction, ScreenCard } from './ScreenCard.tsx'
 import type { ReactNode } from 'react'
 
@@ -21,13 +22,21 @@ function ErrorScreen({ screenId, title, message, children }: ErrorScreenProps) {
   )
 }
 
-/** D1: no WebAuthn / PRF support in the browser or the passkey provider. Only way out is another login method. */
-export function UnsupportedBrowserScreen({ actions }: { actions: PasskeyLoginAdapterActions }) {
+/**
+ * D1: the browser or passkey provider cannot do passkey login here. Only way out is another login method.
+ * `isBlockedInFrame` (PASSKEY_BLOCKED_IN_FRAME) is the same layout for a passkey manager extension that refuses
+ * requests from an embedded frame; the fix is to open the widget in its own tab, not a different provider.
+ */
+export function UnsupportedBrowserScreen({ actions, isBlockedInFrame }: { actions: PasskeyLoginAdapterActions; isBlockedInFrame: boolean }) {
   return (
     <ScreenCard data-testid="screen-D1">
       <Alert
         type="warning"
-        message="Your browser or passkey provider doesn't support the feature passkey login needs (WebAuthn PRF). Use Google Password Manager in Chrome or iCloud Keychain in Safari, or use another login method."
+        message={
+          isBlockedInFrame
+            ? PASSKEY_ERROR_MESSAGES.PASSKEY_BLOCKED_IN_FRAME
+            : "Your browser or passkey provider doesn't support the feature passkey login needs (WebAuthn PRF). Use Google Password Manager in Chrome or iCloud Keychain in Safari, or use another login method."
+        }
       />
       <ScreenAction label="Back to login methods" variant="secondary" onPress={actions.skip} />
     </ScreenCard>

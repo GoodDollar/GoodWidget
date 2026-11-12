@@ -79,6 +79,16 @@ describe('toWebAuthnStepError', () => {
     }
   })
 
+  it('recognises the extension refusal by message before the name mapping, in any step', () => {
+    for (const step of ['get', 'create'] as const) {
+      const plainError = toWebAuthnStepError(step, new Error("Invalid 'sameOriginWithAncestors' value"))
+      assert.equal(plainError.code, 'PASSKEY_BLOCKED_IN_FRAME')
+      assert.equal(plainError.diagnostic, `${step}: Error: Invalid 'sameOriginWithAncestors' value`)
+    }
+    const rehydratedError = toWebAuthnStepError('create', new DOMException("Invalid 'sameOriginWithAncestors' value", 'NotAllowedError'))
+    assert.equal(rehydratedError.code, 'PASSKEY_BLOCKED_IN_FRAME')
+  })
+
   it('describes thrown non-errors without crashing', () => {
     assert.equal(toWebAuthnStepError('get', 'oops').diagnostic, 'get: string: oops')
     assert.equal(toWebAuthnStepError('get', undefined).code, 'PASSKEY_FAILED')

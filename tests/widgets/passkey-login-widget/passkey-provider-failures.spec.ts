@@ -200,3 +200,51 @@ test.describe('an existing passkey request is rejected with a plain Error', () =
     expect(await readErrorCodes(page)).toEqual(['PASSKEY_FAILED', 'PASSKEY_FAILED'])
   })
 })
+
+/** What a password-manager extension's WebAuthn shim throws for `create()` when it runs in a frame (Bitwarden's FIDO2 client). */
+const EXTENSION_FRAME_REFUSAL = "Invalid 'sameOriginWithAncestors' value"
+
+test.describe('a passkey manager extension that refuses requests from embedded frames', () => {
+  test('create() refused for sameOriginWithAncestors ends on D1 with the embedded-frame copy, no retry, and the real error in the log', async ({ page }) => {
+    const consoleErrors: string[] = []
+    page.on('console', (message) => message.type() === 'error' && consoleErrors.push(message.text()))
+    await addVirtualAuthenticator(page)
+    await recordCreateCalls(page)
+    await page.addInitScript((refusalMessage) => {
+      // The extension shim sits in front of the browser's `create()` and rejects with a plain Error
+      navigator.credentials.create = () => {
+        ;(window as unknown as { __createCalls: unknown[] }).__createCalls.push({})
+        return Promise.reject(new Error(refusalMessage))
+      }
+    }, EXTENSION_FRAME_REFUSAL)
+    await openInteractionStory(page, 'one-provider')
+
+    await startNewAccountFromEntry(page)
+    await expectScreen(page, 'D1_UNSUPPORTED_BROWSER')
+    const blockedCard = page.getByTestId('screen-D1')
+    await expect(blockedCard).toContainText('passkey manager extension refused this request')
+    await expect(blockedCard).toContainText('embedded frame')
+    await expect(blockedCard).toContainText('its own tab or window')
+    await expect(blockedCard).not.toContainText('WebAuthn PRF')
+    expect(await readErrorCodes(page)).toEqual(['PASSKEY_CANCELLED', 'PASSKEY_BLOCKED_IN_FRAME'])
+    await expect(page.getByTestId(EVENT_LOG)).toContainText(`create: Error: ${EXTENSION_FRAME_REFUSAL}`)
+    expect(consoleErrors.some((text) => text.includes('PASSKEY_BLOCKED_IN_FRAME') && text.includes(EXTENSION_FRAME_REFUSAL))).toBe(true)
+    // The enable-only retry would be refused the same way, so there is exactly one attempt
+    expect(await readCreateCalls(page)).toHaveLength(1)
+  })
+
+  test('the widget leaves a console hint when it runs in an embedded frame, and none as the top-level page', async ({ page }) => {
+    const warnings: string[] = []
+    page.on('console', (message) => message.type() === 'warning' && warnings.push(message.text()))
+    await openInteractionStory(page, 'one-provider')
+    expect(warnings.filter((text) => text.includes('embedded frame'))).toHaveLength(0)
+
+    // Same story again, now inside an iframe of the page
+    await page.evaluate((storyUrl) => {
+      const embeddingFrame = document.createElement('iframe')
+      embeddingFrame.src = storyUrl
+      document.body.appendChild(embeddingFrame)
+    }, page.url())
+    await expect.poll(() => warnings.filter((text) => text.includes('[passkey-login-widget] Running inside an embedded frame'))).toHaveLength(1)
+  })
+})
