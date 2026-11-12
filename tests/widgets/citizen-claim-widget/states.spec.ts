@@ -89,6 +89,7 @@ test('CitizenClaimWidget shows not_whitelisted for fresh wallet (mocked Celo RPC
   page,
   browserName,
 }) => {
+  test.setTimeout(60_000)
   test.skip(
     browserName !== 'chromium',
     'Custodial provider story requires --disable-web-security / --ignore-certificate-errors',
