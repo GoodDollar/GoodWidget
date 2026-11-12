@@ -13,6 +13,7 @@ export type PasskeyProviderId = 'google-drive' | 'icloud'
 export const PASSKEY_ERROR_CODES = [
   'UNSUPPORTED_BROWSER', // D1
   'PASSKEY_CANCELLED', // D2
+  'PASSKEY_FAILED', // D2 layout, different copy: the passkey provider rejected the request
   'BACKUP_NOT_FOUND', // D3
   'PROVIDER_AUTH_FAILED', // D4
   'BACKUP_FAILED', // D5

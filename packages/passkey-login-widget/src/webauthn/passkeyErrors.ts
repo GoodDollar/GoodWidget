@@ -11,8 +11,9 @@ export class PasskeyFlowError extends Error {
    */
   diagnostic?: string
 
-  constructor(code: PasskeyErrorCode, message: string, diagnostic?: string) {
-    super(message)
+  constructor(code: PasskeyErrorCode, message: string, diagnostic?: string, options?: { cause?: unknown }) {
+    // `cause` keeps the original thrown value so the console shows the real error and its stack
+    super(message, options)
     this.name = 'PasskeyFlowError'
     this.code = code
     this.diagnostic = diagnostic
@@ -21,13 +22,65 @@ export class PasskeyFlowError extends Error {
 
 /** User-facing messages per code. They never include key material. */
 export const PASSKEY_ERROR_MESSAGES: Record<PasskeyErrorCode, string> = {
-  UNSUPPORTED_BROWSER: "This browser doesn't support passkey login.",
+  UNSUPPORTED_BROWSER: "This browser or passkey provider doesn't support passkey login.",
   PASSKEY_CANCELLED: 'The passkey request was cancelled or no passkey was found.',
+  PASSKEY_FAILED: 'The passkey request failed.',
   BACKUP_NOT_FOUND: 'No backup was found for this passkey.',
   PROVIDER_AUTH_FAILED: "Couldn't connect to the backup provider.",
   BACKUP_FAILED: 'The backup could not be written.',
   DECRYPT_FAILED: "The backup couldn't be unlocked with this passkey.",
   AMBIGUOUS_BACKUP: 'More than one backup was found for this passkey.',
+}
+
+/** The WebAuthn / PRF steps of the flow; every failure of one of them names its step in the diagnostic. */
+export type WebAuthnStep =
+  | 'get' // existing passkey assertion (login)
+  | 'create' // new passkey with the PRF salt evaluated at registration
+  | 'create-prf-enable-only' // new passkey asking only to enable PRF (retry when the provider rejects `prf.eval` at registration)
+  | 'prf-missing' // the new passkey reports no usable PRF support
+  | 'prf-followup-get' // assertion right after registration to read the PRF output
+
+/** Browser / provider rejection names that mean the user dismissed the request (or there was no passkey). */
+const CANCELLATION_ERROR_NAMES = ['NotAllowedError', 'AbortError']
+/** Rejection names that mean this browser, provider or origin cannot do the request at all; a retry cannot help. */
+const UNSUPPORTED_ERROR_NAMES = ['NotSupportedError', 'SecurityError', 'ConstraintError']
+
+/** Reads `name` and `message` by shape: errors thrown by an injected password manager can come from another realm and fail `instanceof`. */
+function readErrorNameAndMessage(error: unknown): { name: string; message: string } {
+  const candidate = (typeof error === 'object' && error !== null ? error : {}) as { name?: unknown; message?: unknown }
+  return {
+    name: typeof candidate.name === 'string' ? candidate.name : typeof error,
+    message: typeof candidate.message === 'string' ? candidate.message : String(error),
+  }
+}
+
+/** Whether a rejected WebAuthn request looks like the user dismissing it (or a missing passkey), judged by the error name only. */
+export function isWebAuthnCancellation(error: unknown): boolean {
+  return CANCELLATION_ERROR_NAMES.includes(readErrorNameAndMessage(error).name)
+}
+
+/**
+ * Turns whatever a `navigator.credentials` call (or the PRF read after it) threw into a typed error that names the
+ * failing step. The name and message come from the browser or the passkey provider, never from our own key handling,
+ * so they are safe to show developers. Only dismissals are "cancelled"; unknown rejections are `PASSKEY_FAILED`.
+ * @param step                 the WebAuthn step that threw
+ * @param error                the thrown value
+ * @param isDismissalPossible  false for steps the user did not start with a prompt of their own (the follow-up
+ *                             assertion): a dismissal there leaves a created passkey unusable, so it is a failure
+ */
+export function toWebAuthnStepError(step: WebAuthnStep, error: unknown, isDismissalPossible = true): PasskeyFlowError {
+  if (error instanceof PasskeyFlowError) {
+    return error
+  }
+  const { name, message } = readErrorNameAndMessage(error)
+  const diagnostic = `${step}: ${name}: ${message}`
+  if (UNSUPPORTED_ERROR_NAMES.includes(name)) {
+    return new PasskeyFlowError('UNSUPPORTED_BROWSER', PASSKEY_ERROR_MESSAGES.UNSUPPORTED_BROWSER, diagnostic, { cause: error })
+  }
+  if (isDismissalPossible && CANCELLATION_ERROR_NAMES.includes(name)) {
+    return new PasskeyFlowError('PASSKEY_CANCELLED', PASSKEY_ERROR_MESSAGES.PASSKEY_CANCELLED, diagnostic, { cause: error })
+  }
+  return new PasskeyFlowError('PASSKEY_FAILED', PASSKEY_ERROR_MESSAGES.PASSKEY_FAILED, diagnostic, { cause: error })
 }
 
 /**
@@ -62,5 +115,7 @@ export function toPasskeyFlowError(error: unknown, fallbackCode: PasskeyErrorCod
     }
     return new PasskeyFlowError(fallbackCode, PASSKEY_ERROR_MESSAGES[fallbackCode], diagnostic)
   }
-  return new PasskeyFlowError(fallbackCode, PASSKEY_ERROR_MESSAGES[fallbackCode], error instanceof Error ? error.name : undefined)
+  return new PasskeyFlowError(fallbackCode, PASSKEY_ERROR_MESSAGES[fallbackCode], error instanceof Error ? error.name : undefined, {
+    cause: error,
+  })
 }

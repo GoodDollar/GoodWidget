@@ -103,10 +103,11 @@ describe('passkey flow machine', () => {
     assert.equal(finalState.progressStepIndex, 2)
   })
 
-  it('maps every error code to its screen, AMBIGUOUS_BACKUP sharing D6', () => {
+  it('maps every error code to its screen, AMBIGUOUS_BACKUP sharing D6, PASSKEY_FAILED sharing D2', () => {
     const expectedScreens = {
       UNSUPPORTED_BROWSER: 'D1_UNSUPPORTED_BROWSER',
       PASSKEY_CANCELLED: 'D2_PASSKEY_CANCELLED',
+      PASSKEY_FAILED: 'D2_PASSKEY_CANCELLED',
       BACKUP_NOT_FOUND: 'D3_BACKUP_NOT_FOUND',
       PROVIDER_AUTH_FAILED: 'D4_PROVIDER_AUTH_FAILED',
       BACKUP_FAILED: 'D5_BACKUP_FAILED',
@@ -128,6 +129,19 @@ describe('passkey flow machine', () => {
     assert.equal(cancelledNewUser.finalState.screen, 'A1_ENTRY')
     const cancelledExistingUser = runEvents(existingUserState, [{ type: 'BACKUP_REQUESTED' }, { type: 'FAILED', errorCode: 'PASSKEY_CANCELLED' }, { type: 'RETRY_REQUESTED' }])
     assert.equal(cancelledExistingUser.finalState.screen, 'B1_BACKUP_PROMPT')
+  })
+
+  it('a failed passkey request (PASSKEY_FAILED) shares the D2 layout but Retry re-runs the step that failed', () => {
+    const failedCreate = runEvents(newUserState, [
+      { type: 'NEW_ACCOUNT_CONFIRMED' },
+      { type: 'FAILED', errorCode: 'PASSKEY_FAILED' },
+    ])
+    assert.equal(failedCreate.finalState.screen, 'D2_PASSKEY_CANCELLED')
+    assert.equal(failedCreate.finalState.failedScreen, 'A4_CREATE_PASSKEY')
+    assert.equal(passkeyFlowReducer(failedCreate.finalState, { type: 'RETRY_REQUESTED' }).screen, 'A4_CREATE_PASSKEY')
+
+    const failedLogin = runEvents(newUserState, [{ type: 'LOGIN_STARTED' }, { type: 'FAILED', errorCode: 'PASSKEY_FAILED' }])
+    assert.equal(passkeyFlowReducer(failedLogin.finalState, { type: 'RETRY_REQUESTED' }).screen, 'A2_AUTHENTICATING')
   })
 
   it('D4 / D5 / D6 Retry re-runs the screen that failed, keeping the provider', () => {

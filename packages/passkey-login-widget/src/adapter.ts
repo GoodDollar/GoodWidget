@@ -114,12 +114,16 @@ export function usePasskeyLoginAdapter(props: PasskeyLoginWidgetProps): PasskeyL
   const secretsRef = useRef<PasskeyFlowSecrets>({ ...EMPTY_SECRETS })
   const startedAttemptRef = useRef<number | null>(null)
   const supportCheckStartedRef = useRef(false)
+  // A passkey that exists but whose PRF output could not be read yet; the retry of that step reuses it instead of creating another
+  const unreadCreatedCredentialIdRef = useRef<ArrayBuffer | null>(null)
 
   const reportFailure = useCallback((error: unknown, fallbackCode: PasskeyErrorCode) => {
     const flowError = toPasskeyFlowError(error, fallbackCode)
     // The diagnostic is only a browser-generated error name / message or a fixed string of ours, never key material
     const reason = flowError.diagnostic ? `${flowError.message} [${flowError.diagnostic}]` : flowError.message
     console.error(`[passkey-login-widget] ${flowError.code}: ${reason}`)
+    // The thrown value itself (name, message, stack, cause) so a bug report can show the real error behind the screen
+    console.error('[passkey-login-widget]', error)
     dispatch({ type: 'FAILED', errorCode: flowError.code })
     latestPropsRef.current.onError?.({ code: flowError.code, message: reason })
   }, [])
@@ -144,7 +148,8 @@ export function usePasskeyLoginAdapter(props: PasskeyLoginWidgetProps): PasskeyL
       )
       dispatch({ type: 'PASSKEY_VERIFIED', providerId: knownProviderId })
     } catch (error) {
-      reportFailure(error, 'PASSKEY_CANCELLED')
+      // An error that is not a typed dismissal is a failed passkey request: it must never be shown as "cancelled"
+      reportFailure(error, 'PASSKEY_FAILED')
     }
   }, [reportFailure, rpId])
 
@@ -178,9 +183,17 @@ export function usePasskeyLoginAdapter(props: PasskeyLoginWidgetProps): PasskeyL
     async (isNewAccount: boolean) => {
       // No backup has been attempted on A4, so a failure here must never surface as BACKUP_FAILED (D5):
       // until the passkey exists an unknown failure is a failed passkey request, afterwards a failed key preparation
-      let unknownFailureCode: PasskeyErrorCode = 'PASSKEY_CANCELLED'
+      let unknownFailureCode: PasskeyErrorCode = 'PASSKEY_FAILED'
       try {
-        const { prfOutput } = await createPasskey({ rpId, appName })
+        const { prfOutput } = await createPasskey({
+          rpId,
+          appName,
+          resumeCredentialId: unreadCreatedCredentialIdRef.current ?? undefined,
+          onCredentialCreated: (credentialId) => {
+            unreadCreatedCredentialIdRef.current = credentialId
+          },
+        })
+        unreadCreatedCredentialIdRef.current = null
         unknownFailureCode = 'UNSUPPORTED_BROWSER'
         secretsRef.current.prfOutput = prfOutput
         dispatch({ type: 'PROGRESS_ADVANCED' })

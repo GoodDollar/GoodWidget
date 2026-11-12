@@ -1,6 +1,6 @@
 import type { Bytes } from '../crypto/encoding.ts'
 import { PRF_SALT_TEXT } from '../crypto/prfDerivation.ts'
-import { PASSKEY_ERROR_MESSAGES, PasskeyFlowError } from './passkeyErrors.ts'
+import { PASSKEY_ERROR_MESSAGES, PasskeyFlowError, toWebAuthnStepError, type WebAuthnStep } from './passkeyErrors.ts'
 
 const PRF_SALT = new TextEncoder().encode(PRF_SALT_TEXT)
 
@@ -13,6 +13,10 @@ const SUPPORTED_SIGNATURE_ALGORITHMS: PublicKeyCredentialParameters[] = [
 export interface CreatePasskeyOptions {
   rpId: string
   appName: string
+  /** Passkey created by an earlier attempt that still needs its PRF output read (see `createPasskey`). */
+  resumeCredentialId?: ArrayBuffer
+  /** Called with the id of a newly created passkey, before its PRF support is checked. */
+  onCredentialCreated?: (credentialId: ArrayBuffer) => void
 }
 
 export interface PasskeyPrfResult {
@@ -65,54 +69,89 @@ export function findBlockedWebAuthnFeatures(): string[] {
   )
 }
 
+/** The `prf` entry of a credential's client extension results (WebAuthn Level 3). */
+interface PrfExtensionResults {
+  enabled?: boolean
+  results?: { first?: BufferSource }
+}
+
+/** Client extension results of a credential; `undefined` `prf` means the browser or provider did not report the extension at all. */
+function readPrfExtensionResults(credential: PublicKeyCredential): { prf?: PrfExtensionResults; reportedExtensions: string[] } {
+  const extensionResults = credential.getClientExtensionResults() as { prf?: PrfExtensionResults }
+  return { prf: extensionResults.prf, reportedExtensions: Object.keys(extensionResults) }
+}
+
 /** Reads `prf.results.first` from a credential's extension results; null when the authenticator gave none. */
-function readPrfOutput(credential: PublicKeyCredential): Bytes | null {
-  const prfResults = (credential.getClientExtensionResults() as { prf?: { results?: { first?: BufferSource } } }).prf
-    ?.results
-  if (!prfResults?.first) {
+function readPrfOutput(prf: PrfExtensionResults | undefined): Bytes | null {
+  const first = prf?.results?.first
+  if (!first) {
     return null
   }
-  const first = prfResults.first
   // Copy out of the view so offsets of a larger underlying buffer are not leaked into the result
   return ArrayBuffer.isView(first)
     ? new Uint8Array(first.buffer.slice(first.byteOffset, first.byteOffset + first.byteLength))
     : new Uint8Array(first)
 }
 
+/** D1 error for a provider that cannot give a PRF output; `reason` says which step noticed and what was missing. */
+function createPrfUnsupportedError(step: WebAuthnStep, reason: string): PasskeyFlowError {
+  return new PasskeyFlowError('UNSUPPORTED_BROWSER', PASSKEY_ERROR_MESSAGES.UNSUPPORTED_BROWSER, `${step}: ${reason}`)
+}
+
 /**
- * Asks the user for an existing discoverable passkey of this rpId and returns its PRF output.
+ * Asks for a discoverable passkey of this rpId and returns its PRF output.
  * @param rpId         relying party id
+ * @param step         which flow step asks (named in the diagnostic of every failure)
  * @param credentialId limit the request to this credential (used right after creating a passkey)
  */
-export async function authenticateWithPasskey(rpId: string, credentialId?: ArrayBuffer): Promise<PasskeyPrfResult> {
-  const assertion = (await navigator.credentials.get({
-    publicKey: {
-      rpId,
-      // No server: the challenge only has to be fresh. The assertion itself is never verified.
-      challenge: crypto.getRandomValues(new Uint8Array(32)),
-      userVerification: 'required',
-      allowCredentials: credentialId ? [{ type: 'public-key', id: credentialId }] : [],
-      extensions: { prf: { eval: { first: PRF_SALT } } } as AuthenticationExtensionsClientInputs,
-    },
-  })) as PublicKeyCredential | null
-  if (!assertion) {
-    throw new PasskeyFlowError('PASSKEY_CANCELLED', PASSKEY_ERROR_MESSAGES.PASSKEY_CANCELLED)
+async function requestPrfAssertion(rpId: string, step: 'get' | 'prf-followup-get', credentialId?: ArrayBuffer): Promise<PasskeyPrfResult> {
+  // After registration the user did not start this prompt themselves, so dismissing it is a failure, not a cancellation
+  const isDismissalPossible = step === 'get'
+  let assertion: PublicKeyCredential | null
+  try {
+    assertion = (await navigator.credentials.get({
+      publicKey: {
+        rpId,
+        // No server: the challenge only has to be fresh. The assertion itself is never verified.
+        challenge: crypto.getRandomValues(new Uint8Array(32)),
+        userVerification: 'required',
+        allowCredentials: credentialId ? [{ type: 'public-key', id: credentialId }] : [],
+        extensions: { prf: { eval: { first: PRF_SALT } } } as AuthenticationExtensionsClientInputs,
+      },
+    })) as PublicKeyCredential | null
+  } catch (error) {
+    throw toWebAuthnStepError(step, error, isDismissalPossible)
   }
-  const prfOutput = readPrfOutput(assertion)
+  if (!assertion) {
+    throw new PasskeyFlowError('PASSKEY_CANCELLED', PASSKEY_ERROR_MESSAGES.PASSKEY_CANCELLED, `${step}: the request resolved with no credential`)
+  }
+  let prfOutput: Bytes | null
+  let reportedExtensions: string[]
+  try {
+    const extensionResults = readPrfExtensionResults(assertion)
+    prfOutput = readPrfOutput(extensionResults.prf)
+    reportedExtensions = extensionResults.reportedExtensions
+  } catch (error) {
+    throw toWebAuthnStepError(step, error, false)
+  }
   if (!prfOutput) {
-    throw new PasskeyFlowError('UNSUPPORTED_BROWSER', PASSKEY_ERROR_MESSAGES.UNSUPPORTED_BROWSER)
+    throw createPrfUnsupportedError(step, `the passkey provider returned no PRF result (extension results: [${reportedExtensions.join(', ')}])`)
   }
   return { prfOutput }
 }
 
-/**
- * Creates a NEW discoverable passkey and returns its PRF output.
- * When the authenticator only reports `prf.enabled` at registration, a follow-up
- * assertion fetches the output. When PRF is unsupported nothing is kept and D1 is raised.
- */
-export async function createPasskey({ rpId, appName }: CreatePasskeyOptions): Promise<PasskeyPrfResult> {
+/** Asks the user for an existing discoverable passkey of this rpId and returns its PRF output. */
+export async function authenticateWithPasskey(rpId: string): Promise<PasskeyPrfResult> {
+  return requestPrfAssertion(rpId, 'get')
+}
+
+/** Calls `navigator.credentials.create()` for a new discoverable passkey with the given PRF extension input. */
+async function createCredential(
+  { rpId, appName }: CreatePasskeyOptions,
+  prfExtension: Record<string, unknown>,
+): Promise<PublicKeyCredential | null> {
   const accountLabel = `${appName} ${new Date().toISOString().slice(0, 10)}`
-  const credential = (await navigator.credentials.create({
+  return (await navigator.credentials.create({
     publicKey: {
       rp: { id: rpId, name: appName },
       user: { id: crypto.getRandomValues(new Uint8Array(16)), name: accountLabel, displayName: accountLabel },
@@ -120,19 +159,77 @@ export async function createPasskey({ rpId, appName }: CreatePasskeyOptions): Pr
       challenge: crypto.getRandomValues(new Uint8Array(32)),
       pubKeyCredParams: SUPPORTED_SIGNATURE_ALGORITHMS,
       authenticatorSelection: { residentKey: 'required', userVerification: 'required' },
-      extensions: { prf: { eval: { first: PRF_SALT } } } as AuthenticationExtensionsClientInputs,
+      extensions: { prf: prfExtension } as AuthenticationExtensionsClientInputs,
     },
   })) as PublicKeyCredential | null
-  if (!credential) {
-    throw new PasskeyFlowError('PASSKEY_CANCELLED', PASSKEY_ERROR_MESSAGES.PASSKEY_CANCELLED)
+}
+
+/**
+ * Creates the passkey. Asks for the PRF output right away (`prf.eval`); when the provider rejects that with an
+ * error that is neither a dismissal nor "unsupported", retries once asking only to enable PRF, which every
+ * PRF-capable provider accepts, and the output is then read by the follow-up assertion.
+ */
+async function createCredentialWithPrf(options: CreatePasskeyOptions): Promise<PublicKeyCredential | null> {
+  try {
+    return await createCredential(options, { eval: { first: PRF_SALT } })
+  } catch (error) {
+    const firstAttemptError = toWebAuthnStepError('create', error)
+    if (firstAttemptError.code !== 'PASSKEY_FAILED') {
+      throw firstAttemptError
+    }
+    try {
+      return await createCredential(options, {})
+    } catch (retryError) {
+      const retryFailure = toWebAuthnStepError('create-prf-enable-only', retryError)
+      retryFailure.diagnostic = `${retryFailure.diagnostic} (after ${firstAttemptError.diagnostic})`
+      throw retryFailure
+    }
   }
-  const prfOutputAtRegistration = readPrfOutput(credential)
+}
+
+/**
+ * Creates a NEW discoverable passkey and returns its PRF output.
+ * When the authenticator only reports `prf.enabled` at registration, a follow-up assertion fetches the output.
+ * When the provider reports no PRF support, D1 is raised; the passkey itself has been saved by then and stays in the
+ * provider until the user deletes it.
+ * @param options.resumeCredentialId  a passkey created by an earlier attempt whose PRF output could not be read:
+ *                                    only the follow-up assertion is repeated, no second passkey is created
+ * @param options.onCredentialCreated receives the id of the new passkey as soon as it exists
+ */
+export async function createPasskey(options: CreatePasskeyOptions): Promise<PasskeyPrfResult> {
+  const { rpId, resumeCredentialId, onCredentialCreated } = options
+  if (resumeCredentialId) {
+    return requestPrfAssertion(rpId, 'prf-followup-get', resumeCredentialId)
+  }
+  let credential: PublicKeyCredential | null
+  try {
+    credential = await createCredentialWithPrf(options)
+  } catch (error) {
+    throw toWebAuthnStepError('create', error)
+  }
+  if (!credential) {
+    throw new PasskeyFlowError('PASSKEY_CANCELLED', PASSKEY_ERROR_MESSAGES.PASSKEY_CANCELLED, 'create: the request resolved with no credential')
+  }
+  onCredentialCreated?.(credential.rawId)
+
+  let prfExtension: PrfExtensionResults | undefined
+  let reportedExtensions: string[]
+  try {
+    const extensionResults = readPrfExtensionResults(credential)
+    prfExtension = extensionResults.prf
+    reportedExtensions = extensionResults.reportedExtensions
+  } catch (error) {
+    throw toWebAuthnStepError('prf-missing', error, false)
+  }
+  const prfOutputAtRegistration = readPrfOutput(prfExtension)
   if (prfOutputAtRegistration) {
     return { prfOutput: prfOutputAtRegistration }
   }
-  const prfExtension = (credential.getClientExtensionResults() as { prf?: { enabled?: boolean } }).prf
   if (!prfExtension?.enabled) {
-    throw new PasskeyFlowError('UNSUPPORTED_BROWSER', PASSKEY_ERROR_MESSAGES.UNSUPPORTED_BROWSER)
+    throw createPrfUnsupportedError(
+      'prf-missing',
+      `the new passkey does not report PRF support (extension results: [${reportedExtensions.join(', ')}], prf.enabled: ${String(prfExtension?.enabled)}); the passkey stays saved in the provider and can be deleted there`,
+    )
   }
-  return authenticateWithPasskey(rpId, credential.rawId)
+  return requestPrfAssertion(rpId, 'prf-followup-get', credential.rawId)
 }

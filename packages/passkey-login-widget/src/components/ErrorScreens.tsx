@@ -21,11 +21,14 @@ function ErrorScreen({ screenId, title, message, children }: ErrorScreenProps) {
   )
 }
 
-/** D1: no WebAuthn / PRF support. Only way out is another login method. */
+/** D1: no WebAuthn / PRF support in the browser or the passkey provider. Only way out is another login method. */
 export function UnsupportedBrowserScreen({ actions }: { actions: PasskeyLoginAdapterActions }) {
   return (
     <ScreenCard data-testid="screen-D1">
-      <Alert type="warning" message="This browser doesn't support passkey login. Use another login method." />
+      <Alert
+        type="warning"
+        message="Your browser or passkey provider doesn't support the feature passkey login needs (WebAuthn PRF). Use Google Password Manager in Chrome or iCloud Keychain in Safari, or use another login method."
+      />
       <ScreenAction label="Back to login methods" variant="secondary" onPress={actions.skip} />
     </ScreenCard>
   )
@@ -34,20 +37,33 @@ export function UnsupportedBrowserScreen({ actions }: { actions: PasskeyLoginAda
 /**
  * D2: the passkey request failed or was cancelled. WebAuthn cannot tell "cancelled" from "no
  * passkey on this device", so a failed login attempt also offers to create a new account.
+ * `isRequestFailure` (PASSKEY_FAILED) is the same layout for a request the browser or passkey provider rejected
+ * with something other than a dismissal: it says so instead of "cancelled" and always offers another login method.
  */
 export function PasskeyCancelledScreen({
   actions,
   offersNewAccount,
+  isRequestFailure,
 }: {
   actions: PasskeyLoginAdapterActions
   offersNewAccount: boolean
+  isRequestFailure: boolean
 }) {
   return (
-    <ErrorScreen screenId="screen-D2" title="Passkey request cancelled">
+    <ErrorScreen
+      screenId="screen-D2"
+      title={isRequestFailure ? 'Passkey request failed' : 'Passkey request cancelled'}
+      message={
+        isRequestFailure
+          ? 'Your browser or passkey provider returned an error. Retry, or use another login method.'
+          : undefined
+      }
+    >
       <ScreenAction label="Retry" onPress={actions.retry} />
       {offersNewAccount && (
         <ScreenAction label="Create new account" variant="secondary" onPress={actions.requestNewAccount} />
       )}
+      {isRequestFailure && <ScreenAction label="Back to login methods" variant="text" onPress={actions.skip} />}
     </ErrorScreen>
   )
 }

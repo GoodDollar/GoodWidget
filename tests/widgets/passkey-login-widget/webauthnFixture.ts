@@ -12,8 +12,10 @@ export interface VirtualAuthenticator {
  * Attaches a virtual platform authenticator (resident keys, user verification, PRF / hmac-secret)
  * through the Chrome DevTools Protocol. The widget's real WebAuthn calls run against it unchanged,
  * so the same passkey derives the same PRF output across widget restarts.
+ * @param options.hasPrf false makes an authenticator without the PRF / hmac-secret extension, like a provider that lacks PRF
  */
-export async function addVirtualAuthenticator(page: Page): Promise<VirtualAuthenticator> {
+export async function addVirtualAuthenticator(page: Page, options: { hasPrf?: boolean } = {}): Promise<VirtualAuthenticator> {
+  const { hasPrf = true } = options
   const cdpSession = await page.context().newCDPSession(page)
   await cdpSession.send('WebAuthn.enable')
   const { authenticatorId } = await cdpSession.send('WebAuthn.addVirtualAuthenticator', {
@@ -25,7 +27,7 @@ export async function addVirtualAuthenticator(page: Page): Promise<VirtualAuthen
       hasUserVerification: true,
       isUserVerified: true,
       automaticPresenceSimulation: true,
-      hasPrf: true,
+      hasPrf,
     },
   })
   return {

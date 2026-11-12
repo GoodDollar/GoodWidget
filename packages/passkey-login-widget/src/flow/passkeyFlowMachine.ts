@@ -65,10 +65,11 @@ export function createInitialFlowState(options: {
   }
 }
 
-/** Screen that shows which error. AMBIGUOUS_BACKUP shares the D6 layout. */
+/** Screen that shows which error. AMBIGUOUS_BACKUP shares the D6 layout, PASSKEY_FAILED the D2 layout. */
 const ERROR_SCREEN_BY_CODE: Record<PasskeyErrorCode, PasskeyScreenId> = {
   UNSUPPORTED_BROWSER: 'D1_UNSUPPORTED_BROWSER',
   PASSKEY_CANCELLED: 'D2_PASSKEY_CANCELLED',
+  PASSKEY_FAILED: 'D2_PASSKEY_CANCELLED',
   BACKUP_NOT_FOUND: 'D3_BACKUP_NOT_FOUND',
   PROVIDER_AUTH_FAILED: 'D4_PROVIDER_AUTH_FAILED',
   BACKUP_FAILED: 'D5_BACKUP_FAILED',
@@ -165,8 +166,9 @@ export function passkeyFlowReducer(state: PasskeyFlowState, event: PasskeyFlowEv
       }
 
     case 'RETRY_REQUESTED':
-      // D2 starts over; D4/D5/D6 re-run the step that failed
-      if (state.screen === 'D2_PASSKEY_CANCELLED') {
+      // A cancelled request (D2) starts over; a failed passkey request and D4/D5/D6 re-run the step that failed,
+      // so a passkey that was created but could not be read is picked up again instead of creating a second one
+      if (state.screen === 'D2_PASSKEY_CANCELLED' && state.errorCode !== 'PASSKEY_FAILED') {
         return goToScreen(state, entryScreenOf(state), { flowKind: state.isExistingUser ? 'backup' : 'login' })
       }
       return goToScreen(state, state.failedScreen ?? entryScreenOf(state))

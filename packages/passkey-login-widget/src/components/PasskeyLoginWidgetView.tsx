@@ -63,6 +63,7 @@ export function PasskeyLoginWidgetView({
           <PasskeyCancelledScreen
             actions={actions}
             offersNewAccount={flowState.failedScreen === 'A2_AUTHENTICATING'}
+            isRequestFailure={flowState.errorCode === 'PASSKEY_FAILED'}
           />
         )
       case 'D3_BACKUP_NOT_FOUND':

@@ -75,6 +75,13 @@ export const D2PasskeyCancelled: Story = {
     flowState: { errorCode: 'PASSKEY_CANCELLED', failedScreen: 'A2_AUTHENTICATING' },
   },
 }
+export const D2PasskeyFailed: Story = {
+  name: 'D2 Passkey request failed (new account)',
+  args: {
+    screen: 'D2_PASSKEY_CANCELLED',
+    flowState: { errorCode: 'PASSKEY_FAILED', failedScreen: 'A4_CREATE_PASSKEY' },
+  },
+}
 export const D3BackupNotFound: Story = {
   name: 'D3 Backup not found (two providers)',
   args: {
