@@ -23,6 +23,8 @@ const STORY_IDS = {
     '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--leaderboard-populated&viewMode=story',
   leaderboardEmpty:
     '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--leaderboard-empty&viewMode=story',
+  shadowRootTooltip:
+    '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--shadow-root-tooltip&viewMode=story',
   leaderboardApiContract:
     '/iframe.html?id=widgets-superfluidcampaignwidget-api-contracts--leaderboard-api-contract&viewMode=story',
   supTotalsRequestFailed:
@@ -345,6 +347,26 @@ test('SuperfluidCampaignWidget leaderboard addresses are plain text with a copy 
   })
 })
 
+test('SuperfluidCampaignWidget shows clipboard failure feedback when copying is denied', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: async () => {
+          throw new Error('Clipboard access denied')
+        },
+      },
+    })
+  })
+  await gotoStory(page, STORY_IDS.noWalletLeaderboard)
+
+  const fullAddress = '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b'
+  await page.getByLabel(`Copy address ${fullAddress}`).click()
+
+  await expect(page.getByText('Could not copy address')).toBeVisible()
+  await expect(page.getByText('Address copied')).toHaveCount(0)
+})
+
 test('SuperfluidCampaignWidget leaderboard action icons show a shared tooltip on hover, focus, and tap', async ({
   page,
   browser,
@@ -359,8 +381,17 @@ test('SuperfluidCampaignWidget leaderboard action icons show a shared tooltip on
     path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-41-leaderboard-tooltip-hover.png',
     fullPage: true,
   })
+  const tooltip = page.getByRole('tooltip')
+  await tooltip.hover()
+  await page.waitForTimeout(200)
+  await expect(tooltip).toBeVisible()
   await page.mouse.move(0, 0)
-  await expect(page.getByRole('tooltip')).toHaveCount(0)
+  await expect(tooltip).toHaveCount(0)
+
+  await claimIcon.hover()
+  await expect(tooltip).toBeVisible()
+  await page.evaluate(() => window.dispatchEvent(new Event('scroll')))
+  await expect(tooltip).toHaveCount(0)
 
   // Keyboard focus, dismissed with Escape
   await claimIcon.evaluate((element) => (element.parentElement as HTMLElement).focus())
@@ -375,6 +406,59 @@ test('SuperfluidCampaignWidget leaderboard action icons show a shared tooltip on
   await touchPage.getByLabel('Invite users: not done').first().tap()
   await expect(touchPage.getByRole('tooltip')).toHaveText('Invite users')
   await touchContext.close()
+})
+
+test('SuperfluidCampaignWidget tooltips flip below top-edge triggers and remain within narrow viewports', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 240 })
+  await gotoStory(page, STORY_IDS.noWalletLeaderboard)
+
+  const action = page.getByLabel('Claim UBI: done').first()
+  await action.evaluate((element) => {
+    const trigger = element.parentElement
+    if (!trigger) throw new Error('Tooltip trigger wrapper was not found')
+    Object.assign(trigger.style, {
+      position: 'fixed',
+      top: '4px',
+      left: '4px',
+      margin: '0',
+      zIndex: '9999',
+    })
+  })
+  await action.hover()
+  const tooltip = page.getByRole('tooltip')
+  await expect(tooltip).toBeVisible()
+
+  const bounds = await tooltip.evaluate((element) => {
+    const tooltipRect = element.getBoundingClientRect()
+    const triggerRect = element.parentElement!.getBoundingClientRect()
+    return {
+      left: tooltipRect.left,
+      right: tooltipRect.right,
+      top: tooltipRect.top,
+      bottom: tooltipRect.bottom,
+      triggerBottom: triggerRect.bottom,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+    }
+  })
+  expect(bounds.left).toBeGreaterThanOrEqual(7)
+  expect(bounds.right).toBeLessThanOrEqual(bounds.viewportWidth - 7)
+  expect(bounds.top).toBeGreaterThanOrEqual(bounds.triggerBottom)
+  expect(bounds.bottom).toBeLessThanOrEqual(bounds.viewportHeight - 7)
+})
+
+test('SuperfluidCampaignWidget tooltip closes when its Shadow DOM container scrolls', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.shadowRootTooltip)
+
+  await page.getByTestId('shadow-tooltip-trigger').hover()
+  await expect(page.getByRole('tooltip')).toHaveText('Shadow action')
+
+  await page.getByTestId('shadow-tooltip-scroll').evaluate((element) => {
+    element.scrollTop = 40
+  })
+  await expect(page.getByRole('tooltip')).toHaveCount(0)
 })
 
 test('SuperfluidCampaignWidget leaderboard tooltips use the Season 7 action labels', async ({

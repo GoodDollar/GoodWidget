@@ -8,6 +8,7 @@ import {
   Text,
   XStack,
   YStack,
+  copyTextToClipboard,
   createToast,
 } from '@goodwidget/ui'
 import type { ActivityType, LeaderboardEntry } from '../widgetRuntimeContract'
@@ -49,8 +50,12 @@ export function LeaderboardRow({ entry, isCurrentUser = false, activities }: Lea
   // Always copies the full address, even when the row displays a truncated address or ENS name.
   const handleCopyAddress = async () => {
     try {
-      await navigator.clipboard.writeText(entry.address)
-      createToast({ message: 'Address copied', status: 'success' })
+      const copied = await copyTextToClipboard(entry.address)
+      if (copied) {
+        createToast({ message: 'Address copied', status: 'success' })
+      } else {
+        createToast({ message: 'Could not copy address', status: 'error' })
+      }
     } catch {
       createToast({ message: 'Could not copy address', status: 'error' })
     }

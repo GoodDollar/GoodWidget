@@ -1,10 +1,14 @@
-import React, { useCallback, useEffect, useId, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { Stack, Text as TamaguiText } from 'tamagui'
 
 /** How long a tapped tooltip stays visible when no hover/blur event closes it (touch devices). */
 const TAP_VISIBLE_DURATION_MS = 2500
 /** Gap between the trigger and the tooltip bubble. */
 const TOOLTIP_OFFSET_PX = 8
+/** Lets the pointer cross the gap between the trigger and the tooltip bubble. */
+const HIDE_DELAY_MS = 120
+/** Keeps the bubble away from viewport edges. */
+const VIEWPORT_MARGIN_PX = 8
 
 export interface TooltipProps {
   /** Text shown inside the tooltip bubble; also announced to assistive tech through aria-describedby. */
@@ -16,6 +20,7 @@ export interface TooltipProps {
 interface TooltipPosition {
   left: number
   top: number
+  placement: 'above' | 'below'
 }
 
 /**
@@ -29,8 +34,20 @@ interface TooltipPosition {
 export function Tooltip({ label, children }: TooltipProps) {
   const tooltipId = useId()
   const triggerRef = useRef<HTMLElement | null>(null)
+  const tooltipRef = useRef<HTMLElement | null>(null)
   const tapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const triggerHoveredRef = useRef(false)
+  const tooltipHoveredRef = useRef(false)
+  const focusedRef = useRef(false)
   const [position, setPosition] = useState<TooltipPosition | null>(null)
+
+  const clearHideTimeout = useCallback(() => {
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current)
+      hideTimeoutRef.current = null
+    }
+  }, [])
 
   const clearTapTimeout = useCallback(() => {
     if (tapTimeoutRef.current) {
@@ -40,40 +57,112 @@ export function Tooltip({ label, children }: TooltipProps) {
   }, [])
 
   const hideTooltip = useCallback(() => {
+    clearHideTimeout()
     clearTapTimeout()
+    triggerHoveredRef.current = false
+    tooltipHoveredRef.current = false
+    focusedRef.current = false
     setPosition(null)
-  }, [clearTapTimeout])
+  }, [clearHideTimeout, clearTapTimeout])
 
-  // Centers the bubble horizontally over the trigger and places it above it.
+  const scheduleHide = useCallback(() => {
+    clearHideTimeout()
+    hideTimeoutRef.current = setTimeout(() => {
+      hideTimeoutRef.current = null
+      if (!triggerHoveredRef.current && !tooltipHoveredRef.current && !focusedRef.current) {
+        clearTapTimeout()
+        setPosition(null)
+      }
+    }, HIDE_DELAY_MS)
+  }, [clearHideTimeout, clearTapTimeout])
+
   const showTooltip = useCallback(() => {
-    const triggerRect = triggerRef.current?.getBoundingClientRect()
+    clearHideTimeout()
+    const triggerRect = triggerRef.current?.getBoundingClientRect?.()
     if (!triggerRect) return
     setPosition({
       left: triggerRect.left + triggerRect.width / 2,
       top: triggerRect.top - TOOLTIP_OFFSET_PX,
+      placement: 'above',
     })
-  }, [])
+  }, [clearHideTimeout])
 
   const showTooltipBriefly = useCallback(() => {
+    clearHideTimeout()
     clearTapTimeout()
     showTooltip()
-    tapTimeoutRef.current = setTimeout(hideTooltip, TAP_VISIBLE_DURATION_MS)
-  }, [clearTapTimeout, hideTooltip, showTooltip])
+    tapTimeoutRef.current = setTimeout(() => {
+      tapTimeoutRef.current = null
+      if (!triggerHoveredRef.current && !tooltipHoveredRef.current && !focusedRef.current) {
+        setPosition(null)
+      }
+    }, TAP_VISIBLE_DURATION_MS)
+  }, [clearHideTimeout, clearTapTimeout, showTooltip])
 
-  useEffect(() => clearTapTimeout, [clearTapTimeout])
+  useEffect(
+    () => () => {
+      clearHideTimeout()
+      clearTapTimeout()
+    },
+    [clearHideTimeout, clearTapTimeout],
+  )
 
-  // Scrolling would leave the fixed bubble detached from its trigger, so close it.
+  // Measure the rendered bubble before paint, then keep it inside the viewport.
+  useLayoutEffect(() => {
+    if (!position || typeof window === 'undefined') return
+    const triggerRect = triggerRef.current?.getBoundingClientRect?.()
+    const tooltipRect = tooltipRef.current?.getBoundingClientRect?.()
+    if (!triggerRect || !tooltipRect) return
+
+    const viewportWidth = window.visualViewport?.width ?? window.innerWidth
+    const viewportHeight = window.visualViewport?.height ?? window.innerHeight
+    const aboveTop = triggerRect.top - TOOLTIP_OFFSET_PX - tooltipRect.height
+    const placement =
+      aboveTop >= VIEWPORT_MARGIN_PX && position.placement === 'above' ? 'above' : 'below'
+    const halfTooltipWidth = Math.min(
+      tooltipRect.width,
+      viewportWidth - VIEWPORT_MARGIN_PX * 2,
+    ) / 2
+    const left = Math.max(
+      VIEWPORT_MARGIN_PX + halfTooltipWidth,
+      Math.min(
+        triggerRect.left + triggerRect.width / 2,
+        viewportWidth - VIEWPORT_MARGIN_PX - halfTooltipWidth,
+      ),
+    )
+    const top =
+      placement === 'above'
+        ? aboveTop
+        : Math.max(
+            VIEWPORT_MARGIN_PX,
+            Math.min(
+              triggerRect.bottom + TOOLTIP_OFFSET_PX,
+              viewportHeight - tooltipRect.height - VIEWPORT_MARGIN_PX,
+            ),
+          )
+
+    if (position.left !== left || position.top !== top || position.placement !== placement) {
+      setPosition({ left, top, placement })
+    }
+  }, [position])
+
+  // Scroll events inside a shadow root do not reach window, so listen on both roots.
   useEffect(() => {
     if (!position) return undefined
-    const handleDismiss = (event: Event) => {
-      if (event.type === 'keydown' && (event as KeyboardEvent).key !== 'Escape') return
+    const handleScroll = () => hideTooltip()
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
       hideTooltip()
     }
-    window.addEventListener('scroll', handleDismiss, true)
-    window.addEventListener('keydown', handleDismiss)
+    if (typeof window === 'undefined') return undefined
+    const root = triggerRef.current?.getRootNode()
+    root?.addEventListener('scroll', handleScroll, true)
+    window.addEventListener('scroll', handleScroll, true)
+    window.addEventListener('keydown', handleKeyDown)
     return () => {
-      window.removeEventListener('scroll', handleDismiss, true)
-      window.removeEventListener('keydown', handleDismiss)
+      root?.removeEventListener('scroll', handleScroll, true)
+      window.removeEventListener('scroll', handleScroll, true)
+      window.removeEventListener('keydown', handleKeyDown)
     }
   }, [position, hideTooltip])
 
@@ -82,19 +171,41 @@ export function Tooltip({ label, children }: TooltipProps) {
       ref={triggerRef as React.Ref<never>}
       tabIndex={0}
       aria-describedby={position ? tooltipId : undefined}
-      onHoverIn={showTooltip}
-      onHoverOut={hideTooltip}
-      onFocus={showTooltip}
-      onBlur={hideTooltip}
+      onHoverIn={() => {
+        triggerHoveredRef.current = true
+        clearHideTimeout()
+        showTooltip()
+      }}
+      onHoverOut={() => {
+        triggerHoveredRef.current = false
+        scheduleHide()
+      }}
+      onFocus={() => {
+        focusedRef.current = true
+        clearHideTimeout()
+        showTooltip()
+      }}
+      onBlur={() => {
+        focusedRef.current = false
+        scheduleHide()
+      }}
       onPress={showTooltipBriefly}
       cursor="default"
     >
       {children}
       {position && (
         <Stack
+          ref={tooltipRef as React.Ref<never>}
           id={tooltipId}
           role="tooltip"
-          pointerEvents="none"
+          onHoverIn={() => {
+            tooltipHoveredRef.current = true
+            clearHideTimeout()
+          }}
+          onHoverOut={() => {
+            tooltipHoveredRef.current = false
+            scheduleHide()
+          }}
           paddingHorizontal="$2"
           paddingVertical="$1"
           borderRadius="$2"
@@ -106,8 +217,9 @@ export function Tooltip({ label, children }: TooltipProps) {
             position: 'fixed',
             left: position.left,
             top: position.top,
-            transform: 'translate(-50%, -100%)',
-            whiteSpace: 'nowrap',
+            transform: `translate(-50%, ${position.placement === 'above' ? '-100%' : '0'})`,
+            maxWidth: 'calc(100vw - 16px)',
+            whiteSpace: 'normal',
           }}
         >
           <TamaguiText fontSize="$2" color="$color">
