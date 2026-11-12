@@ -1,3 +1,5 @@
+import { formatUnits } from 'viem'
+
 // Amount-entry helpers for the Bridge tab's G$ input, following the pattern
 // already established in goodreserve-widget/src/amount.ts. Not promoted to
 // a shared package yet — per the execution plan, a generic version only
@@ -44,6 +46,12 @@ export function formatTokenAmount(value: string | number | null | undefined): st
     minimumFractionDigits: 2,
     maximumFractionDigits: abs < HIGH_PRECISION_THRESHOLD ? 6 : 2,
   }).format(num)
+}
+
+// SDK history events expose normalizedAmount at 18 decimals, regardless of
+// the source token's decimals (Fuse G$ uses 2 decimals before bridging).
+export function formatHistoryAmount(normalizedAmount: bigint): string {
+  return formatTokenAmount(formatUnits(normalizedAmount, 18))
 }
 
 /**

@@ -5,6 +5,7 @@ import type {
   BridgeProtocol,
   BridgeRequirement,
   BridgeTransaction,
+  TransactionStatus,
 } from '@goodsdks/bridging-sdk'
 import type { Address, Hash } from 'viem'
 
@@ -22,6 +23,7 @@ export const BRIDGING_CHAINS = {
 } as const
 
 export type BridgingChainId = (typeof BRIDGING_CHAINS)[keyof typeof BRIDGING_CHAINS]
+export type BridgingRpcUrls = Partial<Record<BridgingChainId, readonly string[]>>
 
 // ---------------------------------------------------------------------------
 // Widget tab IDs
@@ -35,6 +37,9 @@ export interface BridgingWidgetAdapterState {
   /** Wallet/connection readiness */
   isConnected: boolean
   address: Address | null
+  /** Network currently reported by the wallet, which may differ from the selected source. */
+  walletChainId: number | null
+  /** Source chain selected in the widget; independent of the wallet network. */
   chainId: number | null
   /** True when the connected chain is not one of BRIDGING_CHAINS */
   isWrongChain: boolean
@@ -76,15 +81,21 @@ export interface BridgingWidgetAdapterState {
   submissionFailedAtStep: 'approving' | 'bridging' | null
   submissionError: string | null
   submissionTxHash: Hash | null
+  submissionSourceChainId: number | null
+  submissionTargetChainId: number | null
+  submissionProtocol: BridgeProtocol | null
+  submissionAmount: bigint | null
+  submissionDeliveryStatus: TransactionStatus | null
+  submissionStatusError: string | null
+  submissionSourceExplorerLink: string | null
+  submissionProviderExplorerLink: string | null
+  submissionDestinationExplorerLink: string | null
 
   /** Combined source+destination history for the connected address, newest first */
   historyTransactions: BridgeTransaction[]
   isHistoryLoading: boolean
   historyError: string | null
-  /** True when one or more history entries could not be resolved (e.g. a
-   *  delivery-status lookup failed) and were dropped rather than blanking
-   *  the whole list; distinct from historyError, which means the whole
-   *  fetch failed. */
+  /** True when a delivery-status lookup failed and the entry remains pending. */
   isHistoryPartial: boolean
   /** Transaction tapped in the History tab; its detail modal is open while non-null */
   selectedHistoryTransaction: BridgeTransaction | null
@@ -98,6 +109,8 @@ export interface BridgingWidgetAdapterState {
 export interface BridgingWidgetAdapterActions {
   connect: () => Promise<void>
   switchChain: (chainId: number) => Promise<void>
+  /** Choose a source without changing the wallet network. */
+  selectSourceChain: (chainId: number) => void
   /** Select the destination chain on the Bridge tab */
   selectTargetChain: (chainId: number) => void
   /** Select the bridge protocol for the active route */
@@ -112,7 +125,7 @@ export interface BridgingWidgetAdapterActions {
   closeReview: () => void
   /** Close the Review drawer and start doBridge() for the current quote */
   confirmBridge: () => void
-  /** Re-run doBridge() for the same quote after a failed submission */
+  /** Fetch a fresh quote and retry after a failed submission */
   retrySubmission: () => void
   /** Close the Confirm modal; only meaningful once submissionStep is 'completed' or 'failed' */
   closeSubmission: () => void
@@ -134,6 +147,8 @@ export interface BridgingWidgetAdapterResult {
 // ---------------------------------------------------------------------------
 export interface BridgingWidgetProps {
   provider?: unknown
+  /** Per-chain RPC endpoints in priority order. Empty lists use the widget defaults. */
+  rpcUrls?: BridgingRpcUrls
   themeOverrides?: GoodWidgetThemeOverrides
   config?: GoodWidgetConfig
   defaultTheme?: 'light' | 'dark'

@@ -1,5 +1,4 @@
 import React from 'react'
-import { formatUnits } from 'viem'
 import {
   Badge,
   BadgeText,
@@ -14,17 +13,14 @@ import {
   getChainDisplayName,
 } from '@goodwidget/ui'
 import type { BridgeTransaction } from '@goodsdks/bridging-sdk'
-import { formatTokenAmount } from '../amount'
+import { formatHistoryAmount } from '../amount'
 import { BridgingTabContent, EmptyStateCard, PROTOCOL_LABELS, RouteSelectionCard } from './shared'
-
-const G_DOLLAR_DECIMALS = 18
 
 interface HistoryTabProps {
   transactions: BridgeTransaction[]
   isLoading: boolean
   error: string | null
-  /** True when the underlying fetch dropped one or more entries (e.g. a
-   *  delivery-status lookup failed) rather than returning the full set. */
+  /** True when a delivery-status lookup failed and the entry remains pending. */
   isPartial: boolean
   onRefresh: () => void
   onSelectTransaction: (transaction: BridgeTransaction) => void
@@ -54,7 +50,7 @@ function HistoryRow({ transaction, onPress }: { transaction: BridgeTransaction; 
         <Text secondary fontSize={12}>
           {PROTOCOL_LABELS[transaction.protocol]} · {new Date(transaction.timestamp * 1000).toLocaleString()}
         </Text>
-        <Text fontWeight="500">{formatTokenAmount(formatUnits(transaction.amount, G_DOLLAR_DECIMALS))} G$</Text>
+        <Text fontWeight="500">{formatHistoryAmount(transaction.amount)} G$</Text>
       </XStack>
     </RouteSelectionCard>
   )
@@ -82,7 +78,7 @@ export function HistoryTab({ transactions, isLoading, error, isPartial, onRefres
     )
   }
 
-  if (error) {
+  if (error && transactions.length === 0) {
     return (
       <BridgingTabContent>
         <EmptyStateCard>
@@ -121,9 +117,14 @@ export function HistoryTab({ transactions, isLoading, error, isPartial, onRefres
           <Icon name="refresh" size="sm" color="muted" />
         </Button>
       </XStack>
-      {isPartial && (
+      {error && (
         <Text color="$warning" fontSize={12}>
-          Some transactions couldn't be loaded. Tap refresh to try again.
+          History could not be refreshed. Showing the last loaded entries; tap refresh to try again.
+        </Text>
+      )}
+      {!error && isPartial && (
+        <Text color="$warning" fontSize={12}>
+          Some delivery statuses could not be checked. Pending entries remain visible; tap refresh to try again.
         </Text>
       )}
       <YStack gap="$2">
