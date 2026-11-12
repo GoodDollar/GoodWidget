@@ -112,6 +112,10 @@ export function usePasskeyLoginAdapter(props: PasskeyLoginWidgetProps): PasskeyL
 
   const reportFailure = useCallback((error: unknown, fallbackCode: PasskeyErrorCode) => {
     const flowError = toPasskeyFlowError(error, fallbackCode)
+    // Only the error kind and, for browser-generated DOMExceptions, their message: never anything that could hold key material
+    console.error(
+      `[passkey-login-widget] ${flowError.code}: ${error instanceof DOMException ? `${error.name}: ${error.message}` : (error as Error | undefined)?.name}`,
+    )
     dispatch({ type: 'FAILED', errorCode: flowError.code })
     latestPropsRef.current.onError?.({ code: flowError.code, message: flowError.message })
   }, [])
@@ -119,7 +123,7 @@ export function usePasskeyLoginAdapter(props: PasskeyLoginWidgetProps): PasskeyL
   const findProvider = useCallback((providerId: PasskeyProviderId | null): PasskeyBackupStorage => {
     const provider = latestPropsRef.current.storage.find((candidate) => candidate.id === providerId)
     if (!provider) {
-      throw new Error('No backup provider selected')
+      throw new PasskeyFlowError('PROVIDER_AUTH_FAILED', PASSKEY_ERROR_MESSAGES.PROVIDER_AUTH_FAILED)
     }
     return provider
   }, [])
@@ -146,8 +150,9 @@ export function usePasskeyLoginAdapter(props: PasskeyLoginWidgetProps): PasskeyL
       try {
         const provider = findProvider(providerId)
         const { prfOutput } = secretsRef.current
+        // Restoring without a verified passkey means the passkey step has to be done again
         if (!prfOutput) {
-          throw new Error('Passkey was not verified')
+          throw new PasskeyFlowError('PASSKEY_CANCELLED', PASSKEY_ERROR_MESSAGES.PASSKEY_CANCELLED)
         }
         secretsRef.current.restoredAccount = await restoreAccountFromProvider({
           provider,
@@ -167,8 +172,12 @@ export function usePasskeyLoginAdapter(props: PasskeyLoginWidgetProps): PasskeyL
   /** A4: create a fresh passkey, make (or take) the account key and encrypt it for the backup. */
   const createPasskeyAndEncryptKey = useCallback(
     async (isNewAccount: boolean) => {
+      // No backup has been attempted on A4, so a failure here must never surface as BACKUP_FAILED (D5):
+      // until the passkey exists an unknown failure is a failed passkey request, afterwards a failed key preparation
+      let unknownFailureCode: PasskeyErrorCode = 'PASSKEY_CANCELLED'
       try {
         const { prfOutput } = await createPasskey({ rpId, appName })
+        unknownFailureCode = 'UNSUPPORTED_BROWSER'
         secretsRef.current.prfOutput = prfOutput
         dispatch({ type: 'PROGRESS_ADVANCED' })
 
@@ -193,7 +202,7 @@ export function usePasskeyLoginAdapter(props: PasskeyLoginWidgetProps): PasskeyL
         )
         dispatch({ type: 'PASSKEY_CREATED', providerId: knownProviderId })
       } catch (error) {
-        reportFailure(error, 'BACKUP_FAILED')
+        reportFailure(error, unknownFailureCode)
       }
     },
     [appName, reportFailure, rpId],
@@ -205,8 +214,9 @@ export function usePasskeyLoginAdapter(props: PasskeyLoginWidgetProps): PasskeyL
       try {
         const provider = findProvider(providerId)
         const { preparedBackup } = secretsRef.current
+        // Nothing to upload means the passkey step never completed: it must be redone, not reported as a failed backup
         if (!preparedBackup) {
-          throw new Error('No backup prepared')
+          throw new PasskeyFlowError('PASSKEY_CANCELLED', PASSKEY_ERROR_MESSAGES.PASSKEY_CANCELLED)
         }
         await uploadPreparedBackup(provider, preparedBackup)
         rememberProviderId(provider.id)

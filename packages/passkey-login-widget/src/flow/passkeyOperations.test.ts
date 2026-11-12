@@ -57,6 +57,38 @@ describe('backing up', () => {
   })
 })
 
+describe('provider sign-in failures that are not ProviderAuthError', () => {
+  /** A custom adapter or SDK loader that throws a plain Error from authorize (blocked script, rejected client ID). */
+  function createStorageWithBrokenAuthorize() {
+    const storage = createInMemoryStorage()
+    storage.authorize = async () => {
+      throw new Error('Could not load https://accounts.google.com/gsi/client')
+    }
+    return storage
+  }
+
+  it('become ProviderAuthError when uploading, so a backup never fails as BACKUP_FAILED because of sign-in', async () => {
+    const prepared = await prepareAccountBackup({ privateKey: PRIVATE_KEY, prfOutput: createFakePrfOutput(1), rpId: RP_ID })
+    await assert.rejects(uploadPreparedBackup(createStorageWithBrokenAuthorize(), prepared), ProviderAuthError)
+  })
+
+  it('become ProviderAuthError when restoring', async () => {
+    await assert.rejects(
+      restoreAccountFromProvider({ provider: createStorageWithBrokenAuthorize(), prfOutput: createFakePrfOutput(1), rpId: RP_ID }),
+      ProviderAuthError,
+    )
+  })
+
+  it('do not hide a write failure after a successful sign-in', async () => {
+    const storage = createInMemoryStorage()
+    storage.writeBackup = async () => {
+      throw new Error('quota exceeded')
+    }
+    const prepared = await prepareAccountBackup({ privateKey: PRIVATE_KEY, prfOutput: createFakePrfOutput(1), rpId: RP_ID })
+    await assert.rejects(uploadPreparedBackup(storage, prepared), (error: Error) => !(error instanceof ProviderAuthError))
+  })
+})
+
 describe('restoring', () => {
   it('restores the account with the same passkey and reports progress once the file is found', async () => {
     const storage = createInMemoryStorage()

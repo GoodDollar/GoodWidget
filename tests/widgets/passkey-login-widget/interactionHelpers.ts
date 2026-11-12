@@ -113,3 +113,55 @@ export async function replaceStoredBackups(
     [providerId, backups],
   )
 }
+
+const LIVE_STORY_URL =
+  '/iframe.html?id=qa-passkeyloginwidget-live-real-passkey-real-providers--live&viewMode=story&args=googleClientId:fake-client-id'
+
+/**
+ * Opens the Live story (the real Google Drive adapter) configured with a fake Google client ID.
+ * Pair with `installFakeGoogleDrive`, which stands in for Google's script and the Drive API.
+ * @param origin scheme + host of the Storybook server; defaults to the configured base URL (localhost)
+ */
+export async function openLiveStoryWithGoogleDrive(page: Page, origin = ''): Promise<void> {
+  await page.setViewportSize({ width: 440, height: 900 })
+  await page.goto(`${origin}${LIVE_STORY_URL}`)
+  await expect(page.getByTestId('passkey-live-config')).toContainText('Google Drive: configured')
+  await expect(page.getByTestId('passkey-login-widget')).toBeVisible({ timeout: 20_000 })
+}
+
+/**
+ * Starts recording every `data-screen` value the widget shows, including the short-lived A4 / B3 progress screens
+ * that a polling `expectScreen` could miss. Call once the widget is mounted.
+ */
+export async function startRecordingScreens(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const recordedScreens: string[] = []
+    ;(window as unknown as { __recordedScreens: string[] }).__recordedScreens = recordedScreens
+    const recordCurrentScreen = () => {
+      const screen = document.querySelector('[data-testid="passkey-login-widget"]')?.getAttribute('data-screen')
+      if (screen && recordedScreens.at(-1) !== screen) {
+        recordedScreens.push(screen)
+      }
+    }
+    new MutationObserver(recordCurrentScreen).observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ['data-screen'],
+    })
+    recordCurrentScreen()
+  })
+}
+
+/** Screens shown since `startRecordingScreens`, consecutive duplicates collapsed. */
+export async function readRecordedScreens(page: Page): Promise<string[]> {
+  return page.evaluate(() => (window as unknown as { __recordedScreens?: string[] }).__recordedScreens ?? [])
+}
+
+/** `onError` codes reported to the host so far. */
+export async function readErrorCodes(page: Page): Promise<(string | undefined)[]> {
+  return page
+    .getByTestId('passkey-event-log')
+    .innerText()
+    .then((logText) => [...logText.matchAll(/error → (\w+)/g)].map((match) => match[1]))
+}

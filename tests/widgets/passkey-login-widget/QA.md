@@ -11,10 +11,13 @@ Run against a prestarted Storybook (`pnpm --filter storybook dev`, port 6006) wi
 | `states.spec.ts` | Every screen A1-D6 (incl. D3 single provider, D5 new/existing user, D6 ambiguous) in light and dark; screenshots in `test-results/{light,dark}/`. |
 | `new-account.spec.ts`, `restore-existing-passkey.spec.ts`, `existing-user-backup.spec.ts`, `provider-choice.spec.ts` | Create, back up, restart and restore round trips; provider choice and remembered provider; exact key restore for an account whose key was not derived from the passkey. |
 | `errors-and-recovery.spec.ts` | D1-D6, each with its recovery buttons and the `onError` code. |
+| `new-account-after-cancelled-passkey.spec.ts` | Regression for the Live-story bug: A1 -> cancelled get -> D2 -> "Create new account" -> A3 -> A4 -> (B2) -> B3 -> B4 with a recorded screen sequence, exactly one passkey, `onLogin` with `isNewAccount: true`; D5 only after the passkey exists and Retry resumes at B3 without a second passkey; an invalid rpId (IP address host) ends on D1, never D5; the real Google Drive adapter on the Live story (fake Google SDK + Drive API from `fakeGoogleDrive.ts`) for success and for denied / blocked / throwing sign-in, which must end on D4 and resume at the upload on "Try again". |
 | `key-safety.spec.ts` | The account key and PRF output never reach the DOM, web storage, console or the uploaded file; the file holds only ciphertext. |
 | `version.spec.ts` | Version label in light/dark, desktop/mobile. |
 
-**Limits.** These specs use a Chromium virtual authenticator (real WebAuthn + PRF + WebCrypto) and an in-memory storage double. They do not prove that Google Drive, CloudKit, a platform authenticator or a real password manager work. Those checks are manual and listed below.
+**Why the first specs missed the bug.** They only ran on `localhost` (a valid rpId), on a mock storage whose `authorize()` could only throw `ProviderAuthError`, so the real Drive adapter, Google's script and any other origin were never exercised, and the Live story was not covered at all. `fakeGoogleDrive.ts` and the IP-host test close that gap.
+
+**Limits.** These specs use a Chromium virtual authenticator (real WebAuthn + PRF + WebCrypto) and an in-memory storage double (plus a fake Google SDK / Drive API for the Live story). They do not prove that Google Drive, CloudKit, a platform authenticator or a real password manager work. Those checks are manual and listed below.
 
 ## Manual live check (needs GoodDollar-owned values)
 

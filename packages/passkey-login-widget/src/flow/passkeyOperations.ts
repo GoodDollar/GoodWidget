@@ -3,6 +3,7 @@ import { BackupDecryptError } from '../crypto/backupErrors.ts'
 import { createBackupJson, restorePrivateKeyFromBackupJson } from '../crypto/backupFormat.ts'
 import type { Bytes } from '../crypto/encoding.ts'
 import { addressOfPrivateKey, deriveBackupEncryptionKey, deriveBackupFileTag } from '../crypto/prfDerivation.ts'
+import { ProviderAuthError } from '../storage/storageAdapter.ts'
 import { PASSKEY_ERROR_MESSAGES, PasskeyFlowError } from '../webauthn/passkeyErrors.ts'
 import type { HexString, PasskeyBackupStorage } from '../widgetRuntimeContract.ts'
 
@@ -40,9 +41,24 @@ export async function prepareAccountBackup(options: {
   }
 }
 
+/**
+ * Signs in to the provider. Whatever `authorize` throws (blocked SDK script, blocked popup, rejected client ID,
+ * a custom adapter's own error) means "could not sign in", so it becomes a `ProviderAuthError` and ends on D4.
+ */
+async function authorizeProvider(provider: PasskeyBackupStorage): Promise<void> {
+  try {
+    await provider.authorize()
+  } catch (error) {
+    if (error instanceof ProviderAuthError) {
+      throw error
+    }
+    throw new ProviderAuthError(error instanceof Error ? error.message : 'Provider sign-in failed')
+  }
+}
+
 /** Signs in to the provider and writes the prepared backup (replacing a file with the same name). */
 export async function uploadPreparedBackup(provider: PasskeyBackupStorage, backup: PreparedBackup): Promise<void> {
-  await provider.authorize()
+  await authorizeProvider(provider)
   await provider.writeBackup(backup.fileName, backup.backupJson)
 }
 
@@ -59,7 +75,7 @@ export async function restoreAccountFromProvider(options: {
   onBackupFound?: () => void
 }): Promise<RestoredAccount> {
   const { provider, prfOutput, rpId, onBackupFound } = options
-  await provider.authorize()
+  await authorizeProvider(provider)
 
   const prfTag = await deriveBackupFileTag(prfOutput, rpId)
   const matchingFileNames = filterBackupNamesByTag(await provider.listBackupNames(prfTag), prfTag)

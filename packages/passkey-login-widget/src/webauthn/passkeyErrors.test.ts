@@ -26,6 +26,11 @@ describe('toPasskeyFlowError', () => {
     assert.equal(toPasskeyFlowError(new DOMException('x', 'NotSupportedError'), 'BACKUP_FAILED').code, 'UNSUPPORTED_BROWSER')
   })
 
+  it('maps an invalid rpId (SecurityError) and unsatisfiable user verification to D1, never to the step fallback', () => {
+    assert.equal(toPasskeyFlowError(new DOMException('invalid domain', 'SecurityError'), 'BACKUP_FAILED').code, 'UNSUPPORTED_BROWSER')
+    assert.equal(toPasskeyFlowError(new DOMException('x', 'ConstraintError'), 'PASSKEY_CANCELLED').code, 'UNSUPPORTED_BROWSER')
+  })
+
   it('uses the fallback code for unknown errors and never leaks their message', () => {
     const flowError = toPasskeyFlowError(new Error(`secret ${'0x11'.repeat(16)}`), 'BACKUP_FAILED')
     assert.equal(flowError.code, 'BACKUP_FAILED')

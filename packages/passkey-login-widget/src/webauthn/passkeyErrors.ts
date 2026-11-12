@@ -27,6 +27,7 @@ export const PASSKEY_ERROR_MESSAGES: Record<PasskeyErrorCode, string> = {
 /**
  * Maps anything thrown while running the flow to a `PasskeyFlowError`.
  * WebAuthn cannot tell "no passkey" from "cancelled", so both are `PASSKEY_CANCELLED`.
+ * The fallback must name the step that failed: a failure before any backup was attempted is never `BACKUP_FAILED`.
  * @param error        the thrown value
  * @param fallbackCode code to use when the error is not one of the known kinds
  */
@@ -41,7 +42,9 @@ export function toPasskeyFlowError(error: unknown, fallbackCode: PasskeyErrorCod
     return new PasskeyFlowError('DECRYPT_FAILED', PASSKEY_ERROR_MESSAGES.DECRYPT_FAILED)
   }
   if (error instanceof DOMException) {
-    if (error.name === 'NotSupportedError') {
+    // SecurityError: the rpId is not valid for this origin (e.g. an IP address host); ConstraintError: no
+    // authenticator offers the required user verification. Neither is a cancellation and a retry cannot fix them.
+    if (error.name === 'NotSupportedError' || error.name === 'SecurityError' || error.name === 'ConstraintError') {
       return new PasskeyFlowError('UNSUPPORTED_BROWSER', PASSKEY_ERROR_MESSAGES.UNSUPPORTED_BROWSER)
     }
     if (error.name === 'NotAllowedError' || error.name === 'AbortError') {
