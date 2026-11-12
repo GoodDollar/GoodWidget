@@ -5,6 +5,7 @@ import type { EIP1193Provider } from '@goodwidget/core'
 import { createBridgingPublicClient, VIEM_CHAINS } from './chains'
 import type { BridgingRpcUrls } from '../widgetRuntimeContract'
 import { requireSuccessfulReceipt } from './receipts'
+import { getBridgingRpcUrlsKey } from './rpcUrls'
 
 // The SDK currently returns reverted receipts as successes. Check both calls
 // before its doBridge flow can advance to the next step or report completion.
@@ -41,7 +42,11 @@ interface UseBridgingSdkArgs {
 // a clients map directly rather than reading the SDK's private copy of it)
 // share the exact same memoized map instead of building a second one.
 export function useBridgingPublicClients(rpcUrls?: BridgingRpcUrls): Record<number, PublicClient> {
-  return useMemo(() => buildPublicClients(rpcUrls), [rpcUrls])
+  const rpcUrlsKey = getBridgingRpcUrlsKey(rpcUrls)
+  return useMemo(
+    () => buildPublicClients(JSON.parse(rpcUrlsKey) as BridgingRpcUrls),
+    [rpcUrlsKey],
+  )
 }
 
 // Builds the BridgingSDK instance used by the Bridge tab. Returns null until
