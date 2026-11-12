@@ -5,11 +5,17 @@ import type { PasskeyErrorCode } from '../widgetRuntimeContract.ts'
 /** An error that already knows which D screen / `onError` code it belongs to. */
 export class PasskeyFlowError extends Error {
   code: PasskeyErrorCode
+  /**
+   * Developer-facing reason (e.g. "NotAllowedError: <browser message>"). Only ever the name and message of a
+   * browser-generated DOMException or a fixed string of ours, so it cannot hold key material.
+   */
+  diagnostic?: string
 
-  constructor(code: PasskeyErrorCode, message: string) {
+  constructor(code: PasskeyErrorCode, message: string, diagnostic?: string) {
     super(message)
     this.name = 'PasskeyFlowError'
     this.code = code
+    this.diagnostic = diagnostic
   }
 }
 
@@ -42,14 +48,19 @@ export function toPasskeyFlowError(error: unknown, fallbackCode: PasskeyErrorCod
     return new PasskeyFlowError('DECRYPT_FAILED', PASSKEY_ERROR_MESSAGES.DECRYPT_FAILED)
   }
   if (error instanceof DOMException) {
+    // WebAuthn rejects with the same few names for very different causes, so the browser's own wording is kept for developers
+    const diagnostic = `${error.name}: ${error.message}`
     // SecurityError: the rpId is not valid for this origin (e.g. an IP address host); ConstraintError: no
     // authenticator offers the required user verification. Neither is a cancellation and a retry cannot fix them.
     if (error.name === 'NotSupportedError' || error.name === 'SecurityError' || error.name === 'ConstraintError') {
-      return new PasskeyFlowError('UNSUPPORTED_BROWSER', PASSKEY_ERROR_MESSAGES.UNSUPPORTED_BROWSER)
+      return new PasskeyFlowError('UNSUPPORTED_BROWSER', PASSKEY_ERROR_MESSAGES.UNSUPPORTED_BROWSER, diagnostic)
     }
+    // NotAllowedError is also what browsers throw, without any dialog, when the page may not use WebAuthn at all
+    // (e.g. a cross-origin iframe without a Permissions Policy), so a "cancelled" screen can hide a blocked request
     if (error.name === 'NotAllowedError' || error.name === 'AbortError') {
-      return new PasskeyFlowError('PASSKEY_CANCELLED', PASSKEY_ERROR_MESSAGES.PASSKEY_CANCELLED)
+      return new PasskeyFlowError('PASSKEY_CANCELLED', PASSKEY_ERROR_MESSAGES.PASSKEY_CANCELLED, diagnostic)
     }
+    return new PasskeyFlowError(fallbackCode, PASSKEY_ERROR_MESSAGES[fallbackCode], diagnostic)
   }
-  return new PasskeyFlowError(fallbackCode, PASSKEY_ERROR_MESSAGES[fallbackCode])
+  return new PasskeyFlowError(fallbackCode, PASSKEY_ERROR_MESSAGES[fallbackCode], error instanceof Error ? error.name : undefined)
 }

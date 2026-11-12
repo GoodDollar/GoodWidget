@@ -10,7 +10,12 @@ import {
   type RestoredAccount,
 } from './flow/passkeyOperations.ts'
 import { readRememberedProviderId, rememberProviderId } from './storage/rememberedProvider.ts'
-import { authenticateWithPasskey, createPasskey, isPasskeyPrfSupported } from './webauthn/passkeyClient.ts'
+import {
+  authenticateWithPasskey,
+  createPasskey,
+  findBlockedWebAuthnFeatures,
+  isPasskeyPrfSupported,
+} from './webauthn/passkeyClient.ts'
 import { PASSKEY_ERROR_MESSAGES, PasskeyFlowError, toPasskeyFlowError } from './webauthn/passkeyErrors.ts'
 import type {
   HexString,
@@ -112,12 +117,11 @@ export function usePasskeyLoginAdapter(props: PasskeyLoginWidgetProps): PasskeyL
 
   const reportFailure = useCallback((error: unknown, fallbackCode: PasskeyErrorCode) => {
     const flowError = toPasskeyFlowError(error, fallbackCode)
-    // Only the error kind and, for browser-generated DOMExceptions, their message: never anything that could hold key material
-    console.error(
-      `[passkey-login-widget] ${flowError.code}: ${error instanceof DOMException ? `${error.name}: ${error.message}` : (error as Error | undefined)?.name}`,
-    )
+    // The diagnostic is only a browser-generated error name / message or a fixed string of ours, never key material
+    const reason = flowError.diagnostic ? `${flowError.message} [${flowError.diagnostic}]` : flowError.message
+    console.error(`[passkey-login-widget] ${flowError.code}: ${reason}`)
     dispatch({ type: 'FAILED', errorCode: flowError.code })
-    latestPropsRef.current.onError?.({ code: flowError.code, message: flowError.message })
+    latestPropsRef.current.onError?.({ code: flowError.code, message: reason })
   }, [])
 
   const findProvider = useCallback((providerId: PasskeyProviderId | null): PasskeyBackupStorage => {
@@ -258,12 +262,24 @@ export function usePasskeyLoginAdapter(props: PasskeyLoginWidgetProps): PasskeyL
     }
   }, [createPasskeyAndEncryptKey, flowState, restoreFromProvider, uploadBackup, verifyExistingPasskey])
 
-  // Browsers without WebAuthn / PRF go straight to D1
+  // Browsers without WebAuthn / PRF, and frames the embedding page did not delegate WebAuthn to, go straight to D1
   useEffect(() => {
     if (supportCheckStartedRef.current) {
       return
     }
     supportCheckStartedRef.current = true
+    const blockedFeatures = findBlockedWebAuthnFeatures()
+    if (blockedFeatures.length > 0) {
+      reportFailure(
+        new PasskeyFlowError(
+          'UNSUPPORTED_BROWSER',
+          PASSKEY_ERROR_MESSAGES.UNSUPPORTED_BROWSER,
+          `Blocked by Permissions Policy (${blockedFeatures.join(', ')}): the embedding page must delegate WebAuthn to this frame, e.g. <iframe allow="publickey-credentials-get *; publickey-credentials-create *">`,
+        ),
+        'UNSUPPORTED_BROWSER',
+      )
+      return
+    }
     void isPasskeyPrfSupported().then((isSupported) => {
       if (!isSupported) {
         reportFailure(

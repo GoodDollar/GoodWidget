@@ -38,6 +38,33 @@ export async function isPasskeyPrfSupported(): Promise<boolean> {
   return capabilities['extension:prf'] !== false
 }
 
+/** Minimal shape of the document's Permissions Policy API; Chromium only ships it under its old name `featurePolicy`. */
+interface PermissionsPolicyApi {
+  allowsFeature(feature: string): boolean
+  features(): string[]
+}
+
+const WEBAUTHN_PERMISSIONS_POLICY_FEATURES = ['publickey-credentials-get', 'publickey-credentials-create']
+
+/**
+ * Finds the WebAuthn Permissions Policy features this document is not allowed to use.
+ * A cross-origin iframe has none unless its embedder delegates them, and the browser then rejects every
+ * `create()` / `get()` with a NotAllowedError and no dialog, which looks exactly like a cancelled request.
+ * Browsers without that API (e.g. Safari) or that do not know a feature report nothing blocked; the rejected
+ * request's own message is then the only hint (see `PasskeyFlowError.diagnostic`).
+ */
+export function findBlockedWebAuthnFeatures(): string[] {
+  const policyDocument = document as unknown as { permissionsPolicy?: PermissionsPolicyApi; featurePolicy?: PermissionsPolicyApi }
+  const permissionsPolicy = policyDocument.permissionsPolicy ?? policyDocument.featurePolicy
+  if (!permissionsPolicy) {
+    return []
+  }
+  const knownFeatures = permissionsPolicy.features()
+  return WEBAUTHN_PERMISSIONS_POLICY_FEATURES.filter(
+    (feature) => knownFeatures.includes(feature) && !permissionsPolicy.allowsFeature(feature),
+  )
+}
+
 /** Reads `prf.results.first` from a credential's extension results; null when the authenticator gave none. */
 function readPrfOutput(credential: PublicKeyCredential): Bytes | null {
   const prfResults = (credential.getClientExtensionResults() as { prf?: { results?: { first?: BufferSource } } }).prf

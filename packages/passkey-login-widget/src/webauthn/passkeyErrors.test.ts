@@ -31,6 +31,17 @@ describe('toPasskeyFlowError', () => {
     assert.equal(toPasskeyFlowError(new DOMException('x', 'ConstraintError'), 'PASSKEY_CANCELLED').code, 'UNSUPPORTED_BROWSER')
   })
 
+  it('keeps the browser\'s DOMException name and message as a developer diagnostic, apart from the user-facing message', () => {
+    const flowError = toPasskeyFlowError(new DOMException('The operation is not allowed', 'NotAllowedError'), 'BACKUP_FAILED')
+    assert.equal(flowError.diagnostic, 'NotAllowedError: The operation is not allowed')
+    assert.equal(flowError.message, PASSKEY_ERROR_MESSAGES.PASSKEY_CANCELLED)
+  })
+
+  it('keeps only the error name, never the message, as the diagnostic of non-DOM errors', () => {
+    const flowError = toPasskeyFlowError(new TypeError('secret 0xabc'), 'BACKUP_FAILED')
+    assert.equal(flowError.diagnostic, 'TypeError')
+  })
+
   it('uses the fallback code for unknown errors and never leaks their message', () => {
     const flowError = toPasskeyFlowError(new Error(`secret ${'0x11'.repeat(16)}`), 'BACKUP_FAILED')
     assert.equal(flowError.code, 'BACKUP_FAILED')

@@ -12,6 +12,7 @@ Run against a prestarted Storybook (`pnpm --filter storybook dev`, port 6006) wi
 | `new-account.spec.ts`, `restore-existing-passkey.spec.ts`, `existing-user-backup.spec.ts`, `provider-choice.spec.ts` | Create, back up, restart and restore round trips; provider choice and remembered provider; exact key restore for an account whose key was not derived from the passkey. |
 | `errors-and-recovery.spec.ts` | D1-D6, each with its recovery buttons and the `onError` code. |
 | `new-account-after-cancelled-passkey.spec.ts` | Regression for the Live-story bug: A1 -> cancelled get -> D2 -> "Create new account" -> A3 -> A4 -> (B2) -> B3 -> B4 with a recorded screen sequence, exactly one passkey, `onLogin` with `isNewAccount: true`; D5 only after the passkey exists and Retry resumes at B3 without a second passkey; an invalid rpId (IP address host) ends on D1, never D5; the real Google Drive adapter on the Live story (fake Google SDK + Drive API from `fakeGoogleDrive.ts`) for success and for denied / blocked / throwing sign-in, which must end on D4 and resume at the upload on "Try again". |
+| `webauthn-diagnostics.spec.ts` | Second Live-story report ("Create new account" ends on D2 with no dialog): a widget in a cross-origin iframe without WebAuthn delegation ends on D1 up front with the Permissions Policy reason in the event log, and the same iframe with `allow="publickey-credentials-get *; publickey-credentials-create *"` runs the whole new-account journey; a dismissed or rejected `get()` / `create()` shows the browser's `NotAllowedError: <message>` in the Live story event log, `onError` and the console; `get()` and `create()` start inside the click's transient user activation. |
 | `key-safety.spec.ts` | The account key and PRF output never reach the DOM, web storage, console or the uploaded file; the file holds only ciphertext. |
 | `version.spec.ts` | Version label in light/dark, desktop/mobile. |
 
@@ -43,7 +44,15 @@ In the CloudKit Dashboard, container schema:
 - An API token for the web origins, "Sign In Callback: none" (CloudKit JS renders its own Apple sign-in button, shown in a small overlay).
 - Deploy the development schema to production before a production release.
 
+## Embedding the widget
+
+A browser rejects `navigator.credentials.create()` / `get()` with `NotAllowedError` (the same error as a dismissed dialog) when the widget runs in a cross-origin iframe that the embedding page did not delegate WebAuthn to. The embedder must set `<iframe allow="publickey-credentials-get *; publickey-credentials-create *">`. Chromium reports this up front (D1 with the reason in `onError.message` and the console); Safari and Firefox only report it as the rejected request, so read the `[NotAllowedError: ...]` suffix of the logged reason.
+
+When QA reports "passkey cancelled but no dialog appeared", ask for the browser, OS, page URL, whether Storybook was opened inside another page, and the Live story event log line (it now ends with the browser's reason).
+
 ## Known gaps
+
+- Safari: when an authenticator reports PRF only as `enabled` at registration, the widget runs a follow-up `get()` right after `create()` without a fresh click. Safari may require user activation there; unverified (no Safari in CI).
 
 - Google Drive and iCloud adapters have unit tests with mocked transports only; the CloudKit sign-in overlay is unverified in a real browser.
 - Wrong-passkey (D6) cannot be simulated with one virtual authenticator, so D6 is covered by tampered ciphertext, mismatched address, unknown version and ambiguous-backup files.

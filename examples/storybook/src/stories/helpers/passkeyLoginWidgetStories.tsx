@@ -113,7 +113,8 @@ function describeEvent(name: string, detail?: Record<string, unknown>): string {
     return `backup-complete → address ${String(detail?.address)}, provider ${String(detail?.provider)}`
   }
   if (name === 'error') {
-    return `error → ${String(detail?.code)}`
+    // The message carries the browser's own reason (e.g. a Permissions Policy block) so a QA screenshot is diagnosable
+    return `error → ${String(detail?.code)}${detail?.message ? ` — ${String(detail.message)}` : ''}`
   }
   return name
 }
