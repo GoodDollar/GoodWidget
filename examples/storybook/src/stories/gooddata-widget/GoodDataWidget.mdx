@@ -1,0 +1,48 @@
+import { Canvas, Meta } from '@storybook/blocks';
+import * as ShowcaseStories from './GoodDataWidgetShowcase.stories';
+import * as ThemeOverridesStories from './GoodDataWidgetThemeOverrides.stories';
+import { DocsCallout, DocsCard, DocsPage, DocsSection } from '../docs/DocsLayout';
+
+<Meta of={ShowcaseStories} />
+
+<DocsPage
+  eyebrow="Widget Guide"
+  title="GoodDataWidget"
+  lead="Hosts a registry of analytics dashboards and renders the single registered dashboard directly — today that is the AiCreditsDashboard, showing G$ deposit/stream volume and AI-credit usage sourced from the AntSeed Worker."
+>
+  <DocsSection
+    title="Live showcase"
+    description="Renders AiCreditsDashboard with no mockState, so it fetches real analytics from the live aiCredits connector (the AntSeed Worker) instead of a fixture. Use this story to validate the real integration end to end."
+  >
+    <Canvas of={ShowcaseStories.LiveConnector} />
+  </DocsSection>
+
+  <DocsSection
+    title="Theme overrides"
+    description="Play around with the primitive Button theme override using the controls below, demonstrated side by side in dark and light against a fixed demo dataset. GoodDataWidget has no themeOverrides prop of its own and no named theme-component module, so dark_Button/light_Button is its only override path; it also renders no Card anywhere in its source, so there is no Card control here."
+  >
+    <Canvas of={ThemeOverridesStories.Playground} />
+  </DocsSection>
+
+  <DocsSection
+    title="QA coverage"
+    description="Deterministic fixtures covering every data state the dashboard can be in: loading, a populated live response, the demo dataset, the live-connector-unavailable fallback, and an empty response."
+  >
+    <DocsCard
+      title="Open the QA fixture demo"
+      href="?path=/story/qa-gooddatawidget-runtime-fixtures--loading"
+    >
+      `Loading` / `Live` / `Demo` / `LiveUnavailable` / `Empty` cover the dashboard's full data-state
+      matrix against a fixed, non-random fixture so every render is reproducible across runs.
+    </DocsCard>
+  </DocsSection>
+
+  <DocsSection title="Workflow guidance" description="Choose the story type based on the job you are trying to do.">
+    <DocsCallout title="Rule of use" tone="info">
+      Use the showcase story to validate the real `aiCredits` connector end to end. Use the theme
+      overrides playground to check how host theming cascades into the dashboard's Button surface.
+      Use the QA fixtures to verify each individual data state renders correctly against a fixed
+      dataset.
+    </DocsCallout>
+  </DocsSection>
+</DocsPage>

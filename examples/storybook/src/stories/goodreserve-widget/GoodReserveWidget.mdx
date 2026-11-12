@@ -1,0 +1,97 @@
+import { Canvas, Meta, Source } from '@storybook/blocks';
+import * as ShowcaseStories from './GoodReserveWidgetShowcase.stories';
+import * as ThemeOverridesStories from './GoodReserveWidgetThemeOverrides.stories';
+import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/DocsLayout';
+
+<Meta of={ShowcaseStories} />
+
+<DocsPage
+  eyebrow="Widget Guide"
+  title="GoodReserveWidget"
+  lead="This widget combines a product-facing live-wallet showcase with deterministic swap-state fixtures for QA, screenshots, and state-flow validation."
+>
+  <DocsSection
+    title="Manual wallet showcase"
+    description="Use these stories when reviewing the live buy/sell swap flow against a real reserve quote. `Interactive` uses a known custodial test wallet so the amount-input and quote wiring run against the real adapter; `InjectedWallet` and `LiveWallet` connect to whatever EIP-1193 wallet extension is available in the browser."
+  >
+    <Canvas of={ShowcaseStories.Interactive} />
+  </DocsSection>
+
+  <DocsSection
+    title="Theme overrides"
+    description="Play around with the primitive Card/Button theme overrides using the controls below. Both are demonstrated on the idle-buy fixture state, which renders the outer swap card, the amount panels, and the primary CTA button together in a single view."
+  >
+    <Canvas of={ThemeOverridesStories.Playground} />
+  </DocsSection>
+
+  <DocsSection
+    title="How to mount it"
+    description="Keep the host contract narrow. The widget expects a provider and optional theming inputs."
+  >
+    <Source
+      dark
+      language="tsx"
+      code={`import { GoodReserveWidget } from '@goodwidget/goodreserve-widget'
+import { MiniAppShell } from '@goodwidget/ui'
+
+export function ReservePanel({ provider }: { provider?: unknown }) {
+  return (
+    <MiniAppShell title="GoodDollar">
+      <GoodReserveWidget
+        provider={provider}
+        defaultTheme="dark"
+        onSwapSuccess={(detail) => console.log('swap succeeded', detail)}
+        onSwapError={(detail) => console.log('swap failed', detail)}
+      />
+    </MiniAppShell>
+  )
+}`}
+    />
+  </DocsSection>
+
+  <DocsSection
+    title="QA coverage"
+    description="Deterministic swap states live in a dedicated QA story file so visual regression, fixture review, and debugging stay reproducible."
+  >
+    <DocsCard
+      title="Open the QA fixture demo"
+      href="?path=/story/qa-goodreservewidget-runtime-fixtures--no-provider"
+    >
+      No provider, SDK initializing, unsupported chain, idle/amount-editing, quote loading/ready/error,
+      slippage, confirm, approval, swap pending/success/error, and light theme fixture states live in
+      `QA / GoodReserveWidget / Runtime Fixtures`.
+    </DocsCard>
+  </DocsSection>
+
+  <DocsSection
+    title="Why this widget is split"
+    description="The runtime-connected swap path is useful for manual validation, while the quote/swap-state fixtures are better suited to automation and repeatable review."
+  >
+    <DocsGrid>
+      <DocsCard title="Showcase stories">
+        Manual review in a browser with a live reserve quote and either a custodial test wallet or an
+        injected wallet extension.
+      </DocsCard>
+      <DocsCard title="QA stories">
+        Controlled swap states for screenshots, automation, and debugging without live runtime
+        dependencies.
+      </DocsCard>
+    </DocsGrid>
+  </DocsSection>
+
+  <DocsSection
+    title="Workflow guidance"
+    description="Choose the story type based on whether you are reviewing integration behavior or validating deterministic widget states."
+  >
+    <DocsCallout title="Rule of use" tone="info">
+      Use the showcase story for product-facing swap checks. Use the QA fixtures when you need
+      repeatable screenshots, runtime-state coverage, or debugging.
+    </DocsCallout>
+    <DocsCallout title="No environment control" tone="info">
+      GoodReserveWidget has no `environment` prop anywhere in its current source, so this Showcase
+      page does not offer an environment switcher. Adding one would require a
+      `packages/goodreserve-widget` code change, which is out of scope here — tracked separately in
+      "[BountyPrep] Storybook: missing primitives and design system gaps".
+    </DocsCallout>
+  </DocsSection>
+</DocsPage>

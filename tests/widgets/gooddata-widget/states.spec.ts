@@ -1,12 +1,12 @@
 import { expect, test, type Page } from '@playwright/test'
 
 const STORY_IDS = {
-  loading: '/iframe.html?id=qa-aicreditsdashboard-runtime-fixtures--loading&viewMode=story',
-  live: '/iframe.html?id=qa-aicreditsdashboard-runtime-fixtures--live&viewMode=story',
-  demo: '/iframe.html?id=qa-aicreditsdashboard-runtime-fixtures--demo&viewMode=story',
+  loading: '/iframe.html?id=qa-gooddatawidget-runtime-fixtures--loading&viewMode=story',
+  live: '/iframe.html?id=qa-gooddatawidget-runtime-fixtures--live&viewMode=story',
+  demo: '/iframe.html?id=qa-gooddatawidget-runtime-fixtures--demo&viewMode=story',
   liveUnavailable:
-    '/iframe.html?id=qa-aicreditsdashboard-runtime-fixtures--live-unavailable&viewMode=story',
-  empty: '/iframe.html?id=qa-aicreditsdashboard-runtime-fixtures--empty&viewMode=story',
+    '/iframe.html?id=qa-gooddatawidget-runtime-fixtures--live-unavailable&viewMode=story',
+  empty: '/iframe.html?id=qa-gooddatawidget-runtime-fixtures--empty&viewMode=story',
 } as const
 
 async function gotoStory(page: Page, storyUrl: string): Promise<void> {
