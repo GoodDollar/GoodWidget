@@ -173,6 +173,7 @@ interface ReserveSwapViewProps {
   adapter: ReserveSwapWidgetAdapterResult
   /** Chain proposed by the unsupported-chain CTA. Defaults to Celo. */
   preferredChainId?: number
+  hideHeader?: boolean
 }
 
 // A single right-aligned key/value row inside the transaction details block.
@@ -230,7 +231,7 @@ function CollapsibleSection({
 }
 
 // ReserveSwapView is a thin dispatcher routing to per-state subcomponents.
-export function ReserveSwapView({ adapter, preferredChainId }: ReserveSwapViewProps) {
+export function ReserveSwapView({ adapter, preferredChainId, hideHeader = false }: ReserveSwapViewProps) {
   const { state, actions } = adapter
   const network = networkLabel(state.chainId)
 
@@ -255,7 +256,7 @@ export function ReserveSwapView({ adapter, preferredChainId }: ReserveSwapViewPr
   }
 
   return (
-    <MainSwapView state={state} actions={actions} network={network} switchTarget={switchTarget} />
+    <MainSwapView state={state} actions={actions} network={network} switchTarget={switchTarget} hideHeader={hideHeader} />
   )
 }
 
@@ -577,11 +578,13 @@ function MainSwapView({
   actions,
   network,
   switchTarget,
+  hideHeader,
 }: {
   state: ReserveSwapWidgetAdapterState
   actions: ReserveSwapWidgetAdapterActions
   network: string
   switchTarget: number
+  hideHeader: boolean
 }) {
   useEffect(() => {
     void actions.refreshBalances()
@@ -602,27 +605,29 @@ function MainSwapView({
   return (
     <YStack testID="GoodReserveWidget-root" width="100%" alignSelf="center" gap="$3">
       {/* Header sits ABOVE the dark card (Figma): network pill, heading, subtitle. */}
-      <YStack alignItems="center" gap="$2">
-        <XStack
-          borderWidth={1}
-          borderColor="$infoMuted"
-          borderRadius="$full"
-          paddingHorizontal="$3"
-          paddingVertical="$1"
-          alignItems="center"
-          gap="$1"
-        >
-          <Text fontSize={12} fontWeight="600" color="$secondaryColor">
-            {network}
+      {!hideHeader && (
+        <YStack alignItems="center" gap="$2">
+          <XStack
+            borderWidth={1}
+            borderColor="$infoMuted"
+            borderRadius="$full"
+            paddingHorizontal="$3"
+            paddingVertical="$1"
+            alignItems="center"
+            gap="$1"
+          >
+            <Text fontSize={12} fontWeight="600" color="$secondaryColor">
+              {network}
+            </Text>
+          </XStack>
+          <Heading level={3} fontSize={28} fontWeight="700" color="$primary">
+            Swap on {network}
+          </Heading>
+          <Text center fontSize={14} fontWeight="500" color="$secondaryColor">
+            Buy or sell GoodDollars on {network} using the GoodDollar Reserve.
           </Text>
-        </XStack>
-        <Heading level={3} fontSize={28} fontWeight="700" color="$primary">
-          Swap on {network}
-        </Heading>
-        <Text center fontSize={14} fontWeight="500" color="$secondaryColor">
-          Buy or sell GoodDollars on {network} using the GoodDollar Reserve.
-        </Text>
-      </YStack>
+        </YStack>
+      )}
 
       <SwapShell testID="GoodReserveWidget-shell">
         {/* Swap from */}

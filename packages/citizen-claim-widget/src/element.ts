@@ -28,6 +28,7 @@ const CitizenClaimWidgetElementBase = createMiniAppElement(
       clientFactory: 'property',
       environment: 'property',
       initialTab: 'property',
+      hideHeader: 'property',
     },
     events: ['claim-success', 'claim-error'],
   },
@@ -39,4 +40,5 @@ export class CitizenClaimWidgetElement extends CitizenClaimWidgetElementBase {
   declare clientFactory: CitizenClaimWidgetProps['clientFactory']
   declare environment: CitizenClaimWidgetProps['environment']
   declare initialTab: CitizenClaimWidgetProps['initialTab']
+  declare hideHeader: CitizenClaimWidgetProps['hideHeader']
 }

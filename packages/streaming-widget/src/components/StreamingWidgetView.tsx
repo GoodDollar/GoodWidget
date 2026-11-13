@@ -14,12 +14,14 @@ interface StreamingWidgetViewProps {
   adapter: StreamingWidgetAdapterResult
   initialTab?: StreamingWidgetTab
   initialStreamsFormOpen?: boolean
+  hideHeader?: boolean
 }
 
 export function StreamingWidgetView({
   adapter,
   initialTab = 'streams',
   initialStreamsFormOpen = false,
+  hideHeader = false,
 }: StreamingWidgetViewProps) {
   const { state, actions } = adapter
   const [activeTab, setActiveTab] = useState<StreamingWidgetTab>(initialTab)
@@ -101,14 +103,16 @@ export function StreamingWidgetView({
 
   return (
     <YStack gap="$3" padding="$5" width="100%" style={{ boxSizing: 'border-box' }}>
-      <XStack justifyContent="space-between" alignItems="center" paddingHorizontal="$1">
-        <Heading level={4}>GoodDollar</Heading>
-        {state.chainId && (
-          <Badge type="info">
-            <BadgeText>Chain {state.chainId}</BadgeText>
-          </Badge>
-        )}
-      </XStack>
+      {!hideHeader && (
+        <XStack justifyContent="space-between" alignItems="center" paddingHorizontal="$1">
+          <Heading level={4}>GoodDollar</Heading>
+          {state.chainId && (
+            <Badge type="info">
+              <BadgeText>Chain {state.chainId}</BadgeText>
+            </Badge>
+          )}
+        </XStack>
+      )}
       <WidgetTabs
         tabs={[
           { id: 'streams', label: 'Streams' },

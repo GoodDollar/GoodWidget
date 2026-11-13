@@ -65,6 +65,7 @@ interface AiCreditsInnerProps {
   onPaySuccess?: (detail: AiCreditsPaySuccessDetail) => void
   onPayError?: (detail: AiCreditsPayErrorDetail) => void
   showWalletControls?: boolean
+  hideHeader?: boolean
 }
 
 function SetupConnectPrompt({
@@ -422,6 +423,7 @@ function AiCreditsInner({
   onPaySuccess,
   onPayError,
   showWalletControls = false,
+  hideHeader = false,
 }: AiCreditsInnerProps) {
   const defaultAdapter = useAiCreditsAdapter({
     environment,
@@ -534,15 +536,17 @@ function AiCreditsInner({
 
   return (
     <YStack gap="$2" padding="$3" width="100%">
-      <XStack justifyContent="space-between" alignItems="center" gap="$2" paddingHorizontal="$1">
-        <Heading level={4}>GoodDollar</Heading>
-        <XStack gap="$2" alignItems="center" flexShrink={1} minWidth={0}>
-          <Badge type="info">
-            <BadgeText>{getChainDisplayName(state.chainId ?? CELO_CHAIN_ID)}</BadgeText>
-          </Badge>
-          {showWalletControls && <WalletControls size="sm" onDisconnected={handleDisconnected} />}
+      {!hideHeader && (
+        <XStack justifyContent="space-between" alignItems="center" gap="$2" paddingHorizontal="$1">
+          <Heading level={4}>GoodDollar</Heading>
+          <XStack gap="$2" alignItems="center" flexShrink={1} minWidth={0}>
+            <Badge type="info">
+              <BadgeText>{getChainDisplayName(state.chainId ?? CELO_CHAIN_ID)}</BadgeText>
+            </Badge>
+            {showWalletControls && <WalletControls size="sm" onDisconnected={handleDisconnected} />}
+          </XStack>
         </XStack>
-      </XStack>
+      )}
       <SetupGuidanceCard
         activeHelpView={helpView}
         onHowToUse={() => {
@@ -597,6 +601,7 @@ export function AiCreditsWidget({
   provider,
   connectOverride,
   showWalletControls = false,
+  hideHeader = false,
   disconnectOverride,
   disconnectLabel,
   disconnectIcon,
@@ -649,6 +654,7 @@ export function AiCreditsWidget({
           onPaySuccess={onPaySuccess}
           onPayError={onPayError}
           showWalletControls={showWalletControls}
+          hideHeader={hideHeader}
         />
         <ToastContainer />
         <WidgetVersion name="AI Credits" version={version} />

@@ -1,4 +1,5 @@
 import React from 'react'
+import type { ReactNode } from 'react'
 import { Stack, XStack, YStack } from 'tamagui'
 import { ChainBadge } from '../components-test/ChainBadge'
 import { Spinner } from '../components-test/Spinner'
@@ -12,17 +13,19 @@ export interface EcosystemHeaderProps {
   chainId?: number
   chainName?: string
   onConnect?: () => void
+  hideConnect?: boolean
   connecting?: boolean
   connectLabel?: string
   onWalletAction?: () => void
   walletActionLabel?: string
+  walletControls?: ReactNode
   'data-testid'?: string
 }
 
 export function EcosystemHeader({
-  title = 'GoodDollar Ecosystem', address, chainId, chainName, onConnect,
+  title = 'GoodDollar Ecosystem', address, chainId, chainName, onConnect, hideConnect = false,
   connecting = false, connectLabel = 'Connect Wallet', onWalletAction,
-  walletActionLabel = 'Wallet options', 'data-testid': testId,
+  walletActionLabel = 'Wallet options', walletControls, 'data-testid': testId,
 }: EcosystemHeaderProps) {
   const shortAddress = address && address.length > 10
     ? `${address.slice(0, 5)}…${address.slice(-3)}`
@@ -35,7 +38,7 @@ export function EcosystemHeader({
           {address ? (
             <>
               {chainId != null && <ChainBadge chainId={chainId} name={chainName} />}
-              <XStack
+              {walletControls ?? <XStack
                 {...(onWalletAction ? {
                   tag: 'button' as const, type: 'button' as const, role: 'button' as const,
                   'aria-label': walletActionLabel, onPress: onWalletAction,
@@ -54,14 +57,14 @@ export function EcosystemHeader({
                 <Stack width={6} height={6} borderRadius="$full" backgroundColor="$success" />
                 <Text fontSize="$1" numberOfLines={1}>{shortAddress}</Text>
                 {onWalletAction && <Icon name="chevron-down" size="2xs" color="muted" />}
-              </XStack>
+              </XStack>}
             </>
-          ) : (
+          ) : !hideConnect ? (
             <Button size="sm" onPress={onConnect} disabled={connecting || !onConnect} aria-busy={connecting}>
               {connecting && <Spinner size="sm" />}
               <ButtonText>{connectLabel}</ButtonText>
             </Button>
-          )}
+          ) : null}
         </XStack>
       </XStack>
       <Stack height={1} backgroundColor="$borderColor" />

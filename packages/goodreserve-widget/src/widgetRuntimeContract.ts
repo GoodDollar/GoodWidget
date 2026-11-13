@@ -1,4 +1,5 @@
 import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
+import type { GoodWidgetProviderProps } from '@goodwidget/core'
 
 export type ReserveSwapDirection = 'buy' | 'sell'
 
@@ -85,8 +86,13 @@ export interface ReserveSwapErrorDetail {
   message: string
 }
 
-export interface ReserveSwapWidgetProps {
+export interface ReserveSwapWidgetProps extends Pick<
+  GoodWidgetProviderProps,
+  'addressOverride' | 'chainIdOverride' | 'connectOverride' | 'switchChainOverride' | 'availableChainIdsOverride'
+> {
   provider?: unknown
+  /** Hide the title and network header when embedded in a host shell. Defaults to false. */
+  hideHeader?: boolean
   config?: GoodWidgetConfig
   themeOverrides?: GoodWidgetThemeOverrides
   /**
