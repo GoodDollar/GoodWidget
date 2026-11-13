@@ -525,13 +525,14 @@ export function useCitizenClaimAdapter(
   const loadClaimStatus = useCallback(async () => {
     // These are best-effort UI reads. Start them without making the primary
     // wallet eligibility check wait for every auxiliary RPC response.
-    const auxiliaryReads = Promise.all([
+    // In particular, resolve address/chain-only states synchronously: waiting
+    // here lets a pre-connect refresh overwrite the connected wallet's status.
+    void Promise.all([
       loadClaimablesByChain(),
       loadDailyStats(),
     ])
 
     if (!address) {
-      await auxiliaryReads
       // No wallet address: clear any personalized entitlement left over from a
       // prior connected session so a disconnected user never sees stale amounts.
       setAmount(null)
@@ -546,7 +547,6 @@ export function useCitizenClaimAdapter(
       // unsupported, since it's unknown whether the eventual chain will be
       // supported. The chainId-keyed effect below reruns this once it
       // resolves, so this never gets stuck.
-      await auxiliaryReads
       setStatus('loading')
       return
     }
@@ -562,7 +562,6 @@ export function useCitizenClaimAdapter(
       : chainId
 
     if (isCustodialExecution && statusChainId === null) {
-      await auxiliaryReads
       // Custodial execution has no wallet chain to switch, so a missing
       // client for every supported chain is an integrator configuration
       // problem rather than something the "switch network" narrative below
@@ -579,7 +578,6 @@ export function useCitizenClaimAdapter(
     }
 
     if (statusChainId === null || !isSupportedChain(statusChainId)) {
-      await auxiliaryReads
       // Chain is known but unsupported — a distinct status from not_connected
       // so the UI can show "switch chain" copy instead of misleadingly asking
       // an already-connected wallet to connect. Clear personalized entitlement
