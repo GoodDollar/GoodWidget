@@ -19,12 +19,13 @@ export const Separator = createComponent(TamaguiSeparator as any, {
   backgroundColor: '$borderColor',
   borderWidth: 0,
   borderColor: 'transparent',
+  maxHeight: 'none',
 
   variants: {
     size: {
-      sm: { height: 1 },
-      md: { height: 2 },
-      lg: { height: 4 },
+      sm: { height: 1, minHeight: 1, maxHeight: 1 },
+      md: { height: 2, minHeight: 2, maxHeight: 2 },
+      lg: { height: 4, minHeight: 4, maxHeight: 4 },
     },
     color: {
       // Uses the current theme borderColor — adapts to light/dark and presets
@@ -37,6 +38,8 @@ export const Separator = createComponent(TamaguiSeparator as any, {
     vertical: {
       true: {
         height: '100%',
+        minHeight: 'unset',
+        maxHeight: 'none',
         width: 1,
       },
     },

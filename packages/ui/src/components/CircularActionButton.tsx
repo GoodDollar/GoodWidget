@@ -77,7 +77,7 @@ export function CircularActionButton({
   pending = false,
   onPress,
 }: CircularActionButtonProps) {
-  const labelColor = pending || disabled ? '$grey600' : '$primary'
+  const labelColor = pending || disabled ? '$colorDim' : '$primary'
 
   return (
     <ClaimActionButton onPress={disabled ? undefined : onPress} disabled={disabled}>
@@ -102,7 +102,7 @@ export function CircularActionButton({
             <ButtonText color={labelColor} textAlign="center">
               {label}
             </ButtonText>
-            <Spinner size="sm" color="$grey600" />
+            <Spinner size="sm" color={labelColor} />
           </XStack>
         ) : (
           <ButtonText color={labelColor} textAlign="center">
