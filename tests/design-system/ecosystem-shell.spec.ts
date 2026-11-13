@@ -23,6 +23,17 @@ for (const theme of ['light', 'dark'] as const) {
       await expect(page.getByText('Claim widget placeholder')).toBeVisible()
       const navigation = page.getByRole('navigation')
       await expect(navigation.getByRole('button', { name: 'Claim', exact: true })).toHaveAttribute('aria-pressed', 'true')
+      const icon = (label: string) => navigation.getByRole('button', { name: label, exact: true }).locator('svg').first()
+      await expect(icon('Claim').locator('path[d^="M11 15h2"]')).toHaveCount(1)
+      await expect(icon('Reserve').locator('circle[cx="8"][cy="8"]')).toHaveCount(1)
+      await expect(icon('Streaming').locator('path[d^="M2 6c"]')).toHaveCount(1)
+      await expect(icon('More').locator('circle[cy="12"]')).toHaveCount(3)
+      const geometry = (svg: ReturnType<typeof icon>) => svg.evaluate((element) =>
+        Array.from(element.children, (child) =>
+          ['d', 'cx', 'cy', 'r'].map((attribute) => child.getAttribute(attribute)),
+        ),
+      )
+      const barIcons = await Promise.all(['Claim', 'Reserve', 'Streaming'].map((label) => geometry(icon(label))))
       await screenshot('connected')
 
       await navigation.getByRole('button', { name: 'Reserve', exact: true }).click()
@@ -35,6 +46,11 @@ for (const theme of ['light', 'dark'] as const) {
       await navigation.getByRole('button', { name: 'More', exact: true }).click()
       await expect(page.getByText('All widgets')).toBeInViewport()
       await expect(page.getByRole('button', { name: 'AI Credits' })).toBeInViewport()
+      for (const [index, label] of ['Claim', 'Reserve', 'Streaming'].entries()) {
+        const rowIcon = page.getByRole('button', { name: label, exact: true }).last().locator('svg').first()
+        expect(await geometry(rowIcon)).toEqual(barIcons[index])
+      }
+      await expect(page.getByRole('button', { name: 'AI Credits' }).locator('svg').first().locator('path[d="M20 3v4"]')).toHaveCount(1)
       // Tamagui's spring continues after the sheet first enters the viewport.
       await page.waitForTimeout(700)
       await screenshot('drawer-open')

@@ -2,7 +2,8 @@ import React, { useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { expect, userEvent, within } from '@storybook/test'
 import { GoodWidgetProvider } from '@goodwidget/core'
-import { BottomAppBar, BottomBarItem, Icon, Text, YStack } from '@goodwidget/ui'
+import { BottomAppBar, BottomBarItem, Text, YStack } from '@goodwidget/ui'
+import { EcosystemIcon } from './EcosystemIcons'
 
 const meta: Meta = {
   title: 'Design System/Primitives/BottomBarItem',
@@ -21,9 +22,9 @@ function Example() {
   return (
     <YStack>
       <BottomAppBar>
-        <BottomBarItem label="Claim" icon={<Icon name="wallet" />} active onPress={() => setCount(count + 1)} />
-        <BottomBarItem label="Loading" icon={<Icon name="wallet" />} loading onPress={() => setCount(count + 1)} />
-        <BottomBarItem label="More" icon={<Icon name="more-horizontal" />} disabled onPress={() => setCount(count + 1)} />
+        <BottomBarItem label="Claim" icon={<EcosystemIcon name="Claim" />} active onPress={() => setCount(count + 1)} />
+        <BottomBarItem label="Loading" icon={<EcosystemIcon name="Streaming" />} loading onPress={() => setCount(count + 1)} />
+        <BottomBarItem label="More" icon={<EcosystemIcon name="More" muted />} disabled onPress={() => setCount(count + 1)} />
       </BottomAppBar>
       <Text>Pressed {count}</Text>
     </YStack>

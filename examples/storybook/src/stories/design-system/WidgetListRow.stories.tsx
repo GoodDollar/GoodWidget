@@ -2,7 +2,8 @@ import React, { useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { expect, userEvent, within } from '@storybook/test'
 import { GoodWidgetProvider } from '@goodwidget/core'
-import { Icon, WidgetListRow, YStack } from '@goodwidget/ui'
+import { WidgetListRow, YStack } from '@goodwidget/ui'
+import { EcosystemIcon } from './EcosystemIcons'
 
 const meta: Meta = {
   title: 'Design System/Primitives/WidgetListRow',
@@ -19,9 +20,9 @@ function Example() {
   const [selected, setSelected] = useState('Claim')
   return (
     <YStack>
-      <WidgetListRow label="Claim" description="Claim your daily G$ UBI" icon={<Icon name="wallet" />} active={selected === 'Claim'} onPress={() => setSelected('Claim')} />
-      <WidgetListRow label="Reserve" description="Swap through the GoodReserve" icon={<Icon name="globe" />} active={selected === 'Reserve'} onPress={() => setSelected('Reserve')} />
-      <WidgetListRow label="Disabled" description="Unavailable" icon={<Icon name="wallet" />} disabled onPress={() => setSelected('Disabled')} />
+      <WidgetListRow label="Claim" description="Claim your daily G$ UBI" icon={<EcosystemIcon name="Claim" />} active={selected === 'Claim'} onPress={() => setSelected('Claim')} />
+      <WidgetListRow label="Reserve" description="Swap through the GoodReserve" icon={<EcosystemIcon name="Reserve" />} active={selected === 'Reserve'} onPress={() => setSelected('Reserve')} />
+      <WidgetListRow label="Disabled" description="Unavailable" icon={<EcosystemIcon name="Streaming" />} disabled onPress={() => setSelected('Disabled')} />
     </YStack>
   )
 }

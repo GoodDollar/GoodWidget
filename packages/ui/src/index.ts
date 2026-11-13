@@ -95,6 +95,8 @@ export { CalendarDays, UserPlus, Megaphone, Waves, HandCoins, ShoppingCart } fro
 // on widget stat cards. See components/StatIcons.ts.
 export { Coins, Repeat, Gift, Wallet, TrendingUp } from './components/StatIcons'
 
+export { Sparkles, MoreHorizontal } from './components/EcosystemIcons'
+
 // Dialog — new component backed by imperative store
 export {
   GoodWidgetDialog,

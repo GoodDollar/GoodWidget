@@ -2,7 +2,8 @@ import React, { useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { expect, userEvent, within } from '@storybook/test'
 import { GoodWidgetProvider } from '@goodwidget/core'
-import { Button, ButtonText, Icon, Text, WidgetDrawer, WidgetListRow, YStack } from '@goodwidget/ui'
+import { Button, ButtonText, Text, WidgetDrawer, WidgetListRow, YStack } from '@goodwidget/ui'
+import { EcosystemIcon } from './EcosystemIcons'
 
 const meta: Meta = {
   title: 'Design System/Primitives/WidgetDrawer',
@@ -23,8 +24,8 @@ function Example() {
       <Button onPress={() => setOpen(true)}><ButtonText>Open widgets</ButtonText></Button>
       <Text>Selected: {selected}</Text>
       <WidgetDrawer open={open} onClose={() => setOpen(false)}>
-        {['Claim', 'Reserve'].map((name) => (
-          <WidgetListRow key={name} label={name} description={`${name} widget`} icon={<Icon name="wallet" />} active={selected === name} onPress={() => { setSelected(name); setOpen(false) }} />
+        {(['Claim', 'Reserve'] as const).map((name) => (
+          <WidgetListRow key={name} label={name} description={`${name} widget`} icon={<EcosystemIcon name={name} />} active={selected === name} onPress={() => { setSelected(name); setOpen(false) }} />
         ))}
       </WidgetDrawer>
     </YStack>

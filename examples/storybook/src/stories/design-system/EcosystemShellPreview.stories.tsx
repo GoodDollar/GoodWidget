@@ -2,9 +2,10 @@ import React, { useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { GoodWidgetProvider } from '@goodwidget/core'
 import {
-  BottomAppBar, BottomBarItem, EcosystemHeader, Icon, Text,
+  BottomAppBar, BottomBarItem, EcosystemHeader, Text,
   WidgetDrawer, WidgetListRow, WidgetUnavailable, YStack,
 } from '@goodwidget/ui'
+import { EcosystemIcon } from './EcosystemIcons'
 
 const meta: Meta = {
   title: 'Design System/Primitives/Ecosystem Shell Preview',
@@ -18,7 +19,7 @@ const widgets = [
   { label: 'Reserve', description: 'Swap through the GoodReserve' },
   { label: 'Streaming', description: 'Streams, pools and balances' },
   { label: 'AI Credits', description: 'Buy AI coding credits with G$' },
-]
+] as const
 
 function Preview({ theme }: { theme: 'light' | 'dark' }) {
   const [connected, setConnected] = useState(false)
@@ -55,12 +56,12 @@ function Preview({ theme }: { theme: 'light' | 'dark' }) {
             <BottomBarItem
               key={label}
               label={label}
-              icon={<Icon name="wallet" />}
+              icon={<EcosystemIcon name={label} muted={selected !== label} />}
               active={selected === label}
               onPress={() => setSelected(label)}
             />
           ))}
-          <BottomBarItem label="More" icon={<Icon name="more-horizontal" />} onPress={() => setDrawerOpen(true)} />
+          <BottomBarItem label="More" icon={<EcosystemIcon name="More" muted />} onPress={() => setDrawerOpen(true)} />
         </BottomAppBar>
         <WidgetDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>
           {widgets.map(({ label, description }) => (
@@ -68,7 +69,7 @@ function Preview({ theme }: { theme: 'light' | 'dark' }) {
               key={label}
               label={label}
               description={description}
-              icon={<Icon name="wallet" />}
+              icon={<EcosystemIcon name={label} />}
               active={selected === label}
               onPress={() => { setSelected(label); setDrawerOpen(false) }}
             />
@@ -85,9 +86,9 @@ export const NavigationStates: Story = {
   render: () => (
     <GoodWidgetProvider defaultTheme="light">
       <BottomAppBar>
-        <BottomBarItem label="Claim" icon={<Icon name="wallet" />} active />
-        <BottomBarItem label="Loading" icon={<Icon name="wallet" />} loading />
-        <BottomBarItem label="More" icon={<Icon name="more-horizontal" />} disabled />
+        <BottomBarItem label="Claim" icon={<EcosystemIcon name="Claim" />} active />
+        <BottomBarItem label="Loading" icon={<EcosystemIcon name="Streaming" />} loading />
+        <BottomBarItem label="More" icon={<EcosystemIcon name="More" muted />} disabled />
       </BottomAppBar>
     </GoodWidgetProvider>
   ),

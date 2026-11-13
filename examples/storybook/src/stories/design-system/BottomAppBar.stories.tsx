@@ -2,7 +2,8 @@ import React, { useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { expect, userEvent, within } from '@storybook/test'
 import { GoodWidgetProvider } from '@goodwidget/core'
-import { BottomAppBar, BottomBarItem, Icon, YStack } from '@goodwidget/ui'
+import { BottomAppBar, BottomBarItem, YStack } from '@goodwidget/ui'
+import { EcosystemIcon } from './EcosystemIcons'
 
 const meta: Meta = {
   title: 'Design System/Primitives/BottomAppBar',
@@ -20,8 +21,8 @@ function Example() {
   const [selected, setSelected] = useState('Claim')
   return (
     <BottomAppBar data-testid="BottomAppBar-default">
-      {['Claim', 'Reserve', 'More'].map((label) => (
-        <BottomBarItem key={label} label={label} icon={<Icon name="wallet" />} active={selected === label} onPress={() => setSelected(label)} />
+      {(['Claim', 'Reserve', 'More'] as const).map((label) => (
+        <BottomBarItem key={label} label={label} icon={<EcosystemIcon name={label} muted={selected !== label} />} active={selected === label} onPress={() => setSelected(label)} />
       ))}
     </BottomAppBar>
   )
