@@ -81,3 +81,14 @@ function Preview({ theme }: { theme: 'light' | 'dark' }) {
 
 export const Light: Story = { render: () => <Preview theme="light" /> }
 export const Dark: Story = { render: () => <Preview theme="dark" /> }
+export const NavigationStates: Story = {
+  render: () => (
+    <GoodWidgetProvider defaultTheme="light">
+      <BottomAppBar>
+        <BottomBarItem label="Claim" icon={<Icon name="wallet" />} active />
+        <BottomBarItem label="Loading" icon={<Icon name="wallet" />} loading />
+        <BottomBarItem label="More" icon={<Icon name="more-horizontal" />} disabled />
+      </BottomAppBar>
+    </GoodWidgetProvider>
+  ),
+}

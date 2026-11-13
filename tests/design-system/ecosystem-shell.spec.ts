@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-const evidence = 'tests/design-system/test-results'
+const evidence = process.env.ECOSYSTEM_EVIDENCE_DIR ?? 'tests/design-system/test-results'
 
 for (const theme of ['light', 'dark'] as const) {
   for (const viewport of [
@@ -35,10 +35,13 @@ for (const theme of ['light', 'dark'] as const) {
       await navigation.getByRole('button', { name: 'More', exact: true }).click()
       await expect(page.getByText('All widgets')).toBeInViewport()
       await expect(page.getByRole('button', { name: 'AI Credits' })).toBeInViewport()
+      // Tamagui's spring continues after the sheet first enters the viewport.
+      await page.waitForTimeout(700)
       await screenshot('drawer-open')
       await page.getByRole('button', { name: 'AI Credits' }).click()
       await expect(page.getByText('AI Credits widget placeholder')).toBeVisible()
       await expect(page.getByText('All widgets')).not.toBeInViewport()
+      await page.waitForTimeout(700)
       await screenshot('drawer-selection')
       await page.getByRole('button', { name: 'Disconnect preview wallet' }).click()
       await expect(page.getByRole('button', { name: 'Connect Wallet' })).toBeVisible()
@@ -48,7 +51,7 @@ for (const theme of ['light', 'dark'] as const) {
 
 test('bottom bar item displays loading and disabled states', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto('/iframe.html?id=design-system-primitives-bottombaritem--light&viewMode=story')
+  await page.goto('/iframe.html?id=design-system-primitives-ecosystem-shell-preview--navigation-states&viewMode=story')
   await expect(page.getByRole('button', { name: 'Loading' })).toHaveAttribute('aria-busy', 'true')
   await expect(page.getByRole('button', { name: 'More' })).toBeDisabled()
   await page.screenshot({
