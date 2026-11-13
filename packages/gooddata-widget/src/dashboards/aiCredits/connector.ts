@@ -8,8 +8,8 @@
 import type { DataConnectorFactory } from '../../connectors/types'
 
 const DEFAULT_WORKER_URL = 'https://gooddollar-antseed-integration.goodworker.workers.dev'
-/** Number of days of history requested from the analytics endpoint, matching the reference dashboard. */
-const ANALYTICS_DAYS_REQUESTED = 365
+/** Number of days of history requested from the analytics endpoint. Reduced from the reference dashboard's 365 — a full year of daily points was too dense to read and slowed the fetch, per CEO feedback after the PR #179 production deploy. */
+const ANALYTICS_DAYS_REQUESTED = 30
 
 /** One row of daily analytics. Wei amounts stay as strings end-to-end (see analyticsConversions.ts) so no precision is lost before the caller explicitly converts them. */
 export interface DailyAnalyticsRecord {
