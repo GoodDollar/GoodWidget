@@ -326,6 +326,9 @@ importers:
       '@goodwidget/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@goodwidget/ecosystem-widget':
+        specifier: workspace:^
+        version: link:../../packages/ecosystem-widget
       '@goodwidget/embed':
         specifier: workspace:*
         version: link:../../packages/embed
@@ -566,6 +569,49 @@ importers:
       react-native:
         specifier: 0.76.9
         version: 0.76.9(@babel/core@7.29.7)(@babel/preset-env@7.29.2(@babel/core@7.29.7))(@types/react@18.3.28)(react@18.3.1)
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(@swc/core@1.15.30)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0)
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  packages/ecosystem-widget:
+    dependencies:
+      '@goodwidget/ai-credits-widget':
+        specifier: workspace:^
+        version: link:../ai-credits-widget
+      '@goodwidget/citizen-claim-widget':
+        specifier: workspace:^
+        version: link:../citizen-claim-widget
+      '@goodwidget/core':
+        specifier: workspace:^
+        version: link:../core
+      '@goodwidget/embed':
+        specifier: workspace:^
+        version: link:../embed
+      '@goodwidget/goodreserve-widget':
+        specifier: workspace:^
+        version: link:../goodreserve-widget
+      '@goodwidget/streaming-widget':
+        specifier: workspace:^
+        version: link:../streaming-widget
+      '@goodwidget/ui':
+        specifier: workspace:^
+        version: link:../ui
+    devDependencies:
+      '@types/react':
+        specifier: ^18.3.0
+        version: 18.3.28
+      '@types/react-dom':
+        specifier: ^18.3.0
+        version: 18.3.7(@types/react@18.3.28)
+      react:
+        specifier: ^18.3.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.0
+        version: 18.3.1(react@18.3.1)
       tsup:
         specifier: ^8.4.0
         version: 8.5.1(@swc/core@1.15.30)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0)

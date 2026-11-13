@@ -89,7 +89,7 @@ export function useGoodReserveAdapter(
   )
 
   // 1. Bootstrap: wallet connection, SDK construction, chain handling.
-  const { chainId, provider, chainSupported, connect, readActiveChainId, refreshBalances, bootstrapSdk } =
+  const { chainId, chainSupported, connect, switchChain, readActiveChainId, refreshBalances, bootstrapSdk } =
     useReserveBootstrap(refs, applyStatePatch, mockState)
 
   // 2. Quote pipeline: debounced input → SDK quote → display derivation.
@@ -113,18 +113,8 @@ export function useGoodReserveAdapter(
         await connect()
       },
       switchChain: async (targetChainId: number) => {
-        const walletProvider = provider as
-          | { request?: (args: { method: string; params?: unknown[] }) => Promise<unknown> }
-          | undefined
-        if (!walletProvider?.request) {
-          applyStatePatch({ error: 'No wallet available to switch networks.' })
-          return
-        }
         try {
-          await walletProvider.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: `0x${targetChainId.toString(16)}` }],
-          })
+          await switchChain(targetChainId)
         } catch (err: unknown) {
           const e = err as { code?: number; message?: string }
           applyStatePatch({
@@ -206,7 +196,7 @@ export function useGoodReserveAdapter(
       connect,
       executeSwap,
       mockState,
-      provider,
+      switchChain,
       refs,
       refreshBalances,
       state.status,

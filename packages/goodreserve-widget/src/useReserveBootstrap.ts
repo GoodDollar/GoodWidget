@@ -128,7 +128,7 @@ export function useReserveBootstrap(
   applyStatePatch: (patch: Partial<ReserveSwapWidgetAdapterState>) => void,
   mockState: Partial<ReserveSwapWidgetAdapterState> | undefined,
 ) {
-  const { address, chainId, isConnected, provider, connect } = useWallet()
+  const { address, chainId, isConnected, provider, connect, switchChain } = useWallet()
 
   const reserveEnvironment = chainId === XDC_CHAIN_ID ? 'development' : 'production'
   const chainSupported =
@@ -262,5 +262,5 @@ export function useReserveBootstrap(
     void bootstrapSdk()
   }, [address, applyStatePatch, bootstrapSdk, chainId, chainSupported, isConnected, mockState, provider, refs])
 
-  return { address, chainId, provider, chainSupported, connect, readActiveChainId, refreshBalances, bootstrapSdk }
+  return { address, chainId, provider, chainSupported, connect, switchChain, readActiveChainId, refreshBalances, bootstrapSdk }
 }

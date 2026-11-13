@@ -13,9 +13,10 @@ function GoodReserveWidgetInner({
   onSwapError,
   mockState,
   preferredChainId,
+  hideHeader,
 }: Pick<
   ReserveSwapWidgetProps,
-  'onSwapSuccess' | 'onSwapError' | 'mockState' | 'preferredChainId'
+  'onSwapSuccess' | 'onSwapError' | 'mockState' | 'preferredChainId' | 'hideHeader'
 >) {
   const adapter = useGoodReserveAdapter(mockState)
   const { status, txHash, error, address, chainId } = adapter.state
@@ -45,12 +46,18 @@ function GoodReserveWidgetInner({
     }
   }, [status, txHash, error, address, chainId])
 
-  return <ReserveSwapView adapter={adapter} preferredChainId={preferredChainId} />
+  return <ReserveSwapView adapter={adapter} preferredChainId={preferredChainId} hideHeader={hideHeader} />
 }
 
 // Public widget entry wired to GoodWidget runtime context + theming contract.
 export function GoodReserveWidget({
   provider,
+  addressOverride,
+  chainIdOverride,
+  connectOverride,
+  switchChainOverride,
+  availableChainIdsOverride,
+  hideHeader = false,
   config,
   themeOverrides,
   defaultTheme = 'dark',
@@ -66,6 +73,11 @@ export function GoodReserveWidget({
   return (
     <GoodWidgetProvider
       provider={provider as EIP1193Provider | undefined}
+      addressOverride={addressOverride}
+      chainIdOverride={chainIdOverride}
+      connectOverride={connectOverride}
+      switchChainOverride={switchChainOverride}
+      availableChainIdsOverride={availableChainIdsOverride}
       config={config}
       themeOverrides={themeOverrides}
       defaultTheme={defaultTheme}
@@ -76,6 +88,7 @@ export function GoodReserveWidget({
           onSwapError={onSwapError}
           mockState={mockState}
           preferredChainId={preferredChainId}
+          hideHeader={hideHeader}
         />
         <WidgetVersion name="GoodReserve" version={version} />
       </YStack>

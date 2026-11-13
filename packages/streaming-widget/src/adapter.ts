@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useWallet } from '@goodwidget/core'
 import { isSupportedChain } from '@goodsdks/streaming-sdk'
 import type { Address } from 'viem'
@@ -22,7 +22,7 @@ export function useStreamingAdapter({
   environment = 'production',
   apiKey,
 }: UseStreamingAdapterOptions = {}): StreamingWidgetAdapterResult {
-  const { address, chainId, provider, isConnected, connect } = useWallet()
+  const { address, chainId, provider, isConnected, connect, switchChain } = useWallet()
   const walletAddress = (address as Address | null) ?? null
   const activeChainId = chainId ?? null
   const isWrongChain = !!activeChainId && !isSupportedChain(activeChainId)
@@ -82,23 +82,6 @@ export function useStreamingAdapter({
 
     void data.refreshAll()
   }, [isReady, walletAddress, activeChainId, data.refreshAll])
-
-  const switchChain = useCallback(
-    async (targetChainId: number) => {
-      if (!provider) return
-
-      const hexId = `0x${targetChainId.toString(16)}`
-      await (
-        provider as {
-          request: (args: { method: string; params?: unknown[] }) => Promise<unknown>
-        }
-      ).request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: hexId }],
-      })
-    },
-    [provider],
-  )
 
   const state: StreamingWidgetAdapterState = useMemo(
     () => ({

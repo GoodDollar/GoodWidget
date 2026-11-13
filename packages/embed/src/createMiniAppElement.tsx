@@ -228,13 +228,16 @@ export function createMiniAppElement(
       if (!this.#root) return
 
       const mergedOverrides = deepMergeOverrides(this.#themeOverrides, this.#cssOverrides)
+      const activeTheme = this.#extraProps.defaultTheme === 'light' || this.#extraProps.defaultTheme === 'dark'
+        ? this.#extraProps.defaultTheme
+        : defaultTheme
 
       const appProps: Record<string, unknown> = {
         ...this.#extraProps,
         provider: this.#provider ?? undefined,
         config: this.#config ?? defaultConfig,
         themeOverrides: mergedOverrides,
-        defaultTheme,
+        defaultTheme: activeTheme,
       }
 
       for (const eventName of events) {
@@ -252,7 +255,7 @@ export function createMiniAppElement(
           provider={this.#provider ?? undefined}
           config={this.#config ?? defaultConfig}
           themeOverrides={mergedOverrides}
-          defaultTheme={defaultTheme}
+          defaultTheme={activeTheme}
         >
           <App {...appProps} />
         </GoodWidgetProvider>,
