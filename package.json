@@ -22,7 +22,7 @@
     "test:gooddata-analytics-web": "playwright test --config apps/gooddata-analytics-web/playwright.config.ts"
   },
   "devDependencies": {
-    "@playwright/test": "^1.44.0",
+    "@playwright/test": "^1.65.0",
     "@typescript-eslint/eslint-plugin": "^8.25.0",
     "@typescript-eslint/parser": "^8.25.0",
     "eslint": "^9.20.0",
