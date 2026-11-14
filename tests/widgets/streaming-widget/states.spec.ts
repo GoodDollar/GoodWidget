@@ -339,6 +339,8 @@ for (const theme of THEMES) {
         'Celo',
         'SUP Balance',
         'SUP Reserve',
+        'Base only',
+        'Switch to Base to manage SUP reserve lockers.',
         'To see your active SUP streams visit app.superfluid.org',
         '112.75',
         'Open reserve in Superfluid',
