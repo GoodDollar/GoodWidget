@@ -170,8 +170,15 @@ export const ButtonFrame = createComponent(Stack, {
   },
 })
 
+/**
+ * Button label. Intentionally has no component `name`: Tamagui resolves a named
+ * component's theme by falling back to every ancestor component theme, which made
+ * the label pick up light_Button / dark_Button (white text) even inside the
+ * `<Theme reset>` that Button applies to non-primary variants. Unnamed, the label
+ * simply inherits the nearest theme: the Button theme for primary, the surrounding
+ * theme for every other variant.
+ */
 export const ButtonText = styled(TamaguiText, {
-  name: 'ButtonText',
   fontFamily: '$body',
   fontSize: '$3',
   fontWeight: '600',

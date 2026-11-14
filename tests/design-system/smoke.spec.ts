@@ -534,3 +534,60 @@ test('DataTable/Controllable story exposes a working range control for the neste
   await expect(addressColumnCell).toHaveJSProperty('offsetWidth', 350)
   await screenshotStory(page, 'tests/design-system/test-results/story-datatable-controllable-width.png')
 })
+
+/** WCAG 2.x minimum contrast ratio for normal-size text. */
+const MINIMUM_TEXT_CONTRAST_RATIO = 4.5
+
+/** Button variants drawn on a transparent background, whose label must follow the surrounding theme. */
+const TRANSPARENT_BACKGROUND_BUTTON_VARIANTS = ['secondary', 'outline', 'ghost', 'text'] as const
+
+for (const themeMode of ['light', 'dark'] as const) {
+  test(`Button/${themeMode}: non-primary labels are readable on the ${themeMode} background`, async ({ page }) => {
+    // Regression guard: ButtonText used to inherit the white light_Button/dark_Button text color
+    // even inside non-primary variants, so secondary/text labels were invisible on light surfaces.
+    await gotoStory(page, `design-system-primitives-button--variants-${themeMode}`)
+    const frame = getStoryFrame(page)
+    await expect(frame.getByTestId('Button-variants')).toBeVisible()
+
+    for (const variant of TRANSPARENT_BACKGROUND_BUTTON_VARIANTS) {
+      const contrastRatio = await frame.getByTestId(`ButtonText-${variant}`).evaluate((labelElement) => {
+        /** Parse a computed `rgb()/rgba()` string into channels and alpha. */
+        const parseColor = (cssColor: string) => {
+          const [red, green, blue, alpha = 1] = cssColor.match(/[\d.]+/g)!.map(Number)
+          return { red, green, blue, alpha }
+        }
+        /** WCAG relative luminance of an sRGB color. */
+        const relativeLuminance = ({ red, green, blue }: { red: number; green: number; blue: number }) => {
+          const [linearRed, linearGreen, linearBlue] = [red, green, blue].map((channel) => {
+            const unit = channel / 255
+            return unit <= 0.03928 ? unit / 12.92 : ((unit + 0.055) / 1.055) ** 2.4
+          })
+          return 0.2126 * linearRed + 0.7152 * linearGreen + 0.0722 * linearBlue
+        }
+
+        // Walk up to the first ancestor that paints an opaque background (the story surface).
+        let surfaceElement: Element | null = labelElement.parentElement
+        let surfaceColor = parseColor(getComputedStyle(document.body).backgroundColor)
+        while (surfaceElement) {
+          const candidateColor = parseColor(getComputedStyle(surfaceElement).backgroundColor)
+          if (candidateColor.alpha === 1) {
+            surfaceColor = candidateColor
+            break
+          }
+          surfaceElement = surfaceElement.parentElement
+        }
+
+        const labelLuminance = relativeLuminance(parseColor(getComputedStyle(labelElement).color))
+        const surfaceLuminance = relativeLuminance(surfaceColor)
+        const lighter = Math.max(labelLuminance, surfaceLuminance)
+        const darker = Math.min(labelLuminance, surfaceLuminance)
+        return (lighter + 0.05) / (darker + 0.05)
+      })
+      expect(contrastRatio, `${variant} label contrast in ${themeMode} theme`).toBeGreaterThanOrEqual(
+        MINIMUM_TEXT_CONTRAST_RATIO,
+      )
+    }
+
+    await screenshotStory(page, `tests/design-system/test-results/story-button-${themeMode}.png`)
+  })
+}
