@@ -1,0 +1,116 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /apps/ai-credits-web
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /apps/gooddata-analytics-web
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /apps/superfluid-campaign-web
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /examples/expo
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /examples/html
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /examples/react-web
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /examples/storybook
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /packages/ai-credits-widget
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /packages/citizen-claim-widget
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /packages/claim-widget-theme-demo
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /packages/connect-a-wallet-widget
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /packages/core
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /packages/embed
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /packages/gooddata-widget
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /packages/goodreserve-widget
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /packages/governance-widget
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /packages/staking-migration-widget
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /packages/streaming-widget
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /packages/superfluid-campaign-widget
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /packages/ui
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /templates/mini-app
+    schedule:
+      interval: weekly
