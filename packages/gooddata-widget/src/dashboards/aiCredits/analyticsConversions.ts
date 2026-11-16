@@ -13,7 +13,8 @@ const GD_DECIMALS = 18n
 const USD_DECIMALS = 6n
 /** How many of the source's decimal digits survive into the final Number — both conversions below keep 4. */
 const OUTPUT_PRECISION_DECIMALS = 4n
-const SECONDS_PER_DAY = 86400n
+/** Average seconds per month (365.2425-day Gregorian year / 12), not a fixed 30-day month — plain multiplication, not exponentiation. */
+const SECONDS_PER_MONTH = 2629746n
 
 /**
  * Reduces an 18-decimal wei BigInt down to a 4-decimal-precision BigInt
@@ -47,15 +48,15 @@ export function weiToUsd(weiStr: string): number {
 }
 
 /**
- * Converts a wei/second flow rate (18 decimals) to a G$/day figure. Scales
- * to a daily amount first while still in BigInt space (multiplying, not
+ * Converts a wei/second flow rate (18 decimals) to a G$/month figure. Scales
+ * to a monthly amount first while still in BigInt space (multiplying, not
  * dividing, so no precision is lost), then reuses weiToGd's reduction to
  * safely cross into Number range.
  */
-export function flowRateToDaily(weiPerSecStr: string): number {
+export function flowRateToMonthly(weiPerSecStr: string): number {
   if (!weiPerSecStr || weiPerSecStr === '0') return 0
   const weiPerSecond = BigInt(weiPerSecStr)
-  const dailyWei = weiPerSecond * SECONDS_PER_DAY
-  const reduced = dailyWei / 10n ** (GD_DECIMALS - OUTPUT_PRECISION_DECIMALS)
+  const monthlyWei = weiPerSecond * SECONDS_PER_MONTH
+  const reduced = monthlyWei / 10n ** (GD_DECIMALS - OUTPUT_PRECISION_DECIMALS)
   return Number(reduced) / 10000
 }
