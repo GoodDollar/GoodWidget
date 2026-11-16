@@ -1,0 +1,72 @@
+# Passkey login widget QA
+
+Covers `packages/passkey-login-widget` (issue #307, feature #305).
+
+## What the automated specs prove
+
+Run against a prestarted Storybook (`pnpm --filter storybook dev`, port 6006) with `pnpm test:demo tests/widgets/passkey-login-widget`.
+
+| Spec | Evidence |
+| --- | --- |
+| `states.spec.ts` | Every screen A1-D6 (incl. D3 single provider, D5 new/existing user, D6 ambiguous) in light and dark; screenshots in `test-results/{light,dark}/`. |
+| `new-account.spec.ts`, `restore-existing-passkey.spec.ts`, `existing-user-backup.spec.ts`, `provider-choice.spec.ts` | Create, back up, restart and restore round trips; provider choice and remembered provider; exact key restore for an account whose key was not derived from the passkey. |
+| `errors-and-recovery.spec.ts` | D1-D6, each with its recovery buttons and the `onError` code. |
+| `new-account-after-cancelled-passkey.spec.ts` | Regression for the Live-story bug: A1 -> cancelled get -> D2 -> "Create new account" -> A3 -> A4 -> (B2) -> B3 -> B4 with a recorded screen sequence, exactly one passkey, `onLogin` with `isNewAccount: true`; D5 only after the passkey exists and Retry resumes at B3 without a second passkey; an invalid rpId (IP address host) ends on D1, never D5; the real Google Drive adapter on the Live story (fake Google SDK + Drive API from `fakeGoogleDrive.ts`) for success and for denied / blocked / throwing sign-in, which must end on D4 and resume at the upload on "Try again". |
+| `webauthn-diagnostics.spec.ts` | Second Live-story report ("Create new account" ends on D2 with no dialog): a widget in a cross-origin iframe without WebAuthn delegation ends on D1 up front with the Permissions Policy reason in the event log, and the same iframe with `allow="publickey-credentials-get *; publickey-credentials-create *"` runs the whole new-account journey; a dismissed or rejected `get()` / `create()` shows the browser's `NotAllowedError: <message>` in the Live story event log, `onError` and the console; `get()` and `create()` start inside the click's transient user activation. |
+| `passkey-provider-failures.spec.ts` | Fourth report: a fake extension rejecting `create()` with `Invalid 'sameOriginWithAncestors' value` ends on D1 with the embedded-frame copy (`PASSKEY_BLOCKED_IN_FRAME`), one attempt, real error in the event log; the widget logs a console hint only when it runs in a frame. Third Live-story report ("Create new account" -> D2 with `[Error]`, a plain Error that fell through to "cancelled"): a virtual authenticator without PRF (`hasPrf: false`) ends on D1 naming `prf-missing` (the saved passkey stays in the provider); `prf.enabled` without output at the follow-up assertion ends on D1 naming `prf-followup-get`; a provider rejecting `prf.eval` at registration is retried with PRF enabled only and the journey succeeds; a provider rejecting every registration, or the follow-up assertion, or the login `get()` with a plain Error shows "Passkey request failed" (`PASSKEY_FAILED`, never "cancelled") with the step, error name and real message in the event log / `onError` / console, and Retry re-runs only the failed step (after a failed follow-up no second passkey is created). |
+| `key-safety.spec.ts` | The account key and PRF output never reach the DOM, web storage, console or the uploaded file; the file holds only ciphertext. |
+| `version.spec.ts` | Version label in light/dark, desktop/mobile. |
+
+**Why the first specs missed the bug.** They only ran on `localhost` (a valid rpId), on a mock storage whose `authorize()` could only throw `ProviderAuthError`, so the real Drive adapter, Google's script and any other origin were never exercised, and the Live story was not covered at all. `fakeGoogleDrive.ts` and the IP-host test close that gap.
+
+**Limits.** These specs use a Chromium virtual authenticator (real WebAuthn + PRF + WebCrypto) and an in-memory storage double (plus a fake Google SDK / Drive API for the Live story). They do not prove that Google Drive, CloudKit, a platform authenticator or a real password manager work. Those checks are manual and listed below.
+
+## Manual live check (needs GoodDollar-owned values)
+
+Open `QA / PasskeyLoginWidget / Live (real passkey + real providers)`. Use a throwaway Google / Apple account: the story writes real backup files.
+
+| Variable (or story control) | Meaning |
+| --- | --- |
+| `VITE_PASSKEY_GOOGLE_CLIENT_ID` | Google OAuth "Web application" client ID. Add the Storybook origin as an authorized JavaScript origin. Backups live in this client's `appDataFolder`, so the ID must stay stable once users have backups. |
+| `VITE_PASSKEY_ICLOUD_CONTAINER_ID` | CloudKit container identifier, e.g. `iCloud.org.gooddollar.passkey`. |
+| `VITE_PASSKEY_ICLOUD_API_TOKEN` | CloudKit API token restricted to the Storybook origin. |
+| `VITE_PASSKEY_ICLOUD_ENVIRONMENT` | `development` (default) or `production`. |
+
+Put them in `examples/storybook/.env.local` (git-ignored). Never commit them.
+
+Checklist: new account + backup, restart + restore, existing user backup (`backUpThrowawayAccount`), provider sign-in cancelled (D4), and a second backup file under the same passkey (ambiguous copy). The Live story must show "Google Drive: configured" before testing.
+
+## Using the Live story in the deployed Storybook (what a passkey needs)
+
+- **Open the story in its own tab**, not inside the Storybook manager: `<storybook-host>/iframe.html?id=qa-passkeyloginwidget-live-real-passkey-real-providers--live&viewMode=story` (the story is tagged `manual`, so it is hidden in the sidebar by default but the direct URL works). The manager always renders stories in a preview iframe.
+- The preview iframe is same-origin with the manager, so Chrome's native passkeys work there without any Permissions-Policy header (WebAuthn is allowed for same-origin frames by default); `vercel.json` needs no change. A cross-origin embedder is the case that needs `allow="publickey-credentials-get *; publickey-credentials-create *"`.
+- **Bitwarden's browser extension does not work for this widget:** it replaces `navigator.credentials`, refuses `create()` from any frame (`Invalid 'sameOriginWithAncestors' value`, `PASSKEY_BLOCKED_IN_FRAME`), and does not implement the PRF extension (its create result only carries `credProps`, so even in its own tab the result is D1 `prf-missing`). Use the browser's own passkeys (Google Password Manager / iCloud Keychain / Touch ID) by logging out of the extension, turning off its "ask to save and use passkeys" setting, or adding the Storybook host to its excluded domains; the extension then falls back to the browser.
+- `rpId` in the story is `window.location.hostname`, i.e. the full deployment host. A passkey is therefore tied to that exact host: every new Vercel preview URL starts with no passkeys, and `vercel.app` is a public suffix so no shared parent domain can be used.
+- Chrome's "Your device can't be used with this site" dialog means the chosen authenticator cannot do what `create()` requires: a discoverable credential (`residentKey: 'required'`) with user verification (`userVerification: 'required'`). Pick a platform authenticator or a phone, or a security key that has a PIN set and supports discoverable credentials. The widget cannot see this dialog; after closing it `create()` rejects like a cancellation.
+
+## CloudKit handover (one-time container setup)
+
+In the CloudKit Dashboard, container schema:
+
+- Record type `PasskeyBackup` in the **private** database with fields `prfTag` (String), `address` (String) and `payload` (String).
+- A **Queryable** index on `prfTag` (the lookup is a server-side query on it).
+- An API token for the web origins, "Sign In Callback: none" (CloudKit JS renders its own Apple sign-in button, shown in a small overlay).
+- Deploy the development schema to production before a production release.
+
+## Embedding the widget
+
+A browser rejects `navigator.credentials.create()` / `get()` with `NotAllowedError` (the same error as a dismissed dialog) when the widget runs in a cross-origin iframe that the embedding page did not delegate WebAuthn to. The embedder must set `<iframe allow="publickey-credentials-get *; publickey-credentials-create *">`. Chromium reports this up front (D1 with the reason in `onError.message` and the console); Safari and Firefox only report it as the rejected request, so read the `[NotAllowedError: ...]` suffix of the logged reason.
+
+Every failure of a WebAuthn step carries `<step>: <ErrorName>: <message>` (steps: `get`, `create`, `create-prf-enable-only`, `prf-missing`, `prf-followup-get`) in `onError.message` and the console, plus the thrown error object itself (`console.error('[passkey-login-widget]', error)`). `PASSKEY_CANCELLED` (D2 "cancelled") is only used for a real dismissal (`NotAllowedError` / `AbortError`, also from another realm) or an empty answer; any other rejection is `PASSKEY_FAILED` (D2 layout, "Passkey request failed"), and a provider without PRF is `UNSUPPORTED_BROWSER` (D1).
+
+When QA reports "passkey cancelled but no dialog appeared", ask for the browser, OS, page URL, whether Storybook was opened inside another page, and the Live story event log line (it now ends with the browser's reason).
+
+## Known gaps
+
+- Third-party password managers (1Password, Bitwarden, Dashlane, ...) that replace `navigator.credentials` are only simulated (fake `create()`/`get()` rejecting or lacking PRF); the real extensions are unverified. If a Live-story run still fails, the event log line now names the step and the manager's own error message.
+- When a provider rejects `prf.eval` at registration the widget retries `create()` once with PRF only enabled (a second prompt may appear). Whether every browser keeps transient user activation for that second call is unverified.
+
+- Safari: when an authenticator reports PRF only as `enabled` at registration, the widget runs a follow-up `get()` right after `create()` without a fresh click. Safari may require user activation there; unverified (no Safari in CI).
+
+- Google Drive and iCloud adapters have unit tests with mocked transports only; the CloudKit sign-in overlay is unverified in a real browser.
+- Wrong-passkey (D6) cannot be simulated with one virtual authenticator, so D6 is covered by tampered ciphertext, mismatched address, unknown version and ambiguous-backup files.

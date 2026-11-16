@@ -7,6 +7,10 @@ interface ImportMetaEnv {
   readonly VITE_AI_CREDITS_FUNDING_VAULT_ADDRESS?: string
   readonly VITE_AI_CREDITS_VAULT_ADDRESS?: string
   readonly VITE_AI_CREDITS_GOODID_ADDRESS?: string
+  readonly VITE_PASSKEY_GOOGLE_CLIENT_ID?: string
+  readonly VITE_PASSKEY_ICLOUD_CONTAINER_ID?: string
+  readonly VITE_PASSKEY_ICLOUD_API_TOKEN?: string
+  readonly VITE_PASSKEY_ICLOUD_ENVIRONMENT?: string
 }
 
 interface ImportMeta {
