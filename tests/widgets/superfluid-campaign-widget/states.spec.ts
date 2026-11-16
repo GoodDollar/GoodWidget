@@ -26,7 +26,7 @@ const STORY_IDS = {
   shadowRootTooltip:
     '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--shadow-root-tooltip&viewMode=story',
   leaderboardApiContract:
-    '/iframe.html?id=widgets-superfluidcampaignwidget-api-contracts--leaderboard-api-contract&viewMode=story',
+    '/iframe.html?id=qa-superfluidcampaignwidget-api-contracts--leaderboard-api-contract&viewMode=story',
   supTotalsRequestFailed:
     '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--sup-totals-request-failed&viewMode=story',
   supTotalsLoading:
@@ -36,7 +36,7 @@ const STORY_IDS = {
   supTotalsPopulated:
     '/iframe.html?id=qa-superfluidcampaignwidget-runtime-fixtures--sup-totals-populated&viewMode=story',
   supTotalsProgramsApiContract:
-    '/iframe.html?id=widgets-superfluidcampaignwidget-api-contracts--sup-totals-programs-api-contract&viewMode=story',
+    '/iframe.html?id=qa-superfluidcampaignwidget-api-contracts--sup-totals-programs-api-contract&viewMode=story',
 } as const
 
 // Top-ranked account address (truncated) for each campaign in LEADERBOARD_DATA_FIXTURES

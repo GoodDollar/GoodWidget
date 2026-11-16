@@ -1,5 +1,6 @@
 import { Canvas, Meta } from '@storybook/blocks';
 import * as ShowcaseStories from './AiCreditsWidgetShowcase.stories';
+import * as ThemeOverridesStories from './AiCreditsWidgetThemeOverrides.stories';
 import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/DocsLayout';
 
 <Meta of={ShowcaseStories} />
@@ -10,13 +11,6 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
   lead="Buy AI coding credits with G$ on Celo. Credits settle on Base and are redeemable with AntSeed-compatible AI coding tools like Cursor and Cline."
 >
   <DocsSection
-    title="Interactive showcase (mock backend)"
-    description="Uses your browser wallet (`window.ethereum`, e.g. Rabby) with the in-memory mock backend — no local antseed worker required."
-  >
-    <Canvas of={ShowcaseStories.MockBackend} />
-  </DocsSection>
-
-  <DocsSection
     title="Injected wallet"
     description="Uses your browser wallet (`window.ethereum`, e.g. Rabby), `VITE_AI_CREDITS_BACKEND_URL`, `VITE_AI_CREDITS_BASE_RPC_URL`, `VITE_AI_CREDITS_CELO_RPC_URL` (optional), `VITE_AI_CREDITS_FUNDING_VAULT_ADDRESS`, `VITE_AI_CREDITS_VAULT_ADDRESS`, and optional `VITE_AI_CREDITS_GOODID_ADDRESS` from `examples/storybook/.env.local`. GoodID verification uses on-chain `getWhitelistedRoot` via the Celo RPC (defaults to mainnet GoodID contract)."
   >
@@ -24,15 +18,31 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
   </DocsSection>
 
   <DocsSection
-    title="QA coverage"
-    description="Use the QA demo when you need reproducible fixture states, Playwright screenshots, or fixture-driven debugging."
+    title="Theme overrides"
+    description="Play around with the primitive Card/Button theme overrides using the controls below. Both are demonstrated on the quote-ready fixture state, which renders the balance card and the primary Buy CTA button together in a single view."
   >
-    <DocsCard
-      title="Open the QA fixture demo"
-      href="?path=/story/qa-aicreditswidget-runtime-fixtures--disconnected"
-    >
-      All QA fixture states as deterministic mock stories — ideal for automation and debugging.
-    </DocsCard>
+    <Canvas of={ThemeOverridesStories.Playground} />
+  </DocsSection>
+
+  <DocsSection
+    title="QA coverage"
+    description="Use the QA demo when you need reproducible fixture states, Playwright screenshots, or fixture-driven debugging. The in-memory mock-backend story (browser wallet, no local antseed worker required) now lives here too — it is a deterministic fixture, not a live product-facing showcase, so it belongs alongside the other QA states rather than in Showcase."
+  >
+    <DocsGrid>
+      <DocsCard
+        title="Open the QA fixture demo"
+        href="?path=/story/qa-aicreditswidget-runtime-fixtures--disconnected"
+      >
+        All QA fixture states as deterministic mock stories — ideal for automation and debugging.
+      </DocsCard>
+      <DocsCard
+        title="Open the mock-backend story"
+        href="?path=/story/qa-aicreditswidget-runtime-fixtures--mock-backend"
+      >
+        Browser wallet (`window.ethereum`) with the in-memory mock backend — no local antseed worker
+        required.
+      </DocsCard>
+    </DocsGrid>
   </DocsSection>
 
   <DocsSection

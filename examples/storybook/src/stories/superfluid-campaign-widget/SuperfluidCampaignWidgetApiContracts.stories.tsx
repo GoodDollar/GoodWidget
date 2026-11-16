@@ -3,7 +3,7 @@ import { SuperfluidCampaignWidget } from '@goodwidget/superfluid-campaign-widget
 import { LiveDataNoWalletStory } from '../helpers/superfluidCampaignWidgetStories'
 
 const meta: Meta<typeof SuperfluidCampaignWidget> = {
-  title: 'Widgets/SuperfluidCampaignWidget/API Contracts',
+  title: 'QA/SuperfluidCampaignWidget/API Contracts',
   component: SuperfluidCampaignWidget,
   tags: ['integration'],
   parameters: { layout: 'padded' },
