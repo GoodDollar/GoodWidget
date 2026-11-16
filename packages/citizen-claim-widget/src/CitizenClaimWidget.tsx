@@ -604,6 +604,7 @@ interface CitizenClaimShellProps {
   onClaimSuccess?: (detail: CitizenClaimWidgetSuccessDetail) => void
   onClaimError?: (detail: CitizenClaimWidgetErrorDetail) => void
   initialTab?: CitizenClaimTab
+  hideHeader?: boolean
 }
 
 function CitizenClaimShell({
@@ -614,6 +615,7 @@ function CitizenClaimShell({
   onClaimSuccess,
   onClaimError,
   initialTab,
+  hideHeader = false,
 }: CitizenClaimShellProps) {
   const { chainId } = useWallet()
   // Initial tab only — not synced after mount, matching existing internal-state pattern.
@@ -630,6 +632,7 @@ function CitizenClaimShell({
         activeTab={activeTab}
         onTabChange={(tabId: string) => setActiveTab(tabId as CitizenClaimTab)}
         chainId={chainId ?? fallbackChainId ?? SupportedChains.XDC}
+        withConnectionStatus={!hideHeader}
       />
       {activeTab === 'claim' ? (
         <>
@@ -681,6 +684,7 @@ export function CitizenClaimWidget({
   onClaimSuccess,
   onClaimError,
   initialTab,
+  hideHeader = false,
   addressOverride,
   chainIdOverride,
   connectOverride,
@@ -707,6 +711,7 @@ export function CitizenClaimWidget({
         onClaimSuccess={onClaimSuccess}
         onClaimError={onClaimError}
         initialTab={initialTab}
+        hideHeader={hideHeader}
       />
       <WidgetVersion name="Citizen Claim" version={version} />
     </GoodWidgetProvider>

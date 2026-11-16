@@ -140,6 +140,8 @@ export interface CitizenClaimWidgetChainClaimResult {
 export interface CitizenClaimWidgetProps {
   provider?: unknown
   environment?: CitizenClaimWidgetEnvironment
+  /** Hide the heading and network badge while retaining the widget tabs. Defaults to false. */
+  hideHeader?: boolean
   /**
    * Fallback chain id shown only until the live wallet chain resolves via
    * `provider`/`chainIdOverride`, or while disconnected. Once a live chain is

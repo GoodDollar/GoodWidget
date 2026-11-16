@@ -143,6 +143,8 @@ export interface AiCreditsPayErrorDetail {
 export interface AiCreditsWidgetProps {
   provider?: unknown
   connectOverride?: () => Promise<void>
+  /** Hide the heading, network badge, and wallet controls while retaining the widget tabs. Defaults to false. */
+  hideHeader?: boolean
   /**
    * Shows the connected-wallet chip (address, and disconnect when the host supplies
    * `disconnectOverride`) in the widget header.

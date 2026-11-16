@@ -15,17 +15,18 @@ import type {
 interface StreamingWidgetRuntimeProps {
   environment: StreamingWidgetProps['environment']
   apiKey?: string
+  hideHeader?: boolean
 }
 
-function StreamingWidgetRuntime({ environment, apiKey }: StreamingWidgetRuntimeProps) {
+function StreamingWidgetRuntime({ environment, apiKey, hideHeader }: StreamingWidgetRuntimeProps) {
   const adapter = useStreamingAdapter({ environment, apiKey })
 
-  return <StreamingWidgetView adapter={adapter} />
+  return <StreamingWidgetView adapter={adapter} hideHeader={hideHeader} />
 }
 
 export interface StreamingWidgetPreviewProps extends Pick<
   StreamingWidgetProps,
-  'themeOverrides' | 'config' | 'defaultTheme'
+  'themeOverrides' | 'config' | 'defaultTheme' | 'hideHeader'
 > {
   adapter: StreamingWidgetAdapterResult
   initialTab?: StreamingWidgetTab
@@ -37,6 +38,7 @@ export function StreamingWidgetPreview({
   adapter,
   initialTab,
   initialStreamsFormOpen,
+  hideHeader,
   themeOverrides,
   config,
   defaultTheme = 'dark',
@@ -47,6 +49,7 @@ export function StreamingWidgetPreview({
         adapter={adapter}
         initialTab={initialTab}
         initialStreamsFormOpen={initialStreamsFormOpen}
+        hideHeader={hideHeader}
       />
       <ToastContainer />
       <WidgetVersion name="Streaming" version={version} />
@@ -56,6 +59,12 @@ export function StreamingWidgetPreview({
 
 export function StreamingWidget({
   provider,
+  addressOverride,
+  chainIdOverride,
+  connectOverride,
+  switchChainOverride,
+  availableChainIdsOverride,
+  hideHeader = false,
   environment = 'production',
   themeOverrides,
   config,
@@ -65,11 +74,16 @@ export function StreamingWidget({
   return (
     <GoodWidgetProvider
       provider={provider as EIP1193Provider | undefined}
+      addressOverride={addressOverride}
+      chainIdOverride={chainIdOverride}
+      connectOverride={connectOverride}
+      switchChainOverride={switchChainOverride}
+      availableChainIdsOverride={availableChainIdsOverride}
       config={config}
       themeOverrides={themeOverrides}
       defaultTheme={defaultTheme}
     >
-      <StreamingWidgetRuntime environment={environment} apiKey={apiKey} />
+      <StreamingWidgetRuntime environment={environment} apiKey={apiKey} hideHeader={hideHeader} />
       <ToastContainer />
       <WidgetVersion name="Streaming" version={version} />
     </GoodWidgetProvider>

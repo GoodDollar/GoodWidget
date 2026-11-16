@@ -1,4 +1,5 @@
 import type { GoodWidgetConfig, GoodWidgetThemeOverrides } from '@goodwidget/ui'
+import type { GoodWidgetProviderProps } from '@goodwidget/core'
 import type { Address } from 'viem'
 
 // ---------------------------------------------------------------------------
@@ -215,8 +216,13 @@ export interface StreamingWidgetAdapterResult {
 // ---------------------------------------------------------------------------
 // Public component props
 // ---------------------------------------------------------------------------
-export interface StreamingWidgetProps {
+export interface StreamingWidgetProps extends Pick<
+  GoodWidgetProviderProps,
+  'addressOverride' | 'chainIdOverride' | 'connectOverride' | 'switchChainOverride' | 'availableChainIdsOverride'
+> {
   provider?: unknown
+  /** Hide the widget title and network badge when embedded in a host shell. Defaults to false. */
+  hideHeader?: boolean
   environment?: StreamingWidgetEnvironment
   themeOverrides?: GoodWidgetThemeOverrides
   config?: GoodWidgetConfig

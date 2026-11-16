@@ -1,18 +1,13 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   AiCreditsWidget,
   createBackendClient,
   DEFAULT_DISCOUNT_CONFIG,
   type DiscountConfig,
 } from '@goodwidget/ai-credits-widget'
-import type { EIP1193Provider } from '@goodwidget/core'
 import {
   DefaultAppKitProvider,
-  DEFAULT_APPKIT_NETWORKS,
-  useAppKit,
-  useAppKitAccount,
-  useAppKitNetwork,
-  useAppKitProvider,
+  useAppKitSession,
   useDisconnect,
 } from '@goodwidget/embed/appkit-provider'
 import {
@@ -35,9 +30,6 @@ import {
   defaultConfig,
 } from '@goodwidget/ui'
 import { TamaguiProvider } from '@tamagui/core'
-
-const SWITCH_CHAIN_MANUAL_SELECTION_ERROR =
-  'Select the network in the wallet dialog, then try again.'
 
 const ANTSEED_API_DOCS = 'https://antseed.com/docs/guides/using-the-api/'
 const ANTSEED_SECURITY_DOCS = 'https://antseed.com/docs/security/'
@@ -70,79 +62,21 @@ function useDiscountConfig(backendUrl: string | undefined): DiscountConfig {
 }
 
 function ReownAiCreditsWidget() {
-  const { open } = useAppKit()
+  const session = useAppKitSession()
   const { disconnect } = useDisconnect()
-  const { address: appKitAddress, status: accountStatus } = useAppKitAccount()
-  const { walletProvider } = useAppKitProvider<EIP1193Provider | undefined>('eip155')
-  const { chainId, switchNetwork, approvedCaipNetworkIds } = useAppKitNetwork()
-  const appKitAddressRef = useRef(appKitAddress)
-  appKitAddressRef.current = appKitAddress
-
-  // AppKit reports no address both while restoring a prior session and once it
-  // has settled on "no wallet". Only the second is a real override, so during
-  // the unresolved window these stay undefined and the core provider's own
-  // EIP-1193 tracking covers the gap.
-  //
-  // A restored 'connected' also needs its provider before it counts. AppKit
-  // rehydrates the last account from storage without checking the wallet behind
-  // it, so that address alone can describe a locked wallet — and the widget can
-  // only catch that by asking the provider for its accounts. Handing down an
-  // address with no provider to verify it against is the one combination that
-  // renders as a healthy session nothing can disprove.
-  const isAccountResolved =
-    (accountStatus === 'connected' && Boolean(walletProvider)) || accountStatus === 'disconnected'
-
-  // switchNetwork takes a network descriptor, not a chain id.
-  const appKitNetworksByChainId = useMemo(
-    () => new Map(DEFAULT_APPKIT_NETWORKS.map((network) => [Number(network.id), network])),
-    [],
-  )
-
-  // CAIP ids look like "eip155:42220"; undefined means AppKit has not reported
-  // yet, which is "no restriction known" rather than "nothing available".
-  const availableChainIds = useMemo(
-    () =>
-      approvedCaipNetworkIds
-        ? approvedCaipNetworkIds
-            .map((caipId) => Number(caipId.split(':')[1]))
-            .filter((id) => Number.isFinite(id))
-        : null,
-    [approvedCaipNetworkIds],
-  )
 
   return (
     <AiCreditsWidget
-      provider={walletProvider}
-      connectOverride={async () => {
-        await open({ view: 'Connect' })
-
-        if (!appKitAddressRef.current) {
-          throw new Error('wallet_connect_cancelled')
-        }
-      }}
+      provider={session.provider}
+      connectOverride={session.connectOverride}
       showWalletControls
       disconnectOverride={async () => {
         await disconnect()
       }}
-      addressOverride={isAccountResolved ? (appKitAddress ?? null) : undefined}
-      chainIdOverride={isAccountResolved ? (chainId == null ? null : Number(chainId)) : undefined}
-      availableChainIdsOverride={availableChainIds}
-      switchChainOverride={async (targetChainId) => {
-        const targetNetwork = appKitNetworksByChainId.get(targetChainId)
-        // The modal only lets the user attempt the switch — it never confirms
-        // one happened — so this throws rather than resolves. Resolving would
-        // report success for a network the wallet may still not be on.
-        if (!targetNetwork) {
-          await open({ view: 'Networks' })
-          throw new Error(SWITCH_CHAIN_MANUAL_SELECTION_ERROR)
-        }
-        try {
-          await switchNetwork(targetNetwork)
-        } catch {
-          await open({ view: 'Networks' })
-          throw new Error(SWITCH_CHAIN_MANUAL_SELECTION_ERROR)
-        }
-      }}
+      addressOverride={session.addressOverride}
+      chainIdOverride={session.chainIdOverride}
+      availableChainIdsOverride={session.availableChainIdsOverride}
+      switchChainOverride={session.switchChainOverride}
       backendUrl={import.meta.env.VITE_AI_CREDITS_BACKEND_URL}
       baseRpcUrl={import.meta.env.VITE_AI_CREDITS_BASE_RPC_URL}
       celoRpcUrl={import.meta.env.VITE_AI_CREDITS_CELO_RPC_URL}

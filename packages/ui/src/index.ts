@@ -95,6 +95,8 @@ export { CalendarDays, UserPlus, Megaphone, Waves, HandCoins, ShoppingCart } fro
 // on widget stat cards. See components/StatIcons.ts.
 export { Coins, Repeat, Gift, Wallet, TrendingUp } from './components/StatIcons'
 
+export { Sparkles, MoreHorizontal } from './components/EcosystemIcons'
+
 // Dialog — new component backed by imperative store
 export {
   GoodWidgetDialog,
@@ -162,6 +164,18 @@ export { TransactionButton } from './components-test/TransactionButton'
 export { ChainBadge, getChainDisplayName } from './components-test/ChainBadge'
 
 // Patterns / Composites
+export { BottomAppBar } from './components/BottomAppBar'
+export type { BottomAppBarProps } from './components/BottomAppBar'
+export { BottomBarItem } from './components/BottomBarItem'
+export type { BottomBarItemProps } from './components/BottomBarItem'
+export { EcosystemHeader } from './components/EcosystemHeader'
+export type { EcosystemHeaderProps } from './components/EcosystemHeader'
+export { WidgetListRow } from './components/WidgetListRow'
+export type { WidgetListRowProps } from './components/WidgetListRow'
+export { WidgetUnavailable } from './components/WidgetUnavailable'
+export type { WidgetUnavailableProps } from './components/WidgetUnavailable'
+export { WidgetDrawer } from './components/WidgetDrawer'
+export type { WidgetDrawerProps } from './components/WidgetDrawer'
 export { MiniAppShell } from './components/MiniAppShell'
 export { CircularActionButton } from './components/CircularActionButton'
 export type { CircularActionButtonProps } from './components/CircularActionButton'

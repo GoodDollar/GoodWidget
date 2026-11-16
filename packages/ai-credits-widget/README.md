@@ -10,6 +10,14 @@ For a Custom Element, import `@goodwidget/ai-credits-widget/register`. This impo
 Node.js and Next.js server evaluation; it registers `<ai-credits-widget>` only in a browser. Set
 the injected EIP-1193 provider and optional `themeOverrides` as element properties.
 
+When embedding in a shell with its own header, pass `hideHeader={true}` to hide the
+GoodDollar heading, network badge, and wallet controls while retaining the widget tabs.
+It defaults to `false` and takes precedence over `showWalletControls`; the latter still
+defaults to `false`. Custom elements also accept the `hideHeader` JavaScript property.
+
+Run the scoped header regression tests from the repository root with
+`pnpm exec playwright test --config packages/ai-credits-widget/tests/playwright.config.ts`.
+
 Production requires `backendUrl`. The widget keeps its Celo and Base RPC and contract defaults
 internally and fails closed with a backend-unavailable state when the production backend is absent.
 Only the `development` environment may use the built-in mock backend and chain clients.

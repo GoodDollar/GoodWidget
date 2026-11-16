@@ -1,6 +1,7 @@
 import { createMiniAppElement } from '@goodwidget/embed'
 import { AiCreditsWidget } from './AiCreditsWidget'
 import type React from 'react'
+import type { AiCreditsWidgetProps } from './widgetRuntimeContract'
 
 /**
  * A Custom Element class wrapping the AiCreditsWidget React component.
@@ -26,6 +27,7 @@ const AiCreditsWidgetElementBase = createMiniAppElement(
     props: {
       backendUrl: 'property',
       fundingVaultAddress: 'property',
+      hideHeader: 'property',
     },
     events: ['pay-success', 'pay-error'],
   },
@@ -34,4 +36,5 @@ const AiCreditsWidgetElementBase = createMiniAppElement(
 export class AiCreditsWidgetElement extends AiCreditsWidgetElementBase {
   declare backendUrl: string | undefined
   declare fundingVaultAddress: string | undefined
+  declare hideHeader: AiCreditsWidgetProps['hideHeader']
 }
