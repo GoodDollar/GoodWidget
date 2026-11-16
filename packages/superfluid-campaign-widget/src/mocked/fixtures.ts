@@ -67,9 +67,9 @@ const LEADERBOARD_DATA_FIXTURES: Record<
   number,
   NonNullable<ReturnType<CampaignLeaderboardAdapter>['data']>
 > = {
-  701: {
+  711: {
     summary: {
-      campaignId: 701,
+      campaignId: 711,
       name: 'GoodDollar Actions',
       slug: 's7-gooddollar',
       totalPoints: 128450,
@@ -110,9 +110,9 @@ const LEADERBOARD_DATA_FIXTURES: Record<
       hasPrevPage: false,
     },
   },
-  710: {
+  712: {
     summary: {
-      campaignId: 710,
+      campaignId: 712,
       name: 'Ecosystem Contributions',
       slug: 's7-gooddollar-2',
       totalPoints: 84200,
@@ -161,8 +161,8 @@ const SUP_TOTALS_FIXTURES: Record<
   number,
   NonNullable<ReturnType<ProgramSupTotalsAdapter>['data']>
 > = {
-  701: { totalAllocated: 470772.75, totalClaimed: 128940, totalMembers: 712 },
-  710: { totalAllocated: 874292.25, totalClaimed: 262450, totalMembers: 318 },
+  711: { totalAllocated: 470772.75, totalClaimed: 128940, totalMembers: 712 },
+  712: { totalAllocated: 874292.25, totalClaimed: 262450, totalMembers: 318 },
 }
 
 /** Named leaderboard scenarios exercised by Storybook and Playwright. */

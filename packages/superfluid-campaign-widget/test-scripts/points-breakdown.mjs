@@ -8,8 +8,8 @@
  *   node points-breakdown.mjs <campaignId> <walletAddress>
  *
  * Examples:
- *   node points-breakdown.mjs 606
- *   node points-breakdown.mjs 606 0x1234567890abcdef1234567890abcdef12345678
+ *   node points-breakdown.mjs 711
+ *   node points-breakdown.mjs 711 0x1234567890abcdef1234567890abcdef12345678
  */
 
 const campaignInput = process.argv[2]
@@ -20,7 +20,7 @@ if (/^0x[a-fA-F0-9]{40}$/.test(campaignInput ?? '')) {
   console.error(
     'The first argument must be a numeric Points API campaign ID, not a GDA pool address.',
   )
-  console.error('For the GoodDollar campaign, use: node points-breakdown.mjs 606 [walletAddress]')
+  console.error('For the GoodDollar campaign, use: node points-breakdown.mjs 711 [walletAddress]')
   process.exit(1)
 }
 

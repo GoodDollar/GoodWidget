@@ -40,7 +40,7 @@ const STORY_IDS = {
 } as const
 
 // Top-ranked account address (truncated) for each campaign in LEADERBOARD_DATA_FIXTURES
-// (superfluidCampaignWidgetStories.tsx) — 701 = GoodDollar actions (default tab), 710 = Ecosystem actions.
+// (superfluidCampaignWidgetStories.tsx) — 711 = GoodDollar actions (default tab), 712 = Ecosystem actions.
 const GOOD_DOLLAR_ACTIONS_TOP_ADDRESS = '0x1a2b...9a0b'
 const ECOSYSTEM_FUNDING_ACTIONS_TOP_ADDRESS = '0x4d5e...2d3e'
 
@@ -308,7 +308,7 @@ test("SuperfluidCampaignWidget campaign leaderboard: switching tabs shows each c
 }) => {
   await gotoStory(page, STORY_IDS.leaderboardPopulated)
 
-  // Default tab (GoodDollar actions, campaignId 701)
+  // Default tab (GoodDollar actions, campaignId 711)
   await expect(page.getByText(GOOD_DOLLAR_ACTIONS_TOP_ADDRESS)).toBeVisible()
   await expect(page.getByText(ECOSYSTEM_FUNDING_ACTIONS_TOP_ADDRESS)).not.toBeVisible()
 
@@ -507,7 +507,7 @@ test('SuperfluidCampaignWidget enriches a leaderboard page from per-account poin
   await page.route('**/points/campaign?*', async (route) => {
     await route.fulfill({
       json: {
-        campaignId: 701,
+        campaignId: 711,
         name: 'GoodDollar Actions',
         slug: 's7-gooddollar',
         totalPoints: 12,
@@ -572,7 +572,7 @@ test('SuperfluidCampaignWidget marks AI Credits actions done from the AntSeed po
   page,
 }) => {
   const account = '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-  const ecosystemCampaignId = '710'
+  const ecosystemCampaignId = '712'
 
   await page.route('**/points/campaign?*', async (route) => {
     await route.fulfill({
@@ -643,7 +643,7 @@ test('SuperfluidCampaignWidget marks AI Credits actions done from the AntSeed po
   await expect(page.getByLabel('Stream to a Community Pool: not done')).toBeVisible()
 })
 
-test('SuperfluidCampaignWidget SUP distribution and members: populated from the mocked programs client for campaign 701', async ({
+test('SuperfluidCampaignWidget SUP distribution and members: populated from the mocked programs client for campaign 711', async ({
   page,
 }) => {
   await gotoStory(page, STORY_IDS.supTotalsPopulated)
@@ -653,7 +653,7 @@ test('SuperfluidCampaignWidget SUP distribution and members: populated from the 
   await expect(page.getByText('128,940 / 470,772.75 SUP')).toBeVisible()
   // The programs API fixture adapter supplies the member count.
   await expect(page.getByText('712 participants')).toBeVisible()
-  // 710 (Ecosystem actions) is served by the same mocked programs client.
+  // 712 (Ecosystem actions) is served by the same mocked programs client.
   await expect(page.getByText('262,450 / 874,292.25 SUP')).toBeVisible()
 
   await page.screenshot({
@@ -690,17 +690,17 @@ test('SuperfluidCampaignWidget SUP totals: no program renders empty totals', asy
   await expect(page.getByText('0 / 0 SUP')).toHaveCount(2)
 })
 
-test('SuperfluidCampaignWidget SUP distribution and members sourced from the programs API for campaign 701', async ({
+test('SuperfluidCampaignWidget SUP distribution and members sourced from the programs API for campaign 711', async ({
   page,
 }) => {
-  // Mock the programs API endpoint with a minimal superjson envelope for campaign 701.
+  // Mock the programs API endpoint with a minimal superjson envelope for campaign 711.
   await page.route('https://claim.superfluid.org/api/programs', async (route) => {
     await route.fulfill({
       json: {
         json: [
           {
             program: {
-              id: 701,
+              id: 711,
               onchainInfo: {
                 totalAllocated: '50000000000000000000000',
                 totalClaimed: '1000000000000000000',

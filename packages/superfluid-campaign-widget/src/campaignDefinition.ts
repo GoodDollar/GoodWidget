@@ -44,8 +44,8 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
   pools: [
     {
       id: 'good-dollar-actions',
-      // Season 7 "GoodDollar actions" program (slug s7-gooddollar).
-      campaignId: 701,
+      // Season 7 "GoodDollar actions" program (slug s7-gooddollar-actions).
+      campaignId: 711,
       label: 'GoodDollar actions',
       actions: [
         {
@@ -85,8 +85,8 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
     },
     {
       id: 'ecosystem-funding-actions',
-      // Season 7 "Ecosystem actions" program (slug s7-gooddollar-2).
-      campaignId: 710,
+      // Season 7 "Ecosystem actions" program (slug s7-gooddollar-ecosystem).
+      campaignId: 712,
       label: 'Ecosystem actions',
       actions: [
         // Buy and Subscribe lead the Ecosystem pool, ahead of the other actions.

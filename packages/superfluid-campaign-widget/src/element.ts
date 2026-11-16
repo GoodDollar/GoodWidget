@@ -16,7 +16,7 @@ import type { SuperfluidCampaignWidgetProps } from './widgetRuntimeContract'
  *   const el = document.querySelector('gw-superfluid-campaign')
  *   el.provider = window.ethereum
  *   el.initialView = 'leaderboard'
- *   el.poolAddresses = { 701: '0xYourPoolAddress' }
+ *   el.poolAddresses = { 711: '0xYourPoolAddress' }
  *   el.themeOverrides = { tokens: { color: { primary: '#00AFFE' } } }
  */
 const SuperfluidCampaignWidgetElementBase = createMiniAppElement(
