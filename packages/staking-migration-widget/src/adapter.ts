@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useWallet } from '@goodwidget/core'
-import type { EIP1193Provider } from '@goodwidget/core'
 import {
-  createPublicClient,
+  createViemFallbackClient,
+  useWallet,
+  type EIP1193Provider,
+  type ViemFallbackStorage,
+} from '@goodwidget/core'
+import {
   createWalletClient,
   custom,
   formatUnits,
-  http,
   parseAbi,
   type Address,
   type Chain,
@@ -22,6 +24,22 @@ import {
   type StakingMigrationWidgetAdapterResult,
   type StakingMigrationWidgetState,
 } from './widgetRuntimeContract'
+
+function getRpcCacheStorage(): ViemFallbackStorage {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) return window.localStorage
+  } catch {
+    // Access itself throws in some privacy modes.
+  }
+  return {}
+}
+
+export function createStakingMigrationFallbackClient() {
+  return createViemFallbackClient(getRpcCacheStorage(), {
+    chainIds: [FUSE_CHAIN_ID],
+    rank: false,
+  })
+}
 
 const MIGRATION_STEPS: MigrationStep[] = ['unstake', 'bridge sent', 'bridge received', 'stake']
 
@@ -452,9 +470,9 @@ export function useStakingMigrationAdapter({
 
   const publicClient = useMemo(
     () =>
-      createPublicClient({
+      createStakingMigrationFallbackClient().createPublicClient({
         chain: FUSE_CHAIN,
-        transport: http(FUSE_CHAIN.rpcUrls.default.http[0]),
+        fallbackRpcs: [...FUSE_CHAIN.rpcUrls.default.http],
       }),
     [],
   )
@@ -629,14 +647,15 @@ export function useStakingMigrationAdapter({
     }))
 
     try {
+      const client = await publicClient
       const [stakedAmountRaw, stakingTokenDecimals] = await Promise.all([
-        publicClient.readContract({
+        client.readContract({
           address: FUSE_STAKING_CONTRACT_ADDRESS,
           abi: fuseStakingAbi,
           functionName: 'balanceOf',
           args: [address as Address],
         }),
-        publicClient.readContract({
+        client.readContract({
           address: FUSE_STAKING_CONTRACT_ADDRESS,
           abi: fuseStakingAbi,
           functionName: 'decimals',
@@ -740,6 +759,7 @@ export function useStakingMigrationAdapter({
     }))
 
     try {
+      const client = await publicClient
       const approvalTxHash = await walletClient.writeContract({
         address: FUSE_STAKING_CONTRACT_ADDRESS,
         abi: fuseStakingAbi,
@@ -747,7 +767,7 @@ export function useStakingMigrationAdapter({
         args: [resolvedConfig.migrationOperator!, state.stakedAmountRaw],
       })
 
-      const approvalReceipt = await publicClient.waitForTransactionReceipt({
+      const approvalReceipt = await client.waitForTransactionReceipt({
         hash: approvalTxHash,
       })
 
