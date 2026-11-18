@@ -19,6 +19,9 @@ export interface ChartTooltipRow {
 
 export interface ChartTooltipProps {
   header: string
+  /** Optional second line under the header (e.g. the metric name or the period),
+   * rendered in regular weight and the placeholder color. Omitted = no extra line. */
+  subheader?: string
   rows: ChartTooltipRow[]
   left: number
   top: number
@@ -68,12 +71,14 @@ export function estimateChartTooltipWidthPx(
   header: string,
   rows: ChartTooltipRow[],
   chartWidthPx: number,
+  subheader?: string,
 ): number {
   // Header renders bold (see ChartTooltipHeaderText) — matching fontWeight
   // keeps this estimate consistent with the glyph widths that actually render.
   const headerWidthPx = estimateTextWidthPx(header, TOOLTIP_HEADER_FONT_SIZE_PX, undefined, '700')
+  const subheaderWidthPx = subheader ? estimateTextWidthPx(subheader, TOOLTIP_HEADER_FONT_SIZE_PX) : 0
   const widestRowWidthPx = rows.reduce((widest, row) => Math.max(widest, estimateRowContentWidthPx(row)), 0)
-  const contentWidthPx = Math.max(headerWidthPx, widestRowWidthPx)
+  const contentWidthPx = Math.max(headerWidthPx, subheaderWidthPx, widestRowWidthPx)
   const widthPx = contentWidthPx + TOOLTIP_PADDING_HORIZONTAL_PX * 2 + TOOLTIP_BORDER_WIDTH_PX * 2
   const maxWidthPx = Math.max(TOOLTIP_MIN_WIDTH_PX, chartWidthPx * TOOLTIP_MAX_WIDTH_RATIO)
 
@@ -104,6 +109,16 @@ const ChartTooltipHeaderText = createComponent(TamaguiText, {
   color: '$color',
 })
 
+/** Optional line under the header — same size tier as the header, regular
+ * weight and muted color so it stays subordinate to it. */
+const ChartTooltipSubheaderText = createComponent(TamaguiText, {
+  name: 'ChartTooltipSubheaderText',
+  fontFamily: '$body',
+  fontWeight: '400',
+  fontSize: TOOLTIP_HEADER_FONT_SIZE_PX,
+  color: '$placeholderColor',
+})
+
 /** Series name — shrinks and ellipsizes first when a row doesn't fit. */
 const ChartTooltipLabelText = createComponent(TamaguiText, {
   name: 'ChartTooltipLabelText',
@@ -130,8 +145,8 @@ const ChartTooltipDot = createComponent(YStack, {
   flexShrink: 0,
 })
 
-export function ChartTooltip({ header, rows, left, top, chartWidthPx }: ChartTooltipProps) {
-  const widthPx = estimateChartTooltipWidthPx(header, rows, chartWidthPx)
+export function ChartTooltip({ header, subheader, rows, left, top, chartWidthPx }: ChartTooltipProps) {
+  const widthPx = estimateChartTooltipWidthPx(header, rows, chartWidthPx, subheader)
   // Space left for label text once the frame's padding and border, the dot,
   // both gaps, and the full (never-truncated) value are accounted for —
   // matches estimateRowContentWidthPx plus the border-box border itself.
@@ -147,6 +162,11 @@ export function ChartTooltip({ header, rows, left, top, chartWidthPx }: ChartToo
       <ChartTooltipHeaderText numberOfLines={1} ellipsizeMode="tail">
         {header}
       </ChartTooltipHeaderText>
+      {subheader ? (
+        <ChartTooltipSubheaderText numberOfLines={1} ellipsizeMode="tail">
+          {subheader}
+        </ChartTooltipSubheaderText>
+      ) : null}
       {rows.map((row) => {
         const valueText = formatRowValueText(row.value)
         const labelMaxWidthPx = Math.max(
