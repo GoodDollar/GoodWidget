@@ -295,6 +295,27 @@ export const HoverWeekColumn: Story = {
   ),
 }
 
+/** `focusPointOnHover`: point at one dot and only that series shows (header = series, second line
+ * = week) while the others fade; point at a tie (Charlie and Delta, or Echo and Foxtrot, in the
+ * last week) and both are listed; point at empty space in a column and every series is listed. */
+export const FocusPointOnHover: Story = {
+  render: () => (
+    <LineAreaChart
+      data={weeklyData}
+      series={weeklySeriesDefs}
+      width={480}
+      tooltip={{
+        label: 'Score',
+        valueFormatter: exactNumber,
+        xFormatter: (x) => `Week of ${x}`,
+        sort: 'desc',
+      }}
+      focusPointOnHover
+      testID="LineAreaChart-focus-point"
+    />
+  ),
+}
+
 /** Controllable instance — edit args in the Controls panel. */
 export const Controllable: Story = {
   args: {

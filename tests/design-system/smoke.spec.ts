@@ -522,6 +522,54 @@ test('LineAreaChart/HoverWeekColumn story shows week header, metric line, exact 
   await screenshotStory(page, 'tests/design-system/test-results/story-lineareachart-hover-week.png')
 })
 
+/** Dots render series by series (Alpha..Golf), five weeks each, so a dot's index is seriesIndex * 5 + weekIndex. */
+async function hoverLineDot(page: Page, chart: ReturnType<ReturnType<typeof getStoryFrame>['getByTestId']>, dotIndex: number, offsetY = 0) {
+  const box = (await chart.locator('svg circle').nth(dotIndex).boundingBox())!
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 + offsetY)
+}
+
+async function countFadedSeries(chart: ReturnType<ReturnType<typeof getStoryFrame>['getByTestId']>) {
+  return chart.locator('svg g[opacity]').evaluateAll(
+    (groups) => groups.filter((g) => Number(g.getAttribute('opacity')) < 1).length,
+  )
+}
+
+test('LineAreaChart/FocusPointOnHover story focuses a lone dot, lists ties, and lists all between dots', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-lineareachart--focus-point-on-hover')
+  const frame = getStoryFrame(page)
+  const chart = frame.getByTestId('LineAreaChart-focus-point')
+  await expect(chart).toBeVisible()
+  await expect(chart.locator('svg circle')).toHaveCount(35)
+  const tooltip = chart.getByTestId('chart-tooltip')
+
+  // Lone dot: Golf, first week (1,100).
+  await hoverLineDot(page, chart, 6 * 5 + 0)
+  await expect(tooltip).toContainText('Golf')
+  await expect(tooltip).toContainText('Week of Oct 18-24')
+  await expect(tooltip).toContainText('Score')
+  await expect(tooltip).toContainText('1,100')
+  await expect(tooltip).not.toContainText('Alpha')
+  expect(await countFadedSeries(chart)).toBe(6)
+  await screenshotStory(page, 'tests/design-system/test-results/story-lineareachart-focus-lone.png')
+
+  // Exact tie: Charlie and Delta at 900 in the last week.
+  await hoverLineDot(page, chart, 2 * 5 + 4)
+  await expect(tooltip).toContainText('Week of Nov 15-21')
+  await expect(tooltip).toContainText('Charlie')
+  await expect(tooltip).toContainText('Delta')
+  await expect(tooltip).not.toContainText('Alpha')
+  expect(await countFadedSeries(chart)).toBe(5)
+  await screenshotStory(page, 'tests/design-system/test-results/story-lineareachart-focus-tie.png')
+
+  // Empty space in a column: 40 px above Golf's third-week dot (outside every dot's touch radius).
+  await hoverLineDot(page, chart, 6 * 5 + 2, -40)
+  await expect(tooltip).toContainText('Week of Nov 1-7')
+  for (const name of ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot', 'Golf']) {
+    await expect(tooltip).toContainText(name)
+  }
+  expect(await countFadedSeries(chart)).toBe(0)
+})
+
 test('DataTable/Default story renders wallets with sortable headers, bare and card variants', async ({ page }) => {
   // Tall enough that the card variant (wrapped below the bare table) renders
   // within the same full-page iframe capture instead of being cropped out.

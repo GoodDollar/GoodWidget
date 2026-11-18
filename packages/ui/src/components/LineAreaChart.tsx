@@ -92,6 +92,15 @@ export interface LineAreaChartProps {
   data: LineAreaChartDataItem[]
   title?: string
   tooltip?: LineAreaChartTooltipOptions
+  /**
+   * When the pointer is on a dot (within the dot's touch-target radius), the
+   * hover box shows only that series and every other series fades. Dots drawn
+   * on top of it (exact ties, or values close enough that the dots overlap)
+   * count as the same point: the box then lists just those series, in the
+   * week-column format. Elsewhere in the column the box lists every series as
+   * usual. Default false.
+   */
+  focusPointOnHover?: boolean
   series?: LineAreaChartSeriesDef[]
   type?: LineAreaChartInterpolation
   showArea?: boolean
@@ -561,6 +570,7 @@ function LineAreaChartContent({
   data,
   title,
   tooltip,
+  focusPointOnHover = false,
   series: seriesDefs,
   type = 'linear',
   showArea = false,
@@ -594,6 +604,8 @@ function LineAreaChartContent({
   // QA fix: hovering a point previously showed nothing. Tracks which
   // x-category index the pointer is nearest to, or null when not hovering.
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+  // Pointer position in plot coordinates; only tracked when focusPointOnHover is on.
+  const [hoveredPlotPoint, setHoveredPlotPoint] = useState<{ x: number; y: number } | null>(null)
   const colors = CHART_COLOR_KEYS.map((key) => resolveThemeColor(theme, key))
   const gridColor = resolveThemeColor(theme, 'colorDim')
   const axisLabelColor = resolveThemeColor(theme, 'placeholderColor')
@@ -782,6 +794,7 @@ function LineAreaChartContent({
   // conversion, only subtracting the left padding the plot area starts at.
   const handlePlotPointerMove = (event: {
     clientX: number
+    clientY?: number
     currentTarget: { getBoundingClientRect?: () => DOMRect }
   }) => {
     if (isEmpty || categoryCount === 0) return
@@ -790,15 +803,49 @@ function LineAreaChartContent({
     const plotX = event.clientX - rect.left - resolvedPadding.left
     const clampedFraction = Math.min(1, Math.max(0, plotX / Math.max(1, plotWidth)))
     setHoveredIndex(Math.round(clampedFraction * (categoryCount - 1)))
+    if (focusPointOnHover && event.clientY !== undefined) {
+      setHoveredPlotPoint({ x: plotX, y: event.clientY - rect.top - resolvedPadding.top })
+    }
   }
 
-  const handlePlotPointerLeave = () => setHoveredIndex(null)
+  const handlePlotPointerLeave = () => {
+    setHoveredIndex(null)
+    setHoveredPlotPoint(null)
+  }
+
+  // focusPointOnHover: the series whose dot the pointer is on, plus any series
+  // whose dot overlaps that one on screen (centers within two dot radii, which
+  // covers exact ties). Null = no dot under the pointer, so nothing is focused.
+  // The pointer counts as "on" a dot within the same radius pressable dots use
+  // as their touch target, so no separate hover distance is introduced.
+  const focusedSeriesKeys: Set<string> | null = (() => {
+    if (!focusPointOnHover || hoveredIndex === null || !hoveredPlotPoint) return null
+    const dots = resolvedSeriesList.flatMap((seriesItem) => {
+      const point = seriesItem.points[hoveredIndex]
+      if (!point || !isValidY(point.y)) return []
+      const scale = seriesItem === secondarySeries && secondaryScale ? secondaryScale : primaryScale
+      return [{ key: seriesItem.key, x: xPixelForIndex(hoveredIndex), y: yPixelForValue(point.y, scale) }]
+    })
+    const distanceToPointer = (dot: { x: number; y: number }) =>
+      Math.hypot(dot.x - hoveredPlotPoint.x, dot.y - hoveredPlotPoint.y)
+    const nearest = dots.reduce<(typeof dots)[number] | null>(
+      (best, dot) => (best === null || distanceToPointer(dot) < distanceToPointer(best) ? dot : best),
+      null,
+    )
+    if (!nearest || distanceToPointer(nearest) > DOT_TOUCH_TARGET_RADIUS_PX) return null
+    return new Set(
+      dots
+        .filter((dot) => Math.hypot(dot.x - nearest.x, dot.y - nearest.y) <= DOT_RADIUS_PX * 2)
+        .map((dot) => dot.key),
+    )
+  })()
 
   const tooltipValueFormatter = tooltip?.valueFormatter ?? yAxisFormatter
-  const tooltipHeader = hoveredIndex !== null ? (tooltip?.xFormatter ?? xAxisFormatter)(xCategories[hoveredIndex]) : ''
+  const weekHeader = hoveredIndex !== null ? (tooltip?.xFormatter ?? xAxisFormatter)(xCategories[hoveredIndex]) : ''
   const tooltipEntries =
     hoveredIndex !== null
       ? resolvedSeriesList.reduce<Array<{ row: ChartTooltipRow; y: number }>>((entries, seriesItem) => {
+          if (focusedSeriesKeys && !focusedSeriesKeys.has(seriesItem.key)) return entries
           const point = seriesItem.points[hoveredIndex]
           if (!point || !isValidY(point.y)) return entries
           const formatter =
@@ -813,14 +860,23 @@ function LineAreaChartContent({
         }, [])
       : []
   if (tooltip?.sort === 'desc') tooltipEntries.sort((a, b) => b.y - a.y)
-  const tooltipRows: ChartTooltipRow[] = tooltipEntries.map((entry) => entry.row)
+
+  // One focused dot: header = that series, second line = the x value, one row
+  // named by the metric label. Otherwise (no focus, or tied/overlapping dots)
+  // the column format: header = the x value, second line = the metric label.
+  const isSingleDotFocus = focusedSeriesKeys !== null && tooltipEntries.length === 1
+  const tooltipHeader = isSingleDotFocus ? tooltipEntries[0].row.label : weekHeader
+  const tooltipSubheader = isSingleDotFocus ? weekHeader : tooltip?.label
+  const tooltipRows: ChartTooltipRow[] = isSingleDotFocus
+    ? [{ ...tooltipEntries[0].row, label: tooltip?.label ?? tooltipEntries[0].row.label }]
+    : tooltipEntries.map((entry) => entry.row)
 
   // Center the tooltip on the hovered point, then clamp so it never overhangs
   // the chart frame. Width is estimated from this hover's actual header/rows
   // so the clamp matches what ChartTooltip itself will render at.
   const tooltipWidthPx =
     hoveredIndex !== null
-      ? estimateChartTooltipWidthPx(tooltipHeader, tooltipRows, viewBoxWidth, tooltip?.label)
+      ? estimateChartTooltipWidthPx(tooltipHeader, tooltipRows, viewBoxWidth, tooltipSubheader)
       : 0
   const maxTooltipLeftPx = Math.max(0, viewBoxWidth - tooltipWidthPx)
   const tooltipLeftPx =
@@ -1016,7 +1072,14 @@ function LineAreaChartContent({
                   const showSeriesDots = resolveShowDotsForSeries(showDots, validPointCount)
 
                   return (
-                    <G key={seriesItem.key}>
+                    <G
+                      key={seriesItem.key}
+                      // focusPointOnHover: series not under the pointer recede to the
+                      // grid lines' opacity, so the focused line stands out.
+                      opacity={
+                        focusedSeriesKeys && !focusedSeriesKeys.has(seriesItem.key) ? GRID_LINE_OPACITY : undefined
+                      }
+                    >
                       {showArea
                         ? runs.map((run, runIndex) => {
                             const areaPath = buildAreaPath(run, type, plotHeight)
@@ -1141,7 +1204,7 @@ function LineAreaChartContent({
           {!isEmpty && hoveredIndex !== null && tooltipRows.length > 0 ? (
             <ChartTooltip
               header={tooltipHeader}
-              subheader={tooltip?.label}
+              subheader={tooltipSubheader}
               rows={tooltipRows}
               left={tooltipLeftPx}
               top={resolvedPadding.top}
