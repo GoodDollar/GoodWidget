@@ -180,32 +180,44 @@ export function NextTaskModal({
   const effectiveRecommendedLabel = content.recommendedLabel ?? NEXT_TASK_RECOMMENDED_LABEL
   const effectiveSkipLabel = content.skipLabel ?? NEXT_TASK_SKIP_LABEL
 
-  // `height="full"` (80% snap point): inner scrolling ensures all actions remain reachable on small viewports and landscape.
+  // `height="fit"`: the sheet height follows its content up to the viewport cap, with inner scrolling for long copy or landscape.
   return (
-    <Drawer height="full" open={isVisible} onClose={() => dismissWithReason('overlay')}>
+    <Drawer height="fit" open={isVisible} onClose={() => dismissWithReason('overlay')}>
       <YStack
         alignItems="center"
-        gap="$3"
+        gap="$4"
         width="100%"
+        flex={1}
+        minHeight={0}
         maxHeight="100%"
-        paddingBottom="$4"
-        style={{ overflowY: 'auto' }}
+        paddingBottom="$2"
+        style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
       >
-        {effectiveStatusLabel ? (
-          <Badge type="success">
-            <Icon name="check" size="sm" />
-            <BadgeText>{effectiveStatusLabel}</BadgeText>
-          </Badge>
-        ) : null}
-        <Heading level={3} textAlign="center">
-          {effectiveHeadline}
-        </Heading>
-        <Text tone="secondary" center>
-          {effectiveSupportingCopy}
-        </Text>
-        <NextTaskCtaCard testID={testID} data-testid={testID}>
+        <YStack alignItems="center" gap="$2.5" width="100%">
+          {effectiveStatusLabel ? (
+            <Badge type="success">
+              <Icon name="check" size="xs" />
+              <BadgeText>{effectiveStatusLabel}</BadgeText>
+            </Badge>
+          ) : null}
+          <Heading level={5} textAlign="center">
+            {effectiveHeadline}
+          </Heading>
+          <Text tone="secondary" center fontSize="$2" lineHeight="$2">
+            {effectiveSupportingCopy}
+          </Text>
+        </YStack>
+        <NextTaskCtaCard theme="Card" testID={testID} data-testid={testID}>
           {content.imageUrl ? (
-            <Stack width={96} height={96} borderRadius="$3" overflow="hidden" flexShrink={0}>
+            <Stack
+              width={96}
+              height={96}
+              borderRadius="$3"
+              overflow="hidden"
+              flexShrink={0}
+              alignSelf="flex-start"
+              backgroundColor="$backgroundHover"
+            >
               <Image
                 source={{ uri: content.imageUrl, width: 96, height: 96 }}
                 alt={content.title}
@@ -215,41 +227,43 @@ export function NextTaskModal({
               />
             </Stack>
           ) : null}
-          <YStack flex={1} gap="$1" alignItems="flex-start">
+          <YStack flex={1} gap="$1.5" alignItems="flex-start">
             <Badge type="info">
               <BadgeText>{effectiveRecommendedLabel}</BadgeText>
             </Badge>
-            <Heading level={5}>{content.title}</Heading>
-            <Text variant="caption" tone="secondary">
+            <Heading level={6} fontSize="$3" lineHeight="$3" $xs={{ fontSize: '$2', lineHeight: '$2' }}>{content.title}</Heading>
+            <Text fontSize="$2" lineHeight="$2" tone="secondary">
               {content.description}
             </Text>
           </YStack>
         </NextTaskCtaCard>
-        {isCtaTargetOpenableAsLink ? (
-          <Anchor
-            href={content.ctaTarget}
-            onPress={handleAnchorPress}
-            style={{ width: '100%', textDecoration: 'none' }}
-          >
-            <Button
-              variant="primary"
-              fullWidth
-              tag="span"
-              role="presentation"
-              tabIndex={-1}
-              pointerEvents="none"
+        <YStack width="100%" alignItems="center" gap="$4">
+          {isCtaTargetOpenableAsLink ? (
+            <Anchor
+              href={content.ctaTarget}
+              onPress={handleAnchorPress}
+              style={{ width: '100%', textDecoration: 'none' }}
             >
+              <Button
+                variant="primary"
+                fullWidth
+                tag="span"
+                role="presentation"
+                tabIndex={-1}
+                pointerEvents="none"
+              >
+                <ButtonText>{content.ctaLabel}</ButtonText>
+              </Button>
+            </Anchor>
+          ) : (
+            <Button variant="primary" fullWidth onPress={handleButtonCtaPress}>
               <ButtonText>{content.ctaLabel}</ButtonText>
             </Button>
-          </Anchor>
-        ) : (
-          <Button variant="primary" fullWidth onPress={handleButtonCtaPress}>
-            <ButtonText>{content.ctaLabel}</ButtonText>
+          )}
+          <Button variant="text" onPress={() => dismissWithReason('skip-link')}>
+            <ButtonText color="$textSecondary" fontWeight="400">{effectiveSkipLabel}</ButtonText>
           </Button>
-        )}
-        <Button variant="text" onPress={() => dismissWithReason('skip-link')}>
-          <ButtonText>{effectiveSkipLabel}</ButtonText>
-        </Button>
+        </YStack>
       </YStack>
     </Drawer>
   )

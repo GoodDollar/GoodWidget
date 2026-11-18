@@ -52,7 +52,7 @@ export const CustodialExecutionClaimAllContract: Story = {
 const nextTaskContent: NextTaskContent = {
   title: 'Stake your G$ and earn',
   description: 'Put your claimed G$ to work by staking it for rewards.',
-  ctaLabel: 'Open Proposal',
+  ctaLabel: 'Explore staking',
   ctaTarget: 'https://gooddollar.org/stake',
   imageUrl: 'https://placehold.co/96x96',
   contentId: 'stake-prompt',

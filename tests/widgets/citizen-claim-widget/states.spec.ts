@@ -235,7 +235,7 @@ test('CitizenClaimWidget real flow: drawer opens after multi-chain claim with al
   })
 
   // Press the CTA and verify the host-side callback receives the target and drawer closes
-  const cta = page.getByRole('button', { name: 'Open Proposal' })
+  const cta = page.getByRole('button', { name: 'Explore staking' })
   await expect(cta).toBeVisible()
   await cta.scrollIntoViewIfNeeded()
   await cta.click()
@@ -261,7 +261,7 @@ test('CitizenClaimWidget real flow: drawer opens after multi-chain claim with pa
   await expect(page.getByText('Stake your G$ and earn')).toBeVisible()
 
   // Press the CTA and verify the host-side callback receives the target and drawer closes
-  const cta = page.getByRole('button', { name: 'Open Proposal' })
+  const cta = page.getByRole('button', { name: 'Explore staking' })
   await expect(cta).toBeVisible()
   await cta.scrollIntoViewIfNeeded()
   await cta.click()
@@ -347,7 +347,7 @@ test('CitizenClaimWidget real flow: single-claim fallback runs and opens drawer 
   await expect(page.getByText('Celo', { exact: true })).toHaveCount(1)
   await expect(page.getByTestId('CitizenClaimWidget-custodial-claim-all-42220')).toHaveCount(0)
 
-  const cta = page.getByRole('button', { name: 'Open Proposal' })
+  const cta = page.getByRole('button', { name: 'Explore staking' })
   await expect(cta).toBeVisible()
   await cta.scrollIntoViewIfNeeded()
   await cta.click()

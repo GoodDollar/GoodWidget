@@ -35,7 +35,7 @@ const SAMPLE_IMAGE_URL =
 const contentWithImage: NextTaskContent = {
   title: 'Stake your G$ and earn',
   description: 'Put your claimed G$ to work by staking it for rewards.',
-  ctaLabel: 'Open Proposal',
+  ctaLabel: 'Explore staking',
   ctaTarget: 'https://gooddollar.org/stake',
   imageUrl: SAMPLE_IMAGE_URL,
   contentId: 'stake-prompt',
@@ -72,14 +72,16 @@ function ControlledHarness({
   const [lastEvent, setLastEvent] = useState('none')
 
   return (
-    <Card style={{ width: 320 }}>
-      <Heading level={5}>Next task</Heading>
-      <Text>The host controls `open`; the modal reports what the user did.</Text>
-      <Button data-testid="NextTaskModal-open" fullWidth onPress={() => setOpen(true)}>
-        <ButtonText>Open next task</ButtonText>
-      </Button>
-      <Text data-testid="NextTaskModal-last-event">{lastEvent}</Text>
-      <Text data-testid="NextTaskModal-open-state">{open ? 'open' : 'closed'}</Text>
+    <>
+      <Card style={{ width: 320 }}>
+        <Heading level={5}>Next task</Heading>
+        <Text>The host controls `open`; the modal reports what the user did.</Text>
+        <Button data-testid="NextTaskModal-open" fullWidth onPress={() => setOpen(true)}>
+          <ButtonText>Open next task</ButtonText>
+        </Button>
+        <Text data-testid="NextTaskModal-last-event">{lastEvent}</Text>
+        <Text data-testid="NextTaskModal-open-state">{open ? 'open' : 'closed'}</Text>
+      </Card>
       <NextTaskModal
         testID={testID}
         open={open}
@@ -92,7 +94,7 @@ function ControlledHarness({
         statusLabel="Claim completed"
       />
       <ToastContainer />
-    </Card>
+    </>
   )
 }
 
@@ -201,7 +203,7 @@ export const ExternalLink: Story = {
     const restoreNavigation = blockLinkNavigation()
     try {
       const card = await openAndGetCard(canvasElement, 'NextTaskModal-external-link')
-      const cta = await within(document.body).findByRole('link', { name: 'Open Proposal' })
+      const cta = await within(document.body).findByRole('link', { name: 'Explore staking' })
       await expect(cta).toHaveAttribute('href', contentWithImage.ctaTarget)
       await expect(within(card).queryByRole('link')).not.toBeInTheDocument()
       await waitFor(() => userEvent.click(cta))
@@ -236,8 +238,8 @@ export const HostNavigation: Story = {
   play: async ({ canvasElement }) => {
     delete document.body.dataset.nextTaskNavigated
     await openAndGetCard(canvasElement, 'NextTaskModal-host-nav')
-    await expect(within(document.body).queryByRole('link', { name: 'Open Proposal' })).not.toBeInTheDocument()
-    const cta = await within(document.body).findByRole('button', { name: 'Open Proposal' })
+    await expect(within(document.body).queryByRole('link', { name: 'Explore staking' })).not.toBeInTheDocument()
+    const cta = await within(document.body).findByRole('button', { name: 'Explore staking' })
     await waitFor(() => userEvent.click(cta))
     await waitFor(() => expect(document.body.dataset.nextTaskNavigated).toBe(contentWithImage.ctaTarget))
     await expect(within(canvasElement).getByTestId('NextTaskModal-last-event')).toHaveTextContent(
@@ -291,11 +293,10 @@ export const NavigationError: Story = {
   ),
   play: async ({ canvasElement }) => {
     await openAndGetCard(canvasElement, 'NextTaskModal-nav-error')
-    const cta = await within(document.body).findByRole('button', { name: 'Open Proposal' })
+    const cta = await within(document.body).findByRole('button', { name: 'Explore staking' })
     await waitFor(() => userEvent.click(cta))
-    await expect(
-      await within(document.body).findByText('Could not open this link. Please try again.'),
-    ).toBeInTheDocument()
+    const toasts = await within(document.body).findAllByText('Could not open this link. Please try again.')
+    await expect(toasts[0]).toBeInTheDocument()
     await expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('open')
   },
 }
@@ -311,11 +312,10 @@ export const NavigationRejected: Story = {
   ),
   play: async ({ canvasElement }) => {
     await openAndGetCard(canvasElement, 'NextTaskModal-nav-rejected')
-    const cta = await within(document.body).findByRole('button', { name: 'Open Proposal' })
+    const cta = await within(document.body).findByRole('button', { name: 'Explore staking' })
     await waitFor(() => userEvent.click(cta))
-    await expect(
-      await within(document.body).findByText('Could not open this link. Please try again.'),
-    ).toBeInTheDocument()
+    const toasts = await within(document.body).findAllByText('Could not open this link. Please try again.')
+    await expect(toasts[0]).toBeInTheDocument()
     await expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('open')
   },
 }

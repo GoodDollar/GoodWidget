@@ -598,7 +598,7 @@ for (const viewport of NEXT_TASK_VIEWPORTS) {
     await page.waitForLoadState('networkidle')
 
     const card = page.getByTestId('NextTaskModal-shown')
-    const cta = page.getByRole('link', { name: 'Open Proposal' })
+    const cta = page.getByRole('link', { name: 'Explore staking' })
     const skipLink = page.getByRole('button', { name: 'Skip for now' })
     const closeButton = page.getByRole('button', { name: 'Close' })
 
@@ -624,10 +624,10 @@ test('NextTaskModal Anchor mode: the CTA is a link to ctaTarget and pressing it 
   await gotoStory(page, 'design-system-primitives-nexttaskmodal--closed')
   const frame = getStoryFrame(page)
   await frame.getByTestId('NextTaskModal-open').click()
-  const cta = frame.getByRole('link', { name: 'Open Proposal' })
+  const cta = frame.getByRole('link', { name: 'Explore staking' })
   await expect(cta).toHaveAttribute('href', NEXT_TASK_CTA_TARGET)
   await expect(cta.locator('button')).toHaveCount(0)
-  await expect(frame.getByRole('button', { name: 'Open Proposal' })).toHaveCount(0)
+  await expect(frame.getByRole('button', { name: 'Explore staking' })).toHaveCount(0)
   // Navigation is blocked at the document level (after React's handler) so the test stays on the page.
   await frame.locator('body').evaluate((body) => {
     body.ownerDocument.addEventListener('click', (event) => {
@@ -646,7 +646,7 @@ test('NextTaskModal host mode: the handler is called with ctaTarget, the sheet c
   const frame = getStoryFrame(page)
   await expect(frame.getByTestId('NextTaskModal-last-event')).toHaveText(`clicked:${NEXT_TASK_CTA_TARGET}`)
   await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('closed')
-  await expect(frame.getByRole('link', { name: 'Open Proposal' })).toHaveCount(0)
+  await expect(frame.getByRole('link', { name: 'Explore staking' })).toHaveCount(0)
 })
 
 const NEXT_TASK_ERROR_TOASTS = [
@@ -756,7 +756,7 @@ test('NextTaskModal host mode: double-press during pending navigation calls hand
   await gotoStory(page, 'design-system-primitives-nexttaskmodal--navigation-pending-and-retry')
   const frame = getStoryFrame(page)
   await frame.getByTestId('NextTaskModal-open').click()
-  const cta = frame.getByRole('button', { name: 'Open Proposal' })
+  const cta = frame.getByRole('button', { name: 'Explore staking' })
   await cta.scrollIntoViewIfNeeded()
   await expect(cta).toBeInViewport({ ratio: 1 })
   await expect(cta).toBeVisible()
@@ -792,7 +792,7 @@ test('NextTaskModal host mode: stale pending navigation from a closed session do
 
   // Session 1: open and start navigation attempt 1 (left pending)
   await frame.getByTestId('NextTaskModal-open').click()
-  const cta = frame.getByRole('button', { name: 'Open Proposal' })
+  const cta = frame.getByRole('button', { name: 'Explore staking' })
   await cta.scrollIntoViewIfNeeded()
   await expect(cta).toBeVisible()
   await cta.click()
@@ -880,7 +880,7 @@ test('NextTaskModal host mode: onClose throwing after successful navigation does
   const frame = getStoryFrame(page)
 
   await frame.getByTestId('NextTaskModal-open').click()
-  const cta = frame.getByRole('button', { name: 'Open Proposal' })
+  const cta = frame.getByRole('button', { name: 'Explore staking' })
   await cta.scrollIntoViewIfNeeded()
   await expect(cta).toBeVisible()
 
