@@ -120,6 +120,8 @@ export type {
   PieDonutChartVariant,
   PieDonutChartSort,
 } from './components/PieDonutChart'
+export { Carousel } from './components/Carousel'
+export type { CarouselProps } from './components/Carousel'
 export { BarChart } from './components/BarChart'
 export type {
   BarChartProps,

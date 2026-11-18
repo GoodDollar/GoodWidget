@@ -199,6 +199,42 @@ test('Scorecard/DetailLines story draws the breakdown lines between the value an
   await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-detail-lines.png')
 })
 
+test('Carousel/ThreeSlides story moves by arrow, dot and faded-slide click without changing height', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-carousel--three-slides')
+  const frame = getStoryFrame(page)
+  const carousel = frame.getByTestId('Carousel-three')
+  await expect(carousel).toBeVisible()
+  const track = frame.getByTestId('Carousel-three-track')
+  const isCurrent = (index: number) =>
+    frame.getByTestId(`Carousel-three-dot-${index}`).getAttribute('aria-current')
+  const startHeight = (await track.boundingBox())!.height
+
+  await expect(frame.getByTestId('Carousel-three-previous')).toHaveCount(0)
+  expect(await isCurrent(0)).toBe('true')
+
+  await frame.getByTestId('Carousel-three-next').click()
+  await expect.poll(() => isCurrent(1)).toBe('true')
+  expect((await track.boundingBox())!.height).toBe(startHeight)
+
+  await frame.getByTestId('Carousel-three-dot-2').click()
+  await expect.poll(() => isCurrent(2)).toBe('true')
+  await expect(frame.getByTestId('Carousel-three-next')).toHaveCount(0)
+  expect((await track.boundingBox())!.height).toBe(startHeight)
+
+  // The faded middle slide peeks in on the left; clicking it moves back to it.
+  await frame.getByTestId('Carousel-three-slide-1').click({ position: { x: 10, y: 10 } })
+  await expect.poll(() => isCurrent(1)).toBe('true')
+  await screenshotStory(page, 'tests/design-system/test-results/story-carousel-three.png')
+})
+
+test('Carousel/SingleSlide story shows no arrows and no dots', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-carousel--single-slide')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByTestId('Carousel-single')).toBeVisible()
+  await expect(frame.getByTestId('Carousel-single-next')).toHaveCount(0)
+  await expect(frame.getByTestId('Carousel-single-dot-0')).toHaveCount(0)
+})
+
 test('PieDonutChart/Default story renders donut (innerRadius=0.6) with center metric, bare and card variants', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 700 })
   await gotoStory(page, 'design-system-primitives-piedonutchart--default')
