@@ -144,6 +144,16 @@ test('Scorecard/ValueFormatter story uses the caller formatter over the default 
   await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-value-formatter.png')
 })
 
+test('Scorecard/TrendText story shows the caller trend text in place of the percentage', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-scorecard--trend-text')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByTestId('Scorecard-trend-up').getByText('+91 (+11.9%)', { exact: true })).toBeVisible()
+  await expect(frame.getByTestId('Scorecard-trend-down').getByText('-40 (-3.2%)', { exact: true })).toBeVisible()
+  await expect(frame.getByTestId('Scorecard-trend-neutral').getByText('No change', { exact: true })).toBeVisible()
+  await expect(frame.getByTestId('Scorecard-trend-up').getByText('+11.9%', { exact: true })).toHaveCount(0)
+  await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-trend-text.png')
+})
+
 test('PieDonutChart/Default story renders donut (innerRadius=0.6) with center metric, bare and card variants', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 700 })
   await gotoStory(page, 'design-system-primitives-piedonutchart--default')

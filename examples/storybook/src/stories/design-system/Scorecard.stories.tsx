@@ -100,6 +100,42 @@ export const ValueFormatter: Story = {
   ),
 }
 
+/** `trendText`: the trend row shows the caller's text ("+91 (+11.9%)", "-40 (-3.2%)", "No change")
+ * while `trend.direction` still picks the arrow and color. */
+export const TrendText: Story = {
+  render: () => (
+    <XStack testID="Scorecard-trend-text" data-testid="Scorecard-trend-text" flexWrap="wrap" gap="$5">
+      <Scorecard
+        label="Up"
+        value={856}
+        trend={{ value: 11.9, direction: 'up' }}
+        trendText="+91 (+11.9%)"
+        subtitle="since last period"
+        variant="card"
+        testID="Scorecard-trend-up"
+      />
+      <Scorecard
+        label="Down"
+        value={1210}
+        trend={{ value: 3.2, direction: 'down' }}
+        trendText="-40 (-3.2%)"
+        subtitle="since last period"
+        variant="card"
+        testID="Scorecard-trend-down"
+      />
+      <Scorecard
+        label="Flat"
+        value={42}
+        trend={{ value: 0, direction: 'neutral' }}
+        trendText="No change"
+        subtitle="since last period"
+        variant="card"
+        testID="Scorecard-trend-neutral"
+      />
+    </XStack>
+  ),
+}
+
 /** Controllable instance — edit args in the Controls panel. */
 export const Controllable: Story = {
   args: {

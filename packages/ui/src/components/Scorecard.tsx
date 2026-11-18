@@ -35,6 +35,9 @@ export interface ScorecardProps {
   /** Formats the value; wins over `format`/`decimals` (same rule as the charts' formatters). */
   valueFormatter?: (value: number) => string
   trend?: ScorecardTrend
+  /** Replaces the computed percentage in the trend row (e.g. "+91 (+11.9%)" or "No change").
+   * `trend.direction` still picks the arrow and color; `trendLabel` is still appended. */
+  trendText?: string
   trendLabel?: string
   /** Short contextual/source note rendered below the trend row (or value row, if no trend). */
   subtitle?: string
@@ -260,6 +263,7 @@ function ScorecardContent({
   decimals,
   valueFormatter,
   trend,
+  trendText,
   trendLabel,
   subtitle,
   size = 'md',
@@ -286,7 +290,7 @@ function ScorecardContent({
             size={SECONDARY_SIZE_PX[size]}
           />
           <ScorecardTrendText size={size} color={TREND_DIRECTION_COLOR_TOKEN[trend.direction]}>
-            {formatTrendPercentage(trend.value, trend.direction)}
+            {trendText ?? formatTrendPercentage(trend.value, trend.direction)}
             {trendLabel ? ` ${trendLabel}` : ''}
           </ScorecardTrendText>
         </ScorecardTrendRow>
