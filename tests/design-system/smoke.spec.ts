@@ -279,6 +279,20 @@ test('BarChart/BarColors story draws each bar in its own color', async ({ page }
   await screenshotStory(page, 'tests/design-system/test-results/story-barchart-bar-colors.png')
 })
 
+test('BarChart/HoverLabelAndExactValue story shows the hover label and exact value while bars stay shortened', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-barchart--hover-label-and-exact-value')
+  const frame = getStoryFrame(page)
+  const chart = frame.getByTestId('BarChart-hover-exact')
+  await expect(chart).toBeVisible()
+  await expect(chart.locator('svg text').filter({ hasText: /^1\.7M$/ })).toBeVisible()
+  await chart.locator('svg path').first().hover()
+  const tooltip = chart.getByTestId('chart-tooltip')
+  await expect(tooltip).toContainText('Alpha')
+  await expect(tooltip).toContainText('Claims')
+  await expect(tooltip).toContainText('1,701,511')
+  await screenshotStory(page, 'tests/design-system/test-results/story-barchart-hover-exact.png')
+})
+
 test('LineAreaChart/Default story renders area fill, reference line, linear and monotone variants', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 700 })
   await gotoStory(page, 'design-system-primitives-lineareachart--default')

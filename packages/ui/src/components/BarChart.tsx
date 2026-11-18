@@ -45,9 +45,18 @@ export interface BarChartPadding {
   left: number
 }
 
+/** Hover-box-only settings. Omitted = the hover box keeps today's row name and the chart's own formatter. */
+export interface BarChartTooltipOptions {
+  /** Row name in the hover box (e.g. a metric's short name) without drawing a title in the chart. Default: `title`, else "Value". */
+  label?: string
+  /** Formats the value in the hover box only, e.g. the exact number while bars show a shortened one. Default: the chart's formatter. */
+  valueFormatter?: (value: number) => string
+}
+
 export interface BarChartProps {
   data: BarChartDataItem[]
   title?: string
+  tooltip?: BarChartTooltipOptions
   layout?: BarChartLayout
   showGrid?: boolean
   showValueLabels?: boolean
@@ -305,6 +314,7 @@ function mergePadding(
 function BarChartContent({
   data,
   title,
+  tooltip,
   layout = 'vertical',
   showGrid = true,
   showValueLabels = false,
@@ -502,8 +512,15 @@ function BarChartContent({
   const handlePlotPointerLeave = () => setHoveredIndex(null)
 
   const hoveredItem = hoveredIndex !== null ? items[hoveredIndex] : null
+  const tooltipValueFormatter = tooltip?.valueFormatter ?? valueFormatter
   const tooltipRows: ChartTooltipRow[] = hoveredItem
-    ? [{ color: hoveredItem.color ?? barColor, label: title ?? 'Value', value: valueFormatter(hoveredItem.value) }]
+    ? [
+        {
+          color: hoveredItem.color ?? barColor,
+          label: tooltip?.label ?? title ?? 'Value',
+          value: tooltipValueFormatter(hoveredItem.value),
+        },
+      ]
     : []
 
   // Follows the cursor along the axis bars are laid out on (horizontally for

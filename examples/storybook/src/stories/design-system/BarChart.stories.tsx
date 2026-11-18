@@ -198,6 +198,29 @@ export const BarColors: Story = {
   ),
 }
 
+const largeValues = [
+  { category: 'Alpha', value: 1701511 },
+  { category: 'Beta', value: 866120 },
+  { category: 'Gamma', value: 412900 },
+]
+
+/** `tooltip`: bars read "1.7M" while the hover box reads the exact "1,701,511", with its
+ * own row name ("Claims") and no title drawn in the chart. Hover a bar to see it. */
+export const HoverLabelAndExactValue: Story = {
+  render: () => (
+    <BarChart
+      data={largeValues}
+      layout="horizontal"
+      width={480}
+      height={200}
+      padding={{ top: 16, right: 16, bottom: 32, left: 80 }}
+      tooltip={{ label: 'Claims', valueFormatter: (value) => Math.round(value).toLocaleString('en-US') }}
+      testID="BarChart-hover-exact"
+      showValueLabels
+    />
+  ),
+}
+
 /** Controllable instance — edit args in the Controls panel. */
 export const Controllable: Story = {
   args: {
