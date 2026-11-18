@@ -282,6 +282,129 @@ export const WithoutValueAxis: Story = {
   ),
 }
 
+const exactNumber = (value: number) => Math.round(value).toLocaleString('en-US')
+
+/** Two pieces per bar (e.g. received vs sent), a darker and a lighter shade of each bar's color. */
+const twoPieces = [
+  {
+    category: 'Alpha',
+    value: 1701511,
+    segments: [
+      { label: 'Received', value: 866120, color: '#4b3bb8' },
+      { label: 'Sent', value: 835391, color: '#a29bfe' },
+    ],
+  },
+  {
+    category: 'Beta',
+    value: 412900,
+    segments: [
+      { label: 'Received', value: 300000, color: '#00806a' },
+      { label: 'Sent', value: 112900, color: '#55efc4' },
+    ],
+  },
+  {
+    category: 'Gamma',
+    value: 95000,
+    segments: [
+      { label: 'Received', value: 95000, color: '#b34a2a' },
+      { label: 'Sent', value: 0, color: '#fab1a0' },
+    ],
+  },
+]
+
+/** `segments` with two pieces: hover a bar to see each piece, then the total (the bar's `value`). */
+export const SegmentedBars: Story = {
+  render: () => (
+    <BarChart
+      data={twoPieces}
+      layout="horizontal"
+      width={480}
+      height={200}
+      padding={{ top: 16, right: 16, bottom: 32, left: 80 }}
+      valueFormatter={shortNumber}
+      tooltip={{ label: 'Volume', valueFormatter: exactNumber }}
+      showValueAxis={false}
+      showGrid={false}
+      testID="BarChart-segments-two"
+      alwaysShowValueLabels
+    />
+  ),
+}
+
+const threePieces = [
+  {
+    category: 'North',
+    value: 60000,
+    segments: [
+      { label: 'Direct', value: 30000, color: '#0984e3' },
+      { label: 'Referral', value: 20000, color: '#74b9ff' },
+      { label: 'Organic', value: 10000, color: '#c7e3ff' },
+    ],
+  },
+  {
+    category: 'South',
+    value: 42000,
+    segments: [
+      { label: 'Direct', value: 12000, color: '#0984e3' },
+      { label: 'Referral', value: 18000, color: '#74b9ff' },
+      { label: 'Organic', value: 12000, color: '#c7e3ff' },
+    ],
+  },
+]
+
+/** `segments` with three pieces, vertical layout, rounded outer edge on the last piece only. */
+export const SegmentedBarsThreePieces: Story = {
+  render: () => (
+    <BarChart
+      data={threePieces}
+      width={320}
+      valueFormatter={shortNumber}
+      tooltip={{ label: 'Visits', valueFormatter: exactNumber }}
+      barCornerRadius={4}
+      testID="BarChart-segments-three"
+      showValueLabels
+    />
+  ),
+}
+
+/** Failure cases, drawn as given rather than corrected silently: "Mismatch" has pieces adding up
+ * to 70,000 while its value is 100,000 (bar length shows 70K, label and hover total read 100K);
+ * "Negative" has a -10,000 piece, which is dropped. */
+const segmentEdgeCases = [
+  {
+    category: 'Mismatch',
+    value: 100000,
+    segments: [
+      { label: 'Received', value: 40000, color: '#4b3bb8' },
+      { label: 'Sent', value: 30000, color: '#a29bfe' },
+    ],
+  },
+  {
+    category: 'Negative',
+    value: 50000,
+    segments: [
+      { label: 'Received', value: 50000, color: '#00806a' },
+      { label: 'Sent', value: -10000, color: '#55efc4' },
+    ],
+  },
+]
+
+export const SegmentedBarsEdgeCases: Story = {
+  render: () => (
+    <BarChart
+      data={segmentEdgeCases}
+      layout="horizontal"
+      width={480}
+      height={160}
+      padding={{ top: 16, right: 16, bottom: 32, left: 80 }}
+      valueFormatter={shortNumber}
+      tooltip={{ valueFormatter: exactNumber }}
+      testID="BarChart-segments-edge"
+      showValueLabels
+    />
+  ),
+}
+
 /** Controllable instance — edit args in the Controls panel. */
 export const Controllable: Story = {
   args: {

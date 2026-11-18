@@ -31,11 +31,29 @@ import { useMeasuredHeight } from '../hooks/useMeasuredHeight'
 export type BarChartVariant = 'bare' | 'card'
 export type BarChartLayout = 'vertical' | 'horizontal'
 
+/** One piece of a bar split into parts (e.g. received vs sent). */
+export interface BarChartSegment {
+  value: number
+  label: string
+  /** Omitted = the item's `color`, else the theme's primary color. */
+  color?: string
+}
+
 export interface BarChartDataItem {
   category: string
   value: number
   /** This bar's fill (and its hover-row dot). Omitted = the theme's primary color. */
   color?: string
+  /**
+   * Draws the bar as pieces side by side along the value axis, each in its
+   * own color, in the order given. `value` stays the bar's total: the value
+   * label and the hover's "Total" row read it. Pieces are drawn as given, not
+   * rescaled to `value` — if they don't add up to it, the drawn length shows
+   * the pieces' sum while the label and hover total still read `value`.
+   * Negative or non-finite pieces are dropped. The hover lists every piece,
+   * then the total.
+   */
+  segments?: BarChartSegment[]
 }
 
 export interface BarChartPadding {
@@ -151,6 +169,20 @@ interface BarChartItem {
   category: string
   value: number
   color?: string
+  segments?: BarChartSegment[]
+}
+
+/** A segmented item's usable pieces: negative and non-finite values are dropped. */
+function validSegments(segments: BarChartSegment[]): BarChartSegment[] {
+  return segments.filter((segment) => Number.isFinite(segment.value) && segment.value >= 0)
+}
+
+/** How far a bar reaches along the value axis: its value, or the pieces' sum when that's larger (so pieces that
+ * add up to more than `value` still fit inside the axis instead of overflowing the plot). */
+function barExtentValue(item: BarChartItem): number {
+  if (!item.segments) return item.value
+  const piecesSum = validSegments(item.segments).reduce((sum, segment) => sum + segment.value, 0)
+  return Math.max(item.value, piecesSum)
 }
 
 interface AxisScale {
@@ -391,7 +423,7 @@ function BarChartContent({
   const tickLabelSizePx = clampFontSize(scalePx(TICK_LABEL_BASE_SIZE_PX, scaleRatio))
   const valueLabelSizePx = clampFontSize(scalePx(VALUE_LABEL_BASE_SIZE_PX, scaleRatio))
 
-  const scale = computeNiceAxisScale(items.map((item) => item.value))
+  const scale = computeNiceAxisScale(items.map(barExtentValue))
   const valueRange = scale.max - scale.min || 1
   const isVertical = layout === 'vertical'
 
@@ -465,6 +497,34 @@ function BarChartContent({
   const slotSize = (isVertical ? plotWidth : plotHeight) / Math.max(items.length, 1)
   const barThickness = slotSize * BAR_FILL_FRACTION
 
+  // Draws a segmented bar's pieces end to end from the baseline. Only the last
+  // (outermost) piece gets the rounded corners, like a plain bar's outer edge.
+  const renderSegmentPieces = (
+    item: BarChartItem,
+    index: number,
+    pieces: BarChartSegment[],
+    axisLengthPx: number,
+    roundedEdge: RoundedEdge,
+    pieceRect: (offsetPx: number, lengthPx: number) => { x: number; y: number; width: number; height: number },
+  ) => {
+    let offsetPx = 0
+    return pieces.map((piece, pieceIndex) => {
+      const lengthPx = (piece.value / valueRange) * axisLengthPx
+      const rect = pieceRect(offsetPx, lengthPx)
+      offsetPx += lengthPx
+      const isOuterPiece = pieceIndex === pieces.length - 1
+      return (
+        <Path
+          key={`${piece.label}-${pieceIndex}`}
+          d={buildBarPath(rect.x, rect.y, rect.width, rect.height, isOuterPiece ? barCornerRadius : 0, roundedEdge)}
+          fill={piece.color ?? item.color ?? barColor}
+          accessible={false}
+          onPress={onBarPress ? () => onBarPress(item, index) : undefined}
+        />
+      )
+    })
+  }
+
   const shouldShowValueLabel = (barLengthPx: number): boolean =>
     alwaysShowValueLabels || (showValueLabels && barLengthPx >= MIN_BAR_LENGTH_FOR_VALUE_LABEL_PX)
 
@@ -527,15 +587,27 @@ function BarChartContent({
 
   const hoveredItem = hoveredIndex !== null ? items[hoveredIndex] : null
   const tooltipValueFormatter = tooltip?.valueFormatter ?? valueFormatter
-  const tooltipRows: ChartTooltipRow[] = hoveredItem
-    ? [
-        {
-          color: hoveredItem.color ?? barColor,
-          label: tooltip?.label ?? title ?? 'Value',
-          value: tooltipValueFormatter(hoveredItem.value),
-        },
-      ]
-    : []
+  // A segmented bar's hover lists each piece then a dot-less "Total" row, with
+  // the row name that a plain bar would use moved up to the second line.
+  const tooltipSubheader = hoveredItem?.segments ? (tooltip?.label ?? title) : undefined
+  const tooltipRows: ChartTooltipRow[] = !hoveredItem
+    ? []
+    : hoveredItem.segments
+      ? [
+          ...validSegments(hoveredItem.segments).map((segment) => ({
+            color: segment.color ?? hoveredItem.color ?? barColor,
+            label: segment.label,
+            value: tooltipValueFormatter(segment.value),
+          })),
+          { label: 'Total', value: tooltipValueFormatter(hoveredItem.value) },
+        ]
+      : [
+          {
+            color: hoveredItem.color ?? barColor,
+            label: tooltip?.label ?? title ?? 'Value',
+            value: tooltipValueFormatter(hoveredItem.value),
+          },
+        ]
 
   // Follows the cursor along the axis bars are laid out on (horizontally for
   // vertical bars, at a fixed left offset otherwise), clamped so the
@@ -543,7 +615,7 @@ function BarChartContent({
   // hover's actual header/rows so the clamp matches what ChartTooltip itself
   // will render at, rather than a fixed guess.
   const tooltipWidthPx = hoveredItem
-    ? estimateChartTooltipWidthPx(hoveredItem.category, tooltipRows, viewBoxWidth)
+    ? estimateChartTooltipWidthPx(hoveredItem.category, tooltipRows, viewBoxWidth, tooltipSubheader)
     : 0
   const maxTooltipLeftPx = Math.max(0, viewBoxWidth - tooltipWidthPx)
   const hoveredSlotCenterPx =
@@ -679,9 +751,17 @@ function BarChartContent({
                 ) : null}
 
                 {items.map((item, index) => {
+                  // Segmented bars draw their positive pieces end to end from the
+                  // baseline, so their drawn length is the pieces' sum (see `segments`).
+                  const pieces = item.segments
+                    ? validSegments(item.segments).filter((segment) => segment.value > 0)
+                    : null
+                  const drawnValue = pieces
+                    ? pieces.reduce((sum, segment) => sum + segment.value, 0)
+                    : item.value
                   const barLength =
-                    valueToPixel(item.value, isVertical ? plotHeight : plotWidth) - zeroOffset
-                  const isPositive = item.value >= 0
+                    valueToPixel(drawnValue, isVertical ? plotHeight : plotWidth) - zeroOffset
+                  const isPositive = drawnValue >= 0
 
                   if (isVertical) {
                     const slotStart = resolvedPadding.left + index * slotSize
@@ -700,19 +780,28 @@ function BarChartContent({
 
                     return (
                       <G key={`${item.category}-${index}`}>
-                        <Path
-                          d={buildBarPath(
-                            barX,
-                            barY,
-                            barThickness,
-                            barHeight,
-                            barCornerRadius,
-                            isPositive ? 'top' : 'bottom',
-                          )}
-                          fill={item.color ?? barColor}
-                          accessible={false}
-                          onPress={onBarPress ? () => onBarPress(item, index) : undefined}
-                        />
+                        {pieces ? (
+                          renderSegmentPieces(item, index, pieces, plotHeight, 'top', (offsetPx, lengthPx) => ({
+                            x: barX,
+                            y: baselineY - offsetPx - lengthPx,
+                            width: barThickness,
+                            height: lengthPx,
+                          }))
+                        ) : (
+                          <Path
+                            d={buildBarPath(
+                              barX,
+                              barY,
+                              barThickness,
+                              barHeight,
+                              barCornerRadius,
+                              isPositive ? 'top' : 'bottom',
+                            )}
+                            fill={item.color ?? barColor}
+                            accessible={false}
+                            onPress={onBarPress ? () => onBarPress(item, index) : undefined}
+                          />
+                        )}
                         {showCategoryLabel ? (
                           <SvgText
                             x={categoryLabelX}
@@ -760,19 +849,28 @@ function BarChartContent({
 
                   return (
                     <G key={`${item.category}-${index}`}>
-                      <Path
-                        d={buildBarPath(
-                          barX,
-                          barY,
-                          barWidth,
-                          barThickness,
-                          barCornerRadius,
-                          isPositive ? 'right' : 'left',
-                        )}
-                        fill={item.color ?? barColor}
-                        accessible={false}
-                        onPress={onBarPress ? () => onBarPress(item, index) : undefined}
-                      />
+                      {pieces ? (
+                        renderSegmentPieces(item, index, pieces, plotWidth, 'right', (offsetPx, lengthPx) => ({
+                          x: baselineX + offsetPx,
+                          y: barY,
+                          width: lengthPx,
+                          height: barThickness,
+                        }))
+                      ) : (
+                        <Path
+                          d={buildBarPath(
+                            barX,
+                            barY,
+                            barWidth,
+                            barThickness,
+                            barCornerRadius,
+                            isPositive ? 'right' : 'left',
+                          )}
+                          fill={item.color ?? barColor}
+                          accessible={false}
+                          onPress={onBarPress ? () => onBarPress(item, index) : undefined}
+                        />
+                      )}
                       {showCategoryLabel ? (
                         <SvgText
                           x={resolvedPadding.left - 8}
@@ -852,6 +950,7 @@ function BarChartContent({
           {!isEmpty && hoveredItem ? (
             <ChartTooltip
               header={hoveredItem.category}
+              subheader={tooltipSubheader}
               rows={tooltipRows}
               left={tooltipLeftPx}
               top={resolvedPadding.top}

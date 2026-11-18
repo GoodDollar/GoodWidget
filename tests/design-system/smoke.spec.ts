@@ -317,6 +317,51 @@ test('BarChart/WithoutValueAxis story draws no number scale, only category and b
   await screenshotStory(page, 'tests/design-system/test-results/story-barchart-no-axis.png')
 })
 
+test('BarChart/SegmentedBars story draws each piece and hovers pieces then the total', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-barchart--segmented-bars')
+  const frame = getStoryFrame(page)
+  const chart = frame.getByTestId('BarChart-segments-two')
+  await expect(chart).toBeVisible()
+  // 2 + 2 + 1 pieces: Gamma's zero "Sent" piece draws nothing.
+  await expect(chart.locator('svg path')).toHaveCount(5)
+  await chart.locator('svg path').first().hover()
+  const tooltip = chart.getByTestId('chart-tooltip')
+  await expect(tooltip).toContainText('Alpha')
+  await expect(tooltip).toContainText('Volume')
+  await expect(tooltip).toContainText('Received')
+  await expect(tooltip).toContainText('866,120')
+  await expect(tooltip).toContainText('Sent')
+  await expect(tooltip).toContainText('835,391')
+  await expect(tooltip).toContainText('Total')
+  await expect(tooltip).toContainText('1,701,511')
+  await screenshotStory(page, 'tests/design-system/test-results/story-barchart-segments-two.png')
+})
+
+test('BarChart/SegmentedBarsThreePieces story draws three pieces per bar', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-barchart--segmented-bars-three-pieces')
+  const frame = getStoryFrame(page)
+  const chart = frame.getByTestId('BarChart-segments-three')
+  await expect(chart).toBeVisible()
+  await expect(chart.locator('svg path')).toHaveCount(6)
+  await screenshotStory(page, 'tests/design-system/test-results/story-barchart-segments-three.png')
+})
+
+test('BarChart/SegmentedBarsEdgeCases story keeps value as the total and drops negative pieces', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-barchart--segmented-bars-edge-cases')
+  const frame = getStoryFrame(page)
+  const chart = frame.getByTestId('BarChart-segments-edge')
+  await expect(chart).toBeVisible()
+  // Mismatch: 2 pieces; Negative: the -10,000 piece is dropped, 1 piece left.
+  await expect(chart.locator('svg path')).toHaveCount(3)
+  // Two "100K" texts: the axis tick and Mismatch's value label (its total, not the 70K pieces' sum).
+  await expect(chart.locator('svg text').filter({ hasText: /^100K$/ })).toHaveCount(2)
+  await chart.locator('svg path').first().hover()
+  const tooltip = chart.getByTestId('chart-tooltip')
+  await expect(tooltip).toContainText('Total')
+  await expect(tooltip).toContainText('100,000')
+  await screenshotStory(page, 'tests/design-system/test-results/story-barchart-segments-edge.png')
+})
+
 test('LineAreaChart/Default story renders area fill, reference line, linear and monotone variants', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 700 })
   await gotoStory(page, 'design-system-primitives-lineareachart--default')
