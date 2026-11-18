@@ -81,6 +81,25 @@ export const Default: Story = {
   ),
 }
 
+const exactNumber = (value: number) => Math.round(value).toLocaleString('en-US')
+
+/** `valueFormatter`: the same 1,972 shown with the default compact format ("2.0K") and with a
+ * caller formatter that keeps it whole ("1,972"). */
+export const ValueFormatter: Story = {
+  render: () => (
+    <XStack testID="Scorecard-value-formatter" data-testid="Scorecard-value-formatter" flexWrap="wrap" gap="$5">
+      <Scorecard label="Default format" value={1972} variant="card" testID="Scorecard-value-default" />
+      <Scorecard
+        label="valueFormatter"
+        value={1972}
+        valueFormatter={exactNumber}
+        variant="card"
+        testID="Scorecard-value-exact"
+      />
+    </XStack>
+  ),
+}
+
 /** Controllable instance — edit args in the Controls panel. */
 export const Controllable: Story = {
   args: {

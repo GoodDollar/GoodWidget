@@ -32,6 +32,8 @@ export interface ScorecardProps {
   suffix?: string
   format?: MetricFormat
   decimals?: number
+  /** Formats the value; wins over `format`/`decimals` (same rule as the charts' formatters). */
+  valueFormatter?: (value: number) => string
   trend?: ScorecardTrend
   trendLabel?: string
   /** Short contextual/source note rendered below the trend row (or value row, if no trend). */
@@ -256,6 +258,7 @@ function ScorecardContent({
   suffix,
   format = 'compact',
   decimals,
+  valueFormatter,
   trend,
   trendLabel,
   subtitle,
@@ -263,7 +266,7 @@ function ScorecardContent({
   testID,
 }: Omit<ScorecardProps, 'variant'>) {
   const theme = useTheme()
-  const formattedValue = formatMetricValue(value, format, decimals)
+  const formattedValue = valueFormatter ? valueFormatter(value) : formatMetricValue(value, format, decimals)
 
   return (
     // testID (React Native) and data-testid (web/DOM) both set so the same

@@ -136,6 +136,14 @@ test('Scorecard/Default story renders all 5 mock-data rows in both variants', as
   await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-default.png')
 })
 
+test('Scorecard/ValueFormatter story uses the caller formatter over the default format', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-scorecard--value-formatter')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByTestId('Scorecard-value-default').getByText('2.0K', { exact: true })).toBeVisible()
+  await expect(frame.getByTestId('Scorecard-value-exact').getByText('1,972', { exact: true })).toBeVisible()
+  await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-value-formatter.png')
+})
+
 test('PieDonutChart/Default story renders donut (innerRadius=0.6) with center metric, bare and card variants', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 700 })
   await gotoStory(page, 'design-system-primitives-piedonutchart--default')
