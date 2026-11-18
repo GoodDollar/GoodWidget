@@ -141,6 +141,7 @@ export type {
   LineAreaChartVariant,
   LineAreaChartInterpolation,
   LineAreaChartPadding,
+  LineAreaChartTooltipOptions,
 } from './components/LineAreaChart'
 export { DataTable } from './components/DataTable'
 export type {

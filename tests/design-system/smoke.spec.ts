@@ -501,6 +501,27 @@ test('LineAreaChart/Responsive story scales its viewBox to the real container wi
   await screenshotStory(page, 'tests/design-system/test-results/story-lineareachart-responsive.png')
 })
 
+test('LineAreaChart/HoverWeekColumn story shows week header, metric line, exact values highest first', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-lineareachart--hover-week-column')
+  const frame = getStoryFrame(page)
+  const chart = frame.getByTestId('LineAreaChart-hover-week')
+  await expect(chart).toBeVisible()
+  // Pointer past the last week's x clamps to that week.
+  const svg = chart.locator('svg').first()
+  const box = (await svg.boundingBox())!
+  await svg.hover({ position: { x: box.width - 2, y: box.height / 2 } })
+  const tooltip = chart.getByTestId('chart-tooltip')
+  await expect(tooltip).toContainText('Week of Nov 15-21')
+  await expect(tooltip).toContainText('Score')
+  const text = (await tooltip.textContent()) ?? ''
+  const order = ['Alpha', 'Golf', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot'].map((name) => text.indexOf(name))
+  expect(order.every((position) => position >= 0)).toBe(true)
+  expect([...order].sort((a, b) => a - b)).toEqual(order)
+  await expect(tooltip).toContainText('1,050')
+  await expect(tooltip).toContainText('1,012')
+  await screenshotStory(page, 'tests/design-system/test-results/story-lineareachart-hover-week.png')
+})
+
 test('DataTable/Default story renders wallets with sortable headers, bare and card variants', async ({ page }) => {
   // Tall enough that the card variant (wrapped below the bare table) renders
   // within the same full-page iframe capture instead of being cropped out.

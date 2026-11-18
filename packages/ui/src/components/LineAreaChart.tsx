@@ -74,9 +74,24 @@ export interface LineAreaChartPadding {
   left: number
 }
 
+/** Hover-box-only settings. Omitted = the hover box is exactly today's. */
+export interface LineAreaChartTooltipOptions {
+  /** Second line under the hover header (e.g. the metric's short name). Default: none. */
+  label?: string
+  /** Formats primary-axis values in the hover box only (e.g. exact numbers while the axis reads "1.2K").
+   * Secondary-axis rows keep their own formatter. Default: the y-axis formatter. */
+  valueFormatter?: (value: number) => string
+  /** Hover header text for an x value (e.g. "Week of Nov 15-21" while the axis reads "Nov 15-21").
+   * Default: `xAxisFormatter`. */
+  xFormatter?: (value: string | number) => string
+  /** 'desc' lists rows highest value first. Default: series order. */
+  sort?: 'desc'
+}
+
 export interface LineAreaChartProps {
   data: LineAreaChartDataItem[]
   title?: string
+  tooltip?: LineAreaChartTooltipOptions
   series?: LineAreaChartSeriesDef[]
   type?: LineAreaChartInterpolation
   showArea?: boolean
@@ -545,6 +560,7 @@ function LineAreaLegend({
 function LineAreaChartContent({
   data,
   title,
+  tooltip,
   series: seriesDefs,
   type = 'linear',
   showArea = false,
@@ -778,26 +794,33 @@ function LineAreaChartContent({
 
   const handlePlotPointerLeave = () => setHoveredIndex(null)
 
-  const tooltipRows: ChartTooltipRow[] =
+  const tooltipValueFormatter = tooltip?.valueFormatter ?? yAxisFormatter
+  const tooltipHeader = hoveredIndex !== null ? (tooltip?.xFormatter ?? xAxisFormatter)(xCategories[hoveredIndex]) : ''
+  const tooltipEntries =
     hoveredIndex !== null
-      ? resolvedSeriesList.reduce<ChartTooltipRow[]>((rows, seriesItem) => {
+      ? resolvedSeriesList.reduce<Array<{ row: ChartTooltipRow; y: number }>>((entries, seriesItem) => {
           const point = seriesItem.points[hoveredIndex]
-          if (!point || !isValidY(point.y)) return rows
+          if (!point || !isValidY(point.y)) return entries
           const formatter =
             seriesItem === secondarySeries
               ? (secondaryYAxis?.formatter ?? formatChartAxisValue)
-              : yAxisFormatter
-          rows.push({ color: seriesItem.color, label: seriesItem.label, value: formatter(point.y) })
-          return rows
+              : tooltipValueFormatter
+          entries.push({
+            row: { color: seriesItem.color, label: seriesItem.label, value: formatter(point.y) },
+            y: point.y,
+          })
+          return entries
         }, [])
       : []
+  if (tooltip?.sort === 'desc') tooltipEntries.sort((a, b) => b.y - a.y)
+  const tooltipRows: ChartTooltipRow[] = tooltipEntries.map((entry) => entry.row)
 
   // Center the tooltip on the hovered point, then clamp so it never overhangs
   // the chart frame. Width is estimated from this hover's actual header/rows
   // so the clamp matches what ChartTooltip itself will render at.
   const tooltipWidthPx =
     hoveredIndex !== null
-      ? estimateChartTooltipWidthPx(xAxisFormatter(xCategories[hoveredIndex]), tooltipRows, viewBoxWidth)
+      ? estimateChartTooltipWidthPx(tooltipHeader, tooltipRows, viewBoxWidth, tooltip?.label)
       : 0
   const maxTooltipLeftPx = Math.max(0, viewBoxWidth - tooltipWidthPx)
   const tooltipLeftPx =
@@ -1117,7 +1140,8 @@ function LineAreaChartContent({
           </Svg>
           {!isEmpty && hoveredIndex !== null && tooltipRows.length > 0 ? (
             <ChartTooltip
-              header={xAxisFormatter(xCategories[hoveredIndex])}
+              header={tooltipHeader}
+              subheader={tooltip?.label}
               rows={tooltipRows}
               left={tooltipLeftPx}
               top={resolvedPadding.top}
