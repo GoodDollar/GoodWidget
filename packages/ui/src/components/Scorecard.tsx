@@ -41,6 +41,9 @@ export interface ScorecardProps {
   trendLabel?: string
   /** Short contextual/source note rendered below the trend row (or value row, if no trend). */
   subtitle?: string
+  /** Marks the metric as not available: the value reads "N/A" in the muted color (no prefix/suffix),
+   * this reason sits under it, and no trend row is drawn. `value` is ignored. */
+  unavailableReason?: string
   variant?: ScorecardVariant
   size?: ScorecardSize
   testID?: string
@@ -266,10 +269,12 @@ function ScorecardContent({
   trendText,
   trendLabel,
   subtitle,
+  unavailableReason,
   size = 'md',
   testID,
 }: Omit<ScorecardProps, 'variant'>) {
   const theme = useTheme()
+  const isUnavailable = unavailableReason !== undefined
   const formattedValue = valueFormatter ? valueFormatter(value) : formatMetricValue(value, format, decimals)
 
   return (
@@ -277,12 +282,25 @@ function ScorecardContent({
     // identifier works with either platform's test tooling.
     <ScorecardFrame testID={testID} data-testid={testID}>
       <ScorecardLabelText size={size}>{label}</ScorecardLabelText>
-      <ScorecardValueRow>
-        {prefix ? <ScorecardAffixText size={size}>{prefix}</ScorecardAffixText> : null}
-        <ScorecardValueText size={size}>{formattedValue}</ScorecardValueText>
-        {suffix ? <ScorecardAffixText size={size}>{suffix}</ScorecardAffixText> : null}
-      </ScorecardValueRow>
-      {trend ? (
+      {isUnavailable ? (
+        <ScorecardValueRow>
+          <ScorecardValueText size={size} color="$placeholderColor">
+            N/A
+          </ScorecardValueText>
+        </ScorecardValueRow>
+      ) : (
+        <ScorecardValueRow>
+          {prefix ? <ScorecardAffixText size={size}>{prefix}</ScorecardAffixText> : null}
+          <ScorecardValueText size={size}>{formattedValue}</ScorecardValueText>
+          {suffix ? <ScorecardAffixText size={size}>{suffix}</ScorecardAffixText> : null}
+        </ScorecardValueRow>
+      )}
+      {isUnavailable ? (
+        <ScorecardSubtitleText size={size} marginTop={LABEL_TO_VALUE_GAP_PX}>
+          {unavailableReason}
+        </ScorecardSubtitleText>
+      ) : null}
+      {trend && !isUnavailable ? (
         <ScorecardTrendRow>
           <TrendGlyph
             direction={trend.direction}

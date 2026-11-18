@@ -154,6 +154,17 @@ test('Scorecard/TrendText story shows the caller trend text in place of the perc
   await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-trend-text.png')
 })
 
+test('Scorecard/Unavailable story shows N/A with the reason and no trend row', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-scorecard--unavailable')
+  const frame = getStoryFrame(page)
+  const card = frame.getByTestId('Scorecard-unavailable-card')
+  await expect(card.getByText('N/A', { exact: true })).toBeVisible()
+  await expect(card.getByText('Not tracked yet', { exact: true })).toBeVisible()
+  await expect(card.getByText('+11.9%', { exact: true })).toHaveCount(0)
+  await expect(frame.getByTestId('Scorecard-available-card').getByText('+11.9%', { exact: true })).toBeVisible()
+  await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-unavailable.png')
+})
+
 test('PieDonutChart/Default story renders donut (innerRadius=0.6) with center metric, bare and card variants', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 700 })
   await gotoStory(page, 'design-system-primitives-piedonutchart--default')

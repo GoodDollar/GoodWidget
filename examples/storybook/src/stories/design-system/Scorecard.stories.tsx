@@ -136,6 +136,30 @@ export const TrendText: Story = {
   ),
 }
 
+/** `unavailableReason`: the value reads "N/A" with the reason under it and no trend row, next to
+ * the same card with data. */
+export const Unavailable: Story = {
+  render: () => (
+    <XStack testID="Scorecard-unavailable" data-testid="Scorecard-unavailable" flexWrap="wrap" gap="$5">
+      <Scorecard
+        label="With data"
+        value={856}
+        trend={{ value: 11.9, direction: 'up' }}
+        variant="card"
+        testID="Scorecard-available-card"
+      />
+      <Scorecard
+        label="Without data"
+        value={0}
+        trend={{ value: 11.9, direction: 'up' }}
+        unavailableReason="Not tracked yet"
+        variant="card"
+        testID="Scorecard-unavailable-card"
+      />
+    </XStack>
+  ),
+}
+
 /** Controllable instance — edit args in the Controls panel. */
 export const Controllable: Story = {
   args: {
