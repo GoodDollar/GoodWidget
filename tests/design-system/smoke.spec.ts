@@ -337,6 +337,20 @@ test('BarChart/SegmentedBars story draws each piece and hovers pieces then the t
   await screenshotStory(page, 'tests/design-system/test-results/story-barchart-segments-two.png')
 })
 
+test('BarChart/SegmentedBarsWithLegend story draws the legend above the bars', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-barchart--segmented-bars-with-legend')
+  const frame = getStoryFrame(page)
+  const chart = frame.getByTestId('BarChart-segments-legend')
+  await expect(chart).toBeVisible()
+  const legend = chart.getByTestId('bar-chart-legend')
+  await expect(legend.getByText('Received (darker shade)')).toBeVisible()
+  await expect(legend.getByText('Sent (lighter shade)')).toBeVisible()
+  const legendBox = await legend.boundingBox()
+  const plotBox = await chart.locator('svg').first().boundingBox()
+  expect(legendBox!.y + legendBox!.height).toBeLessThanOrEqual(plotBox!.y)
+  await screenshotStory(page, 'tests/design-system/test-results/story-barchart-segments-legend.png')
+})
+
 test('BarChart/SegmentedBarsThreePieces story draws three pieces per bar', async ({ page }) => {
   await gotoStory(page, 'design-system-primitives-barchart--segmented-bars-three-pieces')
   const frame = getStoryFrame(page)

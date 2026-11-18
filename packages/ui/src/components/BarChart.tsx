@@ -10,7 +10,7 @@
  */
 import React, { useState } from 'react'
 import Svg, { G, Line, Path, Text as SvgText } from 'react-native-svg'
-import { Text as TamaguiText, useTheme, YStack } from 'tamagui'
+import { Text as TamaguiText, useTheme, XStack, YStack } from 'tamagui'
 import { createComponent } from '../createComponent'
 import { Card } from './Card'
 import { ChartTooltip, estimateChartTooltipWidthPx, type ChartTooltipRow } from './ChartTooltip'
@@ -71,10 +71,19 @@ export interface BarChartTooltipOptions {
   valueFormatter?: (value: number) => string
 }
 
+/** One legend entry: a color swatch and its label. */
+export interface BarChartLegendItem {
+  label: string
+  color: string
+}
+
 export interface BarChartProps {
   data: BarChartDataItem[]
   title?: string
   tooltip?: BarChartTooltipOptions
+  /** A row of color swatches with labels above the bars (e.g. what each `segments` shade means).
+   * Same look as LineAreaChart's legend. Omitted or empty = no legend. */
+  legend?: BarChartLegendItem[]
   layout?: BarChartLayout
   showGrid?: boolean
   /** false hides the value axis's number labels (and, in vertical layout, the
@@ -130,6 +139,14 @@ const VALUE_LABEL_BASE_SIZE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2
 
 const TITLE_TO_CHART_GAP_BASE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
 const CARD_PADDING_PX = CHART_BASE_SIZE_PX
+
+/** Legend sizes mirror LineAreaChart's legend (its constants are private), so
+ * both charts' legends read identically — see the reasoning next to them there. */
+const LEGEND_SIZE_SCALE_FACTOR = 0.9
+const LEGEND_LABEL_BASE_SIZE_PX = (CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2) * LEGEND_SIZE_SCALE_FACTOR
+const LEGEND_SWATCH_SIZE_PX = 10
+const LEGEND_ITEM_GAP_PX = 16 * LEGEND_SIZE_SCALE_FACTOR
+const LEGEND_TO_CHART_GAP_PX = 10
 
 const DEFAULT_PADDING: BarChartPadding = { top: 16, right: 16, bottom: 40, left: 48 }
 /** Reference width both the base sizes above and DEFAULT_PADDING were tuned against.
@@ -338,6 +355,40 @@ const BarChartTitleText = createComponent(TamaguiText, {
   marginBottom: TITLE_TO_CHART_GAP_BASE_PX,
 })
 
+const BarChartLegendLabelText = createComponent(TamaguiText, {
+  name: 'BarChartLegendLabelText',
+  fontFamily: '$body',
+  fontWeight: '400',
+  color: '$color',
+  fontSize: LEGEND_LABEL_BASE_SIZE_PX,
+})
+
+const BarChartLegendSwatch = createComponent(YStack, {
+  name: 'BarChartLegendSwatch',
+  width: LEGEND_SWATCH_SIZE_PX,
+  height: LEGEND_SWATCH_SIZE_PX,
+  borderRadius: '$full',
+})
+
+function BarChartLegend({ items, labelSizePx }: { items: BarChartLegendItem[]; labelSizePx: number }) {
+  return (
+    <XStack
+      gap={LEGEND_ITEM_GAP_PX}
+      flexWrap="wrap"
+      justifyContent="center"
+      marginBottom={LEGEND_TO_CHART_GAP_PX}
+      data-testid="bar-chart-legend"
+    >
+      {items.map((item) => (
+        <XStack key={item.label} alignItems="center" gap="$2">
+          <BarChartLegendSwatch backgroundColor={item.color} />
+          <BarChartLegendLabelText fontSize={labelSizePx}>{item.label}</BarChartLegendLabelText>
+        </XStack>
+      ))}
+    </XStack>
+  )
+}
+
 /** Scales DEFAULT_PADDING to the chart's actual size, then layers an explicit
  * per-instance `padding` override on top unscaled — an override is the caller
  * opting out of the default for that edge, not a value we should re-scale. */
@@ -354,6 +405,7 @@ function BarChartContent({
   data,
   title,
   tooltip,
+  legend,
   layout = 'vertical',
   showGrid = true,
   showValueAxis = true,
@@ -422,6 +474,7 @@ function BarChartContent({
   const axisTitleSizePx = clampFontSize(scalePx(AXIS_TITLE_BASE_SIZE_PX, scaleRatio))
   const tickLabelSizePx = clampFontSize(scalePx(TICK_LABEL_BASE_SIZE_PX, scaleRatio))
   const valueLabelSizePx = clampFontSize(scalePx(VALUE_LABEL_BASE_SIZE_PX, scaleRatio))
+  const legendLabelSizePx = clampFontSize(scalePx(LEGEND_LABEL_BASE_SIZE_PX, scaleRatio))
 
   const scale = computeNiceAxisScale(items.map(barExtentValue))
   const valueRange = scale.max - scale.min || 1
@@ -638,6 +691,7 @@ function BarChartContent({
           {title}
         </BarChartTitleText>
       ) : null}
+      {legend && legend.length > 0 ? <BarChartLegend items={legend} labelSizePx={legendLabelSizePx} /> : null}
       <BarChartScrollContainer
         flexGrow={isResponsiveHeight ? 1 : undefined}
         minHeight={isResponsiveHeight ? 0 : undefined}

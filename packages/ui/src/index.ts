@@ -129,6 +129,7 @@ export type {
   BarChartPadding,
   BarChartTooltipOptions,
   BarChartSegment,
+  BarChartLegendItem,
 } from './components/BarChart'
 export { LineAreaChart } from './components/LineAreaChart'
 export type {

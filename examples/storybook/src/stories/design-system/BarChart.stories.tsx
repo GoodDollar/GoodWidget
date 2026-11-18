@@ -331,6 +331,30 @@ export const SegmentedBars: Story = {
   ),
 }
 
+/** `legend` above segmented bars. Each bar uses its own color's shades, so the legend uses
+ * neutral greys to say which shade means what. */
+export const SegmentedBarsWithLegend: Story = {
+  render: () => (
+    <BarChart
+      data={twoPieces}
+      layout="horizontal"
+      width={480}
+      height={230}
+      padding={{ top: 16, right: 16, bottom: 32, left: 80 }}
+      valueFormatter={shortNumber}
+      tooltip={{ label: 'Volume', valueFormatter: exactNumber }}
+      legend={[
+        { label: 'Received (darker shade)', color: '#5c5c5c' },
+        { label: 'Sent (lighter shade)', color: '#b8b8b8' },
+      ]}
+      showValueAxis={false}
+      showGrid={false}
+      testID="BarChart-segments-legend"
+      alwaysShowValueLabels
+    />
+  ),
+}
+
 const threePieces = [
   {
     category: 'North',
