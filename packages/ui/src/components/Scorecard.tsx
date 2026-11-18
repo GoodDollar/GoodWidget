@@ -44,6 +44,9 @@ export interface ScorecardProps {
   /** Marks the metric as not available: the value reads "N/A" in the muted color (no prefix/suffix),
    * this reason sits under it, and no trend row is drawn. `value` is ignored. */
   unavailableReason?: string
+  /** Card variant only: replaces the faint top highlight with a top border in this color (e.g. a
+   * team color), its width taken from the Scorecard's own size scale. Ignored by the bare variant. */
+  accentColor?: string
   variant?: ScorecardVariant
   size?: ScorecardSize
   testID?: string
@@ -86,6 +89,9 @@ const CARD_PADDING_PX = SCORECARD_BASE_SIZE_PX
 const CARD_ELEVATION_OVERLAY_COLOR = 'rgba(255,255,255,0.045)'
 /** Simulates a light source hitting the card's top edge, replacing a hard border. */
 const CARD_TOP_HIGHLIGHT_COLOR = 'rgba(255,255,255,0.06)'
+const CARD_TOP_HIGHLIGHT_WIDTH_PX = 1
+/** `accentColor` top border: four ratio steps below the base size (about 3.5px), on the same scale as the rest. */
+const CARD_ACCENT_BORDER_WIDTH_PX = SCORECARD_BASE_SIZE_PX / GOLDEN_RATIO ** 4
 
 const TREND_DIRECTION_COLOR_TOKEN: Record<ScorecardTrend['direction'], string> = {
   up: '$success',
@@ -322,7 +328,7 @@ function ScorecardContent({
   )
 }
 
-export function Scorecard({ variant = 'bare', ...contentProps }: ScorecardProps) {
+export function Scorecard({ variant = 'bare', accentColor, ...contentProps }: ScorecardProps) {
   if (variant === 'card') {
     return (
       // Overrides scoped to this call site only — Card.ts itself stays
@@ -337,8 +343,8 @@ export function Scorecard({ variant = 'bare', ...contentProps }: ScorecardProps)
         padding={CARD_PADDING_PX}
         backgroundColor="$background"
         borderWidth={0}
-        borderTopWidth={1}
-        borderTopColor={CARD_TOP_HIGHLIGHT_COLOR}
+        borderTopWidth={accentColor ? CARD_ACCENT_BORDER_WIDTH_PX : CARD_TOP_HIGHLIGHT_WIDTH_PX}
+        borderTopColor={accentColor ?? CARD_TOP_HIGHLIGHT_COLOR}
         shadowOpacity={0}
         justifyContent="center"
       >

@@ -165,6 +165,25 @@ test('Scorecard/Unavailable story shows N/A with the reason and no trend row', a
   await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-unavailable.png')
 })
 
+test('Scorecard/AccentColor story draws a colored top border only when accentColor is set', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-scorecard--accent-color')
+  const frame = getStoryFrame(page)
+  const topBorder = (testId: string) =>
+    frame
+      .getByTestId(testId)
+      .locator('..')
+      .evaluate((card) => {
+        const style = getComputedStyle(card)
+        return { color: style.borderTopColor, width: parseFloat(style.borderTopWidth) }
+      })
+  const accent = await topBorder('Scorecard-accent-violet')
+  expect(accent.color).toBe('rgb(108, 92, 231)')
+  // About 3.5px on the Scorecard's scale; browsers round border widths to device pixels.
+  expect(accent.width).toBeGreaterThan(1)
+  expect((await topBorder('Scorecard-accent-none')).width).toBe(1)
+  await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-accent.png')
+})
+
 test('PieDonutChart/Default story renders donut (innerRadius=0.6) with center metric, bare and card variants', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 700 })
   await gotoStory(page, 'design-system-primitives-piedonutchart--default')

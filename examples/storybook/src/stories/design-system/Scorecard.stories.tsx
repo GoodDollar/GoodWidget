@@ -160,6 +160,18 @@ export const Unavailable: Story = {
   ),
 }
 
+/** `accentColor`: card variant with a colored top border (one color per team, say), next to the
+ * default card. */
+export const AccentColor: Story = {
+  render: () => (
+    <XStack testID="Scorecard-accent" data-testid="Scorecard-accent" flexWrap="wrap" gap="$5">
+      <Scorecard label="Default card" value={856} variant="card" testID="Scorecard-accent-none" />
+      <Scorecard label="Accent" value={856} accentColor="#6c5ce7" variant="card" testID="Scorecard-accent-violet" />
+      <Scorecard label="Accent" value={412} accentColor="#00b894" variant="card" testID="Scorecard-accent-green" />
+    </XStack>
+  ),
+}
+
 /** Controllable instance — edit args in the Controls panel. */
 export const Controllable: Story = {
   args: {
