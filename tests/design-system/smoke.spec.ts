@@ -269,6 +269,16 @@ test('BarChart/Responsive story scales its viewBox to the real container width, 
   await screenshotStory(page, 'tests/design-system/test-results/story-barchart-responsive.png')
 })
 
+test('BarChart/BarColors story draws each bar in its own color', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-barchart--bar-colors')
+  const frame = getStoryFrame(page)
+  const chart = frame.getByTestId('BarChart-bar-colors')
+  await expect(chart).toBeVisible()
+  const fills = await chart.locator('svg path').evaluateAll((paths) => paths.map((p) => p.getAttribute('fill')))
+  expect(fills).toEqual(['#6c5ce7', '#00b894', '#e17055', '#0984e3'])
+  await screenshotStory(page, 'tests/design-system/test-results/story-barchart-bar-colors.png')
+})
+
 test('LineAreaChart/Default story renders area fill, reference line, linear and monotone variants', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 700 })
   await gotoStory(page, 'design-system-primitives-lineareachart--default')

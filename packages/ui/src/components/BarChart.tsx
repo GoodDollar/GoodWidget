@@ -34,6 +34,8 @@ export type BarChartLayout = 'vertical' | 'horizontal'
 export interface BarChartDataItem {
   category: string
   value: number
+  /** This bar's fill (and its hover-row dot). Omitted = the theme's primary color. */
+  color?: string
 }
 
 export interface BarChartPadding {
@@ -132,6 +134,7 @@ const AXIS_LABEL_GAP_PX = 8
 interface BarChartItem {
   category: string
   value: number
+  color?: string
 }
 
 interface AxisScale {
@@ -500,7 +503,7 @@ function BarChartContent({
 
   const hoveredItem = hoveredIndex !== null ? items[hoveredIndex] : null
   const tooltipRows: ChartTooltipRow[] = hoveredItem
-    ? [{ color: barColor, label: title ?? 'Value', value: valueFormatter(hoveredItem.value) }]
+    ? [{ color: hoveredItem.color ?? barColor, label: title ?? 'Value', value: valueFormatter(hoveredItem.value) }]
     : []
 
   // Follows the cursor along the axis bars are laid out on (horizontally for
@@ -673,7 +676,7 @@ function BarChartContent({
                             barCornerRadius,
                             isPositive ? 'top' : 'bottom',
                           )}
-                          fill={barColor}
+                          fill={item.color ?? barColor}
                           accessible={false}
                           onPress={onBarPress ? () => onBarPress(item, index) : undefined}
                         />
@@ -733,7 +736,7 @@ function BarChartContent({
                           barCornerRadius,
                           isPositive ? 'right' : 'left',
                         )}
-                        fill={barColor}
+                        fill={item.color ?? barColor}
                         accessible={false}
                         onPress={onBarPress ? () => onBarPress(item, index) : undefined}
                       />

@@ -174,6 +174,30 @@ export const Responsive: Story = {
   ),
 }
 
+/** Fixed per-bar colors (e.g. one color per team), horizontal layout. */
+const colored = [
+  { category: 'Alpha', value: 45200, color: '#6c5ce7' },
+  { category: 'Beta', value: 32100, color: '#00b894' },
+  { category: 'Gamma', value: 18500, color: '#e17055' },
+  { category: 'Delta', value: 8500, color: '#0984e3' },
+]
+
+/** `color` on each data item: every bar draws in its own color; the hover dot matches. */
+export const BarColors: Story = {
+  render: () => (
+    <BarChart
+      data={colored}
+      title="Per-bar colors"
+      layout="horizontal"
+      width={480}
+      height={220}
+      padding={{ top: 16, right: 16, bottom: 32, left: 80 }}
+      testID="BarChart-bar-colors"
+      showValueLabels
+    />
+  ),
+}
+
 /** Controllable instance — edit args in the Controls panel. */
 export const Controllable: Story = {
   args: {
