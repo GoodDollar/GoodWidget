@@ -12,7 +12,9 @@ import { createComponent } from '../createComponent'
 import { estimateTextWidthPx, truncateLabelToWidth } from '../utils/textWidthEstimate'
 
 export interface ChartTooltipRow {
-  color: string
+  /** Dot color. Omitted = no dot is drawn, but the row keeps the dot's space so
+   * its label lines up with the rows above it (e.g. a "previous period" row). */
+  color?: string
   label: string
   value: string
 }
@@ -177,7 +179,7 @@ export function ChartTooltip({ header, subheader, rows, left, top, chartWidthPx 
 
         return (
           <XStack key={row.label} alignItems="center" gap="$2">
-            <ChartTooltipDot backgroundColor={row.color} />
+            <ChartTooltipDot backgroundColor={row.color ?? 'transparent'} />
             <ChartTooltipLabelText numberOfLines={1} ellipsizeMode="tail">
               {label}
             </ChartTooltipLabelText>
