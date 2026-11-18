@@ -238,6 +238,7 @@ export function createGoodWidgetConfig(overrides?: GoodWidgetConfig) {
     },
     defaultFont: 'body',
     media: {
+      xs: { maxWidth: 360 },
       sm: { maxWidth: 480 },
       md: { maxWidth: 768 },
       gtSm: { minWidth: 480 },

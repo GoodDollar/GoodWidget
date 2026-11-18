@@ -72,7 +72,16 @@ export type { ToastStatus, ToastConfig, ToastItem } from './components/Toast'
 export { Alert } from './components-test/Alert'
 export { Badge, BadgeText } from './components-test/Badge'
 export { Drawer } from './components/Drawer'
-export { NextTaskModal } from './components/NextTaskModal'
+export {
+  NextTaskModal,
+  NEXT_TASK_HEADLINE,
+  NEXT_TASK_SUPPORTING_COPY,
+  NEXT_TASK_RECOMMENDED_LABEL,
+  NEXT_TASK_SKIP_LABEL,
+  NEXT_TASK_STATUS_LABEL,
+  NAVIGATION_FAILED_TOAST_MESSAGE,
+  REJECTED_URL_TOAST_MESSAGE,
+} from './components/NextTaskModal'
 export type { NextTaskModalProps, NextTaskContent, NextTaskDismissReason } from './components/NextTaskModal'
 export { NextTaskCtaCard } from './components/NextTaskCtaCard'
 export { PageWizardProvider, PageWizardShell, usePageWizard } from './components/PageWizard'
