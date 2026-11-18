@@ -252,6 +252,36 @@ export const ValueLabelsOnEveryBar: Story = {
   ),
 }
 
+/** `showValueAxis={false}` (with `showGrid={false}`): no number scale, values read from the
+ * bar labels only. Horizontal and vertical. */
+export const WithoutValueAxis: Story = {
+  render: () => (
+    <XStack testID="BarChart-no-axis" data-testid="BarChart-no-axis" flexWrap="wrap" gap="$5">
+      <BarChart
+        data={largeValues}
+        layout="horizontal"
+        width={480}
+        height={200}
+        padding={{ top: 16, right: 16, bottom: 32, left: 80 }}
+        valueFormatter={shortNumber}
+        showValueAxis={false}
+        showGrid={false}
+        testID="BarChart-no-axis-horizontal"
+        showValueLabels
+      />
+      <BarChart
+        data={largeValues}
+        width={320}
+        valueFormatter={shortNumber}
+        showValueAxis={false}
+        showGrid={false}
+        testID="BarChart-no-axis-vertical"
+        showValueLabels
+      />
+    </XStack>
+  ),
+}
+
 /** Controllable instance — edit args in the Controls panel. */
 export const Controllable: Story = {
   args: {

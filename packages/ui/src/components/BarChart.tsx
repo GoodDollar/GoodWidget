@@ -59,6 +59,9 @@ export interface BarChartProps {
   tooltip?: BarChartTooltipOptions
   layout?: BarChartLayout
   showGrid?: boolean
+  /** false hides the value axis's number labels (and, in vertical layout, the
+   * left-gutter space they would take). Grid lines follow `showGrid`. Default true. */
+  showValueAxis?: boolean
   showValueLabels?: boolean
   /** Draws the value label on every bar, including bars too short for one by
    * default and zero-length ones (implies `showValueLabels`). Default false. */
@@ -321,6 +324,7 @@ function BarChartContent({
   tooltip,
   layout = 'vertical',
   showGrid = true,
+  showValueAxis = true,
   showValueLabels = false,
   alwaysShowValueLabels = false,
   valueFormatter: valueFormatterProp,
@@ -400,10 +404,12 @@ function BarChartContent({
   // (e.g. "500.0K") can never collide with the title regardless of how far it
   // reaches leftward. DEFAULT_PADDING.left is only a floor; real content can
   // widen it further.
-  const widestYTickLabelWidthPx = scale.ticks.reduce<number>(
-    (widest, tick) => Math.max(widest, estimateTextWidthPx(valueFormatter(tick), tickLabelSizePx)),
-    0,
-  )
+  const widestYTickLabelWidthPx = showValueAxis
+    ? scale.ticks.reduce<number>(
+        (widest, tick) => Math.max(widest, estimateTextWidthPx(valueFormatter(tick), tickLabelSizePx)),
+        0,
+      )
+    : 0
 
   // Rotated axis titles read along the plot's *height*, not its width, so
   // whether one needs to wrap onto a second line depends on plotHeight — which
@@ -636,39 +642,41 @@ function BarChartContent({
                   </G>
                 ) : null}
 
-                <G accessible={false}>
-                  {scale.ticks.map((tick) => {
-                    const tickOffset = valueToPixel(tick, isVertical ? plotHeight : plotWidth)
-                    const formattedTick = valueFormatter(tick)
+                {showValueAxis ? (
+                  <G accessible={false}>
+                    {scale.ticks.map((tick) => {
+                      const tickOffset = valueToPixel(tick, isVertical ? plotHeight : plotWidth)
+                      const formattedTick = valueFormatter(tick)
 
-                    return isVertical ? (
-                      <SvgText
-                        key={tick}
-                        x={resolvedPadding.left - AXIS_LABEL_GAP_PX}
-                        y={resolvedPadding.top + plotHeight - tickOffset}
-                        fontSize={tickLabelSizePx}
-                        fontFamily={CHART_FONT_FAMILY}
-                        fill={axisLabelColor}
-                        textAnchor="end"
-                        alignmentBaseline="middle"
-                      >
-                        {formattedTick}
-                      </SvgText>
-                    ) : (
-                      <SvgText
-                        key={tick}
-                        x={resolvedPadding.left + tickOffset}
-                        y={resolvedPadding.top + plotHeight + 16}
-                        fontSize={tickLabelSizePx}
-                        fontFamily={CHART_FONT_FAMILY}
-                        fill={axisLabelColor}
-                        textAnchor="middle"
-                      >
-                        {formattedTick}
-                      </SvgText>
-                    )
-                  })}
-                </G>
+                      return isVertical ? (
+                        <SvgText
+                          key={tick}
+                          x={resolvedPadding.left - AXIS_LABEL_GAP_PX}
+                          y={resolvedPadding.top + plotHeight - tickOffset}
+                          fontSize={tickLabelSizePx}
+                          fontFamily={CHART_FONT_FAMILY}
+                          fill={axisLabelColor}
+                          textAnchor="end"
+                          alignmentBaseline="middle"
+                        >
+                          {formattedTick}
+                        </SvgText>
+                      ) : (
+                        <SvgText
+                          key={tick}
+                          x={resolvedPadding.left + tickOffset}
+                          y={resolvedPadding.top + plotHeight + 16}
+                          fontSize={tickLabelSizePx}
+                          fontFamily={CHART_FONT_FAMILY}
+                          fill={axisLabelColor}
+                          textAnchor="middle"
+                        >
+                          {formattedTick}
+                        </SvgText>
+                      )
+                    })}
+                  </G>
+                ) : null}
 
                 {items.map((item, index) => {
                   const barLength =

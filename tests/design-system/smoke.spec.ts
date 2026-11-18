@@ -305,6 +305,18 @@ test('BarChart/ValueLabelsOnEveryBar story keeps labels on tiny and zero bars', 
   await screenshotStory(page, 'tests/design-system/test-results/story-barchart-every-label.png')
 })
 
+test('BarChart/WithoutValueAxis story draws no number scale, only category and bar labels', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 700 })
+  await gotoStory(page, 'design-system-primitives-barchart--without-value-axis')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByTestId('BarChart-no-axis')).toBeVisible()
+  for (const testId of ['BarChart-no-axis-horizontal', 'BarChart-no-axis-vertical']) {
+    const texts = await frame.getByTestId(testId).locator('svg text').allTextContents()
+    expect(texts.sort()).toEqual(['1.7M', '412.9K', '866.1K', 'Alpha', 'Beta', 'Gamma'])
+  }
+  await screenshotStory(page, 'tests/design-system/test-results/story-barchart-no-axis.png')
+})
+
 test('LineAreaChart/Default story renders area fill, reference line, linear and monotone variants', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 700 })
   await gotoStory(page, 'design-system-primitives-lineareachart--default')
