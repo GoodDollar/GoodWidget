@@ -235,6 +235,18 @@ test('Carousel/SingleSlide story shows no arrows and no dots', async ({ page }) 
   await expect(frame.getByTestId('Carousel-single-dot-0')).toHaveCount(0)
 })
 
+test('Examples/BuildersS5PreviewComparison story renders tiles, split bars and the over-time line', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 1000 })
+  await gotoStory(page, 'design-system-examples-builders-s5-preview-comparison--gd-moved-and-github-score')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByTestId('Builders-preview-comparison')).toBeVisible()
+  await expect(frame.getByTestId('Builders-gd-moved').getByText('G$ 1.7M', { exact: true }).first()).toBeVisible()
+  await expect(frame.getByTestId('Builders-gd-moved').getByText('in G$ 866.1K', { exact: true })).toBeVisible()
+  await expect(frame.getByTestId('Builders-gd-moved-bars').locator('svg path')).toHaveCount(10)
+  await expect(frame.getByTestId('Builders-github-score-line')).toBeVisible()
+  await screenshotStory(page, 'tests/design-system/test-results/story-builders-preview-comparison.png')
+})
+
 test('PieDonutChart/Default story renders donut (innerRadius=0.6) with center metric, bare and card variants', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 700 })
   await gotoStory(page, 'design-system-primitives-piedonutchart--default')
