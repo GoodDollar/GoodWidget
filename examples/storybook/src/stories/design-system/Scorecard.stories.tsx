@@ -172,6 +172,25 @@ export const AccentColor: Story = {
   ),
 }
 
+/** `detailLines`: a two-line breakdown under the value, above the trend row. */
+export const DetailLines: Story = {
+  render: () => (
+    <XStack testID="Scorecard-detail-lines" data-testid="Scorecard-detail-lines" flexWrap="wrap" gap="$5">
+      <Scorecard
+        label="Volume"
+        value={1701511}
+        prefix="G$"
+        detailLines={['in G$ 866.1K', 'out G$ 835.4K']}
+        trend={{ value: 4.2, direction: 'up' }}
+        trendText="+68.6K (+4.2%)"
+        subtitle="since last period"
+        variant="card"
+        testID="Scorecard-detail-card"
+      />
+    </XStack>
+  ),
+}
+
 /** Controllable instance — edit args in the Controls panel. */
 export const Controllable: Story = {
   args: {

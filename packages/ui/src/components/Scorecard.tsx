@@ -41,6 +41,9 @@ export interface ScorecardProps {
   trendLabel?: string
   /** Short contextual/source note rendered below the trend row (or value row, if no trend). */
   subtitle?: string
+  /** Small lines directly under the value, above the trend row (e.g. a breakdown such as
+   * "in G$ 866.1K" / "out G$ 835.4K"), in the subtitle's size and color. Omitted or empty = none. */
+  detailLines?: string[]
   /** Marks the metric as not available: the value reads "N/A" in the muted color (no prefix/suffix),
    * this reason sits under it, and no trend row is drawn. `value` is ignored. */
   unavailableReason?: string
@@ -275,6 +278,7 @@ function ScorecardContent({
   trendText,
   trendLabel,
   subtitle,
+  detailLines,
   unavailableReason,
   size = 'md',
   testID,
@@ -305,6 +309,15 @@ function ScorecardContent({
         <ScorecardSubtitleText size={size} marginTop={LABEL_TO_VALUE_GAP_PX}>
           {unavailableReason}
         </ScorecardSubtitleText>
+      ) : null}
+      {!isUnavailable && detailLines && detailLines.length > 0 ? (
+        <YStack alignItems="center" marginTop={LABEL_TO_VALUE_GAP_PX}>
+          {detailLines.map((line, lineIndex) => (
+            <ScorecardSubtitleText key={`${lineIndex}-${line}`} size={size}>
+              {line}
+            </ScorecardSubtitleText>
+          ))}
+        </YStack>
       ) : null}
       {trend && !isUnavailable ? (
         <ScorecardTrendRow>

@@ -184,6 +184,21 @@ test('Scorecard/AccentColor story draws a colored top border only when accentCol
   await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-accent.png')
 })
 
+test('Scorecard/DetailLines story draws the breakdown lines between the value and the trend row', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-scorecard--detail-lines')
+  const frame = getStoryFrame(page)
+  const card = frame.getByTestId('Scorecard-detail-card')
+  const inLine = card.getByText('in G$ 866.1K', { exact: true })
+  const outLine = card.getByText('out G$ 835.4K', { exact: true })
+  const trend = card.getByText('+68.6K (+4.2%)', { exact: true })
+  await expect(inLine).toBeVisible()
+  await expect(outLine).toBeVisible()
+  const [inBox, outBox, trendBox] = await Promise.all([inLine.boundingBox(), outLine.boundingBox(), trend.boundingBox()])
+  expect(inBox!.y).toBeLessThan(outBox!.y)
+  expect(outBox!.y).toBeLessThan(trendBox!.y)
+  await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-detail-lines.png')
+})
+
 test('PieDonutChart/Default story renders donut (innerRadius=0.6) with center metric, bare and card variants', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 700 })
   await gotoStory(page, 'design-system-primitives-piedonutchart--default')
