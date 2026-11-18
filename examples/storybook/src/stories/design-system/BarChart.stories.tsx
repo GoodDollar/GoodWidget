@@ -221,6 +221,37 @@ export const HoverLabelAndExactValue: Story = {
   ),
 }
 
+/** Story-only formatter: whole numbers below 10,000, one-decimal K/M above. */
+function shortNumber(value: number): string {
+  const abs = Math.abs(value)
+  if (abs < 10000) return Math.round(value).toLocaleString('en-US')
+  const [divisor, suffix] = abs >= 1e6 ? [1e6, 'M'] : [1e3, 'K']
+  return (value / divisor).toFixed(1).replace(/\.0$/, '') + suffix
+}
+
+const skewedValues = [
+  { category: 'Alpha', value: 1701511 },
+  { category: 'Beta', value: 10 },
+  { category: 'Gamma', value: 0 },
+]
+
+/** `alwaysShowValueLabels`: a tiny bar ("10") and a zero bar ("0") keep their labels next to
+ * a 1.7M bar; with plain `showValueLabels` they would be hidden. */
+export const ValueLabelsOnEveryBar: Story = {
+  render: () => (
+    <BarChart
+      data={skewedValues}
+      layout="horizontal"
+      width={480}
+      height={200}
+      padding={{ top: 16, right: 16, bottom: 32, left: 80 }}
+      valueFormatter={shortNumber}
+      testID="BarChart-every-label"
+      alwaysShowValueLabels
+    />
+  ),
+}
+
 /** Controllable instance — edit args in the Controls panel. */
 export const Controllable: Story = {
   args: {

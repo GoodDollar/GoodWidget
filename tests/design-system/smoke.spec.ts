@@ -293,6 +293,18 @@ test('BarChart/HoverLabelAndExactValue story shows the hover label and exact val
   await screenshotStory(page, 'tests/design-system/test-results/story-barchart-hover-exact.png')
 })
 
+test('BarChart/ValueLabelsOnEveryBar story keeps labels on tiny and zero bars', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-barchart--value-labels-on-every-bar')
+  const frame = getStoryFrame(page)
+  const chart = frame.getByTestId('BarChart-every-label')
+  await expect(chart).toBeVisible()
+  await expect(chart.locator('svg text').filter({ hasText: /^1\.7M$/ })).toHaveCount(1)
+  await expect(chart.locator('svg text').filter({ hasText: /^10$/ })).toHaveCount(1)
+  // Two "0" texts: the value axis's first tick and the zero bar's own label.
+  await expect(chart.locator('svg text').filter({ hasText: /^0$/ })).toHaveCount(2)
+  await screenshotStory(page, 'tests/design-system/test-results/story-barchart-every-label.png')
+})
+
 test('LineAreaChart/Default story renders area fill, reference line, linear and monotone variants', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 700 })
   await gotoStory(page, 'design-system-primitives-lineareachart--default')

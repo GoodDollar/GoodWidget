@@ -60,6 +60,9 @@ export interface BarChartProps {
   layout?: BarChartLayout
   showGrid?: boolean
   showValueLabels?: boolean
+  /** Draws the value label on every bar, including bars too short for one by
+   * default and zero-length ones (implies `showValueLabels`). Default false. */
+  alwaysShowValueLabels?: boolean
   valueFormatter?: (value: number) => string
   /**
    * The bar values' declared semantic type — drives decimal precision for
@@ -123,7 +126,8 @@ const DESIRED_TICK_COUNT = 5
  * (20, 50, 100, 1K, ... are just 2/5/10 one magnitude up). */
 const NICE_STEP_MULTIPLES = [1, 2, 5, 10] as const
 
-/** Hides a value label once its bar shrinks below this length — an unlabeled sliver reads better than overlapping text. */
+/** Hides a value label once its bar shrinks below this length — an unlabeled sliver reads better than overlapping text.
+ * `alwaysShowValueLabels` opts out, for charts where every value must be readable. */
 const MIN_BAR_LENGTH_FOR_VALUE_LABEL_PX = 20
 const VALUE_LABEL_GAP_PX = 4
 const BAR_FILL_FRACTION = 0.7
@@ -318,6 +322,7 @@ function BarChartContent({
   layout = 'vertical',
   showGrid = true,
   showValueLabels = false,
+  alwaysShowValueLabels = false,
   valueFormatter: valueFormatterProp,
   valueType = 'auto',
   valueDecimals,
@@ -453,6 +458,9 @@ function BarChartContent({
 
   const slotSize = (isVertical ? plotWidth : plotHeight) / Math.max(items.length, 1)
   const barThickness = slotSize * BAR_FILL_FRACTION
+
+  const shouldShowValueLabel = (barLengthPx: number): boolean =>
+    alwaysShowValueLabels || (showValueLabels && barLengthPx >= MIN_BAR_LENGTH_FOR_VALUE_LABEL_PX)
 
   // Zero baseline position within the plot rect, in each layout's value-axis direction.
   const zeroOffset = valueToPixel(0, isVertical ? plotHeight : plotWidth)
@@ -710,7 +718,7 @@ function BarChartContent({
                             {categoryLabel}
                           </SvgText>
                         ) : null}
-                        {showValueLabels && barHeight >= MIN_BAR_LENGTH_FOR_VALUE_LABEL_PX ? (
+                        {shouldShowValueLabel(barHeight) ? (
                           <SvgText
                             x={slotStart + slotSize / 2}
                             y={
@@ -771,7 +779,7 @@ function BarChartContent({
                           {categoryLabel}
                         </SvgText>
                       ) : null}
-                      {showValueLabels && barWidth >= MIN_BAR_LENGTH_FOR_VALUE_LABEL_PX ? (
+                      {shouldShowValueLabel(barWidth) ? (
                         <SvgText
                           x={
                             isPositive
