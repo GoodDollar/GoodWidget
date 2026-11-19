@@ -310,6 +310,10 @@ test('Carousel/ThreeSlides story moves by arrow, dot and faded-slide click witho
 
   await expect(frame.getByTestId('Carousel-three-previous')).toHaveCount(0)
   expect(await isCurrent(0)).toBe('true')
+  // About a sixth (0.18) of the arrow sits outside the slides' right edge.
+  const nextBox = (await frame.getByTestId('Carousel-three-next').boundingBox())!
+  const trackBox = (await track.boundingBox())!
+  expect(nextBox.x + nextBox.width - (trackBox.x + trackBox.width)).toBeCloseTo(nextBox.width * 0.18, 0)
 
   await frame.getByTestId('Carousel-three-next').click()
   await expect.poll(() => isCurrent(1)).toBe('true')

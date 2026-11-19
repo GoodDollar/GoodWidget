@@ -55,6 +55,10 @@ const PAGE_DOT_TO_TEXT_RATIO = 0.6
 const SLIDE_GAP_TO_TEXT_RATIO = 1.1
 /** Space above the dots = 0.9 x text (preview: 12 px). */
 const DOTS_TOP_GAP_TO_TEXT_RATIO = 0.9
+/** About a sixth of each arrow sits outside the slides' edge, so it covers less of the slide
+ * (preview: 6 px of a 34 px button). Hosts need that much room around the carousel; a card's
+ * padding is plenty. */
+const ARROW_OUTSIDE_EDGE_RATIO = 0.18
 /** Arrow outline stays a hairline at every size so it reads crisp, not heavier on wide screens. */
 const ARROW_BORDER_WIDTH_PX = 1
 
@@ -145,6 +149,7 @@ export function Carousel({
   const arrowSizePx = textSizePx * ARROW_TO_TEXT_RATIO
   const arrowGlyphSizePx = textSizePx * ARROW_GLYPH_TO_TEXT_RATIO
   const pageDotSizePx = textSizePx * PAGE_DOT_TO_TEXT_RATIO
+  const arrowEdgeOffsetPx = -arrowSizePx * ARROW_OUTSIDE_EDGE_RATIO
 
   const goTo = useCallback((index: number, smooth = true) => {
     const track = trackRef.current
@@ -210,7 +215,7 @@ export function Carousel({
         </XStack>
         {!isSingle && currentIndex > 0 ? (
           <CarouselArrow
-            left={0}
+            left={arrowEdgeOffsetPx}
             width={arrowSizePx}
             height={arrowSizePx}
             marginTop={-arrowSizePx / 2}
@@ -226,7 +231,7 @@ export function Carousel({
         ) : null}
         {!isSingle && currentIndex < slideCount - 1 ? (
           <CarouselArrow
-            right={0}
+            right={arrowEdgeOffsetPx}
             width={arrowSizePx}
             height={arrowSizePx}
             marginTop={-arrowSizePx / 2}
