@@ -564,6 +564,16 @@ test('BarChart/WithoutValueAxis story draws no number scale, only category and b
     const texts = await frame.getByTestId(testId).locator('svg text').allTextContents()
     expect(texts.sort()).toEqual(['1.7M', '412.9K', '866.1K', 'Alpha', 'Beta', 'Gamma'])
   }
+  // Vertical: no empty number gutter on the left, so the bars sit about as far from the left
+  // edge as from the right one.
+  const vertical = frame.getByTestId('BarChart-no-axis-vertical')
+  const svgBox = (await vertical.locator('svg').first().boundingBox())!
+  const bars = vertical.locator('svg path')
+  const first = (await bars.first().boundingBox())!
+  const last = (await bars.last().boundingBox())!
+  const leftMargin = first.x - svgBox.x
+  const rightMargin = svgBox.x + svgBox.width - (last.x + last.width)
+  expect(Math.abs(leftMargin - rightMargin)).toBeLessThan(8)
   await screenshotStory(page, 'tests/design-system/test-results/story-barchart-no-axis.png')
 })
 

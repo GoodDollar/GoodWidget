@@ -108,8 +108,9 @@ export interface BarChartProps {
    */
   labelColumns?: boolean
   showGrid?: boolean
-  /** false hides the value axis's number labels (and, in vertical layout, the
-   * left-gutter space they would take). Grid lines follow `showGrid`. Default true. */
+  /** false hides the value axis's number labels and, in vertical layout, the
+   * left gutter they sat in (only a y-axis title keeps space there). Grid lines
+   * follow `showGrid`. Default true. */
   showValueAxis?: boolean
   showValueLabels?: boolean
   /** Draws the value label on every bar, including bars too short for one by
@@ -627,7 +628,16 @@ function BarChartContent({
       (yAxisTitleLines.length > 0 ? yAxisTitleLines.length * tickLabelSizePx + AXIS_LABEL_GAP_PX : 0)
     : 0
 
-  const resolvedPadding = mergePadding(padding, scaleRatio, requiredLeftGutterPx, labelColumnsPadding)
+  // Vertical layout without a value axis: the left gutter only holds the y-axis title (if any), so
+  // the default gutter floor is dropped. An explicit `padding.left` still wins.
+  const hiddenValueAxisPadding: Partial<BarChartPadding> | undefined =
+    isVertical && !showValueAxis ? { left: requiredLeftGutterPx } : undefined
+  const resolvedPadding = mergePadding(
+    padding,
+    scaleRatio,
+    requiredLeftGutterPx,
+    labelColumnsPadding ?? hiddenValueAxisPadding,
+  )
   const plotWidth = viewBoxWidth - resolvedPadding.left - resolvedPadding.right
   const plotHeight = viewBoxHeight - resolvedPadding.top - resolvedPadding.bottom
 
