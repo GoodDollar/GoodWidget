@@ -188,6 +188,9 @@ test('Scorecard/TrendText story shows the caller trend text in place of the perc
   await expect(frame.getByTestId('Scorecard-trend-down').getByText('-40 (-3.2%)', { exact: true })).toBeVisible()
   await expect(frame.getByTestId('Scorecard-trend-neutral').getByText('No change', { exact: true })).toBeVisible()
   await expect(frame.getByTestId('Scorecard-trend-up').getByText('+11.9%', { exact: true })).toHaveCount(0)
+  // Neutral with the caller's text: no dash glyph; up keeps its arrow.
+  await expect(frame.getByTestId('Scorecard-trend-neutral').locator('svg')).toHaveCount(0)
+  await expect(frame.getByTestId('Scorecard-trend-up').locator('svg')).toHaveCount(1)
   await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-trend-text.png')
 })
 

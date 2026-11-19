@@ -42,7 +42,8 @@ export interface ScorecardProps {
   abbreviateFrom?: number | 'never'
   trend?: ScorecardTrend
   /** Replaces the computed percentage in the trend row (e.g. "+91 (+11.9%)" or "No change").
-   * `trend.direction` still picks the arrow and color; `trendLabel` is still appended. */
+   * `trend.direction` still picks the arrow and color; `trendLabel` is still appended. A neutral
+   * direction with trendText reads as plain text: no dash, normal text color. */
   trendText?: string
   trendLabel?: string
   /** Short contextual/source note rendered below the trend row (or value row, if no trend). */
@@ -338,6 +339,9 @@ function ScorecardContent({
   const valueRowGap = isTile ? { marginTop: tileLineGapPx } : {}
   const trendRowGap = isTile ? { marginTop: 0 } : {}
   const subtitleGapPx = isTile ? 0 : VALUE_TO_TREND_GAP_PX
+  // The caller's own words for a neutral trend ("No change") already say it, so they read as plain
+  // text: no dash, normal text color. Without trendText the neutral dash and "0%" stay as before.
+  const isPlainNeutralTrend = trend?.direction === 'neutral' && trendText !== undefined
 
   return (
     // testID (React Native) and data-testid (web/DOM) both set so the same
@@ -375,12 +379,18 @@ function ScorecardContent({
       ) : null}
       {trend && !isUnavailable ? (
         <ScorecardTrendRow {...trendRowGap}>
-          <TrendGlyph
-            direction={trend.direction}
-            color={resolveThemeColor(theme, TREND_DIRECTION_COLOR_TOKEN[trend.direction])}
-            size={smallTextSizePx}
-          />
-          <ScorecardTrendText size={size} color={TREND_DIRECTION_COLOR_TOKEN[trend.direction]} {...smallText}>
+          {isPlainNeutralTrend ? null : (
+            <TrendGlyph
+              direction={trend.direction}
+              color={resolveThemeColor(theme, TREND_DIRECTION_COLOR_TOKEN[trend.direction])}
+              size={smallTextSizePx}
+            />
+          )}
+          <ScorecardTrendText
+            size={size}
+            color={isPlainNeutralTrend ? '$color' : TREND_DIRECTION_COLOR_TOKEN[trend.direction]}
+            {...smallText}
+          >
             {trendText ?? formatTrendPercentage(trend.value, trend.direction)}
             {trendLabel ? ` ${trendLabel}` : ''}
           </ScorecardTrendText>

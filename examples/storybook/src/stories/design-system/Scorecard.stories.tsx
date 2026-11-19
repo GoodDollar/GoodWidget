@@ -159,7 +159,7 @@ export const AbbreviateFrom: Story = {
 }
 
 /** `trendText`: the trend row shows the caller's text ("+91 (+11.9%)", "-40 (-3.2%)", "No change")
- * while `trend.direction` still picks the arrow and color. */
+ * while `trend.direction` still picks the arrow and color; a neutral one reads as plain text. */
 export const TrendText: Story = {
   render: () => (
     <XStack testID="Scorecard-trend-text" data-testid="Scorecard-trend-text" flexWrap="wrap" gap="$5">
