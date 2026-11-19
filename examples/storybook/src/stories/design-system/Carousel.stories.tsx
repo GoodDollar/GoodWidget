@@ -71,6 +71,25 @@ export const SlideLabels: Story = {
   ),
 }
 
+/** Slides with a link each: only the current slide's link takes keyboard focus; the faded
+ * neighbours' content is inert until you move to them. */
+export const SlidesWithLinks: Story = {
+  render: () => (
+    <YStack width="100%">
+      <Carousel testID="Carousel-links">
+        {['First', 'Second'].map((title) => (
+          <Card key={title} padding="$4" gap="$2">
+            <Text fontWeight="700">{title}</Text>
+            <a href="#" data-testid={`Carousel-links-${title}`}>
+              Open {title}
+            </a>
+          </Card>
+        ))}
+      </Carousel>
+    </YStack>
+  ),
+}
+
 /** One child: full width, no arrows, no dots. */
 export const SingleSlide: Story = {
   render: () => (

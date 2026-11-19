@@ -375,6 +375,21 @@ test('Carousel/SlideLabels story draws a label above each labelled slide, in the
   await screenshotStory(page, 'tests/design-system/test-results/story-carousel-labels.png')
 })
 
+test('Carousel/SlidesWithLinks story keeps the faded slide inert until it is current', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-carousel--slides-with-links')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByTestId('Carousel-links')).toBeVisible()
+  await expect(frame.getByTestId('Carousel-links-slide-0-content')).toHaveJSProperty('inert', false)
+  await expect(frame.getByTestId('Carousel-links-slide-1-content')).toHaveJSProperty('inert', true)
+  // Tabbing from the current slide's link skips the faded slide's link.
+  await frame.getByTestId('Carousel-links-First').focus()
+  await page.keyboard.press('Tab')
+  await expect(frame.getByTestId('Carousel-links-Second')).not.toBeFocused()
+  await frame.getByTestId('Carousel-links-next').click()
+  await expect(frame.getByTestId('Carousel-links-slide-1-content')).toHaveJSProperty('inert', false)
+  await expect(frame.getByTestId('Carousel-links-slide-0-content')).toHaveJSProperty('inert', true)
+})
+
 test('Carousel/SingleSlide story shows no arrows and no dots', async ({ page }) => {
   await gotoStory(page, 'design-system-primitives-carousel--single-slide')
   const frame = getStoryFrame(page)

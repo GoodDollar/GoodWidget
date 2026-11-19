@@ -183,6 +183,18 @@ export function Carousel({
     goTo(currentIndex, false)
   }, [])
 
+  // A faded slide's content is inert (web): keyboard focus can't enter controls that are hidden
+  // from screen readers, while the slide itself stays clickable to move to it. Set on the DOM
+  // element (not as a prop) so it behaves the same on React 18 and 19.
+  useEffect(() => {
+    const track = trackRef.current
+    if (!track) return
+    Array.from(track.children).forEach((slide, index) => {
+      const content = slide.firstElementChild as HTMLElement | null
+      if (content && typeof content.inert === 'boolean') content.inert = index !== currentIndex
+    })
+  }, [currentIndex, slideCount])
+
   const handleScroll = () => {
     const track = trackRef.current
     if (!track) return
@@ -228,7 +240,11 @@ export function Carousel({
                 style={{ scrollSnapAlign: snapAlign }}
               >
                 {/* A faded slide's content ignores the pointer, so a click lands on the slide and moves to it. */}
-                <YStack pointerEvents={isCurrent ? 'auto' : 'none'}>
+                {/* Also made inert while faded, see the effect above. */}
+                <YStack
+                  pointerEvents={isCurrent ? 'auto' : 'none'}
+                  data-testid={testID ? `${testID}-slide-${index}-content` : undefined}
+                >
                   {slideLabels?.[index] ? (
                     <CarouselSlideLabelText
                       fontSize={textSizePx}
