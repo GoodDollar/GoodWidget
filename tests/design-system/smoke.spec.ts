@@ -144,6 +144,32 @@ test('Scorecard/ValueFormatter story uses the caller formatter over the default 
   await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-value-formatter.png')
 })
 
+test('Scorecard/Tile story draws a tighter card with smaller secondary text', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-scorecard--tile')
+  const frame = getStoryFrame(page)
+  const measure = (testId: string, labelText: string) =>
+    frame.getByTestId(testId).evaluate(
+      (content, text) => {
+        const card = content.parentElement!
+        const label = [...content.querySelectorAll('span')].find((element) => element.textContent === text)!
+        return {
+          height: card.getBoundingClientRect().height,
+          paddingTop: parseFloat(getComputedStyle(card).paddingTop),
+          labelSize: parseFloat(getComputedStyle(label).fontSize),
+        }
+      },
+      labelText,
+    )
+  const card = await measure('Scorecard-tile-card', 'Card')
+  const tile = await measure('Scorecard-tile-tile', 'Tile')
+  // md value text is 24 px: tile padding 0.42 x 24, small text one step below the card's (14.8 -> 12).
+  expect(tile.paddingTop).toBeCloseTo(24 * 0.42, 0)
+  expect(tile.labelSize).toBe(12)
+  expect(tile.labelSize).toBeLessThan(card.labelSize)
+  expect(tile.height).toBeLessThan(card.height)
+  await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-tile.png')
+})
+
 test('Scorecard/AbbreviateFrom story shortens from 10,000 by default, from any threshold, or never', async ({ page }) => {
   await gotoStory(page, 'design-system-primitives-scorecard--abbreviate-from')
   const frame = getStoryFrame(page)

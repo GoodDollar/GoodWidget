@@ -17,7 +17,8 @@ import { formatMetricValue } from '../utils/formatMetricValue'
 import type { MetricFormat } from '../utils/formatMetricValue'
 import { resolveThemeColor } from '../utils/resolveThemeColor'
 
-export type ScorecardVariant = 'bare' | 'card'
+/** `tile`: a tighter card for grids of many scorecards (see ScorecardGrid). */
+export type ScorecardVariant = 'bare' | 'card' | 'tile'
 export type ScorecardSize = 'sm' | 'md' | 'lg'
 
 export interface ScorecardTrend {
@@ -52,7 +53,7 @@ export interface ScorecardProps {
   /** Marks the metric as not available: the value reads "N/A" in the muted color (no prefix/suffix),
    * this reason sits under it, and no trend row is drawn. `value` is ignored. */
   unavailableReason?: string
-  /** Card variant only: replaces the faint top highlight with a top border in this color (e.g. a
+  /** Card and tile variants: replaces the faint top highlight with a top border in this color (e.g. a
    * team color), a sixth of the value's text size. Ignored by the bare variant. */
   accentColor?: string
   variant?: ScorecardVariant
@@ -83,6 +84,18 @@ const SECONDARY_SIZE_PX: Record<ScorecardSize, number> = {
   md: clampFontSize(VALUE_SIZE_PX.md / GOLDEN_RATIO),
   sm: clampFontSize(VALUE_SIZE_PX.sm / GOLDEN_RATIO),
 }
+
+/** Tile variant: small text (label, detail lines, trend, subtitle) one more ratio step down. */
+const TILE_SMALL_SIZE_PX: Record<ScorecardSize, number> = {
+  lg: clampFontSize(SECONDARY_SIZE_PX.lg / GOLDEN_RATIO),
+  md: clampFontSize(SECONDARY_SIZE_PX.md / GOLDEN_RATIO),
+  sm: clampFontSize(SECONDARY_SIZE_PX.sm / GOLDEN_RATIO),
+}
+/** Tile variant spacing, as multiples of the value text size (approved dashboard preview:
+ * 10 px / 12 px padding and 2 px between lines, around a 24 px value). */
+const TILE_PADDING_VERTICAL_TO_VALUE_RATIO = 0.42
+const TILE_PADDING_HORIZONTAL_TO_VALUE_RATIO = 0.5
+const TILE_LINE_GAP_TO_VALUE_RATIO = 0.08
 
 /**
  * Vertical rhythm derived from the same base/ratio as the type scale, so
@@ -310,60 +323,71 @@ function ScorecardContent({
   unavailableReason,
   size = 'md',
   testID,
-}: Omit<ScorecardProps, 'variant'>) {
+  isTile = false,
+}: Omit<ScorecardProps, 'variant' | 'accentColor'> & { isTile?: boolean }) {
   const theme = useTheme()
   const isUnavailable = unavailableReason !== undefined
   const formattedValue = valueFormatter
     ? valueFormatter(value)
     : formatScorecardValue(value, format, decimals, abbreviateFrom)
+  // The tile variant overrides sizes and gaps; the other variants keep the styled defaults.
+  const smallTextSizePx = isTile ? TILE_SMALL_SIZE_PX[size] : SECONDARY_SIZE_PX[size]
+  const smallText = isTile ? { fontSize: smallTextSizePx } : {}
+  const tileLineGapPx = VALUE_SIZE_PX[size] * TILE_LINE_GAP_TO_VALUE_RATIO
+  const labelToValueGapPx = isTile ? tileLineGapPx : LABEL_TO_VALUE_GAP_PX
+  const valueRowGap = isTile ? { marginTop: tileLineGapPx } : {}
+  const trendRowGap = isTile ? { marginTop: 0 } : {}
+  const subtitleGapPx = isTile ? 0 : VALUE_TO_TREND_GAP_PX
 
   return (
     // testID (React Native) and data-testid (web/DOM) both set so the same
     // identifier works with either platform's test tooling.
     <ScorecardFrame testID={testID} data-testid={testID}>
-      <ScorecardLabelText size={size}>{label}</ScorecardLabelText>
+      <ScorecardLabelText size={size} {...smallText}>
+        {label}
+      </ScorecardLabelText>
       {isUnavailable ? (
-        <ScorecardValueRow>
+        <ScorecardValueRow {...valueRowGap}>
           <ScorecardValueText size={size} color="$placeholderColor">
             N/A
           </ScorecardValueText>
         </ScorecardValueRow>
       ) : (
-        <ScorecardValueRow>
+        <ScorecardValueRow {...valueRowGap}>
           {prefix ? <ScorecardAffixText size={size}>{prefix}</ScorecardAffixText> : null}
           <ScorecardValueText size={size}>{formattedValue}</ScorecardValueText>
           {suffix ? <ScorecardAffixText size={size}>{suffix}</ScorecardAffixText> : null}
         </ScorecardValueRow>
       )}
       {isUnavailable ? (
-        <ScorecardSubtitleText size={size} marginTop={LABEL_TO_VALUE_GAP_PX}>
+        <ScorecardSubtitleText size={size} marginTop={labelToValueGapPx} {...smallText}>
           {unavailableReason}
         </ScorecardSubtitleText>
       ) : null}
       {!isUnavailable && detailLines && detailLines.length > 0 ? (
-        <YStack alignItems="center" marginTop={LABEL_TO_VALUE_GAP_PX}>
+        <YStack alignItems="center" marginTop={labelToValueGapPx}>
           {detailLines.map((line, lineIndex) => (
-            <ScorecardSubtitleText key={`${lineIndex}-${line}`} size={size}>
+            <ScorecardSubtitleText key={`${lineIndex}-${line}`} size={size} {...smallText}>
               {line}
             </ScorecardSubtitleText>
           ))}
         </YStack>
       ) : null}
       {trend && !isUnavailable ? (
-        <ScorecardTrendRow>
+        <ScorecardTrendRow {...trendRowGap}>
           <TrendGlyph
             direction={trend.direction}
             color={resolveThemeColor(theme, TREND_DIRECTION_COLOR_TOKEN[trend.direction])}
-            size={SECONDARY_SIZE_PX[size]}
+            size={smallTextSizePx}
           />
-          <ScorecardTrendText size={size} color={TREND_DIRECTION_COLOR_TOKEN[trend.direction]}>
+          <ScorecardTrendText size={size} color={TREND_DIRECTION_COLOR_TOKEN[trend.direction]} {...smallText}>
             {trendText ?? formatTrendPercentage(trend.value, trend.direction)}
             {trendLabel ? ` ${trendLabel}` : ''}
           </ScorecardTrendText>
         </ScorecardTrendRow>
       ) : null}
       {subtitle ? (
-        <ScorecardSubtitleText size={size} marginTop={VALUE_TO_TREND_GAP_PX}>
+        <ScorecardSubtitleText size={size} marginTop={subtitleGapPx} {...smallText}>
           {subtitle}
         </ScorecardSubtitleText>
       ) : null}
@@ -372,7 +396,15 @@ function ScorecardContent({
 }
 
 export function Scorecard({ variant = 'bare', accentColor, ...contentProps }: ScorecardProps) {
-  if (variant === 'card') {
+  if (variant === 'card' || variant === 'tile') {
+    const isTile = variant === 'tile'
+    const valueSizePx = VALUE_SIZE_PX[contentProps.size ?? 'md']
+    const padding = isTile
+      ? {
+          paddingVertical: valueSizePx * TILE_PADDING_VERTICAL_TO_VALUE_RATIO,
+          paddingHorizontal: valueSizePx * TILE_PADDING_HORIZONTAL_TO_VALUE_RATIO,
+        }
+      : { padding: CARD_PADDING_PX }
     return (
       // Overrides scoped to this call site only — Card.ts itself stays
       // untouched since it's shared by ~26 other widget-package consumers.
@@ -383,20 +415,16 @@ export function Scorecard({ variant = 'bare', accentColor, ...contentProps }: Sc
       <Card
         position="relative"
         overflow="hidden"
-        padding={CARD_PADDING_PX}
+        {...padding}
         backgroundColor="$background"
         borderWidth={0}
-        borderTopWidth={
-          accentColor
-            ? VALUE_SIZE_PX[contentProps.size ?? 'md'] * ACCENT_BORDER_TO_VALUE_RATIO
-            : CARD_TOP_HIGHLIGHT_WIDTH_PX
-        }
+        borderTopWidth={accentColor ? valueSizePx * ACCENT_BORDER_TO_VALUE_RATIO : CARD_TOP_HIGHLIGHT_WIDTH_PX}
         borderTopColor={accentColor ?? CARD_TOP_HIGHLIGHT_COLOR}
         shadowOpacity={0}
         justifyContent="center"
       >
         <ScorecardCardOverlay />
-        <ScorecardContent {...contentProps} />
+        <ScorecardContent {...contentProps} isTile={isTile} />
       </Card>
     )
   }

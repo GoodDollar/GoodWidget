@@ -100,6 +100,39 @@ export const ValueFormatter: Story = {
   ),
 }
 
+/** `variant="tile"`: the same content as a card, with tighter padding and gaps and the small text one
+ * size step down, for grids of many scorecards. */
+export const Tile: Story = {
+  render: () => (
+    <XStack testID="Scorecard-tile" data-testid="Scorecard-tile" flexWrap="wrap" gap="$5" alignItems="flex-start">
+      <Scorecard
+        label="Card"
+        value={1701511}
+        prefix="G$"
+        accentColor="#6c5ce7"
+        detailLines={['in G$ 866.1K', 'out G$ 835.4K']}
+        trend={{ value: 4.2, direction: 'up' }}
+        trendText="+68.6K (+4.2%)"
+        subtitle="since Nov 8"
+        variant="card"
+        testID="Scorecard-tile-card"
+      />
+      <Scorecard
+        label="Tile"
+        value={1701511}
+        prefix="G$"
+        accentColor="#6c5ce7"
+        detailLines={['in G$ 866.1K', 'out G$ 835.4K']}
+        trend={{ value: 4.2, direction: 'up' }}
+        trendText="+68.6K (+4.2%)"
+        subtitle="since Nov 8"
+        variant="tile"
+        testID="Scorecard-tile-tile"
+      />
+    </XStack>
+  ),
+}
+
 /** `abbreviateFrom`: by default numbers from 10,000 are shortened and smaller ones read in full;
  * a lower threshold shortens four-digit numbers, `'never'` always shows the full number. */
 export const AbbreviateFrom: Story = {
