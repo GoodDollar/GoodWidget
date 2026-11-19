@@ -324,6 +324,15 @@ test('Carousel/ThreeSlides story moves by arrow, dot and faded-slide click witho
   await expect(frame.getByTestId('Carousel-three-next')).toHaveCount(0)
   expect((await track.boundingBox())!.height).toBe(startHeight)
 
+  // Arrows and dots are native buttons: keyboard focus plus Enter moves too.
+  await expect(frame.getByTestId('Carousel-three-previous')).toHaveJSProperty('tagName', 'BUTTON')
+  await expect(frame.getByTestId('Carousel-three-dot-0')).toHaveJSProperty('tagName', 'BUTTON')
+  await frame.getByTestId('Carousel-three-dot-1').focus()
+  await page.keyboard.press('Enter')
+  await expect.poll(() => isCurrent(1)).toBe('true')
+  await frame.getByTestId('Carousel-three-dot-2').click()
+  await expect.poll(() => isCurrent(2)).toBe('true')
+
   // The faded middle slide peeks in on the left; clicking it moves back to it.
   await frame.getByTestId('Carousel-three-slide-1').click({ position: { x: 10, y: 10 } })
   await expect.poll(() => isCurrent(1)).toBe('true')

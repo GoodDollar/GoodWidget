@@ -83,8 +83,12 @@ const CarouselViewport = createComponent(YStack, {
   width: '100%',
 })
 
+/** Arrows and page dots are native buttons (like the package's Button), so they take keyboard focus
+ * and Enter/Space; padding is reset so their size stays the one set below. */
 const CarouselArrow = createComponent(YStack, {
   name: 'CarouselArrow',
+  tag: 'button',
+  padding: 0,
   position: 'absolute',
   top: '50%',
   borderRadius: '$full',
@@ -112,6 +116,9 @@ const CarouselSlideLabelText = createComponent(TamaguiText, {
 
 const CarouselPageDot = createComponent(YStack, {
   name: 'CarouselPageDot',
+  tag: 'button',
+  padding: 0,
+  borderWidth: 0,
   borderRadius: '$full',
   cursor: 'pointer',
 })
