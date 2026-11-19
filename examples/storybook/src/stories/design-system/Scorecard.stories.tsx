@@ -88,13 +88,38 @@ const exactNumber = (value: number) => Math.round(value).toLocaleString('en-US')
 export const ValueFormatter: Story = {
   render: () => (
     <XStack testID="Scorecard-value-formatter" data-testid="Scorecard-value-formatter" flexWrap="wrap" gap="$5">
-      <Scorecard label="Default format" value={1972} variant="card" testID="Scorecard-value-default" />
+      <Scorecard label="Default format" value={19720} variant="card" testID="Scorecard-value-default" />
       <Scorecard
         label="valueFormatter"
-        value={1972}
+        value={19720}
         valueFormatter={exactNumber}
         variant="card"
         testID="Scorecard-value-exact"
+      />
+    </XStack>
+  ),
+}
+
+/** `abbreviateFrom`: by default numbers from 10,000 are shortened and smaller ones read in full;
+ * a lower threshold shortens four-digit numbers, `'never'` always shows the full number. */
+export const AbbreviateFrom: Story = {
+  render: () => (
+    <XStack testID="Scorecard-abbreviate" data-testid="Scorecard-abbreviate" flexWrap="wrap" gap="$5">
+      <Scorecard label="Default, 4 digits" value={1972} variant="card" testID="Scorecard-abbreviate-default-small" />
+      <Scorecard label="Default, 5 digits" value={12345} variant="card" testID="Scorecard-abbreviate-default-large" />
+      <Scorecard
+        label="From 1,000"
+        value={1972}
+        abbreviateFrom={1000}
+        variant="card"
+        testID="Scorecard-abbreviate-from-thousand"
+      />
+      <Scorecard
+        label="Never"
+        value={1701511}
+        abbreviateFrom="never"
+        variant="card"
+        testID="Scorecard-abbreviate-never"
       />
     </XStack>
   ),

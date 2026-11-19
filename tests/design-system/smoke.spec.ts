@@ -139,9 +139,20 @@ test('Scorecard/Default story renders all 5 mock-data rows in both variants', as
 test('Scorecard/ValueFormatter story uses the caller formatter over the default format', async ({ page }) => {
   await gotoStory(page, 'design-system-primitives-scorecard--value-formatter')
   const frame = getStoryFrame(page)
-  await expect(frame.getByTestId('Scorecard-value-default').getByText('2.0K', { exact: true })).toBeVisible()
-  await expect(frame.getByTestId('Scorecard-value-exact').getByText('1,972', { exact: true })).toBeVisible()
+  await expect(frame.getByTestId('Scorecard-value-default').getByText('19.7K', { exact: true })).toBeVisible()
+  await expect(frame.getByTestId('Scorecard-value-exact').getByText('19,720', { exact: true })).toBeVisible()
   await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-value-formatter.png')
+})
+
+test('Scorecard/AbbreviateFrom story shortens from 10,000 by default, from any threshold, or never', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-scorecard--abbreviate-from')
+  const frame = getStoryFrame(page)
+  const valueIn = (testId: string, text: string) => frame.getByTestId(testId).getByText(text, { exact: true })
+  await expect(valueIn('Scorecard-abbreviate-default-small', '1,972')).toBeVisible()
+  await expect(valueIn('Scorecard-abbreviate-default-large', '12.3K')).toBeVisible()
+  await expect(valueIn('Scorecard-abbreviate-from-thousand', '2.0K')).toBeVisible()
+  await expect(valueIn('Scorecard-abbreviate-never', '1,701,511')).toBeVisible()
+  await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-abbreviate.png')
 })
 
 test('Scorecard/TrendText story shows the caller trend text in place of the percentage', async ({ page }) => {

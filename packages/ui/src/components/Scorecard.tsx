@@ -34,6 +34,11 @@ export interface ScorecardProps {
   decimals?: number
   /** Formats the value; wins over `format`/`decimals` (same rule as the charts' formatters). */
   valueFormatter?: (value: number) => string
+  /** `format="compact"` only: values at or above this (by size, sign ignored) are shortened
+   * (12.3K, 1.7M); smaller ones show in full with thousands separators (9,876). Default 10,000.
+   * Any number works (1,000 shortens from four digits); `'never'` always shows the full number.
+   * K is the smallest unit, so values under 1,000 always show in full. */
+  abbreviateFrom?: number | 'never'
   trend?: ScorecardTrend
   /** Replaces the computed percentage in the trend row (e.g. "+91 (+11.9%)" or "No change").
    * `trend.direction` still picks the arrow and color; `trendLabel` is still appended. */
@@ -48,7 +53,7 @@ export interface ScorecardProps {
    * this reason sits under it, and no trend row is drawn. `value` is ignored. */
   unavailableReason?: string
   /** Card variant only: replaces the faint top highlight with a top border in this color (e.g. a
-   * team color), its width taken from the Scorecard's own size scale. Ignored by the bare variant. */
+   * team color), a sixth of the value's text size. Ignored by the bare variant. */
   accentColor?: string
   variant?: ScorecardVariant
   size?: ScorecardSize
@@ -96,6 +101,27 @@ const CARD_TOP_HIGHLIGHT_WIDTH_PX = 1
 /** `accentColor` top border = a sixth of the card's value text size, so it follows `size`
  * (approved dashboard preview: 4 px border on a 24 px value). */
 const ACCENT_BORDER_TO_VALUE_RATIO = 1 / 6
+
+/** Default `abbreviateFrom`: numbers with five digits or more are shortened, four-digit ones read in full. */
+const DEFAULT_ABBREVIATE_FROM = 10_000
+
+/** The compact format, except below `abbreviateFrom`, where the full number shows with
+ * thousands separators (decimals only when the value isn't whole, as compact does). */
+function formatScorecardValue(
+  value: number,
+  format: MetricFormat,
+  decimals: number | undefined,
+  abbreviateFrom: number | 'never',
+): string {
+  const showsInFull =
+    format === 'compact' &&
+    Number.isFinite(value) &&
+    (abbreviateFrom === 'never' || Math.abs(value) < abbreviateFrom)
+  if (showsInFull) {
+    return formatMetricValue(value, 'decimal', Number.isInteger(value) ? 0 : (decimals ?? 1))
+  }
+  return formatMetricValue(value, format, decimals)
+}
 
 const TREND_DIRECTION_COLOR_TOKEN: Record<ScorecardTrend['direction'], string> = {
   up: '$success',
@@ -275,6 +301,7 @@ function ScorecardContent({
   format = 'compact',
   decimals,
   valueFormatter,
+  abbreviateFrom = DEFAULT_ABBREVIATE_FROM,
   trend,
   trendText,
   trendLabel,
@@ -286,7 +313,9 @@ function ScorecardContent({
 }: Omit<ScorecardProps, 'variant'>) {
   const theme = useTheme()
   const isUnavailable = unavailableReason !== undefined
-  const formattedValue = valueFormatter ? valueFormatter(value) : formatMetricValue(value, format, decimals)
+  const formattedValue = valueFormatter
+    ? valueFormatter(value)
+    : formatScorecardValue(value, format, decimals, abbreviateFrom)
 
   return (
     // testID (React Native) and data-testid (web/DOM) both set so the same
