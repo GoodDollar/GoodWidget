@@ -24,7 +24,13 @@ import Svg, {
 import { Text as TamaguiText, useTheme, XStack, YStack } from 'tamagui'
 import { createComponent } from '../createComponent'
 import { Card } from './Card'
-import { ChartTooltip, estimateChartTooltipWidthPx, type ChartTooltipRow } from './ChartTooltip'
+import {
+  ChartTooltip,
+  estimateChartTooltipWidthPx,
+  SQUARE_SWATCH_CORNER_RATIO,
+  type ChartSwatchShape,
+  type ChartTooltipRow,
+} from './ChartTooltip'
 import { CHART_FONT_FAMILY } from '../utils/chartFontFamily'
 import { type ChartValueType, formatByValueType, formatChartAxisValue } from '../utils/formatMetricValue'
 import { resolveThemeColor } from '../utils/resolveThemeColor'
@@ -103,6 +109,9 @@ export interface LineAreaChartProps {
    * usual. Default false.
    */
   focusPointOnHover?: boolean
+  /** Shape of the color marks in the legend and the hover box. 'square' also sizes the legend's
+   * swatches and gaps from its text. Default 'round' (today's fixed dots). */
+  swatchShape?: ChartSwatchShape
   series?: LineAreaChartSeriesDef[]
   type?: LineAreaChartInterpolation
   showArea?: boolean
@@ -213,6 +222,12 @@ const LEGEND_SWATCH_SIZE_PX = 10
  * size. Scaled down by the same LEGEND_SIZE_SCALE_FACTOR as the label so the
  * gap between legend items shrinks in proportion to the text it separates. */
 const LEGEND_ITEM_GAP_PX = 16 * LEGEND_SIZE_SCALE_FACTOR
+/** Square legend swatches (`swatchShape="square"`) and their gaps are multiples of the legend text,
+ * mirroring BarChart's legend (its constants are private). Proportions from the approved dashboard
+ * preview (13 px legend text): swatch 0.9x (12 px), swatch to label 0.5x (6 px), between items 1.2x (16 px). */
+const SQUARE_LEGEND_SWATCH_TO_TEXT_RATIO = 0.9
+const SQUARE_LEGEND_SWATCH_GAP_TO_TEXT_RATIO = 0.5
+const SQUARE_LEGEND_ITEM_GAP_TO_TEXT_RATIO = 1.2
 /** Grid lines need enough contrast to be useful without competing with the series. */
 const GRID_LINE_OPACITY = 0.22
 const GRID_ZERO_LINE_OPACITY = 0.48
@@ -550,15 +565,38 @@ const LineAreaSwatch = createComponent(YStack, {
 function LineAreaLegend({
   seriesList,
   legendLabelSizePx,
+  swatchShape,
 }: {
   seriesList: ResolvedSeries[]
   legendLabelSizePx: number
+  swatchShape: ChartSwatchShape
 }) {
+  const isSquare = swatchShape === 'square'
+  const squareSizePx = legendLabelSizePx * SQUARE_LEGEND_SWATCH_TO_TEXT_RATIO
   return (
-    <XStack gap={LEGEND_ITEM_GAP_PX} flexWrap="wrap" justifyContent="center">
+    <XStack
+      gap={isSquare ? legendLabelSizePx * SQUARE_LEGEND_ITEM_GAP_TO_TEXT_RATIO : LEGEND_ITEM_GAP_PX}
+      flexWrap="wrap"
+      justifyContent="center"
+      data-testid="line-chart-legend"
+    >
       {seriesList.map((series) => (
-        <XStack key={series.key} alignItems="center" gap="$2">
-          <LineAreaSwatch backgroundColor={series.color} />
+        <XStack
+          key={series.key}
+          alignItems="center"
+          gap={isSquare ? legendLabelSizePx * SQUARE_LEGEND_SWATCH_GAP_TO_TEXT_RATIO : '$2'}
+        >
+          {isSquare ? (
+            <LineAreaSwatch
+              backgroundColor={series.color}
+              width={squareSizePx}
+              height={squareSizePx}
+              borderRadius={squareSizePx * SQUARE_SWATCH_CORNER_RATIO}
+              data-testid="line-chart-legend-swatch"
+            />
+          ) : (
+            <LineAreaSwatch backgroundColor={series.color} />
+          )}
           <LineAreaLegendLabelText fontSize={legendLabelSizePx}>
             {series.label}
           </LineAreaLegendLabelText>
@@ -573,6 +611,7 @@ function LineAreaChartContent({
   title,
   tooltip,
   focusPointOnHover = false,
+  swatchShape = 'round',
   series: seriesDefs,
   type = 'linear',
   showArea = false,
@@ -1218,13 +1257,18 @@ function LineAreaChartContent({
               top={resolvedPadding.top}
               chartWidthPx={viewBoxWidth}
               rightAlignValues={tooltip?.rightAlignValues}
+              swatchShape={swatchShape}
             />
           ) : null}
         </LineAreaPlotArea>
       </LineAreaScrollContainer>
       {resolvedSeriesList.length > 1 && !isEmpty ? (
         <YStack marginTop={chartToLegendGapPx} width="100%">
-          <LineAreaLegend seriesList={resolvedSeriesList} legendLabelSizePx={legendLabelSizePx} />
+          <LineAreaLegend
+            seriesList={resolvedSeriesList}
+            legendLabelSizePx={legendLabelSizePx}
+            swatchShape={swatchShape}
+          />
         </YStack>
       ) : null}
     </LineAreaFrame>

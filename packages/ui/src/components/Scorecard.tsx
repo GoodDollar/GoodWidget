@@ -14,7 +14,7 @@ import { Stack, Text as TamaguiText, useTheme, XStack, YStack } from 'tamagui'
 import { createComponent } from '../createComponent'
 import { Card } from './Card'
 import { ChartTooltip } from './ChartTooltip'
-import type { ChartTooltipRow } from './ChartTooltip'
+import type { ChartSwatchShape, ChartTooltipRow } from './ChartTooltip'
 import { formatMetricValue } from '../utils/formatMetricValue'
 import type { MetricFormat } from '../utils/formatMetricValue'
 import { resolveThemeColor } from '../utils/resolveThemeColor'
@@ -37,6 +37,8 @@ export interface ScorecardTooltip {
   rows: ChartTooltipRow[]
   /** true = values in a right-aligned column, no colon, so numbers line up. Default false. */
   rightAlignValues?: boolean
+  /** Shape of each row's color mark. Default 'round'. */
+  swatchShape?: ChartSwatchShape
 }
 
 export interface ScorecardProps {
@@ -557,6 +559,7 @@ function ScorecardHover({
             left={0}
             top={0}
             rightAlignValues={tooltip.rightAlignValues}
+            swatchShape={tooltip.swatchShape}
           />
         </Stack>
       ) : null}

@@ -616,6 +616,28 @@ test('BarChart/SegmentedBarsEdgeCases story keeps value as the total and drops n
   await screenshotStory(page, 'tests/design-system/test-results/story-barchart-segments-edge.png')
 })
 
+/** A swatch's width, its corner radius and its legend's text size, from computed styles. */
+async function swatchMetrics(swatch: ReturnType<ReturnType<typeof getStoryFrame>['getByTestId']>) {
+  return swatch.evaluate((el) => ({
+    width: el.getBoundingClientRect().width,
+    radius: parseFloat(getComputedStyle(el).borderTopLeftRadius),
+    textSize: parseFloat(getComputedStyle(el.nextElementSibling ?? el).fontSize),
+  }))
+}
+
+test('BarChart/SquareSwatches story draws square legend and hover swatches sized from the text', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-barchart--square-swatches')
+  const chart = getStoryFrame(page).getByTestId('BarChart-square-swatches')
+  await expect(chart).toBeVisible()
+  const legend = await swatchMetrics(chart.getByTestId('bar-chart-legend-swatch').first())
+  expect(legend.width).toBeCloseTo(legend.textSize * 0.9, 0)
+  expect(legend.radius).toBeCloseTo(legend.width * 0.2, 0)
+  await chart.locator('svg path').first().hover()
+  const hover = await swatchMetrics(chart.getByTestId('chart-tooltip-swatch').first())
+  expect(hover.radius).toBeCloseTo(hover.width * 0.2, 0)
+  await screenshotStory(page, 'tests/design-system/test-results/story-barchart-square-swatches.png')
+})
+
 test('BarChart/NameAndValueColumns story puts names in a left column and values in a right column, sized from the text', async ({ page }) => {
   for (const viewportWidth of [1280, 390]) {
     await page.setViewportSize({ width: viewportWidth, height: 700 })
@@ -821,6 +843,22 @@ test('LineAreaChart/HoverValuesRightAligned story lines the hover values up on t
   for (const right of rights) expect(Math.abs(right - rights[0])).toBeLessThan(1)
   expect(await values.first().evaluate((el) => getComputedStyle(el).fontVariantNumeric)).toContain('tabular-nums')
   await screenshotStory(page, 'tests/design-system/test-results/story-lineareachart-hover-right-aligned.png')
+})
+
+test('LineAreaChart/SquareSwatches story draws square legend and hover swatches sized from the text', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-lineareachart--square-swatches')
+  const chart = getStoryFrame(page).getByTestId('LineAreaChart-square-swatches')
+  await expect(chart).toBeVisible()
+  await expect(chart.getByTestId('line-chart-legend-swatch')).toHaveCount(7)
+  const legend = await swatchMetrics(chart.getByTestId('line-chart-legend-swatch').first())
+  expect(legend.width).toBeCloseTo(legend.textSize * 0.9, 0)
+  expect(legend.radius).toBeCloseTo(legend.width * 0.2, 0)
+  const svg = chart.locator('svg').first()
+  const box = (await svg.boundingBox())!
+  await svg.hover({ position: { x: box.width - 2, y: box.height / 2 } })
+  const hover = await swatchMetrics(chart.getByTestId('chart-tooltip-swatch').first())
+  expect(hover.radius).toBeCloseTo(hover.width * 0.2, 0)
+  await screenshotStory(page, 'tests/design-system/test-results/story-lineareachart-square-swatches.png')
 })
 
 /** Dots render series by series (Alpha..Golf), five weeks each, so a dot's index is seriesIndex * 5 + weekIndex. */

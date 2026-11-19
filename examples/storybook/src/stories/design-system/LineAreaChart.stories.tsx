@@ -336,6 +336,21 @@ export const HoverValuesRightAligned: Story = {
   ),
 }
 
+/** `swatchShape="square"`: square legend swatches, sized with their gaps from the legend text, and
+ * square marks in the hover box. Hover a week to see it. */
+export const SquareSwatches: Story = {
+  render: () => (
+    <LineAreaChart
+      data={weeklyData}
+      series={weeklySeriesDefs}
+      width={480}
+      tooltip={{ label: 'Score', valueFormatter: exactNumber, xFormatter: (x) => `Week of ${x}`, sort: 'desc' }}
+      swatchShape="square"
+      testID="LineAreaChart-square-swatches"
+    />
+  ),
+}
+
 /** Controllable instance — edit args in the Controls panel. */
 export const Controllable: Story = {
   args: {

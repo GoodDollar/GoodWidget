@@ -35,7 +35,15 @@ export interface ChartTooltipProps {
   /** true = each row reads "label    value": values right-aligned in one column at the box's right edge,
    * no colon, digits of equal width so numbers line up. Default false ("label: value"). */
   rightAlignValues?: boolean
+  /** Shape of each row's color mark. Default 'round' (a dot). */
+  swatchShape?: ChartSwatchShape
 }
+
+/** Color mark shape shared by chart legends and hover boxes. */
+export type ChartSwatchShape = 'round' | 'square'
+/** A square swatch's corner radius = 0.2 x its size, so it reads as a soft square, not a dot
+ * (approved dashboard preview: 2 px corners on 10-12 px squares). */
+export const SQUARE_SWATCH_CORNER_RATIO = 0.2
 
 const TOOLTIP_HEADER_FONT_SIZE_PX = 12
 const TOOLTIP_ROW_FONT_SIZE_PX = 12
@@ -166,6 +174,7 @@ export function ChartTooltip({
   top,
   chartWidthPx,
   rightAlignValues = false,
+  swatchShape = 'round',
 }: ChartTooltipProps) {
   const widthPx = estimateChartTooltipWidthPx(header, rows, chartWidthPx, subheader, rightAlignValues)
   // Space left for label text once the frame's padding and border, the dot,
@@ -198,7 +207,11 @@ export function ChartTooltip({
 
         return (
           <XStack key={row.label} alignItems="center" gap="$2">
-            <ChartTooltipDot backgroundColor={row.color ?? 'transparent'} />
+            <ChartTooltipDot
+              backgroundColor={row.color ?? 'transparent'}
+              borderRadius={swatchShape === 'square' ? TOOLTIP_DOT_SIZE_PX * SQUARE_SWATCH_CORNER_RATIO : '$full'}
+              data-testid="chart-tooltip-swatch"
+            />
             <ChartTooltipLabelText numberOfLines={1} ellipsizeMode="tail" flexGrow={rightAlignValues ? 1 : undefined}>
               {label}
             </ChartTooltipLabelText>

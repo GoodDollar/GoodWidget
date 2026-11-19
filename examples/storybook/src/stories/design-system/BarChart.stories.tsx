@@ -429,6 +429,31 @@ export const SegmentedBarsEdgeCases: Story = {
   ),
 }
 
+/** `swatchShape="square"`: square legend swatches (sized from the legend text) and square marks in
+ * the hover box. Hover a bar to see it. */
+export const SquareSwatches: Story = {
+  render: () => (
+    <BarChart
+      data={twoPieces}
+      layout="horizontal"
+      width={480}
+      height={230}
+      padding={{ top: 16, right: 16, bottom: 32, left: 80 }}
+      valueFormatter={shortNumber}
+      tooltip={{ label: 'Volume', valueFormatter: exactNumber }}
+      legend={[
+        { label: 'Received (darker shade)', color: '#5c5c5c' },
+        { label: 'Sent (lighter shade)', color: '#b8b8b8' },
+      ]}
+      swatchShape="square"
+      showValueAxis={false}
+      showGrid={false}
+      testID="BarChart-square-swatches"
+      alwaysShowValueLabels
+    />
+  ),
+}
+
 const columnRows = [
   { category: 'Alpha', value: 1701511, color: '#6c5ce7' },
   { category: 'A team with a much longer name', value: 118270, color: '#00b894' },

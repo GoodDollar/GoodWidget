@@ -13,7 +13,13 @@ import Svg, { G, Line, Path, Text as SvgText } from 'react-native-svg'
 import { Text as TamaguiText, useTheme, XStack, YStack } from 'tamagui'
 import { createComponent } from '../createComponent'
 import { Card } from './Card'
-import { ChartTooltip, estimateChartTooltipWidthPx, type ChartTooltipRow } from './ChartTooltip'
+import {
+  ChartTooltip,
+  estimateChartTooltipWidthPx,
+  SQUARE_SWATCH_CORNER_RATIO,
+  type ChartSwatchShape,
+  type ChartTooltipRow,
+} from './ChartTooltip'
 import { CHART_FONT_FAMILY } from '../utils/chartFontFamily'
 import { type ChartValueType, formatByValueType } from '../utils/formatMetricValue'
 import { resolveThemeColor } from '../utils/resolveThemeColor'
@@ -87,6 +93,8 @@ export interface BarChartProps {
   /** A row of color swatches with labels above the bars (e.g. what each `segments` shade means).
    * Same look as LineAreaChart's legend. Omitted or empty = no legend. */
   legend?: BarChartLegendItem[]
+  /** Shape of the color marks in the legend and the hover box. Default 'round'. */
+  swatchShape?: ChartSwatchShape
   layout?: BarChartLayout
   /**
    * Horizontal layout only: each row reads name | bar | value, like a table.
@@ -402,7 +410,15 @@ const BarChartLegendSwatch = createComponent(YStack, {
   borderRadius: '$full',
 })
 
-function BarChartLegend({ items, labelSizePx }: { items: BarChartLegendItem[]; labelSizePx: number }) {
+function BarChartLegend({
+  items,
+  labelSizePx,
+  swatchShape,
+}: {
+  items: BarChartLegendItem[]
+  labelSizePx: number
+  swatchShape: ChartSwatchShape
+}) {
   const swatchSizePx = labelSizePx * LEGEND_SWATCH_TO_TEXT_RATIO
   return (
     <XStack
@@ -417,6 +433,7 @@ function BarChartLegend({ items, labelSizePx }: { items: BarChartLegendItem[]; l
           <BarChartLegendSwatch
             width={swatchSizePx}
             height={swatchSizePx}
+            borderRadius={swatchShape === 'square' ? swatchSizePx * SQUARE_SWATCH_CORNER_RATIO : '$full'}
             backgroundColor={item.color}
             data-testid="bar-chart-legend-swatch"
           />
@@ -445,6 +462,7 @@ function BarChartContent({
   title,
   tooltip,
   legend,
+  swatchShape = 'round',
   layout = 'vertical',
   labelColumns = false,
   showGrid = true,
@@ -776,7 +794,7 @@ function BarChartContent({
           {title}
         </BarChartTitleText>
       ) : null}
-      {legend && legend.length > 0 ? <BarChartLegend items={legend} labelSizePx={legendLabelSizePx} /> : null}
+      {legend && legend.length > 0 ? <BarChartLegend items={legend} labelSizePx={legendLabelSizePx} swatchShape={swatchShape} /> : null}
       <BarChartScrollContainer
         flexGrow={isResponsiveHeight ? 1 : undefined}
         minHeight={isResponsiveHeight ? 0 : undefined}
@@ -1097,6 +1115,7 @@ function BarChartContent({
               top={resolvedPadding.top}
               chartWidthPx={viewBoxWidth}
               rightAlignValues={tooltip?.rightAlignValues}
+              swatchShape={swatchShape}
             />
           ) : null}
         </BarChartPlotArea>
