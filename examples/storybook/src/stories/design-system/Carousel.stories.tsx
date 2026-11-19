@@ -90,6 +90,21 @@ export const SlidesWithLinks: Story = {
   ),
 }
 
+/** `slideWidthPercent={30}` with four slides: values below 50 are treated as 50, so every slide,
+ * including the second, can still become the current one. */
+export const NarrowSlides: Story = {
+  render: () => (
+    <YStack width="100%">
+      <Carousel testID="Carousel-narrow" slideWidthPercent={30}>
+        <DemoSlide title="First" lines={2} />
+        <DemoSlide title="Second" lines={2} />
+        <DemoSlide title="Third" lines={2} />
+        <DemoSlide title="Fourth" lines={2} />
+      </Carousel>
+    </YStack>
+  ),
+}
+
 /** One child: full width, no arrows, no dots. */
 export const SingleSlide: Story = {
   render: () => (

@@ -452,6 +452,17 @@ test('Carousel/SlidesWithLinks story keeps the faded slide inert until it is cur
   await expect(frame.getByTestId('Carousel-links-slide-0-content')).toHaveJSProperty('inert', true)
 })
 
+test('Carousel/NarrowSlides story reaches every slide when slides are narrower than half', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 700 })
+  await gotoStory(page, 'design-system-primitives-carousel--narrow-slides')
+  const frame = getStoryFrame(page)
+  const isCurrent = (index: number) => frame.getByTestId(`Carousel-narrow-dot-${index}`).getAttribute('aria-current')
+  for (const index of [1, 2, 3, 0]) {
+    await frame.getByTestId(`Carousel-narrow-dot-${index}`).click()
+    await expect.poll(() => isCurrent(index)).toBe('true')
+  }
+})
+
 test('Carousel/SingleSlide story shows no arrows and no dots', async ({ page }) => {
   await gotoStory(page, 'design-system-primitives-carousel--single-slide')
   const frame = getStoryFrame(page)

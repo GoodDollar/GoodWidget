@@ -17,7 +17,9 @@ import { computeChartScaleRatio, scalePx } from '../utils/chartResponsiveScale'
 export interface CarouselProps {
   /** Each child is one slide. */
   children: React.ReactNode
-  /** Width of each slide as a percentage of the carousel, leaving room for neighbours to peek in. Default 86. */
+  /** Width of each slide as a percentage of the carousel, leaving room for neighbours to peek in.
+   * Default 86. Values below 50 are treated as 50: narrower slides can share one scroll position
+   * (a centered slide clamps to the start), and such a slide could never become current. */
   slideWidthPercent?: number
   /** Slide shown first. Default 0. */
   initialIndex?: number
@@ -33,6 +35,8 @@ export interface CarouselProps {
 }
 
 const DEFAULT_SLIDE_WIDTH_PERCENT = 86
+/** Narrowest slide that keeps every slide reachable (see `slideWidthPercent`). */
+const MIN_SLIDE_WIDTH_PERCENT = 50
 /** Neighbouring slides' opacity, so the current slide reads as the focus. */
 const FADED_SLIDE_OPACITY = 0.35
 
@@ -229,7 +233,7 @@ export function Carousel({
             return (
               <YStack
                 key={index}
-                width={isSingle ? '100%' : `${slideWidthPercent}%`}
+                width={isSingle ? '100%' : `${Math.max(MIN_SLIDE_WIDTH_PERCENT, slideWidthPercent)}%`}
                 flexShrink={0}
                 minWidth={0}
                 opacity={isCurrent ? 1 : FADED_SLIDE_OPACITY}
