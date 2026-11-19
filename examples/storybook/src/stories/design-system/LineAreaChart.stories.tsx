@@ -365,6 +365,22 @@ export const LegendAbove: Story = {
   ),
 }
 
+/** `focusPointOnHover` with `showDots={false}`: there are no dots to point at, so the hover always
+ * lists every series and nothing fades. */
+export const FocusPointWithoutDots: Story = {
+  render: () => (
+    <LineAreaChart
+      data={weeklyData}
+      series={weeklySeriesDefs}
+      width={480}
+      showDots={false}
+      tooltip={{ label: 'Score', valueFormatter: exactNumber, xFormatter: (x) => `Week of ${x}`, sort: 'desc' }}
+      focusPointOnHover
+      testID="LineAreaChart-focus-no-dots"
+    />
+  ),
+}
+
 /** Controllable instance — edit args in the Controls panel. */
 export const Controllable: Story = {
   args: {

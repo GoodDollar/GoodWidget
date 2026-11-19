@@ -873,7 +873,10 @@ function LineAreaChartContent({
   // as their touch target, so no separate hover distance is introduced.
   const focusedSeriesKeys: Set<string> | null = (() => {
     if (!focusPointOnHover || hoveredIndex === null || !hoveredPlotPoint) return null
+    // Only series whose dots are drawn (same rule as the render below) can be pointed at.
     const dots = resolvedSeriesList.flatMap((seriesItem) => {
+      const validPointCount = seriesItem.points.filter((p) => isValidY(p.y)).length
+      if (!resolveShowDotsForSeries(showDots, validPointCount)) return []
       const point = seriesItem.points[hoveredIndex]
       if (!point || !isValidY(point.y)) return []
       const scale = seriesItem === secondarySeries && secondaryScale ? secondaryScale : primaryScale

@@ -984,6 +984,21 @@ test('LineAreaChart/FocusPointOnHover story draws the focused line 1.5x thicker'
   expect(await countThickLines(chart)).toBe(2)
 })
 
+test('LineAreaChart/FocusPointWithoutDots story never focuses a hidden dot', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-lineareachart--focus-point-without-dots')
+  const chart = getStoryFrame(page).getByTestId('LineAreaChart-focus-no-dots')
+  await expect(chart).toBeVisible()
+  await expect(chart.locator('svg circle')).toHaveCount(0)
+  const svg = chart.locator('svg').first()
+  const box = (await svg.boundingBox())!
+  // Sweep the first week's column top to bottom, passing over every line's hidden sample.
+  for (let y = 4; y < box.height - 4; y += 4) {
+    await svg.hover({ position: { x: box.width * 0.15, y } })
+    expect(await countFadedSeries(chart)).toBe(0)
+  }
+  await expect(chart.getByTestId('chart-tooltip')).toContainText('Alpha')
+})
+
 /** Line paths (fill="none") drawn at the focused width, 1.5 x the default stroke of 2. */
 async function countThickLines(chart: ReturnType<ReturnType<typeof getStoryFrame>['getByTestId']>) {
   return chart.locator('svg path[fill="none"]').evaluateAll(
