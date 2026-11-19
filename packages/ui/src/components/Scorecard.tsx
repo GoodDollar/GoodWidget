@@ -8,7 +8,7 @@
  * one graphical element (the trend arrow), so it renders identically on
  * React web, React Native, and Web Components.
  */
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import Svg, { Path } from 'react-native-svg'
 import { Stack, Text as TamaguiText, useTheme, XStack, YStack } from 'tamagui'
 import { createComponent } from '../createComponent'
@@ -515,6 +515,11 @@ function ScorecardHover({
     setPosition({ left: triggerRect.left + triggerRect.width / 2, top: triggerRect.top + triggerRect.height / 2 })
   }
   const hide = useCallback(() => setPosition(null), [])
+  // Keyboard: the scorecard takes focus and the box stays open while it has focus or the pointer
+  // is over it (like the package's Tooltip); Escape, scroll or losing both closes it.
+  const tooltipId = useId()
+  const hoveredRef = useRef(false)
+  const focusedRef = useRef(false)
 
   // Measure the rendered box before paint, center it on the scorecard, keep it on screen.
   useLayoutEffect(() => {
@@ -550,11 +555,33 @@ function ScorecardHover({
   }, [position, hide])
 
   return (
-    <Stack ref={triggerRef as React.Ref<never>} onHoverIn={show} onHoverOut={hide}>
+    <Stack
+      ref={triggerRef as React.Ref<never>}
+      tabIndex={0}
+      aria-describedby={position ? tooltipId : undefined}
+      onHoverIn={() => {
+        hoveredRef.current = true
+        show()
+      }}
+      onHoverOut={() => {
+        hoveredRef.current = false
+        if (!focusedRef.current) hide()
+      }}
+      onFocus={() => {
+        focusedRef.current = true
+        show()
+      }}
+      onBlur={() => {
+        focusedRef.current = false
+        if (!hoveredRef.current) hide()
+      }}
+    >
       {children}
       {position ? (
         <Stack
           ref={boxRef as React.Ref<never>}
+          id={tooltipId}
+          role="tooltip"
           pointerEvents="none"
           style={{ position: 'fixed', left: position.left, top: position.top, zIndex: HOVER_BOX_Z_INDEX }}
         >

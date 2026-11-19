@@ -220,8 +220,25 @@ test('Scorecard/Hover story opens a full, on-screen box over the hovered tile', 
     await expect(box).toHaveCount(0)
   }
 
+  // Keyboard: focusing the scorecard opens the box and links it; Tab away closes it.
   await page.setViewportSize({ width: 1280, height: 900 })
   await gotoStory(page, 'design-system-primitives-scorecard--hover')
+  const keyboardTrigger = getStoryFrame(page)
+    .getByTestId('Scorecard-hover-bravo')
+    .locator('xpath=ancestor::*[@tabindex="0"][1]')
+  await keyboardTrigger.focus()
+  const focusedBox = getStoryFrame(page).getByRole('tooltip')
+  await expect(focusedBox).toContainText('Bravo')
+  await expect(keyboardTrigger).toHaveAttribute('aria-describedby', (await focusedBox.getAttribute('id'))!)
+  await keyboardTrigger.blur()
+  await expect(focusedBox).toHaveCount(0)
+  await keyboardTrigger.focus()
+  // The role="tooltip" anchor has no size of its own (the box inside it is positioned), so check its text.
+  await expect(focusedBox).toContainText('Bravo')
+  await expect(getStoryFrame(page).getByTestId('chart-tooltip')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(focusedBox).toHaveCount(0)
+
   await getStoryFrame(page).getByTestId('Scorecard-hover-alpha').locator('..').hover()
   await expect(getStoryFrame(page).getByTestId('chart-tooltip')).toBeVisible()
   await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-hover.png')
