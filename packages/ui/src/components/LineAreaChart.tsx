@@ -112,6 +112,9 @@ export interface LineAreaChartProps {
   /** Shape of the color marks in the legend and the hover box. 'square' also sizes the legend's
    * swatches and gaps from its text. Default 'round' (today's fixed dots). */
   swatchShape?: ChartSwatchShape
+  /** Where the legend sits (shown when there are two or more series): 'bottom' (default) under the
+   * chart, or 'top' between the title and the chart. */
+  legendPosition?: 'top' | 'bottom'
   series?: LineAreaChartSeriesDef[]
   type?: LineAreaChartInterpolation
   showArea?: boolean
@@ -228,6 +231,9 @@ const LEGEND_ITEM_GAP_PX = 16 * LEGEND_SIZE_SCALE_FACTOR
 const SQUARE_LEGEND_SWATCH_TO_TEXT_RATIO = 0.9
 const SQUARE_LEGEND_SWATCH_GAP_TO_TEXT_RATIO = 0.5
 const SQUARE_LEGEND_ITEM_GAP_TO_TEXT_RATIO = 1.2
+/** `legendPosition="top"`: space between the legend and the chart = 0.8 x legend text, same as
+ * BarChart's legend (preview: 10 px on 13 px text). */
+const LEGEND_ABOVE_TO_CHART_GAP_TO_TEXT_RATIO = 0.8
 /** Grid lines need enough contrast to be useful without competing with the series. */
 const GRID_LINE_OPACITY = 0.22
 const GRID_ZERO_LINE_OPACITY = 0.48
@@ -612,6 +618,7 @@ function LineAreaChartContent({
   tooltip,
   focusPointOnHover = false,
   swatchShape = 'round',
+  legendPosition = 'bottom',
   series: seriesDefs,
   type = 'linear',
   showArea = false,
@@ -710,6 +717,7 @@ function LineAreaChartContent({
     : titleSizePx
   const titleToChartGapPx = scalePx(TITLE_TO_CHART_GAP_BASE_PX, scaleRatio)
   const chartToLegendGapPx = CHART_TO_LEGEND_GAP_PX
+  const showsLegend = resolvedSeriesList.length > 1 && !isEmpty
   const axisTitleSizePx = clampFontSize(scalePx(AXIS_TITLE_BASE_SIZE_PX, scaleRatio))
   const tickLabelSizePx = clampFontSize(scalePx(TICK_LABEL_BASE_SIZE_PX, scaleRatio))
   const referenceLabelSizePx = clampFontSize(scalePx(REFERENCE_LABEL_BASE_SIZE_PX, scaleRatio))
@@ -947,6 +955,15 @@ function LineAreaChartContent({
         <LineAreaTitleText fontSize={fittedTitleSizePx} marginBottom={titleToChartGapPx}>
           {title}
         </LineAreaTitleText>
+      ) : null}
+      {showsLegend && legendPosition === 'top' ? (
+        <YStack marginBottom={legendLabelSizePx * LEGEND_ABOVE_TO_CHART_GAP_TO_TEXT_RATIO} width="100%">
+          <LineAreaLegend
+            seriesList={resolvedSeriesList}
+            legendLabelSizePx={legendLabelSizePx}
+            swatchShape={swatchShape}
+          />
+        </YStack>
       ) : null}
       <LineAreaScrollContainer
         flexGrow={isResponsiveHeight ? 1 : undefined}
@@ -1262,7 +1279,7 @@ function LineAreaChartContent({
           ) : null}
         </LineAreaPlotArea>
       </LineAreaScrollContainer>
-      {resolvedSeriesList.length > 1 && !isEmpty ? (
+      {showsLegend && legendPosition === 'bottom' ? (
         <YStack marginTop={chartToLegendGapPx} width="100%">
           <LineAreaLegend
             seriesList={resolvedSeriesList}

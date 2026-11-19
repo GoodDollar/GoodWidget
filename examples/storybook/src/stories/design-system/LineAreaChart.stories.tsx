@@ -351,6 +351,20 @@ export const SquareSwatches: Story = {
   ),
 }
 
+/** `legendPosition="top"`: the legend sits above the chart (here with square swatches). */
+export const LegendAbove: Story = {
+  render: () => (
+    <LineAreaChart
+      data={weeklyData}
+      series={weeklySeriesDefs}
+      width={480}
+      legendPosition="top"
+      swatchShape="square"
+      testID="LineAreaChart-legend-above"
+    />
+  ),
+}
+
 /** Controllable instance — edit args in the Controls panel. */
 export const Controllable: Story = {
   args: {

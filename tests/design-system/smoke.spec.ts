@@ -861,6 +861,19 @@ test('LineAreaChart/SquareSwatches story draws square legend and hover swatches 
   await screenshotStory(page, 'tests/design-system/test-results/story-lineareachart-square-swatches.png')
 })
 
+test('LineAreaChart/LegendAbove story draws the legend above the chart, 0.8 x its text away', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-lineareachart--legend-above')
+  const chart = getStoryFrame(page).getByTestId('LineAreaChart-legend-above')
+  await expect(chart).toBeVisible()
+  const legend = chart.getByTestId('line-chart-legend')
+  await expect(legend).toHaveCount(1)
+  const legendBox = (await legend.boundingBox())!
+  const plotBox = (await chart.locator('svg').first().boundingBox())!
+  const textSizePx = (await swatchMetrics(chart.getByTestId('line-chart-legend-swatch').first())).textSize
+  expect(plotBox.y - (legendBox.y + legendBox.height)).toBeCloseTo(textSizePx * 0.8, 0)
+  await screenshotStory(page, 'tests/design-system/test-results/story-lineareachart-legend-above.png')
+})
+
 /** Dots render series by series (Alpha..Golf), five weeks each, so a dot's index is seriesIndex * 5 + weekIndex. */
 async function hoverLineDot(page: Page, chart: ReturnType<ReturnType<typeof getStoryFrame>['getByTestId']>, dotIndex: number, offsetY = 0) {
   const box = (await chart.locator('svg circle').nth(dotIndex).boundingBox())!
