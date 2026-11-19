@@ -103,7 +103,8 @@ export interface BarChartProps {
    * Values, when shown, sit right-aligned at the right edge in their own
    * column, on every bar. Both gutters size themselves, so no `padding` is
    * needed; with `height` left out, the chart is as tall as its rows, spaced
-   * by the text size. Ignored in vertical layout. Default false.
+   * by the text size. With `showValueAxis={false}` the longest bar fills its
+   * row. Ignored in vertical layout. Default false.
    */
   labelColumns?: boolean
   showGrid?: boolean
@@ -573,7 +574,14 @@ function BarChartContent({
     rowsHeightPadding.bottom
   const viewBoxHeight = isRowsHeight ? rowsHeightPx : isResponsiveHeight ? measuredHeightPx : (height as number)
 
-  const scale = computeNiceAxisScale(items.map(barExtentValue))
+  // labelColumns without a value axis reads like a table: no tick numbers to keep round, so the
+  // scale ends at the largest bar and that bar fills its row (grid lines past it are dropped).
+  const niceScale = computeNiceAxisScale(items.map(barExtentValue))
+  const largestExtent = Math.max(0, ...items.map(barExtentValue))
+  const scale =
+    isLabelColumns && !showValueAxis && largestExtent > 0
+      ? { ...niceScale, max: largestExtent, ticks: niceScale.ticks.filter((tick) => tick <= largestExtent) }
+      : niceScale
   const valueRange = scale.max - scale.min || 1
   const isVertical = layout === 'vertical'
 

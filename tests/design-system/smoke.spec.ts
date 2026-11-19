@@ -683,11 +683,17 @@ test('BarChart/NameAndValueColumns story puts names in a left column and values 
     for (const box of nameBoxes) expect(Math.abs(box.x - svgBox.x)).toBeLessThan(2)
     const nameRight = Math.max(...nameBoxes.map((box) => box.x + box.width))
     expect(nameRight - svgBox.x).toBeLessThanOrEqual(svgBox.width / 3 + 1)
-    // Every bar starts after the name column.
+    // Every bar starts after the name column; with no value axis the longest bar (Alpha) fills its
+    // row, ending one column gap (0.7 x text) before the widest value.
     for (const path of await chart.locator('svg path').all()) {
       const box = await path.boundingBox()
       if (box) expect(box.x).toBeGreaterThan(nameRight)
     }
+    const alphaBar = (await chart.locator('svg path').first().boundingBox())!
+    const valueLeft = Math.min(...(await boxes(values)).map((box) => box.x))
+    const rowTextPx = Number(await names.first().getAttribute('font-size'))
+    // Within 1.5 px: the value column is sized from a measured width rounded up.
+    expect(Math.abs(valueLeft - (alphaBar.x + alphaBar.width) - rowTextPx * 0.7)).toBeLessThan(1.5)
     // As tall as its rows: 5 rows of 1.9 x the row text size, no other gutters.
     const textSizePx = Number(await names.first().getAttribute('font-size'))
     expect(svgBox.height / (5 * textSizePx)).toBeCloseTo(1.9, 1)
