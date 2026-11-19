@@ -611,6 +611,45 @@ test('BarChart/SegmentedBarsEdgeCases story keeps value as the total and drops n
   await screenshotStory(page, 'tests/design-system/test-results/story-barchart-segments-edge.png')
 })
 
+test('BarChart/NameAndValueColumns story puts names in a left column and values in a right column, sized from the text', async ({ page }) => {
+  for (const viewportWidth of [1280, 390]) {
+    await page.setViewportSize({ width: viewportWidth, height: 700 })
+    await gotoStory(page, 'design-system-primitives-barchart--name-and-value-columns')
+    const chart = getStoryFrame(page).getByTestId('BarChart-label-columns')
+    await expect(chart).toBeVisible()
+    const svg = chart.locator('svg').first()
+    const svgBox = (await svg.boundingBox())!
+    const texts = chart.locator('svg text')
+    const names = texts.filter({ hasText: /^(Alpha|A team.*|Gamma|Delta|Epsilon)$/ })
+    const values = texts.filter({ hasText: /^(1\.7M|118\.3K|20\.3K|10|0)$/ })
+    await expect(names).toHaveCount(5)
+    // Every value is drawn, including the tiny and zero bars, right-aligned at the right edge.
+    await expect(values).toHaveCount(5)
+    const boxes = async (locator: typeof texts) =>
+      Promise.all((await locator.all()).map(async (element) => (await element.boundingBox())!))
+    for (const box of await boxes(values)) {
+      expect(Math.abs(box.x + box.width - (svgBox.x + svgBox.width))).toBeLessThan(2)
+    }
+    // Names left-aligned at the left edge, in a column at most a third of the chart wide.
+    const nameBoxes = await boxes(names)
+    for (const box of nameBoxes) expect(Math.abs(box.x - svgBox.x)).toBeLessThan(2)
+    const nameRight = Math.max(...nameBoxes.map((box) => box.x + box.width))
+    expect(nameRight - svgBox.x).toBeLessThanOrEqual(svgBox.width / 3 + 1)
+    // Every bar starts after the name column.
+    for (const path of await chart.locator('svg path').all()) {
+      const box = await path.boundingBox()
+      if (box) expect(box.x).toBeGreaterThan(nameRight)
+    }
+    // As tall as its rows: 5 rows of 1.9 x the row text size, no other gutters.
+    const textSizePx = Number(await names.first().getAttribute('font-size'))
+    expect(svgBox.height / (5 * textSizePx)).toBeCloseTo(1.9, 1)
+    // The long name is past a third of the chart here, so it ends in "…"; short ones stay whole.
+    await expect(names.filter({ hasText: /^A team/ })).toHaveText(/…$/)
+    await expect(names.filter({ hasText: /^Epsilon$/ })).toHaveCount(1)
+  }
+  await screenshotStory(page, 'tests/design-system/test-results/story-barchart-label-columns.png')
+})
+
 test('LineAreaChart/Default story renders area fill, reference line, linear and monotone variants', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 700 })
   await gotoStory(page, 'design-system-primitives-lineareachart--default')

@@ -429,6 +429,36 @@ export const SegmentedBarsEdgeCases: Story = {
   ),
 }
 
+const columnRows = [
+  { category: 'Alpha', value: 1701511, color: '#6c5ce7' },
+  { category: 'A team with a much longer name', value: 118270, color: '#00b894' },
+  { category: 'Gamma', value: 20300, color: '#e17055' },
+  { category: 'Delta', value: 10, color: '#0984e3' },
+  { category: 'Epsilon', value: 0, color: '#fdcb6e' },
+]
+
+/** `labelColumns`: each row reads name | bar | value, names left-aligned on the left, values
+ * right-aligned on the right, on every bar. No `width`, `height` or `padding`: the columns fit
+ * the names (at most a third of the chart, then "…") and values, and the chart is as tall as
+ * its rows. Resize the window to see it follow the width. */
+export const NameAndValueColumns: Story = {
+  render: () => (
+    <YStack width="100%" testID="BarChart-label-columns-wrap" data-testid="BarChart-label-columns-wrap">
+      <BarChart
+        data={columnRows}
+        layout="horizontal"
+        labelColumns
+        valueFormatter={shortNumber}
+        tooltip={{ label: 'Volume', valueFormatter: exactNumber }}
+        showValueAxis={false}
+        showGrid={false}
+        showValueLabels
+        testID="BarChart-label-columns"
+      />
+    </YStack>
+  ),
+}
+
 /** Controllable instance — edit args in the Controls panel. */
 export const Controllable: Story = {
   args: {

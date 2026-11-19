@@ -85,6 +85,16 @@ export interface BarChartProps {
    * Same look as LineAreaChart's legend. Omitted or empty = no legend. */
   legend?: BarChartLegendItem[]
   layout?: BarChartLayout
+  /**
+   * Horizontal layout only: each row reads name | bar | value, like a table.
+   * Names sit left-aligned at the chart's left edge, in a column as wide as
+   * the longest name (at most a third of the chart; longer names end in "…").
+   * Values, when shown, sit right-aligned at the right edge in their own
+   * column, on every bar. Both gutters size themselves, so no `padding` is
+   * needed; with `height` left out, the chart is as tall as its rows, spaced
+   * by the text size. Ignored in vertical layout. Default false.
+   */
+  labelColumns?: boolean
   showGrid?: boolean
   /** false hides the value axis's number labels (and, in vertical layout, the
    * left-gutter space they would take). Grid lines follow `showGrid`. Default true. */
@@ -155,6 +165,16 @@ const LEGEND_SWATCH_GAP_TO_TEXT_RATIO = 0.5
 const LEGEND_ITEM_GAP_TO_TEXT_RATIO = 1.2
 /** Space between the legend and the bars = 0.8 x text (preview: 10 px). */
 const LEGEND_TO_CHART_GAP_TO_TEXT_RATIO = 0.8
+
+/** `labelColumns` rows, as multiples of the row text size where they are sizes.
+ * Proportions from the approved dashboard preview (14 px row text). */
+/** Name column is at most a third of the chart, so bars keep room on a phone (preview phone: 90 of ~270 px). */
+const LABEL_COLUMN_MAX_WIDTH_SHARE = 1 / 3
+/** Space between a column and the bars = 0.7 x text (preview: 10 px). */
+const LABEL_COLUMN_GAP_TO_TEXT_RATIO = 0.7
+/** Row to row = 1.9 x text when the chart sizes its own height (preview: ~26 px). With
+ * BAR_FILL_FRACTION the bar is then ~1.3 x text thick (preview: 18 px). */
+const LABEL_COLUMN_ROW_HEIGHT_TO_TEXT_RATIO = 1.9
 
 const DEFAULT_PADDING: BarChartPadding = { top: 16, right: 16, bottom: 40, left: 48 }
 /** Reference width both the base sizes above and DEFAULT_PADDING were tuned against.
@@ -408,9 +428,10 @@ function mergePadding(
   padding: Partial<BarChartPadding> | undefined,
   scaleRatio: number,
   minLeftPx: number,
+  layoutPadding?: Partial<BarChartPadding>,
 ): BarChartPadding {
   const scaledDefaults = scaleEdgeInsets(DEFAULT_PADDING, scaleRatio)
-  return { ...scaledDefaults, left: Math.max(scaledDefaults.left, minLeftPx), ...padding }
+  return { ...scaledDefaults, left: Math.max(scaledDefaults.left, minLeftPx), ...layoutPadding, ...padding }
 }
 
 function BarChartContent({
@@ -419,6 +440,7 @@ function BarChartContent({
   tooltip,
   legend,
   layout = 'vertical',
+  labelColumns = false,
   showGrid = true,
   showValueAxis = true,
   showValueLabels = false,
@@ -433,9 +455,13 @@ function BarChartContent({
   testID,
   accessibilityLabel,
   width = '100%',
-  height = '100%',
+  height: heightProp,
   padding,
 }: Omit<BarChartProps, 'variant'>) {
+  const height = heightProp ?? '100%'
+  const isLabelColumns = labelColumns && layout === 'horizontal'
+  // labelColumns with no `height`: the chart is as tall as its rows (sized below, from the text size).
+  const isRowsHeight = isLabelColumns && heightProp === undefined
   const theme = useTheme()
   const barColor = resolveThemeColor(theme, 'primary')
   const gridColor = resolveThemeColor(theme, 'colorDim')
@@ -466,9 +492,8 @@ function BarChartContent({
   // gave it. Measuring the Frame here instead would be circular, the same way
   // measuring PlotArea for *width* would be — PlotArea shrink-wraps horizontally
   // on purpose (see its definition above).
-  const isResponsiveHeight = typeof height !== 'number'
+  const isResponsiveHeight = !isRowsHeight && typeof height !== 'number'
   const { measuredHeightPx, onLayout: onPlotAreaLayout } = useMeasuredHeight(REFERENCE_HEIGHT_PX)
-  const viewBoxHeight = isResponsiveHeight ? measuredHeightPx : height
 
   const scaleRatio = computeChartScaleRatio(viewBoxWidth, REFERENCE_WIDTH_PX)
   // QA fix: titles were scaling up with chart width (rendering ~H2/H3-sized on
@@ -487,6 +512,42 @@ function BarChartContent({
   const tickLabelSizePx = clampFontSize(scalePx(TICK_LABEL_BASE_SIZE_PX, scaleRatio))
   const valueLabelSizePx = clampFontSize(scalePx(VALUE_LABEL_BASE_SIZE_PX, scaleRatio))
   const legendLabelSizePx = clampFontSize(scalePx(LEGEND_LABEL_BASE_SIZE_PX, scaleRatio))
+
+  // Widest category label, measured. Vertical layout feeds it to the label plan
+  // below; labelColumns sizes its name column from it.
+  const widestCategoryLabelWidthPx = items.reduce<number>(
+    (widest, item) => Math.max(widest, estimateTextWidthPx(item.category, tickLabelSizePx)),
+    0,
+  )
+
+  // labelColumns: name column (longest name, capped) on the left, value column
+  // (widest shown value) on the right, each followed by a text-sized gap. With no
+  // value axis or x-axis title, rows start and end at the chart's edges.
+  const labelColumnGapPx = tickLabelSizePx * LABEL_COLUMN_GAP_TO_TEXT_RATIO
+  const nameColumnWidthPx = isLabelColumns
+    ? Math.min(widestCategoryLabelWidthPx, viewBoxWidth * LABEL_COLUMN_MAX_WIDTH_SHARE)
+    : 0
+  const showsValueLabels = showValueLabels || alwaysShowValueLabels
+  const valueColumnWidthPx =
+    isLabelColumns && showsValueLabels
+      ? items.reduce<number>(
+          (widest, item) => Math.max(widest, estimateTextWidthPx(valueFormatter(item.value), valueLabelSizePx)),
+          0,
+        )
+      : 0
+  const labelColumnsPadding: Partial<BarChartPadding> | undefined = isLabelColumns
+    ? {
+        left: nameColumnWidthPx + labelColumnGapPx,
+        right: valueColumnWidthPx > 0 ? valueColumnWidthPx + labelColumnGapPx : 0,
+        ...(!showValueAxis && !xAxisLabel ? { top: 0, bottom: 0 } : {}),
+      }
+    : undefined
+  const rowsHeightPadding = { ...scaleEdgeInsets(DEFAULT_PADDING, scaleRatio), ...labelColumnsPadding, ...padding }
+  const rowsHeightPx =
+    items.length * Math.max(tickLabelSizePx, valueLabelSizePx) * LABEL_COLUMN_ROW_HEIGHT_TO_TEXT_RATIO +
+    rowsHeightPadding.top +
+    rowsHeightPadding.bottom
+  const viewBoxHeight = isRowsHeight ? rowsHeightPx : isResponsiveHeight ? measuredHeightPx : (height as number)
 
   const scale = computeNiceAxisScale(items.map(barExtentValue))
   const valueRange = scale.max - scale.min || 1
@@ -533,7 +594,7 @@ function BarChartContent({
       (yAxisTitleLines.length > 0 ? yAxisTitleLines.length * tickLabelSizePx + AXIS_LABEL_GAP_PX : 0)
     : 0
 
-  const resolvedPadding = mergePadding(padding, scaleRatio, requiredLeftGutterPx)
+  const resolvedPadding = mergePadding(padding, scaleRatio, requiredLeftGutterPx, labelColumnsPadding)
   const plotWidth = viewBoxWidth - resolvedPadding.left - resolvedPadding.right
   const plotHeight = viewBoxHeight - resolvedPadding.top - resolvedPadding.bottom
 
@@ -590,8 +651,10 @@ function BarChartContent({
     })
   }
 
+  // labelColumns values sit in their own column, not on the bar, so a short bar never hides one.
   const shouldShowValueLabel = (barLengthPx: number): boolean =>
-    alwaysShowValueLabels || (showValueLabels && barLengthPx >= MIN_BAR_LENGTH_FOR_VALUE_LABEL_PX)
+    alwaysShowValueLabels ||
+    (showValueLabels && (isLabelColumns || barLengthPx >= MIN_BAR_LENGTH_FOR_VALUE_LABEL_PX))
 
   // Zero baseline position within the plot rect, in each layout's value-axis direction.
   const zeroOffset = valueToPixel(0, isVertical ? plotHeight : plotWidth)
@@ -603,10 +666,6 @@ function BarChartContent({
   // fixed-width left column, so it's a *height* problem instead and keeps the
   // simpler adaptive-thinning approach (out of scope for this fix).
   // No fixed-pixel floor here either — see LineAreaChart's matching comment.
-  const widestCategoryLabelWidthPx = items.reduce<number>(
-    (widest, item) => Math.max(widest, estimateTextWidthPx(item.category, tickLabelSizePx)),
-    0,
-  )
   const verticalCategoryLabelPlan = isVertical
     ? computeXAxisLabelPlan({
         categoryCount: items.length,
@@ -907,7 +966,7 @@ function BarChartContent({
                   const baselineX = resolvedPadding.left + zeroOffset
                   const barX = isPositive ? baselineX : baselineX - Math.abs(barLength)
                   const barWidth = Math.abs(barLength)
-                  const categoryLabelMaxWidth = resolvedPadding.left - 12
+                  const categoryLabelMaxWidth = isLabelColumns ? nameColumnWidthPx : resolvedPadding.left - 12
                   const showCategoryLabel = index % categoryLabelSkipFactor === 0
                   const categoryLabel = showCategoryLabel
                     ? truncateLabelToWidth(item.category, categoryLabelMaxWidth, tickLabelSizePx)
@@ -939,12 +998,12 @@ function BarChartContent({
                       )}
                       {showCategoryLabel ? (
                         <SvgText
-                          x={resolvedPadding.left - 8}
+                          x={isLabelColumns ? 0 : resolvedPadding.left - 8}
                           y={slotStart + slotSize / 2}
                           fontSize={tickLabelSizePx}
                           fontFamily={CHART_FONT_FAMILY}
                           fill={axisLabelColor}
-                          textAnchor="end"
+                          textAnchor={isLabelColumns ? 'start' : 'end'}
                           alignmentBaseline="middle"
                           accessible={false}
                         >
@@ -954,15 +1013,17 @@ function BarChartContent({
                       {shouldShowValueLabel(barWidth) ? (
                         <SvgText
                           x={
-                            isPositive
-                              ? barX + barWidth + VALUE_LABEL_GAP_PX
-                              : barX - VALUE_LABEL_GAP_PX
+                            isLabelColumns
+                              ? viewBoxWidth
+                              : isPositive
+                                ? barX + barWidth + VALUE_LABEL_GAP_PX
+                                : barX - VALUE_LABEL_GAP_PX
                           }
                           y={slotStart + slotSize / 2}
                           fontSize={valueLabelSizePx}
                           fontFamily={CHART_FONT_FAMILY}
                           fill={textColor}
-                          textAnchor={isPositive ? 'start' : 'end'}
+                          textAnchor={isLabelColumns || !isPositive ? 'end' : 'start'}
                           alignmentBaseline="middle"
                           accessible={false}
                         >
