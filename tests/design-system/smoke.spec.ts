@@ -227,6 +227,25 @@ test('Scorecard/Hover story opens a full, on-screen box over the hovered tile', 
   await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-hover.png')
 })
 
+test('Scorecard/HoverWiderThanScreen story keeps the box on screen with every value whole', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 })
+  await gotoStory(page, 'design-system-primitives-scorecard--hover-wider-than-screen')
+  const frame = getStoryFrame(page)
+  await frame.getByTestId('Scorecard-hover-wide-alpha').locator('..').hover()
+  const box = frame.getByTestId('chart-tooltip')
+  await expect(box).toBeVisible()
+  const screen = (await page.locator('#storybook-preview-iframe').boundingBox())!
+  const boxRect = (await box.boundingBox())!
+  expect(boxRect.x).toBeGreaterThanOrEqual(screen.x)
+  expect(boxRect.x + boxRect.width).toBeLessThanOrEqual(screen.x + screen.width)
+  // Values whole and inside the box; the long row names are shortened instead.
+  for (const value of ['G$ 1,701,511', 'G$ 1,632,904']) {
+    const valueRect = (await box.getByText(value, { exact: true }).boundingBox())!
+    expect(valueRect.x + valueRect.width).toBeLessThanOrEqual(boxRect.x + boxRect.width)
+  }
+  await expect(box.getByText(/^This week.*…$/)).toBeVisible()
+})
+
 test('Scorecard/AbbreviateFrom story shortens from 10,000 by default, from any threshold, or never', async ({ page }) => {
   await gotoStory(page, 'design-system-primitives-scorecard--abbreviate-from')
   const frame = getStoryFrame(page)

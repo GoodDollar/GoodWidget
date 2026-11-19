@@ -32,6 +32,9 @@ export interface ChartTooltipProps {
    * no cap: the box is as wide as its content (e.g. a scorecard's hover box,
    * which may be wider than the small tile it opens over). */
   chartWidthPx?: number
+  /** Hard cap on the box width (e.g. the space left on screen). When content is wider, row labels
+   * and the header shorten with "…"; values are never cut. Omitted = no extra cap. */
+  maxWidthPx?: number
   /** true = each row reads "label    value": values right-aligned in one column at the box's right edge,
    * no colon, digits of equal width so numbers line up. Default false ("label: value"). */
   rightAlignValues?: boolean
@@ -89,6 +92,7 @@ export function estimateChartTooltipWidthPx(
   chartWidthPx: number | undefined,
   subheader?: string,
   rightAlignValues = false,
+  maxWidthPx = Infinity,
 ): number {
   // Header renders bold (see ChartTooltipHeaderText) — matching fontWeight
   // keeps this estimate consistent with the glyph widths that actually render.
@@ -100,10 +104,10 @@ export function estimateChartTooltipWidthPx(
   )
   const contentWidthPx = Math.max(headerWidthPx, subheaderWidthPx, widestRowWidthPx)
   const widthPx = contentWidthPx + TOOLTIP_PADDING_HORIZONTAL_PX * 2 + TOOLTIP_BORDER_WIDTH_PX * 2
-  const maxWidthPx =
+  const chartCapPx =
     chartWidthPx === undefined ? Infinity : Math.max(TOOLTIP_MIN_WIDTH_PX, chartWidthPx * TOOLTIP_MAX_WIDTH_RATIO)
 
-  return Math.min(maxWidthPx, Math.max(TOOLTIP_MIN_WIDTH_PX, widthPx))
+  return Math.min(chartCapPx, maxWidthPx, Math.max(TOOLTIP_MIN_WIDTH_PX, widthPx))
 }
 
 const ChartTooltipFrame = createComponent(YStack, {
@@ -173,10 +177,11 @@ export function ChartTooltip({
   left,
   top,
   chartWidthPx,
+  maxWidthPx,
   rightAlignValues = false,
   swatchShape = 'round',
 }: ChartTooltipProps) {
-  const widthPx = estimateChartTooltipWidthPx(header, rows, chartWidthPx, subheader, rightAlignValues)
+  const widthPx = estimateChartTooltipWidthPx(header, rows, chartWidthPx, subheader, rightAlignValues, maxWidthPx)
   // Space left for label text once the frame's padding and border, the dot,
   // both gaps, and the full (never-truncated) value are accounted for —
   // matches estimateRowContentWidthPx plus the border-box border itself.

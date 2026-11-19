@@ -488,6 +488,12 @@ const HOVER_BOX_Z_INDEX = 1000
  * carousel track) can't cut it, while it stays inside the widget's own DOM where the theme
  * styles live. Centered on the scorecard, then moved just enough to stay on screen.
  */
+/** Visible screen width; Infinity where there is no window (no cap). */
+function screenWidthPx(): number {
+  if (typeof window === 'undefined') return Infinity
+  return window.visualViewport?.width ?? window.innerWidth
+}
+
 function ScorecardHover({
   tooltip,
   size,
@@ -517,7 +523,7 @@ function ScorecardHover({
     // The box (ChartTooltip's frame) is absolutely positioned inside the fixed anchor.
     const boxRect = (boxRef.current?.firstElementChild as HTMLElement | null)?.getBoundingClientRect?.()
     if (!triggerRect || !boxRect) return
-    const screenWidth = window.visualViewport?.width ?? window.innerWidth
+    const screenWidth = screenWidthPx()
     const screenHeight = window.visualViewport?.height ?? window.innerHeight
     const keepOnScreen = (start: number, length: number, screenLength: number) =>
       Math.max(screenMarginPx, Math.min(start, screenLength - screenMarginPx - length))
@@ -560,6 +566,7 @@ function ScorecardHover({
             top={0}
             rightAlignValues={tooltip.rightAlignValues}
             swatchShape={tooltip.swatchShape}
+            maxWidthPx={screenWidthPx() - screenMarginPx * 2}
           />
         </Stack>
       ) : null}

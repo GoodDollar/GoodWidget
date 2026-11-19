@@ -228,6 +228,32 @@ export const Hover: Story = {
   ),
 }
 
+/** Hover content wider than a phone screen: the box stops at the screen's edges, long row names
+ * shorten with "…" and every value stays whole. */
+export const HoverWiderThanScreen: Story = {
+  parameters: { stretchWrapper: true },
+  render: () => (
+    <ScorecardGrid testID="Scorecard-hover-wide">
+      <Scorecard
+        label="Alpha"
+        value={1701511}
+        prefix="G$"
+        variant="tile"
+        tooltip={{
+          header: 'Alpha',
+          subheader: 'G$ moved',
+          rows: [
+            { color: '#7e57c2', label: 'This week, all transfers between the project and user wallets', value: 'G$ 1,701,511' },
+            { label: 'Last week, all transfers between the project and user wallets', value: 'G$ 1,632,904' },
+          ],
+          rightAlignValues: true,
+        }}
+        testID="Scorecard-hover-wide-alpha"
+      />
+    </ScorecardGrid>
+  ),
+}
+
 /** `abbreviateFrom`: by default numbers from 10,000 are shortened and smaller ones read in full;
  * a lower threshold shortens four-digit numbers, `'never'` always shows the full number. */
 export const AbbreviateFrom: Story = {
