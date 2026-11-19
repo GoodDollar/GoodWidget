@@ -478,6 +478,12 @@ test('BarChart/SegmentedBarsWithLegend story draws the legend above the bars', a
   const legendBox = await legend.boundingBox()
   const plotBox = await chart.locator('svg').first().boundingBox()
   expect(legendBox!.y + legendBox!.height).toBeLessThanOrEqual(plotBox!.y)
+  // Swatch = 0.9 x the legend's own text size, which scales with the chart's width.
+  const textSizePx = await legend
+    .getByText('Received (darker shade)')
+    .evaluate((element) => parseFloat(getComputedStyle(element).fontSize))
+  const swatchBox = await legend.getByTestId('bar-chart-legend-swatch').first().boundingBox()
+  expect(swatchBox!.width).toBeCloseTo(textSizePx * 0.9, 0)
   await screenshotStory(page, 'tests/design-system/test-results/story-barchart-segments-legend.png')
 })
 

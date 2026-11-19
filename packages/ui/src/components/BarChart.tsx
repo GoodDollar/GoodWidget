@@ -140,13 +140,21 @@ const VALUE_LABEL_BASE_SIZE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2
 const TITLE_TO_CHART_GAP_BASE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
 const CARD_PADDING_PX = CHART_BASE_SIZE_PX
 
-/** Legend sizes mirror LineAreaChart's legend (its constants are private), so
- * both charts' legends read identically — see the reasoning next to them there. */
+/** Legend text mirrors LineAreaChart's legend text (its constants are private) —
+ * see the reasoning next to them there. */
 const LEGEND_SIZE_SCALE_FACTOR = 0.9
 const LEGEND_LABEL_BASE_SIZE_PX = (CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2) * LEGEND_SIZE_SCALE_FACTOR
-const LEGEND_SWATCH_SIZE_PX = 10
-const LEGEND_ITEM_GAP_PX = 16 * LEGEND_SIZE_SCALE_FACTOR
-const LEGEND_TO_CHART_GAP_PX = 10
+/** Legend swatch and spacing are multiples of the legend's own text size, so they
+ * scale with the chart's width along with it. Proportions from the approved
+ * dashboard preview (13 px legend text). */
+/** Swatch = 0.9 x text (preview: 12 px). */
+const LEGEND_SWATCH_TO_TEXT_RATIO = 0.9
+/** Space between swatch and its label = 0.5 x text (preview: 6 px). */
+const LEGEND_SWATCH_GAP_TO_TEXT_RATIO = 0.5
+/** Space between legend items = 1.2 x text (preview: 16 px). */
+const LEGEND_ITEM_GAP_TO_TEXT_RATIO = 1.2
+/** Space between the legend and the bars = 0.8 x text (preview: 10 px). */
+const LEGEND_TO_CHART_GAP_TO_TEXT_RATIO = 0.8
 
 const DEFAULT_PADDING: BarChartPadding = { top: 16, right: 16, bottom: 40, left: 48 }
 /** Reference width both the base sizes above and DEFAULT_PADDING were tuned against.
@@ -365,23 +373,27 @@ const BarChartLegendLabelText = createComponent(TamaguiText, {
 
 const BarChartLegendSwatch = createComponent(YStack, {
   name: 'BarChartLegendSwatch',
-  width: LEGEND_SWATCH_SIZE_PX,
-  height: LEGEND_SWATCH_SIZE_PX,
   borderRadius: '$full',
 })
 
 function BarChartLegend({ items, labelSizePx }: { items: BarChartLegendItem[]; labelSizePx: number }) {
+  const swatchSizePx = labelSizePx * LEGEND_SWATCH_TO_TEXT_RATIO
   return (
     <XStack
-      gap={LEGEND_ITEM_GAP_PX}
+      gap={labelSizePx * LEGEND_ITEM_GAP_TO_TEXT_RATIO}
       flexWrap="wrap"
       justifyContent="center"
-      marginBottom={LEGEND_TO_CHART_GAP_PX}
+      marginBottom={labelSizePx * LEGEND_TO_CHART_GAP_TO_TEXT_RATIO}
       data-testid="bar-chart-legend"
     >
       {items.map((item) => (
-        <XStack key={item.label} alignItems="center" gap="$2">
-          <BarChartLegendSwatch backgroundColor={item.color} />
+        <XStack key={item.label} alignItems="center" gap={labelSizePx * LEGEND_SWATCH_GAP_TO_TEXT_RATIO}>
+          <BarChartLegendSwatch
+            width={swatchSizePx}
+            height={swatchSizePx}
+            backgroundColor={item.color}
+            data-testid="bar-chart-legend-swatch"
+          />
           <BarChartLegendLabelText fontSize={labelSizePx}>{item.label}</BarChartLegendLabelText>
         </XStack>
       ))}
