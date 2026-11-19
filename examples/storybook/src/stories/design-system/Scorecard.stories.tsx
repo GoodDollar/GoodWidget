@@ -3,7 +3,7 @@
  */
 import React from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
-import { Scorecard, XStack, YStack } from '@goodwidget/ui'
+import { Scorecard, ScorecardGrid, XStack, YStack } from '@goodwidget/ui'
 import type { ScorecardProps } from '@goodwidget/ui'
 import { withDefaultPreset } from '../helpers/withDefaultPreset'
 
@@ -130,6 +130,43 @@ export const Tile: Story = {
         testID="Scorecard-tile-tile"
       />
     </XStack>
+  ),
+}
+
+const GRID_TILES = [
+  { label: 'Alpha', value: 335, color: '#2e7d32' },
+  { label: 'Bravo', value: 180, color: '#c2185b' },
+  { label: 'Charlie', value: 101, color: '#7e57c2' },
+  { label: 'Delta', value: 15, color: '#26a69a' },
+  { label: 'Echo', value: 2, color: '#f9a825' },
+  { label: 'Foxtrot', value: 1, color: '#1e88e5' },
+  { label: 'Golf', value: 0, color: '#e64a19' },
+]
+
+/** `ScorecardGrid`: equal-width tiles, as many per row as fit, last row keeps the same width. */
+export const Grid: Story = {
+  parameters: { contentMaxWidthPx: 900, stretchWrapper: true },
+  render: () => (
+    <ScorecardGrid testID="Scorecard-grid">
+      {GRID_TILES.map((tile) => (
+        <Scorecard
+          key={tile.label}
+          label={tile.label}
+          value={tile.value}
+          accentColor={tile.color}
+          variant="tile"
+          testID={`Scorecard-grid-${tile.label}`}
+        />
+      ))}
+      <Scorecard
+        label="Hotel"
+        value={0}
+        unavailableReason="Not measured"
+        accentColor="#8d6e63"
+        variant="tile"
+        testID="Scorecard-grid-Hotel"
+      />
+    </ScorecardGrid>
   ),
 }
 

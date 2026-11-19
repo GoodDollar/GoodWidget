@@ -170,6 +170,27 @@ test('Scorecard/Tile story draws a tighter card with smaller secondary text', as
   await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-tile.png')
 })
 
+test('Scorecard/Grid story lays tiles in equal columns, more per row on a wide screen', async ({ page }) => {
+  const columnsAt = async (viewportWidth: number) => {
+    await page.setViewportSize({ width: viewportWidth, height: 900 })
+    await gotoStory(page, 'design-system-primitives-scorecard--grid')
+    const frame = getStoryFrame(page)
+    await expect(frame.getByTestId('Scorecard-grid')).toBeVisible()
+    const boxes = await Promise.all(
+      ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot', 'Golf', 'Hotel'].map(
+        async (name) => (await frame.getByTestId(`Scorecard-grid-${name}`).locator('..').boundingBox())!,
+      ),
+    )
+    // Every tile the same width, last row included.
+    for (const box of boxes) expect(box.width).toBeCloseTo(boxes[0].width, 0)
+    return boxes.filter((box) => Math.abs(box.y - boxes[0].y) < 1).length
+  }
+  const narrow = await columnsAt(390)
+  const wide = await columnsAt(1280)
+  expect(wide).toBeGreaterThan(narrow)
+  await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-grid.png')
+})
+
 test('Scorecard/AbbreviateFrom story shortens from 10,000 by default, from any threshold, or never', async ({ page }) => {
   await gotoStory(page, 'design-system-primitives-scorecard--abbreviate-from')
   const frame = getStoryFrame(page)

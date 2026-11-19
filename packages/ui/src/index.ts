@@ -106,8 +106,14 @@ export {
 export type { DialogConfig, DialogStatus } from './components/Dialog'
 
 // Analytics
-export { Scorecard } from './components/Scorecard'
-export type { ScorecardProps, ScorecardTrend, ScorecardVariant } from './components/Scorecard'
+export { Scorecard, ScorecardGrid } from './components/Scorecard'
+export type {
+  ScorecardProps,
+  ScorecardTrend,
+  ScorecardVariant,
+  ScorecardSize,
+  ScorecardGridProps,
+} from './components/Scorecard'
 export { SkeletonBlock } from './components/Skeleton'
 export type { SkeletonBlockProps } from './components/Skeleton'
 export { formatMetricValue } from './utils/formatMetricValue'

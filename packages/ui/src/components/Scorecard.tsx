@@ -441,3 +441,38 @@ export function Scorecard({ variant = 'bare', accentColor, ...contentProps }: Sc
 
   return <ScorecardContent {...contentProps} />
 }
+
+export interface ScorecardGridProps {
+  /** Scorecards, usually `variant="tile"`. */
+  children: React.ReactNode
+  /** The scorecards' `size`, so the column width follows their value text. Default "md". */
+  size?: ScorecardSize
+  testID?: string
+}
+
+/** Grid columns are at least 6.25 x the value text wide and 0.42 x apart (approved dashboard
+ * preview: 150 px columns and 10 px gaps around a 24 px value). */
+const GRID_MIN_COLUMN_TO_VALUE_RATIO = 6.25
+const GRID_GAP_TO_VALUE_RATIO = 0.42
+
+/**
+ * Lays scorecards out in equal-width columns, as many per row as the width allows; tiles in a
+ * row share the tallest one's height. Web only (CSS grid), like Carousel.
+ */
+export function ScorecardGrid({ children, size = 'md', testID }: ScorecardGridProps) {
+  const valueSizePx = VALUE_SIZE_PX[size]
+  return (
+    <YStack
+      testID={testID}
+      data-testid={testID}
+      width="100%"
+      style={{
+        display: 'grid',
+        gridTemplateColumns: `repeat(auto-fill, minmax(${valueSizePx * GRID_MIN_COLUMN_TO_VALUE_RATIO}px, 1fr))`,
+        gap: valueSizePx * GRID_GAP_TO_VALUE_RATIO,
+      }}
+    >
+      {children}
+    </YStack>
+  )
+}
