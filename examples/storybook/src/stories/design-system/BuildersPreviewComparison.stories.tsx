@@ -7,12 +7,14 @@
  */
 import React from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
-import { BarChart, Card, Carousel, LineAreaChart, Scorecard, Text, XStack, YStack } from '@goodwidget/ui'
+import { BarChart, Card, Carousel, LineAreaChart, Scorecard, ScorecardGrid, Text, YStack } from '@goodwidget/ui'
 import { withDefaultPreset } from '../helpers/withDefaultPreset'
 
 const meta: Meta = {
   title: 'Design System/Examples/Builders S5 Preview Comparison',
   tags: ['showcase'],
+  // contentMaxWidthPx stands in for the dashboard page's own width (the preview page's 1120);
+  // no component below is given a size: every size comes from the components' text.
   parameters: { layout: 'padded', contentMaxWidthPx: 1120, stretchWrapper: true },
   decorators: [withDefaultPreset],
 }
@@ -72,14 +74,6 @@ const shortGd = (value: number) => `G$ ${shortNumber(value)}`
 const exactGd = (value: number) => `G$ ${Math.round(value).toLocaleString('en-US')}`
 const exactNumber = (value: number) => Math.round(value).toLocaleString('en-US')
 
-function SlideLabel({ children }: { children: string }) {
-  return (
-    <Text color="$placeholderColor" fontWeight="600" marginBottom="$2">
-      {children}
-    </Text>
-  )
-}
-
 function MetricCard({ title, children, testID }: { title: string; children: React.ReactNode; testID: string }) {
   return (
     <Card padding="$4" gap="$3" width="100%" data-testid={testID}>
@@ -95,51 +89,58 @@ export const GdMovedAndGithubScore: Story = {
   render: () => (
     <YStack width="100%" gap="$4" data-testid="Builders-preview-comparison">
       <MetricCard title="G$ moved between the project's addresses and user wallets" testID="Builders-gd-moved">
-        <Carousel testID="Builders-gd-moved-carousel">
-          <YStack>
-            <SlideLabel>Each team · report of Nov 15</SlideLabel>
-            <XStack flexWrap="wrap" gap="$3">
-              {GD_MOVED.map(({ team, total, gdIn, gdOut }) => (
-                <Scorecard
-                  key={team}
-                  label={team}
-                  value={total}
-                  valueFormatter={shortGd}
-                  detailLines={[`in ${shortGd(gdIn)}`, `out ${shortGd(gdOut)}`]}
-                  accentColor={TEAM_COLOR[team]}
-                  variant="card"
-                  size="sm"
-                />
-              ))}
-            </XStack>
-          </YStack>
-          <YStack>
-            <SlideLabel>Teams compared · report of Nov 15</SlideLabel>
-            <BarChart
-              data={GD_MOVED.map(({ team, total, gdIn, gdOut }) => ({
-                category: team,
-                value: total,
-                color: TEAM_COLOR[team],
-                segments: [
-                  { label: 'G$ in', value: gdIn, color: TEAM_SHADES[team][0] },
-                  { label: 'G$ out', value: gdOut, color: TEAM_SHADES[team][1] },
-                ],
-              }))}
-              layout="horizontal"
-              height={300}
-              padding={{ top: 8, right: 64, bottom: 8, left: 120 }}
-              legend={[
-                { label: 'G$ in (received by the project)', color: '#5c5c5c' },
-                { label: 'G$ out (sent by the project)', color: '#b8b8b8' },
-              ]}
-              valueFormatter={shortGd}
-              tooltip={{ label: 'G$ moved', valueFormatter: exactGd }}
-              showValueAxis={false}
-              showGrid={false}
-              alwaysShowValueLabels
-              testID="Builders-gd-moved-bars"
-            />
-          </YStack>
+        <Carousel
+          slideLabels={['Each team · report of Nov 15', 'Teams compared · report of Nov 15']}
+          testID="Builders-gd-moved-carousel"
+        >
+          <ScorecardGrid testID="Builders-gd-moved-tiles">
+            {GD_MOVED.map(({ team, total, gdIn, gdOut }) => (
+              <Scorecard
+                key={team}
+                label={team}
+                value={total}
+                valueFormatter={shortGd}
+                detailLines={[`in ${shortGd(gdIn)}`, `out ${shortGd(gdOut)}`]}
+                accentColor={TEAM_COLOR[team]}
+                variant="tile"
+                tooltip={{
+                  header: team,
+                  subheader: 'G$ moved',
+                  rows: [
+                    { color: TEAM_COLOR[team], label: 'G$ moved', value: exactGd(total) },
+                    { label: 'G$ in', value: exactGd(gdIn) },
+                    { label: 'G$ out', value: exactGd(gdOut) },
+                  ],
+                  rightAlignValues: true,
+                  swatchShape: 'square',
+                }}
+              />
+            ))}
+          </ScorecardGrid>
+          <BarChart
+            data={GD_MOVED.map(({ team, total, gdIn, gdOut }) => ({
+              category: team,
+              value: total,
+              color: TEAM_COLOR[team],
+              segments: [
+                { label: 'G$ in', value: gdIn, color: TEAM_SHADES[team][0] },
+                { label: 'G$ out', value: gdOut, color: TEAM_SHADES[team][1] },
+              ],
+            }))}
+            layout="horizontal"
+            labelColumns
+            legend={[
+              { label: 'G$ in (received by the project)', color: '#5c5c5c' },
+              { label: 'G$ out (sent by the project)', color: '#b8b8b8' },
+            ]}
+            swatchShape="square"
+            valueFormatter={shortGd}
+            tooltip={{ label: 'G$ moved', valueFormatter: exactGd, rightAlignValues: true }}
+            showValueAxis={false}
+            showGrid={false}
+            alwaysShowValueLabels
+            testID="Builders-gd-moved-bars"
+          />
         </Carousel>
       </MetricCard>
       <MetricCard title="GitHub repository score" testID="Builders-github-score">
@@ -148,14 +149,16 @@ export const GdMovedAndGithubScore: Story = {
             values.map((y, index) => ({ x: REPORTS[index], y, series: team })),
           )}
           series={Object.keys(GITHUB_SCORE).map((team) => ({ key: team, label: team, color: TEAM_COLOR[team] }))}
-          height={300}
           yAxisFormatter={exactNumber}
           tooltip={{
             label: 'GitHub score',
             valueFormatter: exactNumber,
             xFormatter: (x) => `Report of ${x}`,
             sort: 'desc',
+            rightAlignValues: true,
           }}
+          legendPosition="top"
+          swatchShape="square"
           focusPointOnHover
           testID="Builders-github-score-line"
         />
