@@ -484,6 +484,26 @@ export const NameAndValueColumns: Story = {
   ),
 }
 
+/** `labelColumns` with a `yAxisLabel`: the rotated title gets its own gutter at the left edge and
+ * the name column starts after it. */
+export const NameAndValueColumnsWithAxisTitle: Story = {
+  render: () => (
+    <YStack width="100%">
+      <BarChart
+        data={columnRows}
+        layout="horizontal"
+        labelColumns
+        yAxisLabel="Team"
+        valueFormatter={shortNumber}
+        showValueAxis={false}
+        showGrid={false}
+        showValueLabels
+        testID="BarChart-label-columns-title"
+      />
+    </YStack>
+  ),
+}
+
 /** `labelColumns` with no data and no `height`: the chart keeps one row of height for "No data". */
 export const NameAndValueColumnsEmpty: Story = {
   render: () => (

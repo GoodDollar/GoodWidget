@@ -609,7 +609,8 @@ function BarChartContent({
   // affects it). Resolving top/bottom padding once here, ahead of the left
   // gutter sizing below, lets the title's line count feed into the gutter's
   // width reservation without a circular dependency (mirrors LineAreaChart).
-  const topBottomPaddingPx = scaleEdgeInsets(DEFAULT_PADDING, scaleRatio)
+  // labelColumns resolves its own top/bottom gutters (above), so its title wraps against those.
+  const topBottomPaddingPx = isLabelColumns ? rowsHeightPadding : scaleEdgeInsets(DEFAULT_PADDING, scaleRatio)
   const preliminaryPlotHeightPx = viewBoxHeight - topBottomPaddingPx.top - topBottomPaddingPx.bottom
   const axisTitleAvailableLengthPx = Math.max(0, preliminaryPlotHeightPx - AXIS_LABEL_GAP_PX * 2)
   // Wrap to two lines at a word boundary first; only the last-resort ellipsis
@@ -632,11 +633,19 @@ function BarChartContent({
   // the default gutter floor is dropped. An explicit `padding.left` still wins.
   const hiddenValueAxisPadding: Partial<BarChartPadding> | undefined =
     isVertical && !showValueAxis ? { left: requiredLeftGutterPx } : undefined
+  // labelColumns with a y-axis title: the rotated title gets its own gutter at the left edge and the
+  // name column starts after it, so the two never overlap.
+  const labelColumnsTitleGutterPx =
+    isLabelColumns && yAxisTitleLines.length > 0
+      ? yAxisTitleLines.length * tickLabelSizePx + AXIS_LABEL_GAP_PX
+      : 0
   const resolvedPadding = mergePadding(
     padding,
     scaleRatio,
     requiredLeftGutterPx,
-    labelColumnsPadding ?? hiddenValueAxisPadding,
+    labelColumnsPadding
+      ? { ...labelColumnsPadding, left: (labelColumnsPadding.left ?? 0) + labelColumnsTitleGutterPx }
+      : hiddenValueAxisPadding,
   )
   const plotWidth = viewBoxWidth - resolvedPadding.left - resolvedPadding.right
   const plotHeight = viewBoxHeight - resolvedPadding.top - resolvedPadding.bottom
@@ -646,14 +655,16 @@ function BarChartContent({
   // each subsequent line sits one tickLabelSizePx slot further out, matching
   // the extra width requiredLeftGutterPx reserved above.
   const yAxisTitleLineXPx = (lineIndex: number): number =>
-    Math.max(
-      tickLabelSizePx / 2,
-      resolvedPadding.left -
-        AXIS_LABEL_GAP_PX -
-        widestYTickLabelWidthPx -
-        AXIS_LABEL_GAP_PX -
-        tickLabelSizePx * (lineIndex + 0.5),
-    )
+    isLabelColumns
+      ? labelColumnsTitleGutterPx - AXIS_LABEL_GAP_PX - tickLabelSizePx * (lineIndex + 0.5)
+      : Math.max(
+          tickLabelSizePx / 2,
+          resolvedPadding.left -
+            AXIS_LABEL_GAP_PX -
+            widestYTickLabelWidthPx -
+            AXIS_LABEL_GAP_PX -
+            tickLabelSizePx * (lineIndex + 0.5),
+        )
 
   const resolvedAccessibilityLabel =
     accessibilityLabel ??
@@ -1049,7 +1060,7 @@ function BarChartContent({
                       )}
                       {showCategoryLabel ? (
                         <SvgText
-                          x={isLabelColumns ? 0 : resolvedPadding.left - 8}
+                          x={isLabelColumns ? labelColumnsTitleGutterPx : resolvedPadding.left - 8}
                           y={slotStart + slotSize / 2}
                           fontSize={tickLabelSizePx}
                           fontFamily={CHART_FONT_FAMILY}

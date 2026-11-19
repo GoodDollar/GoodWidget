@@ -800,6 +800,17 @@ test('BarChart/NameAndValueColumns story puts names in a left column and values 
   await screenshotStory(page, 'tests/design-system/test-results/story-barchart-label-columns.png')
 })
 
+test('BarChart/NameAndValueColumnsWithAxisTitle story keeps the rotated title clear of the names', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-barchart--name-and-value-columns-with-axis-title')
+  const chart = getStoryFrame(page).getByTestId('BarChart-label-columns-title')
+  await expect(chart).toBeVisible()
+  const titleBox = (await chart.locator('svg text').filter({ hasText: /^Team$/ }).boundingBox())!
+  for (const name of ['Alpha', 'Gamma', 'Delta', 'Epsilon']) {
+    const nameBox = (await chart.locator('svg text').filter({ hasText: new RegExp(`^${name}$`) }).boundingBox())!
+    expect(titleBox.x + titleBox.width).toBeLessThanOrEqual(nameBox.x)
+  }
+})
+
 test('BarChart/NameAndValueColumnsEmpty story keeps one row of height so "No data" shows', async ({ page }) => {
   await gotoStory(page, 'design-system-primitives-barchart--name-and-value-columns-empty')
   const chart = getStoryFrame(page).getByTestId('BarChart-label-columns-empty')
