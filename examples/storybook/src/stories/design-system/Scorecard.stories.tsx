@@ -335,6 +335,18 @@ export const Unavailable: Story = {
         variant="card"
         testID="Scorecard-unavailable-card"
       />
+      {/* N/A never formats `value`: this formatter would throw on NaN. */}
+      <Scorecard
+        label="No value at all"
+        value={Number.NaN}
+        valueFormatter={(value) => {
+          if (!Number.isFinite(value)) throw new Error('needs a finite number')
+          return value.toLocaleString('en-US')
+        }}
+        unavailableReason="No repo registered"
+        variant="card"
+        testID="Scorecard-unavailable-nan"
+      />
     </XStack>
   ),
 }

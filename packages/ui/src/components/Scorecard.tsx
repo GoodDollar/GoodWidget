@@ -347,9 +347,12 @@ function ScorecardContent({
 }: Omit<ScorecardProps, 'variant' | 'accentColor' | 'tooltip'> & { isTile?: boolean }) {
   const theme = useTheme()
   const isUnavailable = unavailableReason !== undefined
-  const formattedValue = valueFormatter
-    ? valueFormatter(value)
-    : formatScorecardValue(value, format, decimals, abbreviateFrom)
+  // N/A ignores `value`, so it is never formatted (a formatter may not accept it, e.g. NaN).
+  const formattedValue = isUnavailable
+    ? ''
+    : valueFormatter
+      ? valueFormatter(value)
+      : formatScorecardValue(value, format, decimals, abbreviateFrom)
   // The tile variant overrides sizes and gaps; the other variants keep the styled defaults.
   const smallTextSizePx = isTile ? TILE_SMALL_SIZE_PX[size] : SECONDARY_SIZE_PX[size]
   const smallText = isTile ? { fontSize: smallTextSizePx } : {}

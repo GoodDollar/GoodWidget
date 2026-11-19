@@ -295,6 +295,10 @@ test('Scorecard/Unavailable story shows N/A with the reason and no trend row', a
   await expect(card.getByText('Not tracked yet', { exact: true })).toBeVisible()
   await expect(card.getByText('+11.9%', { exact: true })).toHaveCount(0)
   await expect(frame.getByTestId('Scorecard-available-card').getByText('+11.9%', { exact: true })).toBeVisible()
+  // N/A never calls the formatter, so a formatter that rejects NaN can't break it.
+  const nan = frame.getByTestId('Scorecard-unavailable-nan')
+  await expect(nan.getByText('N/A', { exact: true })).toBeVisible()
+  await expect(nan.getByText('No repo registered', { exact: true })).toBeVisible()
   await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-unavailable.png')
 })
 
