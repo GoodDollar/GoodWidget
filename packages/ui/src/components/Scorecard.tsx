@@ -538,7 +538,8 @@ function ScorecardHover({
     const left = keepOnScreen(triggerRect.left + triggerRect.width / 2 - boxRect.width / 2, boxRect.width, screenWidth)
     const top = keepOnScreen(triggerRect.top + triggerRect.height / 2 - boxRect.height / 2, boxRect.height, screenHeight)
     if (Math.abs(left - position.left) > 0.5 || Math.abs(top - position.top) > 0.5) setPosition({ left, top })
-  }, [position, screenMarginPx])
+    // `tooltip`: new content while open (e.g. refreshed values) changes the box size, so remeasure.
+  }, [position, screenMarginPx, tooltip])
 
   // Scroll events inside a shadow root do not reach window, so listen on both (as Tooltip does).
   useEffect(() => {
