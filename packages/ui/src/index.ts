@@ -106,8 +106,15 @@ export {
 export type { DialogConfig, DialogStatus } from './components/Dialog'
 
 // Analytics
-export { Scorecard } from './components/Scorecard'
-export type { ScorecardProps, ScorecardTrend, ScorecardVariant } from './components/Scorecard'
+export { Scorecard, ScorecardGrid } from './components/Scorecard'
+export type {
+  ScorecardProps,
+  ScorecardTrend,
+  ScorecardVariant,
+  ScorecardSize,
+  ScorecardGridProps,
+  ScorecardTooltip,
+} from './components/Scorecard'
 export { SkeletonBlock } from './components/Skeleton'
 export type { SkeletonBlockProps } from './components/Skeleton'
 export { formatMetricValue } from './utils/formatMetricValue'
@@ -120,6 +127,8 @@ export type {
   PieDonutChartVariant,
   PieDonutChartSort,
 } from './components/PieDonutChart'
+export { Carousel } from './components/Carousel'
+export type { CarouselProps } from './components/Carousel'
 export { BarChart } from './components/BarChart'
 export type {
   BarChartProps,
@@ -127,6 +136,9 @@ export type {
   BarChartVariant,
   BarChartLayout,
   BarChartPadding,
+  BarChartTooltipOptions,
+  BarChartSegment,
+  BarChartLegendItem,
 } from './components/BarChart'
 export { LineAreaChart } from './components/LineAreaChart'
 export type {
@@ -138,6 +150,7 @@ export type {
   LineAreaChartVariant,
   LineAreaChartInterpolation,
   LineAreaChartPadding,
+  LineAreaChartTooltipOptions,
 } from './components/LineAreaChart'
 export { DataTable } from './components/DataTable'
 export type {
