@@ -504,6 +504,25 @@ export const NameAndValueColumnsWithAxisTitle: Story = {
   ),
 }
 
+/** `labelColumns` with a single row: the chart is one row tall. */
+export const NameAndValueColumnsOneRow: Story = {
+  render: () => (
+    <YStack width="100%" paddingBottom="$10">
+      <BarChart
+        data={[{ category: 'Alpha', value: 1701511, color: '#6c5ce7' }]}
+        layout="horizontal"
+        labelColumns
+        valueFormatter={shortNumber}
+        tooltip={{ label: 'Volume', valueFormatter: exactNumber }}
+        showValueAxis={false}
+        showGrid={false}
+        showValueLabels
+        testID="BarChart-label-columns-one-row"
+      />
+    </YStack>
+  ),
+}
+
 /** `labelColumns` with no data and no `height`: the chart keeps one row of height for "No data". */
 export const NameAndValueColumnsEmpty: Story = {
   render: () => (

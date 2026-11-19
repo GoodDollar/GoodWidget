@@ -811,6 +811,17 @@ test('BarChart/NameAndValueColumnsWithAxisTitle story keeps the rotated title cl
   }
 })
 
+test('BarChart/NameAndValueColumnsOneRow story settles: its width stops changing after layout', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-barchart--name-and-value-columns-one-row')
+  const chart = getStoryFrame(page).getByTestId('BarChart-label-columns-one-row')
+  await expect(chart).toBeVisible()
+  // A fractional self-sized height used to make the measured width creep down every frame.
+  const svg = chart.locator('svg').first()
+  const first = await svg.getAttribute('viewBox')
+  await page.waitForTimeout(500)
+  expect(await svg.getAttribute('viewBox')).toBe(first)
+})
+
 test('BarChart/NameAndValueColumnsEmpty story keeps one row of height so "No data" shows', async ({ page }) => {
   await gotoStory(page, 'design-system-primitives-barchart--name-and-value-columns-empty')
   const chart = getStoryFrame(page).getByTestId('BarChart-label-columns-empty')

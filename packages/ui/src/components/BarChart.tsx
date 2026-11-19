@@ -569,11 +569,14 @@ function BarChartContent({
       }
     : undefined
   const rowsHeightPadding = { ...scaleEdgeInsets(DEFAULT_PADDING, scaleRatio), ...labelColumnsPadding, ...padding }
-  // At least one row, so an empty chart keeps room for its "No data" message.
-  const rowsHeightPx =
+  // At least one row, so an empty chart keeps room for its "No data" message. Rounded up to whole
+  // pixels: a fractional height gets snapped by the browser, which then derives the 100%-wide SVG's
+  // width from that snapped height, a hair narrower each time, and the width measurement never settles.
+  const rowsHeightPx = Math.ceil(
     Math.max(items.length, 1) * Math.max(tickLabelSizePx, valueLabelSizePx) * LABEL_COLUMN_ROW_HEIGHT_TO_TEXT_RATIO +
-    rowsHeightPadding.top +
-    rowsHeightPadding.bottom
+      rowsHeightPadding.top +
+      rowsHeightPadding.bottom,
+  )
   const viewBoxHeight = isRowsHeight ? rowsHeightPx : isResponsiveHeight ? measuredHeightPx : (height as number)
 
   // labelColumns without a value axis reads like a table: no tick numbers to keep round, so the
