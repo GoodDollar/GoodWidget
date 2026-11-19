@@ -316,6 +316,26 @@ export const FocusPointOnHover: Story = {
   ),
 }
 
+/** `tooltip.rightAlignValues`: the same week column, with values in a right-aligned column and no
+ * colon, so the numbers line up. Hover a week to see it. */
+export const HoverValuesRightAligned: Story = {
+  render: () => (
+    <LineAreaChart
+      data={weeklyData}
+      series={weeklySeriesDefs}
+      width={480}
+      tooltip={{
+        label: 'Score',
+        valueFormatter: exactNumber,
+        xFormatter: (x) => `Week of ${x}`,
+        sort: 'desc',
+        rightAlignValues: true,
+      }}
+      testID="LineAreaChart-hover-right-aligned"
+    />
+  ),
+}
+
 /** Controllable instance — edit args in the Controls panel. */
 export const Controllable: Story = {
   args: {

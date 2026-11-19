@@ -86,6 +86,8 @@ export interface LineAreaChartTooltipOptions {
   xFormatter?: (value: string | number) => string
   /** 'desc' lists rows highest value first. Default: series order. */
   sort?: 'desc'
+  /** true = values in a right-aligned column, no colon, so numbers line up. Default false. */
+  rightAlignValues?: boolean
 }
 
 export interface LineAreaChartProps {
@@ -876,7 +878,13 @@ function LineAreaChartContent({
   // so the clamp matches what ChartTooltip itself will render at.
   const tooltipWidthPx =
     hoveredIndex !== null
-      ? estimateChartTooltipWidthPx(tooltipHeader, tooltipRows, viewBoxWidth, tooltipSubheader)
+      ? estimateChartTooltipWidthPx(
+          tooltipHeader,
+          tooltipRows,
+          viewBoxWidth,
+          tooltipSubheader,
+          tooltip?.rightAlignValues,
+        )
       : 0
   const maxTooltipLeftPx = Math.max(0, viewBoxWidth - tooltipWidthPx)
   const tooltipLeftPx =
@@ -1209,6 +1217,7 @@ function LineAreaChartContent({
               left={tooltipLeftPx}
               top={resolvedPadding.top}
               chartWidthPx={viewBoxWidth}
+              rightAlignValues={tooltip?.rightAlignValues}
             />
           ) : null}
         </LineAreaPlotArea>

@@ -801,6 +801,28 @@ test('LineAreaChart/HoverWeekColumn story shows week header, metric line, exact 
   await screenshotStory(page, 'tests/design-system/test-results/story-lineareachart-hover-week.png')
 })
 
+test('LineAreaChart/HoverValuesRightAligned story lines the hover values up on the right, without colons', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-lineareachart--hover-values-right-aligned')
+  const chart = getStoryFrame(page).getByTestId('LineAreaChart-hover-right-aligned')
+  await expect(chart).toBeVisible()
+  const svg = chart.locator('svg').first()
+  const box = (await svg.boundingBox())!
+  await svg.hover({ position: { x: box.width - 2, y: box.height / 2 } })
+  const tooltip = chart.getByTestId('chart-tooltip')
+  await expect(tooltip).toContainText('Week of Nov 15-21')
+  await expect(tooltip).not.toContainText(':')
+  const values = tooltip.getByTestId('chart-tooltip-value')
+  await expect(values).toHaveCount(7)
+  await expect(values.first()).toHaveText('1,050')
+  const rights = await Promise.all((await values.all()).map(async (value) => {
+    const valueBox = (await value.boundingBox())!
+    return valueBox.x + valueBox.width
+  }))
+  for (const right of rights) expect(Math.abs(right - rights[0])).toBeLessThan(1)
+  expect(await values.first().evaluate((el) => getComputedStyle(el).fontVariantNumeric)).toContain('tabular-nums')
+  await screenshotStory(page, 'tests/design-system/test-results/story-lineareachart-hover-right-aligned.png')
+})
+
 /** Dots render series by series (Alpha..Golf), five weeks each, so a dot's index is seriesIndex * 5 + weekIndex. */
 async function hoverLineDot(page: Page, chart: ReturnType<ReturnType<typeof getStoryFrame>['getByTestId']>, dotIndex: number, offsetY = 0) {
   const box = (await chart.locator('svg circle').nth(dotIndex).boundingBox())!

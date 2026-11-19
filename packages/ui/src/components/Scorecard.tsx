@@ -35,6 +35,8 @@ export interface ScorecardTooltip {
   /** Second line under the header, regular weight and muted. */
   subheader?: string
   rows: ChartTooltipRow[]
+  /** true = values in a right-aligned column, no colon, so numbers line up. Default false. */
+  rightAlignValues?: boolean
 }
 
 export interface ScorecardProps {
@@ -548,7 +550,14 @@ function ScorecardHover({
           pointerEvents="none"
           style={{ position: 'fixed', left: position.left, top: position.top, zIndex: HOVER_BOX_Z_INDEX }}
         >
-          <ChartTooltip header={tooltip.header} subheader={tooltip.subheader} rows={tooltip.rows} left={0} top={0} />
+          <ChartTooltip
+            header={tooltip.header}
+            subheader={tooltip.subheader}
+            rows={tooltip.rows}
+            left={0}
+            top={0}
+            rightAlignValues={tooltip.rightAlignValues}
+          />
         </Stack>
       ) : null}
     </Stack>

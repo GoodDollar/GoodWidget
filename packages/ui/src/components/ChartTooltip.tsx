@@ -32,6 +32,9 @@ export interface ChartTooltipProps {
    * no cap: the box is as wide as its content (e.g. a scorecard's hover box,
    * which may be wider than the small tile it opens over). */
   chartWidthPx?: number
+  /** true = each row reads "label    value": values right-aligned in one column at the box's right edge,
+   * no colon, digits of equal width so numbers line up. Default false ("label: value"). */
+  rightAlignValues?: boolean
 }
 
 const TOOLTIP_HEADER_FONT_SIZE_PX = 12
@@ -52,15 +55,16 @@ const TOOLTIP_MIN_WIDTH_PX = 96
  * tuned to one dashboard's typical content length. */
 const TOOLTIP_MAX_WIDTH_RATIO = 0.8
 
-function formatRowValueText(value: string): string {
-  return `: ${value}`
+function formatRowValueText(value: string, rightAlignValues: boolean): string {
+  return rightAlignValues ? value : `: ${value}`
 }
 
-function estimateRowContentWidthPx(row: ChartTooltipRow): number {
+function estimateRowContentWidthPx(row: ChartTooltipRow, rightAlignValues: boolean): number {
   const labelWidthPx = estimateTextWidthPx(row.label, TOOLTIP_ROW_FONT_SIZE_PX)
-  const valueWidthPx = estimateTextWidthPx(formatRowValueText(row.value), TOOLTIP_ROW_FONT_SIZE_PX)
+  const valueWidthPx = estimateTextWidthPx(formatRowValueText(row.value, rightAlignValues), TOOLTIP_ROW_FONT_SIZE_PX)
   // The row is an XStack with `gap="$2"` between all 3 children (dot, label,
-  // value) — that's two gaps (dot→label, label→value), not one.
+  // value) — that's two gaps (dot→label, label→value), not one. With
+  // right-aligned values the label→value gap is the minimum space between them.
   return TOOLTIP_DOT_SIZE_PX + TOOLTIP_DOT_TO_TEXT_GAP_PX * 2 + labelWidthPx + valueWidthPx
 }
 
@@ -76,12 +80,16 @@ export function estimateChartTooltipWidthPx(
   rows: ChartTooltipRow[],
   chartWidthPx: number | undefined,
   subheader?: string,
+  rightAlignValues = false,
 ): number {
   // Header renders bold (see ChartTooltipHeaderText) — matching fontWeight
   // keeps this estimate consistent with the glyph widths that actually render.
   const headerWidthPx = estimateTextWidthPx(header, TOOLTIP_HEADER_FONT_SIZE_PX, undefined, '700')
   const subheaderWidthPx = subheader ? estimateTextWidthPx(subheader, TOOLTIP_HEADER_FONT_SIZE_PX) : 0
-  const widestRowWidthPx = rows.reduce((widest, row) => Math.max(widest, estimateRowContentWidthPx(row)), 0)
+  const widestRowWidthPx = rows.reduce(
+    (widest, row) => Math.max(widest, estimateRowContentWidthPx(row, rightAlignValues)),
+    0,
+  )
   const contentWidthPx = Math.max(headerWidthPx, subheaderWidthPx, widestRowWidthPx)
   const widthPx = contentWidthPx + TOOLTIP_PADDING_HORIZONTAL_PX * 2 + TOOLTIP_BORDER_WIDTH_PX * 2
   const maxWidthPx =
@@ -150,8 +158,16 @@ const ChartTooltipDot = createComponent(YStack, {
   flexShrink: 0,
 })
 
-export function ChartTooltip({ header, subheader, rows, left, top, chartWidthPx }: ChartTooltipProps) {
-  const widthPx = estimateChartTooltipWidthPx(header, rows, chartWidthPx, subheader)
+export function ChartTooltip({
+  header,
+  subheader,
+  rows,
+  left,
+  top,
+  chartWidthPx,
+  rightAlignValues = false,
+}: ChartTooltipProps) {
+  const widthPx = estimateChartTooltipWidthPx(header, rows, chartWidthPx, subheader, rightAlignValues)
   // Space left for label text once the frame's padding and border, the dot,
   // both gaps, and the full (never-truncated) value are accounted for —
   // matches estimateRowContentWidthPx plus the border-box border itself.
@@ -173,7 +189,7 @@ export function ChartTooltip({ header, subheader, rows, left, top, chartWidthPx 
         </ChartTooltipSubheaderText>
       ) : null}
       {rows.map((row) => {
-        const valueText = formatRowValueText(row.value)
+        const valueText = formatRowValueText(row.value, rightAlignValues)
         const labelMaxWidthPx = Math.max(
           0,
           availableTextWidthPx - estimateTextWidthPx(valueText, TOOLTIP_ROW_FONT_SIZE_PX),
@@ -183,10 +199,17 @@ export function ChartTooltip({ header, subheader, rows, left, top, chartWidthPx 
         return (
           <XStack key={row.label} alignItems="center" gap="$2">
             <ChartTooltipDot backgroundColor={row.color ?? 'transparent'} />
-            <ChartTooltipLabelText numberOfLines={1} ellipsizeMode="tail">
+            <ChartTooltipLabelText numberOfLines={1} ellipsizeMode="tail" flexGrow={rightAlignValues ? 1 : undefined}>
               {label}
             </ChartTooltipLabelText>
-            <ChartTooltipValueText numberOfLines={1}>{valueText}</ChartTooltipValueText>
+            <ChartTooltipValueText
+              numberOfLines={1}
+              textAlign={rightAlignValues ? 'right' : undefined}
+              fontVariant={rightAlignValues ? ['tabular-nums'] : undefined}
+              data-testid="chart-tooltip-value"
+            >
+              {valueText}
+            </ChartTooltipValueText>
           </XStack>
         )
       })}

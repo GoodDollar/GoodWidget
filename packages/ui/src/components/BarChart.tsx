@@ -70,6 +70,8 @@ export interface BarChartTooltipOptions {
   label?: string
   /** Formats the value in the hover box only, e.g. the exact number while bars show a shortened one. Default: the chart's formatter. */
   valueFormatter?: (value: number) => string
+  /** true = values in a right-aligned column, no colon, so numbers line up. Default false. */
+  rightAlignValues?: boolean
 }
 
 /** One legend entry: a color swatch and its label. */
@@ -745,7 +747,13 @@ function BarChartContent({
   // hover's actual header/rows so the clamp matches what ChartTooltip itself
   // will render at, rather than a fixed guess.
   const tooltipWidthPx = hoveredItem
-    ? estimateChartTooltipWidthPx(hoveredItem.category, tooltipRows, viewBoxWidth, tooltipSubheader)
+    ? estimateChartTooltipWidthPx(
+        hoveredItem.category,
+        tooltipRows,
+        viewBoxWidth,
+        tooltipSubheader,
+        tooltip?.rightAlignValues,
+      )
     : 0
   const maxTooltipLeftPx = Math.max(0, viewBoxWidth - tooltipWidthPx)
   const hoveredSlotCenterPx =
@@ -1088,6 +1096,7 @@ function BarChartContent({
               left={tooltipLeftPx}
               top={resolvedPadding.top}
               chartWidthPx={viewBoxWidth}
+              rightAlignValues={tooltip?.rightAlignValues}
             />
           ) : null}
         </BarChartPlotArea>
