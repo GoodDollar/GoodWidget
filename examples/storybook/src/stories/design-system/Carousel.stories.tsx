@@ -57,6 +57,20 @@ export const TwoSlides: Story = {
   ),
 }
 
+/** `slideLabels`: a short label above each slide, sized from the carousel's text; it fades with
+ * its slide. The second slide has no label (empty entry). */
+export const SlideLabels: Story = {
+  render: () => (
+    <YStack width="100%">
+      <Carousel testID="Carousel-labels" slideLabels={['By region · this week', '', 'By channel · this week']}>
+        <DemoSlide title="First" lines={3} />
+        <DemoSlide title="Second" lines={3} />
+        <DemoSlide title="Third" lines={3} />
+      </Carousel>
+    </YStack>
+  ),
+}
+
 /** One child: full width, no arrows, no dots. */
 export const SingleSlide: Story = {
   render: () => (

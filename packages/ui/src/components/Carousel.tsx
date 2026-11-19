@@ -23,6 +23,9 @@ export interface CarouselProps {
   initialIndex?: number
   /** Called when the current slide changes, by any means (arrow, dot, swipe, click). */
   onIndexChange?: (index: number) => void
+  /** A short label above each slide, in slide order (e.g. "Each team · report of Nov 15"), in the
+   * carousel's text size, muted and semi-bold. It fades with its slide. Omitted or missing entry = no label. */
+  slideLabels?: string[]
   /** Screen-reader text for the arrows. Defaults "Previous" / "Next". */
   previousLabel?: string
   nextLabel?: string
@@ -59,6 +62,8 @@ const DOTS_TOP_GAP_TO_TEXT_RATIO = 0.9
  * (preview: 6 px of a 34 px button). Hosts need that much room around the carousel; a card's
  * padding is plenty. */
 const ARROW_OUTSIDE_EDGE_RATIO = 0.18
+/** Space between a slide label and its slide = 0.6 x text (preview: 8 px). */
+const SLIDE_LABEL_GAP_TO_TEXT_RATIO = 0.6
 /** Arrow outline stays a hairline at every size so it reads crisp, not heavier on wide screens. */
 const ARROW_BORDER_WIDTH_PX = 1
 
@@ -98,6 +103,13 @@ const CarouselArrowText = createComponent(TamaguiText, {
   color: '$color',
 })
 
+const CarouselSlideLabelText = createComponent(TamaguiText, {
+  name: 'CarouselSlideLabelText',
+  fontFamily: '$body',
+  fontWeight: '600',
+  color: '$placeholderColor',
+})
+
 const CarouselPageDot = createComponent(YStack, {
   name: 'CarouselPageDot',
   borderRadius: '$full',
@@ -135,6 +147,7 @@ export function Carousel({
   slideWidthPercent = DEFAULT_SLIDE_WIDTH_PERCENT,
   initialIndex = 0,
   onIndexChange,
+  slideLabels,
   previousLabel = 'Previous',
   nextLabel = 'Next',
   testID,
@@ -208,7 +221,18 @@ export function Carousel({
                 style={{ scrollSnapAlign: snapAlign }}
               >
                 {/* A faded slide's content ignores the pointer, so a click lands on the slide and moves to it. */}
-                <YStack pointerEvents={isCurrent ? 'auto' : 'none'}>{slide}</YStack>
+                <YStack pointerEvents={isCurrent ? 'auto' : 'none'}>
+                  {slideLabels?.[index] ? (
+                    <CarouselSlideLabelText
+                      fontSize={textSizePx}
+                      marginBottom={textSizePx * SLIDE_LABEL_GAP_TO_TEXT_RATIO}
+                      data-testid={testID ? `${testID}-label-${index}` : undefined}
+                    >
+                      {slideLabels[index]}
+                    </CarouselSlideLabelText>
+                  ) : null}
+                  {slide}
+                </YStack>
               </YStack>
             )
           })}

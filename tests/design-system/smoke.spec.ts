@@ -349,6 +349,23 @@ test('Carousel sizes arrows and dots from its text size, larger on a wide screen
   expect(wide.dot / wide.arrow).toBeCloseTo(0.6 / 2.6, 1)
 })
 
+test('Carousel/SlideLabels story draws a label above each labelled slide, in the carousel text size', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-carousel--slide-labels')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByTestId('Carousel-labels')).toBeVisible()
+  const label = frame.getByTestId('Carousel-labels-label-0')
+  await expect(label).toHaveText('By region · this week')
+  await expect(frame.getByTestId('Carousel-labels-label-1')).toHaveCount(0)
+  await expect(frame.getByTestId('Carousel-labels-label-2')).toHaveText('By channel · this week')
+  // Label sits above its slide's card, 0.6 x its own text size away.
+  const labelBox = (await label.boundingBox())!
+  const cardBox = (await frame.getByTestId('Carousel-labels-slide-0').getByText('First').boundingBox())!
+  expect(labelBox.y + labelBox.height).toBeLessThan(cardBox.y)
+  const textSizePx = await label.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))
+  expect(await label.evaluate((el) => parseFloat(getComputedStyle(el).marginBottom))).toBeCloseTo(textSizePx * 0.6, 0)
+  await screenshotStory(page, 'tests/design-system/test-results/story-carousel-labels.png')
+})
+
 test('Carousel/SingleSlide story shows no arrows and no dots', async ({ page }) => {
   await gotoStory(page, 'design-system-primitives-carousel--single-slide')
   const frame = getStoryFrame(page)
