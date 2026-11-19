@@ -638,7 +638,8 @@ export function ScorecardGrid({ children, size = 'md', testID }: ScorecardGridPr
       width="100%"
       style={{
         display: 'grid',
-        gridTemplateColumns: `repeat(auto-fill, minmax(${valueSizePx * GRID_MIN_COLUMN_TO_VALUE_RATIO}px, 1fr))`,
+        // min(…, 100%): in a host narrower than one column's minimum, the single column shrinks to fit.
+        gridTemplateColumns: `repeat(auto-fill, minmax(min(${valueSizePx * GRID_MIN_COLUMN_TO_VALUE_RATIO}px, 100%), 1fr))`,
         gap: valueSizePx * GRID_GAP_TO_VALUE_RATIO,
       }}
     >

@@ -255,6 +255,17 @@ test('Scorecard/Hover story opens a full, on-screen box over the hovered tile', 
   await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-hover.png')
 })
 
+test('Scorecard/GridNarrowHost story shrinks the single column to a host narrower than its minimum', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-scorecard--grid-narrow-host')
+  const frame = getStoryFrame(page)
+  const host = (await frame.getByTestId('Scorecard-grid-narrow-host').boundingBox())!
+  for (const name of ['alpha', 'bravo']) {
+    const tile = (await frame.getByTestId(`Scorecard-grid-narrow-${name}`).locator('..').boundingBox())!
+    expect(tile.x + tile.width).toBeLessThanOrEqual(host.x + host.width + 0.5)
+    expect(tile.width).toBeCloseTo(host.width, 0)
+  }
+})
+
 test('Scorecard/HoverWiderThanScreen story keeps the box on screen with every value whole', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 900 })
   await gotoStory(page, 'design-system-primitives-scorecard--hover-wider-than-screen')

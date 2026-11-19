@@ -228,6 +228,19 @@ export const Hover: Story = {
   ),
 }
 
+/** `ScorecardGrid` with large tiles in a host narrower than one column's minimum (a small slide on
+ * a small phone): the single column shrinks to the host instead of overflowing it. */
+export const GridNarrowHost: Story = {
+  render: () => (
+    <YStack width={200} testID="Scorecard-grid-narrow-host" data-testid="Scorecard-grid-narrow-host">
+      <ScorecardGrid size="lg" testID="Scorecard-grid-narrow">
+        <Scorecard label="Alpha" value={335} variant="tile" size="lg" testID="Scorecard-grid-narrow-alpha" />
+        <Scorecard label="Bravo" value={180} variant="tile" size="lg" testID="Scorecard-grid-narrow-bravo" />
+      </ScorecardGrid>
+    </YStack>
+  ),
+}
+
 /** Hover content wider than a phone screen: the box stops at the screen's edges, long row names
  * shorten with "…" and every value stays whole. */
 export const HoverWiderThanScreen: Story = {
