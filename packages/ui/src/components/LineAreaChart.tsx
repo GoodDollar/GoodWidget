@@ -102,7 +102,8 @@ export interface LineAreaChartProps {
   tooltip?: LineAreaChartTooltipOptions
   /**
    * When the pointer is on a dot (within the dot's touch-target radius), the
-   * hover box shows only that series and every other series fades. Dots drawn
+   * hover box shows only that series, its line is drawn 1.5x thicker, and
+   * every other series fades. Dots drawn
    * on top of it (exact ties, or values close enough that the dots overlap)
    * count as the same point: the box then lists just those series, in the
    * week-column format. Elsewhere in the column the box lists every series as
@@ -234,6 +235,9 @@ const SQUARE_LEGEND_ITEM_GAP_TO_TEXT_RATIO = 1.2
 /** `legendPosition="top"`: space between the legend and the chart = 0.8 x legend text, same as
  * BarChart's legend (preview: 10 px on 13 px text). */
 const LEGEND_ABOVE_TO_CHART_GAP_TO_TEXT_RATIO = 0.8
+/** `focusPointOnHover`: the focused series' line is drawn 1.5x its width so it stands out from the
+ * faded ones (approved dashboard preview: 3 px over 2 px). */
+const FOCUSED_LINE_WIDTH_RATIO = 1.5
 /** Grid lines need enough contrast to be useful without competing with the series. */
 const GRID_LINE_OPACITY = 0.22
 const GRID_ZERO_LINE_OPACITY = 0.48
@@ -1165,7 +1169,11 @@ function LineAreaChartContent({
                             key={runIndex}
                             d={linePath}
                             stroke={seriesItem.color}
-                            strokeWidth={strokeWidth}
+                            strokeWidth={
+                              focusedSeriesKeys?.has(seriesItem.key)
+                                ? strokeWidth * FOCUSED_LINE_WIDTH_RATIO
+                                : strokeWidth
+                            }
                             strokeDasharray={seriesItem.strokeDasharray}
                             fill="none"
                             accessible={false}

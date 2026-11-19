@@ -920,7 +920,30 @@ test('LineAreaChart/FocusPointOnHover story focuses a lone dot, lists ties, and 
     await expect(tooltip).toContainText(name)
   }
   expect(await countFadedSeries(chart)).toBe(0)
+  expect(await countThickLines(chart)).toBe(0)
 })
+
+test('LineAreaChart/FocusPointOnHover story draws the focused line 1.5x thicker', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-lineareachart--focus-point-on-hover')
+  const chart = getStoryFrame(page).getByTestId('LineAreaChart-focus-point')
+  await expect(chart).toBeVisible()
+  expect(await countThickLines(chart)).toBe(0)
+  // Lone dot (Golf): one line at 3 = 1.5 x the default 2.
+  await hoverLineDot(page, chart, 6 * 5 + 0)
+  await expect(chart.getByTestId('chart-tooltip')).toContainText('Golf')
+  expect(await countThickLines(chart)).toBe(1)
+  // Tie (Charlie and Delta): both lines thick.
+  await hoverLineDot(page, chart, 2 * 5 + 4)
+  await expect(chart.getByTestId('chart-tooltip')).toContainText('Delta')
+  expect(await countThickLines(chart)).toBe(2)
+})
+
+/** Line paths (fill="none") drawn at the focused width, 1.5 x the default stroke of 2. */
+async function countThickLines(chart: ReturnType<ReturnType<typeof getStoryFrame>['getByTestId']>) {
+  return chart.locator('svg path[fill="none"]').evaluateAll(
+    (paths) => paths.filter((p) => Number(p.getAttribute('stroke-width')) === 3).length,
+  )
+}
 
 test('DataTable/Default story renders wallets with sortable headers, bare and card variants', async ({ page }) => {
   // Tall enough that the card variant (wrapped below the bare table) renders
