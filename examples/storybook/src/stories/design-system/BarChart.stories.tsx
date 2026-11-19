@@ -504,7 +504,8 @@ export const NameAndValueColumnsWithAxisTitle: Story = {
   ),
 }
 
-/** `labelColumns` with a single row: the chart is one row tall. */
+/** `labelColumns` with a single row: the chart is one row tall and its hover box, taller than the
+ * chart, shows in full instead of being cut off. Hover the bar to see it. */
 export const NameAndValueColumnsOneRow: Story = {
   render: () => (
     <YStack width="100%" paddingBottom="$10">

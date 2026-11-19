@@ -822,6 +822,24 @@ test('BarChart/NameAndValueColumnsOneRow story settles: its width stops changing
   expect(await svg.getAttribute('viewBox')).toBe(first)
 })
 
+test('BarChart/NameAndValueColumnsOneRow story shows the whole hover box below a one-row chart', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-barchart--name-and-value-columns-one-row')
+  const chart = getStoryFrame(page).getByTestId('BarChart-label-columns-one-row')
+  await chart.locator('svg path').first().hover()
+  const tooltip = chart.getByTestId('chart-tooltip')
+  await expect(tooltip).toContainText('1,701,511')
+  const svgBox = (await chart.locator('svg').first().boundingBox())!
+  const tipBox = (await tooltip.boundingBox())!
+  // The box is taller than the chart and nothing clips it: the exact value is the top element.
+  expect(tipBox.y + tipBox.height).toBeGreaterThan(svgBox.y + svgBox.height)
+  const exactValueOnTop = await tooltip.getByText('1,701,511', { exact: false }).evaluate((el) => {
+    const rect = el.getBoundingClientRect()
+    const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)
+    return hit !== null && (hit === el || el.contains(hit) || hit.contains(el))
+  })
+  expect(exactValueOnTop).toBe(true)
+})
+
 test('BarChart/NameAndValueColumnsEmpty story keeps one row of height so "No data" shows', async ({ page }) => {
   await gotoStory(page, 'design-system-primitives-barchart--name-and-value-columns-empty')
   const chart = getStoryFrame(page).getByTestId('BarChart-label-columns-empty')

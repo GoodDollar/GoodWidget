@@ -831,6 +831,9 @@ function BarChartContent({
       <BarChartScrollContainer
         flexGrow={isResponsiveHeight ? 1 : undefined}
         minHeight={isResponsiveHeight ? 0 : undefined}
+        // A labelColumns chart that fills its host never needs sideways scrolling, and it can be as
+        // short as one row, so it doesn't clip: a hover box taller than the chart shows in full.
+        overflow={isLabelColumns && isResponsiveWidth ? 'visible' : 'auto'}
       >
         <BarChartPlotArea
           onMouseMove={handlePlotPointerMove}
