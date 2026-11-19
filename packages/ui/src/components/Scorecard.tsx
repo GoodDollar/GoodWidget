@@ -591,10 +591,12 @@ function ScorecardHover({
           ref={boxRef as React.Ref<never>}
           id={tooltipId}
           role="tooltip"
-          pointerEvents="none"
           style={{ position: 'fixed', left: position.left, top: position.top, zIndex: HOVER_BOX_Z_INDEX }}
         >
+          {/* Hoverable: the box sits inside the scorecard's wrapper, so moving the pointer onto a part
+              that overhangs the tile keeps it open (content on hover stays reachable). */}
           <ChartTooltip
+            interactive
             header={tooltip.header}
             subheader={tooltip.subheader}
             rows={tooltip.rows}

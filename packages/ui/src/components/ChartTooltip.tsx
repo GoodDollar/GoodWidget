@@ -35,6 +35,9 @@ export interface ChartTooltipProps {
   /** Hard cap on the box width (e.g. the space left on screen). When content is wider, row labels
    * and the header shorten with "…"; values are never cut. Omitted = no extra cap. */
   maxWidthPx?: number
+  /** true = the box takes the pointer (it can be hovered, e.g. a scorecard's box that overhangs its
+   * tile). Default false: charts keep it pointer-transparent so they keep tracking the cursor. */
+  interactive?: boolean
   /** true = each row reads "label    value": values right-aligned in one column at the box's right edge,
    * no colon, digits of equal width so numbers line up. Default false ("label: value"). */
   rightAlignValues?: boolean
@@ -178,6 +181,7 @@ export function ChartTooltip({
   top,
   chartWidthPx,
   maxWidthPx,
+  interactive = false,
   rightAlignValues = false,
   swatchShape = 'round',
 }: ChartTooltipProps) {
@@ -193,7 +197,13 @@ export function ChartTooltip({
     TOOLTIP_DOT_TO_TEXT_GAP_PX * 2
 
   return (
-    <ChartTooltipFrame left={left} top={top} width={widthPx} data-testid="chart-tooltip">
+    <ChartTooltipFrame
+      left={left}
+      top={top}
+      width={widthPx}
+      pointerEvents={interactive ? 'auto' : 'none'}
+      data-testid="chart-tooltip"
+    >
       <ChartTooltipHeaderText numberOfLines={1} ellipsizeMode="tail">
         {header}
       </ChartTooltipHeaderText>

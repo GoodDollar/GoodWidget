@@ -214,6 +214,11 @@ test('Scorecard/Hover story opens a full, on-screen box over the hovered tile', 
     expect(Math.abs(boxRect.y + boxRect.height / 2 - (tileRect.y + tileRect.height / 2))).toBeLessThan(2)
     if (viewportWidth === 1280) {
       expect(Math.abs(boxRect.x + boxRect.width / 2 - (tileRect.x + tileRect.width / 2))).toBeLessThan(2)
+      // The box overhangs the tile here; moving onto the overhang keeps it open.
+      expect(boxRect.x + boxRect.width).toBeGreaterThan(tileRect.x + tileRect.width + 4)
+      await page.mouse.move(tileRect.x + tileRect.width / 2, tileRect.y + tileRect.height / 2)
+      await page.mouse.move(boxRect.x + boxRect.width - 3, boxRect.y + boxRect.height / 2, { steps: 5 })
+      await expect(box).toBeVisible()
     }
 
     await page.mouse.move(0, 0)
