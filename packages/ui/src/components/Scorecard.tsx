@@ -93,8 +93,9 @@ const CARD_ELEVATION_OVERLAY_COLOR = 'rgba(255,255,255,0.045)'
 /** Simulates a light source hitting the card's top edge, replacing a hard border. */
 const CARD_TOP_HIGHLIGHT_COLOR = 'rgba(255,255,255,0.06)'
 const CARD_TOP_HIGHLIGHT_WIDTH_PX = 1
-/** `accentColor` top border: four ratio steps below the base size (about 3.5px), on the same scale as the rest. */
-const CARD_ACCENT_BORDER_WIDTH_PX = SCORECARD_BASE_SIZE_PX / GOLDEN_RATIO ** 4
+/** `accentColor` top border = a sixth of the card's value text size, so it follows `size`
+ * (approved dashboard preview: 4 px border on a 24 px value). */
+const ACCENT_BORDER_TO_VALUE_RATIO = 1 / 6
 
 const TREND_DIRECTION_COLOR_TOKEN: Record<ScorecardTrend['direction'], string> = {
   up: '$success',
@@ -356,7 +357,11 @@ export function Scorecard({ variant = 'bare', accentColor, ...contentProps }: Sc
         padding={CARD_PADDING_PX}
         backgroundColor="$background"
         borderWidth={0}
-        borderTopWidth={accentColor ? CARD_ACCENT_BORDER_WIDTH_PX : CARD_TOP_HIGHLIGHT_WIDTH_PX}
+        borderTopWidth={
+          accentColor
+            ? VALUE_SIZE_PX[contentProps.size ?? 'md'] * ACCENT_BORDER_TO_VALUE_RATIO
+            : CARD_TOP_HIGHLIGHT_WIDTH_PX
+        }
         borderTopColor={accentColor ?? CARD_TOP_HIGHLIGHT_COLOR}
         shadowOpacity={0}
         justifyContent="center"

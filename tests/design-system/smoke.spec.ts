@@ -178,8 +178,10 @@ test('Scorecard/AccentColor story draws a colored top border only when accentCol
       })
   const accent = await topBorder('Scorecard-accent-violet')
   expect(accent.color).toBe('rgb(108, 92, 231)')
-  // About 3.5px on the Scorecard's scale; browsers round border widths to device pixels.
-  expect(accent.width).toBeGreaterThan(1)
+  // A sixth of the value text: 24 px value (md) = 4 px; lg's ~38.8 px value = ~6.5 px, which
+  // browsers round down to whole device pixels.
+  expect(accent.width).toBe(4)
+  expect((await topBorder('Scorecard-accent-large')).width).toBe(6)
   expect((await topBorder('Scorecard-accent-none')).width).toBe(1)
   await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-accent.png')
 })

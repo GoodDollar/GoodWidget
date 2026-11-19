@@ -168,6 +168,14 @@ export const AccentColor: Story = {
       <Scorecard label="Default card" value={856} variant="card" testID="Scorecard-accent-none" />
       <Scorecard label="Accent" value={856} accentColor="#6c5ce7" variant="card" testID="Scorecard-accent-violet" />
       <Scorecard label="Accent" value={412} accentColor="#00b894" variant="card" testID="Scorecard-accent-green" />
+      <Scorecard
+        label="Accent, large"
+        value={412}
+        accentColor="#00b894"
+        size="lg"
+        variant="card"
+        testID="Scorecard-accent-large"
+      />
     </XStack>
   ),
 }
