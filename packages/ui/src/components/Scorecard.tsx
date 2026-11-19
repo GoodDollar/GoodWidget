@@ -8,11 +8,13 @@
  * one graphical element (the trend arrow), so it renders identically on
  * React web, React Native, and Web Components.
  */
-import React from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Svg, { Path } from 'react-native-svg'
-import { Text as TamaguiText, useTheme, XStack, YStack } from 'tamagui'
+import { Stack, Text as TamaguiText, useTheme, XStack, YStack } from 'tamagui'
 import { createComponent } from '../createComponent'
 import { Card } from './Card'
+import { ChartTooltip } from './ChartTooltip'
+import type { ChartTooltipRow } from './ChartTooltip'
 import { formatMetricValue } from '../utils/formatMetricValue'
 import type { MetricFormat } from '../utils/formatMetricValue'
 import { resolveThemeColor } from '../utils/resolveThemeColor'
@@ -24,6 +26,15 @@ export type ScorecardSize = 'sm' | 'md' | 'lg'
 export interface ScorecardTrend {
   value: number
   direction: 'up' | 'down' | 'neutral'
+}
+
+/** Scorecard hover box content. Rows without `color` draw no dot but keep its space
+ * (e.g. a "Last week" row under "This week"). */
+export interface ScorecardTooltip {
+  header: string
+  /** Second line under the header, regular weight and muted. */
+  subheader?: string
+  rows: ChartTooltipRow[]
 }
 
 export interface ScorecardProps {
@@ -57,6 +68,10 @@ export interface ScorecardProps {
   /** Card and tile variants: replaces the faint top highlight with a top border in this color (e.g. a
    * team color), a sixth of the value's text size. Ignored by the bare variant. */
   accentColor?: string
+  /** Hover box (web, on pointer hover): opens over the scorecard, centered on it, as wide as its
+   * content and kept inside the screen. It is drawn fixed to the screen, so card edges and
+   * carousels don't clip it; scrolling or Escape closes it. Omitted = no hover. */
+  tooltip?: ScorecardTooltip
   variant?: ScorecardVariant
   size?: ScorecardSize
   testID?: string
@@ -325,7 +340,7 @@ function ScorecardContent({
   size = 'md',
   testID,
   isTile = false,
-}: Omit<ScorecardProps, 'variant' | 'accentColor'> & { isTile?: boolean }) {
+}: Omit<ScorecardProps, 'variant' | 'accentColor' | 'tooltip'> & { isTile?: boolean }) {
   const theme = useTheme()
   const isUnavailable = unavailableReason !== undefined
   const formattedValue = valueFormatter
@@ -405,7 +420,22 @@ function ScorecardContent({
   )
 }
 
-export function Scorecard({ variant = 'bare', accentColor, ...contentProps }: ScorecardProps) {
+export function Scorecard({ tooltip, ...props }: ScorecardProps) {
+  if (!tooltip) return <ScorecardBody {...props} />
+  return (
+    <ScorecardHover tooltip={tooltip} size={props.size ?? 'md'}>
+      {/* Fills the hover wrapper's height, so tiles in a grid row still match the tallest. */}
+      <ScorecardBody {...props} fillsHeight />
+    </ScorecardHover>
+  )
+}
+
+function ScorecardBody({
+  variant = 'bare',
+  accentColor,
+  fillsHeight = false,
+  ...contentProps
+}: Omit<ScorecardProps, 'tooltip'> & { fillsHeight?: boolean }) {
   if (variant === 'card' || variant === 'tile') {
     const isTile = variant === 'tile'
     const valueSizePx = VALUE_SIZE_PX[contentProps.size ?? 'md']
@@ -432,6 +462,7 @@ export function Scorecard({ variant = 'bare', accentColor, ...contentProps }: Sc
         borderTopColor={accentColor ?? CARD_TOP_HIGHLIGHT_COLOR}
         shadowOpacity={0}
         justifyContent="center"
+        {...(fillsHeight ? { flexGrow: 1 } : {})}
       >
         <ScorecardCardOverlay />
         <ScorecardContent {...contentProps} isTile={isTile} />
@@ -440,6 +471,88 @@ export function Scorecard({ variant = 'bare', accentColor, ...contentProps }: Sc
   }
 
   return <ScorecardContent {...contentProps} />
+}
+
+/** Space kept between the hover box and the screen edge = a third of the value text. */
+const HOVER_SCREEN_MARGIN_TO_VALUE_RATIO = 1 / 3
+/** Above every card, chart and carousel arrow on the page. */
+const HOVER_BOX_Z_INDEX = 1000
+
+/**
+ * Hover box for a scorecard, positioned the way the package's Tooltip is: `position: fixed`
+ * from the scorecard's on-screen box, so overflow-clipping ancestors (the card itself, a
+ * carousel track) can't cut it, while it stays inside the widget's own DOM where the theme
+ * styles live. Centered on the scorecard, then moved just enough to stay on screen.
+ */
+function ScorecardHover({
+  tooltip,
+  size,
+  children,
+}: {
+  tooltip: ScorecardTooltip
+  size: ScorecardSize
+  children: React.ReactNode
+}) {
+  const triggerRef = useRef<HTMLElement | null>(null)
+  const boxRef = useRef<HTMLElement | null>(null)
+  const [position, setPosition] = useState<{ left: number; top: number } | null>(null)
+  const screenMarginPx = VALUE_SIZE_PX[size] * HOVER_SCREEN_MARGIN_TO_VALUE_RATIO
+
+  const show = () => {
+    const triggerRect = triggerRef.current?.getBoundingClientRect?.()
+    if (!triggerRect) return
+    // First frame at the scorecard's center; the layout effect re-centers it once the box is measured.
+    setPosition({ left: triggerRect.left + triggerRect.width / 2, top: triggerRect.top + triggerRect.height / 2 })
+  }
+  const hide = useCallback(() => setPosition(null), [])
+
+  // Measure the rendered box before paint, center it on the scorecard, keep it on screen.
+  useLayoutEffect(() => {
+    if (!position || typeof window === 'undefined') return
+    const triggerRect = triggerRef.current?.getBoundingClientRect?.()
+    // The box (ChartTooltip's frame) is absolutely positioned inside the fixed anchor.
+    const boxRect = (boxRef.current?.firstElementChild as HTMLElement | null)?.getBoundingClientRect?.()
+    if (!triggerRect || !boxRect) return
+    const screenWidth = window.visualViewport?.width ?? window.innerWidth
+    const screenHeight = window.visualViewport?.height ?? window.innerHeight
+    const keepOnScreen = (start: number, length: number, screenLength: number) =>
+      Math.max(screenMarginPx, Math.min(start, screenLength - screenMarginPx - length))
+    const left = keepOnScreen(triggerRect.left + triggerRect.width / 2 - boxRect.width / 2, boxRect.width, screenWidth)
+    const top = keepOnScreen(triggerRect.top + triggerRect.height / 2 - boxRect.height / 2, boxRect.height, screenHeight)
+    if (Math.abs(left - position.left) > 0.5 || Math.abs(top - position.top) > 0.5) setPosition({ left, top })
+  }, [position, screenMarginPx])
+
+  // Scroll events inside a shadow root do not reach window, so listen on both (as Tooltip does).
+  useEffect(() => {
+    if (!position || typeof window === 'undefined') return undefined
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') hide()
+    }
+    const root = triggerRef.current?.getRootNode()
+    root?.addEventListener('scroll', hide, true)
+    window.addEventListener('scroll', hide, true)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      root?.removeEventListener('scroll', hide, true)
+      window.removeEventListener('scroll', hide, true)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [position, hide])
+
+  return (
+    <Stack ref={triggerRef as React.Ref<never>} onHoverIn={show} onHoverOut={hide}>
+      {children}
+      {position ? (
+        <Stack
+          ref={boxRef as React.Ref<never>}
+          pointerEvents="none"
+          style={{ position: 'fixed', left: position.left, top: position.top, zIndex: HOVER_BOX_Z_INDEX }}
+        >
+          <ChartTooltip header={tooltip.header} subheader={tooltip.subheader} rows={tooltip.rows} left={0} top={0} />
+        </Stack>
+      ) : null}
+    </Stack>
+  )
 }
 
 export interface ScorecardGridProps {

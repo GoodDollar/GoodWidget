@@ -28,8 +28,10 @@ export interface ChartTooltipProps {
   left: number
   top: number
   /** The hosting chart's own pixel width — the tooltip's cap is derived from
-   * this (see `TOOLTIP_MAX_WIDTH_RATIO`), never a fixed pixel guess. */
-  chartWidthPx: number
+   * this (see `TOOLTIP_MAX_WIDTH_RATIO`), never a fixed pixel guess. Omitted =
+   * no cap: the box is as wide as its content (e.g. a scorecard's hover box,
+   * which may be wider than the small tile it opens over). */
+  chartWidthPx?: number
 }
 
 const TOOLTIP_HEADER_FONT_SIZE_PX = 12
@@ -72,7 +74,7 @@ function estimateRowContentWidthPx(row: ChartTooltipRow): number {
 export function estimateChartTooltipWidthPx(
   header: string,
   rows: ChartTooltipRow[],
-  chartWidthPx: number,
+  chartWidthPx: number | undefined,
   subheader?: string,
 ): number {
   // Header renders bold (see ChartTooltipHeaderText) — matching fontWeight
@@ -82,7 +84,8 @@ export function estimateChartTooltipWidthPx(
   const widestRowWidthPx = rows.reduce((widest, row) => Math.max(widest, estimateRowContentWidthPx(row)), 0)
   const contentWidthPx = Math.max(headerWidthPx, subheaderWidthPx, widestRowWidthPx)
   const widthPx = contentWidthPx + TOOLTIP_PADDING_HORIZONTAL_PX * 2 + TOOLTIP_BORDER_WIDTH_PX * 2
-  const maxWidthPx = Math.max(TOOLTIP_MIN_WIDTH_PX, chartWidthPx * TOOLTIP_MAX_WIDTH_RATIO)
+  const maxWidthPx =
+    chartWidthPx === undefined ? Infinity : Math.max(TOOLTIP_MIN_WIDTH_PX, chartWidthPx * TOOLTIP_MAX_WIDTH_RATIO)
 
   return Math.min(maxWidthPx, Math.max(TOOLTIP_MIN_WIDTH_PX, widthPx))
 }

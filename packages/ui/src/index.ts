@@ -113,6 +113,7 @@ export type {
   ScorecardVariant,
   ScorecardSize,
   ScorecardGridProps,
+  ScorecardTooltip,
 } from './components/Scorecard'
 export { SkeletonBlock } from './components/Skeleton'
 export type { SkeletonBlockProps } from './components/Skeleton'

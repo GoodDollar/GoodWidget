@@ -191,6 +191,42 @@ test('Scorecard/Grid story lays tiles in equal columns, more per row on a wide s
   await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-grid.png')
 })
 
+test('Scorecard/Hover story opens a full, on-screen box over the hovered tile', async ({ page }) => {
+  for (const viewportWidth of [1280, 390]) {
+    await page.setViewportSize({ width: viewportWidth, height: 900 })
+    await gotoStory(page, 'design-system-primitives-scorecard--hover')
+    const frame = getStoryFrame(page)
+    const box = frame.getByTestId('chart-tooltip')
+    await expect(box).toHaveCount(0)
+
+    const longTile = frame.getByTestId('Scorecard-hover-long').locator('..')
+    await longTile.hover()
+    await expect(box).toBeVisible()
+    // Names and numbers in full: nothing ellipsized.
+    for (const text of ['A much longer project name', 'G$ moved', ': G$ 1,701,511', 'Last week', ': G$ 835,380']) {
+      await expect(box.getByText(text, { exact: true })).toBeVisible()
+    }
+    const boxRect = (await box.boundingBox())!
+    const tileRect = (await longTile.boundingBox())!
+    // Inside the screen, and centered on the tile unless the screen edge moved it.
+    expect(boxRect.x).toBeGreaterThanOrEqual(0)
+    expect(boxRect.x + boxRect.width).toBeLessThanOrEqual(viewportWidth)
+    expect(Math.abs(boxRect.y + boxRect.height / 2 - (tileRect.y + tileRect.height / 2))).toBeLessThan(2)
+    if (viewportWidth === 1280) {
+      expect(Math.abs(boxRect.x + boxRect.width / 2 - (tileRect.x + tileRect.width / 2))).toBeLessThan(2)
+    }
+
+    await page.mouse.move(0, 0)
+    await expect(box).toHaveCount(0)
+  }
+
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await gotoStory(page, 'design-system-primitives-scorecard--hover')
+  await getStoryFrame(page).getByTestId('Scorecard-hover-alpha').locator('..').hover()
+  await expect(getStoryFrame(page).getByTestId('chart-tooltip')).toBeVisible()
+  await screenshotStory(page, 'tests/design-system/test-results/story-scorecard-hover.png')
+})
+
 test('Scorecard/AbbreviateFrom story shortens from 10,000 by default, from any threshold, or never', async ({ page }) => {
   await gotoStory(page, 'design-system-primitives-scorecard--abbreviate-from')
   const frame = getStoryFrame(page)

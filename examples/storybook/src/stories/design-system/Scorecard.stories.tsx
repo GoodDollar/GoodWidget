@@ -170,6 +170,64 @@ export const Grid: Story = {
   ),
 }
 
+/** `tooltip`: hover a tile to open its box over it, centered and as wide as its content. The
+ * "Last week" row has no color, so it draws no dot. */
+export const Hover: Story = {
+  parameters: { contentMaxWidthPx: 900, stretchWrapper: true },
+  render: () => (
+    <ScorecardGrid testID="Scorecard-hover">
+      <Scorecard
+        label="Alpha"
+        value={335}
+        accentColor="#2e7d32"
+        trend={{ value: 37.3, direction: 'up' }}
+        trendText="+91 (+37.3%)"
+        variant="tile"
+        tooltip={{
+          header: 'Alpha',
+          subheader: 'Transfers',
+          rows: [
+            { color: '#2e7d32', label: 'This week', value: '335' },
+            { label: 'Last week', value: '244' },
+          ],
+        }}
+        testID="Scorecard-hover-alpha"
+      />
+      <Scorecard
+        label="Bravo"
+        value={180}
+        accentColor="#c2185b"
+        variant="tile"
+        tooltip={{
+          header: 'Bravo',
+          subheader: 'Transfers',
+          rows: [{ color: '#c2185b', label: 'This week', value: '180' }],
+        }}
+        testID="Scorecard-hover-bravo"
+      />
+      <Scorecard
+        label="A much longer project name"
+        value={1701511}
+        prefix="G$"
+        accentColor="#7e57c2"
+        detailLines={['in G$ 866.1K', 'out G$ 835.4K']}
+        variant="tile"
+        tooltip={{
+          header: 'A much longer project name',
+          subheader: 'G$ moved',
+          rows: [
+            { color: '#7e57c2', label: 'This week', value: 'G$ 1,701,511' },
+            { label: 'Last week', value: 'G$ 1,632,904' },
+            { label: 'In', value: 'G$ 866,131' },
+            { label: 'Out', value: 'G$ 835,380' },
+          ],
+        }}
+        testID="Scorecard-hover-long"
+      />
+    </ScorecardGrid>
+  ),
+}
+
 /** `abbreviateFrom`: by default numbers from 10,000 are shortened and smaller ones read in full;
  * a lower threshold shortens four-digit numbers, `'never'` always shows the full number. */
 export const AbbreviateFrom: Story = {
