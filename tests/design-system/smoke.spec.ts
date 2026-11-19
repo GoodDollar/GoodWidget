@@ -227,6 +227,25 @@ test('Carousel/ThreeSlides story moves by arrow, dot and faded-slide click witho
   await screenshotStory(page, 'tests/design-system/test-results/story-carousel-three.png')
 })
 
+test('Carousel sizes arrows and dots from its text size, larger on a wide screen', async ({ page }) => {
+  // The comparison story's carousel spans the page, unlike the fixed-width Carousel demo stories.
+  const widthsAt = async (viewportWidth: number, minArrowPx = 0) => {
+    await page.setViewportSize({ width: viewportWidth, height: 900 })
+    await gotoStory(page, 'design-system-examples-builders-s5-preview-comparison--gd-moved-and-github-score')
+    const frame = getStoryFrame(page)
+    const arrow = frame.getByTestId('Builders-gd-moved-carousel-next')
+    // The size follows the carousel's measured width, which arrives after the first layout.
+    await expect.poll(async () => (await arrow.boundingBox())!.width).toBeGreaterThan(minArrowPx)
+    const dot = frame.getByTestId('Builders-gd-moved-carousel-dot-0')
+    return { arrow: (await arrow.boundingBox())!.width, dot: (await dot.boundingBox())!.width }
+  }
+  const narrow = await widthsAt(390)
+  const wide = await widthsAt(1280, narrow.arrow)
+  // Page dot = 0.6 x text, arrow = 2.6 x text, at every width.
+  expect(narrow.dot / narrow.arrow).toBeCloseTo(0.6 / 2.6, 1)
+  expect(wide.dot / wide.arrow).toBeCloseTo(0.6 / 2.6, 1)
+})
+
 test('Carousel/SingleSlide story shows no arrows and no dots', async ({ page }) => {
   await gotoStory(page, 'design-system-primitives-carousel--single-slide')
   const frame = getStoryFrame(page)

@@ -11,6 +11,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Text as TamaguiText, XStack, YStack } from 'tamagui'
 import { createComponent } from '../createComponent'
+import { useMeasuredWidth } from '../hooks/useMeasuredWidth'
+import { computeChartScaleRatio, scalePx } from '../utils/chartResponsiveScale'
 
 export interface CarouselProps {
   /** Each child is one slide. */
@@ -30,10 +32,35 @@ export interface CarouselProps {
 const DEFAULT_SLIDE_WIDTH_PERCENT = 86
 /** Neighbouring slides' opacity, so the current slide reads as the focus. */
 const FADED_SLIDE_OPACITY = 0.35
-/** Arrows meet the 44pt touch-target baseline the charts' pressable dots use. */
-const ARROW_SIZE_PX = 44
-/** Same size as ChartTooltip's series dots. */
-const PAGE_DOT_SIZE_PX = 8
+
+/**
+ * Every size below is a multiple of the carousel's own text size, and that text
+ * size scales with the carousel's measured width on the same tiers as the charts
+ * (base / ratio², tuned at a 400 px reference width, see chartResponsiveScale.ts),
+ * so arrows, dots and gaps grow and shrink with the screen. The multiples are the
+ * approved dashboard preview's proportions (its carousel text is 13 px).
+ */
+const CAROUSEL_BASE_SIZE_PX = 24
+const GOLDEN_RATIO = 1.618
+const MIN_FONT_SIZE_PX = 12
+const REFERENCE_WIDTH_PX = 400
+const TEXT_BASE_SIZE_PX = CAROUSEL_BASE_SIZE_PX / GOLDEN_RATIO ** 2
+/** Arrow button = 2.6 x text (preview: 34 px button). */
+const ARROW_TO_TEXT_RATIO = 2.6
+/** Arrow glyph = 1.5 x text (preview: 20 px glyph). */
+const ARROW_GLYPH_TO_TEXT_RATIO = 1.5
+/** Page dot, and the space between dots = 0.6 x text (preview: 8 px). */
+const PAGE_DOT_TO_TEXT_RATIO = 0.6
+/** Space between slides = 1.1 x text (preview: 14 px). */
+const SLIDE_GAP_TO_TEXT_RATIO = 1.1
+/** Space above the dots = 0.9 x text (preview: 12 px). */
+const DOTS_TOP_GAP_TO_TEXT_RATIO = 0.9
+/** Arrow outline stays a hairline at every size so it reads crisp, not heavier on wide screens. */
+const ARROW_BORDER_WIDTH_PX = 1
+
+function carouselTextSizePx(widthPx: number): number {
+  return Math.max(MIN_FONT_SIZE_PX, scalePx(TEXT_BASE_SIZE_PX, computeChartScaleRatio(widthPx, REFERENCE_WIDTH_PX)))
+}
 
 const CarouselFrame = createComponent(YStack, {
   name: 'Carousel',
@@ -51,14 +78,11 @@ const CarouselArrow = createComponent(YStack, {
   name: 'CarouselArrow',
   position: 'absolute',
   top: '50%',
-  width: ARROW_SIZE_PX,
-  height: ARROW_SIZE_PX,
-  marginTop: -ARROW_SIZE_PX / 2,
   borderRadius: '$full',
   alignItems: 'center',
   justifyContent: 'center',
   backgroundColor: '$background',
-  borderWidth: 1,
+  borderWidth: ARROW_BORDER_WIDTH_PX,
   borderColor: '$borderColor',
   cursor: 'pointer',
   zIndex: 2,
@@ -67,14 +91,11 @@ const CarouselArrow = createComponent(YStack, {
 const CarouselArrowText = createComponent(TamaguiText, {
   name: 'CarouselArrowText',
   fontFamily: '$body',
-  fontSize: '$6',
   color: '$color',
 })
 
 const CarouselPageDot = createComponent(YStack, {
   name: 'CarouselPageDot',
-  width: PAGE_DOT_SIZE_PX,
-  height: PAGE_DOT_SIZE_PX,
   borderRadius: '$full',
   cursor: 'pointer',
 })
@@ -119,6 +140,11 @@ export function Carousel({
   const isSingle = slideCount <= 1
   const trackRef = useRef<HTMLDivElement>(null)
   const [currentIndex, setCurrentIndex] = useState(() => Math.min(Math.max(0, initialIndex), Math.max(0, slideCount - 1)))
+  const { measuredWidthPx, onLayout } = useMeasuredWidth(REFERENCE_WIDTH_PX)
+  const textSizePx = carouselTextSizePx(measuredWidthPx)
+  const arrowSizePx = textSizePx * ARROW_TO_TEXT_RATIO
+  const arrowGlyphSizePx = textSizePx * ARROW_GLYPH_TO_TEXT_RATIO
+  const pageDotSizePx = textSizePx * PAGE_DOT_TO_TEXT_RATIO
 
   const goTo = useCallback((index: number, smooth = true) => {
     const track = trackRef.current
@@ -143,13 +169,13 @@ export function Carousel({
   }
 
   return (
-    <CarouselFrame testID={testID} data-testid={testID}>
+    <CarouselFrame testID={testID} data-testid={testID} onLayout={onLayout}>
       <CarouselViewport>
         <XStack
           ref={trackRef}
           data-testid={testID ? `${testID}-track` : undefined}
           width="100%"
-          gap="$3"
+          gap={textSizePx * SLIDE_GAP_TO_TEXT_RATIO}
           alignItems="center"
           onScroll={handleScroll}
           // Height = the tallest slide (a flex row sizes to it); shorter slides sit centered.
@@ -185,31 +211,47 @@ export function Carousel({
         {!isSingle && currentIndex > 0 ? (
           <CarouselArrow
             left={0}
+            width={arrowSizePx}
+            height={arrowSizePx}
+            marginTop={-arrowSizePx / 2}
             role="button"
             aria-label={previousLabel}
             onPress={() => goTo(currentIndex - 1)}
             data-testid={testID ? `${testID}-previous` : undefined}
           >
-            <CarouselArrowText aria-hidden>‹</CarouselArrowText>
+            <CarouselArrowText aria-hidden fontSize={arrowGlyphSizePx}>
+              ‹
+            </CarouselArrowText>
           </CarouselArrow>
         ) : null}
         {!isSingle && currentIndex < slideCount - 1 ? (
           <CarouselArrow
             right={0}
+            width={arrowSizePx}
+            height={arrowSizePx}
+            marginTop={-arrowSizePx / 2}
             role="button"
             aria-label={nextLabel}
             onPress={() => goTo(currentIndex + 1)}
             data-testid={testID ? `${testID}-next` : undefined}
           >
-            <CarouselArrowText aria-hidden>›</CarouselArrowText>
+            <CarouselArrowText aria-hidden fontSize={arrowGlyphSizePx}>
+              ›
+            </CarouselArrowText>
           </CarouselArrow>
         ) : null}
       </CarouselViewport>
       {!isSingle ? (
-        <XStack justifyContent="center" gap="$2" marginTop="$3">
+        <XStack
+          justifyContent="center"
+          gap={pageDotSizePx}
+          marginTop={textSizePx * DOTS_TOP_GAP_TO_TEXT_RATIO}
+        >
           {slides.map((_, index) => (
             <CarouselPageDot
               key={index}
+              width={pageDotSizePx}
+              height={pageDotSizePx}
               role="button"
               aria-label={`${index + 1} / ${slideCount}`}
               aria-current={index === currentIndex ? true : undefined}
