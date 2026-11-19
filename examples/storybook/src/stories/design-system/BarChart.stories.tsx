@@ -484,6 +484,23 @@ export const NameAndValueColumns: Story = {
   ),
 }
 
+/** `labelColumns` with no data and no `height`: the chart keeps one row of height for "No data". */
+export const NameAndValueColumnsEmpty: Story = {
+  render: () => (
+    <YStack width="100%">
+      <BarChart
+        data={[]}
+        layout="horizontal"
+        labelColumns
+        showValueAxis={false}
+        showGrid={false}
+        showValueLabels
+        testID="BarChart-label-columns-empty"
+      />
+    </YStack>
+  ),
+}
+
 /** Controllable instance — edit args in the Controls panel. */
 export const Controllable: Story = {
   args: {

@@ -704,6 +704,15 @@ test('BarChart/NameAndValueColumns story puts names in a left column and values 
   await screenshotStory(page, 'tests/design-system/test-results/story-barchart-label-columns.png')
 })
 
+test('BarChart/NameAndValueColumnsEmpty story keeps one row of height so "No data" shows', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-barchart--name-and-value-columns-empty')
+  const chart = getStoryFrame(page).getByTestId('BarChart-label-columns-empty')
+  await expect(chart.locator('svg text').filter({ hasText: 'No data' })).toBeVisible()
+  const svgBox = (await chart.locator('svg').first().boundingBox())!
+  const textSizePx = Number(await chart.locator('svg text').first().getAttribute('font-size'))
+  expect(svgBox.height / textSizePx).toBeCloseTo(1.9, 1)
+})
+
 test('LineAreaChart/Default story renders area fill, reference line, linear and monotone variants', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 700 })
   await gotoStory(page, 'design-system-primitives-lineareachart--default')

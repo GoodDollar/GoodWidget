@@ -568,8 +568,9 @@ function BarChartContent({
       }
     : undefined
   const rowsHeightPadding = { ...scaleEdgeInsets(DEFAULT_PADDING, scaleRatio), ...labelColumnsPadding, ...padding }
+  // At least one row, so an empty chart keeps room for its "No data" message.
   const rowsHeightPx =
-    items.length * Math.max(tickLabelSizePx, valueLabelSizePx) * LABEL_COLUMN_ROW_HEIGHT_TO_TEXT_RATIO +
+    Math.max(items.length, 1) * Math.max(tickLabelSizePx, valueLabelSizePx) * LABEL_COLUMN_ROW_HEIGHT_TO_TEXT_RATIO +
     rowsHeightPadding.top +
     rowsHeightPadding.bottom
   const viewBoxHeight = isRowsHeight ? rowsHeightPx : isResponsiveHeight ? measuredHeightPx : (height as number)
