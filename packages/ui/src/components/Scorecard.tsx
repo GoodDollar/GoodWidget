@@ -546,13 +546,19 @@ function ScorecardHover({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') hide()
     }
+    // A resize (or a phone rotating) moves the scorecard and changes the width cap, so close the
+    // box like on scroll; hovering or focusing again reopens it in the right place.
     const root = triggerRef.current?.getRootNode()
     root?.addEventListener('scroll', hide, true)
     window.addEventListener('scroll', hide, true)
+    window.addEventListener('resize', hide)
+    window.visualViewport?.addEventListener('resize', hide)
     window.addEventListener('keydown', handleKeyDown)
     return () => {
       root?.removeEventListener('scroll', hide, true)
       window.removeEventListener('scroll', hide, true)
+      window.removeEventListener('resize', hide)
+      window.visualViewport?.removeEventListener('resize', hide)
       window.removeEventListener('keydown', handleKeyDown)
     }
   }, [position, hide])

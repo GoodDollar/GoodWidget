@@ -236,6 +236,12 @@ test('Scorecard/Hover story opens a full, on-screen box over the hovered tile', 
   // The role="tooltip" anchor has no size of its own (the box inside it is positioned), so check its text.
   await expect(focusedBox).toContainText('Bravo')
   await expect(getStoryFrame(page).getByTestId('chart-tooltip')).toBeVisible()
+  // A resize closes it (the scorecard moves); focusing again reopens it.
+  await page.setViewportSize({ width: 1000, height: 900 })
+  await expect(focusedBox).toHaveCount(0)
+  await keyboardTrigger.blur()
+  await keyboardTrigger.focus()
+  await expect(focusedBox).toContainText('Bravo')
   await page.keyboard.press('Escape')
   await expect(focusedBox).toHaveCount(0)
 
