@@ -553,6 +553,11 @@ test('BarChart/SegmentedBars story draws each piece and hovers pieces then the t
   await expect(chart).toBeVisible()
   // 2 + 2 + 1 pieces: Gamma's zero "Sent" piece draws nothing.
   await expect(chart.locator('svg path')).toHaveCount(5)
+  // A thin gap (0.15 x the label text) between a bar's pieces; the outer piece still ends at the full length.
+  const textSizePx = Number(await chart.locator('svg text').first().getAttribute('font-size'))
+  const firstPiece = (await chart.locator('svg path').nth(0).boundingBox())!
+  const secondPiece = (await chart.locator('svg path').nth(1).boundingBox())!
+  expect(secondPiece.x - (firstPiece.x + firstPiece.width)).toBeCloseTo(textSizePx * 0.15, 0)
   await chart.locator('svg path').first().hover()
   const tooltip = chart.getByTestId('chart-tooltip')
   await expect(tooltip).toContainText('Alpha')

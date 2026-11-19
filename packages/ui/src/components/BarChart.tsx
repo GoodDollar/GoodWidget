@@ -46,7 +46,8 @@ export interface BarChartDataItem {
   color?: string
   /**
    * Draws the bar as pieces side by side along the value axis, each in its
-   * own color, in the order given. `value` stays the bar's total: the value
+   * own color, in the order given, with a thin gap (sized from the text)
+   * between neighbouring pieces. `value` stays the bar's total: the value
    * label and the hover's "Total" row read it. Pieces are drawn as given, not
    * rescaled to `value` — if they don't add up to it, the drawn length shows
    * the pieces' sum while the label and hover total still read `value`.
@@ -175,6 +176,9 @@ const LABEL_COLUMN_GAP_TO_TEXT_RATIO = 0.7
 /** Row to row = 1.9 x text when the chart sizes its own height (preview: ~26 px). With
  * BAR_FILL_FRACTION the bar is then ~1.3 x text thick (preview: 18 px). */
 const LABEL_COLUMN_ROW_HEIGHT_TO_TEXT_RATIO = 1.9
+/** Thin gap between a split bar's pieces = 0.15 x text, so neighbouring shades read as separate pieces
+ * (preview: 2 px on 14 px text). Taken out of the earlier piece, so the bar's total length stays exact. */
+const SEGMENT_GAP_TO_TEXT_RATIO = 0.15
 
 const DEFAULT_PADDING: BarChartPadding = { top: 16, right: 16, bottom: 40, left: 48 }
 /** Reference width both the base sizes above and DEFAULT_PADDING were tuned against.
@@ -625,6 +629,8 @@ function BarChartContent({
 
   // Draws a segmented bar's pieces end to end from the baseline. Only the last
   // (outermost) piece gets the rounded corners, like a plain bar's outer edge.
+  // Every piece but the last gives up a thin gap at its outer end.
+  const segmentGapPx = tickLabelSizePx * SEGMENT_GAP_TO_TEXT_RATIO
   const renderSegmentPieces = (
     item: BarChartItem,
     index: number,
@@ -636,9 +642,9 @@ function BarChartContent({
     let offsetPx = 0
     return pieces.map((piece, pieceIndex) => {
       const lengthPx = (piece.value / valueRange) * axisLengthPx
-      const rect = pieceRect(offsetPx, lengthPx)
-      offsetPx += lengthPx
       const isOuterPiece = pieceIndex === pieces.length - 1
+      const rect = pieceRect(offsetPx, isOuterPiece ? lengthPx : Math.max(0, lengthPx - segmentGapPx))
+      offsetPx += lengthPx
       return (
         <Path
           key={`${piece.label}-${pieceIndex}`}
