@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { TamaguiProvider } from '@tamagui/core'
 import { BuildersS5Dashboard, type BuildersReport, type BuildersS5Data } from '@goodwidget/gooddata-widget'
-import { defaultConfig } from '@goodwidget/ui'
+import { defaultConfig, YStack } from '@goodwidget/ui'
 
 // Fixed fixtures (shaped like the real Nov 15 report) so every render and screenshot is identical across runs.
 // UbeGames has no GitHub keys and Good drops has no Farcaster key, as in the real report; no return-rate keys exist yet.
@@ -52,7 +52,10 @@ const meta: Meta<typeof BuildersS5Dashboard> = {
   decorators: [
     (Story) => (
       <TamaguiProvider config={defaultConfig} defaultTheme="dark">
-        <Story />
+        {/* The dark theme's text is light, so the page needs the theme's own background (the app sets it on <main>). */}
+        <YStack backgroundColor="$background" padding="$6" minHeight="100vh">
+          <Story />
+        </YStack>
       </TamaguiProvider>
     ),
   ],
