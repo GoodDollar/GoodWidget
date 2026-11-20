@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Card, Icon, Text, XStack, YStack } from '@goodwidget/ui'
 
-interface SetupBonusHighlightProps {
+interface BonusHighlightProps {
   /** Bonus applied to one-time deposits, in percent. */
   depositBonusPercent: number
   /** Bonus applied to monthly streams, in percent. */
@@ -15,11 +15,11 @@ interface SetupBonusHighlightProps {
  * Collapsed it states the headline bonus; expanded it explains the
  * verification requirement.
  */
-export function SetupBonusHighlight({
+export function BonusHighlight({
   depositBonusPercent,
   streamBonusPercent,
   isGoodIdVerified,
-}: SetupBonusHighlightProps) {
+}: BonusHighlightProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const maxBonusPercent = Math.max(depositBonusPercent, streamBonusPercent)
 

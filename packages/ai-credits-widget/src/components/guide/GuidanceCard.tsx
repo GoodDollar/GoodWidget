@@ -1,14 +1,11 @@
 import React from 'react'
-import { Anchor, Button, ButtonText, Icon, Separator, Text, XStack, YStack } from '@goodwidget/ui'
-import { SetupBonusHighlight } from './SetupBonusHighlight'
-
-/** URL for the AntSeed website, opened in a new browser tab. */
-const ANTSEED_SITE_URL = 'https://ubi.gd/46pjeqF'
+import { Anchor, Button, ButtonText, Separator, Text, XStack, YStack } from '@goodwidget/ui'
+import { BonusHighlight } from './BonusHighlight'
 
 /** GoodReserve swap page — where G$ is bought directly from the reserve on Celo. */
 const GOODDAPP_RESERVE_URL = 'https://ubi.gd/4xcXfOt'
 
-interface SetupGuidanceCardProps {
+interface GuidanceCardProps {
   /** Callback to display the How to use guide inside the widget. */
   onHowToUse: () => void
   /** Callback to display the FAQ inside the widget. */
@@ -25,29 +22,28 @@ interface SetupGuidanceCardProps {
 
 /**
  * Guidance card rendered above the widget tab navigation.
- * Presents a concise "WHAT'S INVOLVED" summary and three entry points:
+ * Presents a concise "WHAT'S INVOLVED" summary and two entry points:
  *   - How to use (in-widget guide)
- *   - AntSeed site (external link)
  *   - FAQs (in-widget FAQ)
  */
-export function SetupGuidanceCard({
+export function GuidanceCard({
   onHowToUse,
   onFaq,
   activeHelpView,
   depositBonusPercent,
   streamBonusPercent,
   isGoodIdVerified,
-}: SetupGuidanceCardProps) {
+}: GuidanceCardProps) {
   return (
     // Rendered flush on the widget background — no card surface, so it reads as
     // part of the header rather than a separate panel.
     <YStack gap="$3" paddingHorizontal="$1">
       {/* Tagline */}
       <Text fontSize="$3" tone="soft" lineHeight="$4">
-        GoodDollar supports buying Antseed AI credits with G$. Use them in Antseed to access supported AI tools such as Claude Code and Codex.
+        Buy AI credits with G$ and get an API key for Claude Code, Codex and other AI tools. No install needed.
       </Text>
 
-      <SetupBonusHighlight
+      <BonusHighlight
         depositBonusPercent={depositBonusPercent}
         streamBonusPercent={streamBonusPercent}
         isGoodIdVerified={isGoodIdVerified}
@@ -116,10 +112,10 @@ export function SetupGuidanceCard({
           </YStack>
           <Text fontSize="$2" flex={1} lineHeight="$3">
             <Text fontSize="$2" fontWeight="700">
-              Get Antseed{' '}
+              Get your API key{' '}
             </Text>
             <Text fontSize="$2" tone="soft">
-              —  Use Antseed to use your AI credits.
+              — buy credits to receive a key you can paste into your AI tool.
             </Text>
           </Text>
         </XStack>
@@ -142,26 +138,6 @@ export function SetupGuidanceCard({
         >
           <ButtonText numberOfLines={1}>How to use</ButtonText>
         </Button>
-
-        {/* AntSeed site — external link */}
-        <Anchor
-          href={ANTSEED_SITE_URL}
-          target="_blank"
-          style={{ flexGrow: 1, flexBasis: 'auto', textDecorationLine: 'none', minWidth: 0 }}
-        >
-          <Button
-            size="sm"
-            variant="outline"
-            width="100%"
-            borderRadius="$3"
-            paddingHorizontal="$2"
-            gap="$1"
-          >
-            <ButtonText numberOfLines={1}>Antseed site</ButtonText>
-            {/* Signals that this leaves the widget for a new browser tab. */}
-            <Icon name="external-link" size="xs" color="muted" />
-          </Button>
-        </Anchor>
 
         {/* FAQs */}
         <Button

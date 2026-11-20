@@ -17,6 +17,18 @@ export type {
   SignerKeyEntry,
 } from './widgetRuntimeContract'
 
+export type {
+  AiCreditsApi,
+  AiCreditsAccountId,
+  AiCreditsApiAccount,
+  AiCreditsApiKeyIssue,
+  AiCreditsApiKeySummary,
+  AiCreditsKeyPurchase,
+  AiCreditsSpendLimit,
+} from './aiCreditsApi/types'
+export { GATEWAY_BASE_URL_FORMATS } from './aiCreditsApi/gatewayUrlFormats'
+export type { GatewayToolFamily } from './aiCreditsApi/gatewayUrlFormats'
+
 export {
   parseDeepLinkParams,
   resolveDeepLinkParams,

@@ -15,17 +15,9 @@ import {
   useAppKitProvider,
   useDisconnect,
 } from '@goodwidget/embed/appkit-provider'
-import {
-  ExternalLink,
-  KeyRound,
-  LockKeyhole,
-  Network,
-  ShieldCheck,
-  ShoppingCart,
-} from '@tamagui/lucide-icons'
+import { KeyRound, ShieldCheck, ShoppingCart } from '@tamagui/lucide-icons'
 import {
   Accordion,
-  Anchor,
   Card,
   GlowCard,
   Heading,
@@ -38,9 +30,6 @@ import { TamaguiProvider } from '@tamagui/core'
 
 const SWITCH_CHAIN_MANUAL_SELECTION_ERROR =
   'Select the network in the wallet dialog, then try again.'
-
-const ANTSEED_API_DOCS = 'https://antseed.com/docs/guides/using-the-api/'
-const ANTSEED_SECURITY_DOCS = 'https://antseed.com/docs/security/'
 
 function envAddress(value: string | undefined): `0x${string}` | undefined {
   return value ? (value as `0x${string}`) : undefined
@@ -236,7 +225,7 @@ function PurchaseFrame() {
           enableInjected
           metadata={{
             name: 'GoodDollar AI Credits',
-            description: 'Buy AI credits with G$ and use them through Antseed.',
+            description: 'Buy AI credits with G$ and get an API key for Claude Code, Codex and other AI tools.',
           }}
         >
           <ReownAiCreditsWidget />
@@ -268,57 +257,21 @@ function PurchaseFrame() {
   )
 }
 
+// Gateway-model disclosures: what the key is, and what bounds the risk if it leaks.
 function SecurityDetails() {
   return (
-    <YStack gap="$7" paddingTop="$3" $sm={{ gap: "$5" }}>
+    <YStack gap="$7" paddingTop="$3" $sm={{ gap: '$5' }}>
       <XStack gap="$7" alignItems="flex-start" $md={{ flexDirection: 'column' }}>
-        <TrustItem icon={<Network size={24} color="$primary" />} title="Local, explicit routing">
-          The signer proxy runs locally. It will not auto-select a peer: browse the network, inspect
-          the services and pricing, then pin the peer you choose.
+        <TrustItem icon={<KeyRound size={24} color="$primary" />} title="Your API key is a secret">
+          Treat your API key like a password. It is shown once, right after you buy credits, and
+          anyone who has it can spend your credits. If it leaks or gets lost, rotate it from the API
+          Key tab.
         </TrustItem>
-        <TrustItem
-          icon={<LockKeyhole size={24} color="$primary" />}
-          title="Protected transport, visible to providers"
-        >
-          WebRTC transport protects requests in transit to the selected peer. The provider serving a
-          request still receives its contents, so do not send secrets in prompts.
+        <TrustItem icon={<ShieldCheck size={24} color="$primary" />} title="Spend is capped">
+          Your key has a monthly spend limit, so a leaked key can only use the credits you bought.
+          It cannot move funds out of your wallet.
         </TrustItem>
       </XStack>
-
-      <XStack gap="$7" alignItems="flex-start" $md={{ flexDirection: 'column' }}>
-        <TrustItem icon={<KeyRound size={24} color="$primary" />} title="Separated identity">
-          The signer signing identity is separate from the funding wallet. A compromised signer
-          identity cannot access that wallet, and its exposure is bounded by deposited credits.
-        </TrustItem>
-        <TrustItem icon={<ShieldCheck size={24} color="$primary" />} title="Keys are secrets">
-          Treat ANTSEED_IDENTITY_HEX as a private key. The CLI may store a plaintext identity.key in
-          its Antseed data directory unless you supply the identity securely, such as through a
-          secrets manager.
-        </TrustItem>
-      </XStack>
-
-      <Card backgroundColor="$background" padding="$5" outlined>
-        <XStack gap="$4" alignItems="flex-start" $sm={{ flexDirection: 'column' }}>
-          <IconFrame>
-            <ShieldCheck size={24} color="$primary" />
-          </IconFrame>
-          <YStack gap="$2" flex={1}>
-            <Text bold variant="large">
-              GoodDollar operator role on Base
-            </Text>
-            <Text tone="soft">
-              Your one-time wallet authorization lets the GoodDollar operator fund your credits and
-              handle Base-side credit actions, including moving credit funds, without requiring you
-              to pay Base gas. It cannot access your payer wallet or your G$ on Celo. This is a
-              trusted role for the Base credit account.
-            </Text>
-            <XStack gap="$2" alignItems="center" marginTop="$1">
-              <Anchor href={ANTSEED_SECURITY_DOCS}>Read the Antseed security documentation</Anchor>
-              <ExternalLink size={16} color="$primary" aria-hidden />
-            </XStack>
-          </YStack>
-        </XStack>
-      </Card>
     </YStack>
   )
 }
@@ -353,30 +306,13 @@ function LandingPage() {
     >
       <YStack
         tag="section"
-        width="100%"
-        maxWidth={1120}
-        marginHorizontal="auto"
-        paddingHorizontal="$6"
-        paddingTop="$10"
-        paddingBottom="$7"
-        gap="$5"
-        alignItems="center"
-        $sm={{ paddingHorizontal: '$4', paddingTop: '$8', paddingBottom: '$6' }}
-      >
-        <XStack gap="$2" alignItems="center" padding="$2">
-          <Anchor href={ANTSEED_API_DOCS}>Read the Antseed API docs</Anchor>
-          <ExternalLink size={16} color="$primary" aria-hidden />
-        </XStack>
-      </YStack>
-
-      <YStack
-        tag="section"
         id="purchase"
         width="100%"
         paddingHorizontal="$6"
+        paddingTop="$10"
         paddingBottom="$10"
         style={{ scrollMarginTop: 16 }}
-        $sm={{ paddingHorizontal: '$3', paddingBottom: '$8' }}
+        $sm={{ paddingHorizontal: '$3', paddingTop: '$6', paddingBottom: '$8' }}
       >
         <PurchaseFrame />
       </YStack>
@@ -394,15 +330,15 @@ function LandingPage() {
         <YStack width="100%" maxWidth={1080} marginHorizontal="auto" gap="$6">
           <SectionHeading
             eyebrow="Transparent by design"
-            title="Know what runs, who can see it, and what is at risk"
-            description="The local proxy and separated identities reduce exposure, but they do not remove the need to choose providers carefully and protect your keys."
+            title="Know what your API key can do and what is at risk"
+            description="A spend limit bounds the damage if your key leaks, but it does not replace keeping the key private."
           />
 
           <Accordion
             items={[
               {
                 id: 'security',
-                title: 'How routing, identity, and the operator role work',
+                title: 'How your API key and spend limit work',
                 content: <SecurityDetails />,
               },
             ]}
@@ -431,36 +367,10 @@ function LandingPage() {
   )
 }
 
-// Widget-only view for partner integrations (e.g. AntSeed) that embed the purchase flow
-// directly without the hero and security sections around it.
-function PurchaseOnlyView() {
-  return (
-    <YStack
-      tag="main"
-      width="100%"
-      minHeight="100vh"
-      backgroundColor="$background"
-      justifyContent="center"
-      alignItems="center"
-      padding="$6"
-      data-testid="ai-credits-purchase-only"
-    >
-      <PurchaseFrame />
-    </YStack>
-  )
-}
-
-function readSourceParam(): string | null {
-  if (typeof window === 'undefined') return null
-  return new URLSearchParams(window.location.search).get('source')
-}
-
 export function App() {
-  const isWidgetOnlySource = readSourceParam() === 'antseed'
-
   return (
     <TamaguiProvider config={defaultConfig} defaultTheme="dark">
-      {isWidgetOnlySource ? <PurchaseOnlyView /> : <LandingPage />}
+      <LandingPage />
     </TamaguiProvider>
   )
 }

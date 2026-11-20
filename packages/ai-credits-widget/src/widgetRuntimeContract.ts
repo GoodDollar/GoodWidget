@@ -1,6 +1,7 @@
 import type { Address } from 'viem'
 import type { GoodWidgetConfig, GoodWidgetThemeOverrides, IconName } from '@goodwidget/ui'
 import type { AccountRef } from './backendTypes'
+import type { AiCreditsApi } from './aiCreditsApi/types'
 import type { AiCreditsBackendClient } from './backendClient'
 import type { AiCreditsChainClient } from './chainClient'
 
@@ -18,7 +19,7 @@ export type AiCreditsWidgetStatus =
   | 'backend_unavailable'
   | 'unsupported_chain'
 
-export type AiCreditsWidgetTab = 'buy' | 'setup' | 'manage' | 'history'
+export type AiCreditsWidgetTab = 'buy' | 'apiKey' | 'history'
 
 export interface AiCreditsQuote {
   depositAmountG: string
@@ -53,7 +54,6 @@ export interface AiCreditsWidgetAdapterState {
   totalBonusUsd: string | null
   totalGdDepositedG: string | null
   monthlyStreamG: string | null
-  withdrawableUsd: string | null
   depositBonusPercent: number
   streamBonusPercent: number
   error: string | null
@@ -100,8 +100,6 @@ export interface AiCreditsWidgetAdapterActions {
   verifyGoodId: () => Promise<boolean>
   startPurchase: () => void
   setActiveTab: (tab: AiCreditsWidgetTab) => void
-  closeChannel: (channelId: string) => Promise<void>
-  withdrawCredits: (amount: string) => Promise<void>
   retry: () => Promise<void>
 }
 
@@ -201,6 +199,12 @@ export interface AiCreditsWidgetProps {
   defaultTheme?: 'light' | 'dark'
   onPaySuccess?: (detail: AiCreditsPaySuccessDetail) => void
   onPayError?: (detail: AiCreditsPayErrorDetail) => void
+  /**
+   * GoodDollar backend client that creates, tops up, rotates and revokes the user's API key.
+   * Must be a stable reference (create it once, outside render). Without it the widget cannot
+   * issue keys, so purchases are disabled and the API Key tab shows a coming-soon notice.
+   */
+  aiCreditsApi?: AiCreditsApi
   adapterFactory?: AiCreditsWidgetAdapterFactory
   adapterOptions?: AiCreditsWidgetAdapterOptions
   testId?: string

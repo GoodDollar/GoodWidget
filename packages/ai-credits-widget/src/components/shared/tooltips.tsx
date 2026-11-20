@@ -1,26 +1,5 @@
 import React, { useState } from 'react'
-import { Icon, Text, XStack, YStack } from '@goodwidget/ui'
-
-export function InfoTooltip({ message }: { message: string }) {
-  const [open, setOpen] = useState(false)
-
-  return (
-    <XStack
-      position="relative"
-      alignItems="center"
-      cursor="help"
-      tabIndex={0}
-      accessibilityLabel={message}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-      onFocus={() => setOpen(true)}
-      onBlur={() => setOpen(false)}
-    >
-      <Icon name="info" size="xs" color="primary" />
-      {open && <TooltipBubble message={message} />}
-    </XStack>
-  )
-}
+import { Text, XStack, YStack } from '@goodwidget/ui'
 
 function TooltipBubble({ message }: { message: string }) {
   return (

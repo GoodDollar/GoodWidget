@@ -49,33 +49,9 @@ function normalizeAddress(address: string): string {
   return address.toLowerCase()
 }
 
-export type WithdrawPrincipalRequest = {
-  amount: string
-  recipient: string
-  nonce: string
-  signature: string
-}
-
-export type ChannelOperationRequest = {
-  nonce?: string
-  signature?: string
-}
-
 export type BridgeResponse = {
   enabled: boolean
   txHash?: string
-}
-
-export type ChannelOperationResponse = {
-  channelId: string
-  action: 'close' | 'withdraw'
-  bridge: BridgeResponse
-}
-
-export type WithdrawPrincipalResponse = {
-  account: string
-  amountUsd: string
-  bridge: BridgeResponse
 }
 
 export type OperatorConsentRequest = {
@@ -115,14 +91,6 @@ async function readBridgeResponseBody<T extends { bridge?: BridgeResponse }>(
     throw new Error(`${actionLabel} bridge is not configured on the backend`)
   }
   return { ...body, bridge }
-}
-
-async function parseBridgeResponse(
-  response: Response,
-  actionLabel: string,
-): Promise<BridgeResponse> {
-  const body = await readBridgeResponseBody(response, actionLabel)
-  return body.bridge
 }
 
 const DEFAULT_HISTORY_LIMIT = 20
@@ -223,14 +191,6 @@ export interface AiCreditsBackendClient {
     ref: AccountRef,
     options?: { txHashes?: string[]; previousBalance?: string },
   ): Promise<SettlementResult>
-  closeChannel(
-    channelId: string,
-    body?: ChannelOperationRequest,
-  ): Promise<ChannelOperationResponse>
-  withdrawCredits(
-    signer: string,
-    body: WithdrawPrincipalRequest,
-  ): Promise<WithdrawPrincipalResponse>
   submitOperatorConsent(
     signer: string,
     body: OperatorConsentRequest,
@@ -402,35 +362,6 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
     throw new Error('Settlement polling timeout — credits may still be arriving')
   }
 
-  async closeChannel(
-    channelId: string,
-    body: ChannelOperationRequest = {},
-  ): Promise<ChannelOperationResponse> {
-    const response = await fetch(
-      `${this.backendUrl}/v1/channels/${encodeURIComponent(channelId)}/close`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      },
-    )
-    const bridge = await parseBridgeResponse(response, 'Close channel')
-    return { channelId, action: 'close', bridge }
-  }
-
-  async withdrawCredits(
-    signer: string,
-    body: WithdrawPrincipalRequest,
-  ): Promise<WithdrawPrincipalResponse> {
-    const response = await fetch(`${this.accountBase(signer)}/withdraw`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-    const bridge = await parseBridgeResponse(response, 'Withdraw')
-    return { account: normalizeAddress(signer), amountUsd: body.amount, bridge }
-  }
-
   async submitOperatorConsent(
     signer: string,
     body: OperatorConsentRequest,
@@ -503,14 +434,6 @@ export class UnavailableAiCreditsBackendClient implements AiCreditsBackendClient
     return this.unavailable()
   }
 
-  async closeChannel() {
-    return this.unavailable()
-  }
-
-  async withdrawCredits() {
-    return this.unavailable()
-  }
-
   async submitOperatorConsent() {
     return this.unavailable()
   }
@@ -554,17 +477,16 @@ export async function buildAccountView(
       ? normalizeAddress(options.signerAddress)
       : null
 
-  // These four reads are independent of one another and span two networks (the
+  // These three reads are independent of one another and span two networks (the
   // credit backend and Base). Only the credit profile is load-bearing, so the
   // rest degrade on their own rather than taking the whole view down with them:
   // a Base RPC hiccup used to discard a perfectly good credit profile.
-  const [credit, outstanding, operator, withdrawableUsd] = await Promise.all([
+  const [credit, outstanding, operator] = await Promise.all([
     backend.getAccountCredit(payer),
     backend.getOutstanding(payer).catch(() => null),
     signer
       ? chain.getSignerOperatorStatus({ payer: normalizedPayer, signer }).catch(() => null)
       : Promise.resolve(defaultOperatorStatus(normalizedPayer)),
-    signer ? chain.getWithdrawableUsd(signer).catch(() => null) : Promise.resolve('0'),
   ])
 
   return {
@@ -572,7 +494,6 @@ export async function buildAccountView(
     signer,
     profile: credit.profile,
     operator,
-    withdrawableUsd,
     // Not rendered anywhere today; '0' keeps the shape without inventing a
     // balance the caller would display.
     outstandingFundingUsd: outstanding?.outstandingFundingUsd ?? '0',

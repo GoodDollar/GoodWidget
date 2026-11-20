@@ -7,11 +7,11 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
 <DocsPage
   eyebrow="Widget Guide"
   title="AiCreditsWidget"
-  lead="Buy AI coding credits with G$ on Celo. Credits settle on Base and are redeemable with AntSeed-compatible AI coding tools like Cursor and Cline."
+  lead="Buy AI credits with G$ and get an API key for Claude Code, Codex and other AI tools. No install needed."
 >
   <DocsSection
     title="Interactive showcase (mock backend)"
-    description="Uses your browser wallet (`window.ethereum`, e.g. Rabby) with the in-memory mock backend — no local antseed worker required."
+    description="Uses your browser wallet (`window.ethereum`, e.g. Rabby) with the in-memory mock backend and mock API key service — no local worker required. Keys and spend limits shown here are fake."
   >
     <Canvas of={ShowcaseStories.MockBackend} />
   </DocsSection>
@@ -37,58 +37,51 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
 
   <DocsSection
     title="Widget states"
-    description="Buy-flow status describes purchase progress and errors. The Manage tab (activeTab) is separate — use it when the wallet has credits or after a successful purchase."
+    description="Buy-flow status describes purchase progress and errors. The active tab (Buy Credits, API Key, History) is separate."
   >
     <DocsGrid>
-      <DocsCard title="S1 – Disconnected">Setup tab with connect CTA; Buy Credits, Manage, and History tabs visible but disabled until a wallet connects.</DocsCard>
-      <DocsCard title="S1b – Setup tab">Connected wallet — onboarding for Download AntSeed, Signer Key, and Authorize Credits Management. The authorization step opens the same consent flow used by Buy Credits.</DocsCard>
-      <DocsCard title="S2 – Purchase Setup">Buy tab — stepper with a CTA to open the active step in a bottom drawer.</DocsCard>
-      <DocsCard title="S3 – Quote Ready">Buy tab — pay step available via drawer CTA; ready to confirm Celo transaction.</DocsCard>
+      <DocsCard title="S1 – Disconnected">Buy tab with a connect CTA; API Key and History tabs visible but disabled until a wallet connects.</DocsCard>
+      <DocsCard title="S2 – Purchase Setup">Buy tab — amount picker and quote.</DocsCard>
+      <DocsCard title="S3 – Quote Ready">Buy tab — ready to confirm the Celo transaction.</DocsCard>
       <DocsCard title="S4 – Payment Pending">Buy tab — Celo tx submitted.</DocsCard>
-      <DocsCard title="S5 – Payment Confirmed">Buy tab — settling on Base.</DocsCard>
-      <DocsCard title="S6 – Manage tab">Manage tab — balance, stream, close/withdraw, API setup.</DocsCard>
+      <DocsCard title="S5 – Payment Confirmed">Buy tab — adding GoodDollar AI credits; the API key sheet opens after the first purchase.</DocsCard>
+      <DocsCard title="S6 – API Key tab">API Key tab — credits balance, masked key, base URL, spend limit, Rotate and Revoke.</DocsCard>
       <DocsCard title="S6b – History tab">History tab — filtered, paginated AI credit funding history.</DocsCard>
       <DocsCard title="S7 – Insufficient G$">G$ below minimum purchase threshold.</DocsCard>
       <DocsCard title="S8 – Payment Failed">Transaction or settlement error.</DocsCard>
       <DocsCard title="S9 – Backend Unavailable">Backend unreachable.</DocsCard>
       <DocsCard title="S10 – Unsupported Chain">Wrong network (Celo required).</DocsCard>
+      <DocsCard title="S11 – API key service not configured">Host passed no `aiCreditsApi`: Buy is disabled and the API Key tab shows a coming-soon notice.</DocsCard>
     </DocsGrid>
   </DocsSection>
 
   <DocsSection
     title="Widget navigation"
-    description="Setup, Buy Credits, Manage, and History appear as tabs (with the GoodDollar header and chain badge). Before a wallet connects, only Setup is active. After connecting, switch tabs anytime — including during payment pending or failed states."
+    description="Buy Credits (default), API Key, and History appear as tabs with the GoodDollar header and chain badge. Before a wallet connects, only Buy Credits is active."
   >
     <DocsGrid>
-      <DocsCard title="Setup">Onboarding entry point — connect wallet when disconnected; onboarding step shell when connected.</DocsCard>
-      <DocsCard title="Buy Credits">Stepper for signer key, wallet authorization, and payment — tap a step or CTA to open it in a drawer.</DocsCard>
-      <DocsCard title="Manage">Credits balance, stream info, close/withdraw, and API setup.</DocsCard>
+      <DocsCard title="Buy Credits">Connect, choose a deposit or monthly stream, and pay in G$.</DocsCard>
+      <DocsCard title="API Key">Credits balance, masked key, base URL, monthly spend limit, Rotate and Revoke.</DocsCard>
       <DocsCard title="History">Paginated credit history with source, status, and date filters.</DocsCard>
     </DocsGrid>
   </DocsSection>
 
   <DocsSection
     title="Backend API usage"
-    description="Production stories call the antseed-integration worker for reads, settlement, and management actions."
+    description="The widget only talks to GoodDollar services. It never calls the AntSeed gateway management API and never holds a management token."
   >
     <DocsGrid>
+      <DocsCard title="aiCreditsApi (prop)">
+        Typed client the host supplies: `getAccount`, `createOrTopUpKey`, `rotateKey`, `revokeKey`, `getHistory`.
+        Must be a stable reference. Storybook and dev use `MockAiCreditsApi` from `/mocked`.
+      </DocsCard>
       <DocsCard title="GET …/profile">Credits profile for the payer wallet.</DocsCard>
-      <DocsCard title="GET …/credit-history">
-        Newest-first funding history (`items[].signerAddress` is used to recover the signer).
-      </DocsCard>
-      <DocsCard title="GET …/outstanding">Pending or failed Base funding entries.</DocsCard>
+      <DocsCard title="GET …/credit-history">Newest-first funding history.</DocsCard>
+      <DocsCard title="GET …/outstanding">Pending or failed funding entries.</DocsCard>
       <DocsCard title="POST …/celo/events/record">Notify `{ txHash }` after a successful Celo payment.</DocsCard>
-      <DocsCard title="POST …/accounts/:signer/operator-consent">
-        Signer-signed SetOperator relay — backend submits `acceptSignerOperator` on Base (no signer gas).
-      </DocsCard>
-      <DocsCard title="POST …/channels/:channelId/close">Signer-signed channel close from credits management.</DocsCard>
-      <DocsCard title="POST …/accounts/:signer/withdraw">Signer-signed principal withdraw to the payer wallet.</DocsCard>
     </DocsGrid>
     <DocsCallout title="On-chain (not backend)" tone="info">
-      Vault minimum reads, quotes, withdrawable principal, and Celo deposit/stream transactions are
-      handled on-chain via RPC. Signer EIP-712 signing for wallet authorization, close, and withdraw
-      happens in the widget; only the Base submission is relayed by the worker. There is no
-      channel-list API — paste the channel ID manually.
+      Vault minimum reads, quotes, and Celo deposit/stream transactions are handled on-chain via RPC.
     </DocsCallout>
   </DocsSection>
 
@@ -96,18 +89,13 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
     title="Known limitations"
     description="Features that still need operator care in production."
   >
-    <DocsCallout title="Signer private key session" tone="warning">
-      Close channel and withdraw require the signer private key in the current browser session. Use
-      Sign &amp; Generate in Signer &amp; Operator on the credits management screen if the key was
-      lost after refresh.
+    <DocsCallout title="API key is shown once" tone="warning">
+      The full key is held in memory only while the "Your API key is ready" sheet is open. It is never
+      persisted, logged, or sent to analytics. A lost key can only be replaced by rotating it.
     </DocsCallout>
     <DocsCallout title="Vault minimums" tone="info">
       First-deposit USD minimum applies only when `totalDepositedGd(payer)` is zero. Monthly stream
       USD minimum applies on every stream create/update.
-    </DocsCallout>
-    <DocsCallout title="Base bridge" tone="info">
-      Operator consent, close, withdraw, and credit funding require the worker&apos;s Base operator
-      bridge to be configured (`bridge.enabled: true` in API responses).
     </DocsCallout>
   </DocsSection>
 

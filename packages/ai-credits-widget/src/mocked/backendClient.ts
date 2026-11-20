@@ -2,7 +2,6 @@ import type {
   AccountCreditResponse,
   AccountRef,
   CeloEventsRecordResponse,
-  ChannelOperationResponse,
   CreditHistoryQuery,
   CreditHistoryResponse,
   DiscountConfig,
@@ -12,8 +11,6 @@ import type {
   SettlementResult,
   TransactionsResponse,
   UserCreditProfile,
-  WithdrawPrincipalRequest,
-  WithdrawPrincipalResponse,
 } from '../backendClient'
 import { DEFAULT_DISCOUNT_CONFIG, totalCreditUsdFromProfile } from '../backendClient'
 import type { AiCreditsBackendClient } from '../backendClient'
@@ -201,16 +198,6 @@ export class MockAiCreditsBackendClient implements AiCreditsBackendClient {
       state.bonusUsd += BigInt(entry.bonusUsd)
     }
     return { totalCreditUsd: totalCreditUsdFromProfile(this.buildProfile(ref.payer)) }
-  }
-
-  async closeChannel(channelId: string): Promise<ChannelOperationResponse> {
-    await sleep(MOCK_DELAY_MS)
-    return { channelId, action: 'close', bridge: { enabled: true, txHash: '0xmock' } }
-  }
-
-  async withdrawCredits(signer: string, body: WithdrawPrincipalRequest): Promise<WithdrawPrincipalResponse> {
-    await sleep(MOCK_DELAY_MS)
-    return { account: signer, amountUsd: body.amount, bridge: { enabled: true, txHash: '0xmock' } }
   }
 
   async submitOperatorConsent(

@@ -49,7 +49,6 @@ const DEPOSITS_ABI = parseAbi([
 ])
 
 const FUNDING_VAULT_ABI = parseAbi([
-  'function withdrawablePrincipal(address signer) view returns (uint256)',
   'function usedNonces(address signer) view returns (uint256)',
 ])
 
@@ -110,7 +109,6 @@ export interface AiCreditsChainClient {
     ref: AccountRef,
     operatorStatus?: SignerOperatorStatus,
   ): Promise<OperatorConsentPayloadResponse>
-  getWithdrawableUsd(signer: string): Promise<string>
   getSignerAuthNonce(signer: string): Promise<bigint>
 }
 
@@ -244,17 +242,6 @@ export class ProductionAiCreditsChainClient implements AiCreditsChainClient {
         domain,
       ),
     }
-  }
-
-  async getWithdrawableUsd(signer: string): Promise<string> {
-    if (!this.fundingVaultAddress) return '0'
-    const amount = await (await this.baseClient).readContract({
-      address: this.fundingVaultAddress,
-      abi: FUNDING_VAULT_ABI,
-      functionName: 'withdrawablePrincipal',
-      args: [normalizeAddress(signer) as Address],
-    })
-    return amount.toString()
   }
 
   async getSignerAuthNonce(signer: string): Promise<bigint> {

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { GoodWidgetProvider, WalletControls } from '@goodwidget/core'
 import type { EIP1193Provider } from '@goodwidget/core'
 import {
@@ -9,8 +9,8 @@ import {
   Card,
   CircularActionButton,
   getChainDisplayName,
+  GoodWidgetDialog,
   Heading,
-  Icon,
   Text,
   ToastContainer,
   WidgetTabs,
@@ -24,18 +24,20 @@ import { version } from '../package.json'
 import { WidgetVersion } from '@goodwidget/ui'
 import { needsWalletConnection, useAiCreditsAdapter } from './adapter'
 import { useAiCreditsHistory } from './useAiCreditsHistory'
+import { useApiKey } from './useApiKey'
 import {
   AiCreditsHero,
   AiCreditsPurchaseFlow,
   AiCreditsStatusNotice,
-  CreditsManagementCard,
-  SignerOperatorCard,
+  ApiKeyPanel,
+  ApiKeyReadySheet,
+  FaqView,
+  GuidanceCard,
   HistoryTab,
-  SetupGuidanceCard,
   HowToUseView,
-  SetupFaqView,
-  SetupOnboardingFlow,
 } from './components'
+import type { AiCreditsApi } from './aiCreditsApi/types'
+import type { ApiKeyActions } from './useApiKey'
 import type {
   AiCreditsWidgetProps,
   AiCreditsWidgetEnvironment,
@@ -48,7 +50,6 @@ import type {
   AiCreditsWidgetTab,
   AiCreditsQuote,
 } from './widgetRuntimeContract'
-import { compactButtonProps } from './components/shared/styles'
 
 const CELO_CHAIN_ID = 42220
 
@@ -65,9 +66,11 @@ interface AiCreditsInnerProps {
   onPaySuccess?: (detail: AiCreditsPaySuccessDetail) => void
   onPayError?: (detail: AiCreditsPayErrorDetail) => void
   showWalletControls?: boolean
+  aiCreditsApi?: AiCreditsApi
 }
 
-function SetupConnectPrompt({
+/** Prompt shown on the Buy tab until a wallet is connected. */
+function ConnectPrompt({
   onConnect,
   connecting,
 }: {
@@ -87,29 +90,6 @@ function SetupConnectPrompt({
           void onConnect()
         }}
       />
-    </YStack>
-  )
-}
-
-function SetupTabPanel({
-  state,
-  actions,
-  onConnect,
-}: {
-  state: AiCreditsWidgetAdapterState
-  actions: AiCreditsWidgetAdapterActions
-  onConnect: () => Promise<void>
-}) {
-  if (needsWalletConnection(state)) {
-    return <SetupConnectPrompt onConnect={onConnect} connecting={state.status === 'connecting'} />
-  }
-
-  return (
-    <YStack gap="$4" width="100%">
-      <Text tone="soft" fontSize="$2">
-        One-time setup required before buying AI Credits.
-      </Text>
-      <SetupOnboardingFlow state={state} actions={actions} />
     </YStack>
   )
 }
@@ -191,57 +171,31 @@ function SwitchChainNotice({
   )
 }
 
-/**
- * Standing disclaimer that buying and using credits are different jobs: the
- * purchase works anywhere, but Antseed runs on a desktop, so a phone-only user
- * cannot finish setup or spend what they bought.
- *
- * Collapsed by default to keep it off the top of every panel, but the warning
- * itself stays on the summary line — folding away the sentence that says "you
- * need a computer" would defeat the point of showing it at all. Only the
- * reassuring half, that buying on a phone is fine, is behind the toggle.
- */
-function DesktopRequiredNotice() {
-  const [expanded, setExpanded] = useState(false)
-
-  return (
-    <AiCreditsStatusNotice>
-      <XStack
-        gap="$2"
-        alignItems="flex-start"
-        cursor="pointer"
-        aria-expanded={expanded}
-        onPress={() => setExpanded((prev) => !prev)}
-      >
-        <Icon name="info" size="sm" color="muted" />
-        <Text fontSize="$2" lineHeight="$3" flex={1}>
-          <Text fontSize="$2" fontWeight="700">
-            Please note:
-          </Text>{' '}
-          Using your AI credits requires a desktop computer.
-        </Text>
-        <Icon name={expanded ? 'chevron-up' : 'chevron-down'} size="xs" color="muted" />
-      </XStack>
-      {expanded && (
-        <Text fontSize="$2" lineHeight="$3" tone="soft" paddingLeft="$6">
-          You can buy credits and set up your Signer Key from your phone. To use your AI credits, you’ll need a desktop computer.
-        </Text>
-      )}
-    </AiCreditsStatusNotice>
-  )
-}
-
 interface BuyPanelProps {
   state: AiCreditsWidgetAdapterState
   actions: AiCreditsWidgetAdapterActions
   isPending: boolean
+  /** False when no `aiCreditsApi` is configured, so a purchase could not be turned into a key. */
+  isPurchaseAvailable: boolean
   onPay: (quote: AiCreditsQuote) => void
 }
 
-function BuyCreditsPanel({ state, actions, isPending, onPay }: BuyPanelProps) {
+function BuyCreditsPanel({ state, actions, isPending, isPurchaseAvailable, onPay }: BuyPanelProps) {
   let content: React.ReactNode
 
-  if (state.status === 'unsupported_chain') {
+  if (!isPurchaseAvailable) {
+    // Paying without a key backend would take real G$ and hand back no key.
+    content = (
+      <AiCreditsStatusNotice>
+        <Text color="$warning" fontWeight="700">
+          Buying credits is not available yet
+        </Text>
+        <Text tone="soft">
+          GoodDollar AI credits are not open for purchase yet. Your wallet has not been charged.
+        </Text>
+      </AiCreditsStatusNotice>
+    )
+  } else if (state.status === 'unsupported_chain') {
     content = <SwitchChainNotice actions={actions} error={state.error} />
   } else if (state.status === 'payment_failed') {
     content = (
@@ -296,7 +250,7 @@ function BuyCreditsPanel({ state, actions, isPending, onPay }: BuyPanelProps) {
     const message =
       state.status === 'payment_pending'
         ? 'Transaction submitted — waiting for confirmation…'
-        : 'Payment confirmed — settling credits on Base…'
+        : 'Payment confirmed — adding your GoodDollar AI credits…'
 
     content = (
       <Card>
@@ -311,15 +265,6 @@ function BuyCreditsPanel({ state, actions, isPending, onPay }: BuyPanelProps) {
   } else {
     content = (
       <>
-        {state.error && (
-          <AiCreditsStatusNotice>
-            <Text color="$error" fontWeight="700">
-              Deep link unavailable
-            </Text>
-            <Text tone="soft">{state.error}</Text>
-          </AiCreditsStatusNotice>
-        )}
-
         {state.address && (
           <AiCreditsHero gBalance={state.gBalance} isGoodIdVerified={state.isGoodIdVerified} />
         )}
@@ -352,63 +297,6 @@ function BuyCreditsPanel({ state, actions, isPending, onPay }: BuyPanelProps) {
   return <YStack gap="$4">{content}</YStack>
 }
 
-function ManagePanel({
-  state,
-  actions,
-}: {
-  state: AiCreditsWidgetAdapterState
-  actions: AiCreditsWidgetAdapterActions
-}) {
-  const [refreshing, setRefreshing] = React.useState(false)
-
-  const handleRefresh = async () => {
-    setRefreshing(true)
-    try {
-      await actions.refresh()
-    } finally {
-      setRefreshing(false)
-    }
-  }
-
-  return (
-    <YStack gap="$3" width="100%">
-      {state.error && (
-        <AiCreditsStatusNotice>
-          <Text color="$error" fontSize="$2">
-            {state.error}
-          </Text>
-        </AiCreditsStatusNotice>
-      )}
-
-      <CreditsManagementCard state={state} actions={actions} />
-
-      <SignerOperatorCard state={state} actions={actions} />
-
-      <YStack gap="$2" width="100%" alignItems="center">
-        {state.error && (
-          <Text color="$error" fontSize="$2" textAlign="center">
-            {state.error}
-          </Text>
-        )}
-        <Button
-          variant="outline"
-          size="sm"
-          alignSelf="stretch"
-          gap="$2"
-          disabled={refreshing}
-          {...compactButtonProps}
-          onPress={() => {
-            void handleRefresh()
-          }}
-        >
-          {refreshing ? <Spinner size="sm" /> : <Icon name="refresh" size="sm" color="muted" />}
-          <ButtonText>{refreshing ? 'Refreshing…' : 'Refresh Balance'}</ButtonText>
-        </Button>
-      </YStack>
-    </YStack>
-  )
-}
-
 function AiCreditsInner({
   environment,
   backendUrl,
@@ -422,7 +310,22 @@ function AiCreditsInner({
   onPaySuccess,
   onPayError,
   showWalletControls = false,
+  aiCreditsApi,
 }: AiCreditsInnerProps) {
+  // The adapter needs the success callback before `useApiKey` exists, so it reaches the hook through a ref.
+  const fulfillPurchaseRef = useRef<ApiKeyActions['fulfillPurchase'] | null>(null)
+  const handlePaySuccess = useCallback(
+    (detail: AiCreditsPaySuccessDetail) => {
+      void fulfillPurchaseRef.current?.({
+        accountId: detail.address,
+        creditUsdMicro: detail.creditUsdMicro,
+        transactionHash: detail.transactionHash,
+      })
+      onPaySuccess?.(detail)
+    },
+    [onPaySuccess],
+  )
+
   const defaultAdapter = useAiCreditsAdapter({
     environment,
     backendUrl,
@@ -431,7 +334,7 @@ function AiCreditsInner({
     fundingVaultAddress: fundingVaultAddress as `0x${string}` | undefined,
     vaultAddress: vaultAddress as `0x${string}` | undefined,
     goodIdAddress: goodIdAddress as `0x${string}` | undefined,
-    onPaySuccess,
+    onPaySuccess: handlePaySuccess,
     onPayError,
     backendClient: adapterOptions?.backendClient,
     chainClient: adapterOptions?.chainClient,
@@ -446,19 +349,15 @@ function AiCreditsInner({
   const activeAdapter = factoryAdapter ?? defaultAdapter
 
   const { state, actions } = activeAdapter
-  const onSignersDiscoveredRef = React.useRef(actions.discoverSigners)
-  onSignersDiscoveredRef.current = actions.discoverSigners
-  const onSignersDiscovered = useCallback((addresses: string[]) => {
-    onSignersDiscoveredRef.current(addresses)
-  }, [])
+
+  const apiKey = useApiKey({ aiCreditsApi, accountId: state.address })
+  fulfillPurchaseRef.current = apiKey.actions.fulfillPurchase
 
   const history = useAiCreditsHistory({
     address: state.address,
     backendUrl,
-    defaultSignerFilter: state.signerPubKey ?? 'all',
     environment,
     backendClient: adapterOptions?.backendClient,
-    onSignersDiscovered,
   })
 
   const handlePay = useCallback(
@@ -490,47 +389,73 @@ function AiCreditsInner({
 
   const [helpView, setHelpView] = useState<'how-to-use' | 'faq' | null>(null)
 
+  const isKeyManagementAvailable = !!aiCreditsApi
+
   const isPending = state.status === 'payment_pending' || state.status === 'payment_confirmed'
 
   const handleTabChange = useCallback(
     (tabId: string) => {
-      if (tabId !== 'setup') {
-        setHelpView(null)
-      }
+      setHelpView(null)
       actions.setActiveTab(tabId as AiCreditsWidgetTab)
     },
     [actions],
   )
 
   // Ending the session leaves every other tab showing empty rows, so the widget
-  // returns to Setup — the only tab that has something to say while disconnected.
+  // returns to Buy Credits — the only tab that has something to say while disconnected.
   const handleDisconnected = useCallback(() => {
     setHelpView(null)
-    actions.setActiveTab('setup')
+    actions.setActiveTab('buy')
   }, [actions])
 
   const walletRequired = needsWalletConnection(state)
 
-  const handleHelpViewOpen = useCallback(
-    (view: 'how-to-use' | 'faq') => {
-      actions.setActiveTab('setup')
-      setHelpView(view)
-    },
-    [actions],
-  )
+  const handleHelpViewOpen = useCallback((view: 'how-to-use' | 'faq') => {
+    setHelpView(view)
+  }, [])
+
+  const handleBuyCredits = useCallback(() => {
+    setHelpView(null)
+    actions.setActiveTab('buy')
+  }, [actions])
 
   const handleHelpViewClose = useCallback(() => {
     setHelpView(null)
   }, [])
 
-  const setupPanel =
-    helpView === 'how-to-use' ? (
-      <HowToUseView onBack={handleHelpViewClose} />
-    ) : helpView === 'faq' ? (
-      <SetupFaqView onBack={handleHelpViewClose} />
-    ) : (
-      <SetupTabPanel state={state} actions={actions} onConnect={actions.connect} />
+  let tabContent: React.ReactNode
+  if (helpView === 'how-to-use') {
+    tabContent = <HowToUseView onBack={handleHelpViewClose} />
+  } else if (helpView === 'faq') {
+    tabContent = <FaqView onBack={handleHelpViewClose} />
+  } else if (walletRequired) {
+    tabContent = <ConnectPrompt onConnect={actions.connect} connecting={state.status === 'connecting'} />
+  } else if (state.activeTab === 'apiKey') {
+    tabContent = (
+      <ApiKeyPanel
+        state={state}
+        actions={actions}
+        apiKeyState={apiKey.state}
+        apiKeyActions={apiKey.actions}
+        isKeyManagementAvailable={isKeyManagementAvailable}
+        onBuyCredits={handleBuyCredits}
+      />
     )
+  } else if (state.activeTab === 'history') {
+    tabContent = <HistoryTab state={history.state} actions={history.actions} />
+  } else {
+    tabContent = (
+      <BuyCreditsPanel
+        state={state}
+        actions={actions}
+        isPending={isPending}
+        isPurchaseAvailable={isKeyManagementAvailable}
+        onPay={(quote) => {
+          void handlePay(quote)
+        }}
+      />
+    )
+  }
 
   return (
     <YStack gap="$2" padding="$3" width="100%">
@@ -543,7 +468,7 @@ function AiCreditsInner({
           {showWalletControls && <WalletControls size="sm" onDisconnected={handleDisconnected} />}
         </XStack>
       </XStack>
-      <SetupGuidanceCard
+      <GuidanceCard
         activeHelpView={helpView}
         onHowToUse={() => {
           handleHelpViewOpen('how-to-use')
@@ -557,38 +482,23 @@ function AiCreditsInner({
       />
       <WidgetTabs
         tabs={[
-          { id: 'setup', label: 'Set Up' },
           { id: 'buy', label: 'Buy Credits' },
-          { id: 'manage', label: 'Manage' },
+          { id: 'apiKey', label: 'API Key' },
           { id: 'history', label: 'History' },
         ]}
-        activeTab={walletRequired ? 'setup' : state.activeTab}
+        activeTab={walletRequired ? 'buy' : state.activeTab}
         onTabChange={handleTabChange}
-        isTabDisabled={(tabId) => walletRequired && tabId !== 'setup'}
+        isTabDisabled={(tabId) => walletRequired && tabId !== 'buy'}
         withConnectionStatus={false}
       />
-      <DesktopRequiredNotice />
 
-      {walletRequired || state.activeTab === 'setup' ? (
-        setupPanel
-      ) : state.activeTab === 'manage' ? (
-        <ManagePanel state={state} actions={actions} />
-      ) : state.activeTab === 'history' ? (
-        <HistoryTab
-          state={history.state}
-          actions={history.actions}
-          knownSigners={state.signers.map((address) => ({ address }))}
-        />
-      ) : (
-        <BuyCreditsPanel
-          state={state}
-          actions={actions}
-          isPending={isPending}
-          onPay={(quote) => {
-            void handlePay(quote)
-          }}
-        />
-      )}
+      {tabContent}
+
+      <ApiKeyReadySheet
+        fullKey={apiKey.state.revealedKey}
+        baseUrl={apiKey.state.account?.baseUrl ?? ''}
+        onDismiss={apiKey.actions.dismissRevealedKey}
+      />
     </YStack>
   )
 }
@@ -618,6 +528,7 @@ export function AiCreditsWidget({
   onPayError,
   adapterFactory,
   adapterOptions,
+  aiCreditsApi,
   testId,
 }: AiCreditsWidgetProps) {
   return (
@@ -649,8 +560,10 @@ export function AiCreditsWidget({
           onPaySuccess={onPaySuccess}
           onPayError={onPayError}
           showWalletControls={showWalletControls}
+          aiCreditsApi={aiCreditsApi}
         />
         <ToastContainer />
+        <GoodWidgetDialog />
         <WidgetVersion name="AI Credits" version={version} />
       </YStack>
     </GoodWidgetProvider>
