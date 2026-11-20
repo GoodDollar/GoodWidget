@@ -40,7 +40,7 @@ const WEEK1: MetricDefinition = {
   mind: '',
   unit: 'pct',
   asIs: true,
-  firstValue: 'Nov 29',
+  firstValueDate: '2026-11-29',
 }
 
 function report(status: string, teams: Array<[string, Record<string, number>]>): BuildersReport {
@@ -148,4 +148,33 @@ test('values an abbreviated label hides are listed in full', () => {
 test('a zero stays a zero bar with its own label', () => {
   const model = buildCardModel(TX, report('success', [['A', { s5_project_tx_count: 0 }]]), '2026-11-15')
   assert.equal(model.kind === 'bars' && model.rows[0].value, 0)
+})
+
+test('the first-value message stops once the report is dated on or after that date', () => {
+  const lateReport = { ...report('success', [['Valor', { s5_project_tx_count: 1 }]]), date: '2026-12-20' }
+  const model = buildCardModel(WEEK1, lateReport, '2026-11-15')
+  assert.deepEqual(model, { kind: 'placeholder', text: 'Not in the latest report (Dec 20).' })
+  const onTheDay = { ...lateReport, date: '2026-11-29' }
+  assert.equal(buildCardModel(WEEK1, onTheDay, '2026-11-15').kind, 'placeholder')
+  assert.deepEqual(buildCardModel(WEEK1, { ...lateReport, date: '2026-11-22' }, '2026-11-15'), {
+    kind: 'placeholder',
+    text: 'First value in the Nov 29 report.',
+  })
+})
+
+test('when no team has the account a metric needs, the registry reason is kept after a successful report', () => {
+  const model = buildCardModel(
+    GITHUB,
+    report('success', [
+      ['Valor', { s5_project_tx_count: 1 }],
+      ['UbeGames', { s5_project_tx_count: 2 }],
+    ]),
+    '2026-11-15',
+  )
+  assert.deepEqual(model, { kind: 'placeholder', text: 'No GitHub repo registered: Valor, UbeGames' })
+})
+
+test('when no team has the key after a partial report the wording stays neutral', () => {
+  const model = buildCardModel(GITHUB, report('partial', [['Valor', { s5_project_tx_count: 1 }]]), '2026-11-15')
+  assert.deepEqual(model, { kind: 'placeholder', text: 'Not in the latest report (Nov 15).' })
 })

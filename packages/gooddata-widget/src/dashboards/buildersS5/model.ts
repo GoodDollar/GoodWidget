@@ -109,13 +109,16 @@ export function buildCardModel(
   }
 
   if (rows.length === 0) {
-    // A metric that has not produced its first value yet says when to expect it; anything else was simply not in the report.
-    return {
-      kind: 'placeholder',
-      text: metric.firstValue
-        ? `First value in the ${metric.firstValue} report.`
-        : `Not in the latest report (${formatShortDate(parseIsoDate(report.date))}).`,
+    // No team has a value, so there is nothing to draw. Say why, in this order: the metric cannot have a value yet
+    // (reports dated before its first-value date), no team registered the account it needs (only after a report that
+    // finished without errors), or it is simply not in the report.
+    if (metric.firstValueDate && report.date < metric.firstValueDate) {
+      return { kind: 'placeholder', text: `First value in the ${formatShortDate(parseIsoDate(metric.firstValueDate))} report.` }
     }
+    if (metric.noneRegistered && report.status === 'success' && without.length > 0) {
+      return { kind: 'placeholder', text: `${metric.noneRegistered}: ${without.join(', ')}` }
+    }
+    return { kind: 'placeholder', text: `Not in the latest report (${formatShortDate(parseIsoDate(report.date))}).` }
   }
 
   rows.sort((a, b) => b.value - a.value)

@@ -24,8 +24,8 @@ export interface MetricDefinition {
   asIs: boolean
   /** Text for a team with no registered account, shown instead of a number. */
   noneRegistered?: string
-  /** Report date label (for example "Nov 29") when this metric first has a value. */
-  firstValue?: string
+  /** ISO date of the first report that can hold a value for this metric. Reports dated before it show "First value in the <date> report". */
+  firstValueDate?: string
 }
 
 export interface MetricSection {
@@ -63,7 +63,7 @@ export const METRIC_SECTIONS: MetricSection[] = [
         key: "s5_project_gd_volume",
         short: "G$ moved",
         name: "G$ moved between the project's addresses and user wallets",
-        what: "The G$ amount moved between the project and user wallets, split into G$ received by the project (in) and G$ sent by the project (out). The full bar is the total. G$ moved to or from smart contracts (an exchange, for example) is left out.",
+        what: "The G$ amount moved between the project and user wallets, in either direction. G$ moved to or from smart contracts (an exchange, for example) is left out.",
         mind: "G$ that goes in and then back out (a prize pool, for example) counts in both. It isn't revenue.",
         unit: "gd",
         asIs: false,
@@ -103,7 +103,7 @@ export const METRIC_SECTIONS: MetricSection[] = [
         mind: "It doesn't measure how often people come back. One transaction counts the same as fifty.",
         unit: "pct",
         asIs: true,
-        firstValue: "Nov 29",
+        firstValueDate: "2026-11-29",
       },
       {
         key: "s5_project_retention_epoch",
@@ -113,7 +113,7 @@ export const METRIC_SECTIONS: MetricSection[] = [
         mind: "It doesn't measure how often people come back. One transaction counts the same as fifty.",
         unit: "pct",
         asIs: true,
-        firstValue: "Dec 13",
+        firstValueDate: "2026-12-13",
       },
     ],
   },
