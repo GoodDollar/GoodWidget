@@ -1,42 +1,27 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { TamaguiProvider } from '@tamagui/core'
-import { BuildersS5Dashboard, type BuildersReport, type BuildersS5Data } from '@goodwidget/gooddata-widget'
+import { BuildersS5Dashboard, type BuildersReport, type BuildersS5Data, type TeamReport } from '@goodwidget/gooddata-widget'
 import { defaultConfig, YStack } from '@goodwidget/ui'
 
-// Fixed fixtures (shaped like the real Nov 15 report) so every render and screenshot is identical across runs.
-// UbeGames has no GitHub keys and Good drops has no Farcaster key, as in the real report; no return-rate keys exist yet.
-function team(name: string, tx: number, gdVolume: number, extra: Record<string, number> = {}) {
-  return {
-    name,
-    results: {
-      s5_project_tx_count: tx,
-      s5_project_gd_volume: gdVolume,
-      s5_project_gd_transfer_count: 3,
-      project_active_users: 5,
-      project_active_gd_users: 4,
-      project_onboarded_gd_users: 1,
-      x_followers: 100,
-      ...extra,
-    },
-  }
-}
-
-const GITHUB = { github_commits: 24, github_prs_closed: 148, github_score: 1050 }
+// Fixture: the stored gbmetrics report dated 2026-11-15 (GET https://gbmetrics.gooddollar.org/getReport?date=2026-11-15,
+// read 2026-11-20), copied unchanged so every render and screenshot shows the real numbers and is identical across runs.
+// UbeGames has no GitHub keys and Good drops has no Farcaster key in the real report; no return-rate keys exist yet.
+const NOV_15_TEAMS: TeamReport[] = [
+  { name: 'Good drops', results: {project_tx_count:11,project_gd_volume:10,project_active_users:0,project_active_gd_users:0,project_onboarded_gd_users:0,s5_project_tx_count:11,s5_project_gd_volume:10,s5_project_gd_transfer_count:1,github_commits:5,github_prs_closed:0,github_score:980,x_followers:89,x_tweets:97} },
+  { name: 'UbeGames', results: {project_tx_count:1972,project_gd_volume:0,project_active_users:479,project_active_gd_users:124,project_onboarded_gd_users:5,s5_project_tx_count:1972,s5_project_gd_volume:0,s5_project_gd_transfer_count:0,farcaster_followers:10,x_followers:68,x_tweets:13} },
+  { name: 'ACTION-ORDER', results: {project_tx_count:71,project_gd_volume:20300.000056,project_active_users:48,project_active_gd_users:45,project_onboarded_gd_users:36,s5_project_tx_count:71,s5_project_gd_volume:20300.000056,s5_project_gd_transfer_count:15,github_commits:0,github_prs_closed:180,github_score:757,x_followers:145,x_tweets:4721} },
+  { name: 'Blockslide', results: {project_tx_count:40,project_gd_volume:55,project_active_users:9,project_active_gd_users:6,project_onboarded_gd_users:1,s5_project_tx_count:40,s5_project_gd_volume:55,s5_project_gd_transfer_count:2,github_commits:32,github_prs_closed:158,github_score:978,farcaster_followers:0,x_followers:27,x_tweets:98} },
+  { name: 'Onward', results: {project_tx_count:175,project_gd_volume:20300,project_active_users:7,project_active_gd_users:6,project_onboarded_gd_users:1,s5_project_tx_count:175,s5_project_gd_volume:20300,s5_project_gd_transfer_count:180,github_commits:0,github_prs_closed:70,github_score:803,x_followers:111,x_tweets:36} },
+  { name: 'Valor', results: {project_tx_count:1709,project_gd_volume:1701511.364086505,project_active_users:5,project_active_gd_users:4,project_onboarded_gd_users:0,s5_project_tx_count:1709,s5_project_gd_volume:1701511.364086505,s5_project_gd_transfer_count:335,github_commits:24,github_prs_closed:148,github_score:1050,farcaster_followers:3,x_followers:161,x_tweets:433} },
+  { name: 'Delulu', results: {project_tx_count:549,project_gd_volume:118270,project_active_users:13,project_active_gd_users:11,project_onboarded_gd_users:2,s5_project_tx_count:549,s5_project_gd_volume:118270,s5_project_gd_transfer_count:101,github_commits:10,github_prs_closed:222,github_score:1040,x_followers:109,x_tweets:275} },
+]
 
 function report(status: string): BuildersReport {
   return {
     date: '2026-11-15',
     status,
-    errors: status === 'success' ? [] : ['github: rate limited'],
-    teams: [
-      team('Valor', 1709, 1701511.364, { ...GITHUB, farcaster_followers: 3 }),
-      team('UbeGames', 1972, 0, { farcaster_followers: 10 }),
-      team('ACTION-ORDER', 71, 20300.000056, GITHUB),
-      team('Blockslide', 40, 55, { ...GITHUB, farcaster_followers: 0 }),
-      team('Onward', 175, 20300, GITHUB),
-      team('Good drops', 11, 10, GITHUB),
-      team('Delulu', 549, 118270, GITHUB),
-    ],
+    errors: status === 'success' ? [] : ['fixture: this report is shown as partial to check the banner'],
+    teams: NOV_15_TEAMS,
   }
 }
 

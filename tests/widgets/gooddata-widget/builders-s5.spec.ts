@@ -27,6 +27,13 @@ test('BuildersS5Dashboard latest report on desktop — every card, every team na
   await expect(root.getByTestId('metric-chart-s5_project_tx_count-value-Blockslide')).toHaveText('40')
   await expect(root.getByTestId('metric-chart-s5_project_gd_volume-value-UbeGames')).toHaveText('G$ 0')
   await expect(root.getByTestId('metric-missing-github_commits')).toHaveText('No GitHub repo registered: UbeGames')
+  // Numbers from the real 2026-11-15 report (the story fixture is that report, unchanged).
+  await expect(root.getByTestId('metric-chart-project_active_users-value-UbeGames')).toHaveText('479')
+  await expect(root.getByTestId('metric-chart-project_active_gd_users-value-ACTION-ORDER')).toHaveText('45')
+  await expect(root.getByTestId('metric-chart-project_onboarded_gd_users-value-ACTION-ORDER')).toHaveText('36')
+  await expect(root.getByTestId('metric-chart-s5_project_gd_transfer_count-value-Onward')).toHaveText('180')
+  await expect(root.getByTestId('metric-chart-github_prs_closed-value-Delulu')).toHaveText('222')
+  await expect(root.getByTestId('metric-chart-x_followers-value-Valor')).toHaveText('161')
   await expect(root.getByTestId('metric-placeholder-s5_project_retention_week1')).toHaveText('First value in the Nov 29 report.')
   await page.screenshot({ path: `${SHOTS}/bs5-01-latest-desktop.png`, fullPage: true })
 })
