@@ -12,12 +12,7 @@ import {
 } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { buildSignerKeyMessage, deriveSignerPrivateKeyFromSignature } from './signerKeyDerivation'
-import {
-  normalizeChannelId,
-  signRequestClose,
-  signRevokeOperator,
-  signWithdrawPrincipal,
-} from './signerSignatures'
+import { signRevokeOperator } from './signerSignatures'
 import {
   totalCreditUsdFromProfile,
   buildAccountView,
@@ -63,7 +58,7 @@ import { executeCeloPayment, G_TOKEN_CELO_ADDRESS, isStreamAmountChanged } from 
 import { startGoodIdVerification, isUserRejectedWalletRequest } from './goodIdVerification'
 import { mapPaymentError } from './paymentErrors'
 import { fetchVaultPaymentMinimums, validateVaultPaymentAmounts } from './vaultMinimums'
-import { quoteTotalUsdMicro, usdDisplayToMicro } from './quoteMath'
+import { quoteTotalUsdMicro } from './quoteMath'
 import type {
   AiCreditsWidgetAdapterActions,
   AiCreditsWidgetAdapterResult,
@@ -123,11 +118,10 @@ const INITIAL_STATE: AiCreditsWidgetAdapterState = {
   minStreamUsd: null,
   totalGdDepositedG: null,
   monthlyStreamG: null,
-  withdrawableUsd: null,
   depositBonusPercent: DEFAULT_DISCOUNT_CONFIG.depositBonusPercent,
   streamBonusPercent: DEFAULT_DISCOUNT_CONFIG.streamBonusPercent,
   error: null,
-  activeTab: 'setup',
+  activeTab: 'buy',
   signers: [],
   derivedSignerAddress: null,
 }
@@ -140,7 +134,6 @@ const WALLET_LOADING_STATE: Partial<AiCreditsWidgetAdapterState> = {
   minStreamUsd: null,
   totalGdDepositedG: null,
   monthlyStreamG: null,
-  withdrawableUsd: null,
   operatorAddress: null,
   currentOperator: null,
 }
@@ -189,7 +182,7 @@ function selectPreferredSigner(signers: string[], preferredSigner?: string | nul
 }
 
 function isNonBuyTab(tab: AiCreditsWidgetTab): boolean {
-  return tab === 'setup' || tab === 'manage' || tab === 'history'
+  return tab === 'apiKey' || tab === 'history'
 }
 
 export function needsWalletConnection(state: AiCreditsWidgetAdapterState): boolean {
@@ -200,34 +193,16 @@ export function needsWalletConnection(state: AiCreditsWidgetAdapterState): boole
   )
 }
 
-function resolveDefaultActiveTab(
-  payerAddress: string | null,
-  totalCreditUsd: string | null,
-): AiCreditsWidgetTab {
-  if (hasCreditBalance(totalCreditUsd)) return 'manage'
-  if (payerAddress && listKnownSignerAddresses(payerAddress).length > 0) return 'buy'
-  return 'setup'
-}
-
 function resolveActiveTab(
   prev: AiCreditsWidgetAdapterState,
   overrides: Partial<AiCreditsWidgetAdapterState>,
 ): AiCreditsWidgetTab {
   if (overrides.activeTab !== undefined) return overrides.activeTab
 
-  const payerAddress = overrides.address !== undefined ? overrides.address : prev.address
-  const totalCreditUsd =
-    overrides.totalCreditUsd !== undefined ? overrides.totalCreditUsd : prev.totalCreditUsd
+  // Buy Credits is the landing tab for every wallet, whether or not it already holds credits.
+  if (overrides.address !== undefined && overrides.address !== prev.address) return 'buy'
 
-  if (overrides.totalCreditUsd !== undefined && overrides.totalCreditUsd !== null) {
-    return resolveDefaultActiveTab(payerAddress, overrides.totalCreditUsd)
-  }
-
-  if (overrides.address !== undefined && overrides.address !== prev.address) {
-    return resolveDefaultActiveTab(payerAddress, totalCreditUsd)
-  }
-
-  return prev.activeTab ?? resolveDefaultActiveTab(payerAddress, totalCreditUsd)
+  return prev.activeTab ?? 'buy'
 }
 
 function hasCreditBalance(totalCreditUsd: string | null): boolean {
@@ -236,7 +211,7 @@ function hasCreditBalance(totalCreditUsd: string | null): boolean {
 
 /**
  * Reads the wallet's G$ balance from Celo. Both the connect load and the
- * refresh action go through here so the Manage tab's "Refresh Balance" button
+ * refresh action go through here so the API Key tab's "Refresh Balance" button
  * actually re-reads the balance it names.
  */
 async function readGBalance(client: PublicClient, account: string): Promise<string> {
@@ -394,7 +369,6 @@ function viewToStatePatch(
           currentOperator: view.operator.currentOperator ?? null,
         }
       : {}),
-    ...(view.withdrawableUsd !== null ? { withdrawableUsd: view.withdrawableUsd } : {}),
     totalGdDepositedG: enriched.totalGdDepositedG,
     monthlyStreamG: enriched.monthlyStreamG,
   }
@@ -887,8 +861,7 @@ export function useAiCreditsAdapter({
           operatorAddress: null,
           currentOperator: null,
           totalCreditUsd: null,
-          withdrawableUsd: null,
-          totalGdDepositedG: null,
+                  totalGdDepositedG: null,
           monthlyStreamG: null,
           operatorConsentPending: false,
           error: null,
@@ -981,8 +954,7 @@ export function useAiCreditsAdapter({
             operatorAddress: null,
             currentOperator: null,
             totalCreditUsd: null,
-            withdrawableUsd: null,
-            totalGdDepositedG: null,
+                      totalGdDepositedG: null,
             monthlyStreamG: null,
             error: null,
             ...(!isNonBuyTab(prev.activeTab) ? { status: 'purchase_setup' } : {}),
@@ -1101,8 +1073,7 @@ export function useAiCreditsAdapter({
           operatorAddress: null,
           currentOperator: null,
           totalCreditUsd: null,
-          withdrawableUsd: null,
-          totalGdDepositedG: null,
+                  totalGdDepositedG: null,
           monthlyStreamG: null,
           activeTab: 'buy',
           operatorConsentPending: false,
@@ -1529,7 +1500,7 @@ export function useAiCreditsAdapter({
             ...signerFields,
             totalCreditUsd,
             error: null,
-            activeTab: 'manage',
+            activeTab: 'apiKey',
           }),
         )
 
@@ -1722,125 +1693,6 @@ export function useAiCreditsAdapter({
     return () => window.removeEventListener('focus', onFocus)
   }, [handleRefresh])
 
-  const handleCloseChannel = useCallback(
-    async (channelIdInput: string) => {
-      const currentState = state
-      const channelId = normalizeChannelId(channelIdInput)
-      if (!channelId) {
-        setState((prev) => ({
-          ...prev,
-          error: 'Enter a valid channel ID (0x followed by 64 hex characters)',
-        }))
-        return
-      }
-      if (!currentState.signerPrvKey) {
-        setState((prev) => ({
-          ...prev,
-          error:
-            'Sign with your payer wallet in Signer Key below to generate the signer private key before closing a channel',
-        }))
-        return
-      }
-      if (!fundingVaultAddress) {
-        setState((prev) => ({
-          ...prev,
-          error: 'Funding vault address is not configured',
-        }))
-        return
-      }
-
-      try {
-        const signer = currentState.signerPubKey
-        if (!signer) {
-          setState((prev) => ({ ...prev, error: 'Select a signer before closing a channel' }))
-          return
-        }
-        const nonce = await chainClient.getSignerAuthNonce(signer)
-        const signature = await signRequestClose({
-          signerPrivateKey: currentState.signerPrvKey as `0x${string}`,
-          fundingVaultAddress,
-          channelId,
-          nonce,
-        })
-
-        await backendClient.closeChannel(channelId, { nonce: nonce.toString(), signature })
-        setState((prev) => ({ ...prev, error: null }))
-      } catch (err: unknown) {
-        setState((prev) => ({
-          ...prev,
-          error: err instanceof Error ? err.message : 'Close channel failed',
-        }))
-      }
-    },
-    [state, backendClient, chainClient, fundingVaultAddress],
-  )
-
-  const handleWithdrawCredits = useCallback(
-    async (withdrawAmount: string) => {
-      const currentState = state
-      if (!currentState.address || !currentState.signerPubKey) return
-      if (!currentState.signerPrvKey) {
-        setState((prev) => ({
-          ...prev,
-          error:
-            'Sign with your payer wallet in Signer Key below to generate the signer private key before withdrawing funds',
-        }))
-        return
-      }
-      if (!fundingVaultAddress) {
-        setState((prev) => ({
-          ...prev,
-          error: 'Funding vault address is not configured',
-        }))
-        return
-      }
-      if (!withdrawAmount.trim()) {
-        setState((prev) => ({ ...prev, error: 'Enter an amount to withdraw' }))
-        return
-      }
-
-      try {
-        const amount = usdDisplayToMicro(withdrawAmount.trim())
-        const withdrawable = BigInt(currentState.withdrawableUsd ?? '0')
-        if (BigInt(amount) <= 0n) {
-          setState((prev) => ({ ...prev, error: 'Enter a valid USD amount' }))
-          return
-        }
-        if (BigInt(amount) > withdrawable) {
-          setState((prev) => ({ ...prev, error: 'Amount exceeds withdrawable principal' }))
-          return
-        }
-
-        const signer = currentState.signerPubKey as Address
-        const payer = currentState.address as Address
-        const nonce = await chainClient.getSignerAuthNonce(signer)
-        const signature = await signWithdrawPrincipal({
-          signerPrivateKey: currentState.signerPrvKey as `0x${string}`,
-          fundingVaultAddress,
-          signer,
-          amountMicro: BigInt(amount),
-          recipient: payer,
-          nonce,
-        })
-
-        await backendClient.withdrawCredits(signer, {
-          amount,
-          recipient: payer,
-          nonce: nonce.toString(),
-          signature,
-        })
-        setState((prev) => ({ ...prev, error: null }))
-        await handleRefresh()
-      } catch (err: unknown) {
-        setState((prev) => ({
-          ...prev,
-          error: err instanceof Error ? err.message : 'Withdraw failed',
-        }))
-      }
-    },
-    [state, backendClient, chainClient, fundingVaultAddress, handleRefresh],
-  )
-
   const handleRetry = useCallback(async () => {
     if (configurationError) {
       setState((prev) => ({
@@ -1856,9 +1708,6 @@ export function useAiCreditsAdapter({
   const handleSetActiveTab = useCallback((tab: AiCreditsWidgetTab) => {
     setState((prev) => {
       if (needsWalletConnection(prev)) {
-        if (tab === 'setup') {
-          return mergeStatePreservingNonBuyTab(prev, { activeTab: 'setup', error: null })
-        }
         return prev
       }
       if (tab === 'buy') {
@@ -1942,8 +1791,6 @@ export function useAiCreditsAdapter({
       verifyGoodId: handleVerifyGoodId,
       startPurchase: handleStartPurchase,
       setActiveTab: handleSetActiveTab,
-      closeChannel: handleCloseChannel,
-      withdrawCredits: handleWithdrawCredits,
       retry: handleRetry,
     }),
     [
@@ -1963,8 +1810,6 @@ export function useAiCreditsAdapter({
       handleVerifyGoodId,
       handleStartPurchase,
       handleSetActiveTab,
-      handleCloseChannel,
-      handleWithdrawCredits,
       handleRetry,
     ],
   )

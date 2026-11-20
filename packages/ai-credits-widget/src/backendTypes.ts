@@ -77,8 +77,6 @@ export type AccountView = {
    * "not authorized", or an already-authorized account looks unconfigured.
    */
   operator: SignerOperatorStatus | null
-  /** Null when the withdrawable read did not answer. */
-  withdrawableUsd: string | null
   outstandingFundingUsd: string
   outstandingFundingCount: number
 }

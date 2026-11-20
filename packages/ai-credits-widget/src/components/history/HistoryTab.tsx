@@ -19,15 +19,10 @@ import { compactButtonProps } from '../shared/styles'
 import type {
   AiCreditsHistoryActions,
   AiCreditsHistoryState,
-  SignerAddressFilter,
   CreditHistorySource,
   CreditHistoryStatusFilter,
 } from '../../useAiCreditsHistory'
-import {
-  BUYER_FILTER_ALL,
-  HISTORY_LOOKBACK_DAYS,
-  getLast90DaysRange,
-} from '../../useAiCreditsHistory'
+import { HISTORY_LOOKBACK_DAYS, getLast90DaysRange } from '../../useAiCreditsHistory'
 
 const STATUS_OPTIONS = [
   { label: 'All', value: 'all' },
@@ -45,8 +40,6 @@ const SOURCE_PILL_OPTIONS: { id: CreditHistorySource; label: string }[] = [
 export interface HistoryTabProps {
   state: AiCreditsHistoryState
   actions: AiCreditsHistoryActions
-  /** Known signer records to populate the signer filter dropdown. */
-  knownSigners?: { address: string; label?: string }[]
 }
 
 function sourceLabel(source: CreditHistorySource): string {
@@ -448,103 +441,10 @@ function StatusFilterSelect({
   )
 }
 
-/** Dropdown for filtering history entries by Signer Address. */
-function SignerFilterSelect({
-  value,
-  signers,
-  onValueChange,
-}: {
-  value: SignerAddressFilter
-  signers: { address: string; label?: string }[]
-  onValueChange: (value: SignerAddressFilter) => void
-}) {
-  const [open, setOpen] = useState(false)
-
-  // Only render when there are known signers to filter by
-  if (signers.length === 0) return null
-
-  const options = [
-    { value: BUYER_FILTER_ALL, label: 'All signers' },
-    ...signers.map((b) => ({
-      value: b.address,
-      label: b.label ?? `${b.address.slice(0, 6)}…${b.address.slice(-4)}`,
-    })),
-  ]
-
-  const selected = options.find((o) => o.value === value) ?? options[0]
-
-  return (
-    <YStack flex={1} minWidth={0} position="relative" zIndex={open ? 25 : 1}>
-      <XStack
-        tag="button"
-        role="combobox"
-        height="$7"
-        alignItems="center"
-        justifyContent="space-between"
-        gap="$2"
-        paddingHorizontal="$3"
-        borderRadius="$3"
-        borderWidth={1}
-        borderColor="$borderColor"
-        backgroundColor="$background"
-        cursor="pointer"
-        onPress={() => setOpen((current) => !current)}
-      >
-        <Text fontSize="$2" color="$placeholderColor" numberOfLines={1} flex={1}>
-          Signer: {selected?.label ?? 'All signers'}
-        </Text>
-        <Icon name={open ? 'chevron-up' : 'chevron-down'} size="xs" color="muted" />
-      </XStack>
-
-      {open ? (
-        <YStack
-          position="absolute"
-          top="100%"
-          left={0}
-          right={0}
-          marginTop="$1"
-          borderRadius="$3"
-          borderWidth={1}
-          borderColor="$borderColor"
-          backgroundColor="$background"
-          overflow="hidden"
-          zIndex={35}
-        >
-          {options.map((option) => (
-            <XStack
-              key={option.value}
-              tag="button"
-              role="option"
-              paddingHorizontal="$3"
-              paddingVertical="$2"
-              cursor="pointer"
-              backgroundColor={option.value === value ? '$infoMuted' : 'transparent'}
-              hoverStyle={{ backgroundColor: '$backgroundPress' }}
-              onPress={() => {
-                onValueChange(option.value)
-                setOpen(false)
-              }}
-            >
-              <Text
-                fontSize="$2"
-                fontWeight={option.value === value ? '700' : '500'}
-                color={option.value === value ? '$primary' : '$color'}
-              >
-                {option.label}
-              </Text>
-            </XStack>
-          ))}
-        </YStack>
-      ) : null}
-    </YStack>
-  )
-}
-
-export function HistoryTab({ state, actions, knownSigners = [] }: HistoryTabProps) {
+export function HistoryTab({ state, actions }: HistoryTabProps) {
   const {
     selectedSources,
     statusFilter,
-    signerAddressFilter,
     fromDate,
     toDate,
     entries,
@@ -604,11 +504,6 @@ export function HistoryTab({ state, actions, knownSigners = [] }: HistoryTabProp
         <StatusFilterSelect
           value={statusFilter}
           onValueChange={actions.setStatusFilter}
-        />
-        <SignerFilterSelect
-          value={signerAddressFilter}
-          signers={knownSigners}
-          onValueChange={actions.setSignerAddressFilter}
         />
       </XStack>
 

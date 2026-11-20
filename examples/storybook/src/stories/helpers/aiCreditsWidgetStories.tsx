@@ -3,12 +3,13 @@ import type { EIP1193Provider } from '@goodwidget/core'
 import { YStack } from '@goodwidget/ui'
 import {
   AiCreditsWidget,
+  type AiCreditsApi,
   type AiCreditsWidgetAdapterFactory,
   type AiCreditsWidgetTab,
   type AiCreditsWidgetAdapterState,
   type AiCreditsWidgetStatus,
 } from '@goodwidget/ai-credits-widget'
-import { MockAiCreditsWidget } from '@goodwidget/ai-credits-widget/mocked'
+import { MockAiCreditsApi, MockAiCreditsWidget } from '@goodwidget/ai-credits-widget/mocked'
 import {
   DefaultAppKitProvider,
   DEFAULT_APPKIT_NETWORKS,
@@ -48,7 +49,6 @@ function createMockState(
     minStreamUsd: '1.00',
     totalGdDepositedG: null,
     monthlyStreamG: null,
-    withdrawableUsd: null,
     depositBonusPercent: 10,
     streamBonusPercent: 20,
     error: null,
@@ -85,8 +85,6 @@ function createAdapterFactory(
       verifyGoodId: async () => false,
       startPurchase: () => {},
       setActiveTab: () => {},
-      closeChannel: async () => {},
-      withdrawCredits: async () => {},
       retry: async () => {},
     },
   })
@@ -108,20 +106,25 @@ function MockStoryShell({
   provider,
   showWalletControls,
   disconnectOverride,
+  aiCreditsApi,
 }: {
   adapterFactory: AiCreditsWidgetAdapterFactory
   dataTestId: string
   provider?: EIP1193Provider
   showWalletControls?: boolean
   disconnectOverride?: () => Promise<void>
+  /** Omit for an empty mock account; pass `null` to render a host that configured no `aiCreditsApi`. */
+  aiCreditsApi?: AiCreditsApi | null
 }) {
+  // A stable instance keeps the widget's key state from resetting on every story re-render.
+  const defaultAiCreditsApi = useMemo(() => new MockAiCreditsApi(), [])
+  const resolvedAiCreditsApi =
+    aiCreditsApi === null ? undefined : (aiCreditsApi ?? defaultAiCreditsApi)
   const resolvedProviderRef = useRef<EIP1193Provider | null>(provider ?? null)
   const configErrorRef = useRef<unknown>(null)
 
-  // The fixtures return a frozen state object, so `setActiveTab` was a no-op and
-  // any flow that switches tabs silently did nothing. Opening How to use is one
-  // of those — the widget routes to Set Up to render it, so with a dead
-  // setActiveTab the guide never appeared and the Buy panel stayed on screen.
+  // The fixtures return a frozen state object, so `setActiveTab` would be a no-op and
+  // tab switches (including "Buy credits" from the API Key tab) would silently do nothing.
   const [tabOverride, setTabOverride] = useState<AiCreditsWidgetTab | null>(null)
   const statefulAdapterFactory: AiCreditsWidgetAdapterFactory = (input) => {
     const adapter = adapterFactory(input)
@@ -158,6 +161,7 @@ function MockStoryShell({
       <AiCreditsWidget
         provider={resolvedProviderRef.current!}
         adapterFactory={statefulAdapterFactory}
+        aiCreditsApi={resolvedAiCreditsApi}
         showWalletControls={showWalletControls}
         disconnectOverride={disconnectOverride}
       />
@@ -169,7 +173,7 @@ const DISCONNECTED_ADAPTER_FACTORY = createAdapterFactory('disconnected', {
   address: null,
   chainId: null,
   gBalance: null,
-  activeTab: 'setup',
+  activeTab: 'buy',
 })
 
 export function DisconnectedStory() {
@@ -190,7 +194,7 @@ export function ConnectingStory() {
         address: '0x329377cbeeF39f01b0Ea04B80465c9eB47D3ED1',
         chainId: 42220,
         gBalance: null,
-        activeTab: 'setup',
+        activeTab: 'buy',
       })}
     />
   )
@@ -258,23 +262,87 @@ export function PaymentConfirmedStory() {
   )
 }
 
-export function ManageTabStory() {
+const CONNECTED_WALLET_ADDRESS = '0x329377cbeeF39f01b0Ea04B80465c9eB47D3ED1'
+const SEEDED_SPEND_LIMIT_USD_MICRO = '110000000'
+
+const API_KEY_TAB_STATE_OVERRIDES: Partial<AiCreditsWidgetAdapterState> = {
+  totalCreditUsd: '110000000',
+  totalBonusUsd: '10000000',
+  totalGdDepositedG: '50.00',
+  monthlyStreamG: '5.00',
+  gBalance: '42.50',
+  activeTab: 'apiKey',
+}
+
+/** API Key tab for an account that already holds a key, with a spend limit and monthly usage. */
+export function ApiKeyTabActiveStory() {
+  const aiCreditsApi = useMemo(
+    () =>
+      new MockAiCreditsApi({
+        seededAccounts: { [CONNECTED_WALLET_ADDRESS]: { limitUsdMicro: SEEDED_SPEND_LIMIT_USD_MICRO } },
+        delayMs: 50,
+      }),
+    [],
+  )
+
   return (
     <MockStoryShell
-      dataTestId="AiCreditsWidget-manage-tab"
+      dataTestId="AiCreditsWidget-api-key-tab"
+      aiCreditsApi={aiCreditsApi}
+      adapterFactory={createAdapterFactory('quote_ready', API_KEY_TAB_STATE_OVERRIDES)}
+    />
+  )
+}
+
+/** API Key tab before the first purchase: no key exists yet. */
+export function ApiKeyTabEmptyStory() {
+  const aiCreditsApi = useMemo(() => new MockAiCreditsApi({ delayMs: 50 }), [])
+
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-api-key-tab-empty"
+      aiCreditsApi={aiCreditsApi}
+      adapterFactory={createAdapterFactory('quote_ready', API_KEY_TAB_STATE_OVERRIDES)}
+    />
+  )
+}
+
+/** API Key tab when the host configured no `aiCreditsApi` (production until the backend exists). */
+export function ApiKeyTabComingSoonStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-api-key-tab-coming-soon"
+      aiCreditsApi={null}
+      adapterFactory={createAdapterFactory('quote_ready', API_KEY_TAB_STATE_OVERRIDES)}
+    />
+  )
+}
+
+/** API Key tab when loading the account fails. */
+export function ApiKeyTabErrorStory() {
+  const aiCreditsApi = useMemo(
+    () => new MockAiCreditsApi({ failingMethods: ['getAccount'], delayMs: 50 }),
+    [],
+  )
+
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-api-key-tab-error"
+      aiCreditsApi={aiCreditsApi}
+      adapterFactory={createAdapterFactory('quote_ready', API_KEY_TAB_STATE_OVERRIDES)}
+    />
+  )
+}
+
+/** Buy tab when the host configured no `aiCreditsApi`: purchases stay disabled. */
+export function BuyTabUnavailableStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-buy-tab-unavailable"
+      aiCreditsApi={null}
       adapterFactory={createAdapterFactory('quote_ready', {
-        totalCreditUsd: '110000000',
-        totalBonusUsd: '10000000',
-        signerPubKey: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a',
-        // Unauthorizing is signed locally, so the Manage story needs the signer key
-        // for the Signer Key card to offer it.
-        signerPrvKey: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+        signerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
         operatorConsented: true,
-        operatorAddress: '0x0000000000000000000000000000000000000004',
-        totalGdDepositedG: '50.00',
-        monthlyStreamG: '5.00',
-        gBalance: '42.50',
-        activeTab: 'manage',
       })}
     />
   )
@@ -285,76 +353,11 @@ export function HistoryTabStory() {
     <MockStoryShell
       dataTestId="AiCreditsWidget-history-tab"
       adapterFactory={createAdapterFactory('quote_ready', {
-        totalCreditUsd: '110000000',
-        totalBonusUsd: '10000000',
-        signerPubKey: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a',
-        operatorConsented: true,
-        operatorAddress: '0x0000000000000000000000000000000000000004',
-        totalGdDepositedG: '50.00',
-        monthlyStreamG: '5.00',
-        gBalance: '42.50',
+        ...API_KEY_TAB_STATE_OVERRIDES,
         activeTab: 'history',
       })}
     />
   )
-}
-
-export function SetupTabStory() {
-  return (
-    <MockStoryShell
-      dataTestId="AiCreditsWidget-setup-tab"
-      adapterFactory={createAdapterFactory('purchase_setup', {
-        gBalance: '42.50',
-        activeTab: 'setup',
-      })}
-    />
-  )
-}
-
-export function SignerKeyGeneratedStory() {
-  return (
-    <MockStoryShell
-      dataTestId="AiCreditsWidget-signer-key-generated"
-      adapterFactory={createAdapterFactory('purchase_setup', {
-        activeTab: 'setup',
-        signerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
-        signerPrvKey: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-      })}
-    />
-  )
-}
-
-/** Setup tab with a generated signer key and the Authorize Credits Management step ready. */
-export function SetupAuthorizeWalletStory() {
-  return (
-    <MockStoryShell
-      dataTestId="AiCreditsWidget-setup-authorize-wallet"
-      adapterFactory={createAdapterFactory('purchase_setup', {
-        activeTab: 'setup',
-        signerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
-        signerPrvKey: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-      })}
-    />
-  )
-}
-
-export function SignerKeyIncompatibleOperatorStory() {
-  return (
-    <MockStoryShell
-      dataTestId="AiCreditsWidget-signer-key-incompatible"
-      adapterFactory={createAdapterFactory('purchase_setup', {
-        activeTab: 'setup',
-        signerPubKey: '0xabcdef1234567890abcdef1234567890abcdef12',
-        signerPrvKey: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-        operatorAddress: '0x0000000000000000000000000000000000000004',
-        currentOperator: '0x0000000000000000000000000000000000000005',
-      })}
-    />
-  )
-}
-
-export function CreditsManagementStory() {
-  return <ManageTabStory />
 }
 
 export function InsufficientGBalanceStory() {
@@ -550,7 +553,7 @@ export function AppKitConnectWalletStory() {
       projectId={projectId}
       metadata={{
         name: 'GoodDollar AI Credits',
-        description: 'Buy AI credits with G$ and use them through Antseed.',
+        description: 'Buy AI credits with G$ and get an API key for Claude Code, Codex and other AI tools.',
       }}
     >
       <AppKitConnectShell />
@@ -606,47 +609,8 @@ export function InjectedWalletStory() {
 }
 
 // ---------------------------------------------------------------------------
-// Multi-signer fixture stories
+// Wallet chip stories
 // ---------------------------------------------------------------------------
-
-const BUYER_WALLET = {
-  address: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a' as const,
-  privateKey: '0x0000000000000000000000000000000000000000000000000000000000000001' as const,
-}
-
-const BUYER_IMPORTED = {
-  address: '0xAbcDef1234567890AbcDef1234567890AbcDef12' as const,
-  privateKey: '0x0000000000000000000000000000000000000000000000000000000000000002' as const,
-}
-
-const BUYER_PARTNER = {
-  address: '0x1111111111111111111111111111111111111111' as const,
-  operatorSignature:
-    '0x1111111111111111111111111111111111111111111111111111111111111111222222222222222222222222222222222222222222222222222222222222222200' as const,
-}
-
-/** Multi-signer manage: backend address list with one selected signer that has a local key. */
-export function MultiSignerManageStory() {
-  return (
-    <MockStoryShell
-      dataTestId="AiCreditsWidget-multi-signer-manage"
-      adapterFactory={createAdapterFactory('quote_ready', {
-        totalCreditUsd: '110000000',
-        totalBonusUsd: '10000000',
-        signerPubKey: BUYER_WALLET.address,
-        signerPrvKey: BUYER_WALLET.privateKey,
-        operatorConsented: true,
-        operatorAddress: '0x0000000000000000000000000000000000000004',
-        totalGdDepositedG: '50.00',
-        monthlyStreamG: '5.00',
-        gBalance: '42.50',
-        activeTab: 'manage',
-        signers: [BUYER_WALLET.address, BUYER_IMPORTED.address, BUYER_PARTNER.address],
-        derivedSignerAddress: BUYER_WALLET.address,
-      })}
-    />
-  )
-}
 
 /**
  * Standalone/Storybook host: the wallet chip is opted in and the host supplies a
@@ -658,16 +622,7 @@ export function WalletControlsStory() {
       dataTestId="AiCreditsWidget-wallet-controls"
       showWalletControls
       disconnectOverride={async () => {}}
-      adapterFactory={createAdapterFactory('quote_ready', {
-        totalCreditUsd: '110000000',
-        totalBonusUsd: '10000000',
-        signerPubKey: BUYER_WALLET.address,
-        signerPrvKey: BUYER_WALLET.privateKey,
-        operatorConsented: true,
-        gBalance: '42.50',
-        activeTab: 'manage',
-        signers: [BUYER_WALLET.address],
-      })}
+      adapterFactory={createAdapterFactory('quote_ready', API_KEY_TAB_STATE_OVERRIDES)}
     />
   )
 }
@@ -680,75 +635,7 @@ export function WalletControlsHiddenStory() {
   return (
     <MockStoryShell
       dataTestId="AiCreditsWidget-wallet-controls-hidden"
-      adapterFactory={createAdapterFactory('quote_ready', {
-        totalCreditUsd: '110000000',
-        totalBonusUsd: '10000000',
-        signerPubKey: BUYER_WALLET.address,
-        signerPrvKey: BUYER_WALLET.privateKey,
-        operatorConsented: true,
-        gBalance: '42.50',
-        activeTab: 'manage',
-        signers: [BUYER_WALLET.address],
-      })}
-    />
-  )
-}
-
-/** Deep-link partner signer: consent uses pre-signed operatorSignature (no private key). */
-export function DeepLinkSignerStory() {
-  return (
-    <MockStoryShell
-      dataTestId="AiCreditsWidget-deep-link-signer"
-      adapterFactory={createAdapterFactory('purchase_setup', {
-        signerPubKey: BUYER_PARTNER.address,
-        signerPrvKey: null,
-        operatorSignature: BUYER_PARTNER.operatorSignature,
-        operatorConsented: false,
-        gBalance: '42.50',
-        activeTab: 'manage',
-        signers: [BUYER_PARTNER.address],
-      })}
-    />
-  )
-}
-
-/**
- * Deep-link partner signer reaching the buy-flow consent step: a pre-signed
- * operatorSignature is prefilled but operatorConsented is still false, so the
- * explicit "Sign Operator Consent" gate must render instead of auto-advancing.
- */
-export function DeepLinkConsentPendingStory() {
-  return (
-    <MockStoryShell
-      dataTestId="AiCreditsWidget-deep-link-consent-pending"
-      adapterFactory={createAdapterFactory('purchase_setup', {
-        signerPubKey: BUYER_PARTNER.address,
-        signerPrvKey: null,
-        operatorSignature: BUYER_PARTNER.operatorSignature,
-        operatorConsented: false,
-        activeTab: 'buy',
-        signers: [BUYER_PARTNER.address],
-      })}
-    />
-  )
-}
-
-/** History tab with multi-signer filter options available. */
-export function MultiSignerHistoryStory() {
-  return (
-    <MockStoryShell
-      dataTestId="AiCreditsWidget-multi-signer-history"
-      adapterFactory={createAdapterFactory('quote_ready', {
-        totalCreditUsd: '110000000',
-        totalBonusUsd: '10000000',
-        signerPubKey: BUYER_WALLET.address,
-        signerPrvKey: BUYER_WALLET.privateKey,
-        operatorConsented: true,
-        gBalance: '42.50',
-        activeTab: 'history',
-        signers: [BUYER_WALLET.address, BUYER_IMPORTED.address],
-        derivedSignerAddress: BUYER_WALLET.address,
-      })}
+      adapterFactory={createAdapterFactory('quote_ready', API_KEY_TAB_STATE_OVERRIDES)}
     />
   )
 }
@@ -787,22 +674,6 @@ export function GuidanceCardFaqStory() {
       adapterFactory={createAdapterFactory('purchase_setup', {
         gBalance: '42.50',
         activeTab: 'buy',
-      })}
-    />
-  )
-}
-
-/**
- * Setup tab with wallet connected — shows Download AntSeed as the first
- * actionable step with locked subsequent steps until download is started.
- */
-export function DownloadAntSeedStepStory() {
-  return (
-    <MockStoryShell
-      dataTestId="AiCreditsWidget-download-antseed-step"
-      adapterFactory={createAdapterFactory('purchase_setup', {
-        gBalance: '54570',
-        activeTab: 'setup',
       })}
     />
   )

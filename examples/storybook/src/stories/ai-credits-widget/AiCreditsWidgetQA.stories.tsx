@@ -9,28 +9,23 @@ import {
   QuoteReadyGoodIdStory,
   PaymentPendingStory,
   PaymentConfirmedStory,
-  CreditsManagementStory,
+  ApiKeyTabActiveStory,
+  ApiKeyTabEmptyStory,
+  ApiKeyTabComingSoonStory,
+  ApiKeyTabErrorStory,
+  BuyTabUnavailableStory,
   HistoryTabStory,
-  SetupTabStory,
   InsufficientGBalanceStory,
   BuyTabErrorStory,
   PaymentFailedStory,
   BackendUnavailableStory,
   UnsupportedChainStory,
   AppKitConnectWalletStory,
-  MultiSignerManageStory,
   WalletControlsStory,
   WalletControlsHiddenStory,
-  DeepLinkSignerStory,
-  DeepLinkConsentPendingStory,
-  MultiSignerHistoryStory,
   GuidanceCardDefaultStory,
   GuidanceCardHowToUseStory,
   GuidanceCardFaqStory,
-  DownloadAntSeedStepStory,
-  SignerKeyGeneratedStory,
-  SetupAuthorizeWalletStory,
-  SignerKeyIncompatibleOperatorStory,
 } from '../helpers/aiCreditsWidgetStories'
 
 const meta: Meta<typeof AiCreditsWidget> = {
@@ -77,8 +72,44 @@ export const PaymentConfirmed: Story = {
   render: () => <PaymentConfirmedStory />,
 }
 
-export const CreditsManagement: Story = {
-  render: () => <CreditsManagementStory />,
+/** API Key tab for an account that already holds a key. */
+export const ApiKeyTabActive: Story = {
+  render: () => <ApiKeyTabActiveStory />,
+}
+
+/** API Key tab before the first purchase. */
+export const ApiKeyTabEmpty: Story = {
+  render: () => <ApiKeyTabEmptyStory />,
+}
+
+/** API Key tab when the host configured no `aiCreditsApi`. */
+export const ApiKeyTabComingSoon: Story = {
+  render: () => <ApiKeyTabComingSoonStory />,
+}
+
+/** API Key tab when the account fails to load. */
+export const ApiKeyTabError: Story = {
+  render: () => <ApiKeyTabErrorStory />,
+}
+
+/** Rotating the key shows the new key once in the "Your API key is ready" sheet. */
+export const ApiKeyReadySheet: Story = {
+  render: () => <ApiKeyTabActiveStory />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByRole('button', { name: 'Rotate' }))
+    await userEvent.click(await within(document.body).findByRole('button', { name: 'Rotate key' }))
+    // The sheet slides in, so visibility is polled rather than asserted once.
+    await waitFor(() =>
+      expect(within(document.body).getByText('Your API key is ready')).toBeVisible(),
+    )
+    await expect(within(document.body).getByRole('button', { name: 'Copy API key' })).toBeVisible()
+  },
+}
+
+/** Buy tab when the host configured no `aiCreditsApi`: purchases are disabled. */
+export const BuyTabUnavailable: Story = {
+  render: () => <BuyTabUnavailableStory />,
 }
 
 export const HistoryTab: Story = {
@@ -105,11 +136,6 @@ export const UnsupportedChain: Story = {
   render: () => <UnsupportedChainStory />,
 }
 
-/** Multi-signer manage tab: signer selector and private-key reveal. */
-export const MultiSignerManage: Story = {
-  render: () => <MultiSignerManageStory />,
-}
-
 /** Header wallet chip opted in, with a host-supplied disconnect. */
 export const WalletControls: Story = {
   render: () => <WalletControlsStory />,
@@ -118,25 +144,6 @@ export const WalletControls: Story = {
 /** Wallet host default: no address and no disconnect in the header. */
 export const WalletControlsHidden: Story = {
   render: () => <WalletControlsHiddenStory />,
-}
-
-/** Deep-link partner signer: consent via pre-signed operatorSignature. */
-export const DeepLinkSigner: Story = {
-  render: () => <DeepLinkSignerStory />,
-}
-
-/** Deep-link signer reaching the buy-flow consent gate: signature prefilled, not yet consented. */
-export const DeepLinkConsentPending: Story = {
-  render: () => <DeepLinkConsentPendingStory />,
-}
-
-/** History tab with signer filter dropdown. */
-export const MultiSignerHistory: Story = {
-  render: () => <MultiSignerHistoryStory />,
-}
-
-export const SetupTab: Story = {
-  render: () => <SetupTabStory />,
 }
 
 export const AppKitConnectWallet: Story = {
@@ -176,7 +183,7 @@ export const GuidanceCardHowToUse: Story = {
     const root = canvas.getByTestId('AiCreditsWidget-guidance-how-to-use')
     const howToUseButton = within(root).getByRole('button', { name: /how to use/i })
     await userEvent.click(howToUseButton)
-    await expect(within(root).getByText(/Back to setup/i)).toBeVisible()
+    await expect(within(root).getByText(/^back$/i)).toBeVisible()
   },
 }
 
@@ -188,52 +195,6 @@ export const GuidanceCardFaq: Story = {
     const root = canvas.getByTestId('AiCreditsWidget-guidance-faq')
     const faqButton = within(root).getByRole('button', { name: /faqs/i })
     await userEvent.click(faqButton)
-    await expect(within(root).getByText(/Back to setup/i)).toBeVisible()
-  },
-}
-
-/** Setup tab — Download AntSeed step with active "Start ›" link and locked subsequent steps. */
-export const DownloadAntSeedStep: Story = {
-  render: () => <DownloadAntSeedStepStory />,
-}
-
-export const SignerKeyGenerated: Story = {
-  render: () => <SignerKeyGeneratedStory />,
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    await userEvent.click(canvas.getByText('Signer key', { exact: true }))
-    await userEvent.click(canvas.getByRole('button', { name: /generate signer key/i }))
-    await expect(canvas.getByText('Private Key — save this securely')).toBeVisible()
-  },
-}
-
-export const SetupAuthorizeWallet: Story = {
-  render: () => <SetupAuthorizeWalletStory />,
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    await userEvent.click(canvas.getByText('Authorize Credits Management', { exact: true }))
-    await expect(
-      within(document.body).getByText(
-        /GoodDollar needs this one-time authorization to fund and manage your AI credits/i,
-      ),
-    ).toBeVisible()
-    await expect(
-      within(document.body).getByRole('button', { name: 'Authorize Credits Management' }),
-    ).toBeEnabled()
-  },
-}
-
-export const SignerKeyIncompatibleOperator: Story = {
-  render: () => <SignerKeyIncompatibleOperatorStory />,
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    await userEvent.click(canvas.getByText('Signer key', { exact: true }))
-    await userEvent.click(canvas.getByRole('button', { name: /import signer key/i }))
-    // The operator warning is a status of the import itself, so it only appears
-    // once a key has actually been imported.
-    await expect(canvas.queryByText('Signer key cannot be used')).toBeNull()
-    await userEvent.type(canvas.getByPlaceholderText('0x…'), `0x${'1'.repeat(64)}`)
-    await userEvent.click(canvas.getByRole('button', { name: /import signer key/i }))
-    await expect(canvas.getByText('Signer key cannot be used')).toBeVisible()
+    await expect(within(root).getByText(/^back$/i)).toBeVisible()
   },
 }

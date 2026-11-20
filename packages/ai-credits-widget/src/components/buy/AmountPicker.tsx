@@ -341,7 +341,7 @@ export function AmountPicker({
         <>
           <XStack justifyContent="space-between" alignItems="center">
             <Text variant="label">
-              Est. credits
+              Est. GoodDollar AI credits
             </Text>
             <Text fontSize="$2" color="$primary" fontWeight="700">
               {formatMinUsdDisplay(quoteDepositPrincipalUsd(quote, gdUsdPerToken)) +
