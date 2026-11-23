@@ -10,7 +10,7 @@
  *   entirely. `ctaTarget` is handed over untouched; the modal opens no link itself.
  * - `resolveNavigation` absent: the CTA is an Anchor to `ctaTarget` (http/https
  *   only). A rejected URL renders a Button that shows an error toast instead.
- * - A handler that throws or rejects shows an error toast; the modal still closes.
+ * - A handler that throws or rejects shows an error toast; the modal stays open so the user can retry or dismiss.
  * Error toasts need a mounted `<ToastContainer />`, which every story here mounts.
  */
 import React, { useRef, useState } from 'react'
@@ -63,10 +63,12 @@ function ControlledHarness({
   content,
   testID,
   resolveNavigation,
+  statusLabel,
 }: {
   content: NextTaskContent | null | undefined
   testID: string
   resolveNavigation?: (ctaTarget: string) => void | Promise<void>
+  statusLabel?: string
 }) {
   const [open, setOpen] = useState(false)
   const [lastEvent, setLastEvent] = useState('none')
@@ -96,6 +98,7 @@ function ControlledHarness({
           setLastEvent(`clicked:${payload.ctaTarget}`)
         }}
         onDismissed={(payload) => setLastEvent(`dismissed:${payload.reason}`)}
+        statusLabel={statusLabel}
       />
       <ToastContainer />
     </>
@@ -128,7 +131,13 @@ export const Closed: Story = {
 
 /** Opening shows the status pill, headline, recommendation card and CTA. */
 export const ShownWithContent: Story = {
-  render: () => <ControlledHarness content={contentWithImage} testID="NextTaskModal-shown" />,
+  render: () => (
+    <ControlledHarness
+      content={contentWithImage}
+      statusLabel="Claim completed"
+      testID="NextTaskModal-shown"
+    />
+  ),
   play: async ({ canvasElement }) => {
     const card = await openAndGetCard(canvasElement, 'NextTaskModal-shown')
     await expect(within(card).getByText('Stake your G$ and earn')).toBeInTheDocument()
@@ -164,8 +173,9 @@ export const NoContent: Story = {
 }
 
 /**
- * The Drawer's close button, swipe-down and overlay press all share one `onClose`, so they
- * report the same reason ("overlay"). The shared Drawer is intentionally not changed.
+ * In fit mode drag is disabled, so the sheet is dismissed via the corner close control,
+ * overlay press, or action buttons ("Skip for now" and primary CTA). The close control and
+ * overlay press share `onClose` and report reason "overlay".
  *
  * The Drawer's enter transition briefly leaves its content `pointer-events: none` until the
  * animation settles, so clicks are wrapped in `waitFor` to retry past that window.

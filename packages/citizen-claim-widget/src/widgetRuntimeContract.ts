@@ -144,7 +144,23 @@ export interface CitizenClaimWidgetProps {
   claimExecution?: CitizenClaimWidgetCustodialExecution
   onClaimSuccess?: (detail: CitizenClaimWidgetSuccessDetail) => void
   onClaimError?: (detail: CitizenClaimWidgetErrorDetail) => void
-  /** Opt-in "next task" recommendation shown after a successful claim. No content means no modal. */
+  /**
+   * Opt-in "next task" recommendation shown in a bottom sheet after a successful claim.
+   * When null or undefined, no modal is shown.
+   *
+   * Fields on `NextTaskContent`:
+   * - `title` (required): Title inside the recommendation card
+   * - `description` (required): Description inside the recommendation card
+   * - `ctaLabel` (required): Primary CTA button or link label
+   * - `ctaTarget` (required): Target URL (http/https) or host navigation target
+   * - `imageUrl` (optional): 96x96 thumbnail; omitted renders compact card
+   * - `contentId` (optional): Opaque analytics correlation ID surfaced on shown
+   * - `headline` (optional): Sheet header headline (defaults to "One good next step")
+   * - `supportingCopy` (optional): Subtitle copy under the headline
+   * - `recommendedLabel` (optional): Badge text inside recommendation card (defaults to "RECOMMENDED")
+   * - `skipLabel` (optional): Dismiss action text (defaults to "Skip for now")
+   * - `statusLabel` (optional): Top status badge label. Precedence: `content.statusLabel` overrides the `statusLabel` prop. When neither is provided, no status pill is rendered.
+   */
   nextTaskContent?: NextTaskContent | null
   /**
    * When passed, the host owns CTA navigation (the CTA renders as a Button); when absent the

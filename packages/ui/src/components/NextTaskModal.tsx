@@ -41,8 +41,9 @@ export interface NextTaskContent {
   recommendedLabel?: string
   /** Optional label overriding the default ("Skip for now" / NEXT_TASK_SKIP_LABEL). */
   skipLabel?: string
-  /** Optional status pill label overriding the default ("Claim completed" / NEXT_TASK_STATUS_LABEL).
-   * When set, takes precedence over the `statusLabel` prop on `NextTaskModal`. */
+  /** Optional status pill label (e.g. "Claim completed"). When omitted on both content
+   * and prop, no status pill is rendered. When set, takes precedence over the `statusLabel`
+   * prop on `NextTaskModal`. */
   statusLabel?: string
 }
 
@@ -71,9 +72,9 @@ export interface NextTaskModalProps {
   onClicked?: (payload: { ctaTarget: string }) => void
   onDismissed?: (payload: { reason: NextTaskDismissReason }) => void
   /**
-   * Pill shown at the top of the sheet, e.g. "Claim completed".
+   * Optional status pill shown at the top of the sheet, e.g. "Claim completed".
    * If `content.statusLabel` is also set, `content.statusLabel` takes precedence over this prop.
-   * If both are omitted, defaults to `NEXT_TASK_STATUS_LABEL`.
+   * If both are omitted, no status pill is rendered.
    */
   statusLabel?: string
   /** Applied to the rendered card root, for Storybook/Playwright targeting. */
@@ -196,7 +197,7 @@ export function NextTaskModal({
   const isCtaTargetOpenableAsLink = !resolveNavigation && isAllowedExternalCtaUrl(content.ctaTarget)
   const handleButtonCtaPress = resolveNavigation ? handleHostNavigationPress : handleRejectedUrlPress
 
-  const effectiveStatusLabel = content.statusLabel ?? statusLabel ?? NEXT_TASK_STATUS_LABEL
+  const effectiveStatusLabel = content.statusLabel ?? statusLabel
   const effectiveHeadline = content.headline ?? NEXT_TASK_HEADLINE
   const effectiveSupportingCopy = content.supportingCopy ?? NEXT_TASK_SUPPORTING_COPY
   const effectiveRecommendedLabel = content.recommendedLabel ?? NEXT_TASK_RECOMMENDED_LABEL

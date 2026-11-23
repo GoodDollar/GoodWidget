@@ -588,8 +588,9 @@ test('NextTaskModal renders default fallbacks when optional copy fields are omit
   const card = frame.getByTestId('NextTaskModal-no-image')
   await expect(card).toBeVisible()
 
-  // Proves that when headline, supportingCopy, recommendedLabel, skipLabel, and statusLabel
-  // are omitted from content and props, all five fall back to their default constants.
+  // Proves that when headline, supportingCopy, recommendedLabel, and skipLabel
+  // are omitted from content and props, they fall back to their default constants,
+  // while omitting statusLabel renders no status pill.
   await expect(frame.getByText('One good next step')).toBeVisible()
   await expect(
     frame.getByText(
@@ -598,7 +599,13 @@ test('NextTaskModal renders default fallbacks when optional copy fields are omit
   ).toBeVisible()
   await expect(frame.getByText('RECOMMENDED')).toBeVisible()
   await expect(frame.getByRole('button', { name: 'Skip for now' })).toBeVisible()
-  await expect(frame.getByText('Claim completed')).toBeVisible()
+  await expect(frame.getByText('Claim completed')).toHaveCount(0)
+
+  // When a label is provided (e.g. in ShownWithContent), the status pill renders.
+  await gotoStory(page, 'design-system-primitives-nexttaskmodal--shown-with-content')
+  const shownFrame = getStoryFrame(page)
+  await expect(shownFrame.getByTestId('NextTaskModal-shown')).toBeVisible()
+  await expect(shownFrame.getByText('Claim completed')).toBeVisible()
 })
 
 // Mobile, landscape, and desktop viewports: inner scrolling ensures actions stay reachable across all viewports.
