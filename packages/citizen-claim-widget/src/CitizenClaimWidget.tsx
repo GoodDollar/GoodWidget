@@ -20,6 +20,8 @@ import {
   YStack,
   WidgetTabs,
 } from '@goodwidget/ui'
+import { version } from '../package.json'
+import { WidgetVersion } from '@goodwidget/ui'
 import { SupportedChains } from '@goodsdks/citizen-sdk'
 import { getChainDisplayName, useCitizenClaimAdapter } from './adapter'
 import type {
@@ -252,7 +254,13 @@ function CitizenClaimInner({
             })
 
             try {
-              const receipt = await actions.claim()
+              const receipt = await actions.claim(() =>
+                updateToast(toastId, {
+                  message: `Claiming on ${singleChainName} — waiting for blockchain confirmation`,
+                  status: 'confirming',
+                  duration: 0,
+                }),
+              )
               updateToast(toastId, {
                 message: `Claim succeeded on ${singleChainName}`,
                 status: 'success',
@@ -294,7 +302,20 @@ function CitizenClaimInner({
             )
           }
 
-          const claimResults = await actions.claimAll(claimPlan.map((entry) => entry.chainId))
+          const claimResults = await actions.claimAll(
+            claimPlan.map((entry) => entry.chainId),
+            (submittedChainId) => {
+              const toastId = toastByChain.get(submittedChainId)
+              if (!toastId) return
+              const entryChainName =
+                chainNameById.get(submittedChainId) ?? getChainDisplayName(submittedChainId)
+              updateToast(toastId, {
+                message: `Claiming on ${entryChainName} — waiting for blockchain confirmation`,
+                status: 'confirming',
+                duration: 0,
+              })
+            },
+          )
 
           for (const claimResult of claimResults) {
             const entryChainName =
@@ -687,6 +708,7 @@ export function CitizenClaimWidget({
         onClaimError={onClaimError}
         initialTab={initialTab}
       />
+      <WidgetVersion name="Citizen Claim" version={version} />
     </GoodWidgetProvider>
   )
 }

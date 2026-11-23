@@ -1,4 +1,4 @@
-import { CalendarDays, HandCoins, Megaphone, UserPlus, Waves } from '@goodwidget/ui'
+import { CalendarDays, HandCoins, Megaphone, ShoppingCart, UserPlus, Waves } from '@goodwidget/ui'
 import type { ActivityType } from '../widgetRuntimeContract'
 
 /** Exact glyph mapping from the approved design reference (#127) — do not substitute. */
@@ -9,6 +9,8 @@ export const ACTIVITY_ICON_COMPONENT: Record<ActivityType, typeof CalendarDays> 
   'flow-state-funding': Waves,
   'gardens-donation': HandCoins,
   'gardens-funding': Waves,
+  'ai-credits-purchase': ShoppingCart,
+  'ai-credits-subscription': Waves,
 }
 
 /** Resolves an activity's done-state to the color token its lucide icon should render in. */

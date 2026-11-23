@@ -1,6 +1,7 @@
 import React from 'react'
 import {
   SuperfluidCampaignWidget,
+  type CampaignActionLinkOverrides,
   type SuperfluidCampaignWidgetProps,
   type SuperfluidCampaignView,
 } from '@goodwidget/superfluid-campaign-widget'
@@ -16,6 +17,32 @@ import {
   isInjectedProviderUsable,
 } from '../../fixtures/injectedEip1193'
 
+/** Integrator link sets reviewed in Storybook; disabled actions intentionally carry no link. */
+export const STANDALONE_STORY_LINKS: {
+  actionLinks: CampaignActionLinkOverrides
+  claimRewardsUrl: string
+} = {
+  claimRewardsUrl: 'https://ubi.gd/4iN7RhK',
+  actionLinks: {
+    'claim-ubi': 'https://ubi.gd/4BTD7Vb',
+    'gardens-donation': 'https://ubi.gd/4eunQAd',
+    'gardens-funding': 'https://ubi.gd/4zEWvDW',
+    'ai-credits-purchase': 'https://ubi.gd/3UFIqH3',
+    'ai-credits-subscription': 'https://ubi.gd/4AslL0c',
+  },
+}
+
+export const GOODWALLET_STORY_LINKS: typeof STANDALONE_STORY_LINKS = {
+  claimRewardsUrl: 'https://ubi.gd/4sR6vY1',
+  actionLinks: {
+    'claim-ubi': 'https://ubi.gd/3UuQxWV',
+    'gardens-donation': 'https://ubi.gd/4zzqRrj',
+    'gardens-funding': 'https://ubi.gd/4C02hl6',
+    'ai-credits-purchase': 'https://ubi.gd/4sRkCwz',
+    'ai-credits-subscription': 'https://ubi.gd/4Ap8chU',
+  },
+}
+
 function StoryShell({ children, dataTestId }: { children: React.ReactNode; dataTestId: string }) {
   return (
     <MiniAppShell>
@@ -30,25 +57,34 @@ function StoryShell({ children, dataTestId }: { children: React.ReactNode; dataT
 }
 
 interface MockStoryProps {
+  defaultTheme?: 'light' | 'dark'
   initialView?: SuperfluidCampaignView
   leaderboardScenario?: MockLeaderboardScenario
   programSupTotalsScenario?: MockProgramSupTotalsScenario
+  actionLinks?: CampaignActionLinkOverrides
+  claimRewardsUrl?: string
 }
 
 function MockSuperfluidCampaignWidgetStoryShell({
+  defaultTheme,
   provider,
   dataTestId,
   initialView = 'content',
   leaderboardScenario,
   programSupTotalsScenario,
+  actionLinks,
+  claimRewardsUrl,
 }: MockStoryProps & { provider: unknown; dataTestId: string }) {
   return (
     <StoryShell dataTestId={dataTestId}>
       <MockSuperfluidCampaignWidget
         provider={provider}
+        defaultTheme={defaultTheme}
         initialView={initialView}
         leaderboardScenario={leaderboardScenario}
         programSupTotalsScenario={programSupTotalsScenario}
+        actionLinks={actionLinks}
+        claimRewardsUrl={claimRewardsUrl}
       />
     </StoryShell>
   )

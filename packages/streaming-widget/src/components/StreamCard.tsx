@@ -3,6 +3,7 @@ import {
   AddressDisplay,
   Badge,
   BadgeText,
+  Button,
   ButtonText,
   Icon,
   Separator,
@@ -23,7 +24,8 @@ import {
   liveStreamedAmount,
 } from './format'
 import {
-  ActionButton,
+  compactButtonProps,
+  secondaryButtonStateProps,
   SecondaryButtonText,
   StreamRow,
   type SuperTokenSymbol,
@@ -191,19 +193,28 @@ export function StreamCard({
           {showActions && (
             <XStack gap="$2">
               {onEdit && (
-                <ActionButton
+                <Button
+                  size="sm"
+                  {...compactButtonProps}
                   flex={1}
                   variant="secondary"
+                  {...secondaryButtonStateProps}
                   disabled={isCancelling}
                   onPress={() => onEdit(stream)}
                 >
                   <SecondaryButtonText>Update</SecondaryButtonText>
-                </ActionButton>
+                </Button>
               )}
               {onCancel && (
-                <ActionButton flex={1} disabled={isCancelling} onPress={() => onCancel(stream)}>
+                <Button
+                  size="sm"
+                  {...compactButtonProps}
+                  flex={1}
+                  disabled={isCancelling}
+                  onPress={() => onCancel(stream)}
+                >
                   {isCancelling ? <Spinner size="sm" /> : <ButtonText>Cancel stream</ButtonText>}
-                </ActionButton>
+                </Button>
               )}
             </XStack>
           )}

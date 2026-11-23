@@ -1,6 +1,6 @@
 export { GoodWidgetProvider } from './provider'
 export type { WalletContextValue, HostContextValue, GoodWidgetContextValue } from './provider'
-export { DISCONNECT_UNAVAILABLE_ERROR } from './provider'
+export { CONNECT_UNAVAILABLE_ERROR, DISCONNECT_UNAVAILABLE_ERROR } from './provider'
 export { useWallet, useHost, useGoodWidget } from './hooks'
 export { detectHost } from './detect'
 export { createViemFallbackClient } from './viemFallbackClient'
