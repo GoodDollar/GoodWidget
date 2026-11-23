@@ -95,7 +95,7 @@ function MetricCard({
         </YStack>
       ) : (
         <>
-          <Text variant="caption" tone="dim">
+          <Text variant="caption" tone="soft">
             {model.periodLabel}
           </Text>
           <TeamBars
@@ -104,12 +104,12 @@ function MetricCard({
             testID={`metric-chart-${metric.key}`}
           />
           {model.exactNote ? (
-            <Text variant="caption" tone="dim" data-testid={`metric-exact-${metric.key}`}>
+            <Text variant="caption" tone="soft" data-testid={`metric-exact-${metric.key}`}>
               {model.exactNote}
             </Text>
           ) : null}
           {model.missingNote ? (
-            <Text variant="caption" tone="dim" data-testid={`metric-missing-${metric.key}`}>
+            <Text variant="caption" tone="soft" data-testid={`metric-missing-${metric.key}`}>
               {model.missingNote}
             </Text>
           ) : null}
@@ -138,7 +138,7 @@ export function BuildersS5DashboardView({ state, onRetry }: BuildersS5DashboardV
             {reportHeadline(report.date, state.data.firstReportDate)}
           </Text>
         ) : null}
-        <Text variant="caption" tone="dim">
+        <Text variant="caption" tone="soft">
           A new report comes out every Sunday. Weeks run Sunday to Saturday, UTC.
         </Text>
       </YStack>
@@ -171,7 +171,7 @@ export function BuildersS5DashboardView({ state, onRetry }: BuildersS5DashboardV
               backgroundColor="$infoMuted"
               data-testid="builders-partial-banner"
             >
-              <Text variant="label" color="$primaryLight">
+              <Text variant="label" tone="default">
                 This report finished with errors; some numbers may be missing.
               </Text>
             </YStack>
