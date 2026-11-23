@@ -75,6 +75,12 @@ jobs:
     environment:
       name: preview-gooddata
       url: ${{ steps.deploy.outputs.url }}
+    env:
+      VERCEL_TARGET: >-
+        ${{ github.ref == 'refs/heads/main' &&
+            (github.event_name == 'push' ||
+             (github.event_name == 'workflow_dispatch' && inputs.commit_sha == '')) &&
+            'staging' || 'preview' }}
     steps:
       - name: Checkout pull request head
         uses: actions/checkout@v4
@@ -97,15 +103,15 @@ jobs:
         working-directory: ${{ github.workspace }}
 
       - name: Pull Vercel project settings
-        run: pnpm exec vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+        run: pnpm exec vercel pull --yes --environment="$VERCEL_TARGET" --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Build preview deployment
-        run: pnpm exec vercel build --token=${{ secrets.VERCEL_TOKEN }}
+        run: pnpm exec vercel build --target="$VERCEL_TARGET" --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Deploy preview
         id: deploy
         run: |
-          url="$(pnpm exec vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})"
+          url="$(pnpm exec vercel deploy --prebuilt --target="$VERCEL_TARGET" --token=${{ secrets.VERCEL_TOKEN }})"
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
   production:
