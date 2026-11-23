@@ -126,7 +126,12 @@ export function SignerKeyPanel({
         <YStack gap="$2">
           <NumberedStep index={1} title="Open Antseed Desktop" />
           <NumberedStep index={2} title="Go to Settings → Wallet → Signer key" />
-          <NumberedStep index={3} title="Tap Back up to export your Signer Key" />
+          <NumberedStep
+            index={3}
+            title="Tap Back up to export your Signer Key"
+            note="AntSeed will ask you to download your signer key. Download it, open the file, then copy the key."
+            noteTone="soft"
+          />
           <NumberedStep index={4} title="Paste it below." />
         </YStack>
         <AntseedSignerRow />

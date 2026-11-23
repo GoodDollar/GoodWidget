@@ -459,6 +459,12 @@ test('AiCreditsWidget multi-signer: signer key import is reachable', async ({ pa
   await expect(root.getByText('Open Antseed Desktop', { exact: true })).toBeVisible()
   await expect(root.getByText('Go to Settings → Wallet → Signer key', { exact: true })).toBeVisible()
   await expect(root.getByText('Tap Back up to export your Signer Key', { exact: true })).toBeVisible()
+  await expect(
+    root.getByText(
+      'AntSeed will ask you to download your signer key. Download it, open the file, then copy the key.',
+      { exact: true },
+    ),
+  ).toBeVisible()
   await expect(root.getByText('Paste it below.', { exact: true })).toBeVisible()
   await expect(root.getByText(/Profile → Signer|tap ↓|tap ↑/)).toHaveCount(0)
   await expect(root.getByRole('img', { name: /Back up button circled in green/ })).toBeVisible()

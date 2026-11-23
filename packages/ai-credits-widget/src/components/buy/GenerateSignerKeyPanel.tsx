@@ -25,11 +25,14 @@ export function NumberedStep({
   index,
   title,
   note,
+  noteTone = 'warning',
 }: {
   index: number
   title: string
-  /** Caveat shown under the title, aligned with it rather than the number. */
+  /** Italic text shown under the title, aligned with it rather than the number. */
   note?: string
+  /** Warning colour for caveats; soft for neutral hints. */
+  noteTone?: 'warning' | 'soft'
 }) {
   return (
     <YStack gap="$1">
@@ -52,7 +55,13 @@ export function NumberedStep({
         </Text>
       </XStack>
       {note && (
-        <Text marginLeft={32} fontSize="$2" color="$warning" fontStyle="italic" lineHeight="$3">
+        <Text
+          marginLeft={32}
+          fontSize="$2"
+          fontStyle="italic"
+          lineHeight="$3"
+          {...(noteTone === 'warning' ? { color: '$warning' } : { tone: 'soft' })}
+        >
           {note}
         </Text>
       )}
