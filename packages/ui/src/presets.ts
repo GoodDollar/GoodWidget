@@ -49,8 +49,10 @@ export const defaultTokenPreset = {
       surfaceRaised: '#252730',
       text: '#FFFFFF',
       textDark: '#FFFFFF',
-      textSecondary: '#808080',
-      textSecondaryDark: '#808080',
+      // Secondary text feeds the base themes and every card sub-theme (see theme.ts), so these two
+      // values are what captions and labels inside cards render with. 4.5:1 on all surfaces.
+      textSecondary: '#4F606F',
+      textSecondaryDark: '#9AA5B4',
       border: '#4D4D4D',
       borderDark: '#4D4D4D',
       overlay: 'rgba(19, 21, 28, 0.8)',
@@ -79,8 +81,11 @@ export const defaultTokenPreset = {
       governanceSurfaceAlt: '#EDF5FC',
       governanceText: '#0D182D',
       governanceTextSecondary: '#4F606F',
-      governanceTextSoft: '#8F9BB3',
+      governanceTextSoft: '#3D4B5C',
       governanceTextDim: '#4F606F',
+      // Link text. Light uses governancePrimaryDark; this is the dark-theme counterpart,
+      // a lighter blue than `primary` so links stay readable on raised surfaces.
+      linkDark: '#3D94FF',
       governanceBorder: '#D0D9E4',
       governanceBorderLight: '#BDCAD6',
       governanceOverlay: 'rgba(13, 24, 45, 0.48)',
@@ -209,6 +214,7 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
       colorTransparent: color.transparent,
       colorSoft: color.governanceTextSoft,
       colorDim: color.governanceTextDim,
+      colorLink: color.governancePrimaryDark,
       text: color.governanceText,
       primary: color.governancePrimary,
       primaryDark: color.governancePrimaryDark,
@@ -257,11 +263,11 @@ export const goodWalletV2Preset: WidgetDesignPreset = {
       colorPress: color.textDark,
       colorFocus: color.textDark,
       colorTransparent: color.transparent,
-      // GoodWalletV2 is dark-only; soft/dim text must remain readable against
-      // the dark background (#13151C). grey350 (#CCC) and grey600 (#4B5563)
-      // provide the correct contrast levels for soft and dim content respectively.
+      // Text roles must reach 4.5:1 (WCAG 1.4.3) on every dark background role;
+      // theme-contrast.test.ts checks this. Order against the page: default > soft > dim.
       colorSoft: color.grey350,
-      colorDim: color.grey600,
+      colorDim: color.grey400,
+      colorLink: color.linkDark,
       text: color.textDark,
       primary: color.primary,
       primaryDark: color.primaryDark,

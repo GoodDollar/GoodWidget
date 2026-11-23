@@ -143,6 +143,8 @@ export function createThemeValues(
       colorSoft: color.textSoft,
       // Dim text — below secondary; for tertiary/helper labels
       colorDim: color.textDim,
+      // Link text. Falls back to the accent color; presets set a role that reaches 4.5:1.
+      colorLink: color.primary,
 
       borderColor: color.border,
       borderColorHover: color.primary,
@@ -175,6 +177,7 @@ export function createThemeValues(
       colorSoft: color.textSoftDark ?? color.textSoft,
       // Dim text — below secondary; for tertiary/helper labels
       colorDim: color.textDimDark ?? color.textDim,
+      colorLink: color.primary,
 
       borderColor: color.borderDark,
       borderColorHover: color.primary,

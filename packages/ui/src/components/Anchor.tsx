@@ -4,7 +4,7 @@ import { createComponent } from '../createComponent'
 
 const AnchorFrame = createComponent(TamaguiAnchor, {
   name: 'Anchor',
-  color: '$primary',
+  color: '$colorLink',
   textDecorationLine: 'underline',
   fontFamily: '$body',
   fontSize: '$3',

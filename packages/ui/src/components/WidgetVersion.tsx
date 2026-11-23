@@ -18,7 +18,7 @@ export interface WidgetVersionProps {
 export function WidgetVersion({ name, version, testId = 'widget-version' }: WidgetVersionProps) {
   return (
     <YStack width="100%" alignItems="flex-end" paddingHorizontal="$2" paddingBottom="$1">
-      <Text variant="caption" tone="dim" opacity={0.7} data-testid={testId}>
+      <Text variant="caption" tone="dim" data-testid={testId}>
         {`${name} v${version}`}
       </Text>
     </YStack>
