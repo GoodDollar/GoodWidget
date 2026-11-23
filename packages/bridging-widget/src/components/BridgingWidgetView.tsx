@@ -87,9 +87,9 @@ export function BridgingWidgetView({ adapter, initialTab = 'bridge' }: BridgingW
 
   return (
     <YStack gap="$2" padding="$3" paddingHorizontal="$1" width="100%" style={{ boxSizing: 'border-box' }}>
-      <XStack justifyContent="space-between" alignItems="center" gap="$1">
-        <XStack alignItems="center" gap="$1" flex={1} minWidth={0}>
-          <Heading level={6} fontSize={13} letterSpacing={0} flexShrink={1} numberOfLines={1}>GoodDollar Bridge</Heading>
+      <XStack justifyContent="space-between" alignItems="center" gap="$1" testID="BridgingWidget-header">
+        <XStack alignItems="center" gap="$1" flex={1} minWidth={0} flexWrap="wrap">
+          <Heading level={6} fontSize={13} letterSpacing={0} flexShrink={1}>GoodDollar Bridge</Heading>
           {state.chainId !== null && (
             <Badge type="info"><BadgeText>{getChainDisplayName(state.chainId)}</BadgeText></Badge>
           )}

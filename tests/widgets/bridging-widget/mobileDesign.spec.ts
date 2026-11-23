@@ -77,3 +77,49 @@ test('mobile network selector opens a sheet and the longest chain fits the heade
   const title = page.getByText('GoodDollar Bridge', { exact: true })
   expect(await title.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true)
 })
+
+for (const width of [360, 390]) {
+  for (const theme of ['light', 'dark']) {
+    test(`wide-font header and route labels fit at ${width}px in ${theme}`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 844 })
+      await page.goto(`/iframe.html?id=qa-bridgingwidget-runtime-fixtures--interactive-submit&viewMode=story&args=defaultTheme:${theme}`)
+      const source = page.getByTestId('BridgingWidget-source-select')
+      await source.click()
+      await page.getByRole('option', { name: 'Ethereum', exact: true }).click()
+      await page.getByTestId('BridgingWidget-target-select').click()
+      await page.getByRole('option', { name: 'Celo', exact: true }).click()
+      await expect(page.getByText('Destination network', { exact: true })).not.toBeVisible()
+      // Exercise wider text metrics even when the runner only has Windows fonts.
+      await page.addStyleTag({ content: `
+        [data-testid="BridgingWidget-header"] *,
+        [data-testid="BridgingWidget-route"] * {
+          font-family: monospace !important;
+          font-weight: 700 !important;
+        }
+      ` })
+      const assertTextFits = async (label: ReturnType<typeof page.getByText>) => {
+        await expect(label).toBeVisible()
+        expect(await label.evaluate((element) => {
+          const box = element.getBoundingClientRect()
+          const range = document.createRange()
+          range.selectNodeContents(element)
+          return element.scrollWidth <= element.clientWidth + 1 &&
+            element.scrollHeight <= element.clientHeight + 1 &&
+            Array.from(range.getClientRects()).every((rect) =>
+              rect.left >= box.left - 1 && rect.right <= box.right + 1 &&
+              rect.top >= box.top - 1 && rect.bottom <= box.bottom + 1)
+        })).toBe(true)
+      }
+      await assertTextFits(page.getByText('GoodDollar Bridge', { exact: true }))
+      const header = page.getByTestId('BridgingWidget-header')
+      await assertTextFits(header.getByText('Ethereum', { exact: true }))
+      await expect(header.getByLabel('Wallet options')).toBeInViewport({ ratio: 1 })
+      await assertTextFits(source.getByText('Ethereum', { exact: true }))
+      await assertTextFits(page.getByTestId('BridgingWidget-target-select').getByText('Celo', { exact: true }))
+      await page.screenshot({ path: `${evidenceDir}/bw-45-wide-font-${width}-${theme}.png`, animations: 'disabled' })
+      await page.getByTestId('BridgingWidget-swap-route').click()
+      await assertTextFits(page.getByTestId('BridgingWidget-target-select').getByText('Ethereum', { exact: true }))
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width)
+    })
+  }
+}

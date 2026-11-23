@@ -48,14 +48,14 @@ function ResponsiveSelect({ options, value, onValueChange, placeholder = 'Select
     >
       <TamaguiSelect.Trigger
         ref={trigger}
-        size="$4" minWidth={0} height={44} width="100%" gap="$1" paddingHorizontal="$2"
+        size="$4" minWidth={0} minHeight={44} height="auto" width="100%" gap="$1" paddingHorizontal="$2" paddingVertical="$2"
         backgroundColor="$backgroundInput" borderColor="$borderColor"
         focusStyle={{ borderColor: '$primary' }} opacity={disabled ? 0.5 : 1}
         disabled={disabled} aria-label={accessibilityLabel} testID={testID}
       >
         <XStack flex={1} minWidth={0} gap="$1" alignItems="center">
           {selected?.leading}
-          <Text fontSize="$2" color={selected ? '$textColor' : '$secondaryColor'} numberOfLines={1}>
+          <Text fontSize="$2" flexShrink={1} color={selected ? '$textColor' : '$secondaryColor'}>
             {selected?.label ?? placeholder}
           </Text>
         </XStack>
@@ -66,7 +66,7 @@ function ResponsiveSelect({ options, value, onValueChange, placeholder = 'Select
         <TamaguiSelect.Sheet modal snapPointsMode="fit" dismissOnSnapToBottom>
           <TamaguiSelect.Sheet.Overlay backgroundColor="$backgroundOverlay" />
           <TamaguiSelect.Sheet.Frame backgroundColor="$backgroundSurface" padding="$3">
-            {accessibilityLabel && <Text variant="label" padding="$2">{accessibilityLabel}</Text>}
+            {open && accessibilityLabel && <Text variant="label" padding="$2">{accessibilityLabel}</Text>}
             <TamaguiSelect.Adapt.Contents />
           </TamaguiSelect.Sheet.Frame>
         </TamaguiSelect.Sheet>

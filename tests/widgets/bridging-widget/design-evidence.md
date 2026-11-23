@@ -134,8 +134,29 @@ The Node tests in `packages/bridging-widget/tests/submissionSafety.test.mjs` run
 
 ## Verification on 2026-11-23
 
+### Font-width follow-up
+
+I removed the one-line truncation from the bridge title and let its title/network group wrap within the space beside the wallet control. The shared Select trigger now has a 44px minimum height rather than a fixed height, so labels can wrap without clipping. I also hide the mobile sheet heading when the picker is closed.
+
+I added four wide-font regression cases at 360px and 390px in both themes. They use bold monospace text to stress the layout independently of the default Windows font. I check the title, network badge, source/destination labels, wallet visibility, and horizontal overflow, and swap Ethereum between source and destination. This is a font-metric stress test on Windows Chromium, not a claim that I ran Linux or Android Chromium locally. Phoebe's Linux result remains the cross-platform recheck to repeat after this fix.
+
+I verified the final layout correction with 78/78 bridge and streaming Playwright tests (one worker, no retries), 25/25 bridge Node tests, targeted ESLint, and direct installed-tool builds of `@goodwidget/ui` and `@goodwidget/bridging-widget`, including declarations. The first wide-font run reproduced a clipped Ethereum selector before the fix. I corrected local server/setup failures and restarted the regression run after the sheet-heading adjustment; the final 78-test run passed cleanly. This is local verification, not a green CI claim.
+
+| Viewport / theme | Wide-font fixture |
+| --- | --- |
+| 360px / light | [Ethereum header and route](test-results/bw-45-wide-font-360-light.png) |
+| 360px / dark | [Ethereum header and route](test-results/bw-45-wide-font-360-dark.png) |
+| 390px / light | [Ethereum header and route](test-results/bw-45-wide-font-390-light.png) |
+| 390px / dark | [Ethereum header and route](test-results/bw-45-wide-font-390-dark.png) |
+
+### Shared UI scope
+
+The PR changes the shared `packages/ui/src/components-test/Select.tsx`, preserving its existing selection props while using Tamagui Select and mobile sheet adaptation. Its trigger now has the `combobox` role, which also affects the streaming widget's dropdown assertions. The label-wrap correction applies to all consumers. The existing shared `Stepper.tsx` change adds optional per-step detail content for available timestamps; steps without details retain their existing rendering. I have disclosed this scope in the PR description. Lewis's approval to retain these shared changes in this PR is still pending.
+
+### Earlier verification pass
+
 - Bridge Node tests: `node --experimental-strip-types --test packages/bridging-widget/tests/*.test.mjs`, 25/25 passed.
 - Chromium: all bridging-widget specs plus `tests/widgets/streaming-widget/states.spec.ts`, 74/74 passed, one worker, retries disabled. The run used the existing local Storybook server and a temporary configuration changing only the base URL, output location, reporter, and automatic-server startup. Earlier environment/setup failures were corrected before this clean run.
 - The installed `tsup` package build commands passed for `@goodwidget/ui` and `@goodwidget/bridging-widget`, including declarations. Targeted ESLint passed for all changed source, stories, and test files.
 - Full-workspace install/build/lint are not certified by this pass. The available pnpm entrypoint attempted package linking before the selected build and failed with `EPERM`; direct installed tools were used instead. No dependency or lockfile changes were made.
-- All 40 distinct local image links in this document resolve to saved captures. Wallet responses, fees, and delivery in automated captures are mocked; the manual evidence above is documented separately.
+- The earlier 40 local image links and the four additional wide-font captures are saved alongside this document. Wallet responses, fees, and delivery in automated captures are mocked; the manual evidence above is documented separately.
