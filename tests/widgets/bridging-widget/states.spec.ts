@@ -50,18 +50,21 @@ test('BridgingWidget shows the disconnected wallet state with connect action', a
 test('network picker supports listbox navigation and dismissal', async ({ page }) => {
   await gotoStory(page, 'no-wallet')
   const trigger = page.getByTestId('BridgingWidget-source-select')
-  await trigger.click()
-  const listbox = page.getByRole('listbox', { name: 'Source network' })
-  await expect(listbox).toBeVisible()
+  await trigger.focus()
   await page.keyboard.press('ArrowDown')
-  await expect(page.getByRole('option', { name: 'Ethereum' })).toBeFocused()
+  const listbox = page.getByRole('listbox')
+  await expect(listbox).toBeVisible()
+  await expect(listbox.getByRole('option')).toHaveCount(4)
+  await page.keyboard.press('ArrowDown')
   await page.keyboard.press('Escape')
   await expect(listbox).toBeHidden()
   await expect(trigger).toBeFocused()
 
   await trigger.click()
   await expect(listbox).toBeVisible()
-  await page.getByText('GoodDollar Bridge').click()
+  const title = await page.getByText('GoodDollar Bridge').boundingBox()
+  if (!title) throw new Error('Missing bridge header')
+  await page.mouse.click(title.x + title.width / 2, title.y + title.height / 2)
   await expect(listbox).toBeHidden()
 })
 
@@ -72,9 +75,6 @@ test('BridgingWidget shows the unsupported network prompt', async ({ page }) => 
     'Unsupported network',
     'your wallet will switch when you bridge.',
     'Celo',
-    'Ethereum',
-    'Fuse',
-    'XDC',
   ])
   await saveScreenshot(page, 'bw-02-wrong-chain')
 })
@@ -141,8 +141,30 @@ test('BridgingWidget flags a one-time approval requirement while still allowing 
 
   await expectBodyToContain(page, ['This amount needs a one-time G$ approval before it can bridge.'])
   await expect(page.getByTestId('BridgingWidget-review-cta')).toBeVisible()
+  await expect(page.getByTestId('BridgingWidget-review-cta')).toBeEnabled()
   await saveScreenshot(page, 'bw-11-needs-approval')
 })
+
+for (const width of [360, 390]) {
+  for (const theme of ['light', 'dark']) {
+    test(`native funding blocker takes priority over approval at ${width}px in ${theme}`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 844 })
+      await page.goto(`${storyUrl('insufficient-native-balance')}&args=defaultTheme:${theme}`)
+      const reason = page.getByTestId('BridgingWidget-review-disabled-reason')
+      const review = page.getByTestId('BridgingWidget-review-cta')
+      await expect(review).toBeDisabled()
+      await expect(reason).toHaveText('Insufficient native balance for bridge fee.')
+      await expect(page.getByText('This amount needs a one-time G$ approval before it can bridge.')).toHaveCount(0)
+      await review.scrollIntoViewIfNeeded()
+      await expect(reason).toBeInViewport({ ratio: 1 })
+      const reasonBox = await reason.boundingBox()
+      const reviewBox = await review.boundingBox()
+      expect(reasonBox!.y + reasonBox!.height).toBeLessThanOrEqual(reviewBox!.y)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width)
+      await saveScreenshot(page, `bw-44-insufficient-native-approval-${width}-${theme}`)
+    })
+  }
+}
 
 test('BridgingWidget shows the fee breakdown and Review CTA when ready to bridge', async ({ page }) => {
   await gotoStory(page, 'ready-to-bridge')
@@ -195,10 +217,9 @@ test('BridgingWidget confirm modal tracks the approve/bridge submission steps', 
   await saveScreenshot(page, 'bw-15-submission-bridging', 'BridgingWidget-confirm-modal')
 
   await gotoStory(page, 'submission-completed')
-  await expectBodyToContain(page, ['Bridge status', 'Bridging in progress', 'Deliver on Celo', 'Track on LayerZero'])
+  await expectBodyToContain(page, ['Bridging in progress', 'Processing on Celo', 'Track on LayerZero'])
   await expect(page.getByTestId('BridgingWidget-confirm-done')).toContainText('Continue in background')
-  await page.getByText('Bridge status').scrollIntoViewIfNeeded()
-  await expect(page.getByText('Bridge status')).toBeInViewport({ ratio: 1 })
+  await expect(page.getByTestId('BridgingWidget-delivery-status')).toBeInViewport({ ratio: 1 })
   await saveScreenshot(page, 'bw-16-submission-completed')
 })
 
@@ -208,7 +229,7 @@ test('BridgingWidget keeps progress and its action reachable on a short mobile v
 
   const scrollArea = page.getByTestId('BridgingWidget-confirm-modal').locator('..')
   const done = page.getByTestId('BridgingWidget-confirm-done')
-  await expect(page.getByText('Bridge status')).toBeInViewport({ ratio: 1 })
+  await expect(page.getByTestId('BridgingWidget-delivery-status')).toBeInViewport({ ratio: 1 })
   await page.screenshot({ path: `${SCREENSHOT_DIR}/bw-34-mobile-progress-top.png` })
   await expect.poll(() => scrollArea.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true)
   await page.mouse.move(195, 350)
@@ -266,10 +287,10 @@ test('BridgingWidget opens the history detail modal with delivery progress', asy
   await gotoStory(page, 'history-detail-modal-open')
 
   await expectBodyToContain(page, [
-    'Bridge status',
+    'Bridge complete',
     '120.00 G$',
-    'Submit on Fuse',
-    'Deliver on Celo',
+    'Submitted on Fuse',
+    'Processing on Celo',
     'Track on LayerZero',
   ])
   await saveScreenshot(page, 'bw-23-history-detail-modal-open', 'BridgingWidget-history-detail')
@@ -281,7 +302,7 @@ test('BridgingWidget keeps History progress links reachable on a short mobile vi
 
   const scrollArea = page.getByTestId('BridgingWidget-history-detail').locator('..')
   const providerLink = page.getByRole('link', { name: /Track on LayerZero/ })
-  await expect(page.getByText('Bridge status')).toBeInViewport({ ratio: 1 })
+  await expect(page.getByTestId('BridgingWidget-history-status')).toBeInViewport({ ratio: 1 })
   await expect.poll(() => scrollArea.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true)
   await page.mouse.move(195, 350)
   await page.mouse.wheel(0, 800)
@@ -310,7 +331,7 @@ test('BridgingWidget renders correctly in the light theme', async ({ page }) => 
 
 test('light-theme progress links remain readable', async ({ page }) => {
   await page.goto(`${storyUrl('submission-completed')}&args=defaultTheme:light`)
-  await page.waitForFunction(() => document.body.innerText.includes('Bridge status'))
+  await expect(page.getByTestId('BridgingWidget-delivery-status')).toHaveText('Bridging in progress')
   const link = page.getByRole('link', { name: /Source transaction/ })
   await expect(link).toBeVisible()
   const color = await link.locator('span').first().evaluate((element) => getComputedStyle(element).color)
@@ -333,6 +354,7 @@ test('BridgingWidget renders a usable mobile layout', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await gotoStory(page, 'ready-to-bridge')
   await expectBodyToContain(page, ['GoodDollar Bridge', 'Bridge', 'History', 'FAQ'])
+  await expect(page.getByTestId('BridgingWidget-review-cta')).toBeInViewport({ ratio: 1 })
   await saveScreenshot(page, 'bw-26-mobile-ready-to-bridge')
 })
 
@@ -342,7 +364,7 @@ test('BridgingWidget correctly formats 2-decimal Fuse amounts as source', async 
   await expectBodyToContain(page, [
     'GoodDollar Bridge',
     'Balance: 500.00 G$',
-    'Estimated G$ received',
+    'You will receive',
     '99.75 G$',
     '0.000132 FUSE',
   ])
@@ -356,7 +378,7 @@ test('BridgingWidget correctly formats 2-decimal Fuse amounts as destination', a
   await expectBodyToContain(page, [
     'GoodDollar Bridge',
     'Balance: 500.00 G$',
-    'Estimated G$ received',
+    'You will receive',
     '99.75 G$',
     '0.25% (0.25 G$)',
     '0.000132 CELO',

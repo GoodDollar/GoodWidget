@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { InputFrame, Text, XStack } from '@goodwidget/ui'
+import { Button, ButtonText, InputFrame, Text, XStack } from '@goodwidget/ui'
 import { formatUnits } from 'viem'
 import type { BridgeConfig } from '@goodsdks/bridging-sdk'
 import { getChainDecimals } from '../adapter/chains'
@@ -40,28 +40,28 @@ export function AmountEntry({
       ? formatTokenAmount(formatUnits(bridgeConfig.tokenBalance, sourceDecimals))
       : isBridgeConfigLoading
         ? '…'
-        : '0.00'
+        : '\u2014'
 
   return (
-    <RouteSelectionCard testID="BridgingWidget-amount-card">
-      <XStack justifyContent="space-between" alignItems="center">
+    <RouteSelectionCard testID="BridgingWidget-amount-card" padding="$3" gap="$1">
+      <XStack justifyContent="space-between" alignItems="center" flexWrap="wrap" columnGap="$2">
         <Text fontSize={12} fontWeight="600" color="$secondaryColor">
-          Amount
+          Amount to send
         </Text>
         <XStack gap="$2" alignItems="center">
           <Text fontSize={12} fontWeight="600" color="$secondaryColor">
             Balance: {balanceLabel} G$
           </Text>
-          <Text
+          <Button
             testID="BridgingWidget-max"
-            fontSize={12}
-            fontWeight="600"
-            color="$primary"
-            cursor="pointer"
+            size="sm"
+            variant="ghost"
+            paddingHorizontal="$1"
+            disabled={!isConnected || !bridgeConfig || isBridgeConfigLoading}
             onPress={onPressMax}
           >
-            MAX
-          </Text>
+            <ButtonText fontSize={12} color="$primary">MAX</ButtonText>
+          </Button>
         </XStack>
       </XStack>
       <XStack justifyContent="space-between" alignItems="center" gap="$3">
@@ -70,12 +70,14 @@ export function AmountEntry({
         </Text>
         <InputFrame
           flex={1}
+          minWidth={0}
+          aria-label="Amount to send"
           borderWidth={1}
           borderColor="$borderColor"
           borderRadius="$2"
           backgroundColor="$backgroundInput"
           paddingHorizontal="$3"
-          minHeight="$10"
+          minHeight="$8"
           fontWeight="700"
           color="$textColor"
           inputMode="decimal"

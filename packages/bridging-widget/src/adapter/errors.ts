@@ -14,12 +14,16 @@ type ErrorMatcher = {
 
 const BRIDGE_ERROR_RULES: readonly ErrorMatcher[] = [
   {
-    match: ['network switch cancelled'],
-    message: 'Network switch cancelled in wallet.',
+    match: ['network switch canceled', 'network switch cancelled'],
+    message: 'Network switch canceled in wallet.',
   },
   {
     match: ['user rejected', 'user denied', '4001', 'action_rejected'],
-    message: 'Transaction cancelled in wallet.',
+    message: 'Transaction canceled in wallet.',
+  },
+  {
+    match: ['insufficient funds', 'exceeds the balance of the account', 'insufficient native balance'],
+    message: 'Insufficient native balance for the bridge fee and transaction gas.',
   },
   {
     match: [
@@ -38,7 +42,6 @@ const BRIDGE_ERROR_RULES: readonly ErrorMatcher[] = [
     match: ['timeout', 'timed out'],
     message: 'The request timed out. Please try again.',
   },
-  { match: ['insufficient funds'], message: 'Insufficient funds for the transfer or gas.' },
   { match: ['allowance'], message: 'Insufficient allowance. Approve and try again.' },
   { match: ['unsupported chain', 'wrong chain'], message: 'Switch to a supported chain to continue.' },
 ]
@@ -58,9 +61,28 @@ export function mapBridgeError(
   step: 'approving' | 'bridging' | null = null,
 ): string {
   console.error('[BridgingWidget]', err)
+  if (typeof err === 'object' && err !== null && 'code' in err && err.code === 'BRIDGE_CONFIRMATION_UNAVAILABLE') {
+    return 'Bridge transaction was sent, but confirmation is unavailable. Check the source transaction before trying again.'
+  }
+  if (typeof err === 'object' && err !== null && 'code' in err && err.code === 'BRIDGE_QUOTE_CHANGED') {
+    return 'Bridge fees changed. Review the updated quote before confirming again.'
+  }
 
-  const message = err instanceof Error ? err.message : String(err ?? fallback)
-  const lower = message.toLowerCase()
+  const messages: string[] = []
+  const seen = new Set<unknown>()
+  let current: unknown = err
+  for (let depth = 0; current && depth < 8 && !seen.has(current); depth++) {
+    seen.add(current)
+    if (typeof current !== 'object') {
+      messages.push(String(current))
+      break
+    }
+    for (const key of ['message', 'shortMessage', 'details'] as const) {
+      if (key in current && typeof current[key] === 'string') messages.push(current[key])
+    }
+    current = 'cause' in current ? current.cause : null
+  }
+  const lower = messages.join(' ').toLowerCase()
 
   for (const rule of BRIDGE_ERROR_RULES) {
     if (rule.match.some((needle) => lower.includes(needle))) return rule.message

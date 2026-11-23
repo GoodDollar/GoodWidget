@@ -79,7 +79,7 @@ const sampleHistory: BridgeTransaction[] = [
       status: 'completed',
       srcTxHash: SAMPLE_COMPLETED_SRC_HASH,
       dstTxHash: SAMPLE_COMPLETED_DST_HASH,
-      timestamp: 1767225600,
+      timestamp: 1767225600000,
     },
     timestamp: 1767225600,
   },
@@ -92,7 +92,7 @@ const sampleHistory: BridgeTransaction[] = [
     status: {
       status: 'pending',
       srcTxHash: SAMPLE_PENDING_HASH,
-      timestamp: 1767312000,
+      timestamp: 1767312000000,
     },
     timestamp: 1767312000,
   },
@@ -105,7 +105,7 @@ const sampleHistory: BridgeTransaction[] = [
     status: {
       status: 'failed',
       srcTxHash: SAMPLE_FAILED_HASH,
-      timestamp: 1767139200,
+      timestamp: 1767139200000,
       error: 'Relay timed out before delivery confirmation.',
     },
     timestamp: 1767139200,
@@ -352,6 +352,22 @@ export function NoWalletStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) 
   )
 }
 
+export function ConnectedEmptyStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        inputAmount: '',
+        quote: null,
+        quoteStatus: 'idle',
+        canBridge: false,
+      })}
+      dataTestId="BridgingWidget-connected-empty"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
 export function WrongChainStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   return (
     <PreviewStoryShell
@@ -483,6 +499,35 @@ export function InsufficientBalanceStory({ defaultTheme, themeOverrides }: Theme
   )
 }
 
+export function InsufficientNativeBalanceStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        inputAmount: '5',
+        bridgeConfig: { ...sampleBridgeConfig, nativeBalance: 0n },
+        quote: {
+          ...sampleQuote,
+          amount: G$Fuse(5),
+          fee: parseUnits('230.4533335', 18),
+          feeInNative: '209.50303045454545 FUSE',
+          protocolFeeBps: 10n,
+          protocolFee: G$(5) / 1000n,
+          amountReceived: G$(5) - G$(5) / 1000n,
+        },
+        needsApproval: true,
+        canBridge: false,
+        requirements: [
+          { type: 'insufficient_native_balance', message: 'Insufficient native balance for bridge fee.' },
+          { type: 'insufficient_allowance', message: 'G$ approval is required.' },
+        ],
+      })}
+      dataTestId="BridgingWidget-insufficient-native-balance"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
 export function NeedsApprovalStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   return (
     <PreviewStoryShell
@@ -541,7 +586,8 @@ export function SubmissionBridgingStory({ defaultTheme, themeOverrides }: ThemeA
   )
 }
 
-export function SubmissionCompletedStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+export function SubmissionCompletedStory({ defaultTheme, themeOverrides, delivered = false }: ThemeArgs & { delivered?: boolean } = {}) {
+  const dstTxHash = delivered ? sampleHistory[0].status.dstTxHash : undefined
   return (
     <PreviewStoryShell
       adapter={createAdapter({
@@ -551,9 +597,15 @@ export function SubmissionCompletedStory({ defaultTheme, themeOverrides }: Theme
         submissionTargetChainId: BRIDGING_CHAINS.CELO,
         submissionProtocol: 'LAYERZERO',
         submissionAmount: G$Fuse(50),
-        submissionDeliveryStatus: { status: 'pending', srcTxHash: SAMPLE_COMPLETED_SRC_HASH },
+        submissionDeliveryStatus: {
+          status: delivered ? 'completed' : 'pending',
+          srcTxHash: SAMPLE_COMPLETED_SRC_HASH,
+          dstTxHash,
+          timestamp: delivered ? 1767225660000 : undefined,
+        },
         submissionSourceExplorerLink: `https://explorer.fuse.io/tx/${SAMPLE_COMPLETED_SRC_HASH}`,
         submissionProviderExplorerLink: `https://layerzeroscan.com/tx/${SAMPLE_COMPLETED_SRC_HASH}`,
+        submissionDestinationExplorerLink: dstTxHash ? `https://celoscan.io/tx/${dstTxHash}` : null,
       })}
       dataTestId="BridgingWidget-submission-completed"
       defaultTheme={defaultTheme}
@@ -851,6 +903,13 @@ export function InteractiveSubmitStory({ defaultTheme, themeOverrides }: ThemeAr
     selectTargetChain: (next) => {
       setTarget(next)
       setProtocol('LAYERZERO')
+      setAmount('')
+      setReviewOpen(false)
+    },
+    swapRoute: () => {
+      if (target === null) return
+      setSource(target)
+      setTarget(source)
       setAmount('')
       setReviewOpen(false)
     },

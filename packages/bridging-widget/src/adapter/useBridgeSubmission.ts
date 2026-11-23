@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { TransactionReceipt } from 'viem'
+import type { Hash, TransactionReceipt } from 'viem'
 import type {
   BridgeFeeQuote,
   BridgeProtocol,
@@ -8,7 +8,7 @@ import type {
   TransactionStatus,
 } from '@goodsdks/bridging-sdk'
 import { mapBridgeError } from './errors'
-import { requireSuccessfulReceipt } from './receipts'
+import { BridgeConfirmationUnavailableError, requireSuccessfulReceipt } from './submissionSafety'
 
 export type BridgeSubmissionStep = 'idle' | 'approving' | 'bridging' | 'completed' | 'failed'
 
@@ -18,7 +18,9 @@ export interface BridgeSubmissionState {
    *  modal's Stepper can mark that row failed instead of defaulting to the first one. */
   failedAtStep: 'approving' | 'bridging' | null
   error: string | null
+  requiresReview: boolean
   receipt: TransactionReceipt | null
+  submittedHash: Hash | null
   sourceChainId: number | null
   targetChainId: number | null
   protocol: BridgeProtocol | null
@@ -31,7 +33,9 @@ const IDLE_STATE: BridgeSubmissionState = {
   step: 'idle',
   failedAtStep: null,
   error: null,
+  requiresReview: false,
   receipt: null,
+  submittedHash: null,
   sourceChainId: null,
   targetChainId: null,
   protocol: null,
@@ -118,7 +122,7 @@ export function useBridgeSubmission({ sdk }: UseBridgeSubmissionArgs): BridgeSub
           return
         }
         preparingRequestRef.current = null
-        setState({
+        setState((current) => ({
           ...IDLE_STATE,
           step: 'failed',
           sourceChainId,
@@ -135,8 +139,13 @@ export function useBridgeSubmission({ sdk }: UseBridgeSubmissionArgs): BridgeSub
             doBridgeStarted ? 'transaction' : 'other',
             lastInFlightStepRef.current,
           ),
+          requiresReview: typeof err === 'object' && err !== null && 'code' in err && err.code === 'BRIDGE_QUOTE_CHANGED',
           receipt: null,
-        })
+          submittedHash: err instanceof BridgeConfirmationUnavailableError ? err.transactionHash : null,
+          targetChainId: current.targetChainId,
+          protocol: current.protocol,
+          amount: current.amount,
+        }))
       }
     },
     [sdk],

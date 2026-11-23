@@ -80,6 +80,7 @@ export interface BridgingWidgetAdapterState {
   /** Which step was in flight when a submission failed, for the Confirm modal's Stepper */
   submissionFailedAtStep: 'approving' | 'bridging' | null
   submissionError: string | null
+  submissionRequiresReview?: boolean
   submissionTxHash: Hash | null
   submissionSourceChainId: number | null
   submissionTargetChainId: number | null
@@ -113,6 +114,7 @@ export interface BridgingWidgetAdapterActions {
   selectSourceChain: (chainId: number) => void
   /** Select the destination chain on the Bridge tab */
   selectTargetChain: (chainId: number) => void
+  swapRoute?: () => void
   /** Select the bridge protocol for the active route */
   selectProtocol: (protocol: BridgeProtocol) => void
   /** Update the amount field from a sanitized (parseUnits-safe) string */

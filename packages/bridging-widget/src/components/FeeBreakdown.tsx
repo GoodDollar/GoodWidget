@@ -1,10 +1,9 @@
 import React from 'react'
 import { formatUnits } from 'viem'
 import { Spinner, Text, XStack, getChainDisplayName } from '@goodwidget/ui'
-import type { BridgeFeeQuote, BridgeProtocol, BridgeRequirement } from '@goodsdks/bridging-sdk'
+import type { BridgeFeeQuote, BridgeProtocol } from '@goodsdks/bridging-sdk'
 import { formatChargedProviderFee, getChainDecimals } from '../adapter/chains'
 import { formatTokenAmount } from '../amount'
-import { primaryRequirementMessage } from '../adapter/errors'
 import { DetailRow, PROTOCOL_LABELS, RouteSelectionCard } from './shared'
 
 const BPS_DENOMINATOR = 10_000
@@ -16,7 +15,6 @@ interface FeeBreakdownProps {
   quoteStatus: 'idle' | 'loading' | 'ready' | 'error'
   quote: BridgeFeeQuote | null
   needsApproval: boolean
-  requirements: BridgeRequirement[]
   quoteError: string | null
 }
 
@@ -30,7 +28,6 @@ export function FeeBreakdown({
   quoteStatus,
   quote,
   needsApproval,
-  requirements,
   quoteError,
 }: FeeBreakdownProps) {
   if (quoteStatus === 'idle' || targetChainId === null) return null
@@ -54,10 +51,8 @@ export function FeeBreakdown({
     )
   }
 
-  const requirementMessage = primaryRequirementMessage(requirements)
-
   return (
-    <RouteSelectionCard raised testID="BridgingWidget-fee-breakdown">
+    <RouteSelectionCard padding="$3" gap="$1" testID="BridgingWidget-fee-breakdown">
       <DetailRow label="Route" value={`${getChainDisplayName(sourceChainId)} → ${getChainDisplayName(targetChainId)}`} />
       <DetailRow label="Provider" value={PROTOCOL_LABELS[protocol]} />
       {quote && (
@@ -69,20 +64,11 @@ export function FeeBreakdown({
             )} G$)`}
           />
           <DetailRow label="Estimated provider fee" value={formatChargedProviderFee(quote.fee, sourceChainId)} />
-          <DetailRow
-            label="Estimated G$ received"
-            value={`${formatTokenAmount(formatUnits(quote.amountReceived, getChainDecimals(targetChainId)))} G$`}
-          />
         </>
       )}
       {needsApproval && (
         <Text fontSize={12} color="$warning">
           This amount needs a one-time G$ approval before it can bridge.
-        </Text>
-      )}
-      {requirementMessage && (
-        <Text fontSize={12} color="$error">
-          {requirementMessage}
         </Text>
       )}
     </RouteSelectionCard>

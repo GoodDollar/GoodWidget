@@ -5,6 +5,7 @@ import { BridgingSDK, type BridgeRequestEvent } from '@goodsdks/bridging-sdk'
 // source here lets this QA-only mock patch the same SDK class the real adapter uses.
 import { BridgingWidget } from '../../../../../packages/bridging-widget/src/BridgingWidget'
 import { BRIDGING_CHAINS, type BridgingWidgetProps } from '../../../../../packages/bridging-widget/src/widgetRuntimeContract'
+import { BridgeConfirmationUnavailableError, BridgeQuoteChangedError } from '../../../../../packages/bridging-widget/src/adapter/submissionSafety'
 
 const ADDRESS = '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045' as Address
 const HASH = '0x3333333333333333333333333333333333333333333333333333333333333333' as const
@@ -26,6 +27,11 @@ interface FixtureControls {
   failNextBridgeWithRevert: () => void
   revertNextBridgeReceipt: () => void
   failNextApprovalWithRevert: () => void
+  raiseNextFreshQuoteFee: () => void
+  raiseFeeAfterApproval: () => void
+  blockRaisedFeeForBalance: () => void
+  failBridgeConfirmation: () => void
+  failNextBridgeWithFundsError: () => void
   setAccount: (address: Address | null) => void
   setWalletChain: (chainId: number) => void
   failNextHistoryRefresh: () => void
@@ -58,6 +64,12 @@ function createFixture(mode: FixtureMode) {
   let failBridgeWithRevert = false
   let revertNextBridgeReceipt = false
   let failApprovalWithRevert = false
+  let raiseFreshFee = false
+  let raiseFeeAfterApproval = false
+  let blockedRaisedFee = false
+  let fee = 132000000000000n
+  let failConfirmation = false
+  let failFunds = false
   let failNextScan = false
   let delivered = false
   let freshQuote: Awaited<ReturnType<BridgingSDK['getQuote']>>['quote'] = null
@@ -79,6 +91,11 @@ function createFixture(mode: FixtureMode) {
     failNextBridgeWithRevert: () => { failBridgeWithRevert = true },
     revertNextBridgeReceipt: () => { revertNextBridgeReceipt = true },
     failNextApprovalWithRevert: () => { failApprovalWithRevert = true },
+    raiseNextFreshQuoteFee: () => { raiseFreshFee = true },
+    raiseFeeAfterApproval: () => { raiseFeeAfterApproval = true },
+    blockRaisedFeeForBalance: () => { blockedRaisedFee = true },
+    failBridgeConfirmation: () => { failConfirmation = true },
+    failNextBridgeWithFundsError: () => { failFunds = true },
     setAccount: (next) => {
       account = next
       events.push({ kind: 'account', address: next ?? '' })
@@ -146,11 +163,15 @@ function createFixture(mode: FixtureMode) {
 
   const installSdkMock = () => {
     const originals = {
+      initialize: BridgingSDK.prototype.initialize,
       getBridgeConfig: BridgingSDK.prototype.getBridgeConfig,
       getQuote: BridgingSDK.prototype.getQuote,
       doBridge: BridgingSDK.prototype.doBridge,
       getCombinedHistory: BridgingSDK.prototype.getCombinedHistory,
       getTransactionStatus: BridgingSDK.prototype.getTransactionStatus,
+    }
+    BridgingSDK.prototype.initialize = async () => {
+      events.push({ kind: 'fee-refresh' })
     }
 
     BridgingSDK.prototype.getBridgeConfig = async (_address, route) => {
@@ -195,13 +216,17 @@ function createFixture(mode: FixtureMode) {
         failFreshQuoteWithRevert = false
         throw new Error('The contract function "bridgeLimits" reverted: Internal error')
       }
+      if (params.refresh && raiseFreshFee) {
+        raiseFreshFee = false
+        fee *= 2n
+      }
       const destinationAmount = parseUnits(
         formatUnits(params.amount, decimals(params.fromChain)),
         decimals(params.toChain),
       )
       const protocolFee = destinationAmount / 400n
       const quote = {
-        fee: 132000000000000n,
+        fee,
         feeInNative: '0.00012 FUSE',
         protocol: params.protocol,
         target: params.recipient ?? params.sender,
@@ -213,7 +238,11 @@ function createFixture(mode: FixtureMode) {
       }
       if (params.refresh) freshQuote = quote
       events.push({ kind: 'quote-returned', refresh: params.refresh === true })
-      return { quote, needsApproval: false, canBridge: true, requirements: [] }
+      const insufficient = blockedRaisedFee && fee > 132000000000000n
+      return {
+        quote, needsApproval: false, canBridge: !insufficient,
+        requirements: insufficient ? [{ type: 'insufficient_native_balance', message: 'Insufficient native balance for bridge fee' }] : [],
+      }
     }
 
     BridgingSDK.prototype.doBridge = async (quote, onStatus) => {
@@ -229,6 +258,20 @@ function createFixture(mode: FixtureMode) {
         throw new Error('approval transaction reverted on-chain')
       }
       onStatus?.({ step: 'bridging' })
+      if (failConfirmation) {
+        failConfirmation = false
+        throw new BridgeConfirmationUnavailableError(HASH, new Error('HTTP request failed'))
+      }
+      if (failFunds) {
+        failFunds = false
+        throw new Error('HTTP request failed.', { cause: new Error('insufficient funds for gas * price + value') })
+      }
+      if (raiseFeeAfterApproval) {
+        raiseFeeAfterApproval = false
+        fee *= 2n
+        events.push({ kind: 'fee-changed-after-approval' })
+        throw new BridgeQuoteChangedError()
+      }
       if (failBridgeWithRevert) {
         failBridgeWithRevert = false
         throw new Error('Execution reverted: sensitive RPC details')
@@ -263,6 +306,7 @@ function createFixture(mode: FixtureMode) {
     }
 
     return () => {
+      BridgingSDK.prototype.initialize = originals.initialize
       BridgingSDK.prototype.getBridgeConfig = originals.getBridgeConfig
       BridgingSDK.prototype.getQuote = originals.getQuote
       BridgingSDK.prototype.doBridge = originals.doBridge

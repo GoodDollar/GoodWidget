@@ -28,6 +28,8 @@ interface ReviewScreenProps {
   targetChainId: number
   protocol: BridgeProtocol
   quote: BridgeFeeQuote
+  canConfirm?: boolean
+  blockingReason?: string | null
   onClose: () => void
   onConfirm: () => void
 }
@@ -42,6 +44,8 @@ export function ReviewScreen({
   targetChainId,
   protocol,
   quote,
+  canConfirm = true,
+  blockingReason,
   onClose,
   onConfirm,
 }: ReviewScreenProps) {
@@ -64,22 +68,25 @@ export function ReviewScreen({
             </Button>
           </XStack>
 
-          <XStack alignItems="center" justifyContent="center" gap="$3">
-            <ChainBadge chainId={fromChainId} />
-            <Icon name="arrow-right" size="sm" color="primary" />
-            <ChainBadge chainId={targetChainId} />
-          </XStack>
-
-          <RouteSelectionCard padding="$4" alignItems="center" gap="$1">
-            <Text fontSize={14} fontWeight="400" color="$secondaryColor">
-              G$ Sent
-            </Text>
-            <Text fontSize={28} fontWeight="800" color="$textColor">
-              {amountSent}
-            </Text>
+          <RouteSelectionCard padding="$3" gap="$2">
+            <XStack alignItems="center" justifyContent="space-between" gap="$2">
+              <YStack gap="$1" flex={1} minWidth={0}>
+                <Text variant="caption" secondary>G$ Sent</Text>
+                <Text fontSize="$5" fontWeight="700">{amountSent}</Text>
+              </YStack>
+              <ChainBadge chainId={fromChainId} />
+            </XStack>
+            <Separator />
+            <XStack alignItems="center" justifyContent="space-between" gap="$2">
+              <YStack gap="$1" flex={1} minWidth={0}>
+                <Text variant="caption" secondary>Estimated G$ received</Text>
+                <Text fontSize="$5" fontWeight="700">{amountReceived}</Text>
+              </YStack>
+              <ChainBadge chainId={targetChainId} />
+            </XStack>
           </RouteSelectionCard>
 
-          <RouteSelectionCard padding="$4" gap="$2">
+          <RouteSelectionCard padding="$3" gap="$1">
             <DetailRow
               label="Route"
               value={`${getChainDisplayName(fromChainId)} → ${getChainDisplayName(targetChainId)}`}
@@ -95,7 +102,6 @@ export function ReviewScreen({
               label="Estimated provider fee"
               value={formatChargedProviderFee(quote.fee, fromChainId)}
             />
-            <DetailRow label="Estimated G$ received" value={`${amountReceived} G$`} />
           </RouteSelectionCard>
 
           {walletChainId !== fromChainId && (
@@ -106,15 +112,17 @@ export function ReviewScreen({
 
           <Separator />
 
+          {!canConfirm && blockingReason && <Text color="$error">{blockingReason}</Text>}
           <XStack gap="$2">
             <Button flex={1} height={54} variant="secondary" onPress={onClose}>
-              <ButtonText>Cancel</ButtonText>
+              <ButtonText color="$text">Cancel</ButtonText>
             </Button>
             <Button
               flex={2}
               height={54}
               borderRadius="$full"
               testID="BridgingWidget-review-confirm"
+              disabled={!canConfirm}
               onPress={onConfirm}
             >
               <ButtonText>Confirm</ButtonText>

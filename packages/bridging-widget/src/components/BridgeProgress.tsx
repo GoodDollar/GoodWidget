@@ -1,30 +1,16 @@
 import React from 'react'
-import {
-  Anchor,
-  ChainBadge,
-  Icon,
-  Stepper,
-  type StepperStepItem,
-  Text,
-  XStack,
-  YStack,
-  getChainDisplayName,
-} from '@goodwidget/ui'
+import { Anchor, Icon, Stepper, type StepperStepItem, Text, XStack, YStack, getChainDisplayName } from '@goodwidget/ui'
 import type { BridgeProtocol, TransactionStatus } from '@goodsdks/bridging-sdk'
 import type { Hash } from 'viem'
-import type { BridgeSubmissionStep } from '../adapter/useBridgeSubmission'
-import { DetailRow, PROTOCOL_LABELS, RouteSelectionCard } from './shared'
+import { PROTOCOL_LABELS, RouteSelectionCard } from './shared'
 
 interface BridgeProgressProps {
   fromChainId: number
   targetChainId: number
   protocol: BridgeProtocol
   amountLabel: string
-  submissionStep: BridgeSubmissionStep
-  submissionFailedAtStep: 'approving' | 'bridging' | null
-  submissionError: string | null
-  needsApproval: boolean
   sourceTxHash: Hash | null
+  sourceTimestamp?: number
   deliveryStatus: TransactionStatus | null
   deliveryStatusError: string | null
   sourceExplorerLink: string | null
@@ -44,126 +30,66 @@ function ExplorerLink({ href, children }: { href: string | null; children: strin
   )
 }
 
+export function getBridgeProgressTitle(status: TransactionStatus | null): string {
+  if (status?.status === 'completed') return 'Bridge complete'
+  if (status?.status === 'failed') return 'Delivery failed'
+  return 'Bridging in progress'
+}
+
 export function BridgeProgress({
-  fromChainId,
-  targetChainId,
-  protocol,
-  amountLabel,
-  submissionStep,
-  submissionFailedAtStep,
-  submissionError,
-  needsApproval,
-  sourceTxHash,
-  deliveryStatus,
-  deliveryStatusError,
-  sourceExplorerLink,
-  providerExplorerLink,
-  destinationExplorerLink,
+  fromChainId, targetChainId, protocol, amountLabel, sourceTxHash, sourceTimestamp, deliveryStatus,
+  deliveryStatusError, sourceExplorerLink, providerExplorerLink, destinationExplorerLink,
 }: BridgeProgressProps) {
-  const sourceFailed = submissionStep === 'failed' && submissionFailedAtStep === 'bridging'
-  const approvalFailed = submissionStep === 'failed' && submissionFailedAtStep === 'approving'
-  const sourceStatus: StepperStepItem['status'] = sourceFailed
-    ? 'failed'
-    : submissionStep === 'bridging'
-      ? 'active'
-      : submissionStep === 'completed'
-        ? 'completed'
-        : 'pending'
-  const deliveryStepStatus: StepperStepItem['status'] = deliveryStatus?.status === 'completed'
-    ? 'completed'
-    : deliveryStatus?.status === 'failed'
-      ? 'failed'
-      : submissionStep === 'completed'
-        ? 'active'
-        : 'pending'
-  const steps: StepperStepItem[] = []
-
-  if (needsApproval) {
-    steps.push({
-      id: 'approval',
-      title: 'Approve G$',
-      description: approvalFailed ? submissionError ?? 'Approval failed.' : 'Confirm the token approval in your wallet.',
-      status: approvalFailed
-        ? 'failed'
-        : submissionStep === 'approving'
-          ? 'active'
-          : submissionStep === 'bridging' || submissionStep === 'completed'
-            ? 'completed'
-            : 'pending',
-    })
-  }
-
-  steps.push(
+  const provider = PROTOCOL_LABELS[protocol]
+  const destination = getChainDisplayName(targetChainId)
+  const delivered = deliveryStatus?.status === 'completed'
+  const failed = deliveryStatus?.status === 'failed'
+  // The SDK's timestamp is the provider's message creation time, not the delivery time.
+  const messageTimestamp = deliveryStatus?.timestamp
+  const messageTime = messageTimestamp && Number.isFinite(messageTimestamp)
+    ? new Date(messageTimestamp).toLocaleString()
+    : undefined
+  const messageFound = Boolean(delivered || deliveryStatus?.dstTxHash || messageTime)
+  const steps: StepperStepItem[] = [
     {
-      id: 'source',
-      title: `Submit on ${getChainDisplayName(fromChainId)}`,
-      description: sourceFailed
-        ? submissionError ?? 'The source-chain transaction failed.'
-        : submissionStep === 'bridging'
-          ? 'Confirm the bridge transaction in your wallet.'
-          : undefined,
-      status: sourceStatus,
+      id: 'source', title: `Submitted on ${getChainDisplayName(fromChainId)}`, status: 'completed',
+      detail: sourceTimestamp ? new Date(sourceTimestamp * 1000).toLocaleString() : undefined,
     },
     {
-      id: 'destination',
-      title: `Deliver on ${getChainDisplayName(targetChainId)}`,
-      description: deliveryStatus?.status === 'failed'
-        ? deliveryStatus.error ?? 'The provider reported a delivery failure.'
-        : deliveryStatusError ?? (submissionStep === 'completed'
-          ? `Waiting for ${PROTOCOL_LABELS[protocol]} to deliver the transfer.`
-          : undefined),
-      status: deliveryStepStatus,
+      id: 'message', title: 'Message sent',
+      detail: messageTime,
+      description: failed && !messageFound ? 'The provider reported a delivery failure.' : undefined,
+      status: messageFound ? 'completed' : failed ? 'failed' : 'active',
     },
-  )
+    {
+      id: 'destination', title: `Processing on ${destination}`,
+      description: failed && messageFound ? deliveryStatus?.error ?? 'The provider reported a delivery failure.' : undefined,
+      status: delivered ? 'completed' : failed && messageFound ? 'failed' : messageFound ? 'active' : 'pending',
+    },
+    { id: 'complete', title: 'Complete', status: delivered ? 'completed' : 'pending' },
+  ]
 
-  const title = deliveryStatus?.status === 'completed'
-    ? 'Bridge complete'
-    : deliveryStatus?.status === 'failed'
-      ? 'Delivery failed'
-      : sourceFailed || approvalFailed
-        ? 'Bridge failed'
-        : submissionStep === 'completed'
-          ? 'Bridging in progress'
-          : submissionStep === 'bridging'
-            ? 'Confirm bridge transaction'
-            : 'Preparing bridge'
   return (
     <YStack testID="BridgingWidget-bridge-progress" gap="$3" width="100%">
-      <Text testID="BridgingWidget-delivery-status" fontSize={22} fontWeight="700" textAlign="center">
-        {title}
+      <Text secondary>
+        {delivered
+          ? `Your ${amountLabel} G$ transfer to ${destination} via ${provider} is complete.`
+          : failed
+            ? `Your ${amountLabel} G$ transfer to ${destination} via ${provider} could not be delivered.`
+            : `Your ${amountLabel} G$ is on its way to ${destination} via ${provider}.`}
       </Text>
-      <XStack alignItems="center" justifyContent="center" gap="$3">
-        <ChainBadge chainId={fromChainId} />
-        <Icon name="arrow-right" size="sm" color="primary" />
-        <ChainBadge chainId={targetChainId} />
-      </XStack>
-      <RouteSelectionCard raised alignItems="center" gap="$1">
-        <Text secondary>G$ sent</Text>
-        <Text fontSize={26} fontWeight="800" color="$textColor">{amountLabel}</Text>
-        <DetailRow label="Route" value={`${getChainDisplayName(fromChainId)} → ${getChainDisplayName(targetChainId)}`} />
-        <DetailRow label="Provider" value={PROTOCOL_LABELS[protocol]} />
-      </RouteSelectionCard>
-      <Stepper steps={steps} activeStepId={null} maxHeight={260} />
-      {submissionStep === 'completed' && !deliveryStatusError && deliveryStatus?.status === 'pending' && (
-        <Text secondary textAlign="center">
-          The source transaction is confirmed. Destination delivery can take several minutes.
-        </Text>
+      <Stepper steps={steps} activeStepId={null} maxHeight={300} />
+      {deliveryStatusError && <Text color="$warning">{deliveryStatusError}</Text>}
+      {(sourceExplorerLink || providerExplorerLink || destinationExplorerLink) && (
+        <RouteSelectionCard padding="$3" gap="$2">
+          <Text variant="label">Transaction details</Text>
+          <ExplorerLink href={sourceExplorerLink}>
+            {`Source transaction${sourceTxHash ? ` ${sourceTxHash.slice(0, 8)}\u2026` : ''}`}
+          </ExplorerLink>
+          <ExplorerLink href={providerExplorerLink}>{`Track on ${provider}`}</ExplorerLink>
+          <ExplorerLink href={destinationExplorerLink}>{'Destination transaction'}</ExplorerLink>
+        </RouteSelectionCard>
       )}
-      {deliveryStatusError && (
-        <Text color="$warning" textAlign="center">{deliveryStatusError}</Text>
-      )}
-      {sourceFailed && submissionError && (
-        <Text color="$error" textAlign="center">{submissionError}</Text>
-      )}
-      <XStack justifyContent="center" flexWrap="wrap" gap="$3">
-        <ExplorerLink href={sourceExplorerLink}>
-          {`Source transaction${sourceTxHash ? ` ${sourceTxHash.slice(0, 8)}…` : ''}`}
-        </ExplorerLink>
-        <ExplorerLink href={providerExplorerLink}>{`Track on ${PROTOCOL_LABELS[protocol]}`}</ExplorerLink>
-        <ExplorerLink href={destinationExplorerLink}>
-          {`Destination transaction${deliveryStatus?.dstTxHash ? ` ${deliveryStatus.dstTxHash.slice(0, 8)}…` : ''}`}
-        </ExplorerLink>
-      </XStack>
     </YStack>
   )
 }

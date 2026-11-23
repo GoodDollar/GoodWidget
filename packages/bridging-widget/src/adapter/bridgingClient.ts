@@ -1,23 +1,11 @@
 import { useMemo } from 'react'
-import { createWalletClient, custom, type Address, type PublicClient, type TransactionReceipt, type WalletClient } from 'viem'
-import { BridgingSDK, type BridgeProtocol } from '@goodsdks/bridging-sdk'
+import { createWalletClient, custom, type PublicClient, type WalletClient } from 'viem'
+import type { BridgingSDK } from '@goodsdks/bridging-sdk'
 import type { EIP1193Provider } from '@goodwidget/core'
 import { createBridgingPublicClient, VIEM_CHAINS } from './chains'
 import type { BridgingRpcUrls } from '../widgetRuntimeContract'
-import { requireSuccessfulReceipt } from './receipts'
+import { CheckedBridgingSDK } from './submissionSafety'
 import { getBridgingRpcUrlsKey } from './rpcUrls'
-
-// The SDK currently returns reverted receipts as successes. Check both calls
-// before its doBridge flow can advance to the next step or report completion.
-export class CheckedBridgingSDK extends BridgingSDK {
-  override async approve(amount: bigint): Promise<TransactionReceipt> {
-    return requireSuccessfulReceipt(await super.approve(amount), 'approval')
-  }
-
-  override async bridgeTo(target: Address, targetChainId: number, amount: bigint, protocol: BridgeProtocol): Promise<TransactionReceipt> {
-    return requireSuccessfulReceipt(await super.bridgeTo(target, targetChainId, amount, protocol), 'bridge')
-  }
-}
 
 // One read-only public client per supported chain, built once, so the SDK can
 // read source + destination balances/limits/fees without requiring the

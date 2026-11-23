@@ -1,5 +1,5 @@
 import React from 'react'
-import { Button, ButtonText, Drawer, Heading, Icon, ScrollArea, Stepper, Text, XStack, YStack } from '@goodwidget/ui'
+import { Anchor, Button, ButtonText, Drawer, Heading, Icon, ScrollArea, Stepper, Text, XStack, YStack } from '@goodwidget/ui'
 import { formatUnits } from 'viem'
 import { buildSubmissionSteps } from '../adapter/submissionSteps'
 import type { BridgeProtocol, TransactionStatus } from '@goodsdks/bridging-sdk'
@@ -7,12 +7,13 @@ import type { Hash } from 'viem'
 import type { BridgeSubmissionStep } from '../adapter/useBridgeSubmission'
 import { formatTokenAmount } from '../amount'
 import { getChainDecimals } from '../adapter/chains'
-import { BridgeProgress } from './BridgeProgress'
+import { BridgeProgress, getBridgeProgressTitle } from './BridgeProgress'
 
 interface BridgeConfirmModalProps {
   submissionStep: BridgeSubmissionStep
   submissionFailedAtStep: 'approving' | 'bridging' | null
   submissionError: string | null
+  requiresReview?: boolean
   needsApproval: boolean
   sourceChainId: number | null
   targetChainId: number | null
@@ -44,6 +45,7 @@ export function BridgeConfirmModal({
   submissionStep,
   submissionFailedAtStep,
   submissionError,
+  requiresReview = false,
   needsApproval,
   sourceChainId,
   targetChainId,
@@ -60,6 +62,9 @@ export function BridgeConfirmModal({
 }: BridgeConfirmModalProps) {
   const isOpen = submissionStep !== 'idle'
   const isSettled = submissionStep === 'completed' || submissionStep === 'failed'
+  const confirmationUnavailable = submissionStep === 'failed' && sourceTxHash !== null
+
+  if (!isOpen) return null
 
   // Dismissing the drawer mid-submission would reset local state while
   // doBridge() keeps running in the background; a later onStatus/resolve call
@@ -73,14 +78,17 @@ export function BridgeConfirmModal({
     targetChainId !== null && protocol !== null && amount !== null
     ? { sourceChainId, targetChainId, protocol, amount }
     : null
+  const title = confirmationUnavailable ? 'Confirmation unavailable'
+    : requiresReview ? 'Review updated fees'
+      : progressDetails ? getBridgeProgressTitle(deliveryStatus) : HEADER_COPY[submissionStep]
 
   return (
     <Drawer open={isOpen} onClose={handleClose} height={progressDetails ? 'full' : 'half'} hideCloseButton>
       <ScrollArea width="100%" minHeight={0}>
         <YStack testID="BridgingWidget-confirm-modal" gap="$4" width="100%">
           <XStack justifyContent="space-between" alignItems="center">
-            <Heading level={4} color="$textColor">
-              {progressDetails ? 'Bridge status' : HEADER_COPY[submissionStep]}
+            <Heading level={5} color="$textColor" testID={progressDetails ? 'BridgingWidget-delivery-status' : undefined}>
+              {title}
             </Heading>
             {isSettled && (
               <Button size="sm" variant="ghost" onPress={onClose} aria-label="Close bridge status">
@@ -95,10 +103,6 @@ export function BridgeConfirmModal({
               targetChainId={progressDetails.targetChainId}
               protocol={progressDetails.protocol}
               amountLabel={formatTokenAmount(formatUnits(progressDetails.amount, getChainDecimals(progressDetails.sourceChainId)))}
-              submissionStep={submissionStep}
-              submissionFailedAtStep={submissionFailedAtStep}
-              submissionError={submissionError}
-              needsApproval={needsApproval}
               sourceTxHash={sourceTxHash}
               deliveryStatus={deliveryStatus}
               deliveryStatusError={deliveryStatusError}
@@ -106,14 +110,22 @@ export function BridgeConfirmModal({
               providerExplorerLink={providerExplorerLink}
               destinationExplorerLink={destinationExplorerLink}
             />
-          ) : <Stepper steps={steps} maxHeight={280} />}
+          ) : !confirmationUnavailable && !requiresReview && <Stepper steps={steps} maxHeight={280} />}
 
           {submissionStep === 'failed' && (
             <YStack gap="$2">
-              <Text color="$error">{submissionError ?? 'Bridge transaction failed.'}</Text>
-              <Button height={54} borderRadius="$full" testID="BridgingWidget-confirm-retry" onPress={onRetry}>
-                <ButtonText>Retry</ButtonText>
-              </Button>
+              {(confirmationUnavailable || requiresReview || submissionFailedAtStep === null) && (
+                <Text color={confirmationUnavailable || requiresReview ? '$warning' : '$error'}>
+                  {submissionError ?? 'Bridge transaction failed.'}
+                </Text>
+              )}
+              {confirmationUnavailable ? sourceExplorerLink && (
+                <Anchor href={sourceExplorerLink}><Text color="$primary">View source transaction</Text></Anchor>
+              ) : (
+                <Button height={54} borderRadius="$full" testID="BridgingWidget-confirm-retry" onPress={onRetry}>
+                  <ButtonText>{requiresReview ? 'Review updated quote' : 'Retry'}</ButtonText>
+                </Button>
+              )}
             </YStack>
           )}
 

@@ -48,11 +48,45 @@ test('approval errors are attributed to approval, while wallet rejection stays d
     )
     assert.equal(
       mapBridgeError(new Error('User rejected the request'), 'Token approval failed.', 'transaction', 'approving'),
-      'Transaction cancelled in wallet.',
+      'Transaction canceled in wallet.',
     )
     assert.equal(
       mapBridgeError(new Error('bridgeLimits reverted'), 'Unable to prepare bridge.', 'transaction'),
       'Unable to prepare bridge.',
+    )
+  } finally {
+    console.error = originalError
+  }
+})
+
+test('nested RPC funding errors take precedence over generic transport wording', () => {
+  const originalError = console.error
+  console.error = () => {}
+  try {
+    const rpcError = new Error('HTTP request failed.', {
+      cause: new Error('insufficient funds for gas * price + value: sensitive RPC details'),
+    })
+    assert.equal(
+      mapBridgeError(rpcError, 'Bridge transaction failed.', 'transaction', 'bridging'),
+      'Insufficient native balance for the bridge fee and transaction gas.',
+    )
+    assert.equal(
+      mapBridgeError(new Error('Failed to fetch'), 'Bridge transaction failed.'),
+      'Unable to reach the network. Check your connection and try again.',
+    )
+    assert.equal(
+      mapBridgeError(new Error('User rejected request: insufficient funds'), 'Bridge transaction failed.'),
+      'Transaction canceled in wallet.',
+    )
+    const cyclic = new Error('Failed to fetch')
+    cyclic.cause = cyclic
+    assert.equal(
+      mapBridgeError(cyclic, 'Bridge transaction failed.'),
+      'Unable to reach the network. Check your connection and try again.',
+    )
+    assert.equal(
+      mapBridgeError({ code: 'BRIDGE_QUOTE_CHANGED' }, 'Bridge transaction failed.'),
+      'Bridge fees changed. Review the updated quote before confirming again.',
     )
   } finally {
     console.error = originalError

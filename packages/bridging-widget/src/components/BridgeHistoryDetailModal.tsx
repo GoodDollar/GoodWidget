@@ -11,7 +11,7 @@ import {
 import type { BridgeTransaction } from '@goodsdks/bridging-sdk'
 import { getChainTransactionExplorerLink } from '../adapter/chains'
 import { formatHistoryAmount } from '../amount'
-import { BridgeProgress } from './BridgeProgress'
+import { BridgeProgress, getBridgeProgressTitle } from './BridgeProgress'
 
 interface BridgeHistoryDetailModalProps {
   transaction: BridgeTransaction | null
@@ -23,7 +23,8 @@ interface BridgeHistoryDetailModalProps {
 export function BridgeHistoryDetailModal({ transaction, explorerLink, onClose }: BridgeHistoryDetailModalProps) {
   if (!transaction) return null
 
-  const sourceTxHash = transaction.status.srcTxHash ?? transaction.hash
+  const sourceTxHash = transaction.status.srcTxHash ??
+    (transaction.status.dstTxHash === transaction.hash ? null : transaction.hash)
   const destinationTxHash = transaction.status.dstTxHash ?? null
 
   return (
@@ -31,8 +32,8 @@ export function BridgeHistoryDetailModal({ transaction, explorerLink, onClose }:
       <ScrollArea width="100%" minHeight={0}>
         <YStack testID="BridgingWidget-history-detail" gap="$4" width="100%">
           <XStack justifyContent="space-between" alignItems="center">
-            <Heading level={4} color="$textColor">
-              Bridge status
+            <Heading level={5} color="$textColor" testID="BridgingWidget-history-status">
+              {getBridgeProgressTitle(transaction.status)}
             </Heading>
             <Button size="sm" variant="ghost" onPress={onClose} aria-label="Close bridge status">
               <Icon name="x" size="sm" color="muted" />
@@ -44,15 +45,12 @@ export function BridgeHistoryDetailModal({ transaction, explorerLink, onClose }:
             targetChainId={transaction.toChainId}
             protocol={transaction.protocol}
             amountLabel={formatHistoryAmount(transaction.amount)}
-            submissionStep="completed"
-            submissionFailedAtStep={null}
-            submissionError={null}
-            needsApproval={false}
             sourceTxHash={sourceTxHash}
+            sourceTimestamp={sourceTxHash ? transaction.timestamp : undefined}
             deliveryStatus={transaction.status}
             deliveryStatusError={null}
             sourceExplorerLink={getChainTransactionExplorerLink(transaction.fromChainId, sourceTxHash)}
-            providerExplorerLink={explorerLink}
+            providerExplorerLink={sourceTxHash ? explorerLink : null}
             destinationExplorerLink={getChainTransactionExplorerLink(transaction.toChainId, destinationTxHash)}
           />
         </YStack>

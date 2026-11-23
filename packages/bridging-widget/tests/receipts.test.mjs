@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { requireSuccessfulReceipt } from '../src/adapter/receipts.ts'
+import { requireSuccessfulReceipt } from '../src/adapter/submissionSafety.ts'
 
 test('successful receipts pass through unchanged', () => {
   const receipt = { status: 'success', transactionHash: '0x123' }

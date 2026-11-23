@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { formatUnits, parseUnits } from 'viem'
 import { useWallet } from '@goodwidget/core'
-import type { BridgeProtocol, BridgeTransaction } from '@goodsdks/bridging-sdk'
+import type { BridgeFeeQuote, BridgeProtocol, BridgeTransaction } from '@goodsdks/bridging-sdk'
 import type { Address } from 'viem'
 import type {
   BridgingWidgetAdapterActions,
@@ -19,6 +19,7 @@ import { useBridgeConfig } from './adapter/useBridgeConfig'
 import { useBridgeHistory } from './adapter/useBridgeHistory'
 import { useBridgeQuote } from './adapter/useBridgeQuote'
 import { useBridgeSubmission } from './adapter/useBridgeSubmission'
+import { assertReviewedQuote } from './adapter/submissionSafety'
 
 export function useBridgingAdapter(rpcUrls?: BridgingRpcUrls): BridgingWidgetAdapterResult {
   const { address, chainId, isConnected, provider, connect, switchChain } = useWallet()
@@ -34,7 +35,9 @@ export function useBridgingAdapter(rpcUrls?: BridgingRpcUrls): BridgingWidgetAda
   const [selectedProtocol, setSelectedProtocol] = useState<BridgeProtocol | null>(null)
   const [inputAmount, setInputAmountRaw] = useState('')
   const [isReviewOpen, setIsReviewOpen] = useState(false)
+  const reviewedQuoteRef = useRef<BridgeFeeQuote | null>(null)
   const [selectedHistoryHash, setSelectedHistoryHash] = useState<BridgeTransaction['hash'] | null>(null)
+  const swappedRouteRef = useRef<{ source: number; account: Address | null } | null>(null)
 
   const publicClients = useBridgingPublicClients(rpcUrls)
   const sdk = useBridgingSdk({ provider, chainId: activeChainId, publicClients })
@@ -60,7 +63,10 @@ export function useBridgingAdapter(rpcUrls?: BridgingRpcUrls): BridgingWidgetAda
   // Route and amount belong to the selected account and source chain. Keep
   // an in-flight transaction visible if either changes while it settles.
   useEffect(() => {
-    setTargetChainId(null)
+    // A swap already supplies the new destination; ordinary source/account changes do not.
+    const swappedRoute = swappedRouteRef.current
+    if (swappedRoute?.source !== activeChainId || swappedRoute.account !== walletAddress) setTargetChainId(null)
+    swappedRouteRef.current = null
     setSelectedProtocol(null)
     setInputAmountRaw('')
     setIsReviewOpen(false)
@@ -101,6 +107,17 @@ export function useBridgingAdapter(rpcUrls?: BridgingRpcUrls): BridgingWidgetAda
   const selectTargetChain = useCallback((nextChainId: number) => {
     setTargetChainId(nextChainId)
   }, [])
+
+  const swapRoute = useCallback(() => {
+    if (targetChainId === null || !isBridgingChain(targetChainId) || targetChainId === activeChainId) return
+    submission.cancelPreparation()
+    swappedRouteRef.current = { source: targetChainId, account: walletAddress }
+    setSelectedSourceChainId(targetChainId)
+    setTargetChainId(activeChainId)
+    setSelectedProtocol(null)
+    setInputAmountRaw('')
+    setIsReviewOpen(false)
+  }, [activeChainId, targetChainId, walletAddress, submission.cancelPreparation])
 
   const selectProtocol = useCallback((protocol: BridgeProtocol) => {
     setSelectedProtocol(protocol)
@@ -149,7 +166,7 @@ export function useBridgingAdapter(rpcUrls?: BridgingRpcUrls): BridgingWidgetAda
     [walletAddress, activeChainId],
   )
 
-  const loadLatestQuote = useCallback(async () => {
+  const loadLatestQuote = useCallback(async (reviewedQuote: BridgeFeeQuote) => {
     if (!sdk || !walletAddress || targetChainId === null || !selectedProtocol || !inputAmount) {
       throw new Error('Choose a route and amount before bridging.')
     }
@@ -157,12 +174,14 @@ export function useBridgingAdapter(rpcUrls?: BridgingRpcUrls): BridgingWidgetAda
       try {
         await switchChain(activeChainId)
       } catch (err) {
-        if (isUserRejectedError(err)) throw new Error('Network switch cancelled in wallet.')
+        if (isUserRejectedError(err)) throw new Error('Network switch canceled in wallet.')
         throw err
       }
-      if (!isSubmissionIdentityCurrent()) throw new Error('Bridge preparation cancelled.')
+      if (!isSubmissionIdentityCurrent()) throw new Error('Bridge preparation canceled.')
     }
     const amount = parseUnits(inputAmount, getChainDecimals(activeChainId))
+    await sdk.initialize()
+    if (!isSubmissionIdentityCurrent()) throw new Error('Bridge preparation canceled.')
     const result = await sdk.getQuote({
       sender: walletAddress,
       amount,
@@ -171,34 +190,47 @@ export function useBridgingAdapter(rpcUrls?: BridgingRpcUrls): BridgingWidgetAda
       protocol: selectedProtocol,
       refresh: true,
     })
-    if (!isSubmissionIdentityCurrent()) throw new Error('Bridge preparation cancelled.')
+    if (!isSubmissionIdentityCurrent()) throw new Error('Bridge preparation canceled.')
     if (!result.canBridge || !result.quote) {
       throw new Error(primaryRequirementMessage(result.requirements) ?? 'Bridge quote is no longer valid.')
     }
+    assertReviewedQuote(reviewedQuote, result.quote)
     return result.quote
   }, [sdk, walletAddress, targetChainId, selectedProtocol, inputAmount, chainId, activeChainId, switchChain, isSubmissionIdentityCurrent])
 
   const confirmBridge = useCallback(() => {
-    if (!isReviewOpen || quoteState.status !== 'ready' || !quoteState.canBridge) return
+    if (!isReviewOpen || quoteState.status !== 'ready' || !quoteState.canBridge || !quoteState.quote) return
+    const reviewedQuote = { ...quoteState.quote }
+    reviewedQuoteRef.current = reviewedQuote
     setIsReviewOpen(false)
-    void submission.submit(loadLatestQuote, isSubmissionIdentityCurrent, activeChainId)
-  }, [isReviewOpen, quoteState.status, quoteState.canBridge, submission.submit, loadLatestQuote, isSubmissionIdentityCurrent, activeChainId])
+    void submission.submit(() => loadLatestQuote(reviewedQuote), isSubmissionIdentityCurrent, activeChainId)
+  }, [isReviewOpen, quoteState.status, quoteState.canBridge, quoteState.quote, submission.submit, loadLatestQuote, isSubmissionIdentityCurrent, activeChainId])
 
   const retrySubmission = useCallback(() => {
     if (submission.step !== 'failed') return
-    void submission.submit(loadLatestQuote, isSubmissionIdentityCurrent, activeChainId)
-  }, [submission.step, submission.submit, loadLatestQuote, isSubmissionIdentityCurrent, activeChainId])
+    if (submission.submittedHash) return
+    if (submission.requiresReview) {
+      submission.reset()
+      quoteState.refresh()
+      setIsReviewOpen(true)
+      return
+    }
+    const reviewedQuote = reviewedQuoteRef.current
+    if (!reviewedQuote) return
+    void submission.submit(() => loadLatestQuote(reviewedQuote), isSubmissionIdentityCurrent, activeChainId)
+  }, [submission.step, submission.submittedHash, submission.requiresReview, submission.submit, submission.reset, quoteState.refresh, loadLatestQuote, isSubmissionIdentityCurrent, activeChainId])
 
   const closeSubmission = useCallback(() => {
     const wasCompleted = submission.step === 'completed'
+    const wasSubmitted = wasCompleted || submission.submittedHash !== null
+    if (submission.step === 'failed') quoteState.refresh()
     submission.reset()
-    // A completed bridge spent the typed amount, so clear it rather than
-    // leaving a stale value that would re-trigger a quote for funds already sent.
-    if (wasCompleted) setInputAmountRaw('')
-    // The newly-submitted bridge is now on-chain; refresh so it shows up in
-    // the History tab (as pending) without waiting for the next natural refetch.
-    if (wasCompleted) history.refresh()
-  }, [submission.step, submission.reset, history.refresh])
+    // A sent transaction may have spent the amount even if its receipt is
+    // unavailable. Clear it rather than inviting an accidental duplicate.
+    if (wasSubmitted) setInputAmountRaw('')
+    // Refresh known source hashes; the indexer may still be catching up.
+    if (wasSubmitted) history.refresh()
+  }, [submission.step, submission.submittedHash, submission.reset, history.refresh, quoteState.refresh])
 
   const viewHistoryTransaction = useCallback((transaction: BridgeTransaction) => {
     setSelectedHistoryHash(transaction.hash)
@@ -241,7 +273,8 @@ export function useBridgingAdapter(rpcUrls?: BridgingRpcUrls): BridgingWidgetAda
     submissionStep: submission.step,
     submissionFailedAtStep: submission.failedAtStep,
     submissionError: submission.error,
-    submissionTxHash: submission.receipt?.transactionHash ?? null,
+    submissionRequiresReview: submission.requiresReview,
+    submissionTxHash: submission.receipt?.transactionHash ?? submission.submittedHash,
     submissionSourceChainId: submission.sourceChainId,
     submissionTargetChainId: submission.targetChainId,
     submissionProtocol: submission.protocol,
@@ -250,7 +283,7 @@ export function useBridgingAdapter(rpcUrls?: BridgingRpcUrls): BridgingWidgetAda
     submissionStatusError: submission.deliveryStatusError,
     submissionSourceExplorerLink: getChainTransactionExplorerLink(
       submission.sourceChainId,
-      submission.receipt?.transactionHash ?? null,
+      submission.receipt?.transactionHash ?? submission.submittedHash,
     ),
     submissionProviderExplorerLink: submission.receipt && submission.protocol && sdk
       ? sdk.getExplorerLink(submission.receipt.transactionHash, submission.protocol)
@@ -272,6 +305,7 @@ export function useBridgingAdapter(rpcUrls?: BridgingRpcUrls): BridgingWidgetAda
     switchChain,
     selectSourceChain,
     selectTargetChain,
+    swapRoute,
     selectProtocol,
     setInputAmount,
     setMaxAmount,

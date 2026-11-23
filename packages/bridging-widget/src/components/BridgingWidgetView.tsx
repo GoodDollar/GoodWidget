@@ -12,6 +12,7 @@ import { BridgeTab } from './BridgeTab'
 import { FaqTab } from './FaqTab'
 import { HistoryTab } from './HistoryTab'
 import { ReviewScreen } from './ReviewScreen'
+import { primaryRequirementMessage } from '../adapter/errors'
 
 interface BridgingWidgetViewProps {
   adapter: BridgingWidgetAdapterResult
@@ -35,6 +36,7 @@ export function BridgingWidgetView({ adapter, initialTab = 'bridge' }: BridgingW
           onConnect={actions.connect}
           onSelectSourceChain={actions.selectSourceChain}
           onSelectTargetChain={actions.selectTargetChain}
+          onSwapRoute={actions.swapRoute}
           onSelectProtocol={actions.selectProtocol}
           inputAmount={state.inputAmount}
           bridgeConfig={state.bridgeConfig}
@@ -76,21 +78,23 @@ export function BridgingWidgetView({ adapter, initialTab = 'bridge' }: BridgingW
         targetChainId={state.targetChainId}
         protocol={state.selectedProtocol}
         quote={state.quote}
+        canConfirm={state.canBridge && state.quoteStatus === 'ready'}
+        blockingReason={primaryRequirementMessage(state.requirements)}
         onClose={actions.closeReview}
         onConfirm={actions.confirmBridge}
       />
   )
 
   return (
-    <YStack gap="$3" padding="$5" width="100%" style={{ boxSizing: 'border-box' }}>
-      <XStack justifyContent="space-between" alignItems="center" flexWrap="wrap" gap="$2" paddingHorizontal="$1">
-        <XStack alignItems="center" flexWrap="wrap" gap="$2">
-          <Heading level={4}>GoodDollar Bridge</Heading>
+    <YStack gap="$2" padding="$3" paddingHorizontal="$1" width="100%" style={{ boxSizing: 'border-box' }}>
+      <XStack justifyContent="space-between" alignItems="center" gap="$1">
+        <XStack alignItems="center" gap="$1" flex={1} minWidth={0}>
+          <Heading level={6} fontSize={13} letterSpacing={0} flexShrink={1} numberOfLines={1}>GoodDollar Bridge</Heading>
           {state.chainId !== null && (
             <Badge type="info"><BadgeText>{getChainDisplayName(state.chainId)}</BadgeText></Badge>
           )}
         </XStack>
-        <WalletControls />
+        <WalletControls size="sm" />
       </XStack>
       <WidgetTabs
         tabs={[
@@ -108,6 +112,7 @@ export function BridgingWidgetView({ adapter, initialTab = 'bridge' }: BridgingW
         submissionStep={state.submissionStep}
         submissionFailedAtStep={state.submissionFailedAtStep}
         submissionError={state.submissionError}
+        requiresReview={state.submissionRequiresReview}
         needsApproval={state.needsApproval}
         sourceChainId={state.submissionSourceChainId}
         targetChainId={state.submissionTargetChainId}

@@ -1,12 +1,14 @@
 import React from 'react'
-import { ButtonText, Heading, Icon, Text, XStack, YStack, getChainDisplayName } from '@goodwidget/ui'
+import { formatUnits } from 'viem'
+import { formatTokenAmount } from '../amount'
+import { getChainDecimals } from '../adapter/chains'
+import { Button, ButtonText, Heading, Icon, Select, Text, XStack, YStack, getChainDisplayName } from '@goodwidget/ui'
 import type { BridgeConfig, BridgeFeeQuote, BridgeProtocol, BridgeRequirement } from '@goodsdks/bridging-sdk'
 import { getBridgeTargetChains } from '../adapter/bridgeRoutes'
 import { primaryRequirementMessage } from '../adapter/errors'
 import { BRIDGING_CHAINS } from '../widgetRuntimeContract'
 import { AmountEntry } from './AmountEntry'
 import { FeeBreakdown } from './FeeBreakdown'
-import { NetworkSelect } from './NetworkSelect'
 import {
   ActionButton,
   BridgingTabContent,
@@ -25,6 +27,7 @@ interface BridgeTabProps {
   onConnect?: () => Promise<void> | void
   onSelectSourceChain: (chainId: number) => void
   onSelectTargetChain: (chainId: number) => void
+  onSwapRoute?: () => void
   onSelectProtocol: (protocol: BridgeProtocol) => void
   inputAmount: string
   bridgeConfig: BridgeConfig | null
@@ -51,6 +54,7 @@ export function BridgeTab({
   onConnect,
   onSelectSourceChain,
   onSelectTargetChain,
+  onSwapRoute,
   onSelectProtocol,
   inputAmount,
   bridgeConfig,
@@ -70,28 +74,34 @@ export function BridgeTab({
   const targetOptions = getBridgeTargetChains(chainId)
   const hasTarget = targetChainId !== null
   const isRouteSupported = availableProtocols.length > 0
-  const reviewDisabledReason = !inputAmount
-    ? 'Enter an amount to continue.'
-    : isBridgeConfigLoading
-      ? 'Loading balance and limits.'
-      : bridgeConfigError
-        ? bridgeConfigError
-        : quoteStatus === 'loading'
-          ? 'Fetching quote…'
-          : quoteStatus === 'error'
-            ? quoteError ?? 'Unable to fetch a quote for this amount.'
-            : primaryRequirementMessage(requirements) ?? 'A valid quote is required before review.'
-  const chainOptions = (chains: number[]) => chains.map((id) => ({
-    value: String(id),
-    label: getChainDisplayName(id),
-  }))
+  const reviewDisabledReason = !hasTarget
+    ? 'Select a destination network.'
+    : !inputAmount
+      ? 'Enter an amount to continue.'
+      : isBridgeConfigLoading
+        ? 'Loading balance and limits.'
+        : primaryRequirementMessage(requirements) ?? 'A valid quote is required before review.'
+  const chainOptions = (chains: number[]) => chains.map((id) => {
+    const label = getChainDisplayName(id)
+    return {
+      value: String(id),
+      label,
+      leading: (
+        <XStack aria-hidden width={16} height={16} borderRadius="$full" backgroundColor="$backgroundHover"
+          flexShrink={0} alignItems="center" justifyContent="center"
+        >
+          <Text fontSize={10} lineHeight={14} fontWeight="700" color="$textColor">{label[0]}</Text>
+        </XStack>
+      ),
+    }
+  })
 
   return (
     <BridgingTabContent>
-      <RouteSelectionCard>
-        <YStack gap="$1">
-          <Text secondary>From network</Text>
-          <NetworkSelect
+      <XStack alignItems="flex-end" gap="$2" testID="BridgingWidget-route">
+        <YStack flex={1} minWidth={0} gap="$1">
+          <Text variant="label">From</Text>
+          <Select
             accessibilityLabel="Source network"
             testID="BridgingWidget-source-select"
             value={String(chainId)}
@@ -99,18 +109,24 @@ export function BridgeTab({
             onValueChange={(value) => onSelectSourceChain(Number(value))}
           />
         </YStack>
-        <YStack gap="$1">
-          <Text secondary>To network</Text>
-          <NetworkSelect
+        <Button variant="secondary" size="sm" width={44} height={44} padding={0}
+          onPress={onSwapRoute} disabled={!hasTarget || !isRouteSupported || !onSwapRoute}
+          aria-label="Swap source and destination" testID="BridgingWidget-swap-route"
+        >
+          <Icon name="arrows-left-right" size="xs" color="primary" />
+        </Button>
+        <YStack flex={1} minWidth={0} gap="$1">
+          <Text variant="label">To</Text>
+          <Select
             accessibilityLabel="Destination network"
             testID="BridgingWidget-target-select"
             value={targetChainId === null ? undefined : String(targetChainId)}
             options={chainOptions(targetOptions)}
-            placeholder="Choose a destination"
+            placeholder="Select network"
             onValueChange={(value) => onSelectTargetChain(Number(value))}
           />
         </YStack>
-      </RouteSelectionCard>
+      </XStack>
 
       {isWrongChain && (
         <RouteSelectionCard>
@@ -136,98 +152,103 @@ export function BridgeTab({
         </RouteSelectionCard>
       )}
 
-      {hasTarget && isRouteSupported && (
-        <RouteSelectionCard>
-          <YStack gap="$1">
-            <Text fontSize={16} fontWeight="600" color="$textColor">Bridge provider</Text>
-            <Text variant="caption" secondary>Available for this route</Text>
-          </YStack>
-          <YStack gap="$2">
-            {availableProtocols.map((protocol) => (
-              <ActionButton
-                key={protocol}
-                onPress={() => onSelectProtocol(protocol)}
-                variant={selectedProtocol === protocol ? 'primary' : 'secondary'}
-                width="100%"
-                height="auto"
-                minWidth={0}
-                minHeight="$12"
-                borderRadius="$3"
-                paddingVertical="$3"
-                aria-pressed={selectedProtocol === protocol}
-              >
-                <XStack width="100%" alignItems="center" justifyContent="space-between" gap="$3">
-                  <YStack flex={1} alignItems="flex-start" gap="$1">
-                    <ButtonText color={selectedProtocol === protocol ? undefined : '$text'}>
-                      {PROTOCOL_LABELS[protocol]}
-                    </ButtonText>
-                    <Text
-                      fontSize={12}
-                      color={selectedProtocol === protocol ? '$white' : '$secondaryColor'}
-                    >
-                      Supports {PROTOCOL_SUPPORTED_NETWORKS[protocol]}
+      {hasTarget && (
+        <YStack gap="$2">
+          <Text variant="label">Bridge provider</Text>
+          <XStack gap="$2" alignItems="stretch">
+            {(Object.keys(PROTOCOL_LABELS) as BridgeProtocol[]).map((protocol) => {
+              const enabled = availableProtocols.includes(protocol)
+              const selected = enabled && selectedProtocol === protocol
+              return (
+                <ActionButton
+                  key={protocol}
+                  onPress={() => onSelectProtocol(protocol)}
+                  variant={selected ? 'primary' : 'secondary'}
+                  flex={1}
+                  flexBasis={0}
+                  height="auto"
+                  minWidth={0}
+                  minHeight={68}
+                  borderRadius="$3"
+                  padding="$2"
+                  borderColor={selected ? '$primary' : '$borderColor'}
+                  backgroundColor={selected ? '$primary' : '$backgroundSurface'}
+                  disabled={!enabled}
+                  opacity={1}
+                  aria-pressed={selected}
+                >
+                  <YStack width="100%" minWidth={0} gap="$1">
+                    <XStack gap="$1" alignItems="center">
+                      <Text variant="label" color={selected ? '$white' : '$text'}>{PROTOCOL_LABELS[protocol]}</Text>
+                      {selected && <Icon name="check" size="2xs" color="white" />}
+                    </XStack>
+                    <Text variant="caption" color={selected ? '$white' : '$secondaryColor'} textAlign="left">
+                      {enabled ? PROTOCOL_SUPPORTED_NETWORKS[protocol] : 'Unavailable for this route'}
                     </Text>
                   </YStack>
-                  {selectedProtocol === protocol && <Icon name="check" size="sm" color="white" />}
-                </XStack>
-              </ActionButton>
-            ))}
-          </YStack>
-        </RouteSelectionCard>
+                </ActionButton>
+              )
+            })}
+          </XStack>
+        </YStack>
       )}
 
-      {(hasTarget && isRouteSupported && selectedProtocol) || !isConnected ? (
-        <>
-          <AmountEntry
-            inputAmount={inputAmount}
-            sourceChainId={chainId}
-            isConnected={isConnected}
-            bridgeConfig={bridgeConfig}
-            isBridgeConfigLoading={isBridgeConfigLoading}
-            onChangeAmount={onChangeAmount}
-            onPressMax={onPressMax}
-          />
-          {hasTarget && selectedProtocol && (
-            <FeeBreakdown
-              sourceChainId={chainId}
-              targetChainId={targetChainId}
-              protocol={selectedProtocol}
-              quoteStatus={quoteStatus}
-              quote={quote}
-              needsApproval={needsApproval}
-              requirements={requirements}
-              quoteError={quoteError}
-            />
-          )}
-          {!isConnected ? (
-            <ActionButton
-              testID="BridgingWidget-connect-cta"
-              size="lg"
-              fullWidth
-              onPress={onConnect}
+      <AmountEntry
+        inputAmount={inputAmount}
+        sourceChainId={chainId}
+        isConnected={isConnected}
+        bridgeConfig={bridgeConfig}
+        isBridgeConfigLoading={isBridgeConfigLoading}
+        onChangeAmount={onChangeAmount}
+        onPressMax={onPressMax}
+      />
+      <RouteSelectionCard padding="$3" gap="$1">
+        <XStack alignItems="center" justifyContent="space-between" gap="$2">
+          <Text variant="label">You will receive</Text>
+          <Text variant="caption" secondary>Estimated</Text>
+        </XStack>
+        <Text fontSize="$5" fontWeight="700" testID="BridgingWidget-amount-received">
+          {quoteStatus === 'ready' && quote && hasTarget
+            ? `${formatTokenAmount(formatUnits(quote.amountReceived, getChainDecimals(targetChainId)))} G$`
+            : '\u2014'}
+        </Text>
+      </RouteSelectionCard>
+      {hasTarget && selectedProtocol && (
+        <FeeBreakdown
+          sourceChainId={chainId}
+          targetChainId={targetChainId}
+          protocol={selectedProtocol}
+          quoteStatus={quoteStatus}
+          quote={quote}
+          needsApproval={needsApproval && canBridge}
+          quoteError={quoteError}
+        />
+      )}
+      {!isConnected ? (
+        <ActionButton testID="BridgingWidget-connect-cta" size="lg" fullWidth onPress={onConnect}>
+          <ButtonText>Connect Wallet</ButtonText>
+        </ActionButton>
+      ) : (
+        <YStack gap="$2">
+          {(!hasTarget || isRouteSupported) && !bridgeConfigError &&
+            quoteStatus !== 'loading' && quoteStatus !== 'error' && (!canBridge || quoteStatus !== 'ready') && (
+            <Text testID="BridgingWidget-review-disabled-reason" fontSize={12}
+              color={quoteStatus === 'ready' && requirements.length > 0 ? '$error' : '$secondaryColor'}
             >
-              <ButtonText>Connect Wallet</ButtonText>
-            </ActionButton>
-          ) : (
-            <YStack gap="$2">
-              <ActionButton
-                testID="BridgingWidget-review-cta"
-                size="lg"
-                fullWidth
-                disabled={!canBridge || quoteStatus !== 'ready'}
-                onPress={onReview}
-              >
-                <ButtonText>Review</ButtonText>
-              </ActionButton>
-              {(!canBridge || quoteStatus !== 'ready') && (
-                <Text testID="BridgingWidget-review-disabled-reason" fontSize={12} color="$secondaryColor">
-                  {reviewDisabledReason}
-                </Text>
-              )}
-            </YStack>
+              {reviewDisabledReason}
+            </Text>
           )}
-        </>
-      ) : null}
+          <ActionButton
+            testID="BridgingWidget-review-cta"
+            size="lg"
+            fullWidth
+            disabled={!hasTarget || !isRouteSupported || !canBridge || quoteStatus !== 'ready'}
+            onPress={onReview}
+          >
+            <ButtonText>Review</ButtonText>
+          </ActionButton>
+        </YStack>
+      )}
     </BridgingTabContent>
   )
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { parseUnits, type Address } from 'viem'
 import type { BridgeFeeQuote, BridgeProtocol, BridgeRequirement, BridgingSDK } from '@goodsdks/bridging-sdk'
 import { getChainDecimals } from './chains'
@@ -45,8 +45,10 @@ export function useBridgeQuote({
   toChain,
   protocol,
   inputAmount,
-}: UseBridgeQuoteArgs): BridgeQuoteState {
-  const queryKey = `${sender}:${fromChain}:${toChain}:${protocol}:${inputAmount}`
+}: UseBridgeQuoteArgs): BridgeQuoteState & { refresh: () => void } {
+  const [refreshCount, setRefreshCount] = useState(0)
+  const refresh = useCallback(() => setRefreshCount((count) => count + 1), [])
+  const queryKey = `${sender}:${fromChain}:${toChain}:${protocol}:${inputAmount}:${refreshCount}`
   const [state, setState] = useState<{ queryKey: string; sdk: BridgingSDK | null; result: BridgeQuoteState }>({
     queryKey: '', sdk: null, result: IDLE_STATE,
   })
@@ -105,8 +107,8 @@ export function useBridgeQuote({
   // first render with changed inputs, before a user could click Review.
   if (state.queryKey !== queryKey || state.sdk !== sdk) {
     return sdk && sender && fromChain !== null && toChain !== null && protocol && inputAmount
-      ? { ...IDLE_STATE, status: 'loading' }
-      : IDLE_STATE
+      ? { ...IDLE_STATE, status: 'loading', refresh }
+      : { ...IDLE_STATE, refresh }
   }
-  return state.result
+  return { ...state.result, refresh }
 }

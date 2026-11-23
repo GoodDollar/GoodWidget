@@ -33,8 +33,8 @@ export const PROTOCOL_SUPPORTED_NETWORKS: Record<BridgeProtocol, string> = {
 export const BridgingTabContent = createComponent(YStack, {
   name: 'BridgingTabContent',
   flex: 1,
-  gap: '$3',
-  paddingVertical: '$3',
+  gap: '$2',
+  paddingVertical: '$2',
 })
 
 export const EmptyStateCard = createComponent(Card, {
@@ -57,7 +57,7 @@ export const RouteSelectionCard = createComponent(Card, {
 export function DetailRow({ label, value, valueColor }: { label: string; value: string; valueColor?: string }) {
   return (
     <XStack justifyContent="space-between" alignItems="flex-start" gap="$3">
-      <Text flexShrink={0} maxWidth="38%" fontSize={12} fontWeight="600" color="$secondaryColor">
+      <Text flexShrink={0} maxWidth="48%" fontSize={12} fontWeight="600" color="$secondaryColor">
         {label}
       </Text>
       <Text flex={1} flexShrink={1} textAlign="right" fontSize={14} fontWeight="500" color={valueColor ?? '$textColor'}>

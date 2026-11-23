@@ -18,6 +18,11 @@ type FixtureWindow = Window & {
     failNextBridgeWithRevert: () => void
     revertNextBridgeReceipt: () => void
     failNextApprovalWithRevert: () => void
+    raiseNextFreshQuoteFee: () => void
+    raiseFeeAfterApproval: () => void
+    blockRaisedFeeForBalance: () => void
+    failBridgeConfirmation: () => void
+    failNextBridgeWithFundsError: () => void
     setAccount: (address: string | null) => void
     setWalletChain: (chainId: number) => void
     failNextHistoryRefresh: () => void
@@ -55,6 +60,86 @@ async function prepareRoute(page: Page) {
   await expect(page.getByTestId('BridgingWidget-review-screen')).toBeVisible()
 }
 
+test('an increased fee before submission requires a second review, not an automatic retry', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await prepareRoute(page)
+  await page.evaluate(() => (window as FixtureWindow).__bridgingWidgetFixture?.raiseNextFreshQuoteFee())
+  await page.getByTestId('BridgingWidget-review-confirm').click()
+  await expect(page.getByTestId('BridgingWidget-confirm-modal')).toContainText('Bridge fees changed.')
+  await expect(page.getByTestId('BridgingWidget-confirm-modal')).toContainText('Review updated fees')
+  await expect(page.getByTestId('BridgingWidget-confirm-modal')).not.toContainText('Bridge Failed')
+  expect((await events(page)).filter((event) => event.kind === 'doBridge')).toHaveLength(0)
+  await expect(page.getByTestId('BridgingWidget-confirm-retry')).toBeInViewport()
+  await page.screenshot({ path: `${SCREENSHOT_DIR}/bw-40-fee-change-review.png` })
+  await page.getByRole('button', { name: 'Review updated quote' }).click()
+  await expect(page.getByTestId('BridgingWidget-review-screen')).toBeVisible()
+  expect((await events(page)).filter((event) => event.kind === 'doBridge')).toHaveLength(0)
+  await page.getByTestId('BridgingWidget-review-confirm').click()
+  await expect(page.getByTestId('BridgingWidget-confirm-done')).toBeVisible()
+})
+
+test('fee increases after approval return to Review without another automatic bridge attempt', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await prepareRoute(page)
+  await page.evaluate(() => (window as FixtureWindow).__bridgingWidgetFixture?.raiseFeeAfterApproval())
+  await page.getByTestId('BridgingWidget-review-confirm').click()
+  await expect(page.getByTestId('BridgingWidget-confirm-modal')).toContainText('Bridge fees changed.')
+  expect((await events(page)).filter((event) => event.kind === 'bridge-complete')).toHaveLength(0)
+  await page.getByRole('button', { name: 'Review updated quote' }).click()
+  await expect(page.getByTestId('BridgingWidget-review-screen')).toBeVisible()
+  expect((await events(page)).filter((event) => event.kind === 'doBridge')).toHaveLength(1)
+  await page.getByTestId('BridgingWidget-review-confirm').click()
+  await expect(page.getByTestId('BridgingWidget-confirm-done')).toBeVisible()
+  expect((await events(page)).filter((event) => event.kind === 'doBridge')).toHaveLength(2)
+})
+
+test('an unaffordable updated quote keeps Review confirmation disabled', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await prepareRoute(page)
+  await page.evaluate(() => {
+    const fixture = (window as FixtureWindow).__bridgingWidgetFixture
+    fixture?.raiseFeeAfterApproval()
+    fixture?.blockRaisedFeeForBalance()
+  })
+  await page.getByTestId('BridgingWidget-review-confirm').click()
+  await page.getByRole('button', { name: 'Review updated quote' }).click()
+  await expect(page.getByTestId('BridgingWidget-review-screen')).toContainText('Insufficient native balance for bridge fee')
+  await expect(page.getByTestId('BridgingWidget-review-confirm')).toBeDisabled()
+  expect((await events(page)).filter((event) => event.kind === 'doBridge')).toHaveLength(1)
+  await page.screenshot({ path: `${SCREENSHOT_DIR}/bw-41-updated-fee-unaffordable.png` })
+})
+
+test('receipt lookup failure preserves the source link and does not offer a duplicate Retry', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await prepareRoute(page)
+  await page.evaluate(() => (window as FixtureWindow).__bridgingWidgetFixture?.failBridgeConfirmation())
+  await page.getByTestId('BridgingWidget-review-confirm').click()
+  const modal = page.getByTestId('BridgingWidget-confirm-modal')
+  await expect(modal).toContainText('Confirmation unavailable')
+  await expect(modal).toContainText('Bridge transaction was sent')
+  await expect(modal.getByRole('link', { name: 'View source transaction' })).toHaveAttribute('href', /explorer\.fuse\.io\/tx\/0x3333/)
+  await expect(page.getByTestId('BridgingWidget-confirm-retry')).toHaveCount(0)
+  expect((await events(page)).filter((event) => event.kind === 'doBridge')).toHaveLength(1)
+  await expect(modal.getByRole('link', { name: 'View source transaction' })).toBeInViewport()
+  await page.screenshot({ path: `${SCREENSHOT_DIR}/bw-42-confirmation-unavailable.png` })
+  await page.getByRole('button', { name: 'Close bridge status' }).click()
+  await expect(modal).toBeHidden()
+  await expect(page.getByRole('textbox', { name: 'Amount to send' })).toHaveValue('')
+})
+
+test('RPC-wrapped native funding failures do not show a misleading connection error', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await prepareRoute(page)
+  await page.evaluate(() => (window as FixtureWindow).__bridgingWidgetFixture?.failNextBridgeWithFundsError())
+  await page.getByTestId('BridgingWidget-review-confirm').click()
+  const modal = page.getByTestId('BridgingWidget-confirm-modal')
+  await expect(modal).toContainText('Insufficient native balance for the bridge fee and transaction gas.')
+  await expect(modal).not.toContainText('Check your connection')
+  expect((await events(page)).filter((event) => event.kind === 'bridge-complete')).toHaveLength(0)
+  await expect(page.getByTestId('BridgingWidget-confirm-retry')).toBeInViewport()
+  await page.screenshot({ path: `${SCREENSHOT_DIR}/bw-43-native-funding-error.png` })
+})
+
 test.describe('SDK-mocked adapter submit flow', () => {
   test('switches source chain, refreshes the quote, and gives that quote to doBridge', async ({ page }) => {
     test.setTimeout(60_000)
@@ -65,11 +150,10 @@ test.describe('SDK-mocked adapter submit flow', () => {
     expect((await events(page)).filter((event) => event.kind === 'switch')).toHaveLength(0)
     await page.getByTestId('BridgingWidget-review-confirm').click()
     await expect(page.getByTestId('BridgingWidget-confirm-done')).toContainText('Continue in background')
-    await expect(page.getByTestId('BridgingWidget-bridge-progress')).toContainText('Bridging in progress')
+    await expect(page.getByTestId('BridgingWidget-delivery-status')).toHaveText('Bridging in progress')
     await expect(page.getByRole('link', { name: /Track on LayerZero/ })).toBeVisible()
     await expect(page.getByTestId('BridgingWidget-review-screen')).toBeHidden()
-    await page.getByText('Bridge status').scrollIntoViewIfNeeded()
-    await expect(page.getByText('Bridge status')).toBeInViewport({ ratio: 1 })
+    await expect(page.getByTestId('BridgingWidget-delivery-status')).toBeInViewport({ ratio: 1 })
 
     const trace = await events(page)
     const switchIndex = trace.findIndex((event) => event.kind === 'switch')
@@ -97,17 +181,16 @@ test.describe('SDK-mocked adapter submit flow', () => {
     await prepareRoute(page)
     await page.getByTestId('BridgingWidget-review-confirm').click()
     await expect(page.getByTestId('BridgingWidget-delivery-status')).toContainText('Bridging in progress')
+    await waitForEvent(page, 'history-status')
 
     await page.evaluate(() => (window as FixtureWindow).__bridgingWidgetFixture?.markDelivered())
-    await waitForEvent(page, 'history-status', 2, 20_000)
-    await expect(page.getByTestId('BridgingWidget-delivery-status')).toContainText('Bridge complete')
+    await expect(page.getByTestId('BridgingWidget-delivery-status')).toHaveText('Bridge complete', { timeout: 20_000 })
     await expect(page.getByRole('link', { name: /Destination transaction/ })).toHaveAttribute(
       'href',
       /celoscan\.io\/tx\/0x4444444444444444/,
     )
     await expect(page.getByTestId('BridgingWidget-review-screen')).toBeHidden()
-    await page.getByText('Bridge status').scrollIntoViewIfNeeded()
-    await expect(page.getByText('Bridge status')).toBeInViewport({ ratio: 1 })
+    await expect(page.getByTestId('BridgingWidget-delivery-status')).toBeInViewport({ ratio: 1 })
     await page.screenshot({
       path: `${SCREENSHOT_DIR}/bw-32-delivered-progress.png`,
     })
@@ -120,7 +203,7 @@ test('rejecting a network switch shows a cancellation and Retry switches before 
   await page.evaluate(() => (window as FixtureWindow).__bridgingWidgetFixture?.rejectNextSwitch())
   await page.getByTestId('BridgingWidget-review-confirm').click()
 
-  await expect(page.getByTestId('BridgingWidget-confirm-modal')).toContainText('Network switch cancelled in wallet.')
+  await expect(page.getByTestId('BridgingWidget-confirm-modal')).toContainText('Network switch canceled in wallet.')
   await waitForEvent(page, 'switch-rejected')
   let trace = await events(page)
   expect(trace.filter((event) => event.kind === 'quote' && event.refresh)).toHaveLength(0)
@@ -174,20 +257,27 @@ test('source change during a fresh quote cancels preparation before doBridge', a
   await page.getByTestId('BridgingWidget-review-confirm').click()
   await expect.poll(async () => (await events(page)).filter((event) => event.kind === 'quote' && event.refresh).length).toBe(1)
 
-  // The preparation drawer intentionally blocks pointer input to the bridge
-  // form. Trigger the underlying source control programmatically to model a
-  // host-driven route update while the fresh quote is still pending.
-  await page.getByTestId('BridgingWidget-source-select').evaluate((element) => {
-    (element as HTMLButtonElement).click()
-  })
-  await page.getByRole('option', { name: 'Celo' }).evaluate((element) => {
-    (element as HTMLButtonElement).click()
-  })
-  await expect(page.getByTestId('BridgingWidget-review-cta')).toHaveCount(0)
+  // The drawer blocks the form, but the wallet can still change networks.
+  await page.evaluate(() => (window as FixtureWindow).__bridgingWidgetFixture?.setWalletChain(1))
+  await expect(page.getByTestId('BridgingWidget-source-select')).toContainText('Ethereum')
+  await expect(page.getByTestId('BridgingWidget-review-cta')).toBeDisabled()
   await page.evaluate(() => (window as FixtureWindow).__bridgingWidgetFixture?.releaseFreshQuote())
   await expect.poll(async () => (await events(page)).filter((event) => event.kind === 'quote-returned' && event.refresh).length).toBe(1)
   await page.waitForTimeout(50)
   expect((await events(page)).filter((event) => event.kind === 'doBridge')).toHaveLength(0)
+})
+
+test('swapping reverses the route without retaining the amount or prompting the wallet', async ({ page }) => {
+  await prepareRoute(page)
+  await page.getByRole('button', { name: 'Cancel' }).click()
+  await page.getByTestId('BridgingWidget-swap-route').click()
+  await expect(page.getByTestId('BridgingWidget-source-select')).toContainText('Celo')
+  await expect(page.getByTestId('BridgingWidget-target-select')).toContainText('Fuse')
+  await expect(page.getByRole('textbox', { name: 'Amount to send' })).toHaveValue('')
+  await expect(page.getByTestId('BridgingWidget-review-cta')).toBeDisabled()
+  await expect(page.getByRole('button', { name: /Axelar/ })).toBeDisabled()
+  await expect(page.getByRole('button', { name: /LayerZero/ })).toHaveAttribute('aria-pressed', 'true')
+  expect((await events(page)).filter((event) => event.kind === 'switch' || event.kind === 'doBridge')).toHaveLength(0)
 })
 
 test('external wallet network change updates an explicitly selected source', async ({ page }) => {
@@ -196,7 +286,7 @@ test('external wallet network change updates an explicitly selected source', asy
   await page.evaluate(() => (window as FixtureWindow).__bridgingWidgetFixture?.setWalletChain(1))
 
   await expect(page.getByTestId('BridgingWidget-source-select')).toContainText('Ethereum')
-  await expect(page.getByTestId('BridgingWidget-target-select')).toContainText('Choose a destination')
+  await expect(page.getByTestId('BridgingWidget-target-select')).toContainText('Select network')
   expect((await events(page)).filter((event) => event.kind === 'doBridge')).toHaveLength(0)
 })
 

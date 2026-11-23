@@ -4,6 +4,7 @@ import {
   BelowMinAmountStory,
   ConfigErrorStory,
   ConfigLoadingStory,
+  ConnectedEmptyStory,
   CustodialLocalFixtureStory,
   FaqTabStory,
   FuseDestinationStory,
@@ -13,9 +14,9 @@ import {
   HistoryErrorStory,
   HistoryLoadingStory,
   HistoryPopulatedStory,
-  InjectedWalletStory,
   InteractiveSubmitStory,
   InsufficientBalanceStory,
+  InsufficientNativeBalanceStory,
   LightThemePopulatedStory,
   NeedsApprovalStory,
   NoWalletStory,
@@ -81,15 +82,15 @@ export const CustodialLocalFixture: Story = {
   ),
 }
 
-export const InjectedWallet: Story = {
-  render: ({ defaultTheme, brandPreset }) => (
-    <InjectedWalletStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
-  ),
-}
-
 export const NoWallet: Story = {
   render: ({ defaultTheme, brandPreset }) => (
     <NoWalletStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
+}
+
+export const ConnectedEmpty: Story = {
+  render: ({ defaultTheme, brandPreset }) => (
+    <ConnectedEmptyStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
   ),
 }
 
@@ -141,6 +142,12 @@ export const InsufficientBalance: Story = {
   ),
 }
 
+export const InsufficientNativeBalance: Story = {
+  render: ({ defaultTheme, brandPreset }) => (
+    <InsufficientNativeBalanceStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
+}
+
 export const NeedsApproval: Story = {
   render: ({ defaultTheme, brandPreset }) => (
     <NeedsApprovalStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
@@ -174,6 +181,16 @@ export const SubmissionBridging: Story = {
 export const SubmissionCompleted: Story = {
   render: ({ defaultTheme, brandPreset }) => (
     <SubmissionCompletedStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
+}
+
+export const DeliveryComplete: Story = {
+  render: ({ defaultTheme, brandPreset }) => (
+    <SubmissionCompletedStory
+      delivered
+      defaultTheme={defaultTheme}
+      themeOverrides={brandPresetOverrides(brandPreset)}
+    />
   ),
 }
 
