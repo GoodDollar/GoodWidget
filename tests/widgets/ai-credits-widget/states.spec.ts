@@ -455,6 +455,14 @@ test('AiCreditsWidget multi-signer: signer key import is reachable', async ({ pa
   ).toBeVisible()
   await expect(root.getByText(/Watch Address/i)).toHaveCount(0)
 
+  // Antseed Desktop wording and numbered steps replace the old Profile → Signer arrows.
+  await expect(root.getByText('Open Antseed Desktop', { exact: true })).toBeVisible()
+  await expect(root.getByText('Go to Settings → Wallet → Signer key', { exact: true })).toBeVisible()
+  await expect(root.getByText('Tap Back up to export your Signer Key', { exact: true })).toBeVisible()
+  await expect(root.getByText('Paste it below.', { exact: true })).toBeVisible()
+  await expect(root.getByText(/Profile → Signer|tap ↓|tap ↑/)).toHaveCount(0)
+  await expect(root.getByRole('img', { name: /Back up button circled in green/ })).toBeVisible()
+
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-18-import-key-link.png',
     fullPage: true,
@@ -612,6 +620,33 @@ test('AiCreditsWidget Setup — Download AntSeed step is first and shows Start l
     path: 'tests/widgets/ai-credits-widget/test-results/acw-25-download-antseed-step.png',
     fullPage: true,
   })
+})
+
+test('AiCreditsWidget Setup — Download button opens antseed.com', async ({ page }) => {
+  await gotoStory(page, DOWNLOAD_ANTSEED_STORY_ID)
+  const root = page.getByTestId('AiCreditsWidget-download-antseed-step')
+  await expect(root).toBeVisible()
+
+  // Record the target instead of opening a real tab.
+  await page.evaluate(() => {
+    const openedUrls: string[] = []
+    ;(window as unknown as { openedUrls: string[] }).openedUrls = openedUrls
+    window.open = (url) => {
+      openedUrls.push(String(url))
+      return null
+    }
+  })
+  // The Get Antseed step opens in a modal rendered outside the widget root.
+  await root.getByText('Get Antseed', { exact: true }).last().click()
+  await page.getByRole('button', { name: /Download Antseed/ }).click()
+
+  const openedUrls = await page.evaluate(
+    () => (window as unknown as { openedUrls: string[] }).openedUrls,
+  )
+  expect(openedUrls).toEqual(['https://antseed.com/'])
+  await expect(
+    page.getByText('Download the free Antseed Desktop to use your AI credits.'),
+  ).toBeVisible()
 })
 
 test('AiCreditsWidget Setup — Download AntSeed step is shown on Setup tab', async ({ page }) => {

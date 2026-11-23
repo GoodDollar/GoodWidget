@@ -21,7 +21,7 @@ interface GenerateSignerKeyPanelProps {
 }
 
 /** Numbered heading, so each screen reads as a short ordered list. */
-function NumberedStep({
+export function NumberedStep({
   index,
   title,
   note,
@@ -107,16 +107,16 @@ export function GenerateSignerKeyPanel({
 
         <YStack gap="$2">
           <NumberedStep index={1} title="Open Antseed Desktop" />
-          <NumberedStep index={2} title="Go to Profile → Signer" />
+          <NumberedStep index={2} title="Go to Settings → Wallet → Signer key" />
           <NumberedStep
             index={3}
             title="Back up your existing Signer Key"
-            note="⚠️ Tap ↓ to back up your existing signer key. Importing a new signer key will replace it."
+            note="⚠️ Tap Back up to save your existing signer key. Importing a new signer key will replace it."
           />
-          <NumberedStep index={4} title="Tap ↑ to paste your Signer Key, then save." />
+          <NumberedStep index={4} title="Tap Import to paste your Signer Key, then save." />
         </YStack>
 
-        <AntseedSignerRow mode="generate" showCaption={false} />
+        <AntseedSignerRow />
 
         <AiCreditsStatusNotice>
           <Text fontSize="$2" tone="soft" lineHeight="$3">

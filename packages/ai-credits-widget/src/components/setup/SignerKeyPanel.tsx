@@ -15,7 +15,7 @@ import type {
   AiCreditsWidgetAdapterActions,
   AiCreditsWidgetAdapterState,
 } from '../../widgetRuntimeContract'
-import { GenerateSignerKeyPanel } from '../buy/GenerateSignerKeyPanel'
+import { GenerateSignerKeyPanel, NumberedStep } from '../buy/GenerateSignerKeyPanel'
 import { AntseedSignerRow } from './AntseedSignerRow'
 import { compactButtonProps, truncateAddress } from '../shared/styles'
 
@@ -123,7 +123,13 @@ export function SignerKeyPanel({
         <Text>
           Already have a Signer Key in Antseed? Export it there and paste it below.
         </Text>
-        <AntseedSignerRow mode="import" />
+        <YStack gap="$2">
+          <NumberedStep index={1} title="Open Antseed Desktop" />
+          <NumberedStep index={2} title="Go to Settings → Wallet → Signer key" />
+          <NumberedStep index={3} title="Tap Back up to export your Signer Key" />
+          <NumberedStep index={4} title="Paste it below." />
+        </YStack>
+        <AntseedSignerRow />
         <Input
           size="sm"
           value={privateKey}
