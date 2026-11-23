@@ -1,0 +1,144 @@
+name: Release production packages
+
+# Publication is intentionally branch-gated: pushes to main may deploy demos, but cannot
+# enter this workflow. A maintainer must first promote main to next.
+on:
+  push:
+    branches: [next]
+  # A push made with GITHUB_TOKEN never starts a workflow, so promote-next.yml cannot
+  # reach this job by pushing. workflow_dispatch is exempt from that rule, so promotion
+  # starts the release explicitly and passes the pre-merge tip of next as the diff base.
+  workflow_dispatch:
+    inputs:
+      base:
+        description: Commit to diff from (pre-merge tip of next)
+        required: false
+        type: string
+      deploy_storybook:
+        description: Deploy Storybook to Production after release processing
+        required: false
+        type: boolean
+        default: false
+      deploy_ai_credits:
+        description: Deploy AI Credits to Production after release processing
+        required: false
+        type: boolean
+        default: false
+      deploy_superfluid_campaign:
+        description: Deploy Superfluid Campaign to Production after release processing
+        required: false
+        type: boolean
+        default: false
+      deploy_gooddata:
+        description: Deploy GoodData to Production after release processing
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: goodwidget-npm-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    # The release script pushes its authoritative version commit back to next. The marker
+    # prevents that bot-authored push from recursively starting another release.
+    if: ${{ !contains(github.event.head_commit.message, '[goodwidget release]') }}
+    outputs:
+      release_sha: ${{ steps.release.outputs.release_sha }}
+    permissions:
+      contents: write
+      id-token: write
+    environment: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require next for manual releases
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          test "$GITHUB_REF" = refs/heads/next || {
+            echo "Manual releases are allowed only from next." >&2
+            exit 1
+          }
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # Pin to the commit that triggered this run rather than the moving branch tip,
+          # so the tree built here is the tree whose changes were selected.
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.14.0
+          registry-url: https://registry.npmjs.org
+      - name: Configure pinned toolchain
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.0 --activate
+          node --version
+          pnpm --version
+      - name: Use an npm that supports trusted publishing
+        # OIDC trusted publishing requires npm >= 11.5.1, but node 22.14 ships npm 10.x.
+        run: npm install --global npm@^11.5.1
+      - name: Install immutable workspace
+        run: pnpm install --frozen-lockfile
+      - name: Configure release identity
+        run: |
+          git config user.name goodwidget-release
+          git config user.email goodwidget-release@users.noreply.github.com
+      - name: Build, pack, publish, verify, and dispatch
+        id: release
+        env:
+          RELEASE_BASE_SHA: ${{ github.event.before || inputs.base }}
+          NPM_CONFIG_PROVENANCE: 'true'
+          GOODWALLET_DISPATCH_PAT: ${{ secrets.GOODWALLET_DISPATCH_PAT }}
+          # Wallet automation remains inert until both this explicit switch and its scoped
+          # repository-dispatch credential are configured in the protected environment.
+          ENABLE_GOODWALLET_DISPATCH: ${{ vars.ENABLE_GOODWALLET_DISPATCH }}
+        run: |
+          pnpm release:widgets
+          echo "release_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  deploy-production:
+    needs: release
+    permissions:
+      actions: write
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch selected production deployments at the release commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_SHA: ${{ needs.release.outputs.release_sha }}
+          DEPLOY_STORYBOOK: ${{ inputs.deploy_storybook }}
+          DEPLOY_AI_CREDITS: ${{ inputs.deploy_ai_credits }}
+          DEPLOY_SUPERFLUID_CAMPAIGN: ${{ inputs.deploy_superfluid_campaign }}
+          DEPLOY_GOODDATA: ${{ inputs.deploy_gooddata }}
+        run: |
+          status=0
+          for selection in \
+            "DEPLOY_STORYBOOK:deploy-storybook.yml" \
+            "DEPLOY_AI_CREDITS:deploy-ai-credits-web.yml" \
+            "DEPLOY_SUPERFLUID_CAMPAIGN:deploy-superfluid-campaign-web.yml" \
+            "DEPLOY_GOODDATA:deploy-gooddata-analytics-web.yml"
+          do
+            variable="${selection%%:*}"
+            workflow="${selection#*:}"
+            if [ "${!variable}" = "true" ] && ! gh workflow run "$workflow" \
+              --repo "$GH_REPO" \
+              --ref next \
+              --field "commit_sha=$RELEASE_SHA"
+            then
+              status=1
+            fi
+          done
+          if [ "$DEPLOY_STORYBOOK" != "true" ] &&
+            [ "$DEPLOY_AI_CREDITS" != "true" ] &&
+            [ "$DEPLOY_SUPERFLUID_CAMPAIGN" != "true" ] &&
+            [ "$DEPLOY_GOODDATA" != "true" ]
+          then
+            echo "No production apps selected; skipping app deployments."
+          fi
+          exit "$status"

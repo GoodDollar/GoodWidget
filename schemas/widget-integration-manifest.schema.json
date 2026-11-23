@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gooddollar.org/schemas/goodwidget/integration-manifest/v2.json",
+  "title": "GoodWidget package integration descriptor",
+  "description": "Declares immutable widget identity and package entry points. Wallet presentation, provider policy, tests, and release provenance are intentionally outside this descriptor.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "hostContractVersion", "widgetId", "packageName", "entries"],
+  "properties": {
+    "schemaVersion": { "const": "2.0.0" },
+    "hostContractVersion": {
+      "type": "string",
+      "pattern": "^1\\.[0-9]+\\.[0-9]+$"
+    },
+    "widgetId": {
+      "type": "string",
+      "pattern": "^goodwidget\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "packageName": {
+      "type": "string",
+      "pattern": "^@goodwidget/[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "entries": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["react", "webComponent"],
+      "properties": {
+        "react": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["export"],
+          "properties": {
+            "export": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Za-z0-9]*$"
+            }
+          }
+        },
+        "webComponent": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["registerPath", "tagName"],
+          "properties": {
+            "registerPath": { "const": "./register" },
+            "tagName": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$"
+            }
+          }
+        }
+      }
+    }
+  }
+}
