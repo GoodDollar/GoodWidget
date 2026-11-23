@@ -82,7 +82,7 @@ export function formatExact(value: number, unit: MetricUnit): string {
   return unit === 'gd' ? `G$ ${whole}` : whole
 }
 
-/** The label drawn on a bar. Return rates arrive as 0..1 and are written as percentages. */
+/** The label drawn on a bar. Retention rates arrive as 0..1 and are written as percentages. */
 export function formatBarLabel(value: number, unit: MetricUnit): string {
   if (unit === 'pct') return formatExact(value, unit)
   return unit === 'gd' ? `G$ ${formatShort(value)}` : formatShort(value)
