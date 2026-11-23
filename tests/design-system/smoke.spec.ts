@@ -582,6 +582,25 @@ test('NextTaskModal/ShownWithoutImage story renders the sheet without the image 
   await screenshotStory(page, 'tests/design-system/test-results/story-nexttaskmodal-no-image.png')
 })
 
+test('NextTaskModal renders default fallbacks when optional copy fields are omitted', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-nexttaskmodal--shown-without-image')
+  const frame = getStoryFrame(page)
+  const card = frame.getByTestId('NextTaskModal-no-image')
+  await expect(card).toBeVisible()
+
+  // Proves that when headline, supportingCopy, recommendedLabel, skipLabel, and statusLabel
+  // are omitted from content and props, all five fall back to their default constants.
+  await expect(frame.getByText('One good next step')).toBeVisible()
+  await expect(
+    frame.getByText(
+      'Small actions today create a bigger impact tomorrow. Thanks for being part of GoodDollar.',
+    ),
+  ).toBeVisible()
+  await expect(frame.getByText('RECOMMENDED')).toBeVisible()
+  await expect(frame.getByRole('button', { name: 'Skip for now' })).toBeVisible()
+  await expect(frame.getByText('Claim completed')).toBeVisible()
+})
+
 // Mobile, landscape, and desktop viewports: inner scrolling ensures actions stay reachable across all viewports.
 const NEXT_TASK_VIEWPORTS = [
   { label: 'desktop', width: 1280, height: 800 },
@@ -777,11 +796,17 @@ test('NextTaskModal host mode: double-press during pending navigation calls hand
   const callCountAfterFirstAttempt = await frame.locator('body').evaluate((body) => body.dataset.nextTaskCallCount)
   expect(callCountAfterFirstAttempt).toBe('1')
 
+  // onClicked was only called once for the first attempt
+  await expect(frame.getByTestId('NextTaskModal-click-count')).toHaveText('1')
+
   // Retry after failure: second press succeeds
   await cta.click()
   await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('closed')
   const callCountAfterRetry = await frame.locator('body').evaluate((body) => body.dataset.nextTaskCallCount)
   expect(callCountAfterRetry).toBe('2')
+
+  // Item C: onClicked still has count 1 (one intent counted once despite retry)
+  await expect(frame.getByTestId('NextTaskModal-click-count')).toHaveText('1')
 })
 
 test('NextTaskModal host mode: stale pending navigation from a closed session does not reset guard, toast, or close reopened modal', async ({
@@ -896,4 +921,34 @@ test('NextTaskModal host mode: onClose throwing after successful navigation does
   await cta.evaluate((button) => (button as HTMLElement).click())
   await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('1')
   await expect(frame.getByTestId('NextTaskModal-close-count')).toHaveText('1')
+})
+
+test('NextTaskModal dismissal via Skip link works during pending navigation and late completion is ignored', async ({
+  page,
+}) => {
+  await gotoStory(page, 'design-system-primitives-nexttaskmodal--stale-navigation-ignored-across-reopen')
+  const frame = getStoryFrame(page)
+
+  await frame.getByTestId('NextTaskModal-open').click()
+  const cta = frame.getByRole('button', { name: 'Explore staking' })
+  await cta.scrollIntoViewIfNeeded()
+  await expect(cta).toBeVisible()
+  await cta.click()
+  await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('1')
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
+
+  // Dismissal via Skip link must proceed immediately despite pending navigation (Item B)
+  const skip = frame.getByRole('button', { name: 'Skip for now' })
+  await skip.scrollIntoViewIfNeeded()
+  await skip.click()
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('closed')
+  await expect(frame.getByTestId('NextTaskModal-close-count')).toHaveText('1')
+  await expect(frame.getByTestId('NextTaskModal-last-event')).toHaveText('dismissed:skip-link')
+
+  // Late resolution of attempt 1 does not reopen the modal or call onClose again
+  await frame.getByTestId('NextTaskModal-resolve-oldest').evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-settled-count')).toHaveText('1')
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('closed')
+  await expect(frame.getByTestId('NextTaskModal-close-count')).toHaveText('1')
+  await expect(frame.getByText('Could not open this link. Please try again.')).toHaveCount(0)
 })

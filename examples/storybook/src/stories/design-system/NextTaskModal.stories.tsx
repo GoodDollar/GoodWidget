@@ -70,6 +70,7 @@ function ControlledHarness({
 }) {
   const [open, setOpen] = useState(false)
   const [lastEvent, setLastEvent] = useState('none')
+  const [clickCount, setClickCount] = useState(0)
 
   return (
     <>
@@ -81,6 +82,7 @@ function ControlledHarness({
         </Button>
         <Text data-testid="NextTaskModal-last-event">{lastEvent}</Text>
         <Text data-testid="NextTaskModal-open-state">{open ? 'open' : 'closed'}</Text>
+        <Text data-testid="NextTaskModal-click-count">{String(clickCount)}</Text>
       </Card>
       <NextTaskModal
         testID={testID}
@@ -89,9 +91,11 @@ function ControlledHarness({
         onClose={() => setOpen(false)}
         resolveNavigation={resolveNavigation}
         onShown={(payload) => setLastEvent(`shown:${payload.contentId ?? ''}`)}
-        onClicked={(payload) => setLastEvent(`clicked:${payload.ctaTarget}`)}
+        onClicked={(payload) => {
+          setClickCount((count) => count + 1)
+          setLastEvent(`clicked:${payload.ctaTarget}`)
+        }}
         onDismissed={(payload) => setLastEvent(`dismissed:${payload.reason}`)}
-        statusLabel="Claim completed"
       />
       <ToastContainer />
     </>
@@ -463,7 +467,6 @@ function StaleNavigationHarness() {
           onShown={(payload) => setLastEvent(`shown:${payload.contentId ?? ''}`)}
           onClicked={(payload) => setLastEvent(`clicked:${payload.ctaTarget}`)}
           onDismissed={(payload) => setLastEvent(`dismissed:${payload.reason}`)}
-          statusLabel="Claim completed"
         />
       ) : null}
       <ToastContainer />
@@ -501,7 +504,6 @@ function ThrowingOnCloseHarness() {
         resolveNavigation={async () => {
           setCallCount((count) => count + 1)
         }}
-        statusLabel="Claim completed"
       />
       <ToastContainer />
     </Card>

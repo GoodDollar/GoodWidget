@@ -111,8 +111,8 @@ export function Drawer({
       zIndex={Number(theme.zIndex?.val ?? 200)}
     >
       <DrawerOverlay style={{ backdropFilter: 'blur(2px)' }} />
-      <DrawerFrame maxHeight="calc(100vh - 48px)">
-        <DrawerHandle />
+      <DrawerFrame maxHeight={height === 'fit' ? 'calc(100vh - 48px)' : undefined}>
+        {height !== 'fit' && <DrawerHandle />}
         {!hideCloseButton && (
           <DrawerCloseButton>
             <Button
