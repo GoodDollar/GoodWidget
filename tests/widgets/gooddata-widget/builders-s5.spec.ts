@@ -23,7 +23,7 @@ async function openStory(page: Page, url: string, viewport = DESKTOP) {
 test('BuildersS5Dashboard latest report on desktop — every card, every team named and valued', async ({ page }) => {
   const root = await openStory(page, STORIES.latest)
   await expect(root.getByTestId('builders-headline')).toHaveText('Report of Sun, Nov 15, 2026. Totals since Sun, Nov 1, 2026.')
-  await expect(root.locator('[data-testid^="metric-card-"]')).toHaveCount(13)
+  await expect(root.locator('[data-testid^="metric-card-"]')).toHaveCount(14)
   await expect(root.getByTestId('metric-chart-s5_project_tx_count-value-Blockslide')).toHaveText('40')
   await expect(root.getByTestId('metric-chart-s5_project_gd_volume-value-UbeGames')).toHaveText('G$ 0')
   await expect(root.getByTestId('metric-missing-github_commits')).toHaveText('No GitHub repo registered: UbeGames')
@@ -35,12 +35,13 @@ test('BuildersS5Dashboard latest report on desktop — every card, every team na
   await expect(root.getByTestId('metric-chart-github_prs_closed-value-Delulu')).toHaveText('222')
   await expect(root.getByTestId('metric-chart-x_followers-value-Valor')).toHaveText('161')
   await expect(root.getByTestId('metric-placeholder-s5_project_retention_week1')).toHaveText('First value in the Nov 29 report.')
+  await expect(root.getByTestId('metric-placeholder-s5_project_retention_week4')).toHaveText('First value in the Dec 20 report.')
   await page.screenshot({ path: `${SHOTS}/bs5-01-latest-desktop.png`, fullPage: true })
 })
 
 test('BuildersS5Dashboard latest report at 390 px — no horizontal overflow', async ({ page }) => {
   const root = await openStory(page, STORIES.latest, PHONE)
-  await expect(root.locator('[data-testid^="metric-card-"]')).toHaveCount(13)
+  await expect(root.locator('[data-testid^="metric-card-"]')).toHaveCount(14)
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
   expect(overflow).toBeLessThanOrEqual(0)
   await page.screenshot({ path: `${SHOTS}/bs5-02-latest-390.png`, fullPage: true })

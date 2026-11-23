@@ -72,7 +72,7 @@ test.describe('latest report', () => {
     await expect(page.getByTestId('builders-headline')).toHaveText('Report of Sun, Nov 15, 2026. Totals since Sun, Nov 1, 2026.')
     await expect(page.getByTestId('builders-section-onchain-activity')).toBeVisible()
     await expect(page.getByTestId('builders-section-builder-activity')).toBeVisible()
-    await expect(page.locator('[data-testid^="metric-card-"]')).toHaveCount(13)
+    await expect(page.locator('[data-testid^="metric-card-"]')).toHaveCount(14)
 
     // Every team has its name and number in the transactions card, small teams and all.
     const tx = page.getByTestId('metric-chart-s5_project_tx_count')
@@ -98,11 +98,12 @@ test.describe('latest report', () => {
     await expect(page.getByTestId('metric-missing-farcaster_followers')).toHaveText('No Farcaster account registered: Good drops')
   })
 
-  test('return-rate cards say when their first value comes', async ({ page }) => {
+  test('retention cards say when their first value comes', async ({ page }) => {
     await mockReports(page)
     await page.goto('/builders-s5')
     await expect(page.getByTestId('metric-placeholder-s5_project_retention_week1')).toHaveText('First value in the Nov 29 report.')
     await expect(page.getByTestId('metric-placeholder-s5_project_retention_epoch')).toHaveText('First value in the Dec 13 report.')
+    await expect(page.getByTestId('metric-placeholder-s5_project_retention_week4')).toHaveText('First value in the Dec 20 report.')
   })
 
   test('does not overflow the screen width', async ({ page }) => {
@@ -139,7 +140,7 @@ test.describe('states', () => {
     down = false
     await page.getByTestId('builders-retry').click()
     await expect(page.getByTestId('builders-unavailable')).toBeHidden()
-    await expect(page.locator('[data-testid^="metric-card-"]')).toHaveCount(13)
+    await expect(page.locator('[data-testid^="metric-card-"]')).toHaveCount(14)
   })
 
   test('a 404 on the selected report is the unavailable message, not an empty page', async ({ page }) => {

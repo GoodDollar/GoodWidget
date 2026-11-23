@@ -34,8 +34,8 @@ const GITHUB: MetricDefinition = {
 }
 const WEEK1: MetricDefinition = {
   key: 's5_project_retention_week1',
-  short: 'Week 1 return rate',
-  name: 'Week 1 return rate',
+  short: 'Weekly retention',
+  name: 'Weekly retention',
   what: '',
   mind: '',
   unit: 'pct',
@@ -56,7 +56,7 @@ test('numbers are written in full below 10,000 and short from 10,000', () => {
   assert.equal(formatShort(0), '0')
 })
 
-test('G$ amounts and rates carry their unit; a return rate arrives as 0..1', () => {
+test('G$ amounts and rates carry their unit; a retention rate arrives as 0..1', () => {
   assert.equal(formatBarLabel(20300, 'gd'), 'G$ 20.3K')
   assert.equal(formatBarLabel(55, 'gd'), 'G$ 55')
   assert.equal(formatBarLabel(0.1234, 'pct'), '12.3%')
@@ -113,7 +113,7 @@ test('after a partial report the missing key is not blamed on the registry', () 
   assert.equal(model.kind === 'bars' && model.missingNote, 'Not measured in this report: UbeGames')
 })
 
-test('a return rate with no value yet says when its first value comes', () => {
+test('a retention rate with no value yet says when its first value comes', () => {
   const model = buildCardModel(WEEK1, report('success', [['Valor', { s5_project_tx_count: 1 }]]), '2026-11-15')
   assert.deepEqual(model, { kind: 'placeholder', text: 'First value in the Nov 29 report.' })
 })

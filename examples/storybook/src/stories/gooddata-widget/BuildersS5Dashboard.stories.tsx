@@ -5,7 +5,7 @@ import { defaultConfig, YStack } from '@goodwidget/ui'
 
 // Fixture: the stored gbmetrics report dated 2026-11-15 (GET https://gbmetrics.gooddollar.org/getReport?date=2026-11-15,
 // read 2026-11-20), copied unchanged so every render and screenshot shows the real numbers and is identical across runs.
-// UbeGames has no GitHub keys and Good drops has no Farcaster key in the real report; no return-rate keys exist yet.
+// UbeGames has no GitHub keys and Good drops has no Farcaster key in the real report; no retention keys exist yet.
 const NOV_15_TEAMS: TeamReport[] = [
   { name: 'Good drops', results: {project_tx_count:11,project_gd_volume:10,project_active_users:0,project_active_gd_users:0,project_onboarded_gd_users:0,s5_project_tx_count:11,s5_project_gd_volume:10,s5_project_gd_transfer_count:1,github_commits:5,github_prs_closed:0,github_score:980,x_followers:89,x_tweets:97} },
   { name: 'UbeGames', results: {project_tx_count:1972,project_gd_volume:0,project_active_users:479,project_active_gd_users:124,project_onboarded_gd_users:5,s5_project_tx_count:1972,s5_project_gd_volume:0,s5_project_gd_transfer_count:0,farcaster_followers:10,x_followers:68,x_tweets:13} },
