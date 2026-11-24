@@ -8,7 +8,7 @@
 import React from 'react'
 import { defaultConfig } from '@goodwidget/ui'
 import { TamaguiProvider } from '@tamagui/core'
-import { GoodDataWidget, registerAiCreditsDashboard } from '@goodwidget/gooddata-widget'
+import { GoodDataWidget, registerAiCreditsDashboard, registerBuildersS5Dashboard } from '@goodwidget/gooddata-widget'
 
 // The worker URL is overridable via VITE_ANTSEED_ANALYTICS_WORKER_URL so a
 // deployment can point at a staging/production worker without a code
@@ -17,6 +17,11 @@ import { GoodDataWidget, registerAiCreditsDashboard } from '@goodwidget/gooddata
 registerAiCreditsDashboard({
   workerUrl: import.meta.env.VITE_ANTSEED_ANALYTICS_WORKER_URL,
 })
+
+// The builders season 5 page reads the stored gbmetrics reports through "/gbmetrics/reports" and
+// "/gbmetrics/getReport", which vercel.json (production) and vite.config.ts (development) forward to
+// https://gbmetrics.gooddollar.org.
+registerBuildersS5Dashboard()
 
 export function App() {
   return (

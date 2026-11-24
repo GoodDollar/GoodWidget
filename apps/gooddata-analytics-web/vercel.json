@@ -7,6 +7,14 @@
   },
   "rewrites": [
     {
+      "source": "/gbmetrics/reports",
+      "destination": "https://gbmetrics.gooddollar.org/reports"
+    },
+    {
+      "source": "/gbmetrics/getReport",
+      "destination": "https://gbmetrics.gooddollar.org/getReport"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
