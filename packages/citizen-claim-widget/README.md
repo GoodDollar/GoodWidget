@@ -60,3 +60,35 @@ import { CitizenClaimWidget } from '@goodwidget/citizen-claim-widget'
 2. `statusLabel` prop: Used when `content.statusLabel` is omitted. `CitizenClaimWidget` internally passes `NEXT_TASK_STATUS_LABEL` ("Claim completed") as its default `statusLabel` prop for the post-claim flow.
 3. If neither `content.statusLabel` nor a `statusLabel` prop is provided (e.g. on standalone `NextTaskModal`), no status pill is rendered.
 
+### Navigation and Custom Element Integration
+
+#### `nextTaskResolveNavigation`
+
+When `nextTaskResolveNavigation` is passed, the host owns CTA navigation entirely:
+- The CTA renders as a `<Button>` (instead of an Anchor link).
+- The raw `ctaTarget` string is handed to the callback untouched.
+- If the callback throws or rejects, an error toast is surfaced and the modal remains open for retry or dismissal.
+- When omitted, the CTA acts as an Anchor navigating to `ctaTarget` (http/https only).
+
+#### Custom Element Properties & Events
+
+When using the `<gw-citizen-claim>` Web Component, configure properties via JS:
+
+```js
+const widget = document.querySelector('gw-citizen-claim')
+widget.nextTaskContent = {
+  title: 'Stake your G$ and earn',
+  description: 'Put your claimed G$ to work by staking it for rewards.',
+  ctaLabel: 'Explore staking',
+  ctaTarget: 'https://gooddollar.org/stake',
+}
+widget.nextTaskResolveNavigation = (target) => {
+  // host-owned navigation handler
+}
+```
+
+The custom element dispatches the following DOM CustomEvents:
+- `next-task-shown`: Dispatched when the recommendation sheet opens (`event.detail = { contentId }`).
+- `next-task-clicked`: Dispatched when the user presses the primary CTA (`event.detail = { ctaTarget }`).
+- `next-task-dismissed`: Dispatched when the user dismisses the sheet via the close button, overlay press, or skip link (`event.detail = { reason }`).
+

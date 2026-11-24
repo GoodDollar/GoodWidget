@@ -251,7 +251,7 @@ export function NextTaskModal({
               >
                 <Image
                   source={{ uri: content.imageUrl, width: 96, height: 96 }}
-                  alt={content.title}
+                  alt=""
                   width="100%"
                   height="100%"
                   objectFit="cover"

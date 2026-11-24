@@ -812,7 +812,7 @@ test('NextTaskModal host mode: double-press during pending navigation calls hand
   const callCountAfterRetry = await frame.locator('body').evaluate((body) => body.dataset.nextTaskCallCount)
   expect(callCountAfterRetry).toBe('2')
 
-  // Item C: onClicked still has count 1 (one intent counted once despite retry)
+  // onClicked still has count 1 (one intent counted once despite retry)
   await expect(frame.getByTestId('NextTaskModal-click-count')).toHaveText('1')
 })
 
@@ -944,7 +944,7 @@ test('NextTaskModal dismissal via Skip link works during pending navigation and 
   await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('1')
   await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
 
-  // Dismissal via Skip link must proceed immediately despite pending navigation (Item B)
+  // Dismissal via Skip link must proceed immediately despite pending navigation
   const skip = frame.getByRole('button', { name: 'Skip for now' })
   await skip.scrollIntoViewIfNeeded()
   await skip.click()
