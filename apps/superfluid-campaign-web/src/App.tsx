@@ -16,12 +16,13 @@ import { YStack, defaultConfig } from '@goodwidget/ui'
 const DESKTOP_WIDGET_MAX_WIDTH = 960
 
 /**
- * Tracked ubi.gd destinations for the standalone app. Invite, Vote on Flow State
- * and Fund GoodBuilders are intentionally absent: those cards are disabled for
- * Season 7 and must not carry a link.
+ * Tracked ubi.gd destinations for the standalone app. Invite is intentionally
+ * absent: its card is disabled for Season 7 and must not carry a link.
  */
 const STANDALONE_ACTION_LINKS: CampaignActionLinkOverrides = {
   'claim-ubi': 'https://ubi.gd/4BTD7Vb',
+  'flow-state-vote': 'https://ubi.gd/4eXzuUh',
+  'flow-state-funding': 'https://ubi.gd/3Xp2vSQ',
   'gardens-donation': 'https://ubi.gd/4eunQAd',
   'gardens-funding': 'https://ubi.gd/4zEWvDW',
   'ai-credits-purchase': 'https://ubi.gd/3UFIqH3',

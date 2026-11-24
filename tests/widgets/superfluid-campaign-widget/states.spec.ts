@@ -765,20 +765,16 @@ test('SuperfluidCampaignWidget clicking the CTA button directly does not double-
   await newPage.close()
 })
 
-test('SuperfluidCampaignWidget "Coming up soon" actions render disabled, greyed and non-interactive', async ({
+test('SuperfluidCampaignWidget "Coming up soon" invite action renders disabled, greyed and non-interactive', async ({
   page,
   context,
 }) => {
   await gotoStory(page, STORY_IDS.noWalletContent)
 
   const inviteCard = page.getByTestId('ActionCard-layout-invite-users')
-  const voteCard = page.getByTestId('ActionCard-layout-flow-state-vote')
-  const fundingCard = page.getByTestId('ActionCard-layout-flow-state-funding')
   await expect(inviteCard).toBeVisible()
-  await expect(voteCard).toBeVisible()
-  await expect(fundingCard).toBeVisible()
 
-  for (const card of [inviteCard, voteCard, fundingCard]) {
+  for (const card of [inviteCard]) {
     await expect(card.getByText('Coming up soon', { exact: true })).toBeVisible()
     // Disabled actions carry no link at all.
     await expect(card.locator('a[href]')).toHaveCount(0)
@@ -787,19 +783,11 @@ test('SuperfluidCampaignWidget "Coming up soon" actions render disabled, greyed 
     'aria-disabled',
     'true',
   )
-  await expect(page.getByLabel('Coming up soon: Vote on Flow State')).toHaveAttribute(
-    'aria-disabled',
-    'true',
-  )
-  await expect(page.getByLabel('Coming up soon: Fund GoodBuilders Season 5')).toHaveAttribute(
-    'aria-disabled',
-    'true',
-  )
   // Points labels stay visible on disabled cards.
   await expect(inviteCard.getByText(/PT/)).toBeVisible()
 
   const pagesBefore = context.pages().length
-  for (const card of [inviteCard, voteCard, fundingCard]) {
+  for (const card of [inviteCard]) {
     await expect(card).not.toHaveAttribute('tabindex')
     const closedButton = card.getByRole('button', { name: 'Coming up soon' })
     await expect(closedButton).toBeDisabled()
@@ -988,6 +976,33 @@ test('SuperfluidCampaignWidget FAQ reflects the Season 7 questions', async ({ pa
       'Invite rewards are coming up soon. Invites are currently not eligible for Season 7 points.',
     ),
   ).toBeVisible()
+
+  await page.getByText('Why are some actions marked ‘Coming up soon’?', { exact: true }).click()
+  await expect(
+    page.getByText(
+      'Invites are not available for Season 7 points yet. This card will be enabled when the actions become available.',
+    ),
+  ).toBeVisible()
+})
+
+test('SuperfluidCampaignWidget Vote and Fund cards are active with Vote and Fund labels', async ({
+  page,
+}) => {
+  await gotoStory(page, STORY_IDS.noWalletContent)
+
+  const voteCard = page.getByTestId('ActionCard-layout-flow-state-vote')
+  const fundingCard = page.getByTestId('ActionCard-layout-flow-state-funding')
+  for (const [card, label, cardTitle] of [
+    [voteCard, 'Vote', 'Vote on Flow State'],
+    [fundingCard, 'Fund', 'Fund GoodBuilders Season 5'],
+  ] as const) {
+    await expect(card.getByRole('button', { name: label, exact: true })).toBeEnabled()
+    await expect(card.getByText('Coming up soon')).toHaveCount(0)
+    await expect(page.getByLabel(`${label}: ${cardTitle}`)).toHaveAttribute(
+      'aria-disabled',
+      'false',
+    )
+  }
 })
 
 const LINK_STORIES = [
@@ -997,6 +1012,8 @@ const LINK_STORIES = [
     claimSup: 'https://ubi.gd/4iN7RhK',
     buy: 'https://ubi.gd/3UFIqH3',
     subscribe: 'https://ubi.gd/4AslL0c',
+    vote: 'https://ubi.gd/4eXzuUh',
+    fundBuilders: 'https://ubi.gd/3Xp2vSQ',
     donate: 'https://ubi.gd/4eunQAd',
     stream: 'https://ubi.gd/4zEWvDW',
     claimUbi: 'https://ubi.gd/4BTD7Vb',
@@ -1008,6 +1025,8 @@ const LINK_STORIES = [
     claimSup: 'https://ubi.gd/4sR6vY1',
     buy: 'https://ubi.gd/4sRkCwz',
     subscribe: 'https://ubi.gd/4Ap8chU',
+    vote: 'https://ubi.gd/4j9NDiC',
+    fundBuilders: 'https://ubi.gd/4AV2oNx',
     donate: 'https://ubi.gd/4zzqRrj',
     stream: 'https://ubi.gd/4C02hl6',
     claimUbi: 'https://ubi.gd/3UuQxWV',
@@ -1047,6 +1066,8 @@ for (const linkStory of LINK_STORIES) {
   for (const [actionName, actionTestId, buttonName, expectedUrl] of [
     ['Buy AI Credits', 'ai-credits-purchase', 'BUY', linkStory.buy],
     ['Subscribe', 'ai-credits-subscription', 'Subscribe', linkStory.subscribe],
+    ['Vote on Flow State', 'flow-state-vote', 'Vote', linkStory.vote],
+    ['Fund GoodBuilders', 'flow-state-funding', 'Fund', linkStory.fundBuilders],
     ['Donate', 'gardens-donation', 'Donate', linkStory.donate],
     ['Stream', 'gardens-funding', 'Fund', linkStory.stream],
   ] as const) {

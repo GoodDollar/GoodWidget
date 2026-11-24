@@ -17,7 +17,7 @@ import {
   isInjectedProviderUsable,
 } from '../../fixtures/injectedEip1193'
 
-/** Integrator link sets reviewed in Storybook; disabled actions intentionally carry no link. */
+/** Integrator link sets reviewed in Storybook; the disabled Invite action intentionally carries no link. */
 export const STANDALONE_STORY_LINKS: {
   actionLinks: CampaignActionLinkOverrides
   claimRewardsUrl: string
@@ -25,6 +25,8 @@ export const STANDALONE_STORY_LINKS: {
   claimRewardsUrl: 'https://ubi.gd/4iN7RhK',
   actionLinks: {
     'claim-ubi': 'https://ubi.gd/4BTD7Vb',
+    'flow-state-vote': 'https://ubi.gd/4eXzuUh',
+    'flow-state-funding': 'https://ubi.gd/3Xp2vSQ',
     'gardens-donation': 'https://ubi.gd/4eunQAd',
     'gardens-funding': 'https://ubi.gd/4zEWvDW',
     'ai-credits-purchase': 'https://ubi.gd/3UFIqH3',
@@ -36,6 +38,8 @@ export const GOODWALLET_STORY_LINKS: typeof STANDALONE_STORY_LINKS = {
   claimRewardsUrl: 'https://ubi.gd/4sR6vY1',
   actionLinks: {
     'claim-ubi': 'https://ubi.gd/3UuQxWV',
+    'flow-state-vote': 'https://ubi.gd/4j9NDiC',
+    'flow-state-funding': 'https://ubi.gd/4AV2oNx',
     'gardens-donation': 'https://ubi.gd/4zzqRrj',
     'gardens-funding': 'https://ubi.gd/4C02hl6',
     'ai-credits-purchase': 'https://ubi.gd/4sRkCwz',
