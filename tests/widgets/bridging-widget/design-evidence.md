@@ -4,6 +4,10 @@ Compare against [Lewis's three reference screens](https://github.com/GoodDollar/
 
 These comparisons use mocked Storybook fixtures. The supplied references show different routes, amounts, and states; they are layout references, not a claim of live delivery or pixel parity. History detail reuses the journey reference; no separate History list reference was supplied.
 
+## Latest screenshot refresh
+
+I refreshed the canonical 360px/390px light/dark matrix from widget code at `11fc8f2` after Lewis noted that the PR description still embedded October screenshots. The capture checks now wait for the drawer's JavaScript spring to settle, rather than saving a partly opened drawer. This is a test/evidence update, not a runtime widget change. The replacement PR description will pin its inline images to the screenshot-refresh commit and replace stale verification and manual-test sections with the November evidence below.
+
 <details>
 <summary>Bridge, connected empty</summary>
 

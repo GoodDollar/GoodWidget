@@ -21,6 +21,8 @@ for (const width of [360, 390]) {
       for (const [story, landmark] of scenarios) {
         await page.goto(`/iframe.html?id=qa-bridgingwidget-runtime-fixtures--${story}&viewMode=story&args=defaultTheme:${theme}`)
         await expect(page.getByTestId(landmark).first()).toBeInViewport({ timeout: 45_000 })
+        // Wait for the drawer's JS spring before validating/capturing its final layout.
+        await page.waitForTimeout(600)
         if (story === 'connected-empty') {
           await expect(page.getByPlaceholder('0.00')).toHaveValue('')
           await expect(page.getByTestId(landmark)).toBeDisabled()
