@@ -131,8 +131,16 @@ I completed a new desktop MetaMask test using Celo to Ethereum via Axelar after 
 - I sent 10 G$ from `0x18883C2FF5a84b7F686FF0cfd400c6F3D6068b07`.
 - [Celo source transaction](https://celoscan.io/tx/0xcd5d79e4acf75bb1deec9d8fb55f7e5530fa11e8dd9ffa7f814732f0c2f76b3b): successful at block 83607161. The bridge call paid 5.649605152077207750 CELO to Axelar's gas service; source transaction gas is separate.
 - [Ethereum destination transaction](https://etherscan.io/tx/0x18b5d2239e586c4286285eb4ac43c23ee670f15a98ea867a7593520816e320c0): successful at block 26483897. The G$ token emitted a mint of 999 base units (9.99 G$) to my same address. The bridge's executed event matches the source request ID.
-- [Axelar message tracker](https://axelarscan.io/gmp/0xcd5d79e4acf75bb1deec9d8fb55f7e5530fa11e8dd9ffa7f814732f0c2f76b3b): executed. I recorded the completed tracker separately. The first 53-second clip's sampled frames show the quote screen, not signing or submission; I do not present it as a complete end-to-end recording. A public link to the follow-up recording still needs to be attached.
+- [Axelar message tracker](https://axelarscan.io/gmp/0xcd5d79e4acf75bb1deec9d8fb55f7e5530fa11e8dd9ffa7f814732f0c2f76b3b): executed. I provide the recordings as separate clips below, not a continuous end-to-end recording. The first 53-second clip's sampled frames show the quote screen, not signing or submission; I do not present it as wallet-signing evidence.
 - This is new live transfer evidence, not proof of a Fuse-source mobile transfer or a determination of the earlier November approval-only failure's root cause.
+
+| Recording | Evidence |
+| --- | --- |
+| [Amount and quote](https://www.loom.com/share/cd23feb08c614f9d8298de67a96206bb) | My initial 10 G$ Celo-to-Ethereum/Axelar setup and quote clip. The on-chain links above independently establish submission and delivery. |
+| [Axelar execution](https://www.loom.com/share/bf922af3504949779b6cd1e0f2d87f16) | My separate recording of the tracker showing the approved/executed message. |
+| [Corrected widget History](https://www.loom.com/share/f2e04ab7e1f54680bb31c99a62393d81) | My recording of the History tab after the live-history fix. A network-scan warning is distinct from this transfer's confirmed delivery. |
+
+I retain the recording limitations explicitly: these clips do not reconstruct missing signing footage. I recorded History after discovering and fixing the missing-entry regression, rather than claiming it worked throughout the original submission.
 
 ### Live history regression
 
