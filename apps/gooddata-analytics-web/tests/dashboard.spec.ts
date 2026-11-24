@@ -78,7 +78,7 @@ test.describe('live data', () => {
   test.beforeEach(async ({ page }) => {
     await mockAnalyticsSuccess(page, buildMockAnalyticsResponse(15))
     await mockRefreshSuccess(page)
-    await page.goto('/')
+    await page.goto('/ai-credits')
   })
 
   test('renders scorecards, charts, and the daily table without the demo banner', async ({ page }) => {
@@ -106,7 +106,7 @@ test.describe('live data', () => {
 test.describe('demo fallback', () => {
   test.beforeEach(async ({ page }) => {
     await mockAnalyticsFailure(page)
-    await page.goto('/')
+    await page.goto('/ai-credits')
   })
 
   test('falls back to demo data and shows the demo banner when the live endpoint fails', async ({ page }) => {
@@ -136,7 +136,7 @@ test.describe('demo fallback', () => {
 test.describe('empty state', () => {
   test.beforeEach(async ({ page }) => {
     await mockAnalyticsSuccess(page, buildMockAnalyticsResponse(0, []))
-    await page.goto('/')
+    await page.goto('/ai-credits')
   })
 
   test('shows placeholders when there are no daily records', async ({ page }) => {
@@ -148,7 +148,7 @@ test.describe('empty state', () => {
 test.describe('table pagination', () => {
   test.beforeEach(async ({ page }) => {
     await mockAnalyticsSuccess(page, buildMockAnalyticsResponse(25))
-    await page.goto('/')
+    await page.goto('/ai-credits')
   })
 
   test('pages through the daily summary table 10 rows at a time', async ({ page }) => {
