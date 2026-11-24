@@ -60,12 +60,8 @@ function HistoryRow({ transaction, onPress }: { transaction: BridgeTransaction; 
 // the adapter) across all supported chains. Tapping any row reopens
 // BridgeHistoryDetailModal so a pending transfer's delivery can be tracked.
 //
-// The underlying SDK call (getCombinedHistory) can silently drop a chain
-// it failed to query internally — a known upstream limitation tracked
-// separately in GoodSDKs, not something this widget can detect or fix. The
-// copy below is deliberately non-committal ("no transactions found" rather
-// than "you have no history") so it never asserts a blank history that may
-// actually just be an SDK-side gap, and always offers a manual refresh.
+// The adapter bounds SDK RPC reads and reports incomplete scans separately
+// from a successful empty result. Existing rows remain visible on refresh errors.
 export function HistoryTab({ transactions, isLoading, error, isPartial, onRefresh, onSelectTransaction }: HistoryTabProps) {
   if (isLoading) {
     return (
@@ -119,10 +115,10 @@ export function HistoryTab({ transactions, isLoading, error, isPartial, onRefres
       </XStack>
       {error && (
         <Text color="$warning" fontSize={12}>
-          History could not be refreshed. Showing the last loaded entries; tap refresh to try again.
+          {error}
         </Text>
       )}
-      {!error && isPartial && (
+      {!error && isPartial && transactions.some((transaction) => transaction.status.status === 'pending') && (
         <Text color="$warning" fontSize={12}>
           Some delivery statuses could not be checked. Pending entries remain visible; tap refresh to try again.
         </Text>

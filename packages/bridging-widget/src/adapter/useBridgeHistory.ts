@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Address, PublicClient } from 'viem'
 import type { BridgeTransaction, BridgingSDK } from '@goodsdks/bridging-sdk'
+import { SUPPORTED_CHAINS } from '@goodsdks/bridging-sdk'
 import { mapBridgeError } from './errors'
 import { buildTransactions, resolvePendingStatuses } from './historyTransactions'
+import { loadBridgeHistory } from './historyQueries'
 
-const HISTORY_EVENT_LIMIT = 50
 const HISTORY_POLL_INTERVAL_MS = 15_000
 
 export interface BridgeHistoryState {
@@ -45,22 +46,32 @@ export function useBridgeHistory({ sdk, address, publicClients }: UseBridgeHisto
     const sameIdentity = identityRef.current.sdk === sdk && identityRef.current.address === address
     identityRef.current = { sdk, address }
     setState((current) => sameIdentity && current.transactions.length > 0
-      ? { ...current, error: null }
+      ? current
       : { transactions: [], isLoading: true, error: null, isPartial: false })
 
-    sdk.getCombinedHistory(address, publicClients, { limit: HISTORY_EVENT_LIMIT })
-      .then((events) => buildTransactions(sdk, events))
-      .then(({ transactions, isPartial }) => {
+    loadBridgeHistory(sdk, address, publicClients)
+      .then(async ({ events, incompleteChainIds }) => ({ ...await buildTransactions(sdk, events), incompleteChainIds }))
+      .then(({ transactions, isPartial, incompleteChainIds }) => {
         if (requestIdRef.current !== requestId) return
-        setState({ transactions, isLoading: false, error: null, isPartial })
+        const scanIncomplete = incompleteChainIds.length > 0
+        const networks = incompleteChainIds.map((id) => SUPPORTED_CHAINS[id]?.name ?? String(id)).join(', ')
+        setState((current) => ({
+          transactions: scanIncomplete && sameIdentity
+            ? [...transactions, ...current.transactions.filter((old) => !transactions.some((item) => item.hash === old.hash))]
+                .sort((a, b) => b.timestamp - a.timestamp)
+            : transactions,
+          isLoading: false,
+          error: scanIncomplete ? `History is incomplete for: ${networks}. Available transactions are shown.` : null,
+          isPartial,
+        }))
       })
       .catch((err: unknown) => {
         if (requestIdRef.current !== requestId) return
         setState((current) => ({
           transactions: sameIdentity ? current.transactions : [],
           isLoading: false,
-          error: mapBridgeError(err, 'Unable to load bridge history.'),
-          isPartial: sameIdentity && current.transactions.length > 0,
+          error: mapBridgeError(err, 'History could not be refreshed. Previously loaded entries are shown when available.'),
+          isPartial: sameIdentity && current.isPartial,
         }))
       })
   }, [sdk, address, publicClients, refreshToken])

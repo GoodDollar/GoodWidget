@@ -124,6 +124,38 @@ The Node tests in `packages/bridging-widget/tests/submissionSafety.test.mjs` run
 
 ## Manual verification and remaining evidence
 
+### November 24 live Celo-to-Ethereum transfer
+
+I completed a new desktop MetaMask test using Celo to Ethereum via Axelar after the reviewer agreed I could record on my laptop because MetaMask Mobile blocked screenshots and recording.
+
+- I sent 10 G$ from `0x18883C2FF5a84b7F686FF0cfd400c6F3D6068b07`.
+- [Celo source transaction](https://celoscan.io/tx/0xcd5d79e4acf75bb1deec9d8fb55f7e5530fa11e8dd9ffa7f814732f0c2f76b3b): successful at block 83607161. The bridge call paid 5.649605152077207750 CELO to Axelar's gas service; source transaction gas is separate.
+- [Ethereum destination transaction](https://etherscan.io/tx/0x18b5d2239e586c4286285eb4ac43c23ee670f15a98ea867a7593520816e320c0): successful at block 26483897. The G$ token emitted a mint of 999 base units (9.99 G$) to my same address. The bridge's executed event matches the source request ID.
+- [Axelar message tracker](https://axelarscan.io/gmp/0xcd5d79e4acf75bb1deec9d8fb55f7e5530fa11e8dd9ffa7f814732f0c2f76b3b): executed. I recorded the completed tracker separately. The first 53-second clip's sampled frames show the quote screen, not signing or submission; I do not present it as a complete end-to-end recording. A public link to the follow-up recording still needs to be attached.
+- This is new live transfer evidence, not proof of a Fuse-source mobile transfer or a determination of the earlier November approval-only failure's root cause.
+
+### Live history regression
+
+I reproduced an empty History tab after the successful source transaction and after destination execution. Celo's default RPC rejected the SDK's 120,000-block event range (maximum 5,000); SDK 1.0.6 swallowed per-chain exceptions. Its Axelar lookup also used an endpoint returning service metadata rather than message results.
+
+I bounded SDK event reads into newest-first pages, reduce page size for stricter RPC limits, retain readable pages, and report incomplete scans instead of claiming a successful empty result. Scans have a request budget; an older omitted range is disclosed as partial. I changed Axelar delivery lookup to its message API and validate the matching source hash and execution hash. I retained existing entries when a partial refresh cannot recover them.
+
+The corrected loader found this real source transaction through Celo's public RPC with a complete Celo scan, then resolved its Ethereum destination hash. Both chain receipts were checked independently. Automated cases use mocked clients and do not broadcast transactions.
+
+I verified the initial history change with 31/31 bridge Node tests, 21/21 adapter Chromium tests (one worker, no retries), targeted ESLint, and the bridging-widget ESM/CJS/declaration build. Earlier browser runs were interrupted by dropdown instability and a development-server rebuild; the settled-server adapter run passed.
+
+### Final narrow-screen and history-warning follow-up
+
+I shortened the empty destination placeholder to `Select`, top-aligned the From/To columns, and reserved non-shrinking space for the shared Select arrow. The mobile tests check the empty destination beside Ethereum, label alignment, and label-to-arrow separation at 360px and 390px in both themes. The existing wide-font checks continue to verify that labels fit. This is a further shared Select change; Lewis's scope/design approval remains pending.
+
+I replaced the raw `minAmount` contract reason with a readable minimum using the source bridge's normalized 18-decimal limit (or a readable fallback if the limit is unavailable). I did not hardcode the live 10 G$ limit. The history warning now names networks whose scans were incomplete rather than implying that a completed transfer is pending. A read-only full scan recovered both legs of my transfer and reported incomplete older Ethereum/XDC ranges; a separate XDC request returned a rate-limit response. These warnings do not change confirmed delivery status.
+
+I ran 32/32 bridge Node tests, 78/78 bridge-plus-streaming Chromium tests with one worker and retries disabled, targeted ESLint, and the UI and bridging-widget ESM/CJS/declaration builds. The first browser pass caught an outdated expected minimum-message sentence; I updated the assertion before the successful full run. This does not certify a full-workspace build or lint.
+
+Empty-destination captures: [360px light](review-evidence/20261124/bw-46-empty-target-360-light.png), [360px dark](review-evidence/20261124/bw-46-empty-target-360-dark.png), [390px light](review-evidence/20261124/bw-46-empty-target-390-light.png), [390px dark](review-evidence/20261124/bw-46-empty-target-390-dark.png). I allow the sheet's JS exit animation to settle before these captures. [Minimum-message capture](review-evidence/20261124/bw-09-below-min-amount.png).
+
+I subsequently separated scan failures from delivery-status failures so that the delivery warning requires an actual failed lookup and a remaining pending entry. A successful status lookup clears that warning even if delivery is still pending. The independent scan warning remains only until a successful full refresh; recovering delivery does not prove an unrelated failed network scan recovered. I verified this follow-up with 33/33 Node tests, four targeted Chromium history/recovery cases, targeted ESLint and the bridging-widget declaration/bundle build. The first browser attempt was denied localhost access; the run passed after network permission was granted. The earlier 78-test run predates this small warning-state follow-up.
+
 - Earlier evidence remains separate: I previously supplied the October Celo-to-Ethereum/Axelar recording and source/destination transaction links in the PR description. That historical test is separate from my November approval-only attempt and is not the newly requested Fuse-source phone recording.
 - Device: I used a Samsung Galaxy S9 (`SM-G960U`) with the MetaMask Mobile browser, connected to local Storybook through USB port forwarding. I did not record browser/wallet version numbers.
 - Celo attempt: I rechecked [transaction `0x38abcf...d3f538`](https://celoscan.io/tx/0x38abcf725a53a7888b515f95c6cce344226f073bd40b6cf5220c6924b0d3f538) through Celo Blockscout on 2026-11-23. It succeeded on 2026-11-19 and calls `approve` for 10 G$ from my wallet `0x18883C2FF5a84b7F686FF0cfd400c6F3D6068b07` to the source bridge spender `0xa3247276DbCC76Dd7705273f766eB3E8a5ecF4a5`. The widget subsequently reported a bridge-step network error. This is evidence of the approval only, not a bridge transfer or destination delivery. I have not established the original failure's precise cause.

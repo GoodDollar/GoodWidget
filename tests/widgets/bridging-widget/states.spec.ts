@@ -126,7 +126,7 @@ test('BridgingWidget shows fee-quote loading and error states', async ({ page })
 
 test('BridgingWidget surfaces unmet requirements and blocks the Review CTA', async ({ page }) => {
   await gotoStory(page, 'below-min-amount')
-  await expectBodyToContain(page, ['Minimum bridge amount is 1 G$.'])
+  await expectBodyToContain(page, ['Minimum bridge amount: 1 G$.'])
   await expect(page.getByTestId('BridgingWidget-review-cta')).toBeDisabled()
   await saveScreenshot(page, 'bw-09-below-min-amount')
 

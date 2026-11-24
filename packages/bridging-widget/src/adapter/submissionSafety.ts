@@ -5,8 +5,36 @@ import {
   type BridgeFeeQuote,
   type BridgeProtocol,
   type BridgeStatus,
+  type TransactionStatus,
 } from '@goodsdks/bridging-sdk'
 import type { Address } from 'viem'
+
+const isHash = (value: unknown): value is Hash => typeof value === 'string' && /^0x[\da-f]{64}$/i.test(value)
+
+export async function getAxelarStatus(hash: Hash): Promise<TransactionStatus> {
+  const response = await fetch('https://api.gmp.axelarscan.io', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ method: 'searchGMP', txHash: hash }),
+    signal: AbortSignal.timeout(15_000),
+  })
+  if (!response.ok) throw new Error('Axelar status service unavailable')
+  const body = await response.json()
+  if (!Array.isArray(body?.data)) throw new Error('Invalid Axelar status response')
+  const message = body.data.find((item: { call?: { transactionHash?: string } }) =>
+    item?.call?.transactionHash?.toLowerCase() === hash.toLowerCase())
+  if (!message) throw new Error('Axelar message not indexed yet')
+  const destinationHash = message.executed?.transactionHash
+  if (message.status === 'executed') {
+    if (!isHash(destinationHash)) throw new Error('Axelar execution hash unavailable')
+    return { status: 'completed', srcTxHash: hash, dstTxHash: destinationHash }
+  }
+  if (message.status === 'failed' || message.status === 'error') return { status: 'failed', srcTxHash: hash }
+  if (!['called', 'approved', 'approving', 'executing', 'pending', 'forecalled'].includes(message.status)) {
+    throw new Error('Unknown Axelar delivery status')
+  }
+  return { status: 'pending', srcTxHash: hash }
+}
 
 export class BridgeQuoteChangedError extends Error {
   readonly code = 'BRIDGE_QUOTE_CHANGED'
@@ -70,6 +98,10 @@ function guardWalletWrites(client: WalletClient | undefined, guard: SubmissionGu
 
 export class CheckedBridgingSDK extends BridgingSDK {
   private readonly submissionGuard: SubmissionGuard
+
+  override async getTransactionStatus(hash: Hash, protocol: BridgeProtocol) {
+    return protocol === 'AXELAR' ? getAxelarStatus(hash) : super.getTransactionStatus(hash, protocol)
+  }
 
   constructor(...args: ConstructorParameters<typeof BridgingSDK>) {
     const guard: SubmissionGuard = { quote: null, sourceChainId: null, bridgeHash: null, receiptSeen: false }

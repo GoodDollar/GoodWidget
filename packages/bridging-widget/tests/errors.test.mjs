@@ -1,6 +1,15 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { mapBridgeError } from '../src/adapter/errors.ts'
+import { mapBridgeError, primaryRequirementMessage } from '../src/adapter/errors.ts'
+
+test('minimum errors use normalized on-chain limits instead of raw contract keys', () => {
+  const raw = [{ type: 'exceeds_limit', message: 'minAmount' }]
+  assert.equal(primaryRequirementMessage(raw, 10n * 10n ** 18n), 'Minimum bridge amount: 10 G$.')
+  assert.equal(primaryRequirementMessage(raw), 'Amount is below the minimum for this route.')
+  assert.equal(primaryRequirementMessage([{ type: 'below_min_amount', message: 'too small' }], 1500000000000000000n),
+    'Minimum bridge amount: 1.5 G$.')
+  assert.equal(primaryRequirementMessage([{ type: 'wrong_chain', message: 'Switch network' }, ...raw], 10n ** 19n), 'Switch network')
+})
 
 test('read-only contract reverts use the operation fallback, not a transaction message', () => {
   const originalError = console.error

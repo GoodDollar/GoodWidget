@@ -26,6 +26,7 @@ type FixtureWindow = Window & {
     setAccount: (address: string | null) => void
     setWalletChain: (chainId: number) => void
     failNextHistoryRefresh: () => void
+    failNextDeliveryStatus: () => void
     markDelivered: () => void
   }
 }
@@ -286,7 +287,7 @@ test('external wallet network change updates an explicitly selected source', asy
   await page.evaluate(() => (window as FixtureWindow).__bridgingWidgetFixture?.setWalletChain(1))
 
   await expect(page.getByTestId('BridgingWidget-source-select')).toContainText('Ethereum')
-  await expect(page.getByTestId('BridgingWidget-target-select')).toContainText('Select network')
+  await expect(page.getByTestId('BridgingWidget-target-select')).toContainText('Select')
   expect((await events(page)).filter((event) => event.kind === 'doBridge')).toHaveLength(0)
 })
 
@@ -387,4 +388,33 @@ test('failed history refresh still lets the pending-status poll complete deliver
 
   await expect(page.getByTestId('BridgingWidget-history-row')).toContainText('completed')
   expect((await events(page)).filter((event) => event.kind === 'history-scan')).toHaveLength(scansBeforePoll)
+  // Delivery recovery cannot claim that the separate failed history scan recovered.
+  await expect(page.getByText(/History could not be refreshed/)).toBeVisible()
+  await expect(page.getByText(/Some delivery statuses could not be checked/)).toHaveCount(0)
+  await page.getByRole('button', { name: 'Refresh history' }).click()
+  await expect(page.getByText(/History could not be refreshed/)).toHaveCount(0)
+  await expect(page.getByTestId('BridgingWidget-history-row')).toContainText('completed')
+})
+
+test('delivery warning appears only after a failed lookup and clears when it recovers', async ({ page }) => {
+  await page.clock.install()
+  await gotoFixture(page, 'history')
+  await page.getByText('History', { exact: true }).first().click()
+  const warning = page.getByText(/Some delivery statuses could not be checked/)
+  await expect(page.getByTestId('BridgingWidget-history-row')).toContainText('pending')
+  await expect(warning).toHaveCount(0)
+
+  await page.evaluate(() => (window as FixtureWindow).__bridgingWidgetFixture?.failNextDeliveryStatus())
+  await page.clock.fastForward(15_000)
+  await expect(warning).toBeVisible()
+  await expect(page.getByTestId('BridgingWidget-history-row')).toContainText('pending')
+
+  await page.clock.fastForward(15_000)
+  await expect(warning).toHaveCount(0)
+  await expect(page.getByTestId('BridgingWidget-history-row')).toContainText('pending')
+
+  await page.evaluate(() => (window as FixtureWindow).__bridgingWidgetFixture?.markDelivered())
+  await page.clock.fastForward(15_000)
+  await expect(page.getByTestId('BridgingWidget-history-row')).toContainText('completed')
+  await expect(warning).toHaveCount(0)
 })

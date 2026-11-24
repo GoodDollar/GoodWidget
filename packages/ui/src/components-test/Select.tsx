@@ -48,7 +48,7 @@ function ResponsiveSelect({ options, value, onValueChange, placeholder = 'Select
     >
       <TamaguiSelect.Trigger
         ref={trigger}
-        size="$4" minWidth={0} minHeight={44} height="auto" width="100%" gap="$1" paddingHorizontal="$2" paddingVertical="$2"
+        size="$4" minWidth={0} minHeight={44} height="auto" width="100%" gap="$2" paddingHorizontal="$2" paddingVertical="$2"
         backgroundColor="$backgroundInput" borderColor="$borderColor"
         focusStyle={{ borderColor: '$primary' }} opacity={disabled ? 0.5 : 1}
         disabled={disabled} aria-label={accessibilityLabel} testID={testID}
@@ -59,7 +59,9 @@ function ResponsiveSelect({ options, value, onValueChange, placeholder = 'Select
             {selected?.label ?? placeholder}
           </Text>
         </XStack>
-        <Icon name="chevron-down" size="xs" color="muted" />
+        <XStack flexShrink={0} testID={testID ? `${testID}-arrow` : undefined}>
+          <Icon name="chevron-down" size="xs" color="muted" />
+        </XStack>
       </TamaguiSelect.Trigger>
       {/* Tamagui 1.121 checks string breakpoints at runtime, but does not type custom media keys. */}
       <TamaguiSelect.Adapt when={'sm' as unknown as React.ComponentProps<typeof TamaguiSelect.Adapt>['when']}>

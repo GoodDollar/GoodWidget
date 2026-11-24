@@ -5,7 +5,7 @@ import { BridgingSDK, type BridgeRequestEvent } from '@goodsdks/bridging-sdk'
 // source here lets this QA-only mock patch the same SDK class the real adapter uses.
 import { BridgingWidget } from '../../../../../packages/bridging-widget/src/BridgingWidget'
 import { BRIDGING_CHAINS, type BridgingWidgetProps } from '../../../../../packages/bridging-widget/src/widgetRuntimeContract'
-import { BridgeConfirmationUnavailableError, BridgeQuoteChangedError } from '../../../../../packages/bridging-widget/src/adapter/submissionSafety'
+import { BridgeConfirmationUnavailableError, BridgeQuoteChangedError, CheckedBridgingSDK } from '../../../../../packages/bridging-widget/src/adapter/submissionSafety'
 
 const ADDRESS = '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045' as Address
 const HASH = '0x3333333333333333333333333333333333333333333333333333333333333333' as const
@@ -35,6 +35,7 @@ interface FixtureControls {
   setAccount: (address: Address | null) => void
   setWalletChain: (chainId: number) => void
   failNextHistoryRefresh: () => void
+  failNextDeliveryStatus: () => void
   markDelivered: () => void
 }
 
@@ -71,6 +72,7 @@ function createFixture(mode: FixtureMode) {
   let failConfirmation = false
   let failFunds = false
   let failNextScan = false
+  let failNextStatus = false
   let delivered = false
   let freshQuote: Awaited<ReturnType<BridgingSDK['getQuote']>>['quote'] = null
 
@@ -107,6 +109,7 @@ function createFixture(mode: FixtureMode) {
       emit('chainChanged', `0x${nextChainId.toString(16)}`)
     },
     failNextHistoryRefresh: () => { failNextScan = true },
+    failNextDeliveryStatus: () => { failNextStatus = true },
     markDelivered: () => { delivered = true },
   }
 
@@ -168,7 +171,7 @@ function createFixture(mode: FixtureMode) {
       getQuote: BridgingSDK.prototype.getQuote,
       doBridge: BridgingSDK.prototype.doBridge,
       getCombinedHistory: BridgingSDK.prototype.getCombinedHistory,
-      getTransactionStatus: BridgingSDK.prototype.getTransactionStatus,
+      getTransactionStatus: CheckedBridgingSDK.prototype.getTransactionStatus,
     }
     BridgingSDK.prototype.initialize = async () => {
       events.push({ kind: 'fee-refresh' })
@@ -298,8 +301,12 @@ function createFixture(mode: FixtureMode) {
       return mode === 'history' ? [pendingEvent] : []
     }
 
-    BridgingSDK.prototype.getTransactionStatus = async () => {
+    CheckedBridgingSDK.prototype.getTransactionStatus = async () => {
       events.push({ kind: 'history-status', delivered })
+      if (failNextStatus) {
+        failNextStatus = false
+        throw new Error('Mock delivery service failure')
+      }
       return delivered
         ? { status: 'completed' as const, srcTxHash: HASH, dstTxHash: DESTINATION_HASH }
         : { status: 'pending' as const, srcTxHash: HASH }
@@ -311,7 +318,7 @@ function createFixture(mode: FixtureMode) {
       BridgingSDK.prototype.getQuote = originals.getQuote
       BridgingSDK.prototype.doBridge = originals.doBridge
       BridgingSDK.prototype.getCombinedHistory = originals.getCombinedHistory
-      BridgingSDK.prototype.getTransactionStatus = originals.getTransactionStatus
+      CheckedBridgingSDK.prototype.getTransactionStatus = originals.getTransactionStatus
     }
   }
 

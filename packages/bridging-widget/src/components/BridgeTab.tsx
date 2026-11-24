@@ -80,7 +80,7 @@ export function BridgeTab({
       ? 'Enter an amount to continue.'
       : isBridgeConfigLoading
         ? 'Loading balance and limits.'
-        : primaryRequirementMessage(requirements) ?? 'A valid quote is required before review.'
+        : primaryRequirementMessage(requirements, bridgeConfig?.routeLimits?.minAmount) ?? 'A valid quote is required before review.'
   const chainOptions = (chains: number[]) => chains.map((id) => {
     const label = getChainDisplayName(id)
     return {
@@ -98,7 +98,7 @@ export function BridgeTab({
 
   return (
     <BridgingTabContent>
-      <XStack alignItems="flex-end" gap="$2" testID="BridgingWidget-route">
+      <XStack alignItems="flex-start" gap="$2" testID="BridgingWidget-route">
         <YStack flex={1} minWidth={0} gap="$1">
           <Text variant="label">From</Text>
           <Select
@@ -109,7 +109,7 @@ export function BridgeTab({
             onValueChange={(value) => onSelectSourceChain(Number(value))}
           />
         </YStack>
-        <Button variant="secondary" size="sm" width={44} height={44} padding={0}
+        <Button variant="secondary" size="sm" width={44} height={44} padding={0} alignSelf="flex-end"
           onPress={onSwapRoute} disabled={!hasTarget || !isRouteSupported || !onSwapRoute}
           aria-label="Swap source and destination" testID="BridgingWidget-swap-route"
         >
@@ -122,7 +122,7 @@ export function BridgeTab({
             testID="BridgingWidget-target-select"
             value={targetChainId === null ? undefined : String(targetChainId)}
             options={chainOptions(targetOptions)}
-            placeholder="Select network"
+            placeholder="Select"
             onValueChange={(value) => onSelectTargetChain(Number(value))}
           />
         </YStack>

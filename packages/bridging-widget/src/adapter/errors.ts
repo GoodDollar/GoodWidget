@@ -1,4 +1,5 @@
 import type { BridgeRequirement, BridgeRequirementType } from '@goodsdks/bridging-sdk'
+import { formatUnits } from 'viem'
 
 // Converts low-level bridge/viem errors into concise user-facing messages.
 // Unmatched errors return a generic fallback (and are logged) so raw viem
@@ -110,12 +111,19 @@ const REQUIREMENT_PRIORITY: readonly BridgeRequirementType[] = [
   'insufficient_allowance',
 ]
 
-export function primaryRequirementMessage(requirements: BridgeRequirement[]): string | null {
+export function primaryRequirementMessage(requirements: BridgeRequirement[], normalizedMinimum?: bigint): string | null {
   if (requirements.length === 0) return null
 
   for (const type of REQUIREMENT_PRIORITY) {
     const match = requirements.find((requirement) => requirement.type === type)
-    if (match) return match.message
+    if (match) {
+      if (match.type === 'below_min_amount' || match.message.trim() === 'minAmount') {
+        return normalizedMinimum !== undefined && normalizedMinimum > 0n
+          ? `Minimum bridge amount: ${formatUnits(normalizedMinimum, 18)} G$.`
+          : 'Amount is below the minimum for this route.'
+      }
+      return match.message
+    }
   }
 
   return requirements[0].message
