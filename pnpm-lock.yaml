@@ -320,12 +320,12 @@ importers:
       '@goodwidget/citizen-claim-widget':
         specifier: workspace:*
         version: link:../../packages/citizen-claim-widget
-      '@goodwidget/connect-a-wallet-widget':
-        specifier: workspace:*
-        version: link:../../packages/connect-a-wallet-widget
       '@goodwidget/claim-widget-theme-demo':
         specifier: workspace:*
         version: link:../../packages/claim-widget-theme-demo
+      '@goodwidget/connect-a-wallet-widget':
+        specifier: workspace:*
+        version: link:../../packages/connect-a-wallet-widget
       '@goodwidget/core':
         specifier: workspace:*
         version: link:../../packages/core
