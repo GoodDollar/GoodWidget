@@ -12,7 +12,7 @@ import {
 } from '@goodwidget/ui'
 import { compactButtonProps } from '../shared/styles'
 
-const ANTSEED_DOWNLOAD_URL = 'https://ubi.gd/3UzJBr9'
+const ANTSEED_DOWNLOAD_URL = 'https://antseed.com/'
 const ANTSEED_API_DOCS_URL = 'https://antseed.com/docs/guides/using-the-api'
 
 const snippetLineStyle: React.CSSProperties = {
@@ -77,7 +77,7 @@ export function AntseedSetupPanel({ onProceed, expandApiSetup = false }: Antseed
     <YStack gap="$3">
       <Heading level={5}>Get Antseed</Heading>
       <Text>
-        Download the free Antseed Desktop app to use your AI credits.
+        Download the free Antseed Desktop to use your AI credits.
       </Text>
 
       <Button size="sm" {...compactButtonProps} onPress={handleDownload}>

@@ -1,0 +1,5 @@
+# Release automation and integration contracts require maintainer review.
+/.github/workflows/ @GoodDollar/goodbuilders-maintainers
+/scripts/release/ @GoodDollar/goodbuilders-maintainers
+/schemas/ @GoodDollar/goodbuilders-maintainers
+/packages/*/integration-manifest.json @GoodDollar/goodbuilders-maintainers

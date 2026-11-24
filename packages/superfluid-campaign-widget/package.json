@@ -34,7 +34,8 @@
       "types": "./dist/mocked/index.d.ts",
       "import": "./dist/mocked/index.js",
       "require": "./dist/mocked/index.cjs"
-    }
+    },
+    "./integration-manifest": "./integration-manifest.json"
   },
   "scripts": {
     "build": "tsup",
@@ -61,5 +62,9 @@
     "react-dom": "^18.3.0",
     "tsup": "^8.4.0",
     "typescript": "^5.7.0"
-  }
+  },
+  "files": [
+    "dist",
+    "integration-manifest.json"
+  ]
 }
