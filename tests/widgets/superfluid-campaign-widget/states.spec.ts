@@ -776,7 +776,7 @@ test('SuperfluidCampaignWidget "Coming up soon" invite action renders disabled, 
 
   for (const card of [inviteCard]) {
     await expect(card.getByText('Coming up soon', { exact: true })).toBeVisible()
-    // Disabled actions carry no link at all.
+    // Disabled actions never render a link, even when an integrator registers one.
     await expect(card.locator('a[href]')).toHaveCount(0)
   }
   await expect(page.getByLabel('Coming up soon: Invite users')).toHaveAttribute(
@@ -867,7 +867,7 @@ test('SuperfluidCampaignWidget claim keeps the Superfluid header and can be clos
   await expect(page.getByTestId('ActionCard-layout-claim-ubi')).toBeVisible()
 })
 
-test('SuperfluidCampaignWidget invite is disabled with no link and keeps its points label', async ({
+test('SuperfluidCampaignWidget invite stays disabled and does not open its registered link, keeping its points label', async ({
   page,
   context,
 }) => {

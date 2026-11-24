@@ -16,11 +16,13 @@ import { YStack, defaultConfig } from '@goodwidget/ui'
 const DESKTOP_WIDGET_MAX_WIDTH = 960
 
 /**
- * Tracked ubi.gd destinations for the standalone app. Invite is intentionally
- * absent: its card is disabled for Season 7 and must not carry a link.
+ * Tracked ubi.gd destinations for the standalone app. The Invite link is
+ * registered for when invites open, but its card stays disabled for Season 7,
+ * so the link is never opened.
  */
 const STANDALONE_ACTION_LINKS: CampaignActionLinkOverrides = {
   'claim-ubi': 'https://ubi.gd/4BTD7Vb',
+  'invite-users': 'https://ubi.gd/4BPMGod',
   'flow-state-vote': 'https://ubi.gd/4eXzuUh',
   'flow-state-funding': 'https://ubi.gd/3Xp2vSQ',
   'gardens-donation': 'https://ubi.gd/4eunQAd',

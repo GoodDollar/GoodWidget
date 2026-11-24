@@ -72,7 +72,7 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
           pointsLabel: '10 PTS PER INVITE',
           ctaLabel: 'Coming up soon',
           ctaKind: 'external-link',
-          // Invites are not eligible for Season 7 points yet: no link until they are enabled.
+          // Invites are not eligible for Season 7 points yet: the card stays disabled, so integrator links are never opened.
           disabled: true,
         },
         {
