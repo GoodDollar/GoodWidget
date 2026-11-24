@@ -8,11 +8,12 @@ const AnchorFrame = createComponent(TamaguiAnchor, {
   textDecorationLine: 'underline',
   fontFamily: '$body',
   fontSize: '$3',
+  // Hover and press keep the text fully opaque so the link color keeps its 4.5:1 contrast.
   hoverStyle: {
-    opacity: 0.85,
+    textDecorationLine: 'none',
   },
   pressStyle: {
-    opacity: 0.7,
+    textDecorationLine: 'none',
   },
 })
 

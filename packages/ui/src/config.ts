@@ -13,6 +13,7 @@ import type {
 } from './configTypes'
 import { goodWalletV2Preset } from './presets'
 import { createGoodWidgetTokens, createThemeValues, defaultTokenValues } from './theme'
+import { linkFollowsPrimary, mergeOverrideMaps } from './themeOverrides'
 
 export const defaultPreset = goodWalletV2Preset
 
@@ -201,7 +202,7 @@ function resolveConfigLayers(overrides?: GoodWidgetConfig) {
     preset,
     animations: mergeAnimations(preset?.animations),
     tokens: mergeTokenOverrides(preset?.tokens, overrides?.tokens),
-    themes: mergeOverrideMaps(preset?.themes, overrides?.themes),
+    themes: mergeOverrideMaps(linkFollowsPrimary(preset?.themes), overrides?.themes),
   }
 }
 
@@ -246,27 +247,7 @@ export function createGoodWidgetConfig(overrides?: GoodWidgetConfig) {
   })
 }
 
-/**
- * Merges partial theme override maps by theme name.
- */
-export function mergeOverrideMaps(
-  base?: Record<string, Partial<GoodWidgetThemeValues>>,
-  override?: Record<string, Partial<GoodWidgetThemeValues>>,
-): Record<string, Partial<GoodWidgetThemeValues>> | undefined {
-  if (!base && !override) return undefined
-
-  const merged: Record<string, Partial<GoodWidgetThemeValues>> = {
-    ...(base ?? {}),
-  }
-
-  if (override) {
-    for (const [name, values] of Object.entries(override)) {
-      merged[name] = { ...(merged[name] ?? {}), ...values } as Partial<GoodWidgetThemeValues>
-    }
-  }
-
-  return merged
-}
+export { mergeOverrideMaps }
 
 /**
  * Merges host overrides on top of author config.
