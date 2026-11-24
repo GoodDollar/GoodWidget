@@ -13,7 +13,7 @@ const deployments = [
 ]
 
 for (const name of deployments) {
-  test(`${name} deploys main to Preview and next to Production`, () => {
+  test(`${name} deploys main to Staging, pull requests to Preview and next to Production`, () => {
     const source = workflow(name)
     const push = source.split(/\n  push:\n/)[1].split(/\n  pull_request_target:\n/)[0]
     const preview = source.split(/\n  preview:\n/)[1].split(/\n  production:\n/)[0]
@@ -26,7 +26,14 @@ for (const name of deployments) {
     assert.match(preview, /always\(\)/)
     assert.match(preview, /needs\.authorize-preview\.result == 'success'/)
     assert.match(preview, /github\.ref == 'refs\/heads\/main'/)
-    assert.match(preview, /vercel pull --yes --environment=preview/)
+    // Pushes to main (and dispatches without a commit) deploy to Staging; everything else stays on Preview.
+    assert.match(
+      preview,
+      /VERCEL_TARGET: >-[\s\S]*github\.ref == 'refs\/heads\/main'[\s\S]*'staging' \|\| 'preview'/,
+    )
+    assert.match(preview, /vercel pull --yes --environment="\$VERCEL_TARGET"/)
+    assert.match(preview, /vercel build --target="\$VERCEL_TARGET"/)
+    assert.match(preview, /vercel deploy --prebuilt --target="\$VERCEL_TARGET"/)
     assert.doesNotMatch(preview, /--prod(?:\s|$)/m)
     assert.match(production, /github\.ref == 'refs\/heads\/next'/)
     assert.match(production, /github\.event_name == 'workflow_dispatch'/)
