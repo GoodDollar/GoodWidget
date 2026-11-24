@@ -14,6 +14,8 @@ const STORY_IDS = {
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--payment-confirmed&viewMode=story',
   creditsManagement:
     '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--credits-management&viewMode=story',
+  creditsManagementWithdraw:
+    '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--credits-management-withdraw&viewMode=story',
   historyTab: '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--history-tab&viewMode=story',
   setupTab: '/iframe.html?id=qa-aicreditswidget-runtime-fixtures--setup-tab&viewMode=story',
   insufficientBalance:
@@ -162,12 +164,33 @@ test('AiCreditsWidget manage tab', async ({ page }) => {
   await expect(
     page.getByText(/removes the operator's ability to act on your behalf/i),
   ).toBeVisible()
-  await expect(page.getByText(/Your credits and your signer key stay where they are/i)).toBeVisible()
+  await expect(
+    page.getByText(/Your credits and your signer key stay where they are/i),
+  ).toBeVisible()
 
   await page.getByRole('button', { name: 'Cancel' }).click()
   await expect(revokeSheetTitle).not.toBeInViewport()
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-07-credits-management.png',
+    fullPage: true,
+  })
+})
+
+test('AiCreditsWidget withdraw bonus forfeit warning', async ({ page }) => {
+  await gotoStory(page, STORY_IDS.creditsManagementWithdraw)
+  const root = page.getByTestId('AiCreditsWidget-manage-withdraw')
+  await expect(root).toBeVisible({ timeout: 10_000 })
+  const notice = root.getByTestId('withdraw-bonus-forfeit')
+  const amountInput = root.getByPlaceholder(/Max .* US\$/)
+  // The story's play function may have typed an amount already.
+  await amountInput.fill('')
+  await expect(notice).toHaveCount(0)
+
+  await amountInput.fill('50')
+  await expect(notice).toBeVisible()
+  await expect(notice).toContainText(/forfeits .*5\.00 of your unused bonus/)
+  await page.screenshot({
+    path: 'tests/widgets/ai-credits-widget/test-results/acw-29-withdraw-bonus-forfeit.png',
     fullPage: true,
   })
 })
@@ -428,7 +451,9 @@ test('AiCreditsWidget deep-link authorization pending: Authorize Credits Managem
   })
 })
 
-test('AiCreditsWidget multi-signer history: signer filter dropdown is visible', async ({ page }) => {
+test('AiCreditsWidget multi-signer history: signer filter dropdown is visible', async ({
+  page,
+}) => {
   await gotoStory(page, MULTI_BUYER_STORY_IDS.multiSignerHistory)
   const root = widget(page, 'AiCreditsWidget-multi-signer-history')
   await expect(root).toBeVisible()

@@ -24,6 +24,12 @@ export interface AiCreditsQuote {
   depositAmountG: string
   streamAmountG: string
 }
+
+/** Unused on-chain credits in micro-USD; usage consumes principal before bonus. */
+export interface AiCreditsRemainingCredits {
+  principalUsd: string
+  bonusUsd: string
+}
 /** Re-export for consumers that don't want to import from payerSession directly. */
 export type { SignerKeyEntry } from './payerSession'
 
@@ -54,6 +60,8 @@ export interface AiCreditsWidgetAdapterState {
   totalGdDepositedG: string | null
   monthlyStreamG: string | null
   withdrawableUsd: string | null
+  /** Read from the funding vault; used to quote the bonus forfeited by a withdrawal. */
+  remainingCredits: AiCreditsRemainingCredits | null
   depositBonusPercent: number
   streamBonusPercent: number
   error: string | null

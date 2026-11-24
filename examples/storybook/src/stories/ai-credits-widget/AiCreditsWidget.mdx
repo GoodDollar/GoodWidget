@@ -1,6 +1,6 @@
-import { Canvas, Meta } from '@storybook/blocks';
-import * as ShowcaseStories from './AiCreditsWidgetShowcase.stories';
-import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/DocsLayout';
+import { Canvas, Meta } from '@storybook/blocks'
+import * as ShowcaseStories from './AiCreditsWidgetShowcase.stories'
+import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/DocsLayout'
 
 <Meta of={ShowcaseStories} />
 
@@ -16,100 +16,131 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
     <Canvas of={ShowcaseStories.MockBackend} />
   </DocsSection>
 
-  <DocsSection
-    title="Injected wallet"
-    description="Uses your browser wallet (`window.ethereum`, e.g. Rabby), `VITE_AI_CREDITS_BACKEND_URL`, `VITE_AI_CREDITS_BASE_RPC_URL`, `VITE_AI_CREDITS_CELO_RPC_URL` (optional), `VITE_AI_CREDITS_FUNDING_VAULT_ADDRESS`, `VITE_AI_CREDITS_VAULT_ADDRESS`, and optional `VITE_AI_CREDITS_GOODID_ADDRESS` from `examples/storybook/.env.local`. GoodID verification uses on-chain `getWhitelistedRoot` via the Celo RPC (defaults to mainnet GoodID contract)."
-  >
-    <Canvas of={ShowcaseStories.InjectedWallet} />
-  </DocsSection>
+<DocsSection
+  title="Injected wallet"
+  description="Uses your browser wallet (`window.ethereum`, e.g. Rabby), `VITE_AI_CREDITS_BACKEND_URL`, `VITE_AI_CREDITS_BASE_RPC_URL`, `VITE_AI_CREDITS_CELO_RPC_URL` (optional), `VITE_AI_CREDITS_FUNDING_VAULT_ADDRESS`, `VITE_AI_CREDITS_VAULT_ADDRESS`, and optional `VITE_AI_CREDITS_GOODID_ADDRESS` from `examples/storybook/.env.local`. GoodID verification uses on-chain `getWhitelistedRoot` via the Celo RPC (defaults to mainnet GoodID contract)."
+>
+  <Canvas of={ShowcaseStories.InjectedWallet} />
+</DocsSection>
 
-  <DocsSection
-    title="QA coverage"
-    description="Use the QA demo when you need reproducible fixture states, Playwright screenshots, or fixture-driven debugging."
+<DocsSection
+  title="QA coverage"
+  description="Use the QA demo when you need reproducible fixture states, Playwright screenshots, or fixture-driven debugging."
+>
+  <DocsCard
+    title="Open the QA fixture demo"
+    href="?path=/story/qa-aicreditswidget-runtime-fixtures--disconnected"
   >
-    <DocsCard
-      title="Open the QA fixture demo"
-      href="?path=/story/qa-aicreditswidget-runtime-fixtures--disconnected"
-    >
-      All QA fixture states as deterministic mock stories — ideal for automation and debugging.
+    All QA fixture states as deterministic mock stories — ideal for automation and debugging.
+  </DocsCard>
+</DocsSection>
+
+<DocsSection
+  title="Widget states"
+  description="Buy-flow status describes purchase progress and errors. The Manage tab (activeTab) is separate — use it when the wallet has credits or after a successful purchase."
+>
+  <DocsGrid>
+    <DocsCard title="S1 – Disconnected">
+      Setup tab with connect CTA; Buy Credits, Manage, and History tabs visible but disabled until a
+      wallet connects.
     </DocsCard>
-  </DocsSection>
+    <DocsCard title="S1b – Setup tab">
+      Connected wallet — onboarding for Download AntSeed, Signer Key, and Authorize Credits
+      Management. The authorization step opens the same consent flow used by Buy Credits.
+    </DocsCard>
+    <DocsCard title="S2 – Purchase Setup">
+      Buy tab — stepper with a CTA to open the active step in a bottom drawer.
+    </DocsCard>
+    <DocsCard title="S3 – Quote Ready">
+      Buy tab — pay step available via drawer CTA; ready to confirm Celo transaction.
+    </DocsCard>
+    <DocsCard title="S4 – Payment Pending">Buy tab — Celo tx submitted.</DocsCard>
+    <DocsCard title="S5 – Payment Confirmed">Buy tab — settling on Base.</DocsCard>
+    <DocsCard title="S6 – Manage tab">
+      Manage tab — balance, stream, close/withdraw, API setup.
+    </DocsCard>
+    <DocsCard title="S6b – History tab">
+      History tab — filtered, paginated AI credit funding history.
+    </DocsCard>
+    <DocsCard title="S7 – Insufficient G$">G$ below minimum purchase threshold.</DocsCard>
+    <DocsCard title="S8 – Payment Failed">Transaction or settlement error.</DocsCard>
+    <DocsCard title="S9 – Backend Unavailable">Backend unreachable.</DocsCard>
+    <DocsCard title="S10 – Unsupported Chain">Wrong network (Celo required).</DocsCard>
+  </DocsGrid>
+</DocsSection>
 
-  <DocsSection
-    title="Widget states"
-    description="Buy-flow status describes purchase progress and errors. The Manage tab (activeTab) is separate — use it when the wallet has credits or after a successful purchase."
-  >
-    <DocsGrid>
-      <DocsCard title="S1 – Disconnected">Setup tab with connect CTA; Buy Credits, Manage, and History tabs visible but disabled until a wallet connects.</DocsCard>
-      <DocsCard title="S1b – Setup tab">Connected wallet — onboarding for Download AntSeed, Signer Key, and Authorize Credits Management. The authorization step opens the same consent flow used by Buy Credits.</DocsCard>
-      <DocsCard title="S2 – Purchase Setup">Buy tab — stepper with a CTA to open the active step in a bottom drawer.</DocsCard>
-      <DocsCard title="S3 – Quote Ready">Buy tab — pay step available via drawer CTA; ready to confirm Celo transaction.</DocsCard>
-      <DocsCard title="S4 – Payment Pending">Buy tab — Celo tx submitted.</DocsCard>
-      <DocsCard title="S5 – Payment Confirmed">Buy tab — settling on Base.</DocsCard>
-      <DocsCard title="S6 – Manage tab">Manage tab — balance, stream, close/withdraw, API setup.</DocsCard>
-      <DocsCard title="S6b – History tab">History tab — filtered, paginated AI credit funding history.</DocsCard>
-      <DocsCard title="S7 – Insufficient G$">G$ below minimum purchase threshold.</DocsCard>
-      <DocsCard title="S8 – Payment Failed">Transaction or settlement error.</DocsCard>
-      <DocsCard title="S9 – Backend Unavailable">Backend unreachable.</DocsCard>
-      <DocsCard title="S10 – Unsupported Chain">Wrong network (Celo required).</DocsCard>
-    </DocsGrid>
-  </DocsSection>
+<DocsSection
+  title="Widget navigation"
+  description="Setup, Buy Credits, Manage, and History appear as tabs (with the GoodDollar header and chain badge). Before a wallet connects, only Setup is active. After connecting, switch tabs anytime — including during payment pending or failed states."
+>
+  <DocsGrid>
+    <DocsCard title="Setup">
+      Onboarding entry point — connect wallet when disconnected; onboarding step shell when
+      connected.
+    </DocsCard>
+    <DocsCard title="Buy Credits">
+      Stepper for signer key, wallet authorization, and payment — tap a step or CTA to open it in a
+      drawer.
+    </DocsCard>
+    <DocsCard title="Manage">Credits balance, stream info, close/withdraw, and API setup.</DocsCard>
+    <DocsCard title="History">
+      Paginated credit history with source, status, and date filters.
+    </DocsCard>
+  </DocsGrid>
+</DocsSection>
 
-  <DocsSection
-    title="Widget navigation"
-    description="Setup, Buy Credits, Manage, and History appear as tabs (with the GoodDollar header and chain badge). Before a wallet connects, only Setup is active. After connecting, switch tabs anytime — including during payment pending or failed states."
-  >
-    <DocsGrid>
-      <DocsCard title="Setup">Onboarding entry point — connect wallet when disconnected; onboarding step shell when connected.</DocsCard>
-      <DocsCard title="Buy Credits">Stepper for signer key, wallet authorization, and payment — tap a step or CTA to open it in a drawer.</DocsCard>
-      <DocsCard title="Manage">Credits balance, stream info, close/withdraw, and API setup.</DocsCard>
-      <DocsCard title="History">Paginated credit history with source, status, and date filters.</DocsCard>
-    </DocsGrid>
-  </DocsSection>
+<DocsSection
+  title="Backend API usage"
+  description="Production stories call the antseed-integration worker for reads, settlement, and management actions."
+>
+  <DocsGrid>
+    <DocsCard title="GET …/profile">Credits profile for the payer wallet.</DocsCard>
+    <DocsCard title="GET …/credit-history">
+      Newest-first funding history (`items[].signerAddress` is used to recover the signer).
+    </DocsCard>
+    <DocsCard title="GET …/outstanding">Pending or failed Base funding entries.</DocsCard>
+    <DocsCard title="POST …/celo/events/record">
+      Notify `{txHash}` after a successful Celo payment.
+    </DocsCard>
+    <DocsCard title="POST …/accounts/:signer/operator-consent">
+      Signer-signed SetOperator relay — backend submits `acceptSignerOperator` on Base (no signer
+      gas).
+    </DocsCard>
+    <DocsCard title="POST …/channels/:channelId/close">
+      Signer-signed channel close from credits management.
+    </DocsCard>
+    <DocsCard title="POST …/accounts/:signer/withdraw">
+      Signer-signed principal withdraw to the payer wallet. Withdrawing principal forfeits the same
+      share of the unused bonus (`ceil(bonus × amount / principal)`); the widget warns before
+      submit.
+    </DocsCard>
+  </DocsGrid>
+  <DocsCallout title="On-chain (not backend)" tone="info">
+    Vault minimum reads, quotes, withdrawable principal, and Celo deposit/stream transactions are
+    handled on-chain via RPC. Signer EIP-712 signing for wallet authorization, close, and withdraw
+    happens in the widget; only the Base submission is relayed by the worker. There is no
+    channel-list API — paste the channel ID manually.
+  </DocsCallout>
+</DocsSection>
 
-  <DocsSection
-    title="Backend API usage"
-    description="Production stories call the antseed-integration worker for reads, settlement, and management actions."
-  >
-    <DocsGrid>
-      <DocsCard title="GET …/profile">Credits profile for the payer wallet.</DocsCard>
-      <DocsCard title="GET …/credit-history">
-        Newest-first funding history (`items[].signerAddress` is used to recover the signer).
-      </DocsCard>
-      <DocsCard title="GET …/outstanding">Pending or failed Base funding entries.</DocsCard>
-      <DocsCard title="POST …/celo/events/record">Notify `{ txHash }` after a successful Celo payment.</DocsCard>
-      <DocsCard title="POST …/accounts/:signer/operator-consent">
-        Signer-signed SetOperator relay — backend submits `acceptSignerOperator` on Base (no signer gas).
-      </DocsCard>
-      <DocsCard title="POST …/channels/:channelId/close">Signer-signed channel close from credits management.</DocsCard>
-      <DocsCard title="POST …/accounts/:signer/withdraw">Signer-signed principal withdraw to the payer wallet.</DocsCard>
-    </DocsGrid>
-    <DocsCallout title="On-chain (not backend)" tone="info">
-      Vault minimum reads, quotes, withdrawable principal, and Celo deposit/stream transactions are
-      handled on-chain via RPC. Signer EIP-712 signing for wallet authorization, close, and withdraw
-      happens in the widget; only the Base submission is relayed by the worker. There is no
-      channel-list API — paste the channel ID manually.
-    </DocsCallout>
-  </DocsSection>
-
-  <DocsSection
-    title="Known limitations"
-    description="Features that still need operator care in production."
-  >
-    <DocsCallout title="Signer private key session" tone="warning">
-      Close channel and withdraw require the signer private key in the current browser session. Use
-      Sign &amp; Generate in Signer &amp; Operator on the credits management screen if the key was
-      lost after refresh.
-    </DocsCallout>
-    <DocsCallout title="Vault minimums" tone="info">
-      First-deposit USD minimum applies only when `totalDepositedGd(payer)` is zero. Monthly stream
-      USD minimum applies on every stream create/update.
-    </DocsCallout>
-    <DocsCallout title="Base bridge" tone="info">
-      Operator consent, close, withdraw, and credit funding require the worker&apos;s Base operator
-      bridge to be configured (`bridge.enabled: true` in API responses).
-    </DocsCallout>
-  </DocsSection>
+<DocsSection
+  title="Known limitations"
+  description="Features that still need operator care in production."
+>
+  <DocsCallout title="Signer private key session" tone="warning">
+    Close channel and withdraw require the signer private key in the current browser session. Use
+    Sign &amp; Generate in Signer &amp; Operator on the credits management screen if the key was
+    lost after refresh.
+  </DocsCallout>
+  <DocsCallout title="Vault minimums" tone="info">
+    First-deposit USD minimum applies only when `totalDepositedGd(payer)` is zero. Monthly stream
+    USD minimum applies on every stream create/update.
+  </DocsCallout>
+  <DocsCallout title="Base bridge" tone="info">
+    Operator consent, close, withdraw, and credit funding require the worker&apos;s Base operator
+    bridge to be configured (`bridge.enabled: true` in API responses).
+  </DocsCallout>
+</DocsSection>
 
   <DocsSection
     title="Workflow guidance"

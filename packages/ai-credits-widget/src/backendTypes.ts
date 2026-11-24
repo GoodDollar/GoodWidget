@@ -1,4 +1,5 @@
 import type { SignerOperatorStatus } from './operatorConsent'
+import type { AiCreditsRemainingCredits } from './widgetRuntimeContract'
 
 export type AccountRef = {
   payer: string
@@ -79,6 +80,8 @@ export type AccountView = {
   operator: SignerOperatorStatus | null
   /** Null when the withdrawable read did not answer. */
   withdrawableUsd: string | null
+  /** Null when the remaining-credits read did not answer. */
+  remainingCredits: AiCreditsRemainingCredits | null
   outstandingFundingUsd: string
   outstandingFundingCount: number
 }

@@ -14,10 +14,7 @@ import type {
 } from './backendTypes'
 import type { SignerOperatorStatus } from './operatorConsent'
 import type { AiCreditsChainClient } from './chainClient'
-import {
-  flowRateWeiToMonthlyG,
-  weiToG,
-} from './quoteMath'
+import { flowRateWeiToMonthlyG, weiToG } from './quoteMath'
 import { isAddress } from 'viem'
 
 export type {
@@ -223,10 +220,7 @@ export interface AiCreditsBackendClient {
     ref: AccountRef,
     options?: { txHashes?: string[]; previousBalance?: string },
   ): Promise<SettlementResult>
-  closeChannel(
-    channelId: string,
-    body?: ChannelOperationRequest,
-  ): Promise<ChannelOperationResponse>
+  closeChannel(channelId: string, body?: ChannelOperationRequest): Promise<ChannelOperationResponse>
   withdrawCredits(
     signer: string,
     body: WithdrawPrincipalRequest,
@@ -443,7 +437,10 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
         signature: body.signature,
       }),
     })
-    const payload = await readBridgeResponseBody<OperatorConsentResponse>(response, 'Operator consent')
+    const payload = await readBridgeResponseBody<OperatorConsentResponse>(
+      response,
+      'Operator consent',
+    )
     return {
       signer: normalizeAddress(payload.signer ?? signer),
       bridge: payload.bridge,
@@ -462,7 +459,10 @@ export class ProductionAiCreditsBackendClient implements AiCreditsBackendClient 
         signature: body.signature,
       }),
     })
-    const payload = await readBridgeResponseBody<OperatorRevokeResponse>(response, 'Operator revoke')
+    const payload = await readBridgeResponseBody<OperatorRevokeResponse>(
+      response,
+      'Operator revoke',
+    )
     return {
       signer: normalizeAddress(payload.signer ?? signer),
       bridge: payload.bridge,
@@ -520,9 +520,7 @@ export class UnavailableAiCreditsBackendClient implements AiCreditsBackendClient
   }
 }
 
-export function createBackendClient(
-  backendUrl: string | undefined,
-): AiCreditsBackendClient {
+export function createBackendClient(backendUrl: string | undefined): AiCreditsBackendClient {
   if (!backendUrl) {
     return new UnavailableAiCreditsBackendClient()
   }
@@ -554,17 +552,20 @@ export async function buildAccountView(
       ? normalizeAddress(options.signerAddress)
       : null
 
-  // These four reads are independent of one another and span two networks (the
+  // These reads are independent of one another and span two networks (the
   // credit backend and Base). Only the credit profile is load-bearing, so the
   // rest degrade on their own rather than taking the whole view down with them:
   // a Base RPC hiccup used to discard a perfectly good credit profile.
-  const [credit, outstanding, operator, withdrawableUsd] = await Promise.all([
+  const [credit, outstanding, operator, withdrawableUsd, remainingCredits] = await Promise.all([
     backend.getAccountCredit(payer),
     backend.getOutstanding(payer).catch(() => null),
     signer
       ? chain.getSignerOperatorStatus({ payer: normalizedPayer, signer }).catch(() => null)
       : Promise.resolve(defaultOperatorStatus(normalizedPayer)),
     signer ? chain.getWithdrawableUsd(signer).catch(() => null) : Promise.resolve('0'),
+    signer
+      ? chain.getRemainingCredits(signer).catch(() => null)
+      : Promise.resolve({ principalUsd: '0', bonusUsd: '0' }),
   ])
 
   return {
@@ -573,6 +574,7 @@ export async function buildAccountView(
     profile: credit.profile,
     operator,
     withdrawableUsd,
+    remainingCredits,
     // Not rendered anywhere today; '0' keeps the shape without inventing a
     // balance the caller would display.
     outstandingFundingUsd: outstanding?.outstandingFundingUsd ?? '0',

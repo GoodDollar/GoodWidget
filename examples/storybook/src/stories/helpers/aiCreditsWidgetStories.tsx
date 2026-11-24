@@ -49,6 +49,7 @@ function createMockState(
     totalGdDepositedG: null,
     monthlyStreamG: null,
     withdrawableUsd: null,
+    remainingCredits: null,
     depositBonusPercent: 10,
     streamBonusPercent: 20,
     error: null,
@@ -357,6 +358,28 @@ export function CreditsManagementStory() {
   return <ManageTabStory />
 }
 
+export function CreditsManagementWithdrawStory() {
+  return (
+    <MockStoryShell
+      dataTestId="AiCreditsWidget-manage-withdraw"
+      adapterFactory={createAdapterFactory('quote_ready', {
+        totalCreditUsd: '110000000',
+        totalBonusUsd: '10000000',
+        signerPubKey: '0xfc128652c9b397a1f89A9EC84E798B869B0E4c7a',
+        signerPrvKey: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+        operatorConsented: true,
+        operatorAddress: '0x0000000000000000000000000000000000000004',
+        totalGdDepositedG: '50.00',
+        monthlyStreamG: '5.00',
+        gBalance: '42.50',
+        withdrawableUsd: '100000000',
+        remainingCredits: { principalUsd: '100000000', bonusUsd: '10000000' },
+        activeTab: 'manage',
+      })}
+    />
+  )
+}
+
 export function InsufficientGBalanceStory() {
   return (
     <MockStoryShell
@@ -537,9 +560,9 @@ export function AppKitConnectWalletStory() {
       <div data-testid="AiCreditsWidget-appkit-no-config" style={{ width: 380 }}>
         <strong>AppKit not configured</strong>
         <span>
-          Set <code>VITE_REOWN_PROJECT_ID</code> to enable AppKit wallet connect. Locally that
-          means <code>examples/storybook/.env.local</code>; for a hosted Storybook it must be set
-          as an environment variable in the deployment (Vercel project settings), since{' '}
+          Set <code>VITE_REOWN_PROJECT_ID</code> to enable AppKit wallet connect. Locally that means{' '}
+          <code>examples/storybook/.env.local</code>; for a hosted Storybook it must be set as an
+          environment variable in the deployment (Vercel project settings), since{' '}
           <code>.env.local</code> is never committed.
         </span>
       </div>
