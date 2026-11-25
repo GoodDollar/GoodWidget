@@ -9,7 +9,7 @@ import {
   packages,
   pathsForPush,
   releaseMarker,
-  waitForRegistryRelease,
+  publishIfMissing,
   walletDispatchEnabled,
 } from './packages.mjs'
 import {
@@ -52,14 +52,10 @@ function registryLatest(name) {
   }
 }
 
-const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds))
-
-function verifyRegistryRelease(name, version) {
-  return waitForRegistryRelease(name, version, {
-    readRecord: registryRecord,
-    readLatest: registryLatest,
-    wait,
-  })
+function publishTarball(tarball) {
+  const bytes = readFileSync(tarball)
+  run('npm', ['publish', tarball, '--access', 'public', '--provenance'])
+  return bytes
 }
 
 function tagExists(tag) {
@@ -97,7 +93,8 @@ async function dispatchWidget(pkg, version, integrity, sourceCommit, releaseUrl)
     return
   }
   // The checked-in descriptor is immutable package capability metadata. Release
-  // provenance is added beside it only after npm has returned the exact integrity.
+  // provenance is added beside it using integrity for the exact package version.
+  if (!integrity) throw new Error(`Missing integrity for GoodWallet dispatch: ${pkg.name}@${version}`)
   const descriptor = JSON.parse(readFileSync(`${pkg.dir}/integration-manifest.json`, 'utf8'))
   validateManifest(descriptor, packageJson(pkg))
   const envelope = createReleaseEnvelope(descriptor, {
@@ -200,15 +197,15 @@ async function release() {
     )
   run('git', ['push', 'origin', 'HEAD:next'])
 
-  // Publish in dependency order and require both immutable registry integrity
-  // and the `latest` tag before creating local tags or notifying GoodWallet.
-  const verifiedReleases = new Map()
+  // Use the publish acknowledgment; public registry reads may lag it.
+  const releaseIntegrities = new Map()
   for (const pkg of selected) {
     const version = packageJson(pkg).version
-    if (!registryRecord(pkg.name, version))
-      run('npm', ['publish', tarballs.get(pkg.name), '--access', 'public', '--provenance'])
-    const verified = await verifyRegistryRelease(pkg.name, version)
-    verifiedReleases.set(pkg.name, verified)
+    const integrity = publishIfMissing(pkg.name, version, {
+      readRecord: registryRecord,
+      publish: () => publishTarball(tarballs.get(pkg.name)),
+    })
+    releaseIntegrities.set(pkg.name, integrity)
     run('git', [
       'tag',
       '-a',
@@ -219,16 +216,16 @@ async function release() {
   }
   run('git', ['push', 'origin', '--tags'])
 
-  // Cross-repository dispatch happens only after the whole npm release is verified and
-  // its tags are pushed; a partial or unverified release cannot reach GoodWallet.
+  // Cross-repository dispatch happens only after the whole npm release is accepted and
+  // its tags are pushed. Consumers check availability of the exact version before installing.
   const sourceCommit = run('git', ['rev-parse', 'HEAD'], { capture: true })
   for (const pkg of selected.filter((entry) => entry.kind === 'widget')) {
     const version = packageJson(pkg).version
-    const verified = verifiedReleases.get(pkg.name)
+    const integrity = releaseIntegrities.get(pkg.name)
     await dispatchWidget(
       pkg,
       version,
-      verified.integrity,
+      integrity,
       sourceCommit,
       `https://github.com/GoodDollar/GoodWidget/tree/${pkg.name.replace('@goodwidget/', '')}-v${version}`,
     )
@@ -241,25 +238,20 @@ async function recover() {
   const pkg = packages.find((entry) => entry.name === requested)
   if (!pkg) throw new Error(`RECOVERY_PACKAGE must be a production package, got ${requested}`)
   const version = packageJson(pkg).version
-  // Recovery is idempotent: publish only when absent, then verify the exact committed
-  // version before optionally replaying the wallet dispatch.
-  if (!registryRecord(pkg.name, version)) {
-    // Pack and publish exactly as release() does, so both paths authenticate through the
-    // same npm CLI rather than relying on pnpm's separate publish implementation.
-    const packDir = mkdtempSync(join(tmpdir(), 'goodwidget-recover-'))
-    run('pnpm', ['--dir', pkg.dir, 'pack', '--pack-destination', packDir])
-    const tarball = readdirSync(packDir).find(
-      (file) =>
-        file.startsWith(pkg.name.replace('@', '').replace('/', '-')) && file.endsWith('.tgz'),
-    )
-    if (!tarball) throw new Error(`Unable to locate packed tarball for ${pkg.name}`)
-    run('npm', ['publish', join(packDir, tarball), '--access', 'public', '--provenance'])
-  } else if (registryLatest(pkg.name) !== version) {
-    // Recovery owns the already committed version. Repair an existing release's
-    // tag, but give a new publish time to make its default latest tag visible.
-    run('npm', ['dist-tag', 'add', `${pkg.name}@${version}`, 'latest'])
-  }
-  const verified = await verifyRegistryRelease(pkg.name, version)
+  // Reuse an existing exact version without changing its latest dist-tag.
+  const integrity = publishIfMissing(pkg.name, version, {
+    readRecord: registryRecord,
+    publish: () => {
+      const packDir = mkdtempSync(join(tmpdir(), 'goodwidget-recover-'))
+      run('pnpm', ['--dir', pkg.dir, 'pack', '--pack-destination', packDir])
+      const tarball = readdirSync(packDir).find(
+        (file) =>
+          file.startsWith(pkg.name.replace('@', '').replace('/', '-')) && file.endsWith('.tgz'),
+      )
+      if (!tarball) throw new Error(`Unable to locate packed tarball for ${pkg.name}`)
+      return publishTarball(join(packDir, tarball))
+    },
+  })
   // A release that stopped before pushing tags left them on a discarded runner.
   // Reconcile this package's tag so the release URL below actually resolves.
   const tag = `${pkg.name.replace('@goodwidget/', '')}-v${version}`
@@ -273,7 +265,7 @@ async function recover() {
     await dispatchWidget(
       pkg,
       version,
-      verified.integrity,
+      integrity,
       sourceCommit,
       `https://github.com/GoodDollar/GoodWidget/tree/${pkg.name.replace('@goodwidget/', '')}-v${version}`,
     )

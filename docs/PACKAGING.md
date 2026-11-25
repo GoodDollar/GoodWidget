@@ -293,8 +293,10 @@ Promotion offers independent opt-in selections for the four production deploymen
 selected apps are dispatched at the authoritative release commit after successful processing,
 including when there are no packages to publish. A direct release run or a push without these
 selections deploys no apps.
-Recovery verifies or repairs the committed package version and its `latest` dist-tag. Do not
-enable wallet dispatch until GoodWallet is ready.
+Recovery publishes the exact committed package version if missing and restores its Git tag.
+It does not move `latest` for versions that are already published. The release trusts a successful
+`npm publish`; consumers should retry the exact version if registry reads are still catching up.
+Do not enable wallet dispatch until GoodWallet is ready.
 
 ```bash
 # Build

@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto'
+
 // This allowlist is deliberately topological: shared foundations precede their consumers.
 // affectedPackages() preserves this order for versioning, packing, and npm publication.
 export const packages = [
@@ -146,32 +148,15 @@ export function compareStableVersions(left, right) {
   return 0
 }
 
-export function registryReleaseMatches(record, latest, expectedVersion) {
-  return (
-    record?.version === expectedVersion &&
-    Boolean(record.integrity) &&
-    latest === expectedVersion
-  )
+// npm acknowledges the upload before its public read endpoints necessarily catch up.
+export function publishIfMissing(name, version, { readRecord, publish }) {
+  const record = readRecord(name, version)
+  if (record?.version === version) return record.integrity
+  return tarballIntegrity(publish())
 }
 
-export async function waitForRegistryRelease(name, version, { readRecord, readLatest, wait }) {
-  // npm metadata is eventually consistent. Check immediately for a fast
-  // registry, but allow a full minute for both views to catch up.
-  const intervalMs = 5_000
-  const maxAttempts = 13
-  let record
-  let latest
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    record = readRecord(name, version)
-    latest = readLatest(name)
-    if (registryReleaseMatches(record, latest, version)) return record
-    if (attempt < maxAttempts) await wait(intervalMs)
-  }
-  throw new Error(
-    `Registry verification failed for ${name}@${version} after 60 seconds of retry waits: ` +
-      `version=${record?.version ?? 'unavailable'}, integrity=${record?.integrity ? 'present' : 'missing'}, ` +
-      `latest=${latest ?? 'unavailable'}`,
-  )
+export function tarballIntegrity(bytes) {
+  return `sha512-${createHash('sha512').update(bytes).digest('base64')}`
 }
 
 export function walletDispatchEnabled(environment) {
