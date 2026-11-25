@@ -8,8 +8,8 @@ import {
   nextVersion,
   packages,
   pathsForPush,
-  registryReleaseMatches,
   releaseMarker,
+  waitForRegistryRelease,
   walletDispatchEnabled,
 } from './packages.mjs'
 import {
@@ -54,16 +54,12 @@ function registryLatest(name) {
 
 const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds))
 
-async function verifyRegistryRelease(name, version) {
-  // npm metadata is eventually consistent. Do not tag or notify GoodWallet
-  // until both the immutable release and the mutable `latest` channel agree.
-  for (let attempt = 1; attempt <= 6; attempt += 1) {
-    const record = registryRecord(name, version)
-    const latest = registryLatest(name)
-    if (registryReleaseMatches(record, latest, version)) return record
-    if (attempt < 6) await wait(2_000)
-  }
-  throw new Error(`Registry verification failed for ${name}@${version} or its latest tag`)
+function verifyRegistryRelease(name, version) {
+  return waitForRegistryRelease(name, version, {
+    readRecord: registryRecord,
+    readLatest: registryLatest,
+    wait,
+  })
 }
 
 function tagExists(tag) {
@@ -258,10 +254,9 @@ async function recover() {
     )
     if (!tarball) throw new Error(`Unable to locate packed tarball for ${pkg.name}`)
     run('npm', ['publish', join(packDir, tarball), '--access', 'public', '--provenance'])
-  }
-  // Recovery owns the already committed version. If publication succeeded but
-  // the mutable channel was not updated, repair it idempotently.
-  if (registryLatest(pkg.name) !== version) {
+  } else if (registryLatest(pkg.name) !== version) {
+    // Recovery owns the already committed version. Repair an existing release's
+    // tag, but give a new publish time to make its default latest tag visible.
     run('npm', ['dist-tag', 'add', `${pkg.name}@${version}`, 'latest'])
   }
   const verified = await verifyRegistryRelease(pkg.name, version)
