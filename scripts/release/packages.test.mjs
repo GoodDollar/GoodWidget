@@ -7,10 +7,10 @@ import {
   nextVersion,
   packages,
   pathsForPush,
-  registryReleaseMatches,
+  publishIfMissing,
   releaseMarker,
   stableVersion,
-  waitForRegistryRelease,
+
   walletDispatchEnabled,
 } from './packages.mjs'
 
@@ -80,54 +80,37 @@ test('bootstrap strips prerelease without increment and subsequent releases patc
 test('release marker is stable for loop prevention', () => {
   assert.equal(releaseMarker, '[goodwidget release]')
 })
-test('registry verification requires the immutable version, integrity, and latest tag', () => {
-  const record = { version: '1.2.3', integrity: 'sha512-release' }
-  assert.equal(registryReleaseMatches(record, '1.2.3', '1.2.3'), true)
-  assert.equal(registryReleaseMatches(record, '1.2.2', '1.2.3'), false)
-  assert.equal(
-    registryReleaseMatches({ version: '1.2.3' }, '1.2.3', '1.2.3'),
-    false,
-  )
-  assert.equal(registryReleaseMatches(null, '1.2.3', '1.2.3'), false)
-})
-test('registry verification does not wait when the version and tag already agree', async () => {
-  const expected = { version: '1.2.3', integrity: 'sha512-release' }
-  const result = await waitForRegistryRelease('@goodwidget/example', expected.version, {
-    readRecord: () => expected,
-    readLatest: () => expected.version,
-    wait: () => assert.fail('should not wait for an already visible release'),
+test('recovery reuses the integrity of an existing exact version without publishing', () => {
+  const result = publishIfMissing('@goodwidget/example', '1.2.3', {
+    readRecord: () => ({ version: '1.2.3', integrity: 'sha512-existing' }),
+    publish: () => assert.fail('must not republish an existing version'),
   })
-  assert.equal(result, expected)
+  assert.equal(result, 'sha512-existing')
 })
 
-test('registry verification tolerates a delayed latest tag through one minute', async () => {
-  const expected = { version: '1.2.3', integrity: 'sha512-release' }
-  let elapsed = 0
-  const result = await waitForRegistryRelease('@goodwidget/example', expected.version, {
-    readRecord: () => expected,
-    readLatest: () => (elapsed >= 60_000 ? expected.version : '1.2.2'),
-    wait: async (milliseconds) => {
-      elapsed += milliseconds
+test('successful publish uses the tarball integrity without another registry read', () => {
+  let reads = 0
+  const result = publishIfMissing('@goodwidget/example', '1.2.3', {
+    readRecord: () => {
+      assert.equal(++reads, 1)
+      return null
     },
+    publish: () => Buffer.from('abc'),
   })
-  assert.equal(result, expected)
-  assert.equal(elapsed, 60_000)
+  assert.equal(
+    result,
+    'sha512-3a81oZNherrMQXNJriBBMRLm+k6JqX6iCp7u5ktV05ohkpkqJ0/BqDa6PCOj/uu9RU1EI2Q86A4qmslPpUyknw==',
+  )
 })
 
-test('registry verification reports the last observed version, integrity, and latest', async () => {
-  let latestChecks = 0
-  await assert.rejects(
-    waitForRegistryRelease('@goodwidget/example', '1.2.3', {
-      readRecord: () => ({ version: '1.2.3' }),
-      readLatest: () => {
-        latestChecks += 1
-        return '1.2.2'
-      },
-      wait: async () => {},
+test('a rejected publish still fails the release', () => {
+  assert.throws(
+    () => publishIfMissing('@goodwidget/example', '1.2.3', {
+      readRecord: () => null,
+      publish: () => { throw new Error('npm publish rejected') },
     }),
-    /@goodwidget\/example@1\.2\.3 .*version=1\.2\.3, integrity=missing, latest=1\.2\.2/,
+    /npm publish rejected/,
   )
-  assert.equal(latestChecks, 13)
 })
 
 test('wallet dispatch requires both explicit activation and its scoped PAT', () => {

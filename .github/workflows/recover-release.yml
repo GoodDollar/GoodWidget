@@ -1,6 +1,6 @@
 name: Recover committed npm release
 
-# Recovery never computes a new version. It republishes (or only verifies) the version
+# Recovery never computes a new version. It publishes (or reuses) the version
 # already committed on next after an interrupted registry publication.
 on:
   workflow_dispatch:
