@@ -35,6 +35,11 @@ const POINTS_EVENT_NAMES = {
 const BUY_AI_CREDITS_URL = 'https://ubi.gd/3UFIqH3'
 const SUBSCRIBE_AI_CREDITS_URL = 'https://ubi.gd/4AslL0c'
 
+// Standalone-app tracking links for the Flow State actions, replaced by integrators
+// through `actionLinks` in the same way as the AI Credits links above.
+const VOTE_ON_FLOW_STATE_URL = 'https://ubi.gd/4eXzuUh'
+const FUND_GOODBUILDERS_URL = 'https://ubi.gd/3Xp2vSQ'
+
 export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
   seasonLabel: 'SEASON 7',
   title: 'Superfluid Ecosystem Rewards',
@@ -67,7 +72,7 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
           pointsLabel: '10 PTS PER INVITE',
           ctaLabel: 'Coming up soon',
           ctaKind: 'external-link',
-          // Invites are not eligible for Season 7 points yet: no link until they are enabled.
+          // Invites are not eligible for Season 7 points yet: the card stays disabled, so integrator links are never opened.
           disabled: true,
         },
         {
@@ -77,9 +82,9 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
           source: 'Flow State',
           description: 'Vote to help allocate GoodBuilders Season 5 funding.',
           pointsLabel: '5 PTS PER VOTE',
-          ctaLabel: 'Coming up soon',
+          ctaLabel: 'Vote',
           ctaKind: 'external-link',
-          disabled: true,
+          href: VOTE_ON_FLOW_STATE_URL,
         },
       ],
     },
@@ -121,9 +126,9 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
           source: 'Flow State',
           description: 'Start a stream to the GoodBuilders Season 5 pool.',
           pointsLabel: '2 PTS PER 1K G$ (≈ $0.1)',
-          ctaLabel: 'Coming up soon',
+          ctaLabel: 'Fund',
           ctaKind: 'external-link',
-          disabled: true,
+          href: FUND_GOODBUILDERS_URL,
         },
         {
           activity: 'gardens-donation',
@@ -259,7 +264,7 @@ export const DEFAULT_CAMPAIGN_DEFINITION: CampaignDefinition = {
     {
       question: 'Why are some actions marked ‘Coming up soon’?',
       answer:
-        'Invites, GoodBuilders voting, and GoodBuilders funding are not available for Season 7 points yet. These cards will be enabled when the actions become available.',
+        'Invites are not available for Season 7 points yet. This card will be enabled when the actions become available.',
     },
   ],
 }
