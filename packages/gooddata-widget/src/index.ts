@@ -7,6 +7,17 @@ export { registerConnectorFactory, getConnector, isConnectorRegistered, listRegi
 export type { DashboardDefinition } from './dashboards/types'
 export { registerDashboard, getDashboard, listDashboards } from './dashboards/registry'
 
+export { registerBuildersS5Dashboard, BuildersS5Dashboard, BuildersS5DashboardView } from './dashboards/buildersS5'
+export type {
+  BuildersS5DashboardConfig,
+  BuildersS5DashboardProps,
+  BuildersS5DashboardViewProps,
+  BuildersS5LoadState,
+  BuildersReport,
+  BuildersS5Data,
+  TeamReport,
+} from './dashboards/buildersS5'
+
 export { registerAiCreditsDashboard, AiCreditsDashboard } from './dashboards/aiCredits'
 export type {
   AiCreditsDashboardConfig,

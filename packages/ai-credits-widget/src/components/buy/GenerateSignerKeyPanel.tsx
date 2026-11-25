@@ -21,15 +21,18 @@ interface GenerateSignerKeyPanelProps {
 }
 
 /** Numbered heading, so each screen reads as a short ordered list. */
-function NumberedStep({
+export function NumberedStep({
   index,
   title,
   note,
+  noteTone = 'warning',
 }: {
   index: number
   title: string
-  /** Caveat shown under the title, aligned with it rather than the number. */
+  /** Italic text shown under the title, aligned with it rather than the number. */
   note?: string
+  /** Warning colour for caveats; soft for neutral hints. */
+  noteTone?: 'warning' | 'soft'
 }) {
   return (
     <YStack gap="$1">
@@ -52,7 +55,13 @@ function NumberedStep({
         </Text>
       </XStack>
       {note && (
-        <Text marginLeft={32} fontSize="$2" color="$warning" fontStyle="italic" lineHeight="$3">
+        <Text
+          marginLeft={32}
+          fontSize="$2"
+          fontStyle="italic"
+          lineHeight="$3"
+          {...(noteTone === 'warning' ? { color: '$warning' } : { tone: 'soft' })}
+        >
           {note}
         </Text>
       )}
@@ -107,16 +116,16 @@ export function GenerateSignerKeyPanel({
 
         <YStack gap="$2">
           <NumberedStep index={1} title="Open Antseed Desktop" />
-          <NumberedStep index={2} title="Go to Profile → Signer" />
+          <NumberedStep index={2} title="Go to Settings → Wallet → Signer key" />
           <NumberedStep
             index={3}
             title="Back up your existing Signer Key"
-            note="⚠️ Tap ↓ to back up your existing signer key. Importing a new signer key will replace it."
+            note="⚠️ Tap Back up to save your existing signer key. Importing a new signer key will replace it."
           />
-          <NumberedStep index={4} title="Tap ↑ to paste your Signer Key, then save." />
+          <NumberedStep index={4} title="Tap Import to paste your Signer Key, then save." />
         </YStack>
 
-        <AntseedSignerRow mode="generate" showCaption={false} />
+        <AntseedSignerRow />
 
         <AiCreditsStatusNotice>
           <Text fontSize="$2" tone="soft" lineHeight="$3">

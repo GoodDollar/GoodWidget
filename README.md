@@ -11,6 +11,7 @@ A cross-platform mini app framework for building web3 widgets that run inside wa
 | `@goodwidget/embed`        | Web Component wrapper for embedding mini apps in any HTML page               |
 | `@goodwidget/claim-widget` | Sample publishable widget — React component + Web Component                  |
 | `@goodwidget/goodreserve-widget` | Reserve swap widget package (buy/sell flow on Celo/XDC)               |
+| `@goodwidget/gooddata-widget` | GoodData analytics dashboards (AI Credits, Builders Season 5) and their data connectors |
 
 ## Quick Start
 
@@ -30,6 +31,26 @@ cd examples/html && pnpm run dev
 
 # Expo (React Native) — standalone, see examples/expo/README.md
 ```
+
+## GoodData analytics site
+
+`apps/gooddata-analytics-web` hosts the GoodData dashboards from `@goodwidget/gooddata-widget`. Each registered
+dashboard has its own path, and the root (`/`) lists them:
+
+| Path | Dashboard | Data source |
+| ---- | --------- | ----------- |
+| `/ai-credits` | AI Credits | AntSeed analytics worker (`VITE_ANTSEED_ANALYTICS_WORKER_URL`) |
+| `/builders-s5` | Builders Season 5 | Stored weekly reports of gbmetrics, <https://gbmetrics.gooddollar.org> |
+
+**Builders Season 5.** The page shows the latest stored report and charts available report history: for each metric, a plain explanation, a "Keep in mind"
+note, team tiles, comparison bars and historical lines when earlier reports are available. It reads only `GET /reports` (the report dates) and `GET /getReport?date=` (stored
+reports) and never triggers or writes anything. Team tiles show changes since the preceding available report. If an older report cannot be loaded, the page warns that history is incomplete. G$ volume remains a total until directional values are available. gbmetrics sends no CORS headers, so the browser asks this app for
+`/gbmetrics/reports` and `/gbmetrics/getReport`, and the app forwards exactly those two paths: `vercel.json` in
+production, the dev server proxy in `vite.config.ts` locally. A team that has not registered a GitHub repo, X handle or
+Farcaster handle is shown as "No ... registered", never as zero. The three retention cards show "First value in the
+<date> report" until gbmetrics produces a first value. Metric text lives in
+`packages/gooddata-widget/src/dashboards/buildersS5/metrics.ts`; the rules for what a card shows are in `model.ts` and
+are covered by `pnpm --filter @goodwidget/gooddata-widget test`.
 
 ## Building a Mini App
 

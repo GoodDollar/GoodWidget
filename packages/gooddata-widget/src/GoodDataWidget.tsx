@@ -21,6 +21,17 @@ export interface GoodDataWidgetProps {
   basename?: string
 }
 
+/** A router link in the theme's text color, underlined, so it stays readable and recognisable as a link in every theme and visit state. */
+function PageLink({ to, children }: { to: string; children: React.ReactNode }) {
+  return (
+    <Link to={to}>
+      <Text tone="default" textDecorationLine="underline">
+        {children}
+      </Text>
+    </Link>
+  )
+}
+
 function UnknownDashboardPage({ dashboardId }: { dashboardId?: string }) {
   return (
     <YStack gap="$3" data-testid="unknown-dashboard">
@@ -32,7 +43,7 @@ function UnknownDashboardPage({ dashboardId }: { dashboardId?: string }) {
           ? `"${dashboardId}" isn't a registered dashboard.`
           : "This page doesn't match a registered dashboard."}
       </Text>
-      <Link to="/">Back to dashboards</Link>
+      <PageLink to="/">Back to dashboards</PageLink>
     </YStack>
   )
 }
@@ -59,9 +70,9 @@ function DashboardSelector() {
       </Heading>
       <YStack gap="$2">
         {dashboards.map((dashboard) => (
-          <Link key={dashboard.id} to={`/${dashboard.path}`}>
+          <PageLink key={dashboard.id} to={`/${dashboard.path}`}>
             {dashboard.label}
-          </Link>
+          </PageLink>
         ))}
       </YStack>
     </YStack>

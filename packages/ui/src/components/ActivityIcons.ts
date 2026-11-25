@@ -3,4 +3,4 @@
 // packages import these from @goodwidget/ui rather than depending on
 // @tamagui/lucide-icons directly, keeping the icon library a single
 // dependency owned by the shared UI package.
-export { CalendarDays, UserPlus, Megaphone, Waves, HandCoins } from '@tamagui/lucide-icons'
+export { CalendarDays, UserPlus, Megaphone, Waves, HandCoins, ShoppingCart } from '@tamagui/lucide-icons'
