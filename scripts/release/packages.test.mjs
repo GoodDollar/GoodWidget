@@ -10,6 +10,7 @@ import {
   registryReleaseMatches,
   releaseMarker,
   stableVersion,
+  waitForRegistryRelease,
   walletDispatchEnabled,
 } from './packages.mjs'
 
@@ -89,6 +90,46 @@ test('registry verification requires the immutable version, integrity, and lates
   )
   assert.equal(registryReleaseMatches(null, '1.2.3', '1.2.3'), false)
 })
+test('registry verification does not wait when the version and tag already agree', async () => {
+  const expected = { version: '1.2.3', integrity: 'sha512-release' }
+  const result = await waitForRegistryRelease('@goodwidget/example', expected.version, {
+    readRecord: () => expected,
+    readLatest: () => expected.version,
+    wait: () => assert.fail('should not wait for an already visible release'),
+  })
+  assert.equal(result, expected)
+})
+
+test('registry verification tolerates a delayed latest tag through one minute', async () => {
+  const expected = { version: '1.2.3', integrity: 'sha512-release' }
+  let elapsed = 0
+  const result = await waitForRegistryRelease('@goodwidget/example', expected.version, {
+    readRecord: () => expected,
+    readLatest: () => (elapsed >= 60_000 ? expected.version : '1.2.2'),
+    wait: async (milliseconds) => {
+      elapsed += milliseconds
+    },
+  })
+  assert.equal(result, expected)
+  assert.equal(elapsed, 60_000)
+})
+
+test('registry verification reports the last observed version, integrity, and latest', async () => {
+  let latestChecks = 0
+  await assert.rejects(
+    waitForRegistryRelease('@goodwidget/example', '1.2.3', {
+      readRecord: () => ({ version: '1.2.3' }),
+      readLatest: () => {
+        latestChecks += 1
+        return '1.2.2'
+      },
+      wait: async () => {},
+    }),
+    /@goodwidget\/example@1\.2\.3 .*version=1\.2\.3, integrity=missing, latest=1\.2\.2/,
+  )
+  assert.equal(latestChecks, 13)
+})
+
 test('wallet dispatch requires both explicit activation and its scoped PAT', () => {
   assert.equal(walletDispatchEnabled({ GOODWALLET_DISPATCH_PAT: 'secret' }), false)
   assert.equal(walletDispatchEnabled({ ENABLE_GOODWALLET_DISPATCH: 'true' }), false)

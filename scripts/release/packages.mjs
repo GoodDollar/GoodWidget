@@ -154,6 +154,26 @@ export function registryReleaseMatches(record, latest, expectedVersion) {
   )
 }
 
+export async function waitForRegistryRelease(name, version, { readRecord, readLatest, wait }) {
+  // npm metadata is eventually consistent. Check immediately for a fast
+  // registry, but allow a full minute for both views to catch up.
+  const intervalMs = 5_000
+  const maxAttempts = 13
+  let record
+  let latest
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    record = readRecord(name, version)
+    latest = readLatest(name)
+    if (registryReleaseMatches(record, latest, version)) return record
+    if (attempt < maxAttempts) await wait(intervalMs)
+  }
+  throw new Error(
+    `Registry verification failed for ${name}@${version} after 60 seconds of retry waits: ` +
+      `version=${record?.version ?? 'unavailable'}, integrity=${record?.integrity ? 'present' : 'missing'}, ` +
+      `latest=${latest ?? 'unavailable'}`,
+  )
+}
+
 export function walletDispatchEnabled(environment) {
   // A credential alone must never activate cross-repository automation.
   return (

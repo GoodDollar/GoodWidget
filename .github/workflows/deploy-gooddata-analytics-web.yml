@@ -105,13 +105,15 @@ jobs:
       - name: Pull Vercel project settings
         run: pnpm exec vercel pull --yes --environment="$VERCEL_TARGET" --token=${{ secrets.VERCEL_TOKEN }}
 
+      # Vercel runs from the repository root, where it would read the root vercel.json (no rewrites).
+      # --local-config points it at the app's own vercel.json so its rewrites are applied.
       - name: Build preview deployment
-        run: pnpm exec vercel build --target="$VERCEL_TARGET" --token=${{ secrets.VERCEL_TOKEN }}
+        run: pnpm exec vercel build --target="$VERCEL_TARGET" --local-config apps/gooddata-analytics-web/vercel.json --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Deploy preview
         id: deploy
         run: |
-          url="$(pnpm exec vercel deploy --prebuilt --target="$VERCEL_TARGET" --token=${{ secrets.VERCEL_TOKEN }})"
+          url="$(pnpm exec vercel deploy --prebuilt --target="$VERCEL_TARGET" --local-config apps/gooddata-analytics-web/vercel.json --token=${{ secrets.VERCEL_TOKEN }})"
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
   production:
@@ -156,11 +158,12 @@ jobs:
       - name: Pull Vercel project settings
         run: pnpm exec vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
+      # See the preview job: use the app's own vercel.json so its rewrites are applied.
       - name: Build deployment
-        run: pnpm exec vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        run: pnpm exec vercel build --prod --local-config apps/gooddata-analytics-web/vercel.json --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Deploy production
         id: deploy
         run: |
-          url="$(pnpm exec vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})"
+          url="$(pnpm exec vercel deploy --prebuilt --prod --local-config apps/gooddata-analytics-web/vercel.json --token=${{ secrets.VERCEL_TOKEN }})"
           echo "url=$url" >> "$GITHUB_OUTPUT"

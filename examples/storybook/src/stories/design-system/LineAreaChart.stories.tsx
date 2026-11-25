@@ -260,6 +260,127 @@ export const Responsive: Story = {
   ),
 }
 
+/** Seven series over five weeks. In the last week Charlie and Delta tie at 900, Echo and
+ * Foxtrot tie at 830. Fixed values, no randomness. */
+const WEEKS = ['Oct 18-24', 'Oct 25-31', 'Nov 1-7', 'Nov 8-14', 'Nov 15-21']
+const WEEKLY_SERIES: Array<{ key: string; label: string; color: string; values: number[] }> = [
+  { key: 'alpha', label: 'Alpha', color: '#6c5ce7', values: [1050, 1020, 980, 1000, 1050] },
+  { key: 'bravo', label: 'Bravo', color: '#00b894', values: [900, 940, 960, 990, 1012] },
+  { key: 'charlie', label: 'Charlie', color: '#e17055', values: [820, 860, 900, 930, 900] },
+  { key: 'delta', label: 'Delta', color: '#0984e3', values: [760, 800, 850, 900, 900] },
+  { key: 'echo', label: 'Echo', color: '#fdcb6e', values: [800, 790, 810, 820, 830] },
+  { key: 'foxtrot', label: 'Foxtrot', color: '#e84393', values: [757, 770, 780, 800, 830] },
+  { key: 'golf', label: 'Golf', color: '#00cec9', values: [1100, 1080, 1060, 1040, 1020] },
+]
+const weeklyData = WEEKLY_SERIES.flatMap((s) => s.values.map((y, i) => ({ x: WEEKS[i], y, series: s.key })))
+const weeklySeriesDefs = WEEKLY_SERIES.map(({ key, label, color }) => ({ key, label, color }))
+const exactNumber = (value: number) => Math.round(value).toLocaleString('en-US')
+
+/** `tooltip`: hover header reads "Week of …" while the axis keeps "Nov 15-21", a second line
+ * names the metric, values are exact, rows are listed highest first. Hover a week to see it. */
+export const HoverWeekColumn: Story = {
+  render: () => (
+    <LineAreaChart
+      data={weeklyData}
+      series={weeklySeriesDefs}
+      width={480}
+      tooltip={{
+        label: 'Score',
+        valueFormatter: exactNumber,
+        xFormatter: (x) => `Week of ${x}`,
+        sort: 'desc',
+      }}
+      testID="LineAreaChart-hover-week"
+    />
+  ),
+}
+
+/** `focusPointOnHover`: point at one dot and only that series shows (header = series, second line
+ * = week) while the others fade; point at a tie (Charlie and Delta, or Echo and Foxtrot, in the
+ * last week) and both are listed; point at empty space in a column and every series is listed. */
+export const FocusPointOnHover: Story = {
+  render: () => (
+    <LineAreaChart
+      data={weeklyData}
+      series={weeklySeriesDefs}
+      width={480}
+      tooltip={{
+        label: 'Score',
+        valueFormatter: exactNumber,
+        xFormatter: (x) => `Week of ${x}`,
+        sort: 'desc',
+      }}
+      focusPointOnHover
+      testID="LineAreaChart-focus-point"
+    />
+  ),
+}
+
+/** `tooltip.rightAlignValues`: the same week column, with values in a right-aligned column and no
+ * colon, so the numbers line up. Hover a week to see it. */
+export const HoverValuesRightAligned: Story = {
+  render: () => (
+    <LineAreaChart
+      data={weeklyData}
+      series={weeklySeriesDefs}
+      width={480}
+      tooltip={{
+        label: 'Score',
+        valueFormatter: exactNumber,
+        xFormatter: (x) => `Week of ${x}`,
+        sort: 'desc',
+        rightAlignValues: true,
+      }}
+      testID="LineAreaChart-hover-right-aligned"
+    />
+  ),
+}
+
+/** `swatchShape="square"`: square legend swatches, sized with their gaps from the legend text, and
+ * square marks in the hover box. Hover a week to see it. */
+export const SquareSwatches: Story = {
+  render: () => (
+    <LineAreaChart
+      data={weeklyData}
+      series={weeklySeriesDefs}
+      width={480}
+      tooltip={{ label: 'Score', valueFormatter: exactNumber, xFormatter: (x) => `Week of ${x}`, sort: 'desc' }}
+      swatchShape="square"
+      testID="LineAreaChart-square-swatches"
+    />
+  ),
+}
+
+/** `legendPosition="top"`: the legend sits above the chart (here with square swatches). */
+export const LegendAbove: Story = {
+  render: () => (
+    <LineAreaChart
+      data={weeklyData}
+      series={weeklySeriesDefs}
+      width={480}
+      legendPosition="top"
+      swatchShape="square"
+      testID="LineAreaChart-legend-above"
+    />
+  ),
+}
+
+/** `focusPointOnHover` with `showDots={false}`: there are no dots to point at, so the hover always
+ * lists every series and nothing fades. */
+export const FocusPointWithoutDots: Story = {
+  render: () => (
+    <LineAreaChart
+      data={weeklyData}
+      series={weeklySeriesDefs}
+      width={480}
+      showDots={false}
+      tooltip={{ label: 'Score', valueFormatter: exactNumber, xFormatter: (x) => `Week of ${x}`, sort: 'desc' }}
+      focusPointOnHover
+      testID="LineAreaChart-focus-no-dots"
+    />
+  ),
+}
+
 /** Controllable instance — edit args in the Controls panel. */
 export const Controllable: Story = {
   args: {

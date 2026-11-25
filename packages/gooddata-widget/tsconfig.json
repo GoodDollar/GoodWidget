@@ -3,6 +3,9 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": ".",
+    // Lets *.test.ts import sibling modules by their .ts name so node:test can run them directly (see "test" script).
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
     "paths": {
       "@goodwidget/embed": ["../embed/src/index.ts"],
       "@goodwidget/ui": ["../ui/src/index.ts"],
