@@ -14,6 +14,7 @@ import {
 } from '../../fixtures/injectedEip1193'
 import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
 
+// Placeholder address used only by the mocked claim-all wallet client.
 const MOCK_CLAIM_ALL_ACCOUNT = '0x329377cbeef39f01b0ea04b80465c9eb47d3ed10'
 
 function createMockClaimExecutionClientBundle(chainId: number, shouldFail: boolean) {
@@ -109,7 +110,6 @@ function CitizenClaimWidgetStoryShell({
   return (
     <div key={environment} data-testid={dataTestId}>
       <CitizenClaimWidget
-        key={environment}
         provider={provider}
         environment={environment}
         chainId={activeChainId ?? 42220}
