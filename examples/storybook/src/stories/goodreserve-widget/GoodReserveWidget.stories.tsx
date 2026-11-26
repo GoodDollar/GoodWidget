@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useEffect, useMemo } from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { GoodReserveWidget } from '@goodwidget/goodreserve-widget'
+import type { ReserveWidgetEnvironment } from '@goodwidget/goodreserve-widget'
 import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
 import {
   getInjectedEip1193Provider,
@@ -128,16 +129,48 @@ export const SwapError: Story = {
   render: () => renderStory(reserveWidgetMockStates.swapError, 'GoodReserveWidget-swap-error'),
 }
 
-// Live adapter (no mockState) so the real amount-input wiring is exercised.
-// Used by the Playwright "types into the input" coverage. The SDK is now
-// statically imported and reaches the real getReserveStats/getBuyQuote path
-// against a connected wallet provider.
-export const Interactive: Story = {
-  render: () => (
+interface InteractiveStoryArgs {
+  environment: ReserveWidgetEnvironment
+  /** Chain the custodial test wallet is connected to (Celo 42220 or XDC 50). */
+  walletChainId: 42220 | 50
+}
+
+// Hosts the live widget with a custodial wallet whose chain follows the
+// `walletChainId` control, so Celo/XDC and development/production can be
+// compared in one story without reloading.
+function InteractiveStory({ environment, walletChainId }: InteractiveStoryArgs) {
+  const interactiveProvider = useMemo(() => createCustodialEip1193Provider(walletChainId), [])
+
+  useEffect(() => {
+    // Only switch when the control differs from the wallet's current chain, so
+    // the initial mount does not emit a redundant chainChanged event.
+    void (async () => {
+      const currentChainHex = (await interactiveProvider.request({ method: 'eth_chainId' })) as string
+      if (Number.parseInt(currentChainHex, 16) === walletChainId) return
+      await interactiveProvider.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: `0x${walletChainId.toString(16)}` }],
+      })
+    })()
+  }, [interactiveProvider, walletChainId])
+
+  return (
     <div data-testid="GoodReserveWidget-interactive" style={{ width: 390 }}>
-      <GoodReserveWidget provider={provider} />
+      <GoodReserveWidget provider={interactiveProvider} environment={environment} />
     </div>
-  ),
+  )
+}
+
+// Live adapter (no mockState) so the real amount-input wiring is exercised.
+// Used by the Playwright "types into the input" coverage and the mocked-RPC
+// quote tests. The controls pick the network and the contract environment.
+export const Interactive: StoryObj<InteractiveStoryArgs> = {
+  args: { environment: 'production', walletChainId: 42220 },
+  argTypes: {
+    environment: { control: 'radio', options: ['production', 'development'] },
+    walletChainId: { control: 'radio', options: [42220, 50] },
+  },
+  render: (args) => <InteractiveStory {...args} />,
 }
 
 // Injected wallet story — uses the browser's EIP-1193 provider (MetaMask, Rabby, etc).
