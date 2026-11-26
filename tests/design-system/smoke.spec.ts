@@ -22,7 +22,7 @@
  * data-testid naming convention:
  *   ComponentName-variant   e.g. Card-default, GlowCard-default, ClaimWidget-default
  */
-import { test, expect, Page } from '@playwright/test'
+import { test, expect, Page, Locator } from '@playwright/test'
 
 /** Navigate to a Storybook story URL and wait for the canvas to render. */
 async function gotoStory(page: Page, storyId: string): Promise<void> {
@@ -582,16 +582,101 @@ test('NextTaskModal/ShownWithoutImage story renders the sheet without the image 
   await screenshotStory(page, 'tests/design-system/test-results/story-nexttaskmodal-no-image.png')
 })
 
-// Mobile and desktop viewports: the iframe document is loaded directly so the viewport size is
-// the story's own viewport (the Storybook manager switches layout at small widths).
+test('NextTaskModal renders default fallbacks when optional copy fields are omitted', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-nexttaskmodal--shown-without-image')
+  const frame = getStoryFrame(page)
+  const card = frame.getByTestId('NextTaskModal-no-image')
+  await expect(card).toBeVisible()
+
+  // Proves that when headline, supportingCopy, recommendedLabel, and skipLabel
+  // are omitted from content and props, they fall back to their default constants,
+  // while omitting statusLabel renders no status pill.
+  await expect(frame.getByText('One good next step')).toBeVisible()
+  await expect(
+    frame.getByText(
+      'Small actions today create a bigger impact tomorrow. Thanks for being part of GoodDollar.',
+    ),
+  ).toBeVisible()
+  await expect(frame.getByText('RECOMMENDED')).toBeVisible()
+  await expect(frame.getByRole('button', { name: 'Skip for now' })).toBeVisible()
+  await expect(frame.getByText('Claim completed')).toHaveCount(0)
+
+  // When a label is provided (e.g. in ShownWithContent), the status pill renders.
+  await gotoStory(page, 'design-system-primitives-nexttaskmodal--shown-with-content')
+  const shownFrame = getStoryFrame(page)
+  await expect(shownFrame.getByTestId('NextTaskModal-shown')).toBeVisible()
+  await expect(shownFrame.getByText('Claim completed')).toBeVisible()
+})
+
+// Mobile, landscape, and desktop viewports: inner scrolling ensures actions stay reachable across all viewports.
 const NEXT_TASK_VIEWPORTS = [
   { label: 'desktop', width: 1280, height: 800 },
-  // 375x667 (iPhone SE) is the smallest common phone, so it stresses clipping the most.
   { label: 'mobile', width: 375, height: 667 },
+  { label: 'landscape', width: 667, height: 375 },
 ]
 
+/** Check resolved default-preset styles, not just the presence of token references in JSX. */
+async function expectNextTaskDesign(card: Locator, headline: Locator, cta: Locator, skip: Locator) {
+  for (const side of ['top', 'right', 'bottom', 'left']) {
+    await expect(card).toHaveCSS(`padding-${side}`, '16px')
+  }
+  await expect(card).toHaveCSS('background-color', 'rgb(30, 31, 38)')
+  await expect(card).toHaveCSS('border-top-color', 'rgb(77, 77, 77)')
+  await expect(card).toHaveCSS('column-gap', '12px')
+  await expect(headline).toHaveCSS('font-size', '26px')
+  await expect(headline).toHaveCSS('line-height', '32px')
+  await expect(headline).toHaveCSS('font-weight', '700')
+
+  const title = card.locator('.is_Heading')
+  await expect(title).toHaveCSS('font-size', '17px')
+  await expect(title).toHaveCSS('line-height', '22px')
+  await expect(title).toHaveCSS('font-weight', '700')
+  expect(await title.evaluate((element) => getComputedStyle(element.parentElement!).rowGap)).toBe('8px')
+  expect(await headline.evaluate((element) => {
+    const header = element.parentElement!.parentElement!
+    return { gap: getComputedStyle(header).rowGap, paddingTop: getComputedStyle(header).paddingTop }
+  })).toEqual({ gap: '12px', paddingTop: '24px' })
+
+  await expect(card.locator('.is_Text')).toHaveCSS('font-size', '14px')
+  await expect(card.locator('.is_Text')).toHaveCSS('line-height', '20px')
+  await expect(card.locator('.is_Text')).toHaveCSS('color', 'rgb(204, 204, 204)')
+  await expect(card.locator('.is_Badge')).toHaveCSS('border-top-width', '1px')
+  await expect(card.locator('.is_Badge')).toHaveCSS('border-top-color', 'rgb(26, 133, 255)')
+  await expect(card.locator('.is_Badge')).toHaveCSS('padding-top', '0px')
+  await expect(card.locator('.is_BadgeText')).toHaveCSS('font-size', '12px')
+  await expect(card.locator('.is_BadgeText')).toHaveCSS('color', 'rgb(26, 133, 255)')
+
+  const primaryFrame = await cta.evaluate((element) => element.tagName === 'A')
+    ? cta.locator('.is_Button')
+    : cta
+  await expect(primaryFrame).toHaveCSS('height', '48px')
+  await expect(primaryFrame).toHaveCSS('border-top-left-radius', '20px')
+  await expect(primaryFrame).toHaveCSS('background-color', 'rgb(26, 133, 255)')
+  await expect(cta.locator('.is_ButtonText')).toHaveCSS('font-size', '14px')
+  await expect(cta.locator('.is_ButtonText')).toHaveCSS('line-height', '20px')
+  await expect(cta.locator('.is_ButtonText')).toHaveCSS('color', 'rgb(255, 255, 255)')
+  await expect(skip.locator('.is_ButtonText')).toHaveCSS('font-size', '14px')
+  await expect(skip.locator('.is_ButtonText')).toHaveCSS('line-height', '20px')
+  await expect(skip.locator('.is_ButtonText')).toHaveCSS('color', 'rgb(204, 204, 204)')
+}
+
+/** Capture the full header before action reachability checks scroll the content away. */
+async function screenshotNextTaskTop(page: Page, headline: Locator, path: string) {
+  await headline.scrollIntoViewIfNeeded()
+  await headline.evaluate((element) => {
+    for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+      const overflow = getComputedStyle(parent).overflowY
+      if (overflow === 'auto' || overflow === 'scroll') {
+        parent.scrollTop = 0
+        break
+      }
+    }
+  })
+  await page.screenshot({ path })
+}
+
 for (const viewport of NEXT_TASK_VIEWPORTS) {
-  test(`NextTaskModal keeps its CTA, skip link and close button fully on screen at ${viewport.width}x${viewport.height} (${viewport.label})`, async ({
+  test(`NextTaskModal keeps its CTA, skip link and close button accessible at ${viewport.width}x${viewport.height} (${viewport.label})`, async ({
     page,
   }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height })
@@ -599,14 +684,24 @@ for (const viewport of NEXT_TASK_VIEWPORTS) {
     await page.waitForLoadState('networkidle')
 
     const card = page.getByTestId('NextTaskModal-shown')
-    const cta = page.getByRole('link', { name: 'Open Proposal' })
+    const cta = page.getByRole('link', { name: 'Explore staking' })
     const skipLink = page.getByRole('button', { name: 'Skip for now' })
     const closeButton = page.getByRole('button', { name: 'Close' })
+    const headline = page.getByText('One good next step', { exact: true })
+
+    await expectNextTaskDesign(card, headline, cta, skipLink)
+    await expect(page.getByText('Claim completed', { exact: true }).locator('..')).toHaveCSS(
+      'background-color', 'rgba(19, 198, 54, 0.15)',
+    )
+    if (viewport.label === 'landscape') {
+      await screenshotNextTaskTop(page, headline, 'tests/design-system/test-results/story-nexttaskmodal-shown-landscape-top.png')
+    }
 
     for (const control of [cta, skipLink, closeButton]) {
+      await control.scrollIntoViewIfNeeded()
+      await expect(control).toBeInViewport({ ratio: 1 })
       await expect(control).toBeVisible()
       await expect(control).toBeEnabled()
-      await expect(control).toBeInViewport({ ratio: 1 })
     }
     // The card's own content must not be wider than the viewport.
     const cardWidth = await card.evaluate((element) => element.scrollWidth)
@@ -618,14 +713,73 @@ for (const viewport of NEXT_TASK_VIEWPORTS) {
   })
 }
 
+const NEXT_TASK_DESIGN_VARIANTS = [
+  {
+    label: 'no-image',
+    storyId: 'shown-without-image',
+    testId: 'NextTaskModal-no-image',
+    ctaLabel: 'Verify now',
+    hasImage: false,
+  },
+  {
+    label: 'design-reference',
+    storyId: 'design-reference-copy',
+    testId: 'NextTaskModal-design-reference',
+    ctaLabel: 'Open Proposal',
+    hasImage: true,
+  },
+  {
+    label: 'host-cta',
+    storyId: 'navigation-pending-and-retry',
+    testId: 'NextTaskModal-pending-retry',
+    ctaLabel: 'Explore staking',
+    hasImage: true,
+  },
+]
+
+for (const variant of NEXT_TASK_DESIGN_VARIANTS) {
+  for (const viewport of NEXT_TASK_VIEWPORTS) {
+    test(`NextTaskModal ${variant.label} preserves design hierarchy and reachable actions at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height })
+      await page.goto(`/iframe.html?id=design-system-primitives-nexttaskmodal--${variant.storyId}&viewMode=story`)
+      if (variant.label === 'host-cta') await page.getByTestId('NextTaskModal-open').click()
+      const card = page.getByTestId(variant.testId)
+      await expect(card).toBeVisible()
+      const headline = page.getByText('One good next step', { exact: true })
+      const cta = page.getByRole(variant.label === 'host-cta' ? 'button' : 'link', { name: variant.ctaLabel, exact: true })
+      const skip = page.getByRole('button', { name: 'Skip for now', exact: true })
+      const close = page.getByRole('button', { name: 'Close', exact: true })
+      await expectNextTaskDesign(card, headline, cta, skip)
+      if (!variant.hasImage) await expect(card.getByRole('img')).toHaveCount(0)
+      if (variant.label !== 'design-reference') await expect(page.getByText('Claim completed', { exact: true })).toHaveCount(0)
+
+      const screenshotPath = `tests/design-system/test-results/story-nexttaskmodal-${variant.label}-${viewport.label}`
+      if (viewport.label === 'landscape') await screenshotNextTaskTop(page, headline, `${screenshotPath}-top.png`)
+      for (const control of [headline, cta, skip, close]) {
+        await control.scrollIntoViewIfNeeded()
+        await expect(control).toBeInViewport({ ratio: 1 })
+        await expect(control).toBeVisible()
+        await expect(control).toBeEnabled()
+      }
+      const cardBox = await card.boundingBox()
+      const ctaBox = await cta.boundingBox()
+      expect(cardBox!.width).toBeLessThanOrEqual(viewport.width)
+      expect(ctaBox!.width).toBeCloseTo(cardBox!.width, 1)
+      await page.screenshot({ path: `${screenshotPath}.png` })
+    })
+  }
+}
+
 test('NextTaskModal Anchor mode: the CTA is a link to ctaTarget and pressing it reports the click and closes', async ({
   page,
 }) => {
   await gotoStory(page, 'design-system-primitives-nexttaskmodal--closed')
   const frame = getStoryFrame(page)
   await frame.getByTestId('NextTaskModal-open').click()
-  const cta = frame.getByRole('link', { name: 'Open Proposal' })
+  const cta = frame.getByRole('link', { name: 'Explore staking' })
   await expect(cta).toHaveAttribute('href', NEXT_TASK_CTA_TARGET)
+  await expect(cta.locator('button')).toHaveCount(0)
+  await expect(frame.getByRole('button', { name: 'Explore staking' })).toHaveCount(0)
   // Navigation is blocked at the document level (after React's handler) so the test stays on the page.
   await frame.locator('body').evaluate((body) => {
     body.ownerDocument.addEventListener('click', (event) => {
@@ -644,7 +798,7 @@ test('NextTaskModal host mode: the handler is called with ctaTarget, the sheet c
   const frame = getStoryFrame(page)
   await expect(frame.getByTestId('NextTaskModal-last-event')).toHaveText(`clicked:${NEXT_TASK_CTA_TARGET}`)
   await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('closed')
-  await expect(frame.getByRole('link', { name: 'Open Proposal' })).toHaveCount(0)
+  await expect(frame.getByRole('link', { name: 'Explore staking' })).toHaveCount(0)
 })
 
 const NEXT_TASK_ERROR_TOASTS = [
@@ -666,10 +820,275 @@ const NEXT_TASK_ERROR_TOASTS = [
 ]
 
 for (const errorCase of NEXT_TASK_ERROR_TOASTS) {
-  test(`NextTaskModal shows an error toast and still closes for ${errorCase.description}`, async ({ page }) => {
+  test(`NextTaskModal shows an error toast and keeps drawer open for ${errorCase.description}`, async ({ page }) => {
     await gotoStory(page, errorCase.storyId)
     const frame = getStoryFrame(page)
     await expect(frame.getByText(errorCase.message)).toBeVisible()
+    await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
+
+    // Dismiss still works while error is displayed
+    const skipButton = frame.getByRole('button', { name: 'Skip for now' })
+    await skipButton.scrollIntoViewIfNeeded()
+    await skipButton.click()
     await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('closed')
   })
 }
+
+test('NextTaskModal CustomCopy story renders configurable copy overrides', async ({ page }) => {
+  await gotoStory(page, 'design-system-primitives-nexttaskmodal--custom-copy')
+  const frame = getStoryFrame(page)
+  await expect(frame.getByText('Custom Headline Step')).toBeVisible()
+  await expect(frame.getByText('Custom supporting message for active community members.')).toBeVisible()
+  await expect(frame.getByText('FEATURED')).toBeVisible()
+  await expect(frame.getByText('Not now, thanks')).toBeVisible()
+  await expect(frame.getByText('Verification complete')).toBeVisible()
+})
+
+const NEXT_TASK_LONG_COPY_VARIANTS = [
+  {
+    label: 'with-image',
+    storyId: 'design-system-primitives-nexttaskmodal--realistic-long-copy',
+    testId: 'NextTaskModal-long-copy',
+    hasImage: true,
+  },
+  {
+    label: 'without-image',
+    storyId: 'design-system-primitives-nexttaskmodal--realistic-long-copy-without-image',
+    testId: 'NextTaskModal-long-copy-no-image',
+    hasImage: false,
+  },
+]
+
+for (const variant of NEXT_TASK_LONG_COPY_VARIANTS) {
+  for (const viewport of NEXT_TASK_VIEWPORTS) {
+    test(`NextTaskModal RealisticLongCopy (${variant.label}) keeps headline, CTA and skip accessible at ${viewport.width}x${viewport.height} (${viewport.label})`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height })
+      await page.goto(`/iframe.html?id=${variant.storyId}&viewMode=story`)
+      await page.waitForLoadState('domcontentloaded')
+
+      const openButton = page.getByTestId('NextTaskModal-open')
+      await expect(openButton).toBeVisible()
+      await openButton.click()
+
+      const card = page.getByTestId(variant.testId)
+      await expect(card).toBeVisible()
+      if (!variant.hasImage) {
+        await expect(card.getByRole('img')).toHaveCount(0)
+      }
+
+      const headline = page.getByText('Support Community Expansion Proposals', { exact: true })
+      const cta = page.getByRole('link', { name: 'Read and vote on Snapshot' })
+      const skip = page.getByRole('button', { name: 'Remind me tomorrow' })
+      const closeButton = page.getByRole('button', { name: 'Close' })
+
+      await expectNextTaskDesign(card, headline, cta, skip)
+      if (viewport.label !== 'desktop') {
+        await screenshotNextTaskTop(page, headline,
+          `tests/design-system/test-results/story-nexttaskmodal-long-copy-${variant.label}-${viewport.label}-top.png`,
+        )
+      }
+
+      for (const control of [headline, cta, skip, closeButton]) {
+        await control.scrollIntoViewIfNeeded()
+        await expect(control).toBeInViewport({ ratio: 1 })
+        await expect(control).toBeVisible()
+      }
+      await expect(cta).toBeEnabled()
+      await expect(skip).toBeEnabled()
+      await expect(closeButton).toBeEnabled()
+
+      const cardWidth = await card.evaluate((element) => element.scrollWidth)
+      expect(cardWidth).toBeLessThanOrEqual(viewport.width)
+
+      await page.screenshot({
+        path: `tests/design-system/test-results/story-nexttaskmodal-long-copy-${variant.label}-${viewport.label}.png`,
+      })
+    })
+  }
+}
+
+test('NextTaskModal host mode: double-press during pending navigation calls handler once, and retrying after failure succeeds', async ({
+  page,
+}) => {
+  await gotoStory(page, 'design-system-primitives-nexttaskmodal--navigation-pending-and-retry')
+  const frame = getStoryFrame(page)
+  await frame.getByTestId('NextTaskModal-open').click()
+  const cta = frame.getByRole('button', { name: 'Explore staking' })
+  await cta.scrollIntoViewIfNeeded()
+  await expect(cta).toBeInViewport({ ratio: 1 })
+  await expect(cta).toBeVisible()
+  await expect(cta).toBeEnabled()
+
+  // Dispatch both presses in a single browser execution so slow runners cannot
+  // settle and reset the guard between sequential Playwright clicks.
+  await cta.evaluate((button) => {
+    ;(button as HTMLElement).click()
+    ;(button as HTMLElement).click()
+  })
+
+  // Error toast appears after delay, drawer remains open
+  await expect(frame.getByText('Could not open this link. Please try again.')).toBeVisible()
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
+
+  // resolveNavigation was only called once despite double press
+  const callCountAfterFirstAttempt = await frame.locator('body').evaluate((body) => body.dataset.nextTaskCallCount)
+  expect(callCountAfterFirstAttempt).toBe('1')
+
+  // onClicked was only called once for the first attempt
+  await expect(frame.getByTestId('NextTaskModal-click-count')).toHaveText('1')
+
+  // Retry after failure: second press succeeds
+  await cta.click()
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('closed')
+  const callCountAfterRetry = await frame.locator('body').evaluate((body) => body.dataset.nextTaskCallCount)
+  expect(callCountAfterRetry).toBe('2')
+
+  // onClicked still has count 1 (one intent counted once despite retry)
+  await expect(frame.getByTestId('NextTaskModal-click-count')).toHaveText('1')
+})
+
+test('NextTaskModal host mode: stale pending navigation from a closed session does not reset guard, toast, or close reopened modal', async ({
+  page,
+}) => {
+  await gotoStory(page, 'design-system-primitives-nexttaskmodal--stale-navigation-ignored-across-reopen')
+  const frame = getStoryFrame(page)
+
+  // Session 1: open and start navigation attempt 1 (left pending)
+  await frame.getByTestId('NextTaskModal-open').click()
+  const cta = frame.getByRole('button', { name: 'Explore staking' })
+  await cta.scrollIntoViewIfNeeded()
+  await expect(cta).toBeVisible()
+  await cta.click()
+  await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('1')
+
+  // Host closes and reopens modal before attempt 1 settles (session 2)
+  await frame.getByTestId('NextTaskModal-host-close').evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('closed')
+  await frame.getByTestId('NextTaskModal-open').click()
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
+
+  // Session 2: start navigation attempt 2 (also pending)
+  await cta.scrollIntoViewIfNeeded()
+  await expect(cta).toBeVisible()
+  await cta.click()
+  await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('2')
+
+  // Reject stale attempt 1: must NOT show error toast or unlock CTA for a 3rd call while attempt 2 is pending
+  await frame.getByTestId('NextTaskModal-reject-oldest').evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-settled-count')).toHaveText('1')
+  await expect(frame.getByText('Could not open this link. Please try again.')).toHaveCount(0)
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
+  await cta.evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('2')
+
+  // Resolve attempt 2: current session closes cleanly
+  await frame.getByTestId('NextTaskModal-resolve-oldest').evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-settled-count')).toHaveText('2')
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('closed')
+
+  // Verify stale fulfillment as well: open session 3, leave attempt 3 pending, close + reopen into session 4,
+  // then resolve stale attempt 3 -> session 4 stays open without being closed by attempt 3.
+  await frame.getByTestId('NextTaskModal-open').click()
+  await cta.scrollIntoViewIfNeeded()
+  await expect(cta).toBeVisible()
+  await cta.click()
+  await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('3')
+
+  await frame.getByTestId('NextTaskModal-host-close').evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('closed')
+  await frame.getByTestId('NextTaskModal-open').click()
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
+
+  await frame.getByTestId('NextTaskModal-resolve-oldest').evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-settled-count')).toHaveText('3')
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
+
+  // Session 4 CTA still works normally once resolved
+  await cta.scrollIntoViewIfNeeded()
+  await expect(cta).toBeVisible()
+  await cta.click()
+  await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('4')
+  await frame.getByTestId('NextTaskModal-resolve-oldest').evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-settled-count')).toHaveText('4')
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('closed')
+  await expect(frame.getByTestId('NextTaskModal-close-count')).toHaveText('2')
+
+  // Verify unmount invalidation: unmount while attempts 5 & 6 are pending, then settle both -> no toast or onClose call
+  await frame.getByTestId('NextTaskModal-open').click()
+  await cta.scrollIntoViewIfNeeded()
+  await expect(cta).toBeVisible()
+  await cta.click()
+  await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('5')
+
+  await frame.getByTestId('NextTaskModal-toggle-mount').evaluate((button) => (button as HTMLElement).click())
+  await frame.getByTestId('NextTaskModal-resolve-oldest').evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-settled-count')).toHaveText('5')
+  await expect(frame.getByTestId('NextTaskModal-close-count')).toHaveText('2')
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
+
+  await frame.getByTestId('NextTaskModal-toggle-mount').evaluate((button) => (button as HTMLElement).click())
+  await expect(cta).toBeVisible()
+  await cta.click()
+  await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('6')
+  await frame.getByTestId('NextTaskModal-toggle-mount').evaluate((button) => (button as HTMLElement).click())
+  await frame.getByTestId('NextTaskModal-reject-oldest').evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-settled-count')).toHaveText('6')
+  await expect(frame.getByText('Could not open this link. Please try again.')).toHaveCount(0)
+})
+
+test('NextTaskModal host mode: onClose throwing after successful navigation does not show navigation error toast or reset guard', async ({
+  page,
+}) => {
+  await gotoStory(page, 'design-system-primitives-nexttaskmodal--on-close-throw-after-navigation-success')
+  const frame = getStoryFrame(page)
+
+  await frame.getByTestId('NextTaskModal-open').click()
+  const cta = frame.getByRole('button', { name: 'Explore staking' })
+  await cta.scrollIntoViewIfNeeded()
+  await expect(cta).toBeVisible()
+
+  const [pageError] = await Promise.all([page.waitForEvent('pageerror'), cta.click()])
+  expect(pageError.message).toContain('host onClose failure')
+
+  await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('1')
+  await expect(frame.getByTestId('NextTaskModal-close-count')).toHaveText('1')
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
+  await expect(frame.getByText('Could not open this link. Please try again.')).toHaveCount(0)
+
+  // Guard stays latched after successful navigation so pressing CTA again does not re-run resolveNavigation
+  await cta.evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('1')
+  await expect(frame.getByTestId('NextTaskModal-close-count')).toHaveText('1')
+})
+
+test('NextTaskModal dismissal via Skip link works during pending navigation and late completion is ignored', async ({
+  page,
+}) => {
+  await gotoStory(page, 'design-system-primitives-nexttaskmodal--stale-navigation-ignored-across-reopen')
+  const frame = getStoryFrame(page)
+
+  await frame.getByTestId('NextTaskModal-open').click()
+  const cta = frame.getByRole('button', { name: 'Explore staking' })
+  await cta.scrollIntoViewIfNeeded()
+  await expect(cta).toBeVisible()
+  await cta.click()
+  await expect(frame.getByTestId('NextTaskModal-call-count')).toHaveText('1')
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('open')
+
+  // Dismissal via Skip link must proceed immediately despite pending navigation
+  const skip = frame.getByRole('button', { name: 'Skip for now' })
+  await skip.scrollIntoViewIfNeeded()
+  await skip.click()
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('closed')
+  await expect(frame.getByTestId('NextTaskModal-close-count')).toHaveText('1')
+  await expect(frame.getByTestId('NextTaskModal-last-event')).toHaveText('dismissed:skip-link')
+
+  // Late resolution of attempt 1 does not reopen the modal or call onClose again
+  await frame.getByTestId('NextTaskModal-resolve-oldest').evaluate((button) => (button as HTMLElement).click())
+  await expect(frame.getByTestId('NextTaskModal-settled-count')).toHaveText('1')
+  await expect(frame.getByTestId('NextTaskModal-open-state')).toHaveText('closed')
+  await expect(frame.getByTestId('NextTaskModal-close-count')).toHaveText('1')
+  await expect(frame.getByText('Could not open this link. Please try again.')).toHaveCount(0)
+})

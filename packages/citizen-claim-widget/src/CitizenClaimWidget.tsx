@@ -15,6 +15,7 @@ import {
   Spinner,
   Separator,
   NextTaskModal,
+  NEXT_TASK_STATUS_LABEL,
   ToastContainer,
   createToast,
   updateToast,
@@ -608,7 +609,7 @@ function CitizenClaimInner({
         onShown={onNextTaskShown}
         onClicked={onNextTaskClicked}
         onDismissed={onNextTaskDismissed}
-        statusLabel="Claim completed"
+        statusLabel={NEXT_TASK_STATUS_LABEL}
       />
     </YStack>
   )
