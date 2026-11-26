@@ -89,7 +89,7 @@ for (const theme of THEMES) {
     // Screenshots are grouped per theme: test-results/<theme>/<name>.png
     async function saveScreenshot(page: Page, name: string) {
       await page.screenshot({
-        path: `tests/widgets/streaming-widget/test-results/${theme}/${name}.png`,
+        path: `${process.env.GOODWIDGET_QA_SCREENSHOT_DIR ?? 'tests/widgets/streaming-widget/test-results'}/${theme}/${name}.png`,
         fullPage: true,
       })
     }
@@ -244,7 +244,7 @@ for (const theme of THEMES) {
         'Create / Update Stream',
         'Recipient must be a valid Ethereum address',
       ])
-      await page.getByRole('listbox').click()
+      await page.getByRole('combobox').click()
       await expectBodyToContain(page, ['per month', 'per day', 'per year'])
       await expect(page.getByText('per second')).toHaveCount(0)
       await expect(page.getByText('per minute')).toHaveCount(0)

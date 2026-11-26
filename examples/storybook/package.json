@@ -17,6 +17,7 @@
     "@goodwidget/goodreserve-widget": "workspace:*",
     "@goodwidget/governance-widget": "workspace:*",
     "@goodwidget/streaming-widget": "workspace:*",
+    "@goodwidget/bridging-widget": "workspace:*",
     "@goodwidget/staking-migration-widget": "workspace:*",
     "@goodwidget/ai-credits-widget": "workspace:*",
     "@goodwidget/gooddata-widget": "workspace:*",
@@ -29,6 +30,7 @@
     "viem": "^2.0.0"
   },
   "devDependencies": {
+    "@goodsdks/bridging-sdk": "1.0.6",
     "@storybook/addon-essentials": "^8.6.17",
     "@storybook/addon-interactions": "^8.6.17",
     "@storybook/react": "^8.6.17",
