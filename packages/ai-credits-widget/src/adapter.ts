@@ -391,7 +391,7 @@ function viewToStatePatch(
         }
       : {}),
     ...(view.withdrawableUsd !== null ? { withdrawableUsd: view.withdrawableUsd } : {}),
-    ...(view.remainingCredits !== null ? { remainingCredits: view.remainingCredits } : {}),
+    remainingCredits: view.remainingCredits,
     totalGdDepositedG: enriched.totalGdDepositedG,
     monthlyStreamG: enriched.monthlyStreamG,
   }
