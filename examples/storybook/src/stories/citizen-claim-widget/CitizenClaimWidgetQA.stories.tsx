@@ -116,6 +116,28 @@ export const MockClaimExecutionWithNextTask: Story = {
   render: () => <MockClaimExecutionWidgetStory nextTaskProps={mockNextTaskProps} />,
 }
 
+const goodBuildersSeason5NextTaskContent: NextTaskContent = {
+  title: 'Vote for GoodBuilders projects',
+  description: 'Explore the Season 5 projects and vote for the ones you want to support.',
+  ctaLabel: 'Explore & vote',
+  // Matches the campaign's tracking URL. The mock resolver records it; it does not navigate.
+  ctaTarget: 'https://ubi.gd/4eXzuUh',
+  imageUrl: new URL('./assets/goodbuilders-season-5-vote.svg', import.meta.url).href,
+  contentId: 'goodbuilders-season-5-vote',
+  supportingCopy: 'You claimed your G$. Now help decide which community projects receive funding.',
+  recommendedLabel: 'GOODBUILDERS · SEASON 5',
+}
+
+export const MockClaimExecutionWithGoodBuildersSeason5Vote: Story = {
+  name: 'Mock claim → GoodBuilders Season 5 vote',
+  render: () => (
+    <MockClaimExecutionWidgetStory
+      singleChain
+      nextTaskProps={{ ...mockNextTaskProps, nextTaskContent: goodBuildersSeason5NextTaskContent }}
+    />
+  ),
+}
+
 export const MockClaimExecutionPartialSuccessWithNextTask: Story = {
   render: () => <MockClaimExecutionWidgetStory partialSuccess nextTaskProps={mockNextTaskProps} />,
 }

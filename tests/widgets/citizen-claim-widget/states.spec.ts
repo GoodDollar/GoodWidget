@@ -301,6 +301,29 @@ test('CitizenClaimWidget real flow: drawer opens after multi-chain claim with al
   await expect(drawerHeadline).not.toBeInViewport()
 })
 
+test('CitizenClaimWidget mock claim opens the GoodBuilders Season 5 voting invitation', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto(
+    '/iframe.html?id=qa-citizenclaimwidget-runtime-fixtures--mock-claim-execution-with-good-builders-season-5-vote&viewMode=story',
+  )
+  await page.getByRole('button', { name: 'Claim', exact: true }).click({ timeout: 20_000 })
+
+  const title = page.getByText('Vote for GoodBuilders projects', { exact: true })
+  const vote = page.getByRole('button', { name: 'Explore & vote' })
+  await expect(title).toBeInViewport({ ratio: 1, timeout: 20_000 })
+  await expect(page.getByText('GOODBUILDERS · SEASON 5', { exact: true })).toBeInViewport({ ratio: 1 })
+  await expect(vote).toBeInViewport({ ratio: 1 })
+  await expect(page.getByRole('button', { name: 'Skip for now' })).toBeInViewport({ ratio: 1 })
+  await expect(page.getByText('Claim succeeded on Celo', { exact: true })).not.toBeVisible()
+  await page.screenshot({ path: testInfo.outputPath('goodbuilders-season-5-next-task-mobile.png') })
+
+  const storyUrl = page.url()
+  await vote.click()
+  await expect(page.locator('body')).toHaveAttribute('data-next-task-navigated', 'https://ubi.gd/4eXzuUh')
+  await expect(page).toHaveURL(storyUrl)
+  await expect(title).not.toBeInViewport()
+})
+
 test('CitizenClaimWidget real flow: drawer opens after multi-chain claim with partial success (at least one success)', async ({
   page,
 }) => {

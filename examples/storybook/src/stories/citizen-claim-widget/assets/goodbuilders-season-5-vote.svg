@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" role="img">
+  <title>GoodBuilders voting illustration</title>
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop stop-color="#244CD6"/>
+      <stop offset="1" stop-color="#132466"/>
+    </linearGradient>
+  </defs>
+  <rect width="96" height="96" rx="16" fill="url(#tile)"/>
+  <circle cx="49" cy="48" r="35" fill="#88A6FF" opacity=".17"/>
+  <path d="M17 39V27a10 10 0 0 1 10-10h10m42 40v12a10 10 0 0 1-10 10H57" fill="none" stroke="#9BB9FF" stroke-opacity=".45" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M76 23v10m-5-5h10M20 64v8m-4-4h8" stroke="#A9F5C7" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M33 49l6-8h18l6 8" fill="#B6D2FF" stroke="#B6D2FF" stroke-width="2" stroke-linejoin="round"/>
+  <rect x="30" y="49" width="36" height="21" rx="4" fill="#EDF4FF"/>
+  <path d="M40 55h16" stroke="#345BD0" stroke-width="2.5" stroke-linecap="round"/>
+  <rect x="38" y="25" width="21" height="27" rx="4" transform="rotate(13 48 38)" fill="#A9F5C7" stroke="#1B3698" stroke-width="2"/>
+  <path d="m43 38 4 4 7-8" fill="none" stroke="#17454A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="73" cy="62" r="2" fill="#FFD47D"/>
+  <circle cx="26" cy="25" r="2" fill="#FFD47D"/>
+</svg>
