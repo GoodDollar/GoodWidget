@@ -24,7 +24,13 @@ import Svg, {
 import { Text as TamaguiText, useTheme, XStack, YStack } from 'tamagui'
 import { createComponent } from '../createComponent'
 import { Card } from './Card'
-import { ChartTooltip, estimateChartTooltipWidthPx, type ChartTooltipRow } from './ChartTooltip'
+import {
+  ChartTooltip,
+  estimateChartTooltipWidthPx,
+  SQUARE_SWATCH_CORNER_RATIO,
+  type ChartSwatchShape,
+  type ChartTooltipRow,
+} from './ChartTooltip'
 import { CHART_FONT_FAMILY } from '../utils/chartFontFamily'
 import { type ChartValueType, formatByValueType, formatChartAxisValue } from '../utils/formatMetricValue'
 import { resolveThemeColor } from '../utils/resolveThemeColor'
@@ -74,9 +80,42 @@ export interface LineAreaChartPadding {
   left: number
 }
 
+/** Hover-box-only settings. Omitted = the hover box is exactly today's. */
+export interface LineAreaChartTooltipOptions {
+  /** Second line under the hover header (e.g. the metric's short name). Default: none. */
+  label?: string
+  /** Formats primary-axis values in the hover box only (e.g. exact numbers while the axis reads "1.2K").
+   * Secondary-axis rows keep their own formatter. Default: the y-axis formatter. */
+  valueFormatter?: (value: number) => string
+  /** Hover header text for an x value (e.g. "Week of Nov 15-21" while the axis reads "Nov 15-21").
+   * Default: `xAxisFormatter`. */
+  xFormatter?: (value: string | number) => string
+  /** 'desc' lists rows highest value first. Default: series order. */
+  sort?: 'desc'
+  /** true = values in a right-aligned column, no colon, so numbers line up. Default false. */
+  rightAlignValues?: boolean
+}
+
 export interface LineAreaChartProps {
   data: LineAreaChartDataItem[]
   title?: string
+  tooltip?: LineAreaChartTooltipOptions
+  /**
+   * When the pointer is on a dot (within the dot's touch-target radius), the
+   * hover box shows only that series, its line is drawn 1.5x thicker, and
+   * every other series fades. Dots drawn
+   * on top of it (exact ties, or values close enough that the dots overlap)
+   * count as the same point: the box then lists just those series, in the
+   * week-column format. Elsewhere in the column the box lists every series as
+   * usual. Default false.
+   */
+  focusPointOnHover?: boolean
+  /** Shape of the color marks in the legend and the hover box. 'square' also sizes the legend's
+   * swatches and gaps from its text. Default 'round' (today's fixed dots). */
+  swatchShape?: ChartSwatchShape
+  /** Where the legend sits (shown when there are two or more series): 'bottom' (default) under the
+   * chart, or 'top' between the title and the chart. */
+  legendPosition?: 'top' | 'bottom'
   series?: LineAreaChartSeriesDef[]
   type?: LineAreaChartInterpolation
   showArea?: boolean
@@ -187,6 +226,18 @@ const LEGEND_SWATCH_SIZE_PX = 10
  * size. Scaled down by the same LEGEND_SIZE_SCALE_FACTOR as the label so the
  * gap between legend items shrinks in proportion to the text it separates. */
 const LEGEND_ITEM_GAP_PX = 16 * LEGEND_SIZE_SCALE_FACTOR
+/** Square legend swatches (`swatchShape="square"`) and their gaps are multiples of the legend text,
+ * mirroring BarChart's legend (its constants are private). Proportions from the approved dashboard
+ * preview (13 px legend text): swatch 0.9x (12 px), swatch to label 0.5x (6 px), between items 1.2x (16 px). */
+const SQUARE_LEGEND_SWATCH_TO_TEXT_RATIO = 0.9
+const SQUARE_LEGEND_SWATCH_GAP_TO_TEXT_RATIO = 0.5
+const SQUARE_LEGEND_ITEM_GAP_TO_TEXT_RATIO = 1.2
+/** `legendPosition="top"`: space between the legend and the chart = 0.8 x legend text, same as
+ * BarChart's legend (preview: 10 px on 13 px text). */
+const LEGEND_ABOVE_TO_CHART_GAP_TO_TEXT_RATIO = 0.8
+/** `focusPointOnHover`: the focused series' line is drawn 1.5x its width so it stands out from the
+ * faded ones (approved dashboard preview: 3 px over 2 px). */
+const FOCUSED_LINE_WIDTH_RATIO = 1.5
 /** Grid lines need enough contrast to be useful without competing with the series. */
 const GRID_LINE_OPACITY = 0.22
 const GRID_ZERO_LINE_OPACITY = 0.48
@@ -524,15 +575,38 @@ const LineAreaSwatch = createComponent(YStack, {
 function LineAreaLegend({
   seriesList,
   legendLabelSizePx,
+  swatchShape,
 }: {
   seriesList: ResolvedSeries[]
   legendLabelSizePx: number
+  swatchShape: ChartSwatchShape
 }) {
+  const isSquare = swatchShape === 'square'
+  const squareSizePx = legendLabelSizePx * SQUARE_LEGEND_SWATCH_TO_TEXT_RATIO
   return (
-    <XStack gap={LEGEND_ITEM_GAP_PX} flexWrap="wrap" justifyContent="center">
+    <XStack
+      gap={isSquare ? legendLabelSizePx * SQUARE_LEGEND_ITEM_GAP_TO_TEXT_RATIO : LEGEND_ITEM_GAP_PX}
+      flexWrap="wrap"
+      justifyContent="center"
+      data-testid="line-chart-legend"
+    >
       {seriesList.map((series) => (
-        <XStack key={series.key} alignItems="center" gap="$2">
-          <LineAreaSwatch backgroundColor={series.color} />
+        <XStack
+          key={series.key}
+          alignItems="center"
+          gap={isSquare ? legendLabelSizePx * SQUARE_LEGEND_SWATCH_GAP_TO_TEXT_RATIO : '$2'}
+        >
+          {isSquare ? (
+            <LineAreaSwatch
+              backgroundColor={series.color}
+              width={squareSizePx}
+              height={squareSizePx}
+              borderRadius={squareSizePx * SQUARE_SWATCH_CORNER_RATIO}
+              data-testid="line-chart-legend-swatch"
+            />
+          ) : (
+            <LineAreaSwatch backgroundColor={series.color} />
+          )}
           <LineAreaLegendLabelText fontSize={legendLabelSizePx}>
             {series.label}
           </LineAreaLegendLabelText>
@@ -545,6 +619,10 @@ function LineAreaLegend({
 function LineAreaChartContent({
   data,
   title,
+  tooltip,
+  focusPointOnHover = false,
+  swatchShape = 'round',
+  legendPosition = 'bottom',
   series: seriesDefs,
   type = 'linear',
   showArea = false,
@@ -578,6 +656,8 @@ function LineAreaChartContent({
   // QA fix: hovering a point previously showed nothing. Tracks which
   // x-category index the pointer is nearest to, or null when not hovering.
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+  // Pointer position in plot coordinates; only tracked when focusPointOnHover is on.
+  const [hoveredPlotPoint, setHoveredPlotPoint] = useState<{ x: number; y: number } | null>(null)
   const colors = CHART_COLOR_KEYS.map((key) => resolveThemeColor(theme, key))
   const gridColor = resolveThemeColor(theme, 'colorDim')
   const axisLabelColor = resolveThemeColor(theme, 'placeholderColor')
@@ -641,6 +721,7 @@ function LineAreaChartContent({
     : titleSizePx
   const titleToChartGapPx = scalePx(TITLE_TO_CHART_GAP_BASE_PX, scaleRatio)
   const chartToLegendGapPx = CHART_TO_LEGEND_GAP_PX
+  const showsLegend = resolvedSeriesList.length > 1 && !isEmpty
   const axisTitleSizePx = clampFontSize(scalePx(AXIS_TITLE_BASE_SIZE_PX, scaleRatio))
   const tickLabelSizePx = clampFontSize(scalePx(TICK_LABEL_BASE_SIZE_PX, scaleRatio))
   const referenceLabelSizePx = clampFontSize(scalePx(REFERENCE_LABEL_BASE_SIZE_PX, scaleRatio))
@@ -766,6 +847,7 @@ function LineAreaChartContent({
   // conversion, only subtracting the left padding the plot area starts at.
   const handlePlotPointerMove = (event: {
     clientX: number
+    clientY?: number
     currentTarget: { getBoundingClientRect?: () => DOMRect }
   }) => {
     if (isEmpty || categoryCount === 0) return
@@ -774,30 +856,89 @@ function LineAreaChartContent({
     const plotX = event.clientX - rect.left - resolvedPadding.left
     const clampedFraction = Math.min(1, Math.max(0, plotX / Math.max(1, plotWidth)))
     setHoveredIndex(Math.round(clampedFraction * (categoryCount - 1)))
+    if (focusPointOnHover && event.clientY !== undefined) {
+      setHoveredPlotPoint({ x: plotX, y: event.clientY - rect.top - resolvedPadding.top })
+    }
   }
 
-  const handlePlotPointerLeave = () => setHoveredIndex(null)
+  const handlePlotPointerLeave = () => {
+    setHoveredIndex(null)
+    setHoveredPlotPoint(null)
+  }
 
-  const tooltipRows: ChartTooltipRow[] =
+  // focusPointOnHover: the series whose dot the pointer is on, plus any series
+  // whose dot overlaps that one on screen (centers within two dot radii, which
+  // covers exact ties). Null = no dot under the pointer, so nothing is focused.
+  // The pointer counts as "on" a dot within the same radius pressable dots use
+  // as their touch target, so no separate hover distance is introduced.
+  const focusedSeriesKeys: Set<string> | null = (() => {
+    if (!focusPointOnHover || hoveredIndex === null || !hoveredPlotPoint) return null
+    // Only series whose dots are drawn (same rule as the render below) can be pointed at.
+    const dots = resolvedSeriesList.flatMap((seriesItem) => {
+      const validPointCount = seriesItem.points.filter((p) => isValidY(p.y)).length
+      if (!resolveShowDotsForSeries(showDots, validPointCount)) return []
+      const point = seriesItem.points[hoveredIndex]
+      if (!point || !isValidY(point.y)) return []
+      const scale = seriesItem === secondarySeries && secondaryScale ? secondaryScale : primaryScale
+      return [{ key: seriesItem.key, x: xPixelForIndex(hoveredIndex), y: yPixelForValue(point.y, scale) }]
+    })
+    const distanceToPointer = (dot: { x: number; y: number }) =>
+      Math.hypot(dot.x - hoveredPlotPoint.x, dot.y - hoveredPlotPoint.y)
+    const nearest = dots.reduce<(typeof dots)[number] | null>(
+      (best, dot) => (best === null || distanceToPointer(dot) < distanceToPointer(best) ? dot : best),
+      null,
+    )
+    if (!nearest || distanceToPointer(nearest) > DOT_TOUCH_TARGET_RADIUS_PX) return null
+    return new Set(
+      dots
+        .filter((dot) => Math.hypot(dot.x - nearest.x, dot.y - nearest.y) <= DOT_RADIUS_PX * 2)
+        .map((dot) => dot.key),
+    )
+  })()
+
+  const tooltipValueFormatter = tooltip?.valueFormatter ?? yAxisFormatter
+  const weekHeader = hoveredIndex !== null ? (tooltip?.xFormatter ?? xAxisFormatter)(xCategories[hoveredIndex]) : ''
+  const tooltipEntries =
     hoveredIndex !== null
-      ? resolvedSeriesList.reduce<ChartTooltipRow[]>((rows, seriesItem) => {
+      ? resolvedSeriesList.reduce<Array<{ row: ChartTooltipRow; y: number }>>((entries, seriesItem) => {
+          if (focusedSeriesKeys && !focusedSeriesKeys.has(seriesItem.key)) return entries
           const point = seriesItem.points[hoveredIndex]
-          if (!point || !isValidY(point.y)) return rows
+          if (!point || !isValidY(point.y)) return entries
           const formatter =
             seriesItem === secondarySeries
               ? (secondaryYAxis?.formatter ?? formatChartAxisValue)
-              : yAxisFormatter
-          rows.push({ color: seriesItem.color, label: seriesItem.label, value: formatter(point.y) })
-          return rows
+              : tooltipValueFormatter
+          entries.push({
+            row: { color: seriesItem.color, label: seriesItem.label, value: formatter(point.y) },
+            y: point.y,
+          })
+          return entries
         }, [])
       : []
+  if (tooltip?.sort === 'desc') tooltipEntries.sort((a, b) => b.y - a.y)
+
+  // One focused dot: header = that series, second line = the x value, one row
+  // named by the metric label. Otherwise (no focus, or tied/overlapping dots)
+  // the column format: header = the x value, second line = the metric label.
+  const isSingleDotFocus = focusedSeriesKeys !== null && tooltipEntries.length === 1
+  const tooltipHeader = isSingleDotFocus ? tooltipEntries[0].row.label : weekHeader
+  const tooltipSubheader = isSingleDotFocus ? weekHeader : tooltip?.label
+  const tooltipRows: ChartTooltipRow[] = isSingleDotFocus
+    ? [{ ...tooltipEntries[0].row, label: tooltip?.label ?? tooltipEntries[0].row.label }]
+    : tooltipEntries.map((entry) => entry.row)
 
   // Center the tooltip on the hovered point, then clamp so it never overhangs
   // the chart frame. Width is estimated from this hover's actual header/rows
   // so the clamp matches what ChartTooltip itself will render at.
   const tooltipWidthPx =
     hoveredIndex !== null
-      ? estimateChartTooltipWidthPx(xAxisFormatter(xCategories[hoveredIndex]), tooltipRows, viewBoxWidth)
+      ? estimateChartTooltipWidthPx(
+          tooltipHeader,
+          tooltipRows,
+          viewBoxWidth,
+          tooltipSubheader,
+          tooltip?.rightAlignValues,
+        )
       : 0
   const maxTooltipLeftPx = Math.max(0, viewBoxWidth - tooltipWidthPx)
   const tooltipLeftPx =
@@ -821,6 +962,15 @@ function LineAreaChartContent({
         <LineAreaTitleText fontSize={fittedTitleSizePx} marginBottom={titleToChartGapPx}>
           {title}
         </LineAreaTitleText>
+      ) : null}
+      {showsLegend && legendPosition === 'top' ? (
+        <YStack marginBottom={legendLabelSizePx * LEGEND_ABOVE_TO_CHART_GAP_TO_TEXT_RATIO} width="100%">
+          <LineAreaLegend
+            seriesList={resolvedSeriesList}
+            legendLabelSizePx={legendLabelSizePx}
+            swatchShape={swatchShape}
+          />
+        </YStack>
       ) : null}
       <LineAreaScrollContainer
         flexGrow={isResponsiveHeight ? 1 : undefined}
@@ -993,7 +1143,14 @@ function LineAreaChartContent({
                   const showSeriesDots = resolveShowDotsForSeries(showDots, validPointCount)
 
                   return (
-                    <G key={seriesItem.key}>
+                    <G
+                      key={seriesItem.key}
+                      // focusPointOnHover: series not under the pointer recede to the
+                      // grid lines' opacity, so the focused line stands out.
+                      opacity={
+                        focusedSeriesKeys && !focusedSeriesKeys.has(seriesItem.key) ? GRID_LINE_OPACITY : undefined
+                      }
+                    >
                       {showArea
                         ? runs.map((run, runIndex) => {
                             const areaPath = buildAreaPath(run, type, plotHeight)
@@ -1015,7 +1172,11 @@ function LineAreaChartContent({
                             key={runIndex}
                             d={linePath}
                             stroke={seriesItem.color}
-                            strokeWidth={strokeWidth}
+                            strokeWidth={
+                              focusedSeriesKeys?.has(seriesItem.key)
+                                ? strokeWidth * FOCUSED_LINE_WIDTH_RATIO
+                                : strokeWidth
+                            }
                             strokeDasharray={seriesItem.strokeDasharray}
                             fill="none"
                             accessible={false}
@@ -1117,18 +1278,25 @@ function LineAreaChartContent({
           </Svg>
           {!isEmpty && hoveredIndex !== null && tooltipRows.length > 0 ? (
             <ChartTooltip
-              header={xAxisFormatter(xCategories[hoveredIndex])}
+              header={tooltipHeader}
+              subheader={tooltipSubheader}
               rows={tooltipRows}
               left={tooltipLeftPx}
               top={resolvedPadding.top}
               chartWidthPx={viewBoxWidth}
+              rightAlignValues={tooltip?.rightAlignValues}
+              swatchShape={swatchShape}
             />
           ) : null}
         </LineAreaPlotArea>
       </LineAreaScrollContainer>
-      {resolvedSeriesList.length > 1 && !isEmpty ? (
+      {showsLegend && legendPosition === 'bottom' ? (
         <YStack marginTop={chartToLegendGapPx} width="100%">
-          <LineAreaLegend seriesList={resolvedSeriesList} legendLabelSizePx={legendLabelSizePx} />
+          <LineAreaLegend
+            seriesList={resolvedSeriesList}
+            legendLabelSizePx={legendLabelSizePx}
+            swatchShape={swatchShape}
+          />
         </YStack>
       ) : null}
     </LineAreaFrame>

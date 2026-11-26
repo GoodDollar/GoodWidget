@@ -174,6 +174,373 @@ export const Responsive: Story = {
   ),
 }
 
+/** Fixed per-bar colors (e.g. one color per team), horizontal layout. */
+const colored = [
+  { category: 'Alpha', value: 45200, color: '#6c5ce7' },
+  { category: 'Beta', value: 32100, color: '#00b894' },
+  { category: 'Gamma', value: 18500, color: '#e17055' },
+  { category: 'Delta', value: 8500, color: '#0984e3' },
+]
+
+/** `color` on each data item: every bar draws in its own color; the hover dot matches. */
+export const BarColors: Story = {
+  render: () => (
+    <BarChart
+      data={colored}
+      title="Per-bar colors"
+      layout="horizontal"
+      width={480}
+      height={220}
+      padding={{ top: 16, right: 16, bottom: 32, left: 80 }}
+      testID="BarChart-bar-colors"
+      showValueLabels
+    />
+  ),
+}
+
+const largeValues = [
+  { category: 'Alpha', value: 1701511 },
+  { category: 'Beta', value: 866120 },
+  { category: 'Gamma', value: 412900 },
+]
+
+/** `tooltip`: bars read "1.7M" while the hover box reads the exact "1,701,511", with its
+ * own row name ("Claims") and no title drawn in the chart. Hover a bar to see it. */
+export const HoverLabelAndExactValue: Story = {
+  render: () => (
+    <BarChart
+      data={largeValues}
+      layout="horizontal"
+      width={480}
+      height={200}
+      padding={{ top: 16, right: 16, bottom: 32, left: 80 }}
+      tooltip={{ label: 'Claims', valueFormatter: (value) => Math.round(value).toLocaleString('en-US') }}
+      testID="BarChart-hover-exact"
+      showValueLabels
+    />
+  ),
+}
+
+/** Story-only formatter: whole numbers below 10,000, one-decimal K/M above. */
+function shortNumber(value: number): string {
+  const abs = Math.abs(value)
+  if (abs < 10000) return Math.round(value).toLocaleString('en-US')
+  const [divisor, suffix] = abs >= 1e6 ? [1e6, 'M'] : [1e3, 'K']
+  return (value / divisor).toFixed(1).replace(/\.0$/, '') + suffix
+}
+
+const skewedValues = [
+  { category: 'Alpha', value: 1701511 },
+  { category: 'Beta', value: 10 },
+  { category: 'Gamma', value: 0 },
+]
+
+/** `alwaysShowValueLabels`: a tiny bar ("10") and a zero bar ("0") keep their labels next to
+ * a 1.7M bar; with plain `showValueLabels` they would be hidden. */
+export const ValueLabelsOnEveryBar: Story = {
+  render: () => (
+    <BarChart
+      data={skewedValues}
+      layout="horizontal"
+      width={480}
+      height={200}
+      padding={{ top: 16, right: 16, bottom: 32, left: 80 }}
+      valueFormatter={shortNumber}
+      testID="BarChart-every-label"
+      alwaysShowValueLabels
+    />
+  ),
+}
+
+/** `showValueAxis={false}` (with `showGrid={false}`): no number scale, values read from the
+ * bar labels only. Horizontal and vertical. */
+export const WithoutValueAxis: Story = {
+  render: () => (
+    <XStack testID="BarChart-no-axis" data-testid="BarChart-no-axis" flexWrap="wrap" gap="$5">
+      <BarChart
+        data={largeValues}
+        layout="horizontal"
+        width={480}
+        height={200}
+        padding={{ top: 16, right: 16, bottom: 32, left: 80 }}
+        valueFormatter={shortNumber}
+        showValueAxis={false}
+        showGrid={false}
+        testID="BarChart-no-axis-horizontal"
+        showValueLabels
+      />
+      <BarChart
+        data={largeValues}
+        width={320}
+        valueFormatter={shortNumber}
+        showValueAxis={false}
+        showGrid={false}
+        testID="BarChart-no-axis-vertical"
+        showValueLabels
+      />
+    </XStack>
+  ),
+}
+
+const exactNumber = (value: number) => Math.round(value).toLocaleString('en-US')
+
+/** Two pieces per bar (e.g. received vs sent), a darker and a lighter shade of each bar's color. */
+const twoPieces = [
+  {
+    category: 'Alpha',
+    value: 1701511,
+    segments: [
+      { label: 'Received', value: 866120, color: '#4b3bb8' },
+      { label: 'Sent', value: 835391, color: '#a29bfe' },
+    ],
+  },
+  {
+    category: 'Beta',
+    value: 412900,
+    segments: [
+      { label: 'Received', value: 300000, color: '#00806a' },
+      { label: 'Sent', value: 112900, color: '#55efc4' },
+    ],
+  },
+  {
+    category: 'Gamma',
+    value: 95000,
+    segments: [
+      { label: 'Received', value: 95000, color: '#b34a2a' },
+      { label: 'Sent', value: 0, color: '#fab1a0' },
+    ],
+  },
+]
+
+/** `segments` with two pieces: hover a bar to see each piece, then the total (the bar's `value`). */
+export const SegmentedBars: Story = {
+  render: () => (
+    <BarChart
+      data={twoPieces}
+      layout="horizontal"
+      width={480}
+      height={200}
+      padding={{ top: 16, right: 16, bottom: 32, left: 80 }}
+      valueFormatter={shortNumber}
+      tooltip={{ label: 'Volume', valueFormatter: exactNumber }}
+      showValueAxis={false}
+      showGrid={false}
+      testID="BarChart-segments-two"
+      alwaysShowValueLabels
+    />
+  ),
+}
+
+/** `legend` above segmented bars. Each bar uses its own color's shades, so the legend uses
+ * neutral greys to say which shade means what. */
+export const SegmentedBarsWithLegend: Story = {
+  render: () => (
+    <BarChart
+      data={twoPieces}
+      layout="horizontal"
+      width={480}
+      height={230}
+      padding={{ top: 16, right: 16, bottom: 32, left: 80 }}
+      valueFormatter={shortNumber}
+      tooltip={{ label: 'Volume', valueFormatter: exactNumber }}
+      legend={[
+        { label: 'Received (darker shade)', color: '#5c5c5c' },
+        { label: 'Sent (lighter shade)', color: '#b8b8b8' },
+      ]}
+      showValueAxis={false}
+      showGrid={false}
+      testID="BarChart-segments-legend"
+      alwaysShowValueLabels
+    />
+  ),
+}
+
+const threePieces = [
+  {
+    category: 'North',
+    value: 60000,
+    segments: [
+      { label: 'Direct', value: 30000, color: '#0984e3' },
+      { label: 'Referral', value: 20000, color: '#74b9ff' },
+      { label: 'Organic', value: 10000, color: '#c7e3ff' },
+    ],
+  },
+  {
+    category: 'South',
+    value: 42000,
+    segments: [
+      { label: 'Direct', value: 12000, color: '#0984e3' },
+      { label: 'Referral', value: 18000, color: '#74b9ff' },
+      { label: 'Organic', value: 12000, color: '#c7e3ff' },
+    ],
+  },
+]
+
+/** `segments` with three pieces, vertical layout, rounded outer edge on the last piece only. */
+export const SegmentedBarsThreePieces: Story = {
+  render: () => (
+    <BarChart
+      data={threePieces}
+      width={320}
+      valueFormatter={shortNumber}
+      tooltip={{ label: 'Visits', valueFormatter: exactNumber }}
+      barCornerRadius={4}
+      testID="BarChart-segments-three"
+      showValueLabels
+    />
+  ),
+}
+
+/** Failure cases, drawn as given rather than corrected silently: "Mismatch" has pieces adding up
+ * to 70,000 while its value is 100,000 (bar length shows 70K, label and hover total read 100K);
+ * "Negative" has a -10,000 piece, which is dropped. */
+const segmentEdgeCases = [
+  {
+    category: 'Mismatch',
+    value: 100000,
+    segments: [
+      { label: 'Received', value: 40000, color: '#4b3bb8' },
+      { label: 'Sent', value: 30000, color: '#a29bfe' },
+    ],
+  },
+  {
+    category: 'Negative',
+    value: 50000,
+    segments: [
+      { label: 'Received', value: 50000, color: '#00806a' },
+      { label: 'Sent', value: -10000, color: '#55efc4' },
+    ],
+  },
+]
+
+export const SegmentedBarsEdgeCases: Story = {
+  render: () => (
+    <BarChart
+      data={segmentEdgeCases}
+      layout="horizontal"
+      width={480}
+      height={160}
+      padding={{ top: 16, right: 16, bottom: 32, left: 80 }}
+      valueFormatter={shortNumber}
+      tooltip={{ valueFormatter: exactNumber }}
+      testID="BarChart-segments-edge"
+      showValueLabels
+    />
+  ),
+}
+
+/** `swatchShape="square"`: square legend swatches (sized from the legend text) and square marks in
+ * the hover box. Hover a bar to see it. */
+export const SquareSwatches: Story = {
+  render: () => (
+    <BarChart
+      data={twoPieces}
+      layout="horizontal"
+      width={480}
+      height={230}
+      padding={{ top: 16, right: 16, bottom: 32, left: 80 }}
+      valueFormatter={shortNumber}
+      tooltip={{ label: 'Volume', valueFormatter: exactNumber }}
+      legend={[
+        { label: 'Received (darker shade)', color: '#5c5c5c' },
+        { label: 'Sent (lighter shade)', color: '#b8b8b8' },
+      ]}
+      swatchShape="square"
+      showValueAxis={false}
+      showGrid={false}
+      testID="BarChart-square-swatches"
+      alwaysShowValueLabels
+    />
+  ),
+}
+
+const columnRows = [
+  { category: 'Alpha', value: 1701511, color: '#6c5ce7' },
+  { category: 'A team with a much longer name', value: 118270, color: '#00b894' },
+  { category: 'Gamma', value: 20300, color: '#e17055' },
+  { category: 'Delta', value: 10, color: '#0984e3' },
+  { category: 'Epsilon', value: 0, color: '#fdcb6e' },
+]
+
+/** `labelColumns`: each row reads name | bar | value, names left-aligned on the left, values
+ * right-aligned on the right, on every bar. No `width`, `height` or `padding`: the columns fit
+ * the names (at most a third of the chart, then "…") and values, and the chart is as tall as
+ * its rows. Resize the window to see it follow the width. */
+export const NameAndValueColumns: Story = {
+  render: () => (
+    <YStack width="100%" testID="BarChart-label-columns-wrap" data-testid="BarChart-label-columns-wrap">
+      <BarChart
+        data={columnRows}
+        layout="horizontal"
+        labelColumns
+        valueFormatter={shortNumber}
+        tooltip={{ label: 'Volume', valueFormatter: exactNumber }}
+        showValueAxis={false}
+        showGrid={false}
+        showValueLabels
+        testID="BarChart-label-columns"
+      />
+    </YStack>
+  ),
+}
+
+/** `labelColumns` with a `yAxisLabel`: the rotated title gets its own gutter at the left edge and
+ * the name column starts after it. */
+export const NameAndValueColumnsWithAxisTitle: Story = {
+  render: () => (
+    <YStack width="100%">
+      <BarChart
+        data={columnRows}
+        layout="horizontal"
+        labelColumns
+        yAxisLabel="Team"
+        valueFormatter={shortNumber}
+        showValueAxis={false}
+        showGrid={false}
+        showValueLabels
+        testID="BarChart-label-columns-title"
+      />
+    </YStack>
+  ),
+}
+
+/** `labelColumns` with a single row: the chart is one row tall and its hover box, taller than the
+ * chart, shows in full instead of being cut off. Hover the bar to see it. */
+export const NameAndValueColumnsOneRow: Story = {
+  render: () => (
+    <YStack width="100%" paddingBottom="$10">
+      <BarChart
+        data={[{ category: 'Alpha', value: 1701511, color: '#6c5ce7' }]}
+        layout="horizontal"
+        labelColumns
+        valueFormatter={shortNumber}
+        tooltip={{ label: 'Volume', valueFormatter: exactNumber }}
+        showValueAxis={false}
+        showGrid={false}
+        showValueLabels
+        testID="BarChart-label-columns-one-row"
+      />
+    </YStack>
+  ),
+}
+
+/** `labelColumns` with no data and no `height`: the chart keeps one row of height for "No data". */
+export const NameAndValueColumnsEmpty: Story = {
+  render: () => (
+    <YStack width="100%">
+      <BarChart
+        data={[]}
+        layout="horizontal"
+        labelColumns
+        showValueAxis={false}
+        showGrid={false}
+        showValueLabels
+        testID="BarChart-label-columns-empty"
+      />
+    </YStack>
+  ),
+}
+
 /** Controllable instance — edit args in the Controls panel. */
 export const Controllable: Story = {
   args: {

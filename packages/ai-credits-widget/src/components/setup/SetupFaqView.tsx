@@ -109,7 +109,7 @@ const SETUP_FAQ_ITEMS = [
     question: 'Do I need to know how to code?',
     answer: [
       'No. You can set up your Signer Key and buy credits directly in this widget. Then use your ' +
-        '**Signer Private Key** in the Antseed Desktop App to access your credits.',
+        '**Signer Private Key** in Antseed Desktop to access your credits.',
       'Advanced users can also use the API.',
     ],
   },

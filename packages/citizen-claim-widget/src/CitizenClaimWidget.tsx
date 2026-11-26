@@ -271,7 +271,13 @@ function CitizenClaimInner({
             // Tracked outside the try/catch so a Next Task failure can never be reported as a failed claim.
             let singleClaimSucceeded = false
             try {
-              const receipt = await actions.claim()
+              const receipt = await actions.claim(() =>
+                updateToast(toastId, {
+                  message: `Claiming on ${singleChainName} — waiting for blockchain confirmation`,
+                  status: 'confirming',
+                  duration: 0,
+                }),
+              )
               singleClaimSucceeded = true
               updateToast(toastId, {
                 message: `Claim succeeded on ${singleChainName}`,
@@ -317,7 +323,20 @@ function CitizenClaimInner({
             )
           }
 
-          const claimResults = await actions.claimAll(claimPlan.map((entry) => entry.chainId))
+          const claimResults = await actions.claimAll(
+            claimPlan.map((entry) => entry.chainId),
+            (submittedChainId) => {
+              const toastId = toastByChain.get(submittedChainId)
+              if (!toastId) return
+              const entryChainName =
+                chainNameById.get(submittedChainId) ?? getChainDisplayName(submittedChainId)
+              updateToast(toastId, {
+                message: `Claiming on ${entryChainName} — waiting for blockchain confirmation`,
+                status: 'confirming',
+                duration: 0,
+              })
+            },
+          )
           // The Next Task opens once for the whole batch below, not per claim — a claimAll
           // run spanning several chains is one task-completion event, not one per chain.
           let batchHadSuccessfulClaim = false

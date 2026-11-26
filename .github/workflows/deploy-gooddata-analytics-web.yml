@@ -2,6 +2,11 @@ name: Deploy GoodData Web
 
 on:
   workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Release commit to deploy (set by release-next)
+        required: false
+        type: string
   push:
     branches:
       - main
@@ -26,6 +31,9 @@ on:
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
 
+permissions:
+  contents: read
+
 concurrency:
   group: deploy-gooddata-web-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -35,6 +43,14 @@ env:
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_GOODDATA_ANALYTICS_WEB_PROJECT_ID }}
 
 jobs:
+  guard-manual-branch:
+    if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main' && github.ref != 'refs/heads/next'
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "Manual deployments are allowed only from main (Preview) or next (Production)." >&2
+          exit 1
+
   # Fork PRs wait on the `external` environment, where maintainers configure
   # required reviewers. Internal PRs continue directly to their preview.
   authorize-preview:
@@ -47,17 +63,29 @@ jobs:
 
   preview:
     name: gooddata-web-preview
-    if: github.event_name == 'pull_request_target'
+    if: >-
+      always() &&
+      (
+        (github.event_name == 'pull_request_target' && needs.authorize-preview.result == 'success') ||
+        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+        (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+      )
     needs: authorize-preview
     runs-on: ubuntu-latest
     environment:
       name: preview-gooddata
       url: ${{ steps.deploy.outputs.url }}
+    env:
+      VERCEL_TARGET: >-
+        ${{ github.ref == 'refs/heads/main' &&
+            (github.event_name == 'push' ||
+             (github.event_name == 'workflow_dispatch' && inputs.commit_sha == '')) &&
+            'staging' || 'preview' }}
     steps:
       - name: Checkout pull request head
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -75,20 +103,22 @@ jobs:
         working-directory: ${{ github.workspace }}
 
       - name: Pull Vercel project settings
-        run: pnpm exec vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+        run: pnpm exec vercel pull --yes --environment="$VERCEL_TARGET" --token=${{ secrets.VERCEL_TOKEN }}
 
+      # Vercel runs from the repository root, where it would read the root vercel.json (no rewrites).
+      # --local-config points it at the app's own vercel.json so its rewrites are applied.
       - name: Build preview deployment
-        run: pnpm exec vercel build --token=${{ secrets.VERCEL_TOKEN }}
+        run: pnpm exec vercel build --target="$VERCEL_TARGET" --local-config apps/gooddata-analytics-web/vercel.json --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Deploy preview
         id: deploy
         run: |
-          url="$(pnpm exec vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})"
+          url="$(pnpm exec vercel deploy --prebuilt --target="$VERCEL_TARGET" --local-config apps/gooddata-analytics-web/vercel.json --token=${{ secrets.VERCEL_TOKEN }})"
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
   production:
     name: gooddata-web-production
-    if: github.event_name != 'pull_request_target'
+    if: github.ref == 'refs/heads/next' && github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment:
       name: production
@@ -96,6 +126,19 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.commit_sha || github.sha }}
+
+      - name: Verify deployment commit belongs to next
+        env:
+          DEPLOY_SHA: ${{ inputs.commit_sha || github.sha }}
+        run: |
+          git fetch origin next
+          git merge-base --is-ancestor "$DEPLOY_SHA" origin/next || {
+            echo "Production deployments must use a commit reachable from next." >&2
+            exit 1
+          }
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -115,11 +158,12 @@ jobs:
       - name: Pull Vercel project settings
         run: pnpm exec vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
+      # See the preview job: use the app's own vercel.json so its rewrites are applied.
       - name: Build deployment
-        run: pnpm exec vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        run: pnpm exec vercel build --prod --local-config apps/gooddata-analytics-web/vercel.json --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Deploy production
         id: deploy
         run: |
-          url="$(pnpm exec vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})"
+          url="$(pnpm exec vercel deploy --prebuilt --prod --local-config apps/gooddata-analytics-web/vercel.json --token=${{ secrets.VERCEL_TOKEN }})"
           echo "url=$url" >> "$GITHUB_OUTPUT"

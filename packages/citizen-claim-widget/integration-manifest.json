@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "2.0.0",
+  "hostContractVersion": "1.0.0",
+  "widgetId": "goodwidget.citizen-claim",
+  "packageName": "@goodwidget/citizen-claim-widget",
+  "entries": {
+    "react": {
+      "export": "CitizenClaimWidget"
+    },
+    "webComponent": {
+      "registerPath": "./register",
+      "tagName": "gw-citizen-claim"
+    }
+  }
+}

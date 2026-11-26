@@ -525,13 +525,14 @@ export function useCitizenClaimAdapter(
   const loadClaimStatus = useCallback(async () => {
     // These are best-effort UI reads. Start them without making the primary
     // wallet eligibility check wait for every auxiliary RPC response.
-    const auxiliaryReads = Promise.all([
+    // In particular, resolve address/chain-only states synchronously: waiting
+    // here lets a pre-connect refresh overwrite the connected wallet's status.
+    void Promise.all([
       loadClaimablesByChain(),
       loadDailyStats(),
     ])
 
     if (!address) {
-      await auxiliaryReads
       // No wallet address: clear any personalized entitlement left over from a
       // prior connected session so a disconnected user never sees stale amounts.
       setAmount(null)
@@ -546,7 +547,6 @@ export function useCitizenClaimAdapter(
       // unsupported, since it's unknown whether the eventual chain will be
       // supported. The chainId-keyed effect below reruns this once it
       // resolves, so this never gets stuck.
-      await auxiliaryReads
       setStatus('loading')
       return
     }
@@ -562,7 +562,6 @@ export function useCitizenClaimAdapter(
       : chainId
 
     if (isCustodialExecution && statusChainId === null) {
-      await auxiliaryReads
       // Custodial execution has no wallet chain to switch, so a missing
       // client for every supported chain is an integrator configuration
       // problem rather than something the "switch network" narrative below
@@ -579,7 +578,6 @@ export function useCitizenClaimAdapter(
     }
 
     if (statusChainId === null || !isSupportedChain(statusChainId)) {
-      await auxiliaryReads
       // Chain is known but unsupported — a distinct status from not_connected
       // so the UI can show "switch chain" copy instead of misleadingly asking
       // an already-connected wallet to connect. Clear personalized entitlement
@@ -652,7 +650,10 @@ export function useCitizenClaimAdapter(
   // Transitions: eligible → claiming → success | error
   // ---------------------------------------------------------------------------
   const claimOnChain = useCallback(
-    async (targetChainId: number): Promise<unknown> => {
+    async (
+      targetChainId: number,
+      onTransactionSubmitted?: (chainId: number) => void,
+    ): Promise<unknown> => {
       if (!isCustodialExecution && !provider) {
         throw new CitizenClaimAdapterError('No wallet provider available')
       }
@@ -694,7 +695,14 @@ export function useCitizenClaimAdapter(
         )
       }
 
-      return sdk.claimSDK.claim()
+      // Pass onTransactionSubmitted as the second argument to claim() so it fires
+      // immediately after the wallet signs and the tx hash is returned, before the
+      // receipt is awaited. The citizen-sdk ClaimSDK.submitAndWait already accepts
+      // an onHash callback; claim() will be updated to thread it through in
+      // GoodDollar/GoodSDKs (see companion PR). Until that SDK release lands,
+      // the cast below prevents a compile error.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (sdk.claimSDK as any).claim(undefined, () => onTransactionSubmitted?.(targetChainId))
     },
     [address, availableChainIds, createSdkInstancesForChain, isCustodialExecution, provider, switchChain],
   )
@@ -726,14 +734,17 @@ export function useCitizenClaimAdapter(
   )
 
   const claimAll = useCallback(
-    async (targetChainIds: number[]): Promise<CitizenClaimWidgetChainClaimResult[]> => {
+    async (
+      targetChainIds: number[],
+      onTransactionSubmitted?: (chainId: number) => void,
+    ): Promise<CitizenClaimWidgetChainClaimResult[]> => {
       const chainIdsToClaim = [...new Set(targetChainIds)]
 
       if (isCustodialExecution) {
         const settled = await Promise.allSettled(
           chainIdsToClaim.map(async (targetChainId) => ({
             chainId: targetChainId,
-            receipt: await claimOnChain(targetChainId),
+            receipt: await claimOnChain(targetChainId, () => onTransactionSubmitted?.(targetChainId)),
           })),
         )
 
@@ -758,7 +769,7 @@ export function useCitizenClaimAdapter(
           results.push({
             chainId: targetChainId,
             status: 'fulfilled',
-            receipt: await claimOnChain(targetChainId),
+            receipt: await claimOnChain(targetChainId, () => onTransactionSubmitted?.(targetChainId)),
           })
         } catch (claimError: unknown) {
           results.push({
@@ -773,24 +784,27 @@ export function useCitizenClaimAdapter(
     [claimOnChain, isCustodialExecution],
   )
 
-  const handleClaim = useCallback(async (): Promise<unknown> => {
-    if (!chainId) throw new Error('No active chain selected')
+  const handleClaim = useCallback(
+    async (onTransactionSubmitted?: (chainId: number) => void): Promise<unknown> => {
+      if (!chainId) throw new Error('No active chain selected')
 
-    setStatus('claiming')
-    setError(null)
+      setStatus('claiming')
+      setError(null)
 
-    try {
-      const receipt = await claimOnChain(chainId)
-      if (!mountedRef.current) return receipt
-      await loadClaimStatus()
-      return receipt
-    } catch (err: unknown) {
-      if (!mountedRef.current) throw err
-      setStatus('error')
-      setError(humanReadableError(err))
-      throw err
-    }
-  }, [chainId, claimOnChain, loadClaimStatus])
+      try {
+        const receipt = await claimOnChain(chainId, onTransactionSubmitted)
+        if (!mountedRef.current) return receipt
+        await loadClaimStatus()
+        return receipt
+      } catch (err: unknown) {
+        if (!mountedRef.current) throw err
+        setStatus('error')
+        setError(humanReadableError(err))
+        throw err
+      }
+    },
+    [chainId, claimOnChain, loadClaimStatus],
+  )
 
   // ---------------------------------------------------------------------------
   // handleVerify — initiates the GoodID face-verification flow.

@@ -10,10 +10,16 @@
  */
 import React, { useState } from 'react'
 import Svg, { G, Line, Path, Text as SvgText } from 'react-native-svg'
-import { Text as TamaguiText, useTheme, YStack } from 'tamagui'
+import { Text as TamaguiText, useTheme, XStack, YStack } from 'tamagui'
 import { createComponent } from '../createComponent'
 import { Card } from './Card'
-import { ChartTooltip, estimateChartTooltipWidthPx, type ChartTooltipRow } from './ChartTooltip'
+import {
+  ChartTooltip,
+  estimateChartTooltipWidthPx,
+  SQUARE_SWATCH_CORNER_RATIO,
+  type ChartSwatchShape,
+  type ChartTooltipRow,
+} from './ChartTooltip'
 import { CHART_FONT_FAMILY } from '../utils/chartFontFamily'
 import { type ChartValueType, formatByValueType } from '../utils/formatMetricValue'
 import { resolveThemeColor } from '../utils/resolveThemeColor'
@@ -31,9 +37,30 @@ import { useMeasuredHeight } from '../hooks/useMeasuredHeight'
 export type BarChartVariant = 'bare' | 'card'
 export type BarChartLayout = 'vertical' | 'horizontal'
 
+/** One piece of a bar split into parts (e.g. received vs sent). */
+export interface BarChartSegment {
+  value: number
+  label: string
+  /** Omitted = the item's `color`, else the theme's primary color. */
+  color?: string
+}
+
 export interface BarChartDataItem {
   category: string
   value: number
+  /** This bar's fill (and its hover-row dot). Omitted = the theme's primary color. */
+  color?: string
+  /**
+   * Draws the bar as pieces side by side along the value axis, each in its
+   * own color, in the order given, with a thin gap (sized from the text)
+   * between neighbouring pieces. `value` stays the bar's total: the value
+   * label and the hover's "Total" row read it. Pieces are drawn as given, not
+   * rescaled to `value` — if they don't add up to it, the drawn length shows
+   * the pieces' sum while the label and hover total still read `value`.
+   * Negative or non-finite pieces are dropped. The hover lists every piece,
+   * then the total.
+   */
+  segments?: BarChartSegment[]
 }
 
 export interface BarChartPadding {
@@ -43,12 +70,52 @@ export interface BarChartPadding {
   left: number
 }
 
+/** Hover-box-only settings. Omitted = the hover box keeps today's row name and the chart's own formatter. */
+export interface BarChartTooltipOptions {
+  /** Row name in the hover box (e.g. a metric's short name) without drawing a title in the chart. Default: `title`, else "Value". */
+  label?: string
+  /** Formats the value in the hover box only, e.g. the exact number while bars show a shortened one. Default: the chart's formatter. */
+  valueFormatter?: (value: number) => string
+  /** true = values in a right-aligned column, no colon, so numbers line up. Default false. */
+  rightAlignValues?: boolean
+}
+
+/** One legend entry: a color swatch and its label. */
+export interface BarChartLegendItem {
+  label: string
+  color: string
+}
+
 export interface BarChartProps {
   data: BarChartDataItem[]
   title?: string
+  tooltip?: BarChartTooltipOptions
+  /** A row of color swatches with labels above the bars (e.g. what each `segments` shade means).
+   * Same look as LineAreaChart's legend. Omitted or empty = no legend. */
+  legend?: BarChartLegendItem[]
+  /** Shape of the color marks in the legend and the hover box. Default 'round'. */
+  swatchShape?: ChartSwatchShape
   layout?: BarChartLayout
+  /**
+   * Horizontal layout only: each row reads name | bar | value, like a table.
+   * Names sit left-aligned at the chart's left edge, in a column as wide as
+   * the longest name (at most a third of the chart; longer names end in "…").
+   * Values, when shown, sit right-aligned at the right edge in their own
+   * column, on every bar. Both gutters size themselves, so no `padding` is
+   * needed; with `height` left out, the chart is as tall as its rows, spaced
+   * by the text size. With `showValueAxis={false}` the longest bar fills its
+   * row. Ignored in vertical layout. Default false.
+   */
+  labelColumns?: boolean
   showGrid?: boolean
+  /** false hides the value axis's number labels and, in vertical layout, the
+   * left gutter they sat in (only a y-axis title keeps space there). Grid lines
+   * follow `showGrid`. Default true. */
+  showValueAxis?: boolean
   showValueLabels?: boolean
+  /** Draws the value label on every bar, including bars too short for one by
+   * default and zero-length ones (implies `showValueLabels`). Default false. */
+  alwaysShowValueLabels?: boolean
   valueFormatter?: (value: number) => string
   /**
    * The bar values' declared semantic type — drives decimal precision for
@@ -96,6 +163,35 @@ const VALUE_LABEL_BASE_SIZE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2
 const TITLE_TO_CHART_GAP_BASE_PX = CHART_BASE_SIZE_PX / GOLDEN_RATIO
 const CARD_PADDING_PX = CHART_BASE_SIZE_PX
 
+/** Legend text mirrors LineAreaChart's legend text (its constants are private) —
+ * see the reasoning next to them there. */
+const LEGEND_SIZE_SCALE_FACTOR = 0.9
+const LEGEND_LABEL_BASE_SIZE_PX = (CHART_BASE_SIZE_PX / GOLDEN_RATIO ** 2) * LEGEND_SIZE_SCALE_FACTOR
+/** Legend swatch and spacing are multiples of the legend's own text size, so they
+ * scale with the chart's width along with it. Proportions from the approved
+ * dashboard preview (13 px legend text). */
+/** Swatch = 0.9 x text (preview: 12 px). */
+const LEGEND_SWATCH_TO_TEXT_RATIO = 0.9
+/** Space between swatch and its label = 0.5 x text (preview: 6 px). */
+const LEGEND_SWATCH_GAP_TO_TEXT_RATIO = 0.5
+/** Space between legend items = 1.2 x text (preview: 16 px). */
+const LEGEND_ITEM_GAP_TO_TEXT_RATIO = 1.2
+/** Space between the legend and the bars = 0.8 x text (preview: 10 px). */
+const LEGEND_TO_CHART_GAP_TO_TEXT_RATIO = 0.8
+
+/** `labelColumns` rows, as multiples of the row text size where they are sizes.
+ * Proportions from the approved dashboard preview (14 px row text). */
+/** Name column is at most a third of the chart, so bars keep room on a phone (preview phone: 90 of ~270 px). */
+const LABEL_COLUMN_MAX_WIDTH_SHARE = 1 / 3
+/** Space between a column and the bars = 0.7 x text (preview: 10 px). */
+const LABEL_COLUMN_GAP_TO_TEXT_RATIO = 0.7
+/** Row to row = 1.9 x text when the chart sizes its own height (preview: ~26 px). With
+ * BAR_FILL_FRACTION the bar is then ~1.3 x text thick (preview: 18 px). */
+const LABEL_COLUMN_ROW_HEIGHT_TO_TEXT_RATIO = 1.9
+/** Thin gap between a split bar's pieces = 0.15 x text, so neighbouring shades read as separate pieces
+ * (preview: 2 px on 14 px text). Taken out of the earlier piece, so the bar's total length stays exact. */
+const SEGMENT_GAP_TO_TEXT_RATIO = 0.15
+
 const DEFAULT_PADDING: BarChartPadding = { top: 16, right: 16, bottom: 40, left: 48 }
 /** Reference width both the base sizes above and DEFAULT_PADDING were tuned against.
  * Also the fallback viewBox width used for the single frame before a responsive
@@ -112,7 +208,8 @@ const DESIRED_TICK_COUNT = 5
  * (20, 50, 100, 1K, ... are just 2/5/10 one magnitude up). */
 const NICE_STEP_MULTIPLES = [1, 2, 5, 10] as const
 
-/** Hides a value label once its bar shrinks below this length — an unlabeled sliver reads better than overlapping text. */
+/** Hides a value label once its bar shrinks below this length — an unlabeled sliver reads better than overlapping text.
+ * `alwaysShowValueLabels` opts out, for charts where every value must be readable. */
 const MIN_BAR_LENGTH_FOR_VALUE_LABEL_PX = 20
 const VALUE_LABEL_GAP_PX = 4
 const BAR_FILL_FRACTION = 0.7
@@ -132,6 +229,21 @@ const AXIS_LABEL_GAP_PX = 8
 interface BarChartItem {
   category: string
   value: number
+  color?: string
+  segments?: BarChartSegment[]
+}
+
+/** A segmented item's usable pieces: negative and non-finite values are dropped. */
+function validSegments(segments: BarChartSegment[]): BarChartSegment[] {
+  return segments.filter((segment) => Number.isFinite(segment.value) && segment.value >= 0)
+}
+
+/** How far a bar reaches along the value axis: its value, or the pieces' sum when that's larger (so pieces that
+ * add up to more than `value` still fit inside the axis instead of overflowing the plot). */
+function barExtentValue(item: BarChartItem): number {
+  if (!item.segments) return item.value
+  const piecesSum = validSegments(item.segments).reduce((sum, segment) => sum + segment.value, 0)
+  return Math.max(item.value, piecesSum)
 }
 
 interface AxisScale {
@@ -287,6 +399,53 @@ const BarChartTitleText = createComponent(TamaguiText, {
   marginBottom: TITLE_TO_CHART_GAP_BASE_PX,
 })
 
+const BarChartLegendLabelText = createComponent(TamaguiText, {
+  name: 'BarChartLegendLabelText',
+  fontFamily: '$body',
+  fontWeight: '400',
+  color: '$color',
+  fontSize: LEGEND_LABEL_BASE_SIZE_PX,
+})
+
+const BarChartLegendSwatch = createComponent(YStack, {
+  name: 'BarChartLegendSwatch',
+  borderRadius: '$full',
+})
+
+function BarChartLegend({
+  items,
+  labelSizePx,
+  swatchShape,
+}: {
+  items: BarChartLegendItem[]
+  labelSizePx: number
+  swatchShape: ChartSwatchShape
+}) {
+  const swatchSizePx = labelSizePx * LEGEND_SWATCH_TO_TEXT_RATIO
+  return (
+    <XStack
+      gap={labelSizePx * LEGEND_ITEM_GAP_TO_TEXT_RATIO}
+      flexWrap="wrap"
+      justifyContent="center"
+      marginBottom={labelSizePx * LEGEND_TO_CHART_GAP_TO_TEXT_RATIO}
+      data-testid="bar-chart-legend"
+    >
+      {items.map((item) => (
+        <XStack key={item.label} alignItems="center" gap={labelSizePx * LEGEND_SWATCH_GAP_TO_TEXT_RATIO}>
+          <BarChartLegendSwatch
+            width={swatchSizePx}
+            height={swatchSizePx}
+            borderRadius={swatchShape === 'square' ? swatchSizePx * SQUARE_SWATCH_CORNER_RATIO : '$full'}
+            backgroundColor={item.color}
+            data-testid="bar-chart-legend-swatch"
+          />
+          <BarChartLegendLabelText fontSize={labelSizePx}>{item.label}</BarChartLegendLabelText>
+        </XStack>
+      ))}
+    </XStack>
+  )
+}
+
 /** Scales DEFAULT_PADDING to the chart's actual size, then layers an explicit
  * per-instance `padding` override on top unscaled — an override is the caller
  * opting out of the default for that edge, not a value we should re-scale. */
@@ -294,17 +453,24 @@ function mergePadding(
   padding: Partial<BarChartPadding> | undefined,
   scaleRatio: number,
   minLeftPx: number,
+  layoutPadding?: Partial<BarChartPadding>,
 ): BarChartPadding {
   const scaledDefaults = scaleEdgeInsets(DEFAULT_PADDING, scaleRatio)
-  return { ...scaledDefaults, left: Math.max(scaledDefaults.left, minLeftPx), ...padding }
+  return { ...scaledDefaults, left: Math.max(scaledDefaults.left, minLeftPx), ...layoutPadding, ...padding }
 }
 
 function BarChartContent({
   data,
   title,
+  tooltip,
+  legend,
+  swatchShape = 'round',
   layout = 'vertical',
+  labelColumns = false,
   showGrid = true,
+  showValueAxis = true,
   showValueLabels = false,
+  alwaysShowValueLabels = false,
   valueFormatter: valueFormatterProp,
   valueType = 'auto',
   valueDecimals,
@@ -315,9 +481,13 @@ function BarChartContent({
   testID,
   accessibilityLabel,
   width = '100%',
-  height = '100%',
+  height: heightProp,
   padding,
 }: Omit<BarChartProps, 'variant'>) {
+  const height = heightProp ?? '100%'
+  const isLabelColumns = labelColumns && layout === 'horizontal'
+  // labelColumns with no `height`: the chart is as tall as its rows (sized below, from the text size).
+  const isRowsHeight = isLabelColumns && heightProp === undefined
   const theme = useTheme()
   const barColor = resolveThemeColor(theme, 'primary')
   const gridColor = resolveThemeColor(theme, 'colorDim')
@@ -348,9 +518,8 @@ function BarChartContent({
   // gave it. Measuring the Frame here instead would be circular, the same way
   // measuring PlotArea for *width* would be — PlotArea shrink-wraps horizontally
   // on purpose (see its definition above).
-  const isResponsiveHeight = typeof height !== 'number'
+  const isResponsiveHeight = !isRowsHeight && typeof height !== 'number'
   const { measuredHeightPx, onLayout: onPlotAreaLayout } = useMeasuredHeight(REFERENCE_HEIGHT_PX)
-  const viewBoxHeight = isResponsiveHeight ? measuredHeightPx : height
 
   const scaleRatio = computeChartScaleRatio(viewBoxWidth, REFERENCE_WIDTH_PX)
   // QA fix: titles were scaling up with chart width (rendering ~H2/H3-sized on
@@ -368,8 +537,56 @@ function BarChartContent({
   const axisTitleSizePx = clampFontSize(scalePx(AXIS_TITLE_BASE_SIZE_PX, scaleRatio))
   const tickLabelSizePx = clampFontSize(scalePx(TICK_LABEL_BASE_SIZE_PX, scaleRatio))
   const valueLabelSizePx = clampFontSize(scalePx(VALUE_LABEL_BASE_SIZE_PX, scaleRatio))
+  const legendLabelSizePx = clampFontSize(scalePx(LEGEND_LABEL_BASE_SIZE_PX, scaleRatio))
 
-  const scale = computeNiceAxisScale(items.map((item) => item.value))
+  // Widest category label, measured. Vertical layout feeds it to the label plan
+  // below; labelColumns sizes its name column from it.
+  const widestCategoryLabelWidthPx = items.reduce<number>(
+    (widest, item) => Math.max(widest, estimateTextWidthPx(item.category, tickLabelSizePx)),
+    0,
+  )
+
+  // labelColumns: name column (longest name, capped) on the left, value column
+  // (widest shown value) on the right, each followed by a text-sized gap. With no
+  // value axis or x-axis title, rows start and end at the chart's edges.
+  const labelColumnGapPx = tickLabelSizePx * LABEL_COLUMN_GAP_TO_TEXT_RATIO
+  const nameColumnWidthPx = isLabelColumns
+    ? Math.min(widestCategoryLabelWidthPx, viewBoxWidth * LABEL_COLUMN_MAX_WIDTH_SHARE)
+    : 0
+  const showsValueLabels = showValueLabels || alwaysShowValueLabels
+  const valueColumnWidthPx =
+    isLabelColumns && showsValueLabels
+      ? items.reduce<number>(
+          (widest, item) => Math.max(widest, estimateTextWidthPx(valueFormatter(item.value), valueLabelSizePx)),
+          0,
+        )
+      : 0
+  const labelColumnsPadding: Partial<BarChartPadding> | undefined = isLabelColumns
+    ? {
+        left: nameColumnWidthPx + labelColumnGapPx,
+        right: valueColumnWidthPx > 0 ? valueColumnWidthPx + labelColumnGapPx : 0,
+        ...(!showValueAxis && !xAxisLabel ? { top: 0, bottom: 0 } : {}),
+      }
+    : undefined
+  const rowsHeightPadding = { ...scaleEdgeInsets(DEFAULT_PADDING, scaleRatio), ...labelColumnsPadding, ...padding }
+  // At least one row, so an empty chart keeps room for its "No data" message. Rounded up to whole
+  // pixels: a fractional height gets snapped by the browser, which then derives the 100%-wide SVG's
+  // width from that snapped height, a hair narrower each time, and the width measurement never settles.
+  const rowsHeightPx = Math.ceil(
+    Math.max(items.length, 1) * Math.max(tickLabelSizePx, valueLabelSizePx) * LABEL_COLUMN_ROW_HEIGHT_TO_TEXT_RATIO +
+      rowsHeightPadding.top +
+      rowsHeightPadding.bottom,
+  )
+  const viewBoxHeight = isRowsHeight ? rowsHeightPx : isResponsiveHeight ? measuredHeightPx : (height as number)
+
+  // labelColumns without a value axis reads like a table: no tick numbers to keep round, so the
+  // scale ends at the largest bar and that bar fills its row (grid lines past it are dropped).
+  const niceScale = computeNiceAxisScale(items.map(barExtentValue))
+  const largestExtent = Math.max(0, ...items.map(barExtentValue))
+  const scale =
+    isLabelColumns && !showValueAxis && largestExtent > 0
+      ? { ...niceScale, max: largestExtent, ticks: niceScale.ticks.filter((tick) => tick <= largestExtent) }
+      : niceScale
   const valueRange = scale.max - scale.min || 1
   const isVertical = layout === 'vertical'
 
@@ -382,10 +599,12 @@ function BarChartContent({
   // (e.g. "500.0K") can never collide with the title regardless of how far it
   // reaches leftward. DEFAULT_PADDING.left is only a floor; real content can
   // widen it further.
-  const widestYTickLabelWidthPx = scale.ticks.reduce<number>(
-    (widest, tick) => Math.max(widest, estimateTextWidthPx(valueFormatter(tick), tickLabelSizePx)),
-    0,
-  )
+  const widestYTickLabelWidthPx = showValueAxis
+    ? scale.ticks.reduce<number>(
+        (widest, tick) => Math.max(widest, estimateTextWidthPx(valueFormatter(tick), tickLabelSizePx)),
+        0,
+      )
+    : 0
 
   // Rotated axis titles read along the plot's *height*, not its width, so
   // whether one needs to wrap onto a second line depends on plotHeight — which
@@ -393,7 +612,8 @@ function BarChartContent({
   // affects it). Resolving top/bottom padding once here, ahead of the left
   // gutter sizing below, lets the title's line count feed into the gutter's
   // width reservation without a circular dependency (mirrors LineAreaChart).
-  const topBottomPaddingPx = scaleEdgeInsets(DEFAULT_PADDING, scaleRatio)
+  // labelColumns resolves its own top/bottom gutters (above), so its title wraps against those.
+  const topBottomPaddingPx = isLabelColumns ? rowsHeightPadding : scaleEdgeInsets(DEFAULT_PADDING, scaleRatio)
   const preliminaryPlotHeightPx = viewBoxHeight - topBottomPaddingPx.top - topBottomPaddingPx.bottom
   const axisTitleAvailableLengthPx = Math.max(0, preliminaryPlotHeightPx - AXIS_LABEL_GAP_PX * 2)
   // Wrap to two lines at a word boundary first; only the last-resort ellipsis
@@ -412,7 +632,24 @@ function BarChartContent({
       (yAxisTitleLines.length > 0 ? yAxisTitleLines.length * tickLabelSizePx + AXIS_LABEL_GAP_PX : 0)
     : 0
 
-  const resolvedPadding = mergePadding(padding, scaleRatio, requiredLeftGutterPx)
+  // Vertical layout without a value axis: the left gutter only holds the y-axis title (if any), so
+  // the default gutter floor is dropped. An explicit `padding.left` still wins.
+  const hiddenValueAxisPadding: Partial<BarChartPadding> | undefined =
+    isVertical && !showValueAxis ? { left: requiredLeftGutterPx } : undefined
+  // labelColumns with a y-axis title: the rotated title gets its own gutter at the left edge and the
+  // name column starts after it, so the two never overlap.
+  const labelColumnsTitleGutterPx =
+    isLabelColumns && yAxisTitleLines.length > 0
+      ? yAxisTitleLines.length * tickLabelSizePx + AXIS_LABEL_GAP_PX
+      : 0
+  const resolvedPadding = mergePadding(
+    padding,
+    scaleRatio,
+    requiredLeftGutterPx,
+    labelColumnsPadding
+      ? { ...labelColumnsPadding, left: (labelColumnsPadding.left ?? 0) + labelColumnsTitleGutterPx }
+      : hiddenValueAxisPadding,
+  )
   const plotWidth = viewBoxWidth - resolvedPadding.left - resolvedPadding.right
   const plotHeight = viewBoxHeight - resolvedPadding.top - resolvedPadding.bottom
 
@@ -421,14 +658,16 @@ function BarChartContent({
   // each subsequent line sits one tickLabelSizePx slot further out, matching
   // the extra width requiredLeftGutterPx reserved above.
   const yAxisTitleLineXPx = (lineIndex: number): number =>
-    Math.max(
-      tickLabelSizePx / 2,
-      resolvedPadding.left -
-        AXIS_LABEL_GAP_PX -
-        widestYTickLabelWidthPx -
-        AXIS_LABEL_GAP_PX -
-        tickLabelSizePx * (lineIndex + 0.5),
-    )
+    isLabelColumns
+      ? labelColumnsTitleGutterPx - AXIS_LABEL_GAP_PX - tickLabelSizePx * (lineIndex + 0.5)
+      : Math.max(
+          tickLabelSizePx / 2,
+          resolvedPadding.left -
+            AXIS_LABEL_GAP_PX -
+            widestYTickLabelWidthPx -
+            AXIS_LABEL_GAP_PX -
+            tickLabelSizePx * (lineIndex + 0.5),
+        )
 
   const resolvedAccessibilityLabel =
     accessibilityLabel ??
@@ -441,6 +680,41 @@ function BarChartContent({
   const slotSize = (isVertical ? plotWidth : plotHeight) / Math.max(items.length, 1)
   const barThickness = slotSize * BAR_FILL_FRACTION
 
+  // Draws a segmented bar's pieces end to end from the baseline. Only the last
+  // (outermost) piece gets the rounded corners, like a plain bar's outer edge.
+  // Every piece but the last gives up a thin gap at its outer end.
+  const segmentGapPx = tickLabelSizePx * SEGMENT_GAP_TO_TEXT_RATIO
+  const renderSegmentPieces = (
+    item: BarChartItem,
+    index: number,
+    pieces: BarChartSegment[],
+    axisLengthPx: number,
+    roundedEdge: RoundedEdge,
+    pieceRect: (offsetPx: number, lengthPx: number) => { x: number; y: number; width: number; height: number },
+  ) => {
+    let offsetPx = 0
+    return pieces.map((piece, pieceIndex) => {
+      const lengthPx = (piece.value / valueRange) * axisLengthPx
+      const isOuterPiece = pieceIndex === pieces.length - 1
+      const rect = pieceRect(offsetPx, isOuterPiece ? lengthPx : Math.max(0, lengthPx - segmentGapPx))
+      offsetPx += lengthPx
+      return (
+        <Path
+          key={`${piece.label}-${pieceIndex}`}
+          d={buildBarPath(rect.x, rect.y, rect.width, rect.height, isOuterPiece ? barCornerRadius : 0, roundedEdge)}
+          fill={piece.color ?? item.color ?? barColor}
+          accessible={false}
+          onPress={onBarPress ? () => onBarPress(item, index) : undefined}
+        />
+      )
+    })
+  }
+
+  // labelColumns values sit in their own column, not on the bar, so a short bar never hides one.
+  const shouldShowValueLabel = (barLengthPx: number): boolean =>
+    alwaysShowValueLabels ||
+    (showValueLabels && (isLabelColumns || barLengthPx >= MIN_BAR_LENGTH_FOR_VALUE_LABEL_PX))
+
   // Zero baseline position within the plot rect, in each layout's value-axis direction.
   const zeroOffset = valueToPixel(0, isVertical ? plotHeight : plotWidth)
 
@@ -451,10 +725,6 @@ function BarChartContent({
   // fixed-width left column, so it's a *height* problem instead and keeps the
   // simpler adaptive-thinning approach (out of scope for this fix).
   // No fixed-pixel floor here either — see LineAreaChart's matching comment.
-  const widestCategoryLabelWidthPx = items.reduce<number>(
-    (widest, item) => Math.max(widest, estimateTextWidthPx(item.category, tickLabelSizePx)),
-    0,
-  )
   const verticalCategoryLabelPlan = isVertical
     ? computeXAxisLabelPlan({
         categoryCount: items.length,
@@ -499,9 +769,28 @@ function BarChartContent({
   const handlePlotPointerLeave = () => setHoveredIndex(null)
 
   const hoveredItem = hoveredIndex !== null ? items[hoveredIndex] : null
-  const tooltipRows: ChartTooltipRow[] = hoveredItem
-    ? [{ color: barColor, label: title ?? 'Value', value: valueFormatter(hoveredItem.value) }]
-    : []
+  const tooltipValueFormatter = tooltip?.valueFormatter ?? valueFormatter
+  // A segmented bar's hover lists each piece then a dot-less "Total" row, with
+  // the row name that a plain bar would use moved up to the second line.
+  const tooltipSubheader = hoveredItem?.segments ? (tooltip?.label ?? title) : undefined
+  const tooltipRows: ChartTooltipRow[] = !hoveredItem
+    ? []
+    : hoveredItem.segments
+      ? [
+          ...validSegments(hoveredItem.segments).map((segment) => ({
+            color: segment.color ?? hoveredItem.color ?? barColor,
+            label: segment.label,
+            value: tooltipValueFormatter(segment.value),
+          })),
+          { label: 'Total', value: tooltipValueFormatter(hoveredItem.value) },
+        ]
+      : [
+          {
+            color: hoveredItem.color ?? barColor,
+            label: tooltip?.label ?? title ?? 'Value',
+            value: tooltipValueFormatter(hoveredItem.value),
+          },
+        ]
 
   // Follows the cursor along the axis bars are laid out on (horizontally for
   // vertical bars, at a fixed left offset otherwise), clamped so the
@@ -509,7 +798,13 @@ function BarChartContent({
   // hover's actual header/rows so the clamp matches what ChartTooltip itself
   // will render at, rather than a fixed guess.
   const tooltipWidthPx = hoveredItem
-    ? estimateChartTooltipWidthPx(hoveredItem.category, tooltipRows, viewBoxWidth)
+    ? estimateChartTooltipWidthPx(
+        hoveredItem.category,
+        tooltipRows,
+        viewBoxWidth,
+        tooltipSubheader,
+        tooltip?.rightAlignValues,
+      )
     : 0
   const maxTooltipLeftPx = Math.max(0, viewBoxWidth - tooltipWidthPx)
   const hoveredSlotCenterPx =
@@ -532,9 +827,13 @@ function BarChartContent({
           {title}
         </BarChartTitleText>
       ) : null}
+      {legend && legend.length > 0 ? <BarChartLegend items={legend} labelSizePx={legendLabelSizePx} swatchShape={swatchShape} /> : null}
       <BarChartScrollContainer
         flexGrow={isResponsiveHeight ? 1 : undefined}
         minHeight={isResponsiveHeight ? 0 : undefined}
+        // A labelColumns chart that fills its host never needs sideways scrolling, and it can be as
+        // short as one row, so it doesn't clip: a hover box taller than the chart shows in full.
+        overflow={isLabelColumns && isResponsiveWidth ? 'visible' : 'auto'}
       >
         <BarChartPlotArea
           onMouseMove={handlePlotPointerMove}
@@ -608,44 +907,54 @@ function BarChartContent({
                   </G>
                 ) : null}
 
-                <G accessible={false}>
-                  {scale.ticks.map((tick) => {
-                    const tickOffset = valueToPixel(tick, isVertical ? plotHeight : plotWidth)
-                    const formattedTick = valueFormatter(tick)
+                {showValueAxis ? (
+                  <G accessible={false}>
+                    {scale.ticks.map((tick) => {
+                      const tickOffset = valueToPixel(tick, isVertical ? plotHeight : plotWidth)
+                      const formattedTick = valueFormatter(tick)
 
-                    return isVertical ? (
-                      <SvgText
-                        key={tick}
-                        x={resolvedPadding.left - AXIS_LABEL_GAP_PX}
-                        y={resolvedPadding.top + plotHeight - tickOffset}
-                        fontSize={tickLabelSizePx}
-                        fontFamily={CHART_FONT_FAMILY}
-                        fill={axisLabelColor}
-                        textAnchor="end"
-                        alignmentBaseline="middle"
-                      >
-                        {formattedTick}
-                      </SvgText>
-                    ) : (
-                      <SvgText
-                        key={tick}
-                        x={resolvedPadding.left + tickOffset}
-                        y={resolvedPadding.top + plotHeight + 16}
-                        fontSize={tickLabelSizePx}
-                        fontFamily={CHART_FONT_FAMILY}
-                        fill={axisLabelColor}
-                        textAnchor="middle"
-                      >
-                        {formattedTick}
-                      </SvgText>
-                    )
-                  })}
-                </G>
+                      return isVertical ? (
+                        <SvgText
+                          key={tick}
+                          x={resolvedPadding.left - AXIS_LABEL_GAP_PX}
+                          y={resolvedPadding.top + plotHeight - tickOffset}
+                          fontSize={tickLabelSizePx}
+                          fontFamily={CHART_FONT_FAMILY}
+                          fill={axisLabelColor}
+                          textAnchor="end"
+                          alignmentBaseline="middle"
+                        >
+                          {formattedTick}
+                        </SvgText>
+                      ) : (
+                        <SvgText
+                          key={tick}
+                          x={resolvedPadding.left + tickOffset}
+                          y={resolvedPadding.top + plotHeight + 16}
+                          fontSize={tickLabelSizePx}
+                          fontFamily={CHART_FONT_FAMILY}
+                          fill={axisLabelColor}
+                          textAnchor="middle"
+                        >
+                          {formattedTick}
+                        </SvgText>
+                      )
+                    })}
+                  </G>
+                ) : null}
 
                 {items.map((item, index) => {
+                  // Segmented bars draw their positive pieces end to end from the
+                  // baseline, so their drawn length is the pieces' sum (see `segments`).
+                  const pieces = item.segments
+                    ? validSegments(item.segments).filter((segment) => segment.value > 0)
+                    : null
+                  const drawnValue = pieces
+                    ? pieces.reduce((sum, segment) => sum + segment.value, 0)
+                    : item.value
                   const barLength =
-                    valueToPixel(item.value, isVertical ? plotHeight : plotWidth) - zeroOffset
-                  const isPositive = item.value >= 0
+                    valueToPixel(drawnValue, isVertical ? plotHeight : plotWidth) - zeroOffset
+                  const isPositive = drawnValue >= 0
 
                   if (isVertical) {
                     const slotStart = resolvedPadding.left + index * slotSize
@@ -664,19 +973,28 @@ function BarChartContent({
 
                     return (
                       <G key={`${item.category}-${index}`}>
-                        <Path
-                          d={buildBarPath(
-                            barX,
-                            barY,
-                            barThickness,
-                            barHeight,
-                            barCornerRadius,
-                            isPositive ? 'top' : 'bottom',
-                          )}
-                          fill={barColor}
-                          accessible={false}
-                          onPress={onBarPress ? () => onBarPress(item, index) : undefined}
-                        />
+                        {pieces ? (
+                          renderSegmentPieces(item, index, pieces, plotHeight, 'top', (offsetPx, lengthPx) => ({
+                            x: barX,
+                            y: baselineY - offsetPx - lengthPx,
+                            width: barThickness,
+                            height: lengthPx,
+                          }))
+                        ) : (
+                          <Path
+                            d={buildBarPath(
+                              barX,
+                              barY,
+                              barThickness,
+                              barHeight,
+                              barCornerRadius,
+                              isPositive ? 'top' : 'bottom',
+                            )}
+                            fill={item.color ?? barColor}
+                            accessible={false}
+                            onPress={onBarPress ? () => onBarPress(item, index) : undefined}
+                          />
+                        )}
                         {showCategoryLabel ? (
                           <SvgText
                             x={categoryLabelX}
@@ -690,7 +1008,7 @@ function BarChartContent({
                             {categoryLabel}
                           </SvgText>
                         ) : null}
-                        {showValueLabels && barHeight >= MIN_BAR_LENGTH_FOR_VALUE_LABEL_PX ? (
+                        {shouldShowValueLabel(barHeight) ? (
                           <SvgText
                             x={slotStart + slotSize / 2}
                             y={
@@ -716,7 +1034,7 @@ function BarChartContent({
                   const baselineX = resolvedPadding.left + zeroOffset
                   const barX = isPositive ? baselineX : baselineX - Math.abs(barLength)
                   const barWidth = Math.abs(barLength)
-                  const categoryLabelMaxWidth = resolvedPadding.left - 12
+                  const categoryLabelMaxWidth = isLabelColumns ? nameColumnWidthPx : resolvedPadding.left - 12
                   const showCategoryLabel = index % categoryLabelSkipFactor === 0
                   const categoryLabel = showCategoryLabel
                     ? truncateLabelToWidth(item.category, categoryLabelMaxWidth, tickLabelSizePx)
@@ -724,45 +1042,56 @@ function BarChartContent({
 
                   return (
                     <G key={`${item.category}-${index}`}>
-                      <Path
-                        d={buildBarPath(
-                          barX,
-                          barY,
-                          barWidth,
-                          barThickness,
-                          barCornerRadius,
-                          isPositive ? 'right' : 'left',
-                        )}
-                        fill={barColor}
-                        accessible={false}
-                        onPress={onBarPress ? () => onBarPress(item, index) : undefined}
-                      />
+                      {pieces ? (
+                        renderSegmentPieces(item, index, pieces, plotWidth, 'right', (offsetPx, lengthPx) => ({
+                          x: baselineX + offsetPx,
+                          y: barY,
+                          width: lengthPx,
+                          height: barThickness,
+                        }))
+                      ) : (
+                        <Path
+                          d={buildBarPath(
+                            barX,
+                            barY,
+                            barWidth,
+                            barThickness,
+                            barCornerRadius,
+                            isPositive ? 'right' : 'left',
+                          )}
+                          fill={item.color ?? barColor}
+                          accessible={false}
+                          onPress={onBarPress ? () => onBarPress(item, index) : undefined}
+                        />
+                      )}
                       {showCategoryLabel ? (
                         <SvgText
-                          x={resolvedPadding.left - 8}
+                          x={isLabelColumns ? labelColumnsTitleGutterPx : resolvedPadding.left - 8}
                           y={slotStart + slotSize / 2}
                           fontSize={tickLabelSizePx}
                           fontFamily={CHART_FONT_FAMILY}
                           fill={axisLabelColor}
-                          textAnchor="end"
+                          textAnchor={isLabelColumns ? 'start' : 'end'}
                           alignmentBaseline="middle"
                           accessible={false}
                         >
                           {categoryLabel}
                         </SvgText>
                       ) : null}
-                      {showValueLabels && barWidth >= MIN_BAR_LENGTH_FOR_VALUE_LABEL_PX ? (
+                      {shouldShowValueLabel(barWidth) ? (
                         <SvgText
                           x={
-                            isPositive
-                              ? barX + barWidth + VALUE_LABEL_GAP_PX
-                              : barX - VALUE_LABEL_GAP_PX
+                            isLabelColumns
+                              ? viewBoxWidth
+                              : isPositive
+                                ? barX + barWidth + VALUE_LABEL_GAP_PX
+                                : barX - VALUE_LABEL_GAP_PX
                           }
                           y={slotStart + slotSize / 2}
                           fontSize={valueLabelSizePx}
                           fontFamily={CHART_FONT_FAMILY}
                           fill={textColor}
-                          textAnchor={isPositive ? 'start' : 'end'}
+                          textAnchor={isLabelColumns || !isPositive ? 'end' : 'start'}
                           alignmentBaseline="middle"
                           accessible={false}
                         >
@@ -816,10 +1145,13 @@ function BarChartContent({
           {!isEmpty && hoveredItem ? (
             <ChartTooltip
               header={hoveredItem.category}
+              subheader={tooltipSubheader}
               rows={tooltipRows}
               left={tooltipLeftPx}
               top={resolvedPadding.top}
               chartWidthPx={viewBoxWidth}
+              rightAlignValues={tooltip?.rightAlignValues}
+              swatchShape={swatchShape}
             />
           ) : null}
         </BarChartPlotArea>
