@@ -87,9 +87,9 @@ export function ActionCard({ action, onPressCta }: ActionCardProps) {
         <XStack flexShrink={0} $sm={{ display: 'none' }}>
           <ActivityIconComponent size={24} color={iconColor} />
         </XStack>
-        <Text tone="soft" flex={1}>
-          {action.description}
-        </Text>
+        <YStack gap="$1" flex={1}>
+          <Text tone="soft">{action.description}</Text>
+        </YStack>
         <YStack
           gap="$2"
           alignItems="flex-end"

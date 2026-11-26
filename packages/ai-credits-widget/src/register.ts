@@ -25,7 +25,11 @@ export async function register(tagName: string = DEFAULT_TAG_NAME): Promise<stri
   if (typeof customElements === 'undefined') return tagName
   if (!customElements.get(tagName)) {
     const { AiCreditsWidgetElement } = await import('./element')
-    customElements.define(tagName, AiCreditsWidgetElement)
+    // The auto-registration above and an explicit caller can both pass the
+    // outer check before this import settles; re-check so the loser is a no-op.
+    if (!customElements.get(tagName)) {
+      customElements.define(tagName, AiCreditsWidgetElement)
+    }
   }
   return tagName
 }

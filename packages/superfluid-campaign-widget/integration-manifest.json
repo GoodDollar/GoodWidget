@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "2.0.0",
+  "hostContractVersion": "1.0.0",
+  "widgetId": "goodwidget.superfluid-campaign",
+  "packageName": "@goodwidget/superfluid-campaign-widget",
+  "entries": {
+    "react": {
+      "export": "SuperfluidCampaignWidget"
+    },
+    "webComponent": {
+      "registerPath": "./register",
+      "tagName": "gw-superfluid-campaign"
+    }
+  }
+}

@@ -129,20 +129,29 @@ export const MyWidgetElement = createMiniAppElement(
 
 ```ts
 // src/register.ts
-import { MyWidgetElement } from './element'
-
 const TAG = 'my-widget'
 
-export function register(tagName: string = TAG): string {
+export async function register(tagName: string = TAG): Promise<string> {
+  // SSR-aware bundlers may evaluate this entry without browser globals. Keep
+  // the browser-focused element graph behind the guard as well as DOM access.
+  if (typeof customElements === 'undefined') return tagName
   if (!customElements.get(tagName)) {
+    const { MyWidgetElement } = await import('./element')
     customElements.define(tagName, MyWidgetElement)
   }
   return tagName
 }
 
 // Auto-register on import
-register()
+void register()
 ```
+
+`createMiniAppElement()` and `register.ts` must both be safe to evaluate in
+Node. The dynamic element import is deliberately reached only in a browser;
+registration becomes a no-op on the server and runs normally when the browser
+bundle evaluates. This lets Next.js inspect the package without loading
+browser-focused dependencies or attempting to mount a Custom Element during
+server rendering.
 
 ```ts
 // src/index.ts
@@ -268,6 +277,26 @@ Packages or applications that import `@tamagui/lucide-icons` or
 ---
 
 ## Step 5 — Build & publish
+
+### Repository release policy
+
+In this repository, `main` is the development branch: it deploys apps using Vercel Preview
+settings. A maintainer promotes `main` to `next` for production builds, production deployments,
+and npm publication. Configure `next` as a protected branch before enabling releases. There
+is no staging branch. The first promotion creates `next` from `main`.
+
+The `release-next.yml` and `recover-release.yml` workflows publish directly with npm and do
+not invoke `npm-publish.yml` (that legacy workflow has been retired). Both workflows use
+tokenless npm trusted publishing; configure separate npm trusted-publisher entries for
+`GoodDollar/GoodWidget`, each workflow filename, and the protected `release` environment.
+Promotion offers independent opt-in selections for the four production deployments. Only
+selected apps are dispatched at the authoritative release commit after successful processing,
+including when there are no packages to publish. A direct release run or a push without these
+selections deploys no apps.
+Recovery publishes the exact committed package version if missing and restores its Git tag.
+It does not move `latest` for versions that are already published. The release trusts a successful
+`npm publish`; consumers should retry the exact version if registry reads are still catching up.
+Do not enable wallet dispatch until GoodWallet is ready.
 
 ```bash
 # Build

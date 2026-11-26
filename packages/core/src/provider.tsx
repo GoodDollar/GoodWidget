@@ -30,6 +30,7 @@ const DEFAULT_CAPABILITIES: HostCapabilities = {
 }
 
 export interface WalletContextValue extends WalletState {
+  /** Rejects with CONNECT_UNAVAILABLE_ERROR when neither a host connector nor a provider exists. */
   connect: () => Promise<void>
   /**
    * Re-reads the wallet's authorized accounts and returns the live address, or
@@ -75,6 +76,7 @@ export interface GoodWidgetContextValue extends GoodWidgetState {
   switchChain: (chainId: number) => Promise<void>
 }
 
+export const CONNECT_UNAVAILABLE_ERROR = 'No wallet provider available. Connect a wallet in the host app.'
 export const DISCONNECT_UNAVAILABLE_ERROR =
   'This connector cannot be disconnected by the site — end the session from your wallet'
 const SWITCH_CHAIN_UNAVAILABLE_ERROR = 'No wallet provider available to switch chains'
@@ -319,7 +321,7 @@ export function GoodWidgetProvider({
       return
     }
 
-    if (!resolvedProvider) return
+    if (!resolvedProvider) throw new Error(CONNECT_UNAVAILABLE_ERROR)
     const accounts = (await resolvedProvider.request({
       method: 'eth_requestAccounts',
     })) as string[]
