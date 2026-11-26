@@ -66,6 +66,23 @@ for (const width of [360, 390]) {
   }
 }
 
+// The full fixture, not just its header, must remain usable when text wraps
+// and the device (or an embedded browser) offers less vertical space.
+for (const theme of ['light', 'dark']) {
+  test(`Review is reachable on a short 360px viewport in ${theme}`, async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 720 })
+    await page.goto(`/iframe.html?id=qa-bridgingwidget-runtime-fixtures--ready-to-bridge&viewMode=story&args=defaultTheme:${theme}`)
+    await page.addStyleTag({ content: '#storybook-root * { font-family: monospace !important; }' })
+
+    const review = page.getByTestId('BridgingWidget-review-cta')
+    await expect(review).toBeEnabled({ timeout: 45_000 })
+    await review.scrollIntoViewIfNeeded()
+    await expect(review).toBeInViewport({ ratio: 1 })
+    await review.click({ trial: true })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360)
+  })
+}
+
 test('mobile network selector opens a sheet and the longest chain fits the header', async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 844 })
   await page.goto('/iframe.html?id=qa-bridgingwidget-runtime-fixtures--interactive-submit&viewMode=story')

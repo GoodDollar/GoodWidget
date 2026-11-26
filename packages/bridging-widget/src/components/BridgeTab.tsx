@@ -97,7 +97,11 @@ export function BridgeTab({
   })
 
   return (
-    <BridgingTabContent>
+    <BridgingTabContent
+      // Reclaim a little vertical space at 360px without shrinking text or
+      // changing when rows wrap. Keep the normal token from 368px up.
+      style={{ rowGap: 'max(0px, calc(var(--t-space-2, 8px) - clamp(0px, (368px - 100vw) / 4, 2px)))' }}
+    >
       <XStack alignItems="flex-start" gap="$2" testID="BridgingWidget-route">
         <YStack flex={1} minWidth={0} gap="$1">
           <Text variant="label">From</Text>
