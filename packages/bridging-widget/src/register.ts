@@ -18,6 +18,7 @@ const DEFAULT_TAG_NAME = 'gw-bridging'
  *   const tag = register('my-bridging-widget')
  */
 export function register(tagName: string = DEFAULT_TAG_NAME): string {
+  if (typeof customElements === 'undefined') return tagName
   if (!customElements.get(tagName)) {
     customElements.define(tagName, BridgingWidgetElement)
   }
