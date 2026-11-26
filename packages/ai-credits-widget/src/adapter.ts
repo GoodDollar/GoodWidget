@@ -1517,6 +1517,9 @@ export function useAiCreditsAdapter({
           txHashes,
           previousBalance: balanceBefore,
         })
+        const remainingCredits = chainClient.getRemainingCredits
+          ? await chainClient.getRemainingCredits(accountRef.signer).catch(() => null)
+          : null
 
         const creditUsdMicro = (BigInt(totalCreditUsd) - BigInt(balanceBefore || '0')).toString()
 
@@ -1531,6 +1534,7 @@ export function useAiCreditsAdapter({
           withDerivedStatus(prev, {
             ...signerFields,
             totalCreditUsd,
+            remainingCredits,
             error: null,
             activeTab: 'manage',
           }),

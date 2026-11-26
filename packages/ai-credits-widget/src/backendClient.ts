@@ -563,9 +563,9 @@ export async function buildAccountView(
       ? chain.getSignerOperatorStatus({ payer: normalizedPayer, signer }).catch(() => null)
       : Promise.resolve(defaultOperatorStatus(normalizedPayer)),
     signer ? chain.getWithdrawableUsd(signer).catch(() => null) : Promise.resolve('0'),
-    signer
+    signer && chain.getRemainingCredits
       ? chain.getRemainingCredits(signer).catch(() => null)
-      : Promise.resolve({ principalUsd: '0', bonusUsd: '0' }),
+      : Promise.resolve(null),
   ])
 
   return {

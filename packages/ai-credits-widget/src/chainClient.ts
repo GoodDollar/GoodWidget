@@ -102,7 +102,7 @@ export interface AiCreditsChainClient {
     operatorStatus?: SignerOperatorStatus,
   ): Promise<OperatorConsentPayloadResponse>
   getWithdrawableUsd(signer: string): Promise<string>
-  getRemainingCredits(signer: string): Promise<AiCreditsRemainingCredits>
+  getRemainingCredits?(signer: string): Promise<AiCreditsRemainingCredits>
   getSignerAuthNonce(signer: string): Promise<bigint>
 }
 
