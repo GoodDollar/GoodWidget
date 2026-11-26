@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useWallet } from '@goodwidget/core'
-import { erc20ABI, GoodReserveSDK } from '@goodsdks/good-reserve'
+import { erc20ABI, GoodReserveSDK, normalizeReserveStats } from '@goodsdks/good-reserve'
 import {
   createPublicClient,
   createWalletClient,
@@ -17,7 +17,6 @@ import type {
 import {
   CELO_CHAIN_ID,
   DEFAULT_GD_DECIMALS,
-  EXIT_CONTRIBUTION_PPM_DIVISOR,
   getStableDecimals,
   XDC_CHAIN_ID,
 } from './constants'
@@ -123,7 +122,7 @@ export function useReserveRefSync(
   state: ReserveSwapWidgetAdapterState,
 ): void {
   useEffect(() => { refs.statusRef.current = state.status }, [refs.statusRef, state.status])
-  useEffect(() => { refs.tokenInBalanceRef.current = state.tokenInBalance }, [refs.tokenInBalanceRef, state.tokenInBalance])
+  useLayoutEffect(() => { refs.tokenInBalanceRef.current = state.tokenInBalance }, [refs.tokenInBalanceRef, state.tokenInBalance])
   useEffect(() => { refs.directionRef.current = state.direction }, [refs.directionRef, state.direction])
   useEffect(() => {
     refs.mountedRef.current = true
@@ -143,6 +142,8 @@ export function useReserveBootstrap(
   requestQuoteRefresh: (notice: string | null) => void,
 ) {
   const { address, chainId, isConnected, provider, connect } = useWallet()
+  const previousChainIdRef = useRef<number | null>(null)
+  const bootstrapRequestIdRef = useRef(0)
 
   // The same environment applies to every chain; the SDK reports which
   // chain/environment pairs actually have reserve contracts deployed.
@@ -165,37 +166,46 @@ export function useReserveBootstrap(
   }, [provider])
 
   const refreshBalances = useCallback(async () => {
-    if (!address || !refs.sdkRef.current || !refs.publicClientRef.current) return
     const sdk = refs.sdkRef.current
+    const publicClient = refs.publicClientRef.current
+    const account = refs.walletClientRef.current?.account
+    if (!sdk || !publicClient || !account) return
+
     const stableToken = sdk.getStableTokenAddress()
     const [stable, gd] = await Promise.all([
-      refs.publicClientRef.current.readContract({
+      publicClient.readContract({
         address: stableToken,
         abi: erc20ABI,
         functionName: 'balanceOf',
-        args: [address as `0x${string}`],
+        args: [account.address],
       }) as Promise<bigint>,
-      sdk.getGDBalance(address as `0x${string}`),
+      sdk.getGDBalance(account.address),
     ])
+    if (!refs.mountedRef.current || refs.sdkRef.current !== sdk) return
+
     const stableBalance = formatUnits(stable, refs.decimalsRef.current.stable)
     const gdBalance = formatUnits(gd, refs.decimalsRef.current.gd)
     refs.balancesRef.current = { stable: stableBalance, gd: gdBalance }
-    if (!refs.mountedRef.current) return
     applyStatePatch({
       ...balancesForDirection(refs.directionRef.current, stableBalance, gdBalance),
     })
-  }, [address, applyStatePatch, refs])
+  }, [applyStatePatch, refs])
+
+  const invalidateSdk = useCallback(() => {
+    ++bootstrapRequestIdRef.current
+    refs.sdkRef.current = null
+    refs.publicClientRef.current = null
+    refs.walletClientRef.current = null
+  }, [refs])
 
   const bootstrapSdk = useCallback(async () => {
     if (!provider || !address || !chainId || !chainSupported) return
 
-    // Drop any SDK/client bound to a previous chain so a chain switch
-    // re-initializes against the new chain instead of reusing stale clients.
-    refs.sdkRef.current = null
-    refs.publicClientRef.current = null
-    refs.walletClientRef.current = null
+    invalidateSdk()
+    const requestId = bootstrapRequestIdRef.current
+    const isSuperseded = () => requestId !== bootstrapRequestIdRef.current
 
-    // A quote belongs to one chain/SDK pair, so a network switch invalidates it.
+    // A quote belongs to one chain/SDK pair, including during a manual refresh.
     applyStatePatch({
       status: 'sdk_initializing',
       hasProvider: true,
@@ -219,6 +229,7 @@ export function useReserveBootstrap(
         exactApproval: true,
       })
       const stats = await sdk.getReserveStats()
+      if (isSuperseded()) return
 
       refs.sdkRef.current = sdk
       refs.publicClientRef.current = publicClient
@@ -231,17 +242,12 @@ export function useReserveBootstrap(
         stable: stats.stableTokenDecimals ?? getStableDecimals(chainId),
         gd: stats.goodDollarDecimals ?? DEFAULT_GD_DECIMALS,
       }
-      // Mento's BancorExchangeProvider stores exitContribution as a uint32
-      // scaled by MAX_WEIGHT = 1e8, so the raw value is a fraction in parts per
-      // hundred-million. Dividing by 1e6 converts it straight to a percentage.
-      // Verified on the live Celo pool: raw 10_000_000 → 10.00% (and the
-      // sibling reserveRatio 40_445_300 → 40.45%, which cross-checks the scale).
+      const { exitContributionPercent } = normalizeReserveStats(stats)
       refs.exitContributionRef.current =
-        stats.exitContribution != null
-          ? `${(stats.exitContribution / EXIT_CONTRIBUTION_PPM_DIVISOR).toFixed(2)}%`
-          : '0%'
+        exitContributionPercent === null ? '0%' : `${Number(exitContributionPercent).toFixed(2)}%`
 
       await refreshBalances()
+      if (isSuperseded()) return
       const stableSymbol = getStableSymbol(chainId)
       const dir = refs.directionRef.current
       applyStatePatch({
@@ -251,9 +257,10 @@ export function useReserveBootstrap(
         warning: null,
         error: null,
       })
-      // Any amount kept across the switch is re-quoted against the new SDK.
+      // A refresh on the same network can preserve the entered amount.
       requestQuoteRefresh(null)
     } catch (err: unknown) {
+      if (isSuperseded()) return
       applyStatePatch({
         status: 'quote_error',
         error: mapReserveError(err, 'Failed to initialize GoodReserve SDK.'),
@@ -265,19 +272,35 @@ export function useReserveBootstrap(
     chainId,
     chainSupported,
     environment,
+    invalidateSdk,
     provider,
     refs,
     refreshBalances,
     requestQuoteRefresh,
   ])
 
-  // Drive the provider/chain connection lifecycle.
-  useEffect(() => {
+  // Clear chain-bound state before the new network can render.
+  useLayoutEffect(() => {
     if (mockState) return
+    const chainChanged = previousChainIdRef.current !== chainId
+    previousChainIdRef.current = chainId
+    let chainReset: Partial<ReserveSwapWidgetAdapterState> = {}
+    if (chainChanged) {
+      refs.balancesRef.current = { stable: '0.00', gd: '0.00' }
+      refs.tokenInBalanceRef.current = '0.00'
+      refs.quoteRefreshNoticeRef.current = null
+      chainReset = {
+        inputAmount: '',
+        tokenInBalance: '0.00',
+        tokenOutBalance: '0.00',
+        quote: null,
+        quoteExpiresAt: null,
+        warning: null,
+      }
+    }
     if (!provider || !isConnected || !address) {
-      refs.sdkRef.current = null
-      refs.publicClientRef.current = null
       applyStatePatch({
+        ...chainReset,
         status: 'no_provider',
         hasProvider: Boolean(provider),
         address: null,
@@ -285,18 +308,14 @@ export function useReserveBootstrap(
       })
       return
     }
-    applyStatePatch({ address, chainId, hasProvider: true })
+    applyStatePatch({ ...chainReset, address, chainId, hasProvider: true })
     if (!chainSupported) {
-      // The previous network's SDK and quote must not outlive the switch: dropping
-      // the SDK also makes any quote request still in flight count as superseded.
-      refs.sdkRef.current = null
-      refs.publicClientRef.current = null
-      refs.walletClientRef.current = null
       applyStatePatch({ status: 'unsupported_chain', error: null, quote: null, quoteExpiresAt: null })
       return
     }
     void bootstrapSdk()
-  }, [address, applyStatePatch, bootstrapSdk, chainId, chainSupported, isConnected, mockState, provider, refs])
+    return invalidateSdk
+  }, [address, applyStatePatch, bootstrapSdk, chainId, chainSupported, invalidateSdk, isConnected, mockState, provider, refs])
 
   return { address, chainId, provider, chainSupported, connect, readActiveChainId, refreshBalances, bootstrapSdk }
 }

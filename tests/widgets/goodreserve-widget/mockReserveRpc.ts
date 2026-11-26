@@ -124,7 +124,7 @@ export interface RecordedEthCall {
   selector: string
 }
 
-export interface HeldQuote {
+export interface HeldResponse {
   /** Resolves once the widget has sent the held request. */
   requested: Promise<void>
   /** Lets the held response go out; resolves after it has been fulfilled. */
@@ -135,7 +135,8 @@ export interface ReserveRpcMock {
   calls: RecordedEthCall[]
   unexpectedCalls: RecordedEthCall[]
   /** Withholds the `getAmountOut` response for one chain + input amount until released. */
-  holdQuote: (chain: ReserveChainName, amountInBaseUnits: bigint) => HeldQuote
+  holdQuote: (chain: ReserveChainName, amountInBaseUnits: bigint) => HeldResponse
+  holdBalances: (chain: ReserveChainName) => HeldResponse
 }
 
 const toWord = (value: bigint): string => value.toString(16).padStart(64, '0')
@@ -200,7 +201,7 @@ function encodeEthCallResult(config: ReserveMockConfig, to: string, data: string
 export async function installReserveRpcMock(page: Page): Promise<ReserveRpcMock> {
   const calls: RecordedEthCall[] = []
   const unexpectedCalls: RecordedEthCall[] = []
-  const heldQuotes = new Map<
+  const heldCalls = new Map<
     string,
     { released: Promise<void>; markRequested: () => void; markFulfilled: () => void }
   >()
@@ -251,13 +252,15 @@ export async function installReserveRpcMock(page: Page): Promise<ReserveRpcMock>
       return reject(`mock RPC: unexpected eth_call to ${to} (${recorded.selector})`)
     }
 
-    if (recorded.selector === SELECTORS.getAmountOut) {
-      const held = heldQuotes.get(quoteKey(chain, BigInt(`0x${wordAt(callData, 4)}`)))
-      if (held) {
-        held.markRequested()
-        await held.released
-        held.markFulfilled()
-      }
+    const held = recorded.selector === SELECTORS.getAmountOut
+      ? heldCalls.get(quoteKey(chain, BigInt(`0x${wordAt(callData, 4)}`)))
+      : recorded.selector === SELECTORS.balanceOf
+        ? heldCalls.get(`${chain}:balance`)
+        : undefined
+    if (held) {
+      held.markRequested()
+      await held.released
+      held.markFulfilled()
     }
     return respond(result)
   }
@@ -277,24 +280,27 @@ export async function installReserveRpcMock(page: Page): Promise<ReserveRpcMock>
     })
   }
 
+  function holdResponse(key: string): HeldResponse {
+    let markRequested!: () => void
+    let markFulfilled!: () => void
+    let releaseHeldResponse!: () => void
+    const requested = new Promise<void>((resolve) => (markRequested = resolve))
+    const fulfilled = new Promise<void>((resolve) => (markFulfilled = resolve))
+    const released = new Promise<void>((resolve) => (releaseHeldResponse = resolve))
+    heldCalls.set(key, { released, markRequested, markFulfilled })
+    return {
+      requested,
+      release: async () => {
+        releaseHeldResponse()
+        await fulfilled
+      },
+    }
+  }
+
   return {
     calls,
     unexpectedCalls,
-    holdQuote(chain, amountInBaseUnits) {
-      let markRequested!: () => void
-      let markFulfilled!: () => void
-      let releaseHeldResponse!: () => void
-      const requested = new Promise<void>((resolve) => (markRequested = resolve))
-      const fulfilled = new Promise<void>((resolve) => (markFulfilled = resolve))
-      const released = new Promise<void>((resolve) => (releaseHeldResponse = resolve))
-      heldQuotes.set(quoteKey(chain, amountInBaseUnits), { released, markRequested, markFulfilled })
-      return {
-        requested,
-        release: async () => {
-          releaseHeldResponse()
-          await fulfilled
-        },
-      }
-    },
+    holdQuote: (chain, amountInBaseUnits) => holdResponse(quoteKey(chain, amountInBaseUnits)),
+    holdBalances: (chain) => holdResponse(`${chain}:balance`),
   }
 }

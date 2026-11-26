@@ -407,7 +407,9 @@ test.describe('stale quote protection', () => {
     await updateStoryArgs(page, { walletChainId: XDC_CHAIN_ID })
     await waitForNetwork(page, xdcDevelopment)
 
-    // The retained amount is re-quoted on XDC (10 USDC × 40 = 400 G$), never with the Celo rate.
+    await expect(page.locator('input').first()).toHaveValue('')
+    await typeAmount(page, '10')
+    // The newly entered amount uses XDC (10 USDC × 40 = 400 G$), never the Celo rate.
     await expect(page.getByText('400.00', { exact: true })).toBeVisible({ timeout: 20_000 })
     await expect(reviewSwapButton(page)).toBeEnabled()
 
@@ -419,28 +421,35 @@ test.describe('stale quote protection', () => {
     await expect(reviewSwapButton(page)).toBeEnabled()
   })
 
-  test('a network switch hides the old network quote while the new one is pending', async ({
-    page,
-  }) => {
-    const celoDevelopment = RESERVE_MOCK_CONFIGS['development-celo']
-    const xdcDevelopment = RESERVE_MOCK_CONFIGS['development-xdc']
+  test('a network switch clears the amount and hides old balances until fresh reads return', async ({ page }) => {
+    const celo = RESERVE_MOCK_CONFIGS['development-celo']
+    const xdc = RESERVE_MOCK_CONFIGS['development-xdc']
     const rpcMock = await openInteractiveStory(page, 'development', CELO_CHAIN_ID)
-    await waitForNetwork(page, celoDevelopment)
-
+    await waitForNetwork(page, celo)
     await typeAmount(page, '10')
     await expect(page.getByText('500.00', { exact: true })).toBeVisible({ timeout: 15_000 })
+    const stableBalance = page.getByText('Balance: 777.00', { exact: true })
+    const gdBalance = page.getByText('Balance: 50,000.00', { exact: true })
+    await expect(stableBalance).toBeVisible()
+    await expect(gdBalance).toBeVisible()
 
-    const pendingXdcQuote = rpcMock.holdQuote(
-      'xdc',
-      toBaseUnits(10n, xdcDevelopment.stableDecimals),
-    )
+    const pendingXdcBalances = rpcMock.holdBalances('xdc')
     await updateStoryArgs(page, { walletChainId: XDC_CHAIN_ID })
+    try {
+      await pendingXdcBalances.requested
+      await expect(stableBalance).toHaveCount(0)
+      await expect(gdBalance).toHaveCount(0)
+      await expect(page.getByText('500.00', { exact: true })).toHaveCount(0)
+    } finally {
+      await pendingXdcBalances.release()
+    }
 
-    await expect(page.getByText('500.00', { exact: true })).toHaveCount(0)
+    await waitForNetwork(page, xdc)
+    await expect(stableBalance).toBeVisible()
+    await expect(gdBalance).toBeVisible()
+    await expect(page.locator('input').first()).toHaveValue('')
     await expect(primaryCta(page)).toBeDisabled()
-
-    await pendingXdcQuote.requested
-    await pendingXdcQuote.release()
+    await typeAmount(page, '10')
     await expect(page.getByText('400.00', { exact: true })).toBeVisible({ timeout: 15_000 })
     await expect(reviewSwapButton(page)).toBeEnabled()
   })
@@ -458,6 +467,7 @@ test.describe('stale quote protection', () => {
     await updateStoryArgs(page, { walletChainId: XDC_CHAIN_ID })
     await waitForNetwork(page, xdcProduction)
 
+    await typeAmount(page, '10')
     // 10 USDC × 20 = 200 G$ on XDC production; the Celo production quote must be gone.
     await expect(page.getByText('200.00', { exact: true })).toBeVisible({ timeout: 20_000 })
     await expect(page.getByText('1,000.00', { exact: true })).toHaveCount(0)
@@ -477,6 +487,8 @@ test.describe('stale quote protection', () => {
     await updateStoryArgs(page, { walletChainId: FUSE_CHAIN_ID })
 
     await expect(primaryCta(page)).toContainText('Switch Network', { timeout: 20_000 })
+    await expect(page.getByText('Balance: 777.00', { exact: true })).toHaveCount(0)
+    await expect(page.getByText('Balance: 50,000.00', { exact: true })).toHaveCount(0)
     await expect(page.getByText('1,000.00', { exact: true })).toHaveCount(0)
     await page.waitForTimeout(DEBOUNCE_SETTLE_MS)
     expect(rpcMock.calls).toHaveLength(callsBeforeSwitch)
