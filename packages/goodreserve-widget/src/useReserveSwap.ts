@@ -5,7 +5,6 @@ import type {
   ReserveSwapWidgetAdapterState,
   ReserveWidgetEnvironment,
 } from './widgetRuntimeContract'
-import { QUOTE_REFRESHED_NOTICE } from './constants'
 import { mapReserveError } from './errors'
 import type { ReserveRefs } from './useReserveBootstrap'
 
@@ -27,7 +26,7 @@ export function useReserveSwap(
   environment: ReserveWidgetEnvironment,
   readActiveChainId: () => Promise<number | null>,
   refreshBalances: () => Promise<void>,
-  requestQuoteRefresh: (notice: string | null) => void,
+  refreshExpiredQuote: () => void,
 ) {
   return useCallback(async () => {
     if (!refs.sdkRef.current || !state.quote || !state.inputAmount) return
@@ -36,18 +35,8 @@ export function useReserveSwap(
 
     // Reject a stale quote: reserve prices move, so a minReturn derived from
     // an old quote may no longer be safe. Force a refresh instead of signing.
-    if (state.quoteExpiresAt !== null && Date.now() > state.quoteExpiresAt) {
-      // Keep the entered amount and drop back to editing, then explicitly kick
-      // the quote effect. It keys on inputAmount/direction/slippagePercent, none
-      // of which this patch changes, so without the nonce bump it would never
-      // re-run and the user would be stranded on a disabled "Review Swap".
-      applyStatePatch({
-        status: 'amount_editing',
-        quote: null,
-        quoteExpiresAt: null,
-        warning: QUOTE_REFRESHED_NOTICE,
-      })
-      requestQuoteRefresh(QUOTE_REFRESHED_NOTICE)
+    if (state.quoteExpiresAt !== null && Date.now() >= state.quoteExpiresAt) {
+      refreshExpiredQuote()
       return
     }
 
@@ -124,7 +113,7 @@ export function useReserveSwap(
     readActiveChainId,
     refreshBalances,
     refs,
-    requestQuoteRefresh,
+    refreshExpiredQuote,
     state.direction,
     state.inputAmount,
     state.quote,

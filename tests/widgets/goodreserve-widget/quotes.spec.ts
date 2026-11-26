@@ -235,6 +235,47 @@ test.describe('quotes and fee data per chain and environment', () => {
 test.describe('stale quote protection', () => {
   const celoProduction = RESERVE_MOCK_CONFIGS['production-celo']
 
+  test('an expired confirmation only offers a re-quote and requires fresh review', async ({ page }, testInfo) => {
+    const xdc = RESERVE_MOCK_CONFIGS['production-xdc']
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.clock.install()
+    const rpcMock = await openInteractiveStory(page, 'production', XDC_CHAIN_ID)
+    await waitForNetwork(page, xdc)
+    await typeAmount(page, '10')
+    await expect(reviewSwapButton(page)).toBeEnabled({ timeout: 15_000 })
+    await reviewSwapButton(page).click()
+
+    const dialog = page.getByTestId('GoodReserveWidget-confirm-dialog')
+    const action = dialog.getByTestId('GoodReserveWidget-confirm-cta')
+    await expect(action).toHaveText('Confirm Swap')
+    await expect(dialog.getByText('199.80', { exact: true })).toBeVisible()
+
+    await page.clock.fastForward(61_000)
+    await expect(dialog.getByTestId('GoodReserveWidget-quote-expired')).toBeVisible()
+    await expect(dialog.getByText('199.80', { exact: true })).toHaveCount(0)
+    await expect(action).toHaveText('Refresh Quote')
+    await expect(action).toBeInViewport({ ratio: 1 })
+    await page.screenshot({ path: testInfo.outputPath('reserve-xdc-expired-confirmation.png') })
+
+    const replacement = rpcMock.holdQuote('xdc', toBaseUnits(10n, xdc.stableDecimals))
+    try {
+      await action.click()
+      await replacement.requested
+      await expect(dialog).not.toBeInViewport()
+      await expect(primaryCta(page)).toHaveText('Fetching Quote…')
+      await expect(primaryCta(page)).toBeDisabled()
+    } finally {
+      await replacement.release()
+    }
+
+    await expect(page.locator('input').first()).toHaveValue('10')
+    await expect(reviewSwapButton(page)).toBeEnabled()
+    await reviewSwapButton(page).click()
+    await expect(action).toHaveText('Confirm Swap')
+    await expect(dialog.getByTestId('GoodReserveWidget-quote-expired')).toHaveCount(0)
+    await expect(dialog.getByText('199.80', { exact: true })).toBeVisible()
+  })
+
   test('changing the amount clears the previous quote and blocks Review until the new quote lands', async ({
     page,
   }) => {

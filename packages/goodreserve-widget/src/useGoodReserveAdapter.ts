@@ -7,6 +7,7 @@ import type {
 } from './widgetRuntimeContract'
 import {
   DEFAULT_SLIPPAGE_PERCENT,
+  QUOTE_REFRESHED_NOTICE,
 } from './constants'
 
 import {
@@ -90,6 +91,17 @@ export function useGoodReserveAdapter(
     [refs],
   )
 
+  const refreshExpiredQuote = useCallback(() => {
+    // Keep the amount and force the quote effect to run for the same inputs.
+    applyStatePatch({
+      status: 'amount_editing',
+      quote: null,
+      quoteExpiresAt: null,
+      warning: QUOTE_REFRESHED_NOTICE,
+    })
+    requestQuoteRefresh(QUOTE_REFRESHED_NOTICE)
+  }, [applyStatePatch, requestQuoteRefresh])
+
   // 1. Bootstrap: wallet connection, SDK construction, chain handling.
   const { chainId, provider, chainSupported, connect, readActiveChainId, refreshBalances, bootstrapSdk } =
     useReserveBootstrap(refs, applyStatePatch, mockState, environment, requestQuoteRefresh)
@@ -106,7 +118,7 @@ export function useGoodReserveAdapter(
     environment,
     readActiveChainId,
     refreshBalances,
-    requestQuoteRefresh,
+    refreshExpiredQuote,
   )
 
   // 4. UI action adapters — direction, amount, overlay, slippage, refresh.
@@ -216,6 +228,7 @@ export function useGoodReserveAdapter(
         applyStatePatch({ status: refs.previousStatusRef.current })
       },
       executeSwap,
+      refreshExpiredQuote,
       refreshBalances,
       refresh: async () => {
         if (mockState) return
@@ -233,6 +246,7 @@ export function useGoodReserveAdapter(
       provider,
       refs,
       refreshBalances,
+      refreshExpiredQuote,
       state.inputAmount,
       state.status,
       state.slippagePercent,
