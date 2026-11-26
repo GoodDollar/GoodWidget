@@ -41,6 +41,42 @@ export function ClaimPanel({ provider }: { provider?: unknown }) {
   </DocsSection>
 
   <DocsSection
+    title="Next task recommendation (nextTaskContent)"
+    description="Show an opt-in next action bottom sheet after a successful claim. When omitted or null, no sheet is shown."
+  >
+    <Source
+      dark
+      language="tsx"
+      code={`<CitizenClaimWidget
+  provider={provider}
+  environment="production"
+  defaultTheme="dark"
+  nextTaskContent={{
+    title: 'Stake your G$ and earn',
+    description: 'Put your claimed G$ to work by staking it for rewards.',
+    ctaLabel: 'Explore staking',
+    ctaTarget: 'https://gooddollar.org/stake',
+    imageUrl: 'https://placehold.co/96x96',
+    contentId: 'stake-prompt',
+  }}
+  onNextTaskShown={({ contentId }) => console.log('Shown', contentId)}
+  onNextTaskClicked={({ ctaTarget }) => console.log('Clicked', ctaTarget)}
+  onNextTaskDismissed={({ reason }) => console.log('Dismissed', reason)}
+/>`}
+    />
+    <DocsGrid>
+      <DocsCard title="Configurable copy fields">
+        \`headline\`, \`supportingCopy\`, \`recommendedLabel\`, and \`skipLabel\` customize sheet copy,
+        defaulting to standard fallback copy strings when omitted.
+      </DocsCard>
+      <DocsCard title="Status label precedence">
+        \`content.statusLabel\` takes precedence over the modal's \`statusLabel\` prop. When neither
+        is provided, no status pill is rendered.
+      </DocsCard>
+    </DocsGrid>
+  </DocsSection>
+
+  <DocsSection
     title="QA coverage"
     description="Use the QA demo when you need reproducible custodial state, Playwright screenshots, or fixture-driven debugging. Keep this page focused on the product-facing integration flow."
   >

@@ -87,7 +87,7 @@ jobs:
         run: |
           git config user.name goodwidget-release
           git config user.email goodwidget-release@users.noreply.github.com
-      - name: Build, pack, publish, verify, and dispatch
+      - name: Build, pack, publish, and dispatch
         id: release
         env:
           RELEASE_BASE_SHA: ${{ github.event.before || inputs.base }}

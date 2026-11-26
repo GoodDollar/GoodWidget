@@ -1,0 +1,81 @@
+import React from 'react'
+import {
+  Button,
+  type ButtonProps,
+  Card,
+  Text,
+  XStack,
+  YStack,
+  createComponent,
+  getChainDisplayName,
+} from '@goodwidget/ui'
+import type { BridgeProtocol } from '@goodsdks/bridging-sdk'
+import { getProtocolSupportedChains } from '../adapter/bridgeRoutes'
+
+// Shared across BridgeTab (protocol picker) and FeeBreakdown (route summary)
+// so the two screens never label the same protocol differently.
+export const PROTOCOL_LABELS: Record<BridgeProtocol, string> = {
+  AXELAR: 'Axelar',
+  LAYERZERO: 'LayerZero',
+}
+
+function supportedNetworksLabel(protocol: BridgeProtocol): string {
+  const names = getProtocolSupportedChains(protocol).map(getChainDisplayName)
+  if (names.length < 2) return names[0] ?? ''
+  return `${names.slice(0, -1).join(', ')}${names.length > 2 ? ',' : ''} and ${names[names.length - 1]}`
+}
+
+export const PROTOCOL_SUPPORTED_NETWORKS: Record<BridgeProtocol, string> = {
+  AXELAR: supportedNetworksLabel('AXELAR'),
+  LAYERZERO: supportedNetworksLabel('LAYERZERO'),
+}
+
+export const BridgingTabContent = createComponent(YStack, {
+  name: 'BridgingTabContent',
+  flex: 1,
+  gap: '$2',
+  paddingVertical: '$2',
+})
+
+export const EmptyStateCard = createComponent(Card, {
+  name: 'EmptyStateCard',
+  padding: '$6',
+  alignItems: 'center' as const,
+  justifyContent: 'center' as const,
+  gap: '$3',
+})
+
+export const RouteSelectionCard = createComponent(Card, {
+  name: 'RouteSelectionCard',
+  backgroundColor: '$backgroundSurface',
+  padding: '$4',
+  gap: '$3',
+})
+
+// A single right-aligned key/value row, shared by FeeBreakdown and ReviewScreen
+// so the main-screen and Confirm-screen fee breakdowns always read identically.
+export function DetailRow({ label, value, valueColor }: { label: string; value: string; valueColor?: string }) {
+  return (
+    <XStack justifyContent="space-between" alignItems="flex-start" gap="$3">
+      <Text flexShrink={0} maxWidth="48%" fontSize={12} fontWeight="600" color="$secondaryColor">
+        {label}
+      </Text>
+      <Text flex={1} flexShrink={1} textAlign="right" fontSize={14} fontWeight="500" color={valueColor ?? '$textColor'}>
+        {value}
+      </Text>
+    </XStack>
+  )
+}
+
+export function ActionButton({
+  children,
+  minWidth = 100,
+  size = 'sm',
+  ...props
+}: ButtonProps) {
+  return (
+    <Button minWidth={minWidth} size={size} {...props}>
+      {children}
+    </Button>
+  )
+}

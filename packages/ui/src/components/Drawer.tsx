@@ -72,7 +72,7 @@ interface DrawerProps {
   open: boolean
   onClose: () => void
   children?: ReactNode
-  height?: 'half' | 'full'
+  height?: 'half' | 'full' | 'fit'
   /**
    * Hides the corner close button. Only for a drawer whose content already
    * renders its own — dismissing by pressing outside is a thin target on a
@@ -90,7 +90,8 @@ export function Drawer({
   hideCloseButton = false,
 }: DrawerProps) {
   const theme = useTheme()
-  const snapPoints = height === 'half' ? [50] : [80]
+  const snapPoints = height === 'fit' ? undefined : height === 'half' ? [50] : [80]
+  const snapPointsMode = height === 'fit' ? 'fit' : 'percent'
 
   return (
     <Sheet
@@ -103,14 +104,15 @@ export function Drawer({
       }}
       modal
       dismissOnOverlayPress
-      dismissOnSnapToBottom
+      dismissOnSnapToBottom={height !== 'fit'}
+      disableDrag={height === 'fit'}
       snapPoints={snapPoints}
-      snapPointsMode="percent"
+      snapPointsMode={snapPointsMode}
       zIndex={Number(theme.zIndex?.val ?? 200)}
     >
       <DrawerOverlay style={{ backdropFilter: 'blur(2px)' }} />
-      <DrawerFrame>
-        <DrawerHandle />
+      <DrawerFrame maxHeight={height === 'fit' ? 'calc(100vh - 48px)' : undefined}>
+        {height !== 'fit' && <DrawerHandle />}
         {!hideCloseButton && (
           <DrawerCloseButton>
             <Button

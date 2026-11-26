@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { GoodWidgetProvider, useWallet } from '@goodwidget/core'
 import type { EIP1193Provider } from '@goodwidget/core'
+import type { NextTaskContent, NextTaskDismissReason } from '@goodwidget/ui'
 import {
   createComponent,
   Card,
@@ -13,6 +14,8 @@ import {
   TokenAmount,
   Spinner,
   Separator,
+  NextTaskModal,
+  NEXT_TASK_STATUS_LABEL,
   ToastContainer,
   createToast,
   updateToast,
@@ -188,6 +191,11 @@ interface CitizenClaimInnerProps {
   claimExecution?: CitizenClaimWidgetCustodialExecution
   onClaimSuccess?: (detail: CitizenClaimWidgetSuccessDetail) => void
   onClaimError?: (detail: CitizenClaimWidgetErrorDetail) => void
+  nextTaskContent?: NextTaskContent | null
+  nextTaskResolveNavigation?: (ctaTarget: string) => void | Promise<void>
+  onNextTaskShown?: (payload: { contentId?: string }) => void
+  onNextTaskClicked?: (payload: { ctaTarget: string }) => void
+  onNextTaskDismissed?: (payload: { reason: NextTaskDismissReason }) => void
 }
 
 function CitizenClaimInner({
@@ -196,12 +204,19 @@ function CitizenClaimInner({
   claimExecution,
   onClaimSuccess,
   onClaimError,
+  nextTaskContent,
+  nextTaskResolveNavigation,
+  onNextTaskShown,
+  onNextTaskClicked,
+  onNextTaskDismissed,
 }: CitizenClaimInnerProps) {
   const { state, actions } = useCitizenClaimAdapter({
     environment,
     clientFactory,
     claimExecution,
   })
+  // Opt-in follow-up recommendation, offered only after a successful claim.
+  const [isNextTaskOpen, setIsNextTaskOpen] = useState(false)
   const {
     status,
     address,
@@ -253,6 +268,8 @@ function CitizenClaimInner({
               duration: 0,
             })
 
+            // Tracked outside the try/catch so a Next Task failure can never be reported as a failed claim.
+            let singleClaimSucceeded = false
             try {
               const receipt = await actions.claim(() =>
                 updateToast(toastId, {
@@ -261,6 +278,7 @@ function CitizenClaimInner({
                   duration: 0,
                 }),
               )
+              singleClaimSucceeded = true
               updateToast(toastId, {
                 message: `Claim succeeded on ${singleChainName}`,
                 status: 'success',
@@ -284,6 +302,9 @@ function CitizenClaimInner({
                 message:
                   singleClaimError instanceof Error ? singleClaimError.message : 'Claim failed',
               })
+            }
+            if (singleClaimSucceeded && nextTaskContent) {
+              setIsNextTaskOpen(true)
             }
             break
           }
@@ -316,6 +337,9 @@ function CitizenClaimInner({
               })
             },
           )
+          // The Next Task opens once for the whole batch below, not per claim — a claimAll
+          // run spanning several chains is one task-completion event, not one per chain.
+          let batchHadSuccessfulClaim = false
 
           for (const claimResult of claimResults) {
             const entryChainName =
@@ -338,6 +362,7 @@ function CitizenClaimInner({
                 transactionHash: (claimResult.receipt as { transactionHash?: string } | undefined)
                   ?.transactionHash,
               })
+              batchHadSuccessfulClaim = true
             } catch (multiClaimError: unknown) {
               updateToast(toastId, {
                 message: `Claim failed on ${entryChainName}`,
@@ -353,7 +378,15 @@ function CitizenClaimInner({
             }
           }
 
-          await actions.refresh()
+          try {
+            await actions.refresh()
+          } finally {
+            // Opens even if refresh throws: the claims already succeeded. The throw
+            // still propagates to the outer catch, which keeps its existing handling.
+            if (batchHadSuccessfulClaim && nextTaskContent) {
+              setIsNextTaskOpen(true)
+            }
+          }
           break
         }
         case 'refresh':
@@ -404,6 +437,7 @@ function CitizenClaimInner({
     chainId,
     chainNameById,
     claimablesByChain,
+    nextTaskContent,
     onClaimSuccess,
     onClaimError,
   ])
@@ -586,6 +620,16 @@ function CitizenClaimInner({
           />
         </ClaimDailyStatsRow>
       </ClaimDailyStats>
+      <NextTaskModal
+        open={isNextTaskOpen}
+        content={nextTaskContent}
+        onClose={() => setIsNextTaskOpen(false)}
+        resolveNavigation={nextTaskResolveNavigation}
+        onShown={onNextTaskShown}
+        onClicked={onNextTaskClicked}
+        onDismissed={onNextTaskDismissed}
+        statusLabel={NEXT_TASK_STATUS_LABEL}
+      />
     </YStack>
   )
 }
@@ -604,6 +648,11 @@ interface CitizenClaimShellProps {
   onClaimSuccess?: (detail: CitizenClaimWidgetSuccessDetail) => void
   onClaimError?: (detail: CitizenClaimWidgetErrorDetail) => void
   initialTab?: CitizenClaimTab
+  nextTaskContent?: NextTaskContent | null
+  nextTaskResolveNavigation?: (ctaTarget: string) => void | Promise<void>
+  onNextTaskShown?: (payload: { contentId?: string }) => void
+  onNextTaskClicked?: (payload: { ctaTarget: string }) => void
+  onNextTaskDismissed?: (payload: { reason: NextTaskDismissReason }) => void
 }
 
 function CitizenClaimShell({
@@ -614,6 +663,11 @@ function CitizenClaimShell({
   onClaimSuccess,
   onClaimError,
   initialTab,
+  nextTaskContent,
+  nextTaskResolveNavigation,
+  onNextTaskShown,
+  onNextTaskClicked,
+  onNextTaskDismissed,
 }: CitizenClaimShellProps) {
   const { chainId } = useWallet()
   // Initial tab only — not synced after mount, matching existing internal-state pattern.
@@ -639,6 +693,11 @@ function CitizenClaimShell({
             claimExecution={claimExecution}
             onClaimSuccess={onClaimSuccess}
             onClaimError={onClaimError}
+            nextTaskContent={nextTaskContent}
+            nextTaskResolveNavigation={nextTaskResolveNavigation}
+            onNextTaskShown={onNextTaskShown}
+            onNextTaskClicked={onNextTaskClicked}
+            onNextTaskDismissed={onNextTaskDismissed}
           />
           <ToastContainer />
         </>
@@ -681,6 +740,11 @@ export function CitizenClaimWidget({
   onClaimSuccess,
   onClaimError,
   initialTab,
+  nextTaskContent,
+  nextTaskResolveNavigation,
+  onNextTaskShown,
+  onNextTaskClicked,
+  onNextTaskDismissed,
   addressOverride,
   chainIdOverride,
   connectOverride,
@@ -707,6 +771,11 @@ export function CitizenClaimWidget({
         onClaimSuccess={onClaimSuccess}
         onClaimError={onClaimError}
         initialTab={initialTab}
+        nextTaskContent={nextTaskContent}
+        nextTaskResolveNavigation={nextTaskResolveNavigation}
+        onNextTaskShown={onNextTaskShown}
+        onNextTaskClicked={onNextTaskClicked}
+        onNextTaskDismissed={onNextTaskDismissed}
       />
       <WidgetVersion name="Citizen Claim" version={version} />
     </GoodWidgetProvider>

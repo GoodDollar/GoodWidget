@@ -33,6 +33,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "lint": "eslint src/",
+    "test": "node --test --experimental-strip-types src/components/*.test.ts",
     "clean": "rm -rf dist .turbo",
     "bump-version": "pnpm version patch --no-git-tag-version && git add package.json && git commit -m \"chore(release): bump @goodwidget/ui to $(node -p 'JSON.parse(require(\"fs\").readFileSync(\"package.json\")).version')\""
   },
@@ -61,6 +62,7 @@
     "tamagui": "1.121.0"
   },
   "devDependencies": {
+    "@types/node": "^22.10.0",
     "@types/react": "^18.3.0",
     "react": "^18.3.0",
     "react-native": "0.76.9",
