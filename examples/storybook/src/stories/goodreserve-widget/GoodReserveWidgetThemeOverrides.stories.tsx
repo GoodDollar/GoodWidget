@@ -55,8 +55,6 @@ interface OverridesArgs {
   swapShellBackgroundLight: string
   amountCardBackgroundDark: string
   amountCardBackgroundLight: string
-  cardBorderColorDark: string
-  cardBorderColorLight: string
   submitButtonBackground: string
 }
 
@@ -70,12 +68,6 @@ function buildThemeOverrides(args: OverridesArgs): GoodWidgetThemeOverrides {
       light: {
         backgroundSurface: args.swapShellBackgroundLight,
         backgroundInput: args.amountCardBackgroundLight,
-      },
-      dark_Card: {
-        borderColor: args.cardBorderColorDark,
-      },
-      light_Card: {
-        borderColor: args.cardBorderColorLight,
       },
       dark_Button: {
         background: args.submitButtonBackground,
@@ -119,14 +111,6 @@ const meta: Meta<OverridesArgs> = {
       control: 'color',
       description: 'themes.light.backgroundInput token (styles amount input card panels in light mode)',
     },
-    cardBorderColorDark: {
-      control: 'color',
-      description: 'themes.dark_Card.borderColor (styles swap shell and amount card borders in dark mode)',
-    },
-    cardBorderColorLight: {
-      control: 'color',
-      description: 'themes.light_Card.borderColor (styles swap shell and amount card borders in light mode)',
-    },
     submitButtonBackground: {
       control: 'color',
       description: 'themes.dark_Button.background / themes.light_Button.background',
@@ -138,8 +122,6 @@ const meta: Meta<OverridesArgs> = {
     swapShellBackgroundLight: '#E0E7FF',
     amountCardBackgroundDark: '#0F172A',
     amountCardBackgroundLight: '#D3DCFE',
-    cardBorderColorDark: '#7C3AED',
-    cardBorderColorLight: '#7C3AED',
     submitButtonBackground: '#7C3AED',
   },
 }
@@ -155,10 +137,12 @@ export const Playground: Story = {
           {`<GoodReserveWidget\n  defaultTheme="${args.defaultTheme}"\n  themeOverrides={${JSON.stringify(themeOverrides, null, 2)}}\n/>`}
         </CodeBlock>
 
-        <DocsCallout title="All overridable paths on GoodReserveWidget" tone="info">
+        <DocsCallout title="Theme overrides shown here" tone="info">
           <DocsList>
             <li>
-              <strong>dark_Card.borderColor / light_Card.borderColor</strong>: Swap shell and amount card border colors.
+              There is no border-color control: <code>dark_Card.borderColor</code> and{' '}
+              <code>light_Card.borderColor</code> do not change the swap shell border, and the amount panels have no
+              visible border.
             </li>
             <li>
               <strong>dark.backgroundSurface / light.backgroundSurface</strong>: Outer swap shell card background.
