@@ -68,7 +68,7 @@ When `nextTaskResolveNavigation` is passed, the host owns CTA navigation entirel
 - The CTA renders as a `<Button>` (instead of an Anchor link).
 - The raw `ctaTarget` string is handed to the callback untouched.
 - If the callback throws or rejects, an error toast is surfaced and the modal remains open for retry or dismissal.
-- When omitted, the CTA acts as an Anchor navigating to `ctaTarget` (http/https only).
+- When omitted, valid http/https links use an Anchor on web or React Native Linking on native. If native opening fails, the same toast appears and the modal stays open.
 
 #### Custom Element Properties & Events
 

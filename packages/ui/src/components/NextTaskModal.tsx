@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef } from 'react'
-import { Image, Sheet } from 'tamagui'
+import { Image, isWeb, Sheet } from 'tamagui'
 import { Anchor } from './Anchor'
 import { Badge, BadgeText } from '../components-test/Badge'
 import { Button, ButtonText } from './Button'
@@ -22,13 +22,18 @@ export const NEXT_TASK_STATUS_LABEL = 'Claim completed'
 export const NAVIGATION_FAILED_TOAST_MESSAGE = 'Could not open this link. Please try again.'
 export const REJECTED_URL_TOAST_MESSAGE = 'This link cannot be opened.'
 
+async function openNativeLink(target: string) {
+  const { Linking } = await import('react-native')
+  await Linking.openURL(target)
+}
+
 export interface NextTaskContent {
   title: string
   description: string
   ctaLabel: string
   /** Where the CTA points. Handed untouched to `resolveNavigation` when the
-   * host passes one; otherwise validated (http/https only) and rendered as an
-   * Anchor `href`. */
+   * host passes one; otherwise validated (http/https only) and opened by the
+   * platform. */
   ctaTarget: string
   imageUrl?: string
   /** Opaque id surfaced on `onShown` for host-side analytics correlation. */
@@ -51,20 +56,20 @@ export type NextTaskDismissReason = 'close-button' | 'skip-link' | 'overlay'
 
 export interface NextTaskModalProps {
   /** Controlled visibility. The modal calls `onClose` on every dismissal and
-   * after a CTA press, so the host/widget state always follows. */
+   * after successful async navigation or a web Anchor click. */
   open: boolean
   /** No fetch, no async — the host decides what content is available and
    * passes it in directly. A missing/null value means "nothing to show". */
   content: NextTaskContent | null | undefined
   onClose: () => void
   /**
-   * CTA navigation contract (the host handles it, or an Anchor does — never both):
+   * CTA navigation contract (only one path opens the link):
    *   - passed  → the CTA is a Button; the host owns navigation entirely
    *               (e.g. in-app routing). `ctaTarget` is handed over untouched and
    *               the modal opens no link itself, with no external fallback.
-   *   - absent  → the CTA is an `Anchor` to `ctaTarget` (http/https only). A
-   *               rejected URL renders a Button that shows an error toast.
-   *   - throws or rejects → caught and shown as an error toast; the modal stays open so the user can retry or dismiss.
+   *   - absent  → a valid http/https target uses an Anchor on web or Linking on native.
+   *               An invalid URL shows an error toast without opening a link.
+   *   - callback or native Linking fails → show an error toast and keep the modal open for retry.
    * The error toast needs a mounted `<ToastContainer />`.
    */
   resolveNavigation?: (ctaTarget: string) => void | Promise<void>
@@ -148,10 +153,13 @@ export function NextTaskModal({
     [onDismissed, onClose],
   )
 
-  // Host navigation: the host owns the destination; a throw or rejection is shown, never swallowed.
+  const canOpenExternalLink = !resolveNavigation && !!content && isAllowedExternalCtaUrl(content.ctaTarget)
+  const navigate = resolveNavigation ?? (!isWeb && canOpenExternalLink ? openNativeLink : undefined)
+
+  // Host and native navigation both wait for the result before closing.
   // The drawer stays open so the user can retry or dismiss. Dismissal remains unblocked during pending navigation.
-  const handleHostNavigationPress = useCallback(async () => {
-    if (!content || !resolveNavigation || hasClosedRef.current || isNavigatingRef.current) return
+  const handleAsyncNavigationPress = useCallback(async () => {
+    if (!content || !navigate || hasClosedRef.current || isNavigatingRef.current) return
     isNavigatingRef.current = true
     const attemptGeneration = ++navigationGenerationRef.current
 
@@ -161,7 +169,7 @@ export function NextTaskModal({
     }
 
     try {
-      await resolveNavigation(content.ctaTarget)
+      await navigate(content.ctaTarget)
     } catch {
       if (attemptGeneration !== navigationGenerationRef.current) return
       isNavigatingRef.current = false
@@ -173,7 +181,7 @@ export function NextTaskModal({
     isNavigatingRef.current = false
     hasClosedRef.current = true
     onClose()
-  }, [content, resolveNavigation, onClicked, onClose])
+  }, [content, navigate, onClicked, onClose])
 
   // The Anchor opens the link itself; this only reports the click and closes the sheet.
   const handleAnchorPress = useCallback(() => {
@@ -194,8 +202,7 @@ export function NextTaskModal({
 
   if (!content) return null
 
-  const isCtaTargetOpenableAsLink = !resolveNavigation && isAllowedExternalCtaUrl(content.ctaTarget)
-  const handleButtonCtaPress = resolveNavigation ? handleHostNavigationPress : handleRejectedUrlPress
+  const handleButtonCtaPress = navigate ? handleAsyncNavigationPress : handleRejectedUrlPress
 
   const effectiveStatusLabel = content.statusLabel ?? statusLabel
   const effectiveHeadline = content.headline ?? NEXT_TASK_HEADLINE
@@ -278,13 +285,7 @@ export function NextTaskModal({
             </YStack>
           </NextTaskCtaCard>
           <YStack width="100%" alignItems="center" gap="$4">
-            {/*
-             * Note: Anchor wraps Tamagui's Anchor directly rather than through `createComponent`
-             * (so native `onPress` propagates to `Linking.openURL`), and therefore does not
-             * participate in the theme-manifest override chain. The wrapped Button provides
-             * standard themeable styling.
-             */}
-            {isCtaTargetOpenableAsLink ? (
+            {isWeb && canOpenExternalLink ? (
               <Anchor
                 href={content.ctaTarget}
                 onPress={handleAnchorPress}
