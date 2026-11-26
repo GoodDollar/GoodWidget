@@ -182,7 +182,9 @@ test('AiCreditsWidget withdraw bonus forfeit warning', async ({ page }) => {
   await expect(root).toBeVisible({ timeout: 10_000 })
   const notice = root.getByTestId('withdraw-bonus-forfeit')
   const amountInput = root.getByPlaceholder(/Max .* US\$/)
-  // The story's play function may have typed an amount already.
+  // Wait for the story play function to finish typing before taking control of the input.
+  await expect(amountInput).toHaveValue('50')
+  await expect(notice).toBeVisible()
   await amountInput.fill('')
   await expect(notice).toHaveCount(0)
 

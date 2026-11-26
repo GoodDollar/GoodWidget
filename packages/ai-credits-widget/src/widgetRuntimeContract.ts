@@ -61,7 +61,7 @@ export interface AiCreditsWidgetAdapterState {
   monthlyStreamG: string | null
   withdrawableUsd: string | null
   /** Read from the funding vault; used to quote the bonus forfeited by a withdrawal. */
-  remainingCredits: AiCreditsRemainingCredits | null
+  remainingCredits?: AiCreditsRemainingCredits | null
   depositBonusPercent: number
   streamBonusPercent: number
   error: string | null

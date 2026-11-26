@@ -80,8 +80,8 @@ export type AccountView = {
   operator: SignerOperatorStatus | null
   /** Null when the withdrawable read did not answer. */
   withdrawableUsd: string | null
-  /** Null when the remaining-credits read did not answer. */
-  remainingCredits: AiCreditsRemainingCredits | null
+  /** Null or absent when the remaining-credits read did not answer. */
+  remainingCredits?: AiCreditsRemainingCredits | null
   outstandingFundingUsd: string
   outstandingFundingCount: number
 }
