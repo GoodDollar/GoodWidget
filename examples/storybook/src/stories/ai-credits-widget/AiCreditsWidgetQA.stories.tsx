@@ -10,6 +10,7 @@ import {
   PaymentPendingStory,
   PaymentConfirmedStory,
   CreditsManagementStory,
+  CreditsManagementWithdrawStory,
   HistoryTabStory,
   SetupTabStory,
   InsufficientGBalanceStory,
@@ -79,6 +80,19 @@ export const PaymentConfirmed: Story = {
 
 export const CreditsManagement: Story = {
   render: () => <CreditsManagementStory />,
+}
+
+export const CreditsManagementWithdraw: Story = {
+  render: () => <CreditsManagementWithdrawStory />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const input = await canvas.findByPlaceholderText(/Max .* US\$/)
+    await userEvent.type(input, '50')
+    // 10 bonus * 50 / 100 principal
+    await waitFor(() =>
+      expect(canvas.getByText(/forfeits .*5\.00 of your unused bonus/)).toBeInTheDocument(),
+    )
+  },
 }
 
 export const HistoryTab: Story = {

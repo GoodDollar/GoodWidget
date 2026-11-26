@@ -85,6 +85,17 @@ export function usdDisplayToMicro(usdDisplay: string): string {
   return Math.round(value * 1_000_000).toString()
 }
 
+/** Mirrors AntseedBuyerOperator.bonusForfeitOnWithdraw: ceil(bonus * amount / principal). */
+export function bonusForfeitMicro(
+  principalMicro: bigint,
+  bonusMicro: bigint,
+  amountMicro: bigint,
+): bigint {
+  if (principalMicro <= 0n || bonusMicro <= 0n || amountMicro <= 0n) return 0n
+  const amount = amountMicro < principalMicro ? amountMicro : principalMicro
+  return (bonusMicro * amount + principalMicro - 1n) / principalMicro
+}
+
 export function usdToCredits(usd: string): string {
   const value = BigInt(usd || '0')
   const credits = Number(value) / CREDITS_PER_USD
@@ -131,10 +142,7 @@ export function quoteDepositBonusUsd(
 ): string {
   const principal = gdWeiToUsd(gToWei(quote.depositAmountG), gdUsdPerToken)
   return formatProfileUsd(
-    bonusUsdFromPrincipal(
-      principal,
-      getDepositBonusPercent(isGoodIdVerified, depositBonusPercent),
-    ),
+    bonusUsdFromPrincipal(principal, getDepositBonusPercent(isGoodIdVerified, depositBonusPercent)),
   )
 }
 
@@ -146,10 +154,7 @@ export function quoteStreamBonusUsd(
 ): string {
   const principal = gdWeiToUsd(gToWei(quote.streamAmountG), gdUsdPerToken)
   return formatProfileUsd(
-    bonusUsdFromPrincipal(
-      principal,
-      getStreamBonusPercent(isGoodIdVerified, streamBonusPercent),
-    ),
+    bonusUsdFromPrincipal(principal, getStreamBonusPercent(isGoodIdVerified, streamBonusPercent)),
   )
 }
 

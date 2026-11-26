@@ -3,7 +3,7 @@ import { BASE_CHAIN_ID, type AiCreditsChainClient } from '../chainClient'
 import { ANTSEED_DEPOSITS_BASE_ADDRESS, buildSetOperatorPayload } from '../operatorConsent'
 import { buildQuoteAmounts } from '../quoteMath'
 import type { SignerOperatorStatus, OperatorConsentPayloadResponse } from '../operatorConsent'
-import type { AiCreditsQuote } from '../widgetRuntimeContract'
+import type { AiCreditsQuote, AiCreditsRemainingCredits } from '../widgetRuntimeContract'
 
 const mockOperatorAcceptedSigners = new Set<string>()
 // Revocation has to outrank the constructor's `operatorAccepted`, otherwise a mock seeded
@@ -63,7 +63,9 @@ export class MockAiCreditsChainClient implements AiCreditsChainClient {
       account: payer,
       signerAddress: signer,
       operatorAddress,
-      currentOperator: operatorAccepted ? operatorAddress : '0x0000000000000000000000000000000000000000',
+      currentOperator: operatorAccepted
+        ? operatorAddress
+        : '0x0000000000000000000000000000000000000000',
       operatorAccepted,
       consentNonce: '0',
     }
@@ -97,6 +99,10 @@ export class MockAiCreditsChainClient implements AiCreditsChainClient {
 
   async getWithdrawableUsd(): Promise<string> {
     return '0'
+  }
+
+  async getRemainingCredits(): Promise<AiCreditsRemainingCredits> {
+    return { principalUsd: '0', bonusUsd: '0' }
   }
 
   async getSignerAuthNonce(): Promise<bigint> {

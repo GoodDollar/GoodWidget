@@ -19,7 +19,7 @@ import type {
   AiCreditsWidgetAdapterActions,
   AiCreditsWidgetAdapterState,
 } from '../../widgetRuntimeContract'
-import { quoteTotalUsdMicro } from '../../quoteMath'
+import { bonusForfeitMicro, quoteTotalUsdMicro, usdDisplayToMicro } from '../../quoteMath'
 import {
   formatExactGAmount,
   formatGValue,
@@ -34,6 +34,7 @@ import {
 } from '../shared/constants'
 import { HoverTooltip, InfoTooltip } from '../shared/tooltips'
 import { compactButtonProps } from '../shared/styles'
+import { AiCreditsStatusNotice } from '../theme/cards'
 
 interface CreditsManagementCardProps {
   state: AiCreditsWidgetAdapterState
@@ -266,6 +267,7 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
     gdUsdPerToken,
     isGoodIdVerified,
     withdrawableUsd,
+    remainingCredits,
     totalBonusUsd,
     signerPrvKey,
   } = state
@@ -298,6 +300,21 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
   const withdrawableDisplay = withdrawableUsd !== null ? formatUsdAmount(withdrawableUsd) : null
   const totalBonusDisplay = totalBonusUsd !== null ? formatUsdAmount(totalBonusUsd) : null
   const hasWithdrawableBalance = withdrawableUsd !== null && BigInt(withdrawableUsd) > 0n
+  const bonusForfeitDisplay = useMemo(() => {
+    if (!remainingCredits || !withdrawAmount.trim()) return null
+    let amountMicro: bigint
+    try {
+      amountMicro = BigInt(usdDisplayToMicro(withdrawAmount.trim()))
+    } catch {
+      return null
+    }
+    const forfeit = bonusForfeitMicro(
+      BigInt(remainingCredits.principalUsd),
+      BigInt(remainingCredits.bonusUsd),
+      amountMicro,
+    )
+    return forfeit > 0n ? formatUsdMicroAmount(forfeit.toString()) : null
+  }, [remainingCredits, withdrawAmount])
   const canClose = Boolean(signerPrvKey) && Boolean(channelId.trim()) && !isClosing
   const canWithdraw =
     Boolean(signerPrvKey) &&
@@ -380,6 +397,13 @@ export function CreditsManagementCard({ state, actions }: CreditsManagementCardP
             </Button>
           </HoverTooltip>
         </XStack>
+        {bonusForfeitDisplay && (
+          <AiCreditsStatusNotice borderColor="$warning" data-testid="withdraw-bonus-forfeit">
+            <Text color="$warning" fontSize="$2">
+              This withdrawal forfeits {bonusForfeitDisplay} of your unused bonus.
+            </Text>
+          </AiCreditsStatusNotice>
+        )}
       </YStack>
 
       <YStack gap="$1">
