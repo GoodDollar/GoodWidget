@@ -219,25 +219,26 @@ export function NextTaskModal({
           width="100%"
           paddingBottom="$2"
         >
-          <YStack alignItems="center" gap="$2.5" width="100%">
+          <YStack alignItems="center" gap="$3" paddingTop="$6" width="100%">
             {effectiveStatusLabel ? (
               <Badge type="success">
                 <Icon name="check" size="xs" />
                 <BadgeText>{effectiveStatusLabel}</BadgeText>
               </Badge>
             ) : null}
-            <Heading level={5} textAlign="center">
-              {effectiveHeadline}
-            </Heading>
-            <Text tone="secondary" center fontSize="$2" lineHeight="$2">
-              {effectiveSupportingCopy}
-            </Text>
+            <YStack alignItems="center" gap="$0" width="100%">
+              <Heading level={5} textAlign="center">
+                {effectiveHeadline}
+              </Heading>
+              <Text tone="soft" center fontSize="$2" lineHeight="$2">
+                {effectiveSupportingCopy}
+              </Text>
+            </YStack>
           </YStack>
           <NextTaskCtaCard
             theme="Card"
             testID={testID}
             data-testid={testID}
-            {...(!content.imageUrl ? { padding: '$4' } : {})}
           >
             {content.imageUrl ? (
               <Stack
@@ -258,12 +259,20 @@ export function NextTaskModal({
                 />
               </Stack>
             ) : null}
-            <YStack flex={1} gap="$1.5" alignItems="flex-start">
-              <Badge type="info">
-                <BadgeText>{effectiveRecommendedLabel}</BadgeText>
+            <YStack flex={1} gap="$2" alignItems="flex-start">
+              <Badge
+                type="info"
+                paddingVertical="$0"
+                paddingHorizontal="$1"
+                borderWidth={1}
+                borderColor="$info"
+              >
+                <BadgeText color="$info">{effectiveRecommendedLabel}</BadgeText>
               </Badge>
-              <Heading level={6} fontSize="$3" lineHeight="$3" $sm={{ fontSize: '$2', lineHeight: '$2' }}>{content.title}</Heading>
-              <Text fontSize="$2" lineHeight="$2" tone="secondary">
+              <Heading level={6} fontSize="$3" lineHeight="$3">
+                {content.title}
+              </Heading>
+              <Text fontSize="$2" lineHeight="$2" tone="soft">
                 {content.description}
               </Text>
             </YStack>
@@ -283,22 +292,36 @@ export function NextTaskModal({
               >
                 <Button
                   variant="primary"
+                  size="sm"
+                  borderRadius="$5"
                   fullWidth
                   tag="span"
                   role="presentation"
                   tabIndex={-1}
                   pointerEvents="none"
                 >
-                  <ButtonText>{content.ctaLabel}</ButtonText>
+                  <ButtonText fontSize="$2" lineHeight="$2">
+                    {content.ctaLabel}
+                  </ButtonText>
                 </Button>
               </Anchor>
             ) : (
-              <Button variant="primary" fullWidth onPress={handleButtonCtaPress}>
-                <ButtonText>{content.ctaLabel}</ButtonText>
+              <Button
+                variant="primary"
+                size="sm"
+                borderRadius="$5"
+                fullWidth
+                onPress={handleButtonCtaPress}
+              >
+                <ButtonText fontSize="$2" lineHeight="$2">
+                  {content.ctaLabel}
+                </ButtonText>
               </Button>
             )}
             <Button variant="text" onPress={() => dismissWithReason('skip-link')}>
-              <ButtonText color="$textSecondary" fontWeight="400">{effectiveSkipLabel}</ButtonText>
+              <ButtonText color="$colorSoft" fontSize="$2" lineHeight="$2" fontWeight="400">
+                {effectiveSkipLabel}
+              </ButtonText>
             </Button>
           </YStack>
         </YStack>

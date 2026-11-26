@@ -8,7 +8,7 @@ export const NextTaskCtaCard = createComponent(Card, {
   extends: 'Card',
   width: '100%',
   flexDirection: 'row',
-  padding: '$3.5',
+  padding: '$4',
   gap: '$3',
   alignItems: 'flex-start',
   backgroundColor: '$background',

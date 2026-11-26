@@ -228,14 +228,22 @@ test('CitizenClaimWidget real flow: drawer opens after multi-chain claim with al
   const drawerHeadline = page.getByText('One good next step')
   await expect(drawerHeadline).toBeVisible({ timeout: 20_000 })
   await expect(page.getByText('Stake your G$ and earn')).toBeVisible()
-  await page.waitForTimeout(600)
+  // Closed sheets remain mounted, so visibility alone can capture the claim-in-progress
+  // screen. Wait for the actual drawer and actions to enter the viewport and settle.
+  const cta = page.getByRole('button', { name: 'Explore staking' })
+  await expect(drawerHeadline).toBeInViewport({ ratio: 1, timeout: 20_000 })
+  await expect(cta).toBeInViewport({ ratio: 1 })
+  await expect(page.getByRole('button', { name: 'Skip for now' })).toBeInViewport({ ratio: 1 })
+  await page.getByRole('button', { name: 'Close', exact: true }).scrollIntoViewIfNeeded()
+  // Let transient success toasts clear so they do not obscure the curated drawer evidence.
+  await expect(page.getByText('Claim succeeded on Celo', { exact: true })).not.toBeVisible()
+  await expect(page.getByText('Claim succeeded on Fuse', { exact: true })).not.toBeVisible()
 
   await page.screenshot({
     path: 'tests/widgets/citizen-claim-widget/test-results/ccw-06-next-task-drawer-open.png',
   })
 
   // Press the CTA and verify the host-side callback receives the target and drawer closes
-  const cta = page.getByRole('button', { name: 'Explore staking' })
   await expect(cta).toBeVisible()
   await cta.scrollIntoViewIfNeeded()
   await cta.click()

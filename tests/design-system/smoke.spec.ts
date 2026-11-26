@@ -22,7 +22,7 @@
  * data-testid naming convention:
  *   ComponentName-variant   e.g. Card-default, GlowCard-default, ClaimWidget-default
  */
-import { test, expect, Page } from '@playwright/test'
+import { test, expect, Page, Locator } from '@playwright/test'
 
 /** Navigate to a Storybook story URL and wait for the canvas to render. */
 async function gotoStory(page: Page, storyId: string): Promise<void> {
@@ -615,6 +615,66 @@ const NEXT_TASK_VIEWPORTS = [
   { label: 'landscape', width: 667, height: 375 },
 ]
 
+/** Check resolved default-preset styles, not just the presence of token references in JSX. */
+async function expectNextTaskDesign(card: Locator, headline: Locator, cta: Locator, skip: Locator) {
+  for (const side of ['top', 'right', 'bottom', 'left']) {
+    await expect(card).toHaveCSS(`padding-${side}`, '16px')
+  }
+  await expect(card).toHaveCSS('background-color', 'rgb(30, 31, 38)')
+  await expect(card).toHaveCSS('border-top-color', 'rgb(77, 77, 77)')
+  await expect(card).toHaveCSS('column-gap', '12px')
+  await expect(headline).toHaveCSS('font-size', '26px')
+  await expect(headline).toHaveCSS('line-height', '32px')
+  await expect(headline).toHaveCSS('font-weight', '700')
+
+  const title = card.locator('.is_Heading')
+  await expect(title).toHaveCSS('font-size', '17px')
+  await expect(title).toHaveCSS('line-height', '22px')
+  await expect(title).toHaveCSS('font-weight', '700')
+  expect(await title.evaluate((element) => getComputedStyle(element.parentElement!).rowGap)).toBe('8px')
+  expect(await headline.evaluate((element) => {
+    const header = element.parentElement!.parentElement!
+    return { gap: getComputedStyle(header).rowGap, paddingTop: getComputedStyle(header).paddingTop }
+  })).toEqual({ gap: '12px', paddingTop: '24px' })
+
+  await expect(card.locator('.is_Text')).toHaveCSS('font-size', '14px')
+  await expect(card.locator('.is_Text')).toHaveCSS('line-height', '20px')
+  await expect(card.locator('.is_Text')).toHaveCSS('color', 'rgb(204, 204, 204)')
+  await expect(card.locator('.is_Badge')).toHaveCSS('border-top-width', '1px')
+  await expect(card.locator('.is_Badge')).toHaveCSS('border-top-color', 'rgb(26, 133, 255)')
+  await expect(card.locator('.is_Badge')).toHaveCSS('padding-top', '0px')
+  await expect(card.locator('.is_BadgeText')).toHaveCSS('font-size', '12px')
+  await expect(card.locator('.is_BadgeText')).toHaveCSS('color', 'rgb(26, 133, 255)')
+
+  const primaryFrame = await cta.evaluate((element) => element.tagName === 'A')
+    ? cta.locator('.is_Button')
+    : cta
+  await expect(primaryFrame).toHaveCSS('height', '48px')
+  await expect(primaryFrame).toHaveCSS('border-top-left-radius', '20px')
+  await expect(primaryFrame).toHaveCSS('background-color', 'rgb(26, 133, 255)')
+  await expect(cta.locator('.is_ButtonText')).toHaveCSS('font-size', '14px')
+  await expect(cta.locator('.is_ButtonText')).toHaveCSS('line-height', '20px')
+  await expect(cta.locator('.is_ButtonText')).toHaveCSS('color', 'rgb(255, 255, 255)')
+  await expect(skip.locator('.is_ButtonText')).toHaveCSS('font-size', '14px')
+  await expect(skip.locator('.is_ButtonText')).toHaveCSS('line-height', '20px')
+  await expect(skip.locator('.is_ButtonText')).toHaveCSS('color', 'rgb(204, 204, 204)')
+}
+
+/** Capture the full header before action reachability checks scroll the content away. */
+async function screenshotNextTaskTop(page: Page, headline: Locator, path: string) {
+  await headline.scrollIntoViewIfNeeded()
+  await headline.evaluate((element) => {
+    for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+      const overflow = getComputedStyle(parent).overflowY
+      if (overflow === 'auto' || overflow === 'scroll') {
+        parent.scrollTop = 0
+        break
+      }
+    }
+  })
+  await page.screenshot({ path })
+}
+
 for (const viewport of NEXT_TASK_VIEWPORTS) {
   test(`NextTaskModal keeps its CTA, skip link and close button accessible at ${viewport.width}x${viewport.height} (${viewport.label})`, async ({
     page,
@@ -627,6 +687,15 @@ for (const viewport of NEXT_TASK_VIEWPORTS) {
     const cta = page.getByRole('link', { name: 'Explore staking' })
     const skipLink = page.getByRole('button', { name: 'Skip for now' })
     const closeButton = page.getByRole('button', { name: 'Close' })
+    const headline = page.getByText('One good next step', { exact: true })
+
+    await expectNextTaskDesign(card, headline, cta, skipLink)
+    await expect(page.getByText('Claim completed', { exact: true }).locator('..')).toHaveCSS(
+      'background-color', 'rgba(19, 198, 54, 0.15)',
+    )
+    if (viewport.label === 'landscape') {
+      await screenshotNextTaskTop(page, headline, 'tests/design-system/test-results/story-nexttaskmodal-shown-landscape-top.png')
+    }
 
     for (const control of [cta, skipLink, closeButton]) {
       await control.scrollIntoViewIfNeeded()
@@ -642,6 +711,63 @@ for (const viewport of NEXT_TASK_VIEWPORTS) {
       path: `tests/design-system/test-results/story-nexttaskmodal-shown-${viewport.label}.png`,
     })
   })
+}
+
+const NEXT_TASK_DESIGN_VARIANTS = [
+  {
+    label: 'no-image',
+    storyId: 'shown-without-image',
+    testId: 'NextTaskModal-no-image',
+    ctaLabel: 'Verify now',
+    hasImage: false,
+  },
+  {
+    label: 'design-reference',
+    storyId: 'design-reference-copy',
+    testId: 'NextTaskModal-design-reference',
+    ctaLabel: 'Open Proposal',
+    hasImage: true,
+  },
+  {
+    label: 'host-cta',
+    storyId: 'navigation-pending-and-retry',
+    testId: 'NextTaskModal-pending-retry',
+    ctaLabel: 'Explore staking',
+    hasImage: true,
+  },
+]
+
+for (const variant of NEXT_TASK_DESIGN_VARIANTS) {
+  for (const viewport of NEXT_TASK_VIEWPORTS) {
+    test(`NextTaskModal ${variant.label} preserves design hierarchy and reachable actions at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height })
+      await page.goto(`/iframe.html?id=design-system-primitives-nexttaskmodal--${variant.storyId}&viewMode=story`)
+      if (variant.label === 'host-cta') await page.getByTestId('NextTaskModal-open').click()
+      const card = page.getByTestId(variant.testId)
+      await expect(card).toBeVisible()
+      const headline = page.getByText('One good next step', { exact: true })
+      const cta = page.getByRole(variant.label === 'host-cta' ? 'button' : 'link', { name: variant.ctaLabel, exact: true })
+      const skip = page.getByRole('button', { name: 'Skip for now', exact: true })
+      const close = page.getByRole('button', { name: 'Close', exact: true })
+      await expectNextTaskDesign(card, headline, cta, skip)
+      if (!variant.hasImage) await expect(card.getByRole('img')).toHaveCount(0)
+      if (variant.label !== 'design-reference') await expect(page.getByText('Claim completed', { exact: true })).toHaveCount(0)
+
+      const screenshotPath = `tests/design-system/test-results/story-nexttaskmodal-${variant.label}-${viewport.label}`
+      if (viewport.label === 'landscape') await screenshotNextTaskTop(page, headline, `${screenshotPath}-top.png`)
+      for (const control of [headline, cta, skip, close]) {
+        await control.scrollIntoViewIfNeeded()
+        await expect(control).toBeInViewport({ ratio: 1 })
+        await expect(control).toBeVisible()
+        await expect(control).toBeEnabled()
+      }
+      const cardBox = await card.boundingBox()
+      const ctaBox = await cta.boundingBox()
+      expect(cardBox!.width).toBeLessThanOrEqual(viewport.width)
+      expect(ctaBox!.width).toBeCloseTo(cardBox!.width, 1)
+      await page.screenshot({ path: `${screenshotPath}.png` })
+    })
+  }
 }
 
 test('NextTaskModal Anchor mode: the CTA is a link to ctaTarget and pressing it reports the click and closes', async ({
@@ -756,6 +882,13 @@ for (const variant of NEXT_TASK_LONG_COPY_VARIANTS) {
       const cta = page.getByRole('link', { name: 'Read and vote on Snapshot' })
       const skip = page.getByRole('button', { name: 'Remind me tomorrow' })
       const closeButton = page.getByRole('button', { name: 'Close' })
+
+      await expectNextTaskDesign(card, headline, cta, skip)
+      if (viewport.label !== 'desktop') {
+        await screenshotNextTaskTop(page, headline,
+          `tests/design-system/test-results/story-nexttaskmodal-long-copy-${variant.label}-${viewport.label}-top.png`,
+        )
+      }
 
       for (const control of [headline, cta, skip, closeButton]) {
         await control.scrollIntoViewIfNeeded()

@@ -159,6 +159,27 @@ export const ShownWithoutImage: Story = {
   },
 }
 
+/** Reference copy from issue #276, with fixture art so the design comparison stays focused on layout. */
+export const DesignReferenceCopy: Story = {
+  render: () => (
+    <ControlledHarness
+      content={{
+        title: 'Vote in this week’s Treasury Proposal',
+        description: 'Help decide where 10M G$ goes and shape the community.',
+        ctaLabel: 'Open Proposal',
+        ctaTarget: 'https://gooddollar.org/governance',
+        imageUrl: SAMPLE_IMAGE_URL,
+        statusLabel: 'Claim completed',
+      }}
+      testID="NextTaskModal-design-reference"
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const card = await openAndGetCard(canvasElement, 'NextTaskModal-design-reference')
+    await expect(within(card).getByText('Vote in this week’s Treasury Proposal')).toBeInTheDocument()
+  },
+}
+
 /** `content={null}` — opening is a no-op; the modal never mounts. */
 export const NoContent: Story = {
   render: () => <ControlledHarness content={null} testID="NextTaskModal-no-content" />,
