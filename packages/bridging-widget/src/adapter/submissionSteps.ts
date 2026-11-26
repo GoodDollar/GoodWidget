@@ -14,7 +14,7 @@ export function buildSubmissionSteps(
   const approveStatus = (): StepperStepItem['status'] => {
     if (failedAtStep === 'approving') return 'failed'
     if (step === 'approving') return 'active'
-    if (step === 'idle') return 'pending'
+    if (step === 'idle' || (step === 'failed' && failedAtStep === null)) return 'pending'
     return 'completed'
   }
 
@@ -27,7 +27,7 @@ export function buildSubmissionSteps(
 
   const steps: StepperStepItem[] = []
 
-  if (needsApproval) {
+  if (needsApproval || step === 'approving' || failedAtStep === 'approving') {
     steps.push({
       id: 'approving',
       title: 'Approve G$',
@@ -45,8 +45,10 @@ export function buildSubmissionSteps(
 
   steps.push({
     id: 'completed',
-    title: 'Bridge submitted',
-    description: 'The source-chain transaction is confirmed. Delivery on the destination chain follows shortly after.',
+    title: step === 'completed' ? 'Bridge submitted' : 'Source confirmation',
+    description: step === 'completed'
+      ? 'The source-chain transaction is confirmed. Delivery on the destination chain follows shortly after.'
+      : 'Awaiting confirmation of the source-chain transaction.',
     status: step === 'completed' ? 'completed' : 'pending',
   })
 

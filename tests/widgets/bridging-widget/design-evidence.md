@@ -1,0 +1,206 @@
+# Bridge design verification
+
+Compare against [Lewis's three reference screens](https://github.com/GoodDollar/GoodWidget/pull/266#issuecomment-6359719680). The references show layout intent; the bridge still displays its actual route, provider availability, and separate G$ protocol and native provider fees.
+
+These comparisons use mocked Storybook fixtures. The supplied references show different routes, amounts, and states; they are layout references, not a claim of live delivery or pixel parity. History detail reuses the journey reference; no separate History list reference was supplied.
+
+## Latest screenshot refresh
+
+I refreshed the canonical 360px/390px light/dark matrix from widget code at `11fc8f2` after Lewis noted that the PR description still embedded October screenshots. The capture checks now wait for the drawer's JavaScript spring to settle, rather than saving a partly opened drawer. This is a test/evidence update, not a runtime widget change. The replacement PR description will pin its inline images to the screenshot-refresh commit and replace stale verification and manual-test sections with the November evidence below.
+
+<details>
+<summary>Bridge, connected empty</summary>
+
+| Viewport / theme | Reference | Current fixture |
+| --- | --- | --- |
+| 360 x 844 / light | <img width="180" alt="main layout reference" src="https://github.com/user-attachments/assets/ce20a10c-ce40-44c3-9b7f-55225d3d63fb"> | <img width="180" alt="Bridge, connected empty, 360px light" src="test-results/360-light/connected-empty.png"> |
+| 360 x 844 / dark | <img width="180" alt="main layout reference" src="https://github.com/user-attachments/assets/ce20a10c-ce40-44c3-9b7f-55225d3d63fb"> | <img width="180" alt="Bridge, connected empty, 360px dark" src="test-results/360-dark/connected-empty.png"> |
+| 390 x 844 / light | <img width="180" alt="main layout reference" src="https://github.com/user-attachments/assets/ce20a10c-ce40-44c3-9b7f-55225d3d63fb"> | <img width="180" alt="Bridge, connected empty, 390px light" src="test-results/390-light/connected-empty.png"> |
+| 390 x 844 / dark | <img width="180" alt="main layout reference" src="https://github.com/user-attachments/assets/ce20a10c-ce40-44c3-9b7f-55225d3d63fb"> | <img width="180" alt="Bridge, connected empty, 390px dark" src="test-results/390-dark/connected-empty.png"> |
+
+</details>
+
+<details>
+<summary>Bridge, ready</summary>
+
+| Viewport / theme | Reference | Current fixture |
+| --- | --- | --- |
+| 360 x 844 / light | <img width="180" alt="main layout reference" src="https://github.com/user-attachments/assets/ce20a10c-ce40-44c3-9b7f-55225d3d63fb"> | <img width="180" alt="Bridge, ready, 360px light" src="test-results/360-light/ready-to-bridge.png"> |
+| 360 x 844 / dark | <img width="180" alt="main layout reference" src="https://github.com/user-attachments/assets/ce20a10c-ce40-44c3-9b7f-55225d3d63fb"> | <img width="180" alt="Bridge, ready, 360px dark" src="test-results/360-dark/ready-to-bridge.png"> |
+| 390 x 844 / light | <img width="180" alt="main layout reference" src="https://github.com/user-attachments/assets/ce20a10c-ce40-44c3-9b7f-55225d3d63fb"> | <img width="180" alt="Bridge, ready, 390px light" src="test-results/390-light/ready-to-bridge.png"> |
+| 390 x 844 / dark | <img width="180" alt="main layout reference" src="https://github.com/user-attachments/assets/ce20a10c-ce40-44c3-9b7f-55225d3d63fb"> | <img width="180" alt="Bridge, ready, 390px dark" src="test-results/390-dark/ready-to-bridge.png"> |
+
+</details>
+
+<details>
+<summary>Review</summary>
+
+| Viewport / theme | Reference | Current fixture |
+| --- | --- | --- |
+| 360 x 844 / light | <img width="180" alt="review layout reference" src="https://github.com/user-attachments/assets/6f46b7ba-e5c8-4f57-aee6-b576522bf616"> | <img width="180" alt="Review, 360px light" src="test-results/360-light/review-open.png"> |
+| 360 x 844 / dark | <img width="180" alt="review layout reference" src="https://github.com/user-attachments/assets/6f46b7ba-e5c8-4f57-aee6-b576522bf616"> | <img width="180" alt="Review, 360px dark" src="test-results/360-dark/review-open.png"> |
+| 390 x 844 / light | <img width="180" alt="review layout reference" src="https://github.com/user-attachments/assets/6f46b7ba-e5c8-4f57-aee6-b576522bf616"> | <img width="180" alt="Review, 390px light" src="test-results/390-light/review-open.png"> |
+| 390 x 844 / dark | <img width="180" alt="review layout reference" src="https://github.com/user-attachments/assets/6f46b7ba-e5c8-4f57-aee6-b576522bf616"> | <img width="180" alt="Review, 390px dark" src="test-results/390-dark/review-open.png"> |
+
+</details>
+
+<details>
+<summary>In progress</summary>
+
+| Viewport / theme | Reference | Current fixture |
+| --- | --- | --- |
+| 360 x 844 / light | <img width="180" alt="journey layout reference" src="https://github.com/user-attachments/assets/b7c90b14-4e1d-4f36-856d-0aee9a797113"> | <img width="180" alt="In progress, 360px light" src="test-results/360-light/submission-completed.png"> |
+| 360 x 844 / dark | <img width="180" alt="journey layout reference" src="https://github.com/user-attachments/assets/b7c90b14-4e1d-4f36-856d-0aee9a797113"> | <img width="180" alt="In progress, 360px dark" src="test-results/360-dark/submission-completed.png"> |
+| 390 x 844 / light | <img width="180" alt="journey layout reference" src="https://github.com/user-attachments/assets/b7c90b14-4e1d-4f36-856d-0aee9a797113"> | <img width="180" alt="In progress, 390px light" src="test-results/390-light/submission-completed.png"> |
+| 390 x 844 / dark | <img width="180" alt="journey layout reference" src="https://github.com/user-attachments/assets/b7c90b14-4e1d-4f36-856d-0aee9a797113"> | <img width="180" alt="In progress, 390px dark" src="test-results/390-dark/submission-completed.png"> |
+
+</details>
+
+<details>
+<summary>Complete</summary>
+
+| Viewport / theme | Reference | Current fixture |
+| --- | --- | --- |
+| 360 x 844 / light | <img width="180" alt="journey layout reference" src="https://github.com/user-attachments/assets/b7c90b14-4e1d-4f36-856d-0aee9a797113"> | <img width="180" alt="Complete, 360px light" src="test-results/360-light/delivery-complete.png"> |
+| 360 x 844 / dark | <img width="180" alt="journey layout reference" src="https://github.com/user-attachments/assets/b7c90b14-4e1d-4f36-856d-0aee9a797113"> | <img width="180" alt="Complete, 360px dark" src="test-results/360-dark/delivery-complete.png"> |
+| 390 x 844 / light | <img width="180" alt="journey layout reference" src="https://github.com/user-attachments/assets/b7c90b14-4e1d-4f36-856d-0aee9a797113"> | <img width="180" alt="Complete, 390px light" src="test-results/390-light/delivery-complete.png"> |
+| 390 x 844 / dark | <img width="180" alt="journey layout reference" src="https://github.com/user-attachments/assets/b7c90b14-4e1d-4f36-856d-0aee9a797113"> | <img width="180" alt="Complete, 390px dark" src="test-results/390-dark/delivery-complete.png"> |
+
+</details>
+
+<details>
+<summary>History list</summary>
+
+| Viewport / theme | Reference | Current fixture |
+| --- | --- | --- |
+| 360 x 844 / light | No separate reference supplied | <img width="180" alt="History list, 360px light" src="test-results/360-light/history-populated.png"> |
+| 360 x 844 / dark | No separate reference supplied | <img width="180" alt="History list, 360px dark" src="test-results/360-dark/history-populated.png"> |
+| 390 x 844 / light | No separate reference supplied | <img width="180" alt="History list, 390px light" src="test-results/390-light/history-populated.png"> |
+| 390 x 844 / dark | No separate reference supplied | <img width="180" alt="History list, 390px dark" src="test-results/390-dark/history-populated.png"> |
+
+</details>
+
+<details>
+<summary>History detail</summary>
+
+| Viewport / theme | Reference | Current fixture |
+| --- | --- | --- |
+| 360 x 844 / light | <img width="180" alt="journey layout reference" src="https://github.com/user-attachments/assets/b7c90b14-4e1d-4f36-856d-0aee9a797113"> | <img width="180" alt="History detail, 360px light" src="test-results/360-light/history-detail-modal-open.png"> |
+| 360 x 844 / dark | <img width="180" alt="journey layout reference" src="https://github.com/user-attachments/assets/b7c90b14-4e1d-4f36-856d-0aee9a797113"> | <img width="180" alt="History detail, 360px dark" src="test-results/360-dark/history-detail-modal-open.png"> |
+| 390 x 844 / light | <img width="180" alt="journey layout reference" src="https://github.com/user-attachments/assets/b7c90b14-4e1d-4f36-856d-0aee9a797113"> | <img width="180" alt="History detail, 390px light" src="test-results/390-light/history-detail-modal-open.png"> |
+| 390 x 844 / dark | <img width="180" alt="journey layout reference" src="https://github.com/user-attachments/assets/b7c90b14-4e1d-4f36-856d-0aee9a797113"> | <img width="180" alt="History detail, 390px dark" src="test-results/390-dark/history-detail-modal-open.png"> |
+
+</details>
+
+<details>
+<summary>Bridge, disconnected (additional coverage)</summary>
+
+| Viewport / theme | Reference | Current fixture |
+| --- | --- | --- |
+| 360 x 844 / light | <img width="180" alt="main layout reference" src="https://github.com/user-attachments/assets/ce20a10c-ce40-44c3-9b7f-55225d3d63fb"> | <img width="180" alt="Bridge, disconnected (additional coverage), 360px light" src="test-results/360-light/no-wallet.png"> |
+| 360 x 844 / dark | <img width="180" alt="main layout reference" src="https://github.com/user-attachments/assets/ce20a10c-ce40-44c3-9b7f-55225d3d63fb"> | <img width="180" alt="Bridge, disconnected (additional coverage), 360px dark" src="test-results/360-dark/no-wallet.png"> |
+| 390 x 844 / light | <img width="180" alt="main layout reference" src="https://github.com/user-attachments/assets/ce20a10c-ce40-44c3-9b7f-55225d3d63fb"> | <img width="180" alt="Bridge, disconnected (additional coverage), 390px light" src="test-results/390-light/no-wallet.png"> |
+| 390 x 844 / dark | <img width="180" alt="main layout reference" src="https://github.com/user-attachments/assets/ce20a10c-ce40-44c3-9b7f-55225d3d63fb"> | <img width="180" alt="Bridge, disconnected (additional coverage), 390px dark" src="test-results/390-dark/no-wallet.png"> |
+
+</details>
+
+## Submission recovery checks
+
+The submission-recovery captures use the mocked wallet/SDK fixture at 390 x 844; the native-funding fixture also covers 360 x 844 and both themes. These are automated adapter/UI checks, not live transaction evidence.
+
+| Case | Expected behavior | Capture |
+| --- | --- | --- |
+| Fees increase after Review | Request another review; do not automatically submit at the higher fee | [Updated-fee review](test-results/bw-40-fee-change-review.png) |
+| Updated quote exceeds native balance | Show the new fee and balance requirement; keep Confirm disabled | [Unaffordable quote](test-results/bw-41-updated-fee-unaffordable.png) |
+| Wallet returns a hash, receipt lookup fails | Retain the source explorer link; no one-click Retry; closing clears the amount and refreshes History | [Confirmation unavailable](test-results/bw-42-confirmation-unavailable.png) |
+| Transport error contains an insufficient-funds cause | Show the native fee/gas requirement instead of a misleading connection error | [Native funding error](test-results/bw-43-native-funding-error.png) |
+| Missing native funds and G$ approval both apply | Show the blocking funding requirement above disabled Review; defer the approval notice until other requirements are met | [360px light](test-results/bw-44-insufficient-native-approval-360-light.png), [360px dark](test-results/bw-44-insufficient-native-approval-360-dark.png), [390px light](test-results/bw-44-insufficient-native-approval-390-light.png), [390px dark](test-results/bw-44-insufficient-native-approval-390-dark.png) |
+
+The Node tests in `packages/bridging-widget/tests/submissionSafety.test.mjs` run the installed SDK's actual approval/bridge sequence against fake clients. They verify the final wallet-write fee ceiling, reuse of an existing approval after re-review, receipt-status checks, preserved transaction hashes, and concurrent-submission rejection. No test signs or broadcasts a real transaction.
+
+## How I tested
+
+- I ran the bridging-widget browser specs with Storybook. The mobile matrix uses Chromium at 360 x 844 and 390 x 844 in both themes. The ready-state check verifies that the entire Review button is visible at scroll position zero.
+- Wallet and RPC behavior in automated cases is mocked. I do not present these captures or the automated recording as evidence of live fees, signing, or delivery.
+- The SDK reports a provider message creation time, not a timestamp for every milestone. I display source time when known in History and message time when supplied by the provider; I do not invent destination or completion times.
+- I have not yet completed the requested live Fuse-to-Celo recording in a phone or GoodWallet development build. The planned manual check is to use a funded test wallet, choose Fuse to Celo via LayerZero, enter an amount above the quoted minimum, and review both fees before confirming. I will record the wallet confirmation and progress and note the device, browser/build, wallet, amount, and source/destination hashes. If destination delivery finishes after the recording, I will add its explorer link separately.
+- I will not bypass wallet recording restrictions. If I cannot capture the signing screen, I will record the widget before and after signing, include the actual explorer links, and disclose the missing wallet segment. An approval hash alone is not proof of a bridge transfer or destination delivery.
+
+## Manual verification and remaining evidence
+
+### November 24 live Celo-to-Ethereum transfer
+
+I completed a new desktop MetaMask test using Celo to Ethereum via Axelar after the reviewer agreed I could record on my laptop because MetaMask Mobile blocked screenshots and recording.
+
+- I sent 10 G$ from `0x18883C2FF5a84b7F686FF0cfd400c6F3D6068b07`.
+- [Celo source transaction](https://celoscan.io/tx/0xcd5d79e4acf75bb1deec9d8fb55f7e5530fa11e8dd9ffa7f814732f0c2f76b3b): successful at block 83607161. The bridge call paid 5.649605152077207750 CELO to Axelar's gas service; source transaction gas is separate.
+- [Ethereum destination transaction](https://etherscan.io/tx/0x18b5d2239e586c4286285eb4ac43c23ee670f15a98ea867a7593520816e320c0): successful at block 26483897. The G$ token emitted a mint of 999 base units (9.99 G$) to my same address. The bridge's executed event matches the source request ID.
+- [Axelar message tracker](https://axelarscan.io/gmp/0xcd5d79e4acf75bb1deec9d8fb55f7e5530fa11e8dd9ffa7f814732f0c2f76b3b): executed. I provide the recordings as separate clips below, not a continuous end-to-end recording. The first 53-second clip's sampled frames show the quote screen, not signing or submission; I do not present it as wallet-signing evidence.
+- This is new live transfer evidence, not proof of a Fuse-source mobile transfer or a determination of the earlier November approval-only failure's root cause.
+
+| Recording | Evidence |
+| --- | --- |
+| [Amount and quote](https://www.loom.com/share/cd23feb08c614f9d8298de67a96206bb) | My initial 10 G$ Celo-to-Ethereum/Axelar setup and quote clip. The on-chain links above independently establish submission and delivery. |
+| [Axelar execution](https://www.loom.com/share/bf922af3504949779b6cd1e0f2d87f16) | My separate recording of the tracker showing the approved/executed message. |
+| [Corrected widget History](https://www.loom.com/share/f2e04ab7e1f54680bb31c99a62393d81) | My recording of the History tab after the live-history fix. A network-scan warning is distinct from this transfer's confirmed delivery. |
+
+I retain the recording limitations explicitly: these clips do not reconstruct missing signing footage. I recorded History after discovering and fixing the missing-entry regression, rather than claiming it worked throughout the original submission.
+
+### Live history regression
+
+I reproduced an empty History tab after the successful source transaction and after destination execution. Celo's default RPC rejected the SDK's 120,000-block event range (maximum 5,000); SDK 1.0.6 swallowed per-chain exceptions. Its Axelar lookup also used an endpoint returning service metadata rather than message results.
+
+I bounded SDK event reads into newest-first pages, reduce page size for stricter RPC limits, retain readable pages, and report incomplete scans instead of claiming a successful empty result. Scans have a request budget; an older omitted range is disclosed as partial. I changed Axelar delivery lookup to its message API and validate the matching source hash and execution hash. I retained existing entries when a partial refresh cannot recover them.
+
+The corrected loader found this real source transaction through Celo's public RPC with a complete Celo scan, then resolved its Ethereum destination hash. Both chain receipts were checked independently. Automated cases use mocked clients and do not broadcast transactions.
+
+I verified the initial history change with 31/31 bridge Node tests, 21/21 adapter Chromium tests (one worker, no retries), targeted ESLint, and the bridging-widget ESM/CJS/declaration build. Earlier browser runs were interrupted by dropdown instability and a development-server rebuild; the settled-server adapter run passed.
+
+### Final narrow-screen and history-warning follow-up
+
+I shortened the empty destination placeholder to `Select`, top-aligned the From/To columns, and reserved non-shrinking space for the shared Select arrow. The mobile tests check the empty destination beside Ethereum, label alignment, and label-to-arrow separation at 360px and 390px in both themes. The existing wide-font checks continue to verify that labels fit. This is a further shared Select change; Lewis's scope/design approval remains pending.
+
+I replaced the raw `minAmount` contract reason with a readable minimum using the source bridge's normalized 18-decimal limit (or a readable fallback if the limit is unavailable). I did not hardcode the live 10 G$ limit. The history warning now names networks whose scans were incomplete rather than implying that a completed transfer is pending. A read-only full scan recovered both legs of my transfer and reported incomplete older Ethereum/XDC ranges; a separate XDC request returned a rate-limit response. These warnings do not change confirmed delivery status.
+
+I ran 32/32 bridge Node tests, 78/78 bridge-plus-streaming Chromium tests with one worker and retries disabled, targeted ESLint, and the UI and bridging-widget ESM/CJS/declaration builds. The first browser pass caught an outdated expected minimum-message sentence; I updated the assertion before the successful full run. This does not certify a full-workspace build or lint.
+
+Empty-destination captures: [360px light](review-evidence/20261124/bw-46-empty-target-360-light.png), [360px dark](review-evidence/20261124/bw-46-empty-target-360-dark.png), [390px light](review-evidence/20261124/bw-46-empty-target-390-light.png), [390px dark](review-evidence/20261124/bw-46-empty-target-390-dark.png). I allow the sheet's JS exit animation to settle before these captures. [Minimum-message capture](review-evidence/20261124/bw-09-below-min-amount.png).
+
+I subsequently separated scan failures from delivery-status failures so that the delivery warning requires an actual failed lookup and a remaining pending entry. A successful status lookup clears that warning even if delivery is still pending. The independent scan warning remains only until a successful full refresh; recovering delivery does not prove an unrelated failed network scan recovered. I verified this follow-up with 33/33 Node tests, four targeted Chromium history/recovery cases, targeted ESLint and the bridging-widget declaration/bundle build. The first browser attempt was denied localhost access; the run passed after network permission was granted. The earlier 78-test run predates this small warning-state follow-up.
+
+- Earlier evidence remains separate: I previously supplied the October Celo-to-Ethereum/Axelar recording and source/destination transaction links in the PR description. That historical test is separate from my November approval-only attempt and is not the newly requested Fuse-source phone recording.
+- Device: I used a Samsung Galaxy S9 (`SM-G960U`) with the MetaMask Mobile browser, connected to local Storybook through USB port forwarding. I did not record browser/wallet version numbers.
+- Celo attempt: I rechecked [transaction `0x38abcf...d3f538`](https://celoscan.io/tx/0x38abcf725a53a7888b515f95c6cce344226f073bd40b6cf5220c6924b0d3f538) through Celo Blockscout on 2026-11-23. It succeeded on 2026-11-19 and calls `approve` for 10 G$ from my wallet `0x18883C2FF5a84b7F686FF0cfd400c6F3D6068b07` to the source bridge spender `0xa3247276DbCC76Dd7705273f766eB3E8a5ecF4a5`. The widget subsequently reported a bridge-step network error. This is evidence of the approval only, not a bridge transfer or destination delivery. I have not established the original failure's precise cause.
+- Fuse to Celo via LayerZero: I entered 5 G$, saw a 0.005 G$ protocol fee and an estimated provider fee of approximately 230.45 FUSE, and confirmed that Review was disabled. After the warning fix, I confirmed that the insufficient-native-balance explanation appeared. I did not sign a transfer for this check.
+- Fee investigation: the public [GoodDollar fee endpoint](https://goodserver.gooddollar.org/bridge/estimatefees) returned `LZ_FUSE_TO_CELO = 209.32982723773736 Fuse` on 2026-11-23. SDK 1.0.6 adds a 10% buffer, consistent with a roughly 230 FUSE display. This verifies the display path, not the economic reasonableness or eventual acceptance of that provider estimate. Quotes fluctuate; this is not a current funding instruction.
+- Capture limitation: MetaMask's recording restriction prevented me from capturing the wallet confirmation. A later Android screenshot attempt also failed; I have no usable phone screenshot from that attempt. I do not present the automated video or screenshots as the missing live recording.
+- Still outstanding: I have not completed the requested successful phone/development-build transfer recording, preferably Fuse to Celo to exercise Fuse as the source. I disclose this limitation for review; I do not claim that this live-evidence checklist item is complete or that the widget is production-ready.
+
+## Verification on 2026-11-23
+
+### Font-width follow-up
+
+I removed the one-line truncation from the bridge title and let its title/network group wrap within the space beside the wallet control. The shared Select trigger now has a 44px minimum height rather than a fixed height, so labels can wrap without clipping. I also hide the mobile sheet heading when the picker is closed.
+
+I added four wide-font regression cases at 360px and 390px in both themes. They use bold monospace text to stress the layout independently of the default Windows font. I check the title, network badge, source/destination labels, wallet visibility, and horizontal overflow, and swap Ethereum between source and destination. This is a font-metric stress test on Windows Chromium, not a claim that I ran Linux or Android Chromium locally. Phoebe's Linux result remains the cross-platform recheck to repeat after this fix.
+
+I verified the final layout correction with 78/78 bridge and streaming Playwright tests (one worker, no retries), 25/25 bridge Node tests, targeted ESLint, and direct installed-tool builds of `@goodwidget/ui` and `@goodwidget/bridging-widget`, including declarations. The first wide-font run reproduced a clipped Ethereum selector before the fix. I corrected local server/setup failures and restarted the regression run after the sheet-heading adjustment; the final 78-test run passed cleanly. This is local verification, not a green CI claim.
+
+| Viewport / theme | Wide-font fixture |
+| --- | --- |
+| 360px / light | [Ethereum header and route](test-results/bw-45-wide-font-360-light.png) |
+| 360px / dark | [Ethereum header and route](test-results/bw-45-wide-font-360-dark.png) |
+| 390px / light | [Ethereum header and route](test-results/bw-45-wide-font-390-light.png) |
+| 390px / dark | [Ethereum header and route](test-results/bw-45-wide-font-390-dark.png) |
+
+### Shared UI scope
+
+The PR changes the shared `packages/ui/src/components-test/Select.tsx`, preserving its existing selection props while using Tamagui Select and mobile sheet adaptation. Its trigger now has the `combobox` role, which also affects the streaming widget's dropdown assertions. The label-wrap correction applies to all consumers. The existing shared `Stepper.tsx` change adds optional per-step detail content for available timestamps; steps without details retain their existing rendering. I have disclosed this scope in the PR description. Lewis's approval to retain these shared changes in this PR is still pending.
+
+### Earlier verification pass
+
+- Bridge Node tests: `node --experimental-strip-types --test packages/bridging-widget/tests/*.test.mjs`, 25/25 passed.
+- Chromium: all bridging-widget specs plus `tests/widgets/streaming-widget/states.spec.ts`, 74/74 passed, one worker, retries disabled. The run used the existing local Storybook server and a temporary configuration changing only the base URL, output location, reporter, and automatic-server startup. Earlier environment/setup failures were corrected before this clean run.
+- The installed `tsup` package build commands passed for `@goodwidget/ui` and `@goodwidget/bridging-widget`, including declarations. Targeted ESLint passed for all changed source, stories, and test files.
+- Full-workspace install/build/lint are not certified by this pass. The available pnpm entrypoint attempted package linking before the selected build and failed with `EPERM`; direct installed tools were used instead. No dependency or lockfile changes were made.
+- The earlier 40 local image links and the four additional wide-font captures are saved alongside this document. Wallet responses, fees, and delivery in automated captures are mocked; the manual evidence above is documented separately.

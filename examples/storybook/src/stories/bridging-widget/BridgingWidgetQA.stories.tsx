@@ -4,15 +4,19 @@ import {
   BelowMinAmountStory,
   ConfigErrorStory,
   ConfigLoadingStory,
+  ConnectedEmptyStory,
   CustodialLocalFixtureStory,
   FaqTabStory,
+  FuseDestinationStory,
+  FuseSourceStory,
   HistoryDetailModalOpenStory,
   HistoryEmptyStory,
   HistoryErrorStory,
   HistoryLoadingStory,
   HistoryPopulatedStory,
-  InjectedWalletStory,
+  InteractiveSubmitStory,
   InsufficientBalanceStory,
+  InsufficientNativeBalanceStory,
   LightThemePopulatedStory,
   NeedsApprovalStory,
   NoWalletStory,
@@ -29,6 +33,7 @@ import {
   WrongChainStory,
 } from '../helpers/bridgingWidgetStories'
 import { BRAND_PRESET_OPTIONS, brandPresetOverrides, type BrandPreset } from '../helpers/themeOverridePresets'
+import { BridgingMockedAdapterFixture } from '../helpers/bridgingRealAdapterFixture'
 
 interface BridgingWidgetQAArgs {
   defaultTheme: 'light' | 'dark'
@@ -39,7 +44,14 @@ const meta: Meta<BridgingWidgetQAArgs> = {
   title: 'QA/BridgingWidget/Runtime Fixtures',
   component: BridgingWidget,
   tags: ['autodocs', 'qa'],
-  parameters: { layout: 'padded' },
+  parameters: {
+    layout: 'padded',
+    docs: {
+      description: {
+        component: 'Runtime fixture stories use deterministic mocked state and quote values. They are not evidence of live fees or delivery.',
+      },
+    },
+  },
   argTypes: {
     defaultTheme: {
       control: 'radio',
@@ -70,15 +82,15 @@ export const CustodialLocalFixture: Story = {
   ),
 }
 
-export const InjectedWallet: Story = {
-  render: ({ defaultTheme, brandPreset }) => (
-    <InjectedWalletStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
-  ),
-}
-
 export const NoWallet: Story = {
   render: ({ defaultTheme, brandPreset }) => (
     <NoWalletStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
+}
+
+export const ConnectedEmpty: Story = {
+  render: ({ defaultTheme, brandPreset }) => (
+    <ConnectedEmptyStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
   ),
 }
 
@@ -130,6 +142,12 @@ export const InsufficientBalance: Story = {
   ),
 }
 
+export const InsufficientNativeBalance: Story = {
+  render: ({ defaultTheme, brandPreset }) => (
+    <InsufficientNativeBalanceStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
+}
+
 export const NeedsApproval: Story = {
   render: ({ defaultTheme, brandPreset }) => (
     <NeedsApprovalStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
@@ -163,6 +181,16 @@ export const SubmissionBridging: Story = {
 export const SubmissionCompleted: Story = {
   render: ({ defaultTheme, brandPreset }) => (
     <SubmissionCompletedStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
+}
+
+export const DeliveryComplete: Story = {
+  render: ({ defaultTheme, brandPreset }) => (
+    <SubmissionCompletedStory
+      delivered
+      defaultTheme={defaultTheme}
+      themeOverrides={brandPresetOverrides(brandPreset)}
+    />
   ),
 }
 
@@ -228,5 +256,43 @@ export const FaqTab: Story = {
 export const LightThemePopulated: Story = {
   render: ({ brandPreset }) => (
     <LightThemePopulatedStory themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
+}
+
+export const FuseSource: Story = {
+  render: ({ defaultTheme, brandPreset }) => (
+    <FuseSourceStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
+}
+
+export const FuseDestination: Story = {
+  render: ({ defaultTheme, brandPreset }) => (
+    <FuseDestinationStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
+}
+
+export const InteractiveSubmit: Story = {
+  render: ({ defaultTheme, brandPreset }) => (
+    <InteractiveSubmitStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  ),
+}
+
+export const MockedSdkSubmit: Story = {
+  render: ({ defaultTheme, brandPreset }) => (
+    <BridgingMockedAdapterFixture
+      mode="submit"
+      defaultTheme={defaultTheme}
+      themeOverrides={brandPresetOverrides(brandPreset)}
+    />
+  ),
+}
+
+export const MockedSdkHistory: Story = {
+  render: ({ defaultTheme, brandPreset }) => (
+    <BridgingMockedAdapterFixture
+      mode="history"
+      defaultTheme={defaultTheme}
+      themeOverrides={brandPresetOverrides(brandPreset)}
+    />
   ),
 }

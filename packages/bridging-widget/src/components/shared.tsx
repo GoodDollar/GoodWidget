@@ -7,8 +7,10 @@ import {
   XStack,
   YStack,
   createComponent,
+  getChainDisplayName,
 } from '@goodwidget/ui'
 import type { BridgeProtocol } from '@goodsdks/bridging-sdk'
+import { getProtocolSupportedChains } from '../adapter/bridgeRoutes'
 
 // Shared across BridgeTab (protocol picker) and FeeBreakdown (route summary)
 // so the two screens never label the same protocol differently.
@@ -17,11 +19,22 @@ export const PROTOCOL_LABELS: Record<BridgeProtocol, string> = {
   LAYERZERO: 'LayerZero',
 }
 
+function supportedNetworksLabel(protocol: BridgeProtocol): string {
+  const names = getProtocolSupportedChains(protocol).map(getChainDisplayName)
+  if (names.length < 2) return names[0] ?? ''
+  return `${names.slice(0, -1).join(', ')}${names.length > 2 ? ',' : ''} and ${names[names.length - 1]}`
+}
+
+export const PROTOCOL_SUPPORTED_NETWORKS: Record<BridgeProtocol, string> = {
+  AXELAR: supportedNetworksLabel('AXELAR'),
+  LAYERZERO: supportedNetworksLabel('LAYERZERO'),
+}
+
 export const BridgingTabContent = createComponent(YStack, {
   name: 'BridgingTabContent',
   flex: 1,
-  gap: '$3',
-  paddingVertical: '$3',
+  gap: '$2',
+  paddingVertical: '$2',
 })
 
 export const EmptyStateCard = createComponent(Card, {
@@ -34,6 +47,7 @@ export const EmptyStateCard = createComponent(Card, {
 
 export const RouteSelectionCard = createComponent(Card, {
   name: 'RouteSelectionCard',
+  backgroundColor: '$backgroundSurface',
   padding: '$4',
   gap: '$3',
 })
@@ -42,11 +56,11 @@ export const RouteSelectionCard = createComponent(Card, {
 // so the main-screen and Confirm-screen fee breakdowns always read identically.
 export function DetailRow({ label, value, valueColor }: { label: string; value: string; valueColor?: string }) {
   return (
-    <XStack justifyContent="space-between" alignItems="center">
-      <Text fontSize={12} fontWeight="600" color="$secondaryColor">
+    <XStack justifyContent="space-between" alignItems="flex-start" gap="$3">
+      <Text flexShrink={0} maxWidth="48%" fontSize={12} fontWeight="600" color="$secondaryColor">
         {label}
       </Text>
-      <Text fontSize={14} fontWeight="500" color={valueColor ?? '$textColor'}>
+      <Text flex={1} flexShrink={1} textAlign="right" fontSize={14} fontWeight="500" color={valueColor ?? '$textColor'}>
         {value}
       </Text>
     </XStack>

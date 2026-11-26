@@ -1,0 +1,139 @@
+import { expect, test } from '@playwright/test'
+
+const scenarios = [
+  ['no-wallet', 'BridgingWidget-connect-cta'],
+  ['connected-empty', 'BridgingWidget-review-cta'],
+  ['ready-to-bridge', 'BridgingWidget-review-cta'],
+  ['review-open', 'BridgingWidget-review-screen'],
+  ['submission-completed', 'BridgingWidget-delivery-status'],
+  ['delivery-complete', 'BridgingWidget-delivery-status'],
+  ['history-populated', 'BridgingWidget-history-row'],
+  ['history-detail-modal-open', 'BridgingWidget-history-detail'],
+] as const
+
+const evidenceDir = process.env.GOODWIDGET_QA_SCREENSHOT_DIR ?? 'tests/widgets/bridging-widget/test-results'
+
+for (const width of [360, 390]) {
+  for (const theme of ['light', 'dark']) {
+    test(`bridge design evidence at ${width}px in ${theme}`, async ({ page }) => {
+      test.setTimeout(120_000)
+      await page.setViewportSize({ width, height: 844 })
+      for (const [story, landmark] of scenarios) {
+        await page.goto(`/iframe.html?id=qa-bridgingwidget-runtime-fixtures--${story}&viewMode=story&args=defaultTheme:${theme}`)
+        await expect(page.getByTestId(landmark).first()).toBeInViewport({ timeout: 45_000 })
+        // Wait for the drawer's JS spring before validating/capturing its final layout.
+        await page.waitForTimeout(600)
+        if (story === 'connected-empty') {
+          await expect(page.getByPlaceholder('0.00')).toHaveValue('')
+          await expect(page.getByTestId(landmark)).toBeDisabled()
+          await expect(page.getByTestId('BridgingWidget-review-disabled-reason')).toHaveText('Enter an amount to continue.')
+          await expect(page.getByTestId('BridgingWidget-amount-received')).toHaveText('\u2014')
+        }
+        if (story === 'ready-to-bridge') {
+          await expect(page.getByTestId(landmark)).toBeInViewport({ ratio: 1 })
+          await expect(page.getByTestId(landmark)).toBeEnabled()
+          expect(await page.evaluate(() => window.scrollY)).toBe(0)
+          const [from, to] = await Promise.all([
+            page.getByTestId('BridgingWidget-source-select').boundingBox(),
+            page.getByTestId('BridgingWidget-target-select').boundingBox(),
+          ])
+          expect(from).not.toBeNull()
+          expect(to).not.toBeNull()
+          expect(from!.x + from!.width).toBeLessThan(to!.x)
+          expect(Math.abs(from!.y - to!.y)).toBeLessThan(2)
+          const title = page.getByText('GoodDollar Bridge', { exact: true })
+          expect(await title.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true)
+          const axelar = page.getByRole('button', { name: /Axelar/ })
+          await expect(axelar).toBeDisabled()
+          const [foreground, background] = await axelar.getByText('Axelar', { exact: true }).evaluate((label) => [
+            getComputedStyle(label).color,
+            getComputedStyle(label.closest('button')!).backgroundColor,
+          ])
+          expect(foreground).not.toBe(background)
+        }
+        expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width)
+        if (story === 'review-open') {
+          await expect(page.getByTestId('BridgingWidget-review-confirm')).toBeInViewport({ ratio: 1 })
+          const cancel = page.getByRole('button', { name: 'Cancel' })
+          await expect(cancel).toBeInViewport({ ratio: 1 })
+          if (theme === 'light') {
+            await expect(cancel.getByText('Cancel')).not.toHaveCSS('color', 'rgb(255, 255, 255)')
+          }
+        }
+        await page.screenshot({ path: `${evidenceDir}/${width}-${theme}/${story}.png`, animations: 'disabled' })
+      }
+    })
+  }
+}
+
+test('mobile network selector opens a sheet and the longest chain fits the header', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 844 })
+  await page.goto('/iframe.html?id=qa-bridgingwidget-runtime-fixtures--interactive-submit&viewMode=story')
+  const source = page.getByTestId('BridgingWidget-source-select')
+  await source.click()
+  const ethereum = page.getByRole('option', { name: 'Ethereum' })
+  await expect(ethereum).toBeInViewport({ ratio: 1 })
+  expect((await ethereum.boundingBox())?.y).toBeGreaterThan(422)
+  await ethereum.click()
+  await expect(source).toContainText('Ethereum')
+  const title = page.getByText('GoodDollar Bridge', { exact: true })
+  expect(await title.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true)
+})
+
+for (const width of [360, 390]) {
+  for (const theme of ['light', 'dark']) {
+    test(`wide-font header and route labels fit at ${width}px in ${theme}`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 844 })
+      await page.goto(`/iframe.html?id=qa-bridgingwidget-runtime-fixtures--interactive-submit&viewMode=story&args=defaultTheme:${theme}`)
+      const source = page.getByTestId('BridgingWidget-source-select')
+      await source.click()
+      await page.getByRole('option', { name: 'Ethereum', exact: true }).click()
+      const route = page.getByTestId('BridgingWidget-route')
+      const target = page.getByTestId('BridgingWidget-target-select')
+      await expect(target).toContainText('Select')
+      const fromLabel = await route.getByText('From', { exact: true }).boundingBox()
+      const toLabel = await route.getByText('To', { exact: true }).boundingBox()
+      expect(Math.abs(fromLabel!.y - toLabel!.y)).toBeLessThan(2)
+      const labelBox = await source.getByText('Ethereum', { exact: true }).boundingBox()
+      const arrowBox = await page.getByTestId('BridgingWidget-source-select-arrow').boundingBox()
+      expect(arrowBox!.x - (labelBox!.x + labelBox!.width)).toBeGreaterThanOrEqual(4)
+      // Tamagui's sheet exit uses a JS spring, not a CSS animation.
+      await page.waitForTimeout(600)
+      await page.screenshot({ path: `${evidenceDir}/bw-46-empty-target-${width}-${theme}.png`, animations: 'disabled' })
+      await page.getByTestId('BridgingWidget-target-select').click()
+      await page.getByRole('option', { name: 'Celo', exact: true }).click()
+      await expect(page.getByText('Destination network', { exact: true })).not.toBeVisible()
+      // Exercise wider text metrics even when the runner only has Windows fonts.
+      await page.addStyleTag({ content: `
+        [data-testid="BridgingWidget-header"] *,
+        [data-testid="BridgingWidget-route"] * {
+          font-family: monospace !important;
+          font-weight: 700 !important;
+        }
+      ` })
+      const assertTextFits = async (label: ReturnType<typeof page.getByText>) => {
+        await expect(label).toBeVisible()
+        expect(await label.evaluate((element) => {
+          const box = element.getBoundingClientRect()
+          const range = document.createRange()
+          range.selectNodeContents(element)
+          return element.scrollWidth <= element.clientWidth + 1 &&
+            element.scrollHeight <= element.clientHeight + 1 &&
+            Array.from(range.getClientRects()).every((rect) =>
+              rect.left >= box.left - 1 && rect.right <= box.right + 1 &&
+              rect.top >= box.top - 1 && rect.bottom <= box.bottom + 1)
+        })).toBe(true)
+      }
+      await assertTextFits(page.getByText('GoodDollar Bridge', { exact: true }))
+      const header = page.getByTestId('BridgingWidget-header')
+      await assertTextFits(header.getByText('Ethereum', { exact: true }))
+      await expect(header.getByLabel('Wallet options')).toBeInViewport({ ratio: 1 })
+      await assertTextFits(source.getByText('Ethereum', { exact: true }))
+      await assertTextFits(page.getByTestId('BridgingWidget-target-select').getByText('Celo', { exact: true }))
+      await page.screenshot({ path: `${evidenceDir}/bw-45-wide-font-${width}-${theme}.png`, animations: 'disabled' })
+      await page.getByTestId('BridgingWidget-swap-route').click()
+      await assertTextFits(page.getByTestId('BridgingWidget-target-select').getByText('Ethereum', { exact: true }))
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width)
+    })
+  }
+}

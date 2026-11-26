@@ -29,7 +29,7 @@ async function expectBodyToContain(page: Page, patterns: Array<string | RegExp>)
 
 async function saveScreenshot(page: Page, name: string) {
   await page.screenshot({
-    path: `tests/widgets/streaming-widget/test-results/${name}.png`,
+    path: `${process.env.GOODWIDGET_QA_SCREENSHOT_DIR ?? 'tests/widgets/streaming-widget/test-results'}/${name}.png`,
     fullPage: true,
   })
 }
@@ -188,7 +188,7 @@ test('StreamingWidget create/update form shows invalid input feedback', async ({
     'Create / Update Stream',
     'Recipient must be a valid Ethereum address',
   ])
-  await page.getByRole('listbox').click()
+  await page.getByRole('combobox').click()
   await expectBodyToContain(page, ['per month', 'per day', 'per year'])
   await expect(page.getByText('per second')).toHaveCount(0)
   await expect(page.getByText('per minute')).toHaveCount(0)

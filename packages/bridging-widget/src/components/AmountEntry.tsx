@@ -1,14 +1,15 @@
 import React, { useState } from 'react'
-import { Input, Text, XStack } from '@goodwidget/ui'
+import { Button, ButtonText, InputFrame, Text, XStack } from '@goodwidget/ui'
 import { formatUnits } from 'viem'
 import type { BridgeConfig } from '@goodsdks/bridging-sdk'
+import { getChainDecimals } from '../adapter/chains'
 import { formatInputAmount, formatTokenAmount } from '../amount'
 import { RouteSelectionCard } from './shared'
 
-const G_DOLLAR_DECIMALS = 18
-
 interface AmountEntryProps {
   inputAmount: string
+  sourceChainId?: number | null
+  isConnected?: boolean
   bridgeConfig: BridgeConfig | null
   isBridgeConfigLoading: boolean
   onChangeAmount: (raw: string) => void
@@ -20,6 +21,8 @@ interface AmountEntryProps {
 // two widgets read as the same family.
 export function AmountEntry({
   inputAmount,
+  sourceChainId,
+  isConnected = true,
   bridgeConfig,
   isBridgeConfigLoading,
   onChangeAmount,
@@ -30,42 +33,51 @@ export function AmountEntry({
   const [isFocused, setIsFocused] = useState(false)
   const displayValue = isFocused ? inputAmount : formatInputAmount(inputAmount)
 
-  const balanceLabel = bridgeConfig
-    ? formatTokenAmount(formatUnits(bridgeConfig.tokenBalance, G_DOLLAR_DECIMALS))
-    : isBridgeConfigLoading
-      ? '…'
-      : '0.00'
+  const sourceDecimals = getChainDecimals(sourceChainId)
+  const balanceLabel = !isConnected
+    ? '—'
+    : bridgeConfig
+      ? formatTokenAmount(formatUnits(bridgeConfig.tokenBalance, sourceDecimals))
+      : isBridgeConfigLoading
+        ? '…'
+        : '\u2014'
 
   return (
-    <RouteSelectionCard testID="BridgingWidget-amount-card">
-      <XStack justifyContent="space-between" alignItems="center">
+    <RouteSelectionCard testID="BridgingWidget-amount-card" padding="$3" gap="$1">
+      <XStack justifyContent="space-between" alignItems="center" flexWrap="wrap" columnGap="$2">
         <Text fontSize={12} fontWeight="600" color="$secondaryColor">
-          Amount
+          Amount to send
         </Text>
         <XStack gap="$2" alignItems="center">
           <Text fontSize={12} fontWeight="600" color="$secondaryColor">
             Balance: {balanceLabel} G$
           </Text>
-          <Text
+          <Button
             testID="BridgingWidget-max"
-            fontSize={12}
-            fontWeight="600"
-            color="$primary"
-            cursor="pointer"
+            size="sm"
+            variant="ghost"
+            paddingHorizontal="$1"
+            disabled={!isConnected || !bridgeConfig || isBridgeConfigLoading}
             onPress={onPressMax}
           >
-            MAX
-          </Text>
+            <ButtonText fontSize={12} color="$primary">MAX</ButtonText>
+          </Button>
         </XStack>
       </XStack>
       <XStack justifyContent="space-between" alignItems="center" gap="$3">
         <Text fontSize={21} fontWeight="700" color="$textColor">
           G$
         </Text>
-        <Input
+        <InputFrame
           flex={1}
-          borderWidth={0}
-          backgroundColor="$backgroundTransparent"
+          minWidth={0}
+          aria-label="Amount to send"
+          borderWidth={1}
+          borderColor="$borderColor"
+          borderRadius="$2"
+          backgroundColor="$backgroundInput"
+          paddingHorizontal="$3"
+          minHeight="$8"
           fontWeight="700"
           color="$textColor"
           inputMode="decimal"

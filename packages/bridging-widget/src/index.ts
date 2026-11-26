@@ -3,6 +3,7 @@ export type {
   BridgingWidgetProps,
   BridgingWidgetTab,
   BridgingChainId,
+  BridgingRpcUrls,
   BridgingWidgetAdapterState,
   BridgingWidgetAdapterActions,
   BridgingWidgetAdapterResult,

@@ -366,6 +366,9 @@ importers:
         specifier: ^2.0.0
         version: 2.48.4(typescript@5.9.3)(zod@4.1.11)
     devDependencies:
+      '@goodsdks/bridging-sdk':
+        specifier: 1.0.6
+        version: 1.0.6(viem@2.48.4(typescript@5.9.3)(zod@4.1.11))
       '@storybook/addon-essentials':
         specifier: ^8.6.17
         version: 8.6.18(@types/react@18.3.28)(storybook@8.6.18(prettier@3.8.1))
