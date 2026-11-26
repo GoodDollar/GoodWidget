@@ -1,0 +1,547 @@
+/**
+ * NextTaskModal — controlled bottom sheet that recommends one next action.
+ *
+ * The host owns `open`/`content`/`onClose`, so each story renders a button that
+ * opens the sheet and a small "last event" readout, letting play()/Playwright
+ * assert what the component reported without reading console output.
+ *
+ * CTA navigation contract (the host handles it, or an Anchor does — never both):
+ * - `resolveNavigation` passed: the CTA is a Button and the host owns navigation
+ *   entirely. `ctaTarget` is handed over untouched; the modal opens no link itself.
+ * - `resolveNavigation` absent: the CTA is an Anchor to `ctaTarget` (http/https
+ *   only). A rejected URL renders a Button that shows an error toast instead.
+ * - A handler that throws or rejects shows an error toast; the modal stays open so the user can retry or dismiss.
+ * Error toasts need a mounted `<ToastContainer />`, which every story here mounts.
+ */
+import React, { useRef, useState } from 'react'
+import type { Meta, StoryObj } from '@storybook/react'
+import { expect, within, userEvent, waitFor } from '@storybook/test'
+import { NextTaskModal, ToastContainer, Card, Heading, Text, Button, ButtonText } from '@goodwidget/ui'
+import type { NextTaskContent } from '@goodwidget/ui'
+import { withDefaultPreset } from '../helpers/withDefaultPreset'
+
+const meta: Meta = {
+  title: 'Design System/Primitives/NextTaskModal',
+  tags: ['autodocs', 'showcase'],
+  parameters: { layout: 'padded' },
+  decorators: [withDefaultPreset],
+}
+export default meta
+type Story = StoryObj
+
+const SAMPLE_IMAGE_URL =
+  'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"><rect width="96" height="96" fill="%23243242"/></svg>'
+
+const contentWithImage: NextTaskContent = {
+  title: 'Stake your G$ and earn',
+  description: 'Put your claimed G$ to work by staking it for rewards.',
+  ctaLabel: 'Explore staking',
+  ctaTarget: 'https://gooddollar.org/stake',
+  imageUrl: SAMPLE_IMAGE_URL,
+  contentId: 'stake-prompt',
+}
+
+const contentWithoutImage: NextTaskContent = {
+  title: 'Verify your identity',
+  description: 'Complete GoodID verification to unlock higher claim limits.',
+  ctaLabel: 'Verify now',
+  ctaTarget: 'https://gooddollar.org/goodid',
+  contentId: 'goodid-prompt',
+}
+
+const contentWithRejectedUrl: NextTaskContent = {
+  ...contentWithoutImage,
+  ctaTarget: 'javascript:alert(1)',
+  contentId: 'rejected-url-prompt',
+}
+
+/**
+ * Shared story scaffold: an "Open next task" button, a readout of the most
+ * recent onShown/onClicked/onDismissed payload, and a mounted ToastContainer.
+ */
+function ControlledHarness({
+  content,
+  testID,
+  resolveNavigation,
+  statusLabel,
+}: {
+  content: NextTaskContent | null | undefined
+  testID: string
+  resolveNavigation?: (ctaTarget: string) => void | Promise<void>
+  statusLabel?: string
+}) {
+  const [open, setOpen] = useState(false)
+  const [lastEvent, setLastEvent] = useState('none')
+  const [clickCount, setClickCount] = useState(0)
+
+  return (
+    <>
+      <Card style={{ width: 320 }}>
+        <Heading level={5}>Next task</Heading>
+        <Text>The host controls `open`; the modal reports what the user did.</Text>
+        <Button data-testid="NextTaskModal-open" fullWidth onPress={() => setOpen(true)}>
+          <ButtonText>Open next task</ButtonText>
+        </Button>
+        <Text data-testid="NextTaskModal-last-event">{lastEvent}</Text>
+        <Text data-testid="NextTaskModal-open-state">{open ? 'open' : 'closed'}</Text>
+        <Text data-testid="NextTaskModal-click-count">{String(clickCount)}</Text>
+      </Card>
+      <NextTaskModal
+        testID={testID}
+        open={open}
+        content={content}
+        onClose={() => setOpen(false)}
+        resolveNavigation={resolveNavigation}
+        onShown={(payload) => setLastEvent(`shown:${payload.contentId ?? ''}`)}
+        onClicked={(payload) => {
+          setClickCount((count) => count + 1)
+          setLastEvent(`clicked:${payload.ctaTarget}`)
+        }}
+        onDismissed={(payload) => setLastEvent(`dismissed:${payload.reason}`)}
+        statusLabel={statusLabel}
+      />
+      <ToastContainer />
+    </>
+  )
+}
+
+/** Opens the sheet from the harness button and returns the card root. */
+async function openAndGetCard(canvasElement: HTMLElement, testID: string) {
+  await userEvent.click(within(canvasElement).getByTestId('NextTaskModal-open'))
+  return within(document.body).findByTestId(testID)
+}
+
+/**
+ * Stops anchor clicks from navigating while still letting React's onClick run
+ * (the document listener fires after React's root listener), so Anchor mode can
+ * be exercised without leaving the page. Returns a restore function.
+ */
+function blockLinkNavigation() {
+  const preventNavigation = (event: Event) => {
+    if ((event.target as HTMLElement | null)?.closest('a')) event.preventDefault()
+  }
+  document.addEventListener('click', preventNavigation)
+  return () => document.removeEventListener('click', preventNavigation)
+}
+
+/** Closed by default — the modal renders nothing until the host opens it. */
+export const Closed: Story = {
+  render: () => <ControlledHarness content={contentWithImage} testID="NextTaskModal-closed" />,
+}
+
+/** Opening shows the status pill, headline, recommendation card and CTA. */
+export const ShownWithContent: Story = {
+  render: () => (
+    <ControlledHarness
+      content={contentWithImage}
+      statusLabel="Claim completed"
+      testID="NextTaskModal-shown"
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const card = await openAndGetCard(canvasElement, 'NextTaskModal-shown')
+    await expect(within(card).getByText('Stake your G$ and earn')).toBeInTheDocument()
+    await expect(within(document.body).getByText('Claim completed')).toBeInTheDocument()
+    await expect(within(document.body).getByText('One good next step')).toBeInTheDocument()
+    await expect(within(canvasElement).getByTestId('NextTaskModal-last-event')).toHaveTextContent(
+      'shown:stake-prompt',
+    )
+  },
+}
+
+/** Content with no `imageUrl` renders without the image slot. */
+export const ShownWithoutImage: Story = {
+  render: () => <ControlledHarness content={contentWithoutImage} testID="NextTaskModal-no-image" />,
+  play: async ({ canvasElement }) => {
+    const card = await openAndGetCard(canvasElement, 'NextTaskModal-no-image')
+    await expect(within(card).getByText('Verify your identity')).toBeInTheDocument()
+    await expect(within(card).queryByRole('img')).not.toBeInTheDocument()
+  },
+}
+
+/** Reference copy from issue #276, with fixture art so the design comparison stays focused on layout. */
+export const DesignReferenceCopy: Story = {
+  render: () => (
+    <ControlledHarness
+      content={{
+        title: 'Vote in this week’s Treasury Proposal',
+        description: 'Help decide where 10M G$ goes and shape the community.',
+        ctaLabel: 'Open Proposal',
+        ctaTarget: 'https://gooddollar.org/governance',
+        imageUrl: SAMPLE_IMAGE_URL,
+        statusLabel: 'Claim completed',
+      }}
+      testID="NextTaskModal-design-reference"
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const card = await openAndGetCard(canvasElement, 'NextTaskModal-design-reference')
+    await expect(within(card).getByText('Vote in this week’s Treasury Proposal')).toBeInTheDocument()
+  },
+}
+
+/** `content={null}` — opening is a no-op; the modal never mounts. */
+export const NoContent: Story = {
+  render: () => <ControlledHarness content={null} testID="NextTaskModal-no-content" />,
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByTestId('NextTaskModal-open'))
+    await expect(within(document.body).queryByTestId('NextTaskModal-no-content')).not.toBeInTheDocument()
+    await waitFor(() =>
+      expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('closed'),
+    )
+    await expect(within(canvasElement).getByTestId('NextTaskModal-last-event')).toHaveTextContent('none')
+  },
+}
+
+/**
+ * In fit mode drag is disabled, so the sheet is dismissed via the corner close control,
+ * overlay press, or action buttons ("Skip for now" and primary CTA). The close control and
+ * overlay press share `onClose` and report reason "overlay".
+ *
+ * The Drawer's enter transition briefly leaves its content `pointer-events: none` until the
+ * animation settles, so clicks are wrapped in `waitFor` to retry past that window.
+ */
+export const DismissViaDrawerClose: Story = {
+  render: () => <ControlledHarness content={contentWithImage} testID="NextTaskModal-dismiss-close" />,
+  play: async ({ canvasElement }) => {
+    await openAndGetCard(canvasElement, 'NextTaskModal-dismiss-close')
+    const closeButton = await within(document.body).findByRole('button', { name: /close/i })
+    await waitFor(() => userEvent.click(closeButton))
+    await expect(within(canvasElement).getByTestId('NextTaskModal-last-event')).toHaveTextContent(
+      'dismissed:overlay',
+    )
+    await expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('closed')
+  },
+}
+
+/** Dismissing via "Skip for now" reports reason "skip-link" and flips `open` to false. */
+export const DismissViaSkipLink: Story = {
+  render: () => <ControlledHarness content={contentWithImage} testID="NextTaskModal-dismiss-skip" />,
+  play: async ({ canvasElement }) => {
+    await openAndGetCard(canvasElement, 'NextTaskModal-dismiss-skip')
+    const skipButton = await within(document.body).findByRole('button', { name: /skip for now/i })
+    await waitFor(() => userEvent.click(skipButton))
+    await expect(within(canvasElement).getByTestId('NextTaskModal-last-event')).toHaveTextContent(
+      'dismissed:skip-link',
+    )
+    await expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('closed')
+  },
+}
+
+/**
+ * No `resolveNavigation`: the CTA is an Anchor whose `href` is the CTA target. Navigation
+ * is blocked in the test; the Anchor still reports the click and the sheet closes.
+ */
+export const ExternalLink: Story = {
+  render: () => <ControlledHarness content={contentWithImage} testID="NextTaskModal-external-link" />,
+  play: async ({ canvasElement }) => {
+    const restoreNavigation = blockLinkNavigation()
+    try {
+      const card = await openAndGetCard(canvasElement, 'NextTaskModal-external-link')
+      const cta = await within(document.body).findByRole('link', { name: 'Explore staking' })
+      await expect(cta).toHaveAttribute('href', contentWithImage.ctaTarget)
+      await expect(within(card).queryByRole('link')).not.toBeInTheDocument()
+      await waitFor(() => userEvent.click(cta))
+      await expect(within(canvasElement).getByTestId('NextTaskModal-last-event')).toHaveTextContent(
+        `clicked:${contentWithImage.ctaTarget}`,
+      )
+      await expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('closed')
+    } finally {
+      restoreNavigation()
+    }
+  },
+}
+
+/**
+ * `resolveNavigation` passed: the CTA is a Button, the host receives `ctaTarget` untouched,
+ * and no link is opened by the modal.
+ */
+export const HostNavigation: Story = {
+  render: () => {
+    const navigatedTargets: string[] = []
+    return (
+      <ControlledHarness
+        content={contentWithImage}
+        testID="NextTaskModal-host-nav"
+        resolveNavigation={(ctaTarget) => {
+          navigatedTargets.push(ctaTarget)
+          document.body.dataset.nextTaskNavigated = navigatedTargets.join(',')
+        }}
+      />
+    )
+  },
+  play: async ({ canvasElement }) => {
+    delete document.body.dataset.nextTaskNavigated
+    await openAndGetCard(canvasElement, 'NextTaskModal-host-nav')
+    await expect(within(document.body).queryByRole('link', { name: 'Explore staking' })).not.toBeInTheDocument()
+    const cta = await within(document.body).findByRole('button', { name: 'Explore staking' })
+    await waitFor(() => userEvent.click(cta))
+    await waitFor(() => expect(document.body.dataset.nextTaskNavigated).toBe(contentWithImage.ctaTarget))
+    await expect(within(canvasElement).getByTestId('NextTaskModal-last-event')).toHaveTextContent(
+      `clicked:${contentWithImage.ctaTarget}`,
+    )
+    await expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('closed')
+  },
+}
+
+const contentWithCustomCopy: NextTaskContent = {
+  ...contentWithImage,
+  headline: 'Custom Headline Step',
+  supportingCopy: 'Custom supporting message for active community members.',
+  recommendedLabel: 'FEATURED',
+  skipLabel: 'Not now, thanks',
+  statusLabel: 'Verification complete',
+}
+
+const contentWithRealisticLongCopy: NextTaskContent = {
+  title: 'Participate in the GoodDollar Community Expansion & Micro-Grants Initiative',
+  description:
+    'Read through the extensive proposal detailing the upcoming treasury distribution to regional ambassadors and liquidity pools across multiple EVM ecosystems, cast your vote, and join our active discussion forums.',
+  ctaLabel: 'Read and vote on Snapshot',
+  ctaTarget: 'https://gooddollar.org/governance/proposal-123',
+  imageUrl: 'https://placehold.co/96x96',
+  contentId: 'governance-long-copy',
+  headline: 'Support Community Expansion Proposals',
+  supportingCopy:
+    'Every citizen vote shapes the next generation of financial inclusion. Review all active proposals before making your choice.',
+  recommendedLabel: 'ACTIVE VOTE',
+  skipLabel: 'Remind me tomorrow',
+  statusLabel: 'Claim successfully processed',
+}
+
+const contentWithRealisticLongCopyWithoutImage: NextTaskContent = {
+  ...contentWithRealisticLongCopy,
+  imageUrl: undefined,
+  contentId: 'governance-long-copy-no-image',
+}
+
+/** A synchronous handler that throws shows an error toast; the sheet stays open so the user can retry or dismiss. */
+export const NavigationError: Story = {
+  render: () => (
+    <ControlledHarness
+      content={contentWithImage}
+      testID="NextTaskModal-nav-error"
+      resolveNavigation={() => {
+        throw new Error('router unavailable')
+      }}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    await openAndGetCard(canvasElement, 'NextTaskModal-nav-error')
+    const cta = await within(document.body).findByRole('button', { name: 'Explore staking' })
+    await waitFor(() => userEvent.click(cta))
+    const toasts = await within(document.body).findAllByText('Could not open this link. Please try again.')
+    await expect(toasts[0]).toBeInTheDocument()
+    await expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('open')
+  },
+}
+
+/** An async handler that rejects shows the same error toast as a synchronous throw, and keeps the drawer open. */
+export const NavigationRejected: Story = {
+  render: () => (
+    <ControlledHarness
+      content={contentWithImage}
+      testID="NextTaskModal-nav-rejected"
+      resolveNavigation={() => Promise.reject(new Error('navigation rejected'))}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    await openAndGetCard(canvasElement, 'NextTaskModal-nav-rejected')
+    const cta = await within(document.body).findByRole('button', { name: 'Explore staking' })
+    await waitFor(() => userEvent.click(cta))
+    const toasts = await within(document.body).findAllByText('Could not open this link. Please try again.')
+    await expect(toasts[0]).toBeInTheDocument()
+    await expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('open')
+  },
+}
+
+/** No handler and a non-http(s) `ctaTarget`: no Anchor is rendered; pressing shows an error toast and keeps the drawer open. */
+export const RejectedUrl: Story = {
+  render: () => <ControlledHarness content={contentWithRejectedUrl} testID="NextTaskModal-rejected-url" />,
+  play: async ({ canvasElement }) => {
+    await openAndGetCard(canvasElement, 'NextTaskModal-rejected-url')
+    await expect(within(document.body).queryByRole('link', { name: 'Verify now' })).not.toBeInTheDocument()
+    const cta = await within(document.body).findByRole('button', { name: 'Verify now' })
+    await waitFor(() => userEvent.click(cta))
+    await expect(await within(document.body).findByText('This link cannot be opened.')).toBeInTheDocument()
+    await expect(within(canvasElement).getByTestId('NextTaskModal-last-event')).not.toHaveTextContent('clicked')
+    await expect(within(canvasElement).getByTestId('NextTaskModal-open-state')).toHaveTextContent('open')
+  },
+}
+
+/** Configurable copy overrides: custom headline, supporting copy, labels and status. */
+export const CustomCopy: Story = {
+  render: () => <ControlledHarness content={contentWithCustomCopy} testID="NextTaskModal-custom-copy" />,
+  play: async ({ canvasElement }) => {
+    await openAndGetCard(canvasElement, 'NextTaskModal-custom-copy')
+    await expect(within(document.body).getByText('Custom Headline Step')).toBeInTheDocument()
+    await expect(within(document.body).getByText('Custom supporting message for active community members.')).toBeInTheDocument()
+    await expect(within(document.body).getByText('FEATURED')).toBeInTheDocument()
+    await expect(within(document.body).getByText('Not now, thanks')).toBeInTheDocument()
+    await expect(within(document.body).getByText('Verification complete')).toBeInTheDocument()
+  },
+}
+
+/** Realistic long copy with inner scrolling for responsive testing. */
+export const RealisticLongCopy: Story = {
+  render: () => <ControlledHarness content={contentWithRealisticLongCopy} testID="NextTaskModal-long-copy" />,
+}
+
+/** Realistic long copy without an image slot for responsive testing. */
+export const RealisticLongCopyWithoutImage: Story = {
+  render: () => (
+    <ControlledHarness
+      content={contentWithRealisticLongCopyWithoutImage}
+      testID="NextTaskModal-long-copy-no-image"
+    />
+  ),
+}
+
+/** A slow handler that fails first time and succeeds second time, for testing double-press guard and retry. */
+export const NavigationPendingAndRetry: Story = {
+  render: () => {
+    let callCount = 0
+    let shouldFail = true
+    return (
+      <ControlledHarness
+        content={contentWithImage}
+        testID="NextTaskModal-pending-retry"
+        resolveNavigation={async () => {
+          callCount++
+          if (typeof document !== 'undefined') {
+            document.body.dataset.nextTaskCallCount = String(callCount)
+          }
+          if (shouldFail) {
+            shouldFail = false
+            await new Promise((resolve) => setTimeout(resolve, 200))
+            throw new Error('temporary failure')
+          }
+          await new Promise((resolve) => setTimeout(resolve, 200))
+        }}
+      />
+    )
+  },
+}
+
+interface DeferredNavigationAttempt {
+  resolve: () => void
+  reject: (error: Error) => void
+}
+
+function StaleNavigationHarness() {
+  const [mounted, setMounted] = useState(true)
+  const [open, setOpen] = useState(false)
+  const [lastEvent, setLastEvent] = useState('none')
+  const [callCount, setCallCount] = useState(0)
+  const [settledCount, setSettledCount] = useState(0)
+  const [closeCount, setCloseCount] = useState(0)
+  const pendingAttemptsRef = useRef<DeferredNavigationAttempt[]>([])
+
+  const settleOldestAttempt = (outcome: 'resolve' | 'reject') => {
+    const oldestAttempt = pendingAttemptsRef.current.shift()
+    if (!oldestAttempt) return
+    if (outcome === 'resolve') {
+      oldestAttempt.resolve()
+    } else {
+      oldestAttempt.reject(new Error('stale failure'))
+    }
+    // Schedule state update on the next macrotask so all async continuations in NextTaskModal settle first.
+    setTimeout(() => setSettledCount((count) => count + 1), 0)
+  }
+
+  return (
+    <Card style={{ width: 320 }}>
+      <Heading level={5}>Stale navigation harness</Heading>
+      <Button data-testid="NextTaskModal-open" fullWidth onPress={() => setOpen(true)}>
+        <ButtonText>Open next task</ButtonText>
+      </Button>
+      <Button data-testid="NextTaskModal-host-close" fullWidth onPress={() => setOpen(false)}>
+        <ButtonText>Host close</ButtonText>
+      </Button>
+      <Button data-testid="NextTaskModal-toggle-mount" fullWidth onPress={() => setMounted((value) => !value)}>
+        <ButtonText>Toggle mount</ButtonText>
+      </Button>
+      <Button
+        data-testid="NextTaskModal-resolve-oldest"
+        fullWidth
+        onPress={() => settleOldestAttempt('resolve')}
+      >
+        <ButtonText>Resolve oldest attempt</ButtonText>
+      </Button>
+      <Button
+        data-testid="NextTaskModal-reject-oldest"
+        fullWidth
+        onPress={() => settleOldestAttempt('reject')}
+      >
+        <ButtonText>Reject oldest attempt</ButtonText>
+      </Button>
+      <Text data-testid="NextTaskModal-last-event">{lastEvent}</Text>
+      <Text data-testid="NextTaskModal-open-state">{open ? 'open' : 'closed'}</Text>
+      <Text data-testid="NextTaskModal-call-count">{String(callCount)}</Text>
+      <Text data-testid="NextTaskModal-settled-count">{String(settledCount)}</Text>
+      <Text data-testid="NextTaskModal-close-count">{String(closeCount)}</Text>
+      {mounted ? (
+        <NextTaskModal
+          testID="NextTaskModal-stale-navigation"
+          open={open}
+          content={contentWithImage}
+          onClose={() => {
+            setCloseCount((count) => count + 1)
+            setOpen(false)
+          }}
+          resolveNavigation={() => {
+            setCallCount((count) => count + 1)
+            return new Promise<void>((resolve, reject) => {
+              pendingAttemptsRef.current.push({ resolve, reject })
+            })
+          }}
+          onShown={(payload) => setLastEvent(`shown:${payload.contentId ?? ''}`)}
+          onClicked={(payload) => setLastEvent(`clicked:${payload.ctaTarget}`)}
+          onDismissed={(payload) => setLastEvent(`dismissed:${payload.reason}`)}
+        />
+      ) : null}
+      <ToastContainer />
+    </Card>
+  )
+}
+
+/** Controlled close/reopen while an earlier navigation promise is still pending ignores stale outcomes. */
+export const StaleNavigationIgnoredAcrossReopen: Story = {
+  render: () => <StaleNavigationHarness />,
+}
+
+function ThrowingOnCloseHarness() {
+  const [open, setOpen] = useState(false)
+  const [callCount, setCallCount] = useState(0)
+  const [closeAttempts, setCloseAttempts] = useState(0)
+
+  return (
+    <Card style={{ width: 320 }}>
+      <Heading level={5}>Throwing onClose harness</Heading>
+      <Button data-testid="NextTaskModal-open" fullWidth onPress={() => setOpen(true)}>
+        <ButtonText>Open next task</ButtonText>
+      </Button>
+      <Text data-testid="NextTaskModal-open-state">{open ? 'open' : 'closed'}</Text>
+      <Text data-testid="NextTaskModal-call-count">{String(callCount)}</Text>
+      <Text data-testid="NextTaskModal-close-count">{String(closeAttempts)}</Text>
+      <NextTaskModal
+        testID="NextTaskModal-throwing-on-close"
+        open={open}
+        content={contentWithImage}
+        onClose={() => {
+          setCloseAttempts((count) => count + 1)
+          throw new Error('host onClose failure')
+        }}
+        resolveNavigation={async () => {
+          setCallCount((count) => count + 1)
+        }}
+      />
+      <ToastContainer />
+    </Card>
+  )
+}
+
+/** A host onClose failure after navigation succeeds does not trigger the navigation error toast or reset the guard. */
+export const OnCloseThrowAfterNavigationSuccess: Story = {
+  render: () => <ThrowingOnCloseHarness />,
+}

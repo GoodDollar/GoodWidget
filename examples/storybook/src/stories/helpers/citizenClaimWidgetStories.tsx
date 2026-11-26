@@ -15,14 +15,48 @@ import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
 
 const MOCK_CLAIM_ALL_ACCOUNT = '0x329377cbeeF39f01b0Ea04B80465c9eB47D3ED1'
 
-function createMockClaimExecutionClientBundle(chainId: number, shouldFail: boolean) {
+export function createMockClaimExecutionClientBundle(
+  chainId: number,
+  shouldFail: boolean,
+  options: { emptyClaimables?: boolean } = {},
+) {
+  const { emptyClaimables = false } = options
+  // Distinguish loadClaimablesByChain()'s checkEntitlement read (preceded by a connected
+  // getWhitelistedRoot call synchronously before getDailyStats) from getWalletClaimStatus()
+  // and ClaimSDK.claim(), so claimablesByChain stays empty while single-chain claim() can succeed.
+  let hasConnectedRootBeforeStats = false
+  let pendingEmptyClaimableChecks = 0
+
   return {
     publicClient: {
-      readContract: async ({ functionName }: { functionName: string }) => {
+      readContract: async ({
+        functionName,
+        args,
+      }: {
+        functionName: string
+        args?: unknown[]
+      }) => {
         if (functionName === 'getWhitelistedRoot') {
+          hasConnectedRootBeforeStats = true
           return '0x0000000000000000000000000000000000000001'
         }
+        if (functionName === 'getDailyStats') {
+          if (hasConnectedRootBeforeStats) {
+            hasConnectedRootBeforeStats = false
+            pendingEmptyClaimableChecks += 1
+          }
+          return 0n
+        }
         if (functionName === 'checkEntitlement') {
+          if (emptyClaimables) {
+            if (!args || args.length === 0) {
+              return 0n
+            }
+            if (pendingEmptyClaimableChecks > 0) {
+              pendingEmptyClaimableChecks -= 1
+              return 0n
+            }
+          }
           return 1_000000000000000000n
         }
         if (functionName === 'canTop') {
@@ -65,16 +99,28 @@ function createMockClaimExecutionClientBundle(chainId: number, shouldFail: boole
   }
 }
 
+/** Props that opt the widget into the post-claim "next task" recommendation. */
+export type CitizenClaimNextTaskProps = Pick<
+  CitizenClaimWidgetProps,
+  | 'nextTaskContent'
+  | 'nextTaskResolveNavigation'
+  | 'onNextTaskShown'
+  | 'onNextTaskClicked'
+  | 'onNextTaskDismissed'
+>
+
 function CitizenClaimWidgetStoryShell({
   provider,
   dataTestId,
   defaultTheme,
   themeOverrides,
+  nextTaskProps,
 }: {
   provider: unknown
   dataTestId: string
   defaultTheme?: 'light' | 'dark'
   themeOverrides?: CitizenClaimWidgetProps['themeOverrides']
+  nextTaskProps?: CitizenClaimNextTaskProps
 }) {
   const [activeChainId, setActiveChainId] = useState<number | null>(null)
 
@@ -109,6 +155,7 @@ function CitizenClaimWidgetStoryShell({
       chainId={activeChainId ?? 42220}
       defaultTheme={defaultTheme}
       themeOverrides={themeOverrides}
+      {...nextTaskProps}
     />
   )
 }
@@ -148,9 +195,11 @@ export function InjectedWalletStory({
 export function CustodialLocalFixtureStory({
   defaultTheme,
   themeOverrides,
+  nextTaskProps,
 }: {
   defaultTheme?: 'light' | 'dark'
   themeOverrides?: CitizenClaimWidgetProps['themeOverrides']
+  nextTaskProps?: CitizenClaimNextTaskProps
 } = {}) {
   try {
     const provider = createCustodialEip1193Provider()
@@ -160,6 +209,7 @@ export function CustodialLocalFixtureStory({
         dataTestId="CitizenClaimWidget-custodial-wallet"
         defaultTheme={defaultTheme}
         themeOverrides={themeOverrides}
+        nextTaskProps={nextTaskProps}
       />
     )
   } catch (error: unknown) {
@@ -251,5 +301,53 @@ export function CustodialClaimExecutionClaimAllStory() {
     <GoodWidgetProvider provider={undefined} defaultTheme="dark">
       <CustodialExecutionClaimAllHarness />
     </GoodWidgetProvider>
+  )
+}
+
+export function MockClaimExecutionWidgetStory({
+  nextTaskProps,
+  singleChain = false,
+  allFail = false,
+  partialSuccess = false,
+  emptyClaimables = false,
+}: {
+  nextTaskProps?: CitizenClaimNextTaskProps
+  singleChain?: boolean
+  allFail?: boolean
+  partialSuccess?: boolean
+  emptyClaimables?: boolean
+} = {}) {
+  const claimExecution = useMemo(() => {
+    if (singleChain) {
+      return createCitizenClaimWidgetCustodialExecution({
+        42220: createMockClaimExecutionClientBundle(42220, allFail, { emptyClaimables }),
+      })
+    }
+    if (partialSuccess) {
+      return createCitizenClaimWidgetCustodialExecution({
+        42220: createMockClaimExecutionClientBundle(42220, false),
+        122: createMockClaimExecutionClientBundle(122, true),
+      })
+    }
+    return createCitizenClaimWidgetCustodialExecution({
+      42220: createMockClaimExecutionClientBundle(42220, allFail, { emptyClaimables }),
+      122: createMockClaimExecutionClientBundle(122, allFail, { emptyClaimables }),
+    })
+  }, [singleChain, allFail, partialSuccess, emptyClaimables])
+
+  const provider = useMemo(() => {
+    return createCustodialEip1193Provider()
+  }, [])
+
+  return (
+    <CitizenClaimWidget
+      provider={provider}
+      environment="development"
+      data-testid="CitizenClaimWidget-mock-claim-execution"
+      chainId={42220}
+      defaultTheme="dark"
+      claimExecution={claimExecution}
+      {...nextTaskProps}
+    />
   )
 }
