@@ -20,6 +20,8 @@ export interface StepperStepItem {
   id: string
   title: string
   description?: string
+  /** Short supporting detail that remains visible after a step completes. */
+  detail?: string
   status: StepperStepStatus
   /**
    * Marks a not-yet-reached step as skippable: it renders as available rather
@@ -193,6 +195,7 @@ function StepperStepRow({
               {style.label}
             </Text>
           </XStack>
+          {step.detail && <Text variant="caption" secondary>{step.detail}</Text>}
           {showDescription && (
             <Text
               secondary={!emphasized}

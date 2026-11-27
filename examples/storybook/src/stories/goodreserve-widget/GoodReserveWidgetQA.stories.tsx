@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { GoodReserveWidget } from '@goodwidget/goodreserve-widget'
 import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
@@ -17,7 +18,7 @@ type Story = StoryObj<typeof meta>
 
 // Renders one deterministic reserve state per story for CI-safe widget coverage.
 const renderStory = (
-  mockState: Story['args']['mockState'],
+  mockState: ComponentProps<typeof GoodReserveWidget>['mockState'],
   dataTestId: string,
   defaultTheme?: 'light' | 'dark',
 ) => <GoodReserveWidget provider={provider} mockState={mockState} defaultTheme={defaultTheme} />

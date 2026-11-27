@@ -23,7 +23,13 @@ export const citizenClaimIntegration = {
     'success',
     'error',
   ],
-  events: ['claim-success', 'claim-error'],
+  events: [
+    'claim-success',
+    'claim-error',
+    'next-task-shown',
+    'next-task-clicked',
+    'next-task-dismissed',
+  ],
 } as const
 
 export type CitizenClaimIntegration = typeof citizenClaimIntegration

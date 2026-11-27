@@ -1,5 +1,5 @@
 import React from 'react'
-import { XStack } from '@goodwidget/ui'
+import { Tooltip, XStack } from '@goodwidget/ui'
 import { ACTIVITY_ICON_MAP } from '../widgetRuntimeContract'
 import type { ActivityType } from '../widgetRuntimeContract'
 import { ACTIVITY_ICON_COMPONENT, resolveActivityIconColorToken } from './activityIconComponents'
@@ -18,7 +18,8 @@ const ICON_PX: Record<'xs' | 'sm', number> = { xs: 16, sm: 20 }
 /**
  * Renders the selected campaign's activity glyphs in campaign-definition order,
  * dimming any activity absent from completedActivities.
- * Desktop keeps all six inline; below $gtMd they wrap to a second line
+ * Each glyph carries a shared tooltip naming the action (hover, focus, tap).
+ * Desktop keeps all glyphs inline; below $gtMd they wrap to a second line
  * within the cell instead of truncating (see LeaderboardRow's cell wrapper).
  */
 export function ActivityIcons({ completedActivities, activities, size = 'sm' }: ActivityIconsProps) {
@@ -33,13 +34,14 @@ export function ActivityIcons({ completedActivities, activities, size = 'sm' }: 
         const color = resolveActivityIconColorToken(spec.colorVariant, isDone)
 
         return (
-          <XStack
-            key={spec.activity}
-            opacity={isDone ? 1 : 0.35}
-            aria-label={`${spec.label}: ${isDone ? 'done' : 'not done'}`}
-          >
-            <ActivityIconComponent size={ICON_PX[size]} color={color} />
-          </XStack>
+          <Tooltip key={spec.activity} label={spec.label}>
+            <XStack
+              opacity={isDone ? 1 : 0.35}
+              aria-label={`${spec.label}: ${isDone ? 'done' : 'not done'}`}
+            >
+              <ActivityIconComponent size={ICON_PX[size]} color={color} />
+            </XStack>
+          </Tooltip>
         )
       })}
     </XStack>

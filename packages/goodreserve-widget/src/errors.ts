@@ -42,6 +42,18 @@ const RESERVE_ERROR_RULES: readonly ErrorMatcher[] = [
     match: ['timeout', 'timed out'],
     message: 'The request timed out. Please try again.',
   },
+  // SDK-thrown mined-but-reverted transaction (ReserveTransactionError). Must
+  // precede the generic 'revert' rule, which would hide that a refresh is needed.
+  {
+    match: ['transaction reverted on-chain'],
+    message: 'The transaction reverted on-chain. Refresh the quote and try again.',
+  },
+  // SDK-thrown wallet/read-client chain mismatch (e.g. the wallet switched
+  // networks while the confirm dialog was open).
+  {
+    match: ['does not match reserve read-client chain'],
+    message: 'Your wallet is on a different network. Switch back and try again.',
+  },
   // On-chain revert — extract a clean, sanitized reason before falling back to
   // a generic message (never surface raw revert hex / addresses).
   {

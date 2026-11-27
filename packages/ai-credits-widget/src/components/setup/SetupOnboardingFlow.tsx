@@ -49,7 +49,7 @@ export function SetupOnboardingFlow({ state, actions }: SetupOnboardingFlowProps
     {
       id: 'download',
       title: 'Get Antseed',
-      description: 'Antseed Desktop App or API — choose either',
+      description: 'Antseed Desktop or API — choose either',
       status: downloadCompleted ? 'completed' : 'ready',
     },
     {

@@ -405,11 +405,21 @@ function ConfirmDrawer({
   state: ReserveSwapWidgetAdapterState
   actions: ReserveSwapWidgetAdapterActions
 }) {
-  const minimumReceived = formatTokenAmount(state.quote?.minimumReceived)
+  const open = state.status === 'confirm_dialog'
+  const expiresAt = state.quoteExpiresAt
+  const [expiredAt, setExpiredAt] = useState<number | null>(null)
+  const expired = expiresAt !== null && (expiresAt === expiredAt || Date.now() >= expiresAt)
+  const minimumReceived = expired ? '—' : formatTokenAmount(state.quote?.minimumReceived)
+
+  useEffect(() => {
+    if (!open || expiresAt === null) return
+    const timer = setTimeout(() => setExpiredAt(expiresAt), Math.max(0, expiresAt - Date.now()))
+    return () => clearTimeout(timer)
+  }, [open, expiresAt])
 
   return (
     <Drawer
-      open={state.status === 'confirm_dialog'}
+      open={open}
       onClose={actions.closeConfirm}
       height="full"
       hideCloseButton
@@ -466,7 +476,7 @@ function ConfirmDrawer({
         <ReserveDetailsTable padding="$4" gap="$2">
           <DetailRow
             label="Exchange Rate"
-            value={`1 ${state.tokenInSymbol} = ${state.quote?.price ?? '0'} ${state.tokenOutSymbol}`}
+            value={expired ? '—' : `1 ${state.tokenInSymbol} = ${state.quote?.price ?? '0'} ${state.tokenOutSymbol}`}
           />
           <DetailRow label="Max Slippage" value={`${state.slippagePercent}%`} />
           <DetailRow
@@ -474,6 +484,12 @@ function ConfirmDrawer({
             value={`${formatTokenAmount(state.inputAmount)} ${state.tokenInSymbol}`}
           />
         </ReserveDetailsTable>
+
+        {expired && (
+          <Text testID="GoodReserveWidget-quote-expired" color="$warning" aria-live="polite">
+            Quote expired. Refresh to review the new amount.
+          </Text>
+        )}
 
         <Separator />
 
@@ -486,9 +502,9 @@ function ConfirmDrawer({
             height={54}
             borderRadius="$full"
             testID="GoodReserveWidget-confirm-cta"
-            onPress={actions.executeSwap}
+            onPress={expired ? actions.refreshExpiredQuote : actions.executeSwap}
           >
-            <ButtonText>Confirm Swap</ButtonText>
+            <ButtonText>{expired ? 'Refresh Quote' : 'Confirm Swap'}</ButtonText>
           </Button>
         </XStack>
       </YStack>
@@ -555,7 +571,9 @@ function getMainSwapPrimaryCta(
       loading: false,
     }
   }
-  if (!state.quote) {
+  // Review is only reachable once the quote for the current input and network
+  // has landed; every input, slippage or network change clears it first.
+  if (state.status !== 'quote_ready' || !state.quote) {
     return {
       label: 'Review Swap',
       disabled: true,

@@ -10,7 +10,8 @@
  */
 import React from 'react'
 import { BrowserRouter, Link, Route, Routes, useParams } from 'react-router-dom'
-import { Heading, Text, YStack } from '@goodwidget/ui'
+import { Heading, Text, WidgetVersion, YStack } from '@goodwidget/ui'
+import { version } from '../package.json'
 import { getDashboard, listDashboards } from './dashboards/registry'
 
 const CONTENT_MAX_WIDTH = 1120
@@ -18,6 +19,17 @@ const CONTENT_MAX_WIDTH = 1120
 export interface GoodDataWidgetProps {
   /** Router basename, for when the host mounts this widget under a subpath rather than at the app root. */
   basename?: string
+}
+
+/** A router link in the theme's text color, underlined, so it stays readable and recognisable as a link in every theme and visit state. */
+function PageLink({ to, children }: { to: string; children: React.ReactNode }) {
+  return (
+    <Link to={to}>
+      <Text tone="default" textDecorationLine="underline">
+        {children}
+      </Text>
+    </Link>
+  )
 }
 
 function UnknownDashboardPage({ dashboardId }: { dashboardId?: string }) {
@@ -31,7 +43,7 @@ function UnknownDashboardPage({ dashboardId }: { dashboardId?: string }) {
           ? `"${dashboardId}" isn't a registered dashboard.`
           : "This page doesn't match a registered dashboard."}
       </Text>
-      <Link to="/">Back to dashboards</Link>
+      <PageLink to="/">Back to dashboards</PageLink>
     </YStack>
   )
 }
@@ -58,9 +70,9 @@ function DashboardSelector() {
       </Heading>
       <YStack gap="$2">
         {dashboards.map((dashboard) => (
-          <Link key={dashboard.id} to={`/${dashboard.path}`}>
+          <PageLink key={dashboard.id} to={`/${dashboard.path}`}>
             {dashboard.label}
-          </Link>
+          </PageLink>
         ))}
       </YStack>
     </YStack>
@@ -103,6 +115,7 @@ export function GoodDataWidget({ basename }: GoodDataWidgetProps = {}) {
             <Route path="*" element={<UnknownDashboardPage />} />
           </Routes>
         </BrowserRouter>
+        <WidgetVersion name="GoodData" version={version} />
       </YStack>
     </YStack>
   )

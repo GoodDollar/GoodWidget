@@ -3,7 +3,7 @@
  */
 import React from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
-import { Scorecard, XStack, YStack } from '@goodwidget/ui'
+import { Scorecard, ScorecardGrid, XStack, YStack } from '@goodwidget/ui'
 import type { ScorecardProps } from '@goodwidget/ui'
 import { withDefaultPreset } from '../helpers/withDefaultPreset'
 
@@ -14,9 +14,18 @@ const MOCK_ROWS: Array<{ slug: string; props: Omit<ScorecardProps, 'variant' | '
   { slug: 'active-days', props: { label: 'Active Days', value: 28, format: 'none' } },
   {
     slug: 'unique-wallets',
-    props: { label: 'Unique Wallets', value: 47, trend: { value: 15.3, direction: 'up' }, trendLabel: 'vs last 7d' },
+    props: {
+      label: 'Unique Wallets',
+      value: 47,
+      trend: { value: 15.3, direction: 'up' },
+      trendLabel: 'vs last 7d',
+      subtitle: 'Last 30 days',
+    },
   },
-  { slug: 'daily-flow-rate', props: { label: 'Daily Flow Rate', value: 2450000, prefix: 'G$', suffix: '/day', format: 'compact' } },
+  {
+    slug: 'daily-flow-rate',
+    props: { label: 'Daily Flow Rate', value: 2450000, prefix: 'G$', suffix: '/day', format: 'compact', subtitle: 'From AntSeed vault' },
+  },
 ]
 
 const meta: Meta<typeof Scorecard> = {
@@ -36,6 +45,7 @@ const meta: Meta<typeof Scorecard> = {
       description: 'Number formatting mode',
     },
     decimals: { control: 'number', description: 'Decimal precision' },
+    subtitle: { control: 'text', description: 'Short contextual/source note rendered below the trend row (or value row if no trend)' },
     variant: {
       control: 'select',
       options: ['bare', 'card'],
@@ -71,6 +81,328 @@ export const Default: Story = {
   ),
 }
 
+const exactNumber = (value: number) => Math.round(value).toLocaleString('en-US')
+
+/** `valueFormatter`: the same 1,972 shown with the default compact format ("2.0K") and with a
+ * caller formatter that keeps it whole ("1,972"). */
+export const ValueFormatter: Story = {
+  render: () => (
+    <XStack testID="Scorecard-value-formatter" data-testid="Scorecard-value-formatter" flexWrap="wrap" gap="$5">
+      <Scorecard label="Default format" value={19720} variant="card" testID="Scorecard-value-default" />
+      <Scorecard
+        label="valueFormatter"
+        value={19720}
+        valueFormatter={exactNumber}
+        variant="card"
+        testID="Scorecard-value-exact"
+      />
+    </XStack>
+  ),
+}
+
+/** `variant="tile"`: the same content as a card, with tighter padding and gaps and the small text one
+ * size step down, for grids of many scorecards. */
+export const Tile: Story = {
+  render: () => (
+    <XStack testID="Scorecard-tile" data-testid="Scorecard-tile" flexWrap="wrap" gap="$5" alignItems="flex-start">
+      <Scorecard
+        label="Card"
+        value={1701511}
+        prefix="G$"
+        accentColor="#6c5ce7"
+        detailLines={['in G$ 866.1K', 'out G$ 835.4K']}
+        trend={{ value: 4.2, direction: 'up' }}
+        trendText="+68.6K (+4.2%)"
+        subtitle="since Nov 8"
+        variant="card"
+        testID="Scorecard-tile-card"
+      />
+      <Scorecard
+        label="Tile"
+        value={1701511}
+        prefix="G$"
+        accentColor="#6c5ce7"
+        detailLines={['in G$ 866.1K', 'out G$ 835.4K']}
+        trend={{ value: 4.2, direction: 'up' }}
+        trendText="+68.6K (+4.2%)"
+        subtitle="since Nov 8"
+        variant="tile"
+        testID="Scorecard-tile-tile"
+      />
+    </XStack>
+  ),
+}
+
+const GRID_TILES = [
+  { label: 'Alpha', value: 335, color: '#2e7d32' },
+  { label: 'Bravo', value: 180, color: '#c2185b' },
+  { label: 'Charlie', value: 101, color: '#7e57c2' },
+  { label: 'Delta', value: 15, color: '#26a69a' },
+  { label: 'Echo', value: 2, color: '#f9a825' },
+  { label: 'Foxtrot', value: 1, color: '#1e88e5' },
+  { label: 'Golf', value: 0, color: '#e64a19' },
+]
+
+/** `ScorecardGrid`: equal-width tiles, as many per row as fit, last row keeps the same width. */
+export const Grid: Story = {
+  parameters: { contentMaxWidthPx: 900, stretchWrapper: true },
+  render: () => (
+    <ScorecardGrid testID="Scorecard-grid">
+      {GRID_TILES.map((tile) => (
+        <Scorecard
+          key={tile.label}
+          label={tile.label}
+          value={tile.value}
+          accentColor={tile.color}
+          variant="tile"
+          testID={`Scorecard-grid-${tile.label}`}
+        />
+      ))}
+      <Scorecard
+        label="Hotel"
+        value={0}
+        unavailableReason="Not measured"
+        accentColor="#8d6e63"
+        variant="tile"
+        testID="Scorecard-grid-Hotel"
+      />
+    </ScorecardGrid>
+  ),
+}
+
+/** `tooltip`: hover a tile to open its box over it, centered and as wide as its content. The
+ * "Last week" row has no color, so it draws no dot. */
+export const Hover: Story = {
+  parameters: { contentMaxWidthPx: 900, stretchWrapper: true },
+  render: () => (
+    <ScorecardGrid testID="Scorecard-hover">
+      <Scorecard
+        label="Alpha"
+        value={335}
+        accentColor="#2e7d32"
+        trend={{ value: 37.3, direction: 'up' }}
+        trendText="+91 (+37.3%)"
+        variant="tile"
+        tooltip={{
+          header: 'Alpha',
+          subheader: 'Transfers',
+          rows: [
+            { color: '#2e7d32', label: 'This week', value: '335' },
+            { label: 'Last week', value: '244' },
+          ],
+        }}
+        testID="Scorecard-hover-alpha"
+      />
+      <Scorecard
+        label="Bravo"
+        value={180}
+        accentColor="#c2185b"
+        variant="tile"
+        tooltip={{
+          header: 'Bravo',
+          subheader: 'Transfers',
+          rows: [{ color: '#c2185b', label: 'This week', value: '180' }],
+        }}
+        testID="Scorecard-hover-bravo"
+      />
+      <Scorecard
+        label="A much longer project name"
+        value={1701511}
+        prefix="G$"
+        accentColor="#7e57c2"
+        detailLines={['in G$ 866.1K', 'out G$ 835.4K']}
+        variant="tile"
+        tooltip={{
+          header: 'A much longer project name',
+          subheader: 'G$ moved',
+          rows: [
+            { color: '#7e57c2', label: 'This week', value: 'G$ 1,701,511' },
+            { label: 'Last week', value: 'G$ 1,632,904' },
+            { label: 'In', value: 'G$ 866,131' },
+            { label: 'Out', value: 'G$ 835,380' },
+          ],
+        }}
+        testID="Scorecard-hover-long"
+      />
+    </ScorecardGrid>
+  ),
+}
+
+/** `ScorecardGrid` with large tiles in a host narrower than one column's minimum (a small slide on
+ * a small phone): the single column shrinks to the host instead of overflowing it. */
+export const GridNarrowHost: Story = {
+  render: () => (
+    <YStack width={200} testID="Scorecard-grid-narrow-host" data-testid="Scorecard-grid-narrow-host">
+      <ScorecardGrid size="lg" testID="Scorecard-grid-narrow">
+        <Scorecard label="Alpha" value={335} variant="tile" size="lg" testID="Scorecard-grid-narrow-alpha" />
+        <Scorecard label="Bravo" value={180} variant="tile" size="lg" testID="Scorecard-grid-narrow-bravo" />
+      </ScorecardGrid>
+    </YStack>
+  ),
+}
+
+/** Hover content wider than a phone screen: the box stops at the screen's edges, long row names
+ * shorten with "…" and every value stays whole. */
+export const HoverWiderThanScreen: Story = {
+  parameters: { stretchWrapper: true },
+  render: () => (
+    <ScorecardGrid testID="Scorecard-hover-wide">
+      <Scorecard
+        label="Alpha"
+        value={1701511}
+        prefix="G$"
+        variant="tile"
+        tooltip={{
+          header: 'Alpha',
+          subheader: 'G$ moved',
+          rows: [
+            { color: '#7e57c2', label: 'This week, all transfers between the project and user wallets', value: 'G$ 1,701,511' },
+            { label: 'Last week, all transfers between the project and user wallets', value: 'G$ 1,632,904' },
+          ],
+          rightAlignValues: true,
+        }}
+        testID="Scorecard-hover-wide-alpha"
+      />
+    </ScorecardGrid>
+  ),
+}
+
+/** `abbreviateFrom`: by default numbers from 10,000 are shortened and smaller ones read in full;
+ * a lower threshold shortens four-digit numbers, `'never'` always shows the full number. */
+export const AbbreviateFrom: Story = {
+  render: () => (
+    <XStack testID="Scorecard-abbreviate" data-testid="Scorecard-abbreviate" flexWrap="wrap" gap="$5">
+      <Scorecard label="Default, 4 digits" value={1972} variant="card" testID="Scorecard-abbreviate-default-small" />
+      <Scorecard label="Default, 5 digits" value={12345} variant="card" testID="Scorecard-abbreviate-default-large" />
+      <Scorecard
+        label="From 1,000"
+        value={1972}
+        abbreviateFrom={1000}
+        variant="card"
+        testID="Scorecard-abbreviate-from-thousand"
+      />
+      <Scorecard
+        label="Never"
+        value={1701511}
+        abbreviateFrom="never"
+        variant="card"
+        testID="Scorecard-abbreviate-never"
+      />
+    </XStack>
+  ),
+}
+
+/** `trendText`: the trend row shows the caller's text ("+91 (+11.9%)", "-40 (-3.2%)", "No change")
+ * while `trend.direction` still picks the arrow and color; a neutral one reads as plain text. */
+export const TrendText: Story = {
+  render: () => (
+    <XStack testID="Scorecard-trend-text" data-testid="Scorecard-trend-text" flexWrap="wrap" gap="$5">
+      <Scorecard
+        label="Up"
+        value={856}
+        trend={{ value: 11.9, direction: 'up' }}
+        trendText="+91 (+11.9%)"
+        subtitle="since last period"
+        variant="card"
+        testID="Scorecard-trend-up"
+      />
+      <Scorecard
+        label="Down"
+        value={1210}
+        trend={{ value: 3.2, direction: 'down' }}
+        trendText="-40 (-3.2%)"
+        subtitle="since last period"
+        variant="card"
+        testID="Scorecard-trend-down"
+      />
+      <Scorecard
+        label="Flat"
+        value={42}
+        trend={{ value: 0, direction: 'neutral' }}
+        trendText="No change"
+        subtitle="since last period"
+        variant="card"
+        testID="Scorecard-trend-neutral"
+      />
+    </XStack>
+  ),
+}
+
+/** `unavailableReason`: the value reads "N/A" with the reason under it and no trend row, next to
+ * the same card with data. */
+export const Unavailable: Story = {
+  render: () => (
+    <XStack testID="Scorecard-unavailable" data-testid="Scorecard-unavailable" flexWrap="wrap" gap="$5">
+      <Scorecard
+        label="With data"
+        value={856}
+        trend={{ value: 11.9, direction: 'up' }}
+        variant="card"
+        testID="Scorecard-available-card"
+      />
+      <Scorecard
+        label="Without data"
+        value={0}
+        trend={{ value: 11.9, direction: 'up' }}
+        unavailableReason="Not tracked yet"
+        variant="card"
+        testID="Scorecard-unavailable-card"
+      />
+      {/* N/A never formats `value`: this formatter would throw on NaN. */}
+      <Scorecard
+        label="No value at all"
+        value={Number.NaN}
+        valueFormatter={(value) => {
+          if (!Number.isFinite(value)) throw new Error('needs a finite number')
+          return value.toLocaleString('en-US')
+        }}
+        unavailableReason="No repo registered"
+        variant="card"
+        testID="Scorecard-unavailable-nan"
+      />
+    </XStack>
+  ),
+}
+
+/** `accentColor`: card variant with a colored top border (one color per team, say), next to the
+ * default card. */
+export const AccentColor: Story = {
+  render: () => (
+    <XStack testID="Scorecard-accent" data-testid="Scorecard-accent" flexWrap="wrap" gap="$5">
+      <Scorecard label="Default card" value={856} variant="card" testID="Scorecard-accent-none" />
+      <Scorecard label="Accent" value={856} accentColor="#6c5ce7" variant="card" testID="Scorecard-accent-violet" />
+      <Scorecard label="Accent" value={412} accentColor="#00b894" variant="card" testID="Scorecard-accent-green" />
+      <Scorecard
+        label="Accent, large"
+        value={412}
+        accentColor="#00b894"
+        size="lg"
+        variant="card"
+        testID="Scorecard-accent-large"
+      />
+    </XStack>
+  ),
+}
+
+/** `detailLines`: a two-line breakdown under the value, above the trend row. */
+export const DetailLines: Story = {
+  render: () => (
+    <XStack testID="Scorecard-detail-lines" data-testid="Scorecard-detail-lines" flexWrap="wrap" gap="$5">
+      <Scorecard
+        label="Volume"
+        value={1701511}
+        prefix="G$"
+        detailLines={['in G$ 866.1K', 'out G$ 835.4K']}
+        trend={{ value: 4.2, direction: 'up' }}
+        trendText="+68.6K (+4.2%)"
+        subtitle="since last period"
+        variant="card"
+        testID="Scorecard-detail-card"
+      />
+    </XStack>
+  ),
+}
+
 /** Controllable instance — edit args in the Controls panel. */
 export const Controllable: Story = {
   args: {
@@ -80,6 +412,7 @@ export const Controllable: Story = {
     suffix: '',
     format: 'compact',
     decimals: 1,
+    subtitle: '',
     variant: 'card',
     size: 'md',
   },

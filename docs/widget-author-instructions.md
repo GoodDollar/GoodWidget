@@ -20,6 +20,11 @@ Before writing component code:
 3. Use the design system first. Add new styling surface only when the existing one cannot express the design.
 4. Check the output manually against the design reference in light/dark and mobile states before asking for review.
 
+For widgets that connect a wallet or read from a chain, decide how those are wired before building the UI:
+
+- **Wallet connection:** Use the host's EIP-1193 provider with [`GoodWidgetProvider`](../ARCHITECTURE.md#provider-flow) when the host already manages the connection. For a standalone web app that uses Reown, start with [`DefaultAppKitProvider`](../packages/embed/src/appkitProvider.ts) from `@goodwidget/embed/appkit-provider`. Keep the web connector out of the native entry.
+- **RPC failover:** For on-chain reads that need failover, use [`createViemFallbackClient`](../packages/core/README.md#viem-fallback-clients) from `@goodwidget/core/viemFallbackClient`. It provides fallback RPC transport; signing and sending still go through the connected wallet.
+
 Screenshot evidence is useful and required, but it is not a substitute for looking at the actual Storybook output.
 
 ---
@@ -298,6 +303,24 @@ inline. It becomes hard to review and hard to theme correctly.
 
 ---
 
+## Widget Version Label
+
+Every widget must show its own name and version, read from the widget package's `package.json`,
+as a small muted label in the bottom-right corner. Render the shared `WidgetVersion` primitive as
+the last child of the widget's root (inside `GoodWidgetProvider`) so it never overlaps content:
+
+```tsx
+import { WidgetVersion } from '@goodwidget/ui'
+import { version } from '../package.json'
+
+<WidgetVersion name="Governance" version={version} />
+```
+
+The widget's `tsconfig.json` and `tsconfig.build.json` must use `"rootDir": "."` and include
+`package.json` so the import type-checks.
+
+---
+
 ## Review Checklist
 
 Before requesting review:
@@ -310,6 +333,7 @@ Before requesting review:
 - Light and dark states were checked when the component supports both.
 - Mobile width was checked against the design reference.
 - Storybook screenshots were refreshed when visual states changed.
+- The widget renders `<WidgetVersion name="..." version={version} />`.
 - Manual visual review was done against Figma/Stitch/reference screenshots.
 
 If a design seems impossible to express through the current system, do not work around it by

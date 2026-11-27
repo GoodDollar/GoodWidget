@@ -1,0 +1,22 @@
+import { Canvas, Meta } from '@storybook/blocks';
+import * as ShowcaseStories from './BridgingWidgetShowcase.stories';
+import * as ThemeOverridesStories from './BridgingWidgetThemeOverrides.stories';
+import { DocsPage, DocsSection, DocsCard } from '../docs/DocsLayout';
+
+<Meta of={ShowcaseStories} name="Integrator guide" />
+
+<DocsPage eyebrow="Widget Guide" title="BridgingWidget" lead="Bridge G$ across supported networks from a connected wallet.">
+  <DocsSection title="Showcase" description="Use a test wallet to inspect available routes, balances, and fee estimates. For a read-only check, stop at Review.">
+    <DocsCard title="Open Injected Wallet" href="?path=/story/widgets-bridgingwidget-showcase--injected-wallet">
+      This story uses the real adapter and the browser's EIP-1193 provider.
+    </DocsCard>
+  </DocsSection>
+  <DocsSection title="Theme overrides" description="Preview button colors in either base theme without a live wallet.">
+    <Canvas of={ThemeOverridesStories.Playground} />
+  </DocsSection>
+  <DocsSection title="QA fixtures" description="Deterministic fixtures cover quote, review, submission and history states.">
+    <DocsCard title="Open mocked submission" href="?path=/story/qa-bridgingwidget-runtime-fixtures--mocked-sdk-submit">
+      Exercise a simulated bridge without signing or moving funds.
+    </DocsCard>
+  </DocsSection>
+</DocsPage>

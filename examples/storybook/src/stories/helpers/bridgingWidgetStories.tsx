@@ -1,0 +1,940 @@
+import React, { useEffect, useState } from 'react'
+import { parseUnits } from 'viem'
+import {
+  BRIDGING_CHAINS,
+  BridgingWidget,
+  BridgingWidgetPreview,
+  type BridgeConfig,
+  type BridgeFeeQuote,
+  type BridgeTransaction,
+  type BridgingWidgetAdapterActions,
+  type BridgingWidgetAdapterResult,
+  type BridgingWidgetAdapterState,
+  type BridgingWidgetProps,
+  type BridgingWidgetTab,
+} from '@goodwidget/bridging-widget'
+import { MiniAppShell, YStack } from '@goodwidget/ui'
+import { GoodWidgetProvider } from '@goodwidget/core'
+import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
+import {
+  getInjectedEip1193Provider,
+  isInjectedProviderUsable,
+} from '../../fixtures/injectedEip1193'
+
+const DEMO_ADDRESS = '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef'
+
+const SAMPLE_COMPLETED_SRC_HASH =
+  '0x1111111111111111111111111111111111111111111111111111111111111111'
+const SAMPLE_COMPLETED_DST_HASH =
+  '0x2222222222222222222222222222222222222222222222222222222222222222'
+const SAMPLE_PENDING_HASH =
+  '0x3333333333333333333333333333333333333333333333333333333333333333'
+const SAMPLE_FAILED_HASH =
+  '0x4444444444444444444444444444444444444444444444444444444444444444'
+
+const G$ = (whole: number) => BigInt(whole) * 10n ** 18n
+const G$Fuse = (whole: number) => BigInt(whole) * 100n
+
+const sampleQuote: BridgeFeeQuote = {
+  fee: 132000000000000n,
+  feeInNative: '0.00012 FUSE',
+  protocol: 'LAYERZERO',
+  target: DEMO_ADDRESS,
+  targetChainId: BRIDGING_CHAINS.CELO,
+  amount: G$Fuse(50),
+  protocolFeeBps: 50n,
+  protocolFee: G$(50) / 200n,
+  amountReceived: G$(50) - G$(50) / 200n,
+}
+
+const sampleBridgeConfig: BridgeConfig = {
+  // Unused by every current UI surface (see widgetRuntimeContract.ts) — left
+  // empty here rather than pulling in @goodsdks/bridging-sdk's chain map.
+  supportedChains: {},
+  currentChainId: BRIDGING_CHAINS.FUSE,
+  tokenBalance: G$Fuse(500),
+  nativeBalance: 2000000000000000000n,
+  allowance: 0n,
+  fees: null,
+  routeLimits: {
+    minAmount: G$(1),
+    dailyLimit: G$(1000000),
+    txLimit: G$(300000000),
+    accountDailyLimit: G$(50000),
+    onlyWhitelisted: false,
+  },
+  routeLimitsChainId: BRIDGING_CHAINS.FUSE,
+  protocolFeeBps: 50n,
+  protocolFeeChainId: BRIDGING_CHAINS.CELO,
+}
+
+const sampleHistory: BridgeTransaction[] = [
+  {
+    hash: SAMPLE_COMPLETED_SRC_HASH,
+    fromChainId: BRIDGING_CHAINS.FUSE,
+    toChainId: BRIDGING_CHAINS.CELO,
+    amount: G$(120),
+    protocol: 'LAYERZERO',
+    status: {
+      status: 'completed',
+      srcTxHash: SAMPLE_COMPLETED_SRC_HASH,
+      dstTxHash: SAMPLE_COMPLETED_DST_HASH,
+      timestamp: 1767225600000,
+    },
+    timestamp: 1767225600,
+  },
+  {
+    hash: SAMPLE_PENDING_HASH,
+    fromChainId: BRIDGING_CHAINS.CELO,
+    toChainId: BRIDGING_CHAINS.ETHEREUM,
+    amount: G$(35),
+    protocol: 'AXELAR',
+    status: {
+      status: 'pending',
+      srcTxHash: SAMPLE_PENDING_HASH,
+      timestamp: 1767312000000,
+    },
+    timestamp: 1767312000,
+  },
+  {
+    hash: SAMPLE_FAILED_HASH,
+    fromChainId: BRIDGING_CHAINS.FUSE,
+    toChainId: BRIDGING_CHAINS.XDC,
+    amount: G$(8),
+    protocol: 'LAYERZERO',
+    status: {
+      status: 'failed',
+      srcTxHash: SAMPLE_FAILED_HASH,
+      timestamp: 1767139200000,
+      error: 'Relay timed out before delivery confirmation.',
+    },
+    timestamp: 1767139200,
+  },
+]
+
+function createAdapter(
+  stateOverrides: Partial<BridgingWidgetAdapterState> = {},
+  actionOverrides: Partial<BridgingWidgetAdapterActions> = {},
+): BridgingWidgetAdapterResult {
+  // Default to a fully connected, route-selected, ready-to-bridge state so
+  // most fixtures only need to override the one field their state is about.
+  const baseState: BridgingWidgetAdapterState = {
+    isConnected: true,
+    address: DEMO_ADDRESS,
+    walletChainId: BRIDGING_CHAINS.FUSE,
+    chainId: BRIDGING_CHAINS.FUSE,
+    isWrongChain: false,
+    targetChainId: BRIDGING_CHAINS.CELO,
+    availableProtocols: ['LAYERZERO'],
+    selectedProtocol: 'LAYERZERO',
+    isRouteSupported: true,
+    inputAmount: '50',
+    bridgeConfig: sampleBridgeConfig,
+    isBridgeConfigLoading: false,
+    bridgeConfigError: null,
+    quoteStatus: 'ready',
+    quote: sampleQuote,
+    needsApproval: false,
+    canBridge: true,
+    requirements: [],
+    quoteError: null,
+    isReviewOpen: false,
+    submissionStep: 'idle',
+    submissionFailedAtStep: null,
+    submissionError: null,
+    submissionTxHash: null,
+    submissionSourceChainId: null,
+    submissionTargetChainId: null,
+    submissionProtocol: null,
+    submissionAmount: null,
+    submissionDeliveryStatus: null,
+    submissionStatusError: null,
+    submissionSourceExplorerLink: null,
+    submissionProviderExplorerLink: null,
+    submissionDestinationExplorerLink: null,
+    historyTransactions: [...sampleHistory].sort((a, b) => b.timestamp - a.timestamp),
+    isHistoryLoading: false,
+    historyError: null,
+    isHistoryPartial: false,
+    selectedHistoryTransaction: null,
+    selectedHistoryExplorerLink: null,
+  }
+
+  const actions: BridgingWidgetAdapterActions = {
+    connect: async () => {},
+    switchChain: async () => {},
+    selectSourceChain: () => {},
+    selectTargetChain: () => {},
+    selectProtocol: () => {},
+    setInputAmount: () => {},
+    setMaxAmount: () => {},
+    openReview: () => {},
+    closeReview: () => {},
+    confirmBridge: () => {},
+    retrySubmission: () => {},
+    closeSubmission: () => {},
+    refreshHistory: () => {},
+    viewHistoryTransaction: () => {},
+    closeHistoryTransaction: () => {},
+    ...actionOverrides,
+  }
+
+  return {
+    state: { ...baseState, ...stateOverrides },
+    actions,
+  }
+}
+
+// MiniAppShell must sit inside a provider: without one it first paints before any
+// Tamagui theme is registered, and the theme that the widget's own provider registers
+// then flips its internal Theme hook path on the next re-render ("Should have a queue").
+function StoryShell({ children, dataTestId }: { children: React.ReactNode; dataTestId: string }) {
+  return (
+    <GoodWidgetProvider>
+      <MiniAppShell>
+        <YStack
+          data-testid={dataTestId}
+          style={{
+            width: '100%',
+            maxWidth: 400,
+            minHeight: '100vh',
+            boxSizing: 'border-box',
+          }}
+        >
+          {children}
+        </YStack>
+      </MiniAppShell>
+    </GoodWidgetProvider>
+  )
+}
+
+function PreviewStoryShell({
+  adapter,
+  dataTestId,
+  initialTab = 'bridge',
+  defaultTheme,
+  themeOverrides,
+}: {
+  adapter: BridgingWidgetAdapterResult
+  dataTestId: string
+  initialTab?: BridgingWidgetTab
+  defaultTheme?: 'light' | 'dark'
+  themeOverrides?: BridgingWidgetProps['themeOverrides']
+}) {
+  return (
+    <StoryShell dataTestId={dataTestId}>
+      <BridgingWidgetPreview
+        adapter={adapter}
+        initialTab={initialTab}
+        defaultTheme={defaultTheme}
+        themeOverrides={themeOverrides}
+      />
+    </StoryShell>
+  )
+}
+
+function BridgingWidgetStoryShell({
+  provider,
+  dataTestId,
+  defaultTheme,
+  themeOverrides,
+}: {
+  provider: unknown
+  dataTestId: string
+  defaultTheme?: 'light' | 'dark'
+  themeOverrides?: BridgingWidgetProps['themeOverrides']
+}) {
+  return (
+    <StoryShell dataTestId={dataTestId}>
+      <BridgingWidget
+        provider={provider}
+        defaultTheme={defaultTheme}
+        themeOverrides={themeOverrides}
+      />
+    </StoryShell>
+  )
+}
+
+export function InjectedWalletStory({
+  defaultTheme,
+  themeOverrides,
+}: Pick<BridgingWidgetProps, 'defaultTheme' | 'themeOverrides'>) {
+  const injectedProvider = getInjectedEip1193Provider()
+  const usableProvider = isInjectedProviderUsable(injectedProvider)
+
+  if (!usableProvider) {
+    return (
+      <PreviewStoryShell
+        adapter={createAdapter({
+          isConnected: false,
+          address: null,
+          chainId: null,
+          targetChainId: null,
+          availableProtocols: [],
+          selectedProtocol: null,
+          isRouteSupported: false,
+          bridgeConfig: null,
+          quote: null,
+          historyTransactions: [],
+        })}
+        dataTestId="BridgingWidget-no-injected-wallet"
+        defaultTheme={defaultTheme}
+        themeOverrides={themeOverrides}
+      />
+    )
+  }
+
+  return (
+    <BridgingWidgetStoryShell
+      provider={injectedProvider}
+      dataTestId="BridgingWidget-injected-wallet"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+export function CustodialLocalFixtureStory({
+  defaultTheme,
+  themeOverrides,
+}: Pick<BridgingWidgetProps, 'defaultTheme' | 'themeOverrides'>) {
+  try {
+    const provider = createCustodialEip1193Provider()
+    return (
+      <BridgingWidgetStoryShell
+        provider={provider}
+        dataTestId="BridgingWidget-custodial-wallet"
+        defaultTheme={defaultTheme}
+        themeOverrides={themeOverrides}
+      />
+    )
+  } catch (error: unknown) {
+    return (
+      <YStack
+        data-testid="BridgingWidget-custodial-config-error"
+        style={{ width: 'min(400px, 100vw)' }}
+      >
+        <strong>Custodial fixture not configured</strong>
+        <span>
+          {error instanceof Error
+            ? error.message
+            : 'Set a local private key in custodialEip1193.ts'}
+        </span>
+      </YStack>
+    )
+  }
+}
+
+type ThemeArgs = {
+  defaultTheme?: 'light' | 'dark'
+  themeOverrides?: BridgingWidgetProps['themeOverrides']
+}
+
+export function NoWalletStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        isConnected: false,
+        address: null,
+        walletChainId: null,
+        chainId: BRIDGING_CHAINS.CELO,
+        targetChainId: null,
+        availableProtocols: [],
+        selectedProtocol: null,
+        isRouteSupported: false,
+        bridgeConfig: null,
+        quote: null,
+        historyTransactions: [],
+      })}
+      dataTestId="BridgingWidget-no-wallet"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function ConnectedEmptyStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        inputAmount: '',
+        quote: null,
+        quoteStatus: 'idle',
+        canBridge: false,
+      })}
+      dataTestId="BridgingWidget-connected-empty"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function WrongChainStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        chainId: BRIDGING_CHAINS.CELO,
+        walletChainId: 99999,
+        isWrongChain: true,
+      })}
+      dataTestId="BridgingWidget-wrong-chain"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function RouteNotSupportedStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        targetChainId: BRIDGING_CHAINS.FUSE,
+        availableProtocols: [],
+        selectedProtocol: null,
+        isRouteSupported: false,
+        bridgeConfig: null,
+        quote: null,
+        quoteStatus: 'idle',
+      })}
+      dataTestId="BridgingWidget-route-not-supported"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function ConfigLoadingStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        bridgeConfig: null,
+        isBridgeConfigLoading: true,
+        quote: null,
+        quoteStatus: 'idle',
+      })}
+      dataTestId="BridgingWidget-config-loading"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function ConfigErrorStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        bridgeConfig: null,
+        bridgeConfigError: 'Unable to load balance and limits.',
+        quote: null,
+        quoteStatus: 'idle',
+      })}
+      dataTestId="BridgingWidget-config-error"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function QuoteLoadingStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        quoteStatus: 'loading',
+        quote: null,
+        canBridge: false,
+      })}
+      dataTestId="BridgingWidget-quote-loading"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function QuoteErrorStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        quoteStatus: 'error',
+        quote: null,
+        canBridge: false,
+        quoteError: 'Unable to fetch a quote for this route right now.',
+      })}
+      dataTestId="BridgingWidget-quote-error"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function BelowMinAmountStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        inputAmount: '0.1',
+        quote: null,
+        canBridge: false,
+        requirements: [{ type: 'below_min_amount', message: 'Minimum bridge amount is 1 G$.' }],
+      })}
+      dataTestId="BridgingWidget-below-min-amount"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function InsufficientBalanceStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        inputAmount: '10000',
+        quote: null,
+        canBridge: false,
+        requirements: [
+          { type: 'insufficient_token_balance', message: 'Your G$ balance is too low for this amount.' },
+        ],
+      })}
+      dataTestId="BridgingWidget-insufficient-balance"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function InsufficientNativeBalanceStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        inputAmount: '5',
+        bridgeConfig: { ...sampleBridgeConfig, nativeBalance: 0n },
+        quote: {
+          ...sampleQuote,
+          amount: G$Fuse(5),
+          fee: parseUnits('230.4533335', 18),
+          feeInNative: '209.50303045454545 FUSE',
+          protocolFeeBps: 10n,
+          protocolFee: G$(5) / 1000n,
+          amountReceived: G$(5) - G$(5) / 1000n,
+        },
+        needsApproval: true,
+        canBridge: false,
+        requirements: [
+          { type: 'insufficient_native_balance', message: 'Insufficient native balance for bridge fee.' },
+          { type: 'insufficient_allowance', message: 'G$ approval is required.' },
+        ],
+      })}
+      dataTestId="BridgingWidget-insufficient-native-balance"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function NeedsApprovalStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        needsApproval: true,
+        canBridge: true,
+      })}
+      dataTestId="BridgingWidget-needs-approval"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function ThemedBridgeStory(theme: ThemeArgs) {
+  return <BridgingWidgetPreview adapter={createAdapter()} {...theme} />
+}
+
+export function ReadyToBridgeStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter()}
+      dataTestId="BridgingWidget-ready-to-bridge"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function ReviewOpenStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({ isReviewOpen: true })}
+      dataTestId="BridgingWidget-review-open"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function SubmissionApprovingStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({ needsApproval: true, submissionStep: 'approving' })}
+      dataTestId="BridgingWidget-submission-approving"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function SubmissionBridgingStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({ submissionStep: 'bridging' })}
+      dataTestId="BridgingWidget-submission-bridging"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function SubmissionCompletedStory({ defaultTheme, themeOverrides, delivered = false }: ThemeArgs & { delivered?: boolean } = {}) {
+  const dstTxHash = delivered ? sampleHistory[0].status.dstTxHash : undefined
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        submissionStep: 'completed',
+        submissionTxHash: SAMPLE_COMPLETED_SRC_HASH,
+        submissionSourceChainId: BRIDGING_CHAINS.FUSE,
+        submissionTargetChainId: BRIDGING_CHAINS.CELO,
+        submissionProtocol: 'LAYERZERO',
+        submissionAmount: G$Fuse(50),
+        submissionDeliveryStatus: {
+          status: delivered ? 'completed' : 'pending',
+          srcTxHash: SAMPLE_COMPLETED_SRC_HASH,
+          dstTxHash,
+          timestamp: delivered ? 1767225660000 : undefined,
+        },
+        submissionSourceExplorerLink: `https://explorer.fuse.io/tx/${SAMPLE_COMPLETED_SRC_HASH}`,
+        submissionProviderExplorerLink: `https://layerzeroscan.com/tx/${SAMPLE_COMPLETED_SRC_HASH}`,
+        submissionDestinationExplorerLink: dstTxHash ? `https://celoscan.io/tx/${dstTxHash}` : null,
+      })}
+      dataTestId="BridgingWidget-submission-completed"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function SubmissionFailedApprovingStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        needsApproval: true,
+        submissionStep: 'failed',
+        submissionFailedAtStep: 'approving',
+        submissionError: 'You rejected the approval request.',
+      })}
+      dataTestId="BridgingWidget-submission-failed-approving"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function SubmissionFailedBridgingStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        submissionStep: 'failed',
+        submissionFailedAtStep: 'bridging',
+        submissionError: 'The bridge transaction reverted on-chain.',
+      })}
+      dataTestId="BridgingWidget-submission-failed-bridging"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function HistoryLoadingStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({ historyTransactions: [], isHistoryLoading: true })}
+      dataTestId="BridgingWidget-history-loading"
+      initialTab="history"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function HistoryEmptyStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({ historyTransactions: [] })}
+      dataTestId="BridgingWidget-history-empty"
+      initialTab="history"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function HistoryErrorStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        historyTransactions: [],
+        historyError: 'Unable to load bridge history.',
+      })}
+      dataTestId="BridgingWidget-history-error"
+      initialTab="history"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function HistoryPopulatedStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter()}
+      dataTestId="BridgingWidget-history-populated"
+      initialTab="history"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function HistoryDetailModalOpenStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        selectedHistoryTransaction: sampleHistory[0],
+        selectedHistoryExplorerLink: 'https://layerzeroscan.com/tx/' + SAMPLE_COMPLETED_SRC_HASH,
+      })}
+      dataTestId="BridgingWidget-history-detail-modal-open"
+      initialTab="history"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function FaqTabStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter()}
+      dataTestId="BridgingWidget-faq-tab"
+      initialTab="faq"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function LightThemePopulatedStory({ themeOverrides }: Pick<ThemeArgs, 'themeOverrides'> = {}) {
+  return (
+    <GoodWidgetProvider defaultTheme="light">
+      <PreviewStoryShell
+        adapter={createAdapter()}
+        dataTestId="BridgingWidget-light-theme-populated"
+        defaultTheme="light"
+        themeOverrides={themeOverrides}
+      />
+    </GoodWidgetProvider>
+  )
+}
+
+export function FuseSourceStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  // Fuse (122) has 2 decimals: 500 G$ = 50000n, input 100 G$ = 10000n
+
+  const fuseBridgeConfig: BridgeConfig = {
+    ...sampleBridgeConfig,
+    currentChainId: BRIDGING_CHAINS.FUSE,
+    tokenBalance: G$Fuse(500), // 50000n (500 G$)
+    routeLimits: {
+      minAmount: G$(1),
+      dailyLimit: G$(1000000),
+      txLimit: G$(300000000),
+      accountDailyLimit: G$(50000),
+      onlyWhitelisted: false,
+    },
+    routeLimitsChainId: BRIDGING_CHAINS.FUSE,
+  }
+
+  // 100 G$ transferred from Fuse (2 decimals) to Celo (18 decimals)
+  // Protocol fee: 0.25 G$ (in Celo 18 decimals) = 250000000000000000n
+  // Amount received: 99.75 G$ (in Celo 18 decimals) = 99750000000000000000n
+  const fuseSourceQuote: BridgeFeeQuote = {
+    fee: 132000000000000n,
+    feeInNative: '0.00012 FUSE',
+    protocol: 'LAYERZERO',
+    target: DEMO_ADDRESS,
+    targetChainId: BRIDGING_CHAINS.CELO,
+    amount: G$Fuse(100), // 10000n
+    protocolFeeBps: 25n,
+    protocolFee: 250000000000000000n,
+    amountReceived: 99750000000000000000n,
+  }
+
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        chainId: BRIDGING_CHAINS.FUSE,
+        targetChainId: BRIDGING_CHAINS.CELO,
+        inputAmount: '100',
+        bridgeConfig: fuseBridgeConfig,
+        quote: fuseSourceQuote,
+        canBridge: true,
+      })}
+      dataTestId="BridgingWidget-fuse-source"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+export function FuseDestinationStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  // Celo (42220) has 18 decimals -> Fuse (122) has 2 decimals
+  const celoDecimals = 18
+  const G$Celo = (whole: number) => BigInt(whole) * 10n ** BigInt(celoDecimals)
+
+  const celoBridgeConfig: BridgeConfig = {
+    ...sampleBridgeConfig,
+    currentChainId: BRIDGING_CHAINS.CELO,
+    tokenBalance: G$Celo(500),
+    routeLimits: {
+      minAmount: G$Celo(1),
+      dailyLimit: G$Celo(1000000),
+      txLimit: G$Celo(300000000),
+      accountDailyLimit: G$Celo(50000),
+      onlyWhitelisted: false,
+    },
+    routeLimitsChainId: BRIDGING_CHAINS.CELO,
+  }
+
+  // 100 G$ from Celo (18 decimals) to Fuse (2 decimals)
+  // Protocol fee: 0.25 G$ (in Fuse 2 decimals) = 25n
+  // Amount received: 99.75 G$ (in Fuse 2 decimals) = 9975n
+  const fuseDestinationQuote: BridgeFeeQuote = {
+    fee: 132000000000000n,
+    feeInNative: '0.00012 CELO',
+    protocol: 'LAYERZERO',
+    target: DEMO_ADDRESS,
+    targetChainId: BRIDGING_CHAINS.FUSE,
+    amount: G$Celo(100),
+    protocolFeeBps: 25n,
+    protocolFee: 25n,
+    amountReceived: 9975n,
+  }
+
+  return (
+    <PreviewStoryShell
+      adapter={createAdapter({
+        chainId: BRIDGING_CHAINS.CELO,
+        targetChainId: BRIDGING_CHAINS.FUSE,
+        inputAmount: '100',
+        bridgeConfig: celoBridgeConfig,
+        quote: fuseDestinationQuote,
+        canBridge: true,
+      })}
+      dataTestId="BridgingWidget-fuse-destination"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}
+
+// Clickable adapter fixture: exercises route, amount, Review, Confirm and
+// submit callbacks in one mounted widget, rather than pre-opening each state.
+export function InteractiveSubmitStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
+  const [source, setSource] = useState<number>(BRIDGING_CHAINS.CELO)
+  const [target, setTarget] = useState<number | null>(null)
+  const [protocol, setProtocol] = useState<'LAYERZERO' | 'AXELAR'>('LAYERZERO')
+  const [amount, setAmount] = useState('')
+  const [quotedAmount, setQuotedAmount] = useState('')
+  const [reviewOpen, setReviewOpen] = useState(false)
+  const [submissionStep, setSubmissionStep] = useState<BridgingWidgetAdapterState['submissionStep']>('idle')
+
+  useEffect(() => {
+    if (submissionStep !== 'bridging') return
+    const timer = setTimeout(() => setSubmissionStep('completed'), 700)
+    return () => clearTimeout(timer)
+  }, [submissionStep])
+
+  useEffect(() => {
+    setQuotedAmount('')
+    if (!amount || target === null) return
+    const timer = setTimeout(() => setQuotedAmount(amount), 200)
+    return () => clearTimeout(timer)
+  }, [source, target, protocol, amount])
+
+  let quote: BridgeFeeQuote | null = null
+  try {
+    if (target !== null && amount === quotedAmount && Number(amount) > 0) {
+      const sourceDecimals = source === BRIDGING_CHAINS.FUSE || source === BRIDGING_CHAINS.ETHEREUM ? 2 : 18
+      const targetDecimals = target === BRIDGING_CHAINS.FUSE || target === BRIDGING_CHAINS.ETHEREUM ? 2 : 18
+      const receivedBase = parseUnits(amount, targetDecimals)
+      const protocolFee = receivedBase / 200n
+      quote = {
+        ...sampleQuote,
+        protocol,
+        targetChainId: target,
+        amount: parseUnits(amount, sourceDecimals),
+        protocolFee,
+        amountReceived: receivedBase - protocolFee,
+      }
+    }
+  } catch {
+    // An incomplete decimal entry has no actionable quote.
+  }
+
+  const adapter = createAdapter({
+    chainId: source,
+    walletChainId: BRIDGING_CHAINS.CELO,
+    targetChainId: target,
+    availableProtocols: target === null ? [] : source === BRIDGING_CHAINS.CELO && target === BRIDGING_CHAINS.ETHEREUM ? ['AXELAR', 'LAYERZERO'] : ['LAYERZERO'],
+    selectedProtocol: target === null ? null : protocol,
+    inputAmount: amount,
+    bridgeConfig: { ...sampleBridgeConfig, currentChainId: source, tokenBalance: source === BRIDGING_CHAINS.FUSE || source === BRIDGING_CHAINS.ETHEREUM ? G$Fuse(500) : G$(500) },
+    quoteStatus: quote ? 'ready' : amount ? 'loading' : 'idle',
+    quote,
+    canBridge: !!quote,
+    isReviewOpen: reviewOpen,
+    submissionStep,
+  }, {
+    selectSourceChain: (next) => {
+      setSource(next)
+      setTarget(null)
+      setAmount('')
+      setReviewOpen(false)
+    },
+    selectTargetChain: (next) => {
+      setTarget(next)
+      setProtocol('LAYERZERO')
+      setAmount('')
+      setReviewOpen(false)
+    },
+    swapRoute: () => {
+      if (target === null) return
+      setSource(target)
+      setTarget(source)
+      setAmount('')
+      setReviewOpen(false)
+    },
+    selectProtocol: setProtocol,
+    setInputAmount: setAmount,
+    openReview: () => setReviewOpen(true),
+    closeReview: () => setReviewOpen(false),
+    confirmBridge: () => {
+      setReviewOpen(false)
+      setSubmissionStep('bridging')
+    },
+    retrySubmission: () => setSubmissionStep('bridging'),
+    closeSubmission: () => setSubmissionStep('idle'),
+  })
+
+  return (
+    <PreviewStoryShell
+      adapter={adapter}
+      dataTestId="BridgingWidget-interactive-submit"
+      defaultTheme={defaultTheme}
+      themeOverrides={themeOverrides}
+    />
+  )
+}

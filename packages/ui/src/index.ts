@@ -44,6 +44,8 @@ export { ScrollArea } from './components-test/ScrollArea'
 // Typography
 export { Heading } from './components/Heading'
 export { Text } from './components/Text'
+export { WidgetVersion } from './components/WidgetVersion'
+export type { WidgetVersionProps } from './components/WidgetVersion'
 export { Anchor } from './components/Anchor'
 
 // Inputs
@@ -67,9 +69,25 @@ export {
   useToast,
 } from './components/Toast'
 export type { ToastStatus, ToastConfig, ToastItem } from './components/Toast'
+
+// Tooltip — hover/focus/tap label bubble that escapes overflow clipping
+export { Tooltip } from './components/Tooltip'
+export type { TooltipProps } from './components/Tooltip'
 export { Alert } from './components-test/Alert'
 export { Badge, BadgeText } from './components-test/Badge'
 export { Drawer } from './components/Drawer'
+export {
+  NextTaskModal,
+  NEXT_TASK_HEADLINE,
+  NEXT_TASK_SUPPORTING_COPY,
+  NEXT_TASK_RECOMMENDED_LABEL,
+  NEXT_TASK_SKIP_LABEL,
+  NEXT_TASK_STATUS_LABEL,
+  NAVIGATION_FAILED_TOAST_MESSAGE,
+  REJECTED_URL_TOAST_MESSAGE,
+} from './components/NextTaskModal'
+export type { NextTaskModalProps, NextTaskContent, NextTaskDismissReason } from './components/NextTaskModal'
+export { NextTaskCtaCard } from './components/NextTaskCtaCard'
 export { PageWizardProvider, PageWizardShell, usePageWizard } from './components/PageWizard'
 export type { PageWizardContextValue, PageWizardStep } from './components/PageWizard'
 export { Stepper } from './components/Stepper'
@@ -83,7 +101,7 @@ export type { IconName, IconSize, IconColor, IconProps } from './components/Icon
 
 // Activity icons — re-exported originals from @tamagui/lucide-icons for the
 // widget "activity" glyph spec (#127). See components/ActivityIcons.ts.
-export { CalendarDays, UserPlus, Megaphone, Waves, HandCoins } from './components/ActivityIcons'
+export { CalendarDays, UserPlus, Megaphone, Waves, HandCoins, ShoppingCart } from './components/ActivityIcons'
 
 // Stat icons — re-exported originals from @tamagui/lucide-icons for the glyphs
 // on widget stat cards. See components/StatIcons.ts.
@@ -100,8 +118,15 @@ export {
 export type { DialogConfig, DialogStatus } from './components/Dialog'
 
 // Analytics
-export { Scorecard } from './components/Scorecard'
-export type { ScorecardProps, ScorecardTrend, ScorecardVariant } from './components/Scorecard'
+export { Scorecard, ScorecardGrid } from './components/Scorecard'
+export type {
+  ScorecardProps,
+  ScorecardTrend,
+  ScorecardVariant,
+  ScorecardSize,
+  ScorecardGridProps,
+  ScorecardTooltip,
+} from './components/Scorecard'
 export { SkeletonBlock } from './components/Skeleton'
 export type { SkeletonBlockProps } from './components/Skeleton'
 export { formatMetricValue } from './utils/formatMetricValue'
@@ -114,6 +139,8 @@ export type {
   PieDonutChartVariant,
   PieDonutChartSort,
 } from './components/PieDonutChart'
+export { Carousel } from './components/Carousel'
+export type { CarouselProps } from './components/Carousel'
 export { BarChart } from './components/BarChart'
 export type {
   BarChartProps,
@@ -121,6 +148,9 @@ export type {
   BarChartVariant,
   BarChartLayout,
   BarChartPadding,
+  BarChartTooltipOptions,
+  BarChartSegment,
+  BarChartLegendItem,
 } from './components/BarChart'
 export { LineAreaChart } from './components/LineAreaChart'
 export type {
@@ -132,6 +162,7 @@ export type {
   LineAreaChartVariant,
   LineAreaChartInterpolation,
   LineAreaChartPadding,
+  LineAreaChartTooltipOptions,
 } from './components/LineAreaChart'
 export { DataTable } from './components/DataTable'
 export type {

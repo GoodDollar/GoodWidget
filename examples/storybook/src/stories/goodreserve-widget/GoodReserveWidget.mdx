@@ -87,11 +87,9 @@ export function ReservePanel({ provider }: { provider?: unknown }) {
       Use the showcase story for product-facing swap checks. Use the QA fixtures when you need
       repeatable screenshots, runtime-state coverage, or debugging.
     </DocsCallout>
-    <DocsCallout title="No environment control" tone="info">
-      GoodReserveWidget has no `environment` prop anywhere in its current source, so this Showcase
-      page does not offer an environment switcher. Adding one would require a
-      `packages/goodreserve-widget` code change, which is out of scope here — tracked separately in
-      "[BountyPrep] Storybook: missing primitives and design system gaps".
+    <DocsCallout title="Network and environment" tone="info">
+      In Interactive, use the built-in test wallet and select Celo or XDC with `walletChainId`.
+      Select development or production with `environment`, which defaults to production.
     </DocsCallout>
   </DocsSection>
 </DocsPage>

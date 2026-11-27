@@ -1,8 +1,10 @@
 import { useCallback } from 'react'
 import { parseUnits } from 'viem'
-import { getReserveChainFromId } from '@goodsdks/good-reserve'
-import type { ReserveSwapWidgetAdapterState } from './widgetRuntimeContract'
-import { QUOTE_REFRESHED_NOTICE } from './constants'
+import { GoodReserveSDK } from '@goodsdks/good-reserve'
+import type {
+  ReserveSwapWidgetAdapterState,
+  ReserveWidgetEnvironment,
+} from './widgetRuntimeContract'
 import { mapReserveError } from './errors'
 import type { ReserveRefs } from './useReserveBootstrap'
 
@@ -21,9 +23,10 @@ export function useReserveSwap(
   state: ReserveSwapWidgetAdapterState,
   applyStatePatch: (patch: Partial<ReserveSwapWidgetAdapterState>) => void,
   chainSupported: boolean,
+  environment: ReserveWidgetEnvironment,
   readActiveChainId: () => Promise<number | null>,
   refreshBalances: () => Promise<void>,
-  requestQuoteRefresh: (notice: string | null) => void,
+  refreshExpiredQuote: () => void,
 ) {
   return useCallback(async () => {
     if (!refs.sdkRef.current || !state.quote || !state.inputAmount) return
@@ -32,18 +35,8 @@ export function useReserveSwap(
 
     // Reject a stale quote: reserve prices move, so a minReturn derived from
     // an old quote may no longer be safe. Force a refresh instead of signing.
-    if (state.quoteExpiresAt !== null && Date.now() > state.quoteExpiresAt) {
-      // Keep the entered amount and drop back to editing, then explicitly kick
-      // the quote effect. It keys on inputAmount/direction/slippagePercent, none
-      // of which this patch changes, so without the nonce bump it would never
-      // re-run and the user would be stranded on a disabled "Review Swap".
-      applyStatePatch({
-        status: 'amount_editing',
-        quote: null,
-        quoteExpiresAt: null,
-        warning: QUOTE_REFRESHED_NOTICE,
-      })
-      requestQuoteRefresh(QUOTE_REFRESHED_NOTICE)
+    if (state.quoteExpiresAt !== null && Date.now() >= state.quoteExpiresAt) {
+      refreshExpiredQuote()
       return
     }
 
@@ -51,7 +44,7 @@ export function useReserveSwap(
     // rather than trusting the memoized chainId: the user may have switched
     // networks in their wallet while the confirm dialog was open.
     const activeChainId = await readActiveChainId()
-    if (activeChainId !== null && getReserveChainFromId(activeChainId) === null) {
+    if (activeChainId !== null && !GoodReserveSDK.isChainEnvSupported(activeChainId, environment)) {
       applyStatePatch({ status: 'unsupported_chain', error: null })
       return
     }
@@ -93,12 +86,6 @@ export function useReserveSwap(
           ? await sdk.buy(stableToken, amountIn, minReturn, onHash)
           : await sdk.sell(stableToken, amountIn, minReturn, onHash)
 
-      // The SDK resolves on any mined receipt, reverted included, so a reverted
-      // swap would otherwise render as "Swap Successful".
-      if (result.receipt?.status !== 'success') {
-        throw new Error('Swap transaction reverted on-chain.')
-      }
-
       refs.quoteRefreshNoticeRef.current = null
       applyStatePatch({
         status: 'swap_success',
@@ -122,10 +109,11 @@ export function useReserveSwap(
   }, [
     applyStatePatch,
     chainSupported,
+    environment,
     readActiveChainId,
     refreshBalances,
     refs,
-    requestQuoteRefresh,
+    refreshExpiredQuote,
     state.direction,
     state.inputAmount,
     state.quote,

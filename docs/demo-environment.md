@@ -49,9 +49,20 @@ Notes:
 
 GitHub Actions workflow:
 
-- Pull requests from branches inside this repository create preview deployments.
-- Pushes to `main` or `master` create production deployments.
-- Required GitHub secrets: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`.
+- Pull requests targeting `main` create Preview deployments. Fork deployments remain gated
+  by the `external` environment approval.
+- Pushes and manual deployments from `main` use Vercel Preview settings for development.
+- Only `next` deploys with Vercel Production settings. Promotion independently opts in to
+  production deployments for each app; selected deployments run at the authoritative release
+  commit after release processing, even when no npm packages need publishing. No selection
+  means no app deployment.
+- Required GitHub secrets: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and the project-specific
+  `VERCEL_PROJECT_ID`. Configure the `production` environment for `next` and the
+  `preview-*` environments for main/PR previews.
+
+`main` remains the development branch and `next` is the production/release branch; protect
+`next` before enabling releases. There is no staging branch. Promotion from `main` to `next`
+is manual and the first promotion creates `next` from `main`.
 
 Deployment workflows are path-filtered so that a standalone app is deployed only when
 its app, widget package, shared package, or workspace dependency metadata changes.
@@ -140,9 +151,12 @@ pnpm test:demo
 
 Test artifacts are split as follows:
 
-- `test-results/` (gitignored): Playwright traces, videos, and runner attachments.
+- Root `/test-results/` (gitignored temporary output): Playwright traces, videos, and runner attachments.
 - `tests/design-system/test-results/`: design-system smoke screenshots.
-- `tests/widgets/<widget-name>/test-results/`: widget screenshot evidence and debug screenshots.
+- `tests/widgets/<widget-name>/test-results/`: tracked, curated widget screenshot evidence.
+
+Preserve the anchored `/test-results/` ignore rule and existing nested screenshot locations.
+Keep transient debug output in the root directory, not in curated evidence.
 
 To inspect a trace after a failure:
 
