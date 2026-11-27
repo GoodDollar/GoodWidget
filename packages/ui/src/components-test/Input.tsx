@@ -15,6 +15,7 @@ const InputFrame = createComponent(Stack, {
   paddingHorizontal: '$3',
   height: '$10',
   color: '$color',
+  placeholderTextColor: '$placeholderColor',
   fontFamily: '$body',
   fontSize: '$3',
   outlineWidth: 0,

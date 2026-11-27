@@ -26,7 +26,7 @@ const TokenAmountText = createComponent(TamaguiText, {
   name: 'TokenAmountText',
   fontFamily: '$body',
   fontWeight: '700',
-  color: '$text',
+  color: '$color',
 
   variants: {
     size: {
@@ -37,7 +37,7 @@ const TokenAmountText = createComponent(TamaguiText, {
     },
     variant: {
       secondary: {
-        color: '$secondaryColor',
+        color: '$placeholderColor',
         fontWeight: 500,
       },
     },

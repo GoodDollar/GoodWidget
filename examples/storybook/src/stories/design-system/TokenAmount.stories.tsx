@@ -3,7 +3,8 @@
  */
 import React from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
-import { TokenAmount, Card, Heading, YStack } from '@goodwidget/ui'
+import { TokenAmount, Card, Heading, YStack, XStack } from '@goodwidget/ui'
+import { Theme } from '@tamagui/core'
 import { withDefaultPreset } from '../helpers/withDefaultPreset'
 
 const meta: Meta<typeof TokenAmount> = {
@@ -51,3 +52,32 @@ export const Controllable: Story = {
     token: 'G$',
   },
 }
+
+/** Token amounts rendered in Light theme — verifies visible spans and contrasting text. */
+export const LightTheme: Story = {
+  render: () => (
+    <Theme name="light">
+      <YStack backgroundColor="$background" padding="$4" borderRadius="$4" width={320} gap="$2">
+        <Heading level={5}>Light Theme Amounts</Heading>
+        <TokenAmount amount="1234.56" token="G$" size="lg" />
+        <TokenAmount amount="100.00" token="USDC" size="md" />
+        <TokenAmount amount="42.50" token="CELO" size="sm" variant="secondary" />
+      </YStack>
+    </Theme>
+  ),
+}
+
+/** Token amounts rendered in Dark theme. */
+export const DarkTheme: Story = {
+  render: () => (
+    <Theme name="dark">
+      <YStack backgroundColor="$background" padding="$4" borderRadius="$4" width={320} gap="$2">
+        <Heading level={5}>Dark Theme Amounts</Heading>
+        <TokenAmount amount="1234.56" token="G$" size="lg" />
+        <TokenAmount amount="100.00" token="USDC" size="md" />
+        <TokenAmount amount="42.50" token="CELO" size="sm" variant="secondary" />
+      </YStack>
+    </Theme>
+  ),
+}
+
