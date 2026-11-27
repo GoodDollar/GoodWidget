@@ -8,6 +8,7 @@ import {
   type ConnectAWalletWidgetAdapterActions,
   type ConnectAWalletWidgetAdapterResult,
   type ConnectAWalletWidgetAdapterState,
+  type ConnectAWalletWidgetPreviewProps,
 } from '@goodwidget/connect-a-wallet-widget'
 import { MiniAppShell, YStack } from '@goodwidget/ui'
 import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
@@ -93,6 +94,8 @@ function StoryShell({ children, dataTestId }: { children: React.ReactNode; dataT
   )
 }
 
+type ThemeArgs = Pick<ConnectAWalletWidgetPreviewProps, 'defaultTheme' | 'themeOverrides'>
+
 function PreviewStoryShell({
   adapter,
   dataTestId,
@@ -159,22 +162,30 @@ export function CustodialLocalFixtureStory() {
   }
 }
 
+function notConnectedAdapter() {
+  return createAdapter({
+    isWalletConnected: false,
+    walletAddress: null,
+    activeChainId: null,
+    isActiveChainSupported: false,
+    status: 'not_connected',
+    secondaryAddressInput: '',
+    secondaryAddress: null,
+    chainLinks: checkingChainLinks,
+  })
+}
+
 export function NotConnectedStory() {
   return (
     <PreviewStoryShell
-      adapter={createAdapter({
-        isWalletConnected: false,
-        walletAddress: null,
-        activeChainId: null,
-        isActiveChainSupported: false,
-        status: 'not_connected',
-        secondaryAddressInput: '',
-        secondaryAddress: null,
-        chainLinks: checkingChainLinks,
-      })}
+      adapter={notConnectedAdapter()}
       dataTestId="ConnectAWalletWidget-not-connected"
     />
   )
+}
+
+export function ThemedConnectAWalletStory(theme: ThemeArgs) {
+  return <ConnectAWalletWidgetPreview adapter={notConnectedAdapter()} {...theme} />
 }
 
 export function ConnectingStory() {

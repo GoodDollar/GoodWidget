@@ -542,6 +542,10 @@ export function NeedsApprovalStory({ defaultTheme, themeOverrides }: ThemeArgs =
   )
 }
 
+export function ThemedBridgeStory(theme: ThemeArgs) {
+  return <BridgingWidgetPreview adapter={createAdapter()} {...theme} />
+}
+
 export function ReadyToBridgeStory({ defaultTheme, themeOverrides }: ThemeArgs = {}) {
   return (
     <PreviewStoryShell

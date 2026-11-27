@@ -1,5 +1,6 @@
 import { Canvas, Meta } from '@storybook/blocks';
 import * as ShowcaseStories from './SuperfluidCampaignWidget.stories';
+import * as ThemeOverridesStories from './SuperfluidCampaignWidgetThemeOverrides.stories';
 import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/DocsLayout';
 
 <Meta of={ShowcaseStories} />
@@ -14,6 +15,13 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
     description="Use this story when reviewing the widget in a browser with an injected wallet, to exercise the real connect flow and the embedded CitizenClaimWidget CTAs."
   >
     <Canvas of={ShowcaseStories.InjectedWallet} />
+  </DocsSection>
+
+  <DocsSection
+    title="Theme overrides"
+    description="Play around with theme overrides using the controls below. The outer shell uses the base theme's backgroundDark token, while sub-components and action cards cascade from the design-system Card/Button primitives."
+  >
+    <Canvas of={ThemeOverridesStories.Playground} />
   </DocsSection>
 
   <DocsSection

@@ -104,5 +104,10 @@ export function GovernancePanel({ provider }: { provider?: unknown }) {
       QA fixtures for repeatable screenshots and state coverage, and the live mocked-data flow when
       you need to manually exercise the real runtime without a live contract.
     </DocsCallout>
+    <DocsCallout title="Development only" tone="info">
+      `GoodDaoHouses` is currently deployed on `development-celo` only — it has no `staging-celo`
+      or `production-celo` entry in GoodProtocol's `releases/deployment.json`. Because there is
+      only one deployed value, this Showcase page offers no environment-switcher control.
+    </DocsCallout>
   </DocsSection>
 </DocsPage>

@@ -5,6 +5,7 @@ import {
   CitizenClaimWidget,
   createCitizenClaimWidgetCustodialExecution,
   useCitizenClaimAdapter,
+  type CitizenClaimWidgetEnvironment,
   type CitizenClaimWidgetProps,
 } from '@goodwidget/citizen-claim-widget'
 import {
@@ -13,7 +14,8 @@ import {
 } from '../../fixtures/injectedEip1193'
 import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
 
-const MOCK_CLAIM_ALL_ACCOUNT = '0x329377cbeeF39f01b0Ea04B80465c9eB47D3ED1'
+// Placeholder address used only by the mocked claim-all wallet client.
+const MOCK_CLAIM_ALL_ACCOUNT = '0x329377cbeef39f01b0ea04b80465c9eb47d3ed10'
 
 export function createMockClaimExecutionClientBundle(
   chainId: number,
@@ -114,12 +116,16 @@ function CitizenClaimWidgetStoryShell({
   dataTestId,
   defaultTheme,
   themeOverrides,
+  environment = 'development',
+  initialTab,
   nextTaskProps,
 }: {
   provider: unknown
   dataTestId: string
   defaultTheme?: 'light' | 'dark'
   themeOverrides?: CitizenClaimWidgetProps['themeOverrides']
+  environment?: CitizenClaimWidgetEnvironment
+  initialTab?: CitizenClaimWidgetProps['initialTab']
   nextTaskProps?: CitizenClaimNextTaskProps
 }) {
   const [activeChainId, setActiveChainId] = useState<number | null>(null)
@@ -148,24 +154,28 @@ function CitizenClaimWidgetStoryShell({
   }, [provider])
 
   return (
-    <CitizenClaimWidget
-      provider={provider}
-      environment="development"
-      data-testid={dataTestId}
-      chainId={activeChainId ?? 42220}
-      defaultTheme={defaultTheme}
-      themeOverrides={themeOverrides}
-      {...nextTaskProps}
-    />
+    <div key={environment} data-testid={dataTestId}>
+      <CitizenClaimWidget
+        provider={provider}
+        environment={environment}
+        chainId={activeChainId ?? 42220}
+        defaultTheme={defaultTheme}
+        themeOverrides={themeOverrides}
+        initialTab={initialTab}
+        {...nextTaskProps}
+      />
+    </div>
   )
 }
 
 export function InjectedWalletStory({
   defaultTheme,
   themeOverrides,
+  environment,
 }: {
   defaultTheme?: 'light' | 'dark'
   themeOverrides?: CitizenClaimWidgetProps['themeOverrides']
+  environment?: CitizenClaimWidgetEnvironment
 } = {}) {
   const injectedProvider = getInjectedEip1193Provider()
   const usableProvider = isInjectedProviderUsable(injectedProvider)
@@ -188,6 +198,7 @@ export function InjectedWalletStory({
       dataTestId="CitizenClaimWidget-injected-wallet"
       defaultTheme={defaultTheme}
       themeOverrides={themeOverrides}
+      environment={environment}
     />
   )
 }
@@ -195,10 +206,14 @@ export function InjectedWalletStory({
 export function CustodialLocalFixtureStory({
   defaultTheme,
   themeOverrides,
+  environment,
+  initialTab,
   nextTaskProps,
 }: {
   defaultTheme?: 'light' | 'dark'
   themeOverrides?: CitizenClaimWidgetProps['themeOverrides']
+  environment?: CitizenClaimWidgetEnvironment
+  initialTab?: CitizenClaimWidgetProps['initialTab']
   nextTaskProps?: CitizenClaimNextTaskProps
 } = {}) {
   try {
@@ -209,6 +224,8 @@ export function CustodialLocalFixtureStory({
         dataTestId="CitizenClaimWidget-custodial-wallet"
         defaultTheme={defaultTheme}
         themeOverrides={themeOverrides}
+        environment={environment}
+        initialTab={initialTab}
         nextTaskProps={nextTaskProps}
       />
     )

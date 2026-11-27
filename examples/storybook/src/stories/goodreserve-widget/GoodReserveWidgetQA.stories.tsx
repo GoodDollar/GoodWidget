@@ -1,0 +1,121 @@
+import type { ComponentProps } from 'react'
+import type { Meta, StoryObj } from '@storybook/react'
+import { GoodReserveWidget } from '@goodwidget/goodreserve-widget'
+import { createCustodialEip1193Provider } from '../../fixtures/custodialEip1193'
+import { reserveWidgetMockStates } from '../../fixtures/goodReserveWidgetMock'
+
+const provider = createCustodialEip1193Provider()
+
+const meta: Meta<typeof GoodReserveWidget> = {
+  title: 'QA/GoodReserveWidget/Runtime Fixtures',
+  component: GoodReserveWidget,
+  tags: ['autodocs', 'qa'],
+  parameters: { layout: 'padded' },
+}
+
+export default meta
+type Story = StoryObj<typeof meta>
+
+// Renders one deterministic reserve state per story for CI-safe widget coverage.
+const renderStory = (
+  mockState: ComponentProps<typeof GoodReserveWidget>['mockState'],
+  dataTestId: string,
+  defaultTheme?: 'light' | 'dark',
+) => <GoodReserveWidget provider={provider} mockState={mockState} defaultTheme={defaultTheme} />
+
+export const NoProvider: Story = {
+  render: () => renderStory(reserveWidgetMockStates.noProvider, 'GoodReserveWidget-no-provider'),
+}
+
+export const SdkInitializing: Story = {
+  render: () =>
+    renderStory(reserveWidgetMockStates.sdkInitializing, 'GoodReserveWidget-sdk-initializing'),
+}
+
+export const UnsupportedChain: Story = {
+  render: () =>
+    renderStory(reserveWidgetMockStates.unsupportedChain, 'GoodReserveWidget-unsupported-chain'),
+}
+
+export const IdleBuy: Story = {
+  render: () => renderStory(reserveWidgetMockStates.idleBuy, 'GoodReserveWidget-idle-buy'),
+}
+
+export const AmountEditing: Story = {
+  render: () =>
+    renderStory(reserveWidgetMockStates.amountEditing, 'GoodReserveWidget-amount-editing'),
+}
+
+export const QuoteLoading: Story = {
+  render: () =>
+    renderStory(reserveWidgetMockStates.quoteLoading, 'GoodReserveWidget-quote-loading'),
+}
+
+export const QuoteReadyBuy: Story = {
+  render: () =>
+    renderStory(reserveWidgetMockStates.quoteReady, 'GoodReserveWidget-quote-ready-buy'),
+}
+
+export const QuoteReadyBuyLightTheme: Story = {
+  render: () =>
+    renderStory(
+      reserveWidgetMockStates.quoteReady,
+      'GoodReserveWidget-quote-ready-buy-light',
+      'light',
+    ),
+}
+
+export const QuoteReadySell: Story = {
+  render: () =>
+    renderStory(reserveWidgetMockStates.sellQuoteReady, 'GoodReserveWidget-quote-ready-sell'),
+}
+
+export const QuoteReadyXdc: Story = {
+  render: () =>
+    renderStory(reserveWidgetMockStates.xdcQuoteReady, 'GoodReserveWidget-quote-ready-xdc'),
+}
+
+export const QuoteError: Story = {
+  render: () => renderStory(reserveWidgetMockStates.quoteError, 'GoodReserveWidget-quote-error'),
+}
+
+// Stale-quote recovery: re-quoting automatically with the notice still visible.
+export const QuoteRefreshing: Story = {
+  render: () =>
+    renderStory(reserveWidgetMockStates.quoteRefreshing, 'GoodReserveWidget-quote-refreshing'),
+}
+
+export const InsufficientBalance: Story = {
+  render: () =>
+    renderStory(
+      reserveWidgetMockStates.insufficientBalance,
+      'GoodReserveWidget-insufficient-balance',
+    ),
+}
+
+export const SlippageSelection: Story = {
+  render: () =>
+    renderStory(reserveWidgetMockStates.slippageSelection, 'GoodReserveWidget-slippage-selection'),
+}
+
+export const ConfirmDialog: Story = {
+  render: () =>
+    renderStory(reserveWidgetMockStates.confirmDialog, 'GoodReserveWidget-confirm-dialog'),
+}
+
+export const ApprovalPending: Story = {
+  render: () =>
+    renderStory(reserveWidgetMockStates.approvalPending, 'GoodReserveWidget-approval-pending'),
+}
+
+export const SwapPending: Story = {
+  render: () => renderStory(reserveWidgetMockStates.swapPending, 'GoodReserveWidget-swap-pending'),
+}
+
+export const SwapSuccess: Story = {
+  render: () => renderStory(reserveWidgetMockStates.swapSuccess, 'GoodReserveWidget-swap-success'),
+}
+
+export const SwapError: Story = {
+  render: () => renderStory(reserveWidgetMockStates.swapError, 'GoodReserveWidget-swap-error'),
+}

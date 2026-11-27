@@ -1,5 +1,6 @@
 import { Canvas, Meta } from '@storybook/blocks';
 import * as ShowcaseStories from './ConnectAWalletWidgetShowcase.stories';
+import * as ThemeOverridesStories from './ConnectAWalletWidgetThemeOverrides.stories';
 import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/DocsLayout';
 
 <Meta of={ShowcaseStories} />
@@ -34,6 +35,10 @@ import { DocsCallout, DocsCard, DocsGrid, DocsPage, DocsSection } from '../docs/
     description="Use this story when validating the SDK-backed link/unlink flow in a browser with a real EIP-1193 wallet extension."
   >
     <Canvas of={ShowcaseStories.InjectedWallet} />
+  </DocsSection>
+
+  <DocsSection title="Theme overrides" description="Preview button colors in either base theme without a live wallet.">
+    <Canvas of={ThemeOverridesStories.Playground} />
   </DocsSection>
 
   <DocsSection

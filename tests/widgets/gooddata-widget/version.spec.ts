@@ -12,7 +12,7 @@ test('GoodDataWidget displays its package version', async ({ page }) => {
     { name: 'mobile', width: 430, height: 932 },
   ]) {
     await captureVersionScreenshot(page, [`GoodData v${version}`], {
-      url: '/iframe.html?id=qa-aicreditsdashboard-runtime-fixtures--good-data-widget-version&viewMode=story',
+      url: '/iframe.html?id=qa-gooddatawidget-runtime-fixtures--good-data-widget-version&viewMode=story',
       path: `tests/widgets/gooddata-widget/test-results/version-dashboard-${viewport.name}-dark.png`,
       width: viewport.width,
       height: viewport.height,

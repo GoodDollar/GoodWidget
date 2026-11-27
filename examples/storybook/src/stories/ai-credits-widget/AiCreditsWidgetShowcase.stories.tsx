@@ -2,7 +2,6 @@ import type { Meta, StoryObj } from '@storybook/react'
 import { AiCreditsWidget } from '@goodwidget/ai-credits-widget'
 import {
   InjectedWalletStory,
-  MockBackendStory,
   AppKitConnectWalletStory,
 } from '../helpers/aiCreditsWidgetStories'
 
@@ -21,11 +20,6 @@ const meta: Meta<typeof AiCreditsWidget> = {
 
 export default meta
 type Story = StoryObj<typeof meta>
-
-export const MockBackend: Story = {
-  name: 'Mock Backend (browser wallet)',
-  render: () => <MockBackendStory />,
-}
 
 export const InjectedWallet: Story = {
   name: 'Injected Wallet',

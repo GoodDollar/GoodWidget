@@ -46,52 +46,52 @@ async function gotoStory(page: Page, storyId: string): Promise<void> {
 }
 
 test('no-provider state renders the connect CTA', async ({ page }) => {
-  await gotoStory(page, 'widgets-goodreservewidget--no-provider')
+  await gotoStory(page, 'qa-goodreservewidget-runtime-fixtures--no-provider')
   await expect(page.getByText('Connect Wallet')).toBeVisible()
   await page.screenshot({ path: `${SCREENSHOT_DIR}/grw-01-no-provider.png` })
 })
 
 test('unsupported-chain state renders the switch-network CTA', async ({ page }) => {
-  await gotoStory(page, 'widgets-goodreservewidget--unsupported-chain')
+  await gotoStory(page, 'qa-goodreservewidget-runtime-fixtures--unsupported-chain')
   await expect(page.getByText('Switch Network')).toBeVisible()
   await expect(page.getByText('Unsupported').first()).toBeVisible()
   await page.screenshot({ path: `${SCREENSHOT_DIR}/grw-02-unsupported-chain.png` })
 })
 
 test('sdk-initializing state shows a connecting loader', async ({ page }) => {
-  await gotoStory(page, 'widgets-goodreservewidget--sdk-initializing')
+  await gotoStory(page, 'qa-goodreservewidget-runtime-fixtures--sdk-initializing')
   await expect(page.getByText('Connecting to the reserve…')).toBeVisible()
   await page.screenshot({ path: `${SCREENSHOT_DIR}/grw-13-sdk-initializing.png` })
 })
 
 test('idle-buy state shows the Enter Amount CTA', async ({ page }) => {
-  await gotoStory(page, 'widgets-goodreservewidget--idle-buy')
+  await gotoStory(page, 'qa-goodreservewidget-runtime-fixtures--idle-buy')
   await expect(page.getByText('Enter Amount')).toBeVisible()
   await expect(page.getByText('Swap on CELO').first()).toBeVisible()
   await page.screenshot({ path: `${SCREENSHOT_DIR}/grw-03-idle-buy.png` })
 })
 
 test('amount-editing state reflects the typed amount', async ({ page }) => {
-  await gotoStory(page, 'widgets-goodreservewidget--amount-editing')
+  await gotoStory(page, 'qa-goodreservewidget-runtime-fixtures--amount-editing')
   await expect(page.locator('input').first()).toHaveValue('25')
   await page.screenshot({ path: `${SCREENSHOT_DIR}/grw-14-amount-editing.png` })
 })
 
 test('quote-loading state shows the fetching-quote CTA', async ({ page }) => {
-  await gotoStory(page, 'widgets-goodreservewidget--quote-loading')
+  await gotoStory(page, 'qa-goodreservewidget-runtime-fixtures--quote-loading')
   await expect(page.getByText('Fetching Quote…')).toBeVisible()
   await page.screenshot({ path: `${SCREENSHOT_DIR}/grw-15-quote-loading.png` })
 })
 
 test('quote-ready buy renders the quoted G$ output', async ({ page }) => {
-  await gotoStory(page, 'widgets-goodreservewidget--quote-ready-buy')
+  await gotoStory(page, 'qa-goodreservewidget-runtime-fixtures--quote-ready-buy')
   await expect(page.getByText('108.25', { exact: true })).toBeVisible()
   await expect(page.getByText('Review Swap')).toBeVisible()
   await page.screenshot({ path: `${SCREENSHOT_DIR}/grw-04-quote-ready-buy.png` })
 })
 
 test('quote-ready light theme resolves a different semantic palette from dark', async ({ page }) => {
-  await gotoStory(page, 'widgets-goodreservewidget--quote-ready-buy')
+  await gotoStory(page, 'qa-goodreservewidget-runtime-fixtures--quote-ready-buy')
 
   const darkHeading = page.getByText('Swap on CELO').first()
   const darkShell = page.getByTestId('GoodReserveWidget-shell').first()
@@ -103,7 +103,7 @@ test('quote-ready light theme resolves a different semantic palette from dark', 
 
   await page.screenshot({ path: `${SCREENSHOT_DIR}/grw-17-quote-ready-buy-dark-theme.png` })
 
-  await gotoStory(page, 'widgets-goodreservewidget--quote-ready-buy-light-theme')
+  await gotoStory(page, 'qa-goodreservewidget-runtime-fixtures--quote-ready-buy-light-theme')
 
   const lightHeading = page.getByText('Swap on CELO').first()
   const lightShell = page.getByTestId('GoodReserveWidget-shell').first()
@@ -123,7 +123,7 @@ test('quote-ready light theme resolves a different semantic palette from dark', 
 })
 
 test('quote-ready sell maps G$ into the from slot', async ({ page }) => {
-  await gotoStory(page, 'widgets-goodreservewidget--quote-ready-sell')
+  await gotoStory(page, 'qa-goodreservewidget-runtime-fixtures--quote-ready-sell')
   await expect(page.getByText('8.9231', { exact: true })).toBeVisible()
   // Sell direction: the "from" balance is the G$ balance, not the stable balance.
   await expect(page.getByText('Balance: 300.123457', { exact: true })).toBeVisible()
@@ -131,28 +131,28 @@ test('quote-ready sell maps G$ into the from slot', async ({ page }) => {
 })
 
 test('quote-ready on XDC renders the dynamic network label', async ({ page }) => {
-  await gotoStory(page, 'widgets-goodreservewidget--quote-ready-xdc')
+  await gotoStory(page, 'qa-goodreservewidget-runtime-fixtures--quote-ready-xdc')
   await expect(page.getByText('Swap on XDC').first()).toBeVisible()
   await expect(page.getByText('216.50', { exact: true })).toBeVisible()
   await page.screenshot({ path: `${SCREENSHOT_DIR}/grw-06-quote-ready-xdc.png` })
 })
 
 test('insufficient-balance state warns and disables the CTA', async ({ page }) => {
-  await gotoStory(page, 'widgets-goodreservewidget--insufficient-balance')
+  await gotoStory(page, 'qa-goodreservewidget-runtime-fixtures--insufficient-balance')
   await expect(page.getByText(/exceeds your available/i)).toBeVisible()
   await expect(page.getByText('Insufficient Balance')).toBeVisible()
   await page.screenshot({ path: `${SCREENSHOT_DIR}/grw-07-insufficient-balance.png` })
 })
 
 test('slippage selection sheet exposes tolerance options', async ({ page }) => {
-  await gotoStory(page, 'widgets-goodreservewidget--slippage-selection')
+  await gotoStory(page, 'qa-goodreservewidget-runtime-fixtures--slippage-selection')
   await expect(page.getByText('0.5%', { exact: true }).first()).toBeVisible()
   await expect(page.getByText('Done')).toBeVisible()
   await page.screenshot({ path: `${SCREENSHOT_DIR}/grw-08-slippage-selection.png` })
 })
 
 test('confirm dialog renders as a bottom-sheet with a press-to-confirm button', async ({ page }) => {
-  await gotoStory(page, 'widgets-goodreservewidget--confirm-dialog')
+  await gotoStory(page, 'qa-goodreservewidget-runtime-fixtures--confirm-dialog')
   await expect(page.getByText('Confirm Swap').first()).toBeVisible()
   await expect(page.getByText('Minimum Received', { exact: true })).toBeVisible()
   await expect(page.getByText('Max Slippage')).toBeVisible()
@@ -162,13 +162,13 @@ test('confirm dialog renders as a bottom-sheet with a press-to-confirm button', 
 })
 
 test('swap-pending state shows the swapping CTA', async ({ page }) => {
-  await gotoStory(page, 'widgets-goodreservewidget--swap-pending')
+  await gotoStory(page, 'qa-goodreservewidget-runtime-fixtures--swap-pending')
   await expect(page.getByText('Swapping…')).toBeVisible()
   await page.screenshot({ path: `${SCREENSHOT_DIR}/grw-10-swap-pending.png` })
 })
 
 test('swap-success state shows the received amount, not the wallet balance', async ({ page }) => {
-  await gotoStory(page, 'widgets-goodreservewidget--swap-success')
+  await gotoStory(page, 'qa-goodreservewidget-runtime-fixtures--swap-success')
   await expect(page.getByText('Swap Successful')).toBeVisible()
   await expect(page.getByText('Final amount received')).toBeVisible()
   // The fixture's lastSwapOutput is 10,230.46 while the wallet balance is 12,500;
@@ -179,7 +179,7 @@ test('swap-success state shows the received amount, not the wallet balance', asy
 })
 
 test('swap-error state surfaces the mapped reserve error', async ({ page }) => {
-  await gotoStory(page, 'widgets-goodreservewidget--swap-error')
+  await gotoStory(page, 'qa-goodreservewidget-runtime-fixtures--swap-error')
   await expect(page.getByText(/reverted/i)).toBeVisible()
   await page.screenshot({ path: `${SCREENSHOT_DIR}/grw-12-swap-error.png` })
 })
@@ -188,7 +188,7 @@ test('swap-error state surfaces the mapped reserve error', async ({ page }) => {
 // must accept typed characters. Tamagui's tag:'input' Stack does not forward
 // RN onChangeText on web, so the view wires a native onChange instead.
 test('amount input accepts typed characters (live adapter)', async ({ page }) => {
-  await page.goto('/iframe.html?id=widgets-goodreservewidget--interactive&viewMode=story')
+  await page.goto('/iframe.html?id=widgets-goodreservewidget-showcase--interactive&viewMode=story')
   await page.waitForLoadState('networkidle')
   await page.getByTestId('GoodReserveWidget-interactive').first().waitFor({ timeout: 30_000 })
 
@@ -219,7 +219,7 @@ test('amount input accepts typed characters (live adapter)', async ({ page }) =>
 test('live adapter completes a buy: quote → confirm → success with tx hash', async ({ page }) => {
   test.skip(process.env.GOODRESERVE_LIVE_TEST !== '1', 'Requires live RPC/wallet access')
 
-  await page.goto('/iframe.html?id=widgets-goodreservewidget--interactive&viewMode=story')
+  await page.goto('/iframe.html?id=widgets-goodreservewidget-showcase--interactive&viewMode=story')
   await page.waitForLoadState('networkidle')
   await page.getByTestId('GoodReserveWidget-interactive').first().waitFor({ timeout: 30_000 })
 

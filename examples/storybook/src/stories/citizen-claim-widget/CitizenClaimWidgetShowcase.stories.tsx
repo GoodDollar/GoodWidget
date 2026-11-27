@@ -1,11 +1,13 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import { CitizenClaimWidget } from '@goodwidget/citizen-claim-widget'
+import { CitizenClaimWidget, type CitizenClaimWidgetEnvironment } from '@goodwidget/citizen-claim-widget'
 import { InjectedWalletStory } from '../helpers/citizenClaimWidgetStories'
 import { BRAND_PRESET_OPTIONS, brandPresetOverrides, type BrandPreset } from '../helpers/themeOverridePresets'
+import { ENVIRONMENT_OPTIONS } from '../helpers/environmentOptions'
 
 interface CitizenClaimWidgetStoryArgs {
   defaultTheme: 'light' | 'dark'
   brandPreset: BrandPreset
+  environment: CitizenClaimWidgetEnvironment
 }
 
 const meta: Meta<CitizenClaimWidgetStoryArgs> = {
@@ -24,10 +26,16 @@ const meta: Meta<CitizenClaimWidgetStoryArgs> = {
       options: BRAND_PRESET_OPTIONS,
       description: 'Sample host-branding themeOverrides preset.',
     },
+    environment: {
+      control: 'radio',
+      options: ENVIRONMENT_OPTIONS,
+      description: 'Deployed GoodProtocol environment passed to the widget’s environment prop.',
+    },
   },
   args: {
     defaultTheme: 'dark',
     brandPreset: 'None',
+    environment: 'development',
   },
 }
 
@@ -35,7 +43,11 @@ export default meta
 type Story = StoryObj<CitizenClaimWidgetStoryArgs>
 
 export const InjectedWallet: Story = {
-  render: ({ defaultTheme, brandPreset }) => (
-    <InjectedWalletStory defaultTheme={defaultTheme} themeOverrides={brandPresetOverrides(brandPreset)} />
+  render: ({ defaultTheme, brandPreset, environment }) => (
+    <InjectedWalletStory
+      defaultTheme={defaultTheme}
+      themeOverrides={brandPresetOverrides(brandPreset)}
+      environment={environment}
+    />
   ),
 }

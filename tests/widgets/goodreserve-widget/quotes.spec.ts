@@ -24,7 +24,7 @@ import {
   type ReserveRpcMock,
 } from './mockReserveRpc'
 
-const INTERACTIVE_STORY_ID = 'widgets-goodreservewidget--interactive'
+const INTERACTIVE_STORY_ID = 'widgets-goodreservewidget-showcase--interactive'
 const CELO_CHAIN_ID = 42220
 const XDC_CHAIN_ID = 50
 const FUSE_CHAIN_ID = 122

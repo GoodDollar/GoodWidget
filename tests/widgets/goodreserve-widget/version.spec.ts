@@ -8,8 +8,8 @@ const { version } = JSON.parse(
 
 test('GoodReserveWidget displays its package version', async ({ page }) => {
   for (const theme of [
-    { name: 'dark', story: 'widgets-goodreservewidget--quote-ready-buy' },
-    { name: 'light', story: 'widgets-goodreservewidget--quote-ready-buy-light-theme' },
+    { name: 'dark', story: 'qa-goodreservewidget-runtime-fixtures--quote-ready-buy' },
+    { name: 'light', story: 'qa-goodreservewidget-runtime-fixtures--quote-ready-buy-light-theme' },
   ]) {
     for (const viewport of [
       { name: 'desktop', width: 1280, height: 900 },
