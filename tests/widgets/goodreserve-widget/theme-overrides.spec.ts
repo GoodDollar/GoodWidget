@@ -47,7 +47,8 @@ test('GoodReserveWidget Theme Overrides playground renders in dark mode and upda
       updatedArgs: {
         swapShellBackgroundDark: '#e11d48',
         amountCardBackgroundDark: '#059669',
-        submitButtonBackground: '#2563eb',
+        submitButtonBackgroundDark: '#2563eb',
+        submitButtonBackgroundLight: '#0f766e',
       },
     })
   })
@@ -79,8 +80,26 @@ test('GoodReserveWidget Theme Overrides playground renders in light mode with cu
   await expect(amountCard).toBeVisible()
   await expect(amountCard).toHaveCSS('background-color', 'rgb(211, 220, 254)')
 
+  const submitButton = themedWidget.locator('.is_Button').first()
+  await expect(submitButton).toBeVisible()
+  await expect(submitButton).toHaveCSS('background-color', 'rgb(124, 58, 237)')
+
   await page.screenshot({
     path: 'tests/widgets/goodreserve-widget/test-results/grw-theme-overrides-light.png',
     fullPage: true,
   })
+
+  await page.evaluate(() => {
+    const channel = (window as unknown as { __STORYBOOK_ADDONS_CHANNEL__?: { emit: (event: string, data: unknown) => void } })
+      .__STORYBOOK_ADDONS_CHANNEL__
+    channel?.emit('updateStoryArgs', {
+      storyId: 'widgets-goodreservewidget-theme-overrides--playground',
+      updatedArgs: {
+        submitButtonBackgroundDark: '#2563eb',
+        submitButtonBackgroundLight: '#0f766e',
+      },
+    })
+  })
+
+  await expect(submitButton).toHaveCSS('background-color', 'rgb(15, 118, 110)', { timeout: 5000 })
 })

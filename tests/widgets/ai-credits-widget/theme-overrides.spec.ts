@@ -41,7 +41,8 @@ test('AiCreditsWidget Theme Overrides playground renders in dark mode and update
       storyId: 'widgets-aicreditswidget-theme-overrides--playground',
       updatedArgs: {
         heroBackgroundDark: '#0284c7',
-        buttonBackground: '#dc2626',
+        buttonBackgroundDark: '#dc2626',
+        buttonBackgroundLight: '#0f766e',
       },
     })
   })
@@ -69,8 +70,26 @@ test('AiCreditsWidget Theme Overrides playground renders in light mode with cust
 
   await expect(heroCard).toHaveCSS('background-color', 'rgb(224, 231, 255)')
 
+  const buyButton = themedWidget.locator('button').filter({ hasText: 'Buy AI Credits' }).first()
+  await expect(buyButton).toBeVisible()
+  await expect(buyButton).toHaveCSS('background-color', 'rgb(124, 58, 237)')
+
   await page.screenshot({
     path: 'tests/widgets/ai-credits-widget/test-results/acw-theme-overrides-light.png',
     fullPage: true,
   })
+
+  await page.evaluate(() => {
+    const channel = (window as unknown as { __STORYBOOK_ADDONS_CHANNEL__?: { emit: (event: string, data: unknown) => void } })
+      .__STORYBOOK_ADDONS_CHANNEL__
+    channel?.emit('updateStoryArgs', {
+      storyId: 'widgets-aicreditswidget-theme-overrides--playground',
+      updatedArgs: {
+        buttonBackgroundDark: '#dc2626',
+        buttonBackgroundLight: '#0f766e',
+      },
+    })
+  })
+
+  await expect(buyButton).toHaveCSS('background-color', 'rgb(15, 118, 110)', { timeout: 5000 })
 })

@@ -51,7 +51,8 @@ interface OverridesArgs {
   heroBackgroundLight: string
   cardBorderColorDark: string
   cardBorderColorLight: string
-  buttonBackground: string
+  buttonBackgroundDark: string
+  buttonBackgroundLight: string
 }
 
 function buildThemeOverrides(args: OverridesArgs): GoodWidgetThemeOverrides {
@@ -70,16 +71,16 @@ function buildThemeOverrides(args: OverridesArgs): GoodWidgetThemeOverrides {
         borderColor: args.cardBorderColorLight,
       },
       dark_Button: {
-        background: args.buttonBackground,
-        backgroundHover: args.buttonBackground,
-        backgroundPress: args.buttonBackground,
-        backgroundFocus: args.buttonBackground,
+        background: args.buttonBackgroundDark,
+        backgroundHover: args.buttonBackgroundDark,
+        backgroundPress: args.buttonBackgroundDark,
+        backgroundFocus: args.buttonBackgroundDark,
       },
       light_Button: {
-        background: args.buttonBackground,
-        backgroundHover: args.buttonBackground,
-        backgroundPress: args.buttonBackground,
-        backgroundFocus: args.buttonBackground,
+        background: args.buttonBackgroundLight,
+        backgroundHover: args.buttonBackgroundLight,
+        backgroundPress: args.buttonBackgroundLight,
+        backgroundFocus: args.buttonBackgroundLight,
       },
     },
   }
@@ -111,9 +112,13 @@ const meta: Meta<OverridesArgs> = {
       control: 'color',
       description: 'themes.light_Card.borderColor (styles Card border in light mode)',
     },
-    buttonBackground: {
+    buttonBackgroundDark: {
       control: 'color',
-      description: 'themes.dark_Button.background / themes.light_Button.background',
+      description: 'themes.dark_Button.background (dark mode)',
+    },
+    buttonBackgroundLight: {
+      control: 'color',
+      description: 'themes.light_Button.background (light mode)',
     },
   },
   args: {
@@ -122,7 +127,8 @@ const meta: Meta<OverridesArgs> = {
     heroBackgroundLight: '#E0E7FF',
     cardBorderColorDark: '#7C3AED',
     cardBorderColorLight: '#7C3AED',
-    buttonBackground: '#7C3AED',
+    buttonBackgroundDark: '#7C3AED',
+    buttonBackgroundLight: '#7C3AED',
   },
 }
 export default meta

@@ -41,7 +41,8 @@ test('SuperfluidCampaignWidget Theme Overrides playground renders in dark mode a
       storyId: 'widgets-superfluidcampaignwidget-theme-overrides--playground',
       updatedArgs: {
         cardBackgroundDark: '#059669',
-        buttonBackground: '#dc2626',
+        buttonBackgroundDark: '#dc2626',
+        buttonBackgroundLight: '#0f766e',
       },
     })
   })
@@ -76,4 +77,18 @@ test('SuperfluidCampaignWidget Theme Overrides playground renders in light mode 
     path: 'tests/widgets/superfluid-campaign-widget/test-results/scw-theme-overrides-light.png',
     fullPage: true,
   })
+
+  await page.evaluate(() => {
+    const channel = (window as unknown as { __STORYBOOK_ADDONS_CHANNEL__?: { emit: (event: string, data: unknown) => void } })
+      .__STORYBOOK_ADDONS_CHANNEL__
+    channel?.emit('updateStoryArgs', {
+      storyId: 'widgets-superfluidcampaignwidget-theme-overrides--playground',
+      updatedArgs: {
+        buttonBackgroundDark: '#dc2626',
+        buttonBackgroundLight: '#0f766e',
+      },
+    })
+  })
+
+  await expect(button).toHaveCSS('background-color', 'rgb(15, 118, 110)', { timeout: 5000 })
 })

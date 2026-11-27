@@ -55,7 +55,8 @@ interface OverridesArgs {
   swapShellBackgroundLight: string
   amountCardBackgroundDark: string
   amountCardBackgroundLight: string
-  submitButtonBackground: string
+  submitButtonBackgroundDark: string
+  submitButtonBackgroundLight: string
 }
 
 function buildThemeOverrides(args: OverridesArgs): GoodWidgetThemeOverrides {
@@ -70,16 +71,16 @@ function buildThemeOverrides(args: OverridesArgs): GoodWidgetThemeOverrides {
         backgroundInput: args.amountCardBackgroundLight,
       },
       dark_Button: {
-        background: args.submitButtonBackground,
-        backgroundHover: args.submitButtonBackground,
-        backgroundPress: args.submitButtonBackground,
-        backgroundFocus: args.submitButtonBackground,
+        background: args.submitButtonBackgroundDark,
+        backgroundHover: args.submitButtonBackgroundDark,
+        backgroundPress: args.submitButtonBackgroundDark,
+        backgroundFocus: args.submitButtonBackgroundDark,
       },
       light_Button: {
-        background: args.submitButtonBackground,
-        backgroundHover: args.submitButtonBackground,
-        backgroundPress: args.submitButtonBackground,
-        backgroundFocus: args.submitButtonBackground,
+        background: args.submitButtonBackgroundLight,
+        backgroundHover: args.submitButtonBackgroundLight,
+        backgroundPress: args.submitButtonBackgroundLight,
+        backgroundFocus: args.submitButtonBackgroundLight,
       },
     },
   }
@@ -111,9 +112,13 @@ const meta: Meta<OverridesArgs> = {
       control: 'color',
       description: 'themes.light.backgroundInput token (styles amount input card panels in light mode)',
     },
-    submitButtonBackground: {
+    submitButtonBackgroundDark: {
       control: 'color',
-      description: 'themes.dark_Button.background / themes.light_Button.background',
+      description: 'themes.dark_Button.background (dark mode)',
+    },
+    submitButtonBackgroundLight: {
+      control: 'color',
+      description: 'themes.light_Button.background (light mode)',
     },
   },
   args: {
@@ -122,7 +127,8 @@ const meta: Meta<OverridesArgs> = {
     swapShellBackgroundLight: '#E0E7FF',
     amountCardBackgroundDark: '#0F172A',
     amountCardBackgroundLight: '#D3DCFE',
-    submitButtonBackground: '#7C3AED',
+    submitButtonBackgroundDark: '#7C3AED',
+    submitButtonBackgroundLight: '#7C3AED',
   },
 }
 export default meta
